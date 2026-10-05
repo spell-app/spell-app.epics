@@ -961,6 +961,14 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 - 2026-10-04 · `yarn format` in `packages/ui` rewrote `src/styles/themes/spell.css`, a file the change never touched:
   oxfmt joins its `@font-face` `src:` lists (one `local()` per line, as committed) onto two long lines. · `git checkout
   --` the file after formatting;  better, format it once in its own commit so `yarn format` stops touching it. · ui
+- 2026-10-05 · `yarn gen:root` rewrote all of `ui-root.catalog.ts` (+117 / -55 for one new tag):  `scripts/gen-root-catalog.ts`
+  runs the bare `oxfmt` binary, which since Vite+ finds no `.oxfmtrc.json`, so it formats with oxfmt's DEFAULTS
+  (semicolons, trailing commas, 80 columns);  a later `vp fmt` keeps the broken-up objects. · Add the new tag's line
+  by hand to the committed file (`vp fmt --check` passes);  fix:  run `vp fmt` on the output instead (also
+  `gen-styles.ts`, `alias-tokens.ts`). · ui
+- 2026-10-05 · `yarn review` failed `SiteDataBuilder.test.ts` ("site data is current") right after `yarn site:build`:
+  review's `yarn format` reflowed a new sheet's multi-line `var(` token defaults, which the site data quotes verbatim.
+  · Format new CSS (`yarn vp fmt <file>`) BEFORE `yarn site:build` / the brand's `yarn build`, or rebuild after review. · ui
 
 ## app
 
