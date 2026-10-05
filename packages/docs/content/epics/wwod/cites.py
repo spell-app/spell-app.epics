@@ -63,7 +63,8 @@ for path in wwod + extra:
             target = re.sub(r":\d+(-\d+)?$", "", target)
             if target == "SKILL.md" or (target.startswith("packages/agents/") and "agents" not in folder.parts):
                 continue
-            if not (REPO / target).exists():
+            # from the repo root, or from the file's own folder (a package's `AGENTS.md` names its own files)
+            if not (REPO / target).exists() and not (path.parent / target).exists():
                 problems.append(f"{where}  `{target}`:  no such path")
 print("\n".join(problems) or "ok")
 print(f"{len(sections)} sections, {sum(map(len, sections.values()))} rules, {len(problems)} problems")
