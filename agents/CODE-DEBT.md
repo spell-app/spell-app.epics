@@ -400,6 +400,44 @@ knowingly kept:
   - **Fix**:  drop the bare `$/app` entry from `tsconfig.base.json`, or add a real barrel.
   - **Pinned at**:  `tsconfig.base.json`.
 
+---
+
+### `respondWithJSON()` answers every throw with 500 and leaks the stack
+
+- **Cost**:  WWOD §10:  a caller mistake answers its own status, and ONE error-body shape per server.  The app's API
+  answers `SRV.HttpError` (and every other throw) with 500 and `{ errors: [{ message, trace }] }`, the stack
+  included;  `$/server`'s listener answers `{ error }`.  The client parses two shapes, and a 404 reads as a 500.
+- **Cause**:  `respondWithJSON()` / `sendError()` (`src/node/response-utils.ts`) predate `SRV.HttpError`.
+- **Fix**:  `respondWithJSON()` rethrows mapped errors to the listener (or maps them itself) and answers
+  `{ error }`;  no `trace` in a response.  Part of the planned `ApiTransaction` (epic `wwod` T10).
+- **Pinned at**:  WWOD §10 "Caller mistakes throw specific error subclasses";  `api.test.ts`.
+
+---
+
+### `src/node/`:  server code without `.server.ts`, kebab-case names
+
+- **Cost**:  WWOD §8 / §10:  every file that runs on the server ends `.server.ts`;  file names are PascalCase (one
+  class) or camelCase (a family).  `spell`'s `src/node/` has `response-utils.ts`, `file-utils.ts`,
+  `project-utils.ts`, `disk-fetch.ts`, `packageVersion.node.ts`, `environment.ts`.
+- **Cause**:  the folder predates both rules;  `$/spell/node/...` is an alias every server imports.
+- **Fix**:  rename when next touched (`responseUtils.server.ts` ...), with the alias table and imports in the same
+  commit (WWOD §1 "Grep the whole repo BEFORE renaming").
+- **Pinned at**:  WWOD §8 "File naming", §10 "Server code stays out of the browser bundle".
+
+---
+
+### `SpellLocation` isn't the value-object shape WWOD §15 describes
+
+- **Cost**:  `new SpellLocation(path)` returns the interned registry entry from its constructor, its `registry` is
+  public, and its segment pattern is a local `const`:  callers can't share the pattern, and `new` doesn't read as
+  "maybe an existing object".
+- **Cause**:  older than WWOD;  works.
+- **Fix**:  `protected` constructor, `static xOrDie()` / `optional()` factories, `private static readonly registry`,
+  `static PATH_PATTERN`.
+- **Pinned at**:  WWOD §15 "Immutable and interned", "Validators".
+
+---
+
 ## ui
 
 ### `ui-popup.anchored.css` skips the CSS pipeline
@@ -488,3 +526,142 @@ knowingly kept:
 - **Pinned at**: `packages/app/vite.shared.ts` (`REACT_DIRS`, `REACT_MARKER`);  the marker in each React `.tsx` of
   `packages/app/src/ui/forms/`, `packages/core/src`;  `packages/app/src/build.test.ts` (the app's chunks hold no
   React, `spell-runtime.js`'s do);  `packages/app/src/solid.test.tsx`.
+
+---
+
+### App CSS off `ui`'s tokens and naming
+
+- **Cost**:  WWOD §18:  intent tokens, no literal colours, no `rem`, sub-parts nested and unprefixed, a component's
+  own custom properties `--Root-x`.  Today:  literal colours (`white`, `grey`, `darkblue`, `#4183c4`) in
+  `TypeExplorer.css`, `SplitPanel.css`, `ThingExplorer.css`;  a `.dark` class instead of the colour scheme;  a `rem`
+  in `SplitPanel.css`;  prefixed parts (`.SplitPanelPane`);  indents computed in TS instead of a custom property.
+  Dark mode and embedding in other pages (root font size) both suffer.
+- **Cause**:  the app's CSS predates `@spell-app/ui`'s tokens.
+- **Fix**:  one pass per sheet, against WWOD §18.
+- **Pinned at**:  WWOD §18.
+
+---
+
+## util
+
+### `src/spell/constants.ts`:  a bare constants file of ALL-CAPS sentinels
+
+- **Cost**:  WWOD §8 allows ONE `constants.ts`, at a package's root, for its string sentinels;  §9 wants sentinels as
+  English, presentable values (`"last task"`) in a const-array union or const object.  `util`'s
+  `src/spell/constants.ts` holds `CONFIRM`, `NONE`, `TaskStatus` (`"UNSTARTED"` ...), `TaskResolveWith`
+  (`"LAST_TASK"`), `KnownFormat`:  new code copies the ALL-CAPS shape.
+- **Cause**:  written before WWOD (epic `wwod`, 2026-10-04);  every `Task` / `$fetch` caller compares against these.
+- **Fix**:  move to the package root's `constants.ts` (or the folder's `.types.ts`), values in English, callers
+  updated in one pass (WWOD §1:  grep first).
+- **Pinned at**:  WWOD §8 "`<folder>.types.ts`", §9 "String sentinels over booleans for modes";  epic `wwod` I1.
+
+---
+
+### Stateless object-literal singletons (`assert`)
+
+- **Cost**:  WWOD §8 (D15):  singleton services are classes, stateless ones too.  `assert = { string, number,
+  boolean }` (`src/spell/assert.ts`) is an object literal;  so is `app`'s `Actions`.
+- **Cause**:  older code;  harmless today, but a literal can't gain state, `@proto static` defaults or a subclass
+  without its callers changing.
+- **Fix**:  a small all-`static` class each (`class Assert { static string() ... }`), callers unchanged in shape.
+- **Pinned at**:  WWOD §8 "Singleton services are classes, stateless ones too".
+
+---
+
+### `Loadable.getSaver()` is required;  WWOD §14 makes saving optional
+
+- **Cost**:  every `Loadable` subclass must implement `getSaver()`, even read-only ones;  callers can't ask
+  `canBeSaved`.
+- **Cause**:  `getSaver()` is `abstract` (`src/spell/Loadable.ts`).
+- **Fix**:  a concrete `getSaver()` that throws "can't save", plus `get canBeSaved()` comparing it against
+  `Loadable.prototype.getSaver` (WWOD §14);  drop the stub savers.
+- **Pinned at**:  WWOD §14 "Required subclass surface is `abstract`;  an optional capability is a concrete method that
+  throws".
+
+---
+
+## every package (WWOD)
+
+Where code knowingly doesn't follow a WWOD rule yet (`agents/wwod/`, epic `wwod`, 2026-10-04).
+
+### Error classes without `prototype.name`, across packages
+
+- **Cost**:  WWOD §5 sets an error's name ONE way:  `X.prototype.name = "X"` after the class, details in a typed
+  `cause`.  Today it's three ways, so `error.name` and logs differ by package:
+  - `$/util`'s `CustomError`:  `get name()` from `this.constructor.name` (mangled by a minifier), details in
+    `props.error`;  `getDier()` throws `UIError` with `props.error`
+  - `ui`'s `ApiError`, `SourceError`:  `this.name =` in the constructor
+  - `server`'s `HttpError`, `FileLockError`, `cli`'s `CliError`, `vscode`'s `BridgeError`:  no name at all
+- **Cause**:  written per package, before WWOD.
+- **Fix**:  the system errors move to `$/util/errors` (epic `wwod` todo T6), renamed (`NotFoundError`,
+  `CanceledRequestError`, `CanceledError`:  T7), each with `prototype.name` and a typed cause;  package errors follow.
+- **Pinned at**:  WWOD §5 "Error classes:  body usually empty, named AFTER the class";  epic `wwod` T6-T8.
+
+---
+
+### `it()` in most test files;  WWOD wants `test()`
+
+- **Cost**:  two styles across the repo:  319 test files use `it()` (all of `ui`'s and `server`'s), 83 `test()`.  No
+  file mixes them.
+- **Cause**:  packages written apart.  WWOD §20 (D6):  NEW files use `test()`, an existing file keeps its style.
+- **Fix**:  a mechanical rename, `it(` -> `test(` plus the import, one package at a time, when nothing else is
+  editing its tests.
+- **Pinned at**:  WWOD §20 "`test()` for new test files;  one style per file".
+
+---
+
+### Bare `console.*` instead of a `Logger`
+
+- **Cost**:  ~430 bare `console.*` calls can't be turned up or down per subsystem;  `$/util`'s `Logger` is used ONCE
+  (`parser`'s `Tokenizer`).  `SPELL_DEBUG` / `SPELL_<PKG>_DEBUG` (WWOD §19) aren't read anywhere yet.
+- **Cause**:  `Logger` existed but was never adopted.
+- **Fix**:  epic `logger-everywhere` (epic `wwod` T28).
+- **Pinned at**:  WWOD §19.
+
+---
+
+### `process.env` read all over;  unprefixed variable names
+
+- **Cost**:  WWOD §11:  ONE `environment.server.ts` per package reads `process.env`, parsing through helpers,
+  throwing at startup.  Today env is read in ~20 files (`app`'s `EditorServer.ts`, `server`'s `open.ts` /
+  `PageServer.ts` / `page/cli.ts`, `cli`'s runner and `goalsCommand.ts`, `vscode`'s `WindowBridge.ts`, `docs` and
+  `ui` tools), parsed inline (`Number(...) ||`), and `spell`'s `environment.ts` logs on import.  Names without
+  `SPELL_`:  `VITE_PORT`, `API_SERVER`, `GOALS_DIR`, `FA_PACKAGE_DIR`, `BENCH`, `INCREMENTAL_FULL`,
+  `UI_TEST_ALL` / `UI_SOLID_PROD` (-> `SPELL_UI_*`, D20).
+- **Cause**:  no rule before WWOD.
+- **Fix**:  the parse helpers (epic `wwod` T13), then one `environment.server.ts` per package;  renamed variables
+  keep reading the old name for a while, with a warning.
+- **Pinned at**:  WWOD §11.
+
+---
+
+### Helpers WWOD's rules assume, not built yet
+
+- **Cost**:  rules written as if they exist;  code does it by hand meanwhile:
+  - `setDebugGlobal()` (WWOD §1):  `window.project =` (`app`'s `editor.ts`), `Object.assign(globalThis, ...)` in
+    `LazyMonaco.tsx`, `VSCodeRunner.tsx`
+  - `debounce()` (§12):  hand-rolled timers, `EditorStore.compileAppSoon()` + `compileAppSoonTimer`
+  - `safelyCall()` / `safelyCallAll()`, `makeErrorWrapper()` (§5):  hand-written `try` / `catch`
+- **Cause**:  WWOD came from `construct-app`, which had them;  Owen deferred building them (epic `wwod` D24).
+- **Fix**:  build them in `$/util` (epic `wwod` T4, T5, T15), then replace the hand-written forms.
+- **Pinned at**:  WWOD §1, §5, §12;  epic `wwod` todos.
+
+---
+
+### `{ ok: false }` results instead of throwing
+
+- **Cost**:  WWOD §5 / §7:  throw typed errors, never return error unions.  8 places return `{ ok: false }`, e.g.
+  `lsp`'s `SpellLanguageServer.ts`, `vscode`, `ui`'s tools:  each caller checks a flag a `catch` would handle.
+- **Cause**:  protocol-shaped replies, written before the rule.
+- **Fix**:  throw;  map to a reply at the protocol edge only.
+- **Pinned at**:  WWOD §5 "Throw typed errors;  NEVER return error unions".
+
+---
+
+### Packages without a `README.md`
+
+- **Cost**:  WWOD §6:  a `README.md` per package is REQUIRED (files table, "Adding a new X").  Missing:  `app`,
+  `core`, `lsp`, `parser`, `server`, `spell` (has a lowercase `readme.md`, the language), `vscode`.
+- **Cause**:  docs went to `packages/docs` pages and `AGENTS.md` instead.
+- **Fix**:  one per package, short, pointing at its docs pages (epic `wwod` T2).
+- **Pinned at**:  WWOD §6 "A `README.md` per package".
