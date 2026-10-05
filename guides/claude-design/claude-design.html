@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Designing with Spell UI</title>
+    <meta
+      name="description"
+      content="How Claude Design and Claude in VS Code build pages from Spell's real ui-* elements:  the Spell design system on claude.ai, the one-file bundle, /design push and pull."
+    />
+    <link rel="stylesheet" href="../../packages/docs/tools/_assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page">
+    <spell-site-header root="../.."></spell-site-header>
+    <div class="spell-doc">
+      <main class="spell-doc-main">
+        <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
+          <ui-breadcrumb-section href="../../pages/index.html" target="src-packages-docs-index-html"
+            >Docs</ui-breadcrumb-section
+          >
+          <ui-breadcrumb-section href="../index.html" target="src-guides-index-html">Guides</ui-breadcrumb-section>
+          <ui-breadcrumb-section active>Designing with Spell UI</ui-breadcrumb-section>
+        </ui-breadcrumb>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>Designing with Spell UI</h1></header></ui-sticky
+        >
+        <p class="lede">
+          Claude Design (on claude.ai) and Claude in VS Code build pages from Spell's real <code>&lt;ui-*&gt;</code>
+          elements, not look-alikes. This guide says how the pieces fit, how to design in each place, and how a design
+          comes back into spell-app-dev.
+        </p>
+        <ui-list class="spell-meta">
+          <ui-item icon="map"
+            ><b>Plan doc:</b>
+            <a href="../../epics/claude-design/claude-design.plan.html" target="claude-design"
+              >epic claude-design</a
+            ></ui-item
+          >
+          <ui-item icon="user"
+            >Written for: Owen, and any Claude session asked to design a page or change a component</ui-item
+          >
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="green">built</ui-label> on branch <code>claude-design</code>, not yet
+            merged</ui-item
+          >
+          <ui-item icon="flask"
+            >Checked: 2026-10-05, in a local copy of Claude Design's own runtime (Playwright), and by Owen on claude.ai
+            (see <a href="#5-sources">Sources</a>)</ui-item
+          >
+        </ui-list>
+
+        <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <ui-statistics class="spell-stats" size="mini">
+            <ui-statistic value="58" label="component cards"></ui-statistic>
+            <ui-statistic value="369" label="colour tokens"></ui-statistic>
+            <ui-statistic value="4.8" label="MB bundle"></ui-statistic>
+          </ui-statistics>
+          <ul>
+            <li>
+              Spell has a <b>design system on claude.ai</b>, named Spell (private: only Owen can open it until he shares
+              it). It's GENERATED from the code: every element's vocabulary file becomes a card with a README and a live
+              preview, the Spell theme becomes <code>tokens.json</code>, and the brand rules become its README.
+            </li>
+            <li>
+              Its components are ONE classic script, <code>components/bundle.js</code>. Loading it defines every
+              <code>&lt;ui-*&gt;</code> element, so a design writes plain markup:
+              <code>&lt;ui-button primary icon="check"&gt;Save&lt;/ui-button&gt;</code>. No React wrappers, no npm
+              publish.
+            </li>
+            <li>
+              The bundle goes INTO the system as a file: Claude Design can't reach this laptop, so a component change
+              reaches it through one command, <code>/design push</code>, then a reload.
+            </li>
+            <li>
+              A design comes back as a page with <code>/design pull</code>; in VS Code, the same element data gives
+              autocomplete and hover docs for every <code>&lt;ui-*&gt;</code> tag.
+            </li>
+          </ul>
+          <ui-message state="positive" header="To use it">
+            <ul>
+              <li>After changing a component: <code>/design push</code>, then reload the design in Claude Design.</li>
+              <li>To start a design on the Spell system: <code>/design new "&lt;title&gt;"</code>.</li>
+              <li>To bring one back: <code>/design pull &lt;design link&gt; [page]</code>.</li>
+              <li>To build a page here: <code>/design</code>, or just ask for a page "with Spell UI".</li>
+            </ul>
+          </ui-message>
+        </ui-section>
+
+        <ui-section id="2-how-it-works" header="2. How it works" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="layer group"></ui-icon>
+          <p>
+            Four pieces, each generated from the one before it, so nothing about an element's shape is written down
+            twice.
+          </p>
+
+          <ui-section id="the-parts" header="The parts" sticky collapsible dividing collapsed>
+            <ui-cards class="spell-flow" stackable>
+              <ui-card>
+                <ui-content>
+                  <ui-header>The vocabularies</ui-header>
+                  <ui-description
+                    >One <code>&lt;tag&gt;.vocabulary.en.ts</code> per element: attributes and their values, slots,
+                    events, parts. <code>yarn site:data</code> gathers them into
+                    <a
+                      href="../../packages/ui/site/_data/components.json"
+                      target="src-packages-ui-site-data-components-json"
+                      ><code>packages/ui/site/_data/components.json</code></a
+                    >.</ui-description
+                  >
+                </ui-content>
+              </ui-card>
+              <ui-card>
+                <ui-content>
+                  <ui-header>The design system's files</ui-header>
+                  <ui-description
+                    ><code>spell dev design build</code> writes them to
+                    <a
+                      href="../../packages/ui/build/design-system/project/"
+                      target="src-packages-ui-build-design-system-project"
+                      ><code>packages/ui/build/design-system/project/</code></a
+                    >: README, <code>tokens.json</code>, <code>components/index.d.ts</code>, a README and preview per
+                    family, the cover.</ui-description
+                  >
+                </ui-content>
+              </ui-card>
+              <ui-card>
+                <ui-content>
+                  <ui-header>The bundle</ui-header>
+                  <ui-description
+                    ><code>spell dev design bundle</code>: one classic script, <code>window.SpellUI</code>, every Font
+                    Awesome Free icon and the code and markdown engines inlined, the Spell theme applied.
+                    <code>spell dev design check</code> proves it.</ui-description
+                  >
+                </ui-content>
+              </ui-card>
+              <ui-card>
+                <ui-content>
+                  <ui-header>The system on claude.ai</ui-header>
+                  <ui-description
+                    ><code>/design push</code> sends the changed files with Claude's Artifact tool; the shared record
+                    <a href="../../brand/design-system.json" target="src-brand-design-system-json"
+                      ><code>brand/design-system.json</code></a
+                    >
+                    says what's there, so every checkout knows.</ui-description
+                  >
+                </ui-content>
+              </ui-card>
+            </ui-cards>
+          </ui-section>
+
+          <ui-section id="push" header="After a component change:  /design push" sticky collapsible dividing collapsed>
+            <ui-steps class="spell-steps" ordered>
+              <ui-step
+                header="build"
+                description="spell dev design build (after yarn site:data if a vocabulary changed)"
+              ></ui-step>
+              <ui-step
+                header="bundle and check"
+                description="spell dev design bundle, then spell dev design check"
+              ></ui-step>
+              <ui-step
+                header="send what changed"
+                description="spell dev design changed lists it;  Claude publishes those files"
+              ></ui-step>
+              <ui-step
+                header="record and reload"
+                description="spell dev design pushed;  reload the design in Claude Design"
+              ></ui-step>
+            </ui-steps>
+            <ul>
+              <li>
+                A Design keeps its own COPY of the system (<code>project/ds/spell/</code>), so a Design made before a
+                push still shows the old bundle until its copy is refreshed.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="in-claude-design" header="Designing in Claude Design" sticky collapsible dividing collapsed>
+            <p>The system's README says all of this to Claude Design; here's the short form.</p>
+            <ul>
+              <li>
+                Load the bundle once, after the board's <code>support.js</code> line:
+                <code>&lt;script src="ds/spell/components/bundle.js"&gt;</code>.
+              </li>
+              <li>
+                Write plain markup inside <code>&lt;ui-root&gt;</code>. Never <code>x-import</code> or React: there are
+                no React components.
+              </li>
+              <li>
+                A flag is present or absent (<code>primary</code>); in a board, branch with
+                <code>&lt;sc-if&gt;</code> rather than binding a flag to a hole.
+              </li>
+              <li>
+                Any Font Awesome Free icon name works (<code>icon="wand magic sparkles"</code>); regular ones end in
+                <code> outline</code>.
+              </li>
+              <li>Page typography is opt-in: <code>class="ui-typography"</code> on a container.</li>
+              <li>
+                Clicks run only in a board's Play view (the board filling the window). On the canvas a click selects.
+                The boards are listed under the canvas's small sidebar icon, upper right.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>A board on the Spell system · the pony, trimmed</ui-title>
+              <ui-content>
+                <pre><code class="language-html">&lt;head&gt;
+  &lt;script src="./support.js"&gt;&lt;/script&gt;
+  &lt;script src="ds/spell/components/bundle.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;x-dc&gt;
+&lt;ui-root&gt;
+  &lt;ui-card&gt;&lt;ui-content&gt;&lt;ui-header&gt;Sparkle&lt;/ui-header&gt;&lt;/ui-content&gt;&lt;/ui-card&gt;
+  &lt;ui-button primary="" icon="horse" onClick="{{gallop}}"&gt;{{gallopLabel}}&lt;/ui-button&gt;
+&lt;/ui-root&gt;
+&lt;/x-dc&gt;</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="pull" header="Bringing a design back:  /design pull" sticky collapsible dividing collapsed>
+            <p>
+              Claude reads the board from claude.ai, then
+              <code>spell dev design pull &lt;board&gt; &lt;page&gt;</code> writes it as a page: the
+              <code>&lt;ui-*&gt;</code> markup kept, Claude Design's runtime dropped, the one-file bundle and the site
+              header added for the page's depth.
+            </p>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>In the board</th>
+                    <th>On the page</th>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;ui-*&gt;</code> markup, inline styles</td>
+                    <td class="yes positive">kept as is</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;helmet&gt;</code> styles, font links</td>
+                    <td class="yes positive">moved into the page's head</td>
+                  </tr>
+                  <tr>
+                    <td>a hole with a <code>data-props</code> default</td>
+                    <td class="yes positive">filled with the default</td>
+                  </tr>
+                  <tr>
+                    <td>a hole from <code>renderVals()</code></td>
+                    <td class="meh warning">left as written, and listed: fill it by hand</td>
+                  </tr>
+                  <tr>
+                    <td><code>onClick="{{handler}}"</code></td>
+                    <td class="meh warning">dropped, and listed: rewrite as a small script</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;sc-if&gt;</code>, <code>&lt;sc-for&gt;</code></td>
+                    <td class="meh warning">unwrapped: the content shows once, as drawn</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p>
+              The first one back:
+              <a href="../../brand/pony.html" target="src-brand-pony-html"><code>brand/pony.html</code></a
+              >, Sparkle the Spell pony, pulled from her Design and finished with a 30-line script.
+            </p>
+          </ui-section>
+
+          <ui-section id="in-vs-code" header="Designing in VS Code" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                VS Code autocompletes <code>&lt;ui-*&gt;</code> tags and their attributes in any <code>.html</code>,
+                with hover docs, from
+                <a
+                  href="../../packages/ui/site/_data/html-custom-data.json"
+                  target="src-packages-ui-site-data-html-custom-data-json"
+                  ><code>packages/ui/site/_data/html-custom-data.json</code></a
+                >
+                (the repo's
+                <a href="../../.vscode/settings.json" target="src-vscode-settings-json"
+                  ><code>.vscode/settings.json</code></a
+                >
+                loads it); <code>custom-elements.json</code> beside it is the standard Custom Elements Manifest.
+              </li>
+              <li>
+                <code>/design</code> alone: Claude reads the same README and cards Claude Design reads (built locally by
+                <code>spell dev design build</code>), writes the page, and shows it live in the doc preview.
+              </li>
+              <li>
+                Nothing to sync: the page server serves this checkout's bundle, so a component change shows on reload.
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="3-why" header="3. Why it's built this way" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="gavel"></ui-icon>
+          <ul>
+            <li>
+              <b>Plain markup, no React wrappers.</b> A design system's bundle may be any single classic script, and
+              custom elements register themselves when it runs; the spike proved it renders on a Design canvas, clicks
+              included (plan doc Q10). Claude Code's own <code>/design-sync</code> handles React libraries only.
+            </li>
+            <li>
+              <b>The bundle as a file, not npm or localhost.</b> Claude Design loads only a few CDNs and the system's
+              own files; publishing
+              <a href="../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a> to
+              npm would be a real release step, and
+              <a href="../../packages/solid-element/README.md" target="src-packages-solid-element-readme-md"
+                ><code>@spell-app/solid-element</code></a
+              >
+              is private.
+            </li>
+            <li>
+              <b>Generated, not hand-written.</b> The vocabularies already describe every element; generating means a
+              re-sync rewrites the system from the same source, and nothing drifts.
+            </li>
+            <li>
+              <b>A new system, not the older Claude Design project.</b> That project (exported to
+              <a href="../../packages/brand/spell-design-system/" target="src-packages-brand-spell-design-system"
+                ><code>packages/brand/spell-design-system/</code></a
+              >) holds React look-alikes drawn from reference images, and Claude Code reaches it only through
+              <code>/design-sync</code>, which Owen starts himself (plan doc J7).
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="4-limits" header="4. Limits" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="triangle exclamation"></ui-icon>
+          <ul>
+            <li>
+              Emoji names (<code>&lt;ui-emoji&gt;</code>) draw nothing in Claude Design: their data loads lazily, which
+              a design frame blocks.
+            </li>
+            <li>Content loaded from a file (<code>source=</code>) can't load there: write it inline.</li>
+            <li>
+              Some token forms (alpha <code>rgb()</code> with a slash, extra families) haven't been seen in Claude
+              Design's token views yet.
+            </li>
+            <li>A pulled page needs finishing by hand where the board used <code>renderVals()</code>.</li>
+            <li>Claude Design's own controls are tiny; nothing here can change them.</li>
+            <li>
+              The brand elements (<code>&lt;ui-brand-*&gt;</code>) join the system once the design-system epic merges
+              (plan doc P11).
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="5-sources" header="5. Sources" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="book"></ui-icon>
+          <ui-items class="spell-sources" divided>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://claude.ai/artifact/HwojVscPQunr6wctZ57Kz6" target="claude-ds-spell">Spell</a> (the
+                  design system)</ui-header
+                >
+                <ui-meta>claude.ai · private</ui-meta>
+                <ui-description>58 cards, 369 colour tokens, the brand book, the bundle.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://claude.ai/artifact/V9ECVy3mCdUNmrksk648wF" target="claude-pony">Pony</a> (a Design
+                  on it)</ui-header
+                >
+                <ui-meta>claude.ai · private</ui-meta>
+                <ui-description
+                  >The end-to-end test: built on the system, pulled back as
+                  <a href="../../brand/pony.html" target="src-brand-pony-html"><code>brand/pony.html</code></a
+                  >.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="../../packages/docs/tools/check-design-bundle.js"
+                    target="src-packages-docs-tools-check-design-bundle-js"
+                    ><code>packages/docs/tools/check-design-bundle.js</code></a
+                  ></ui-header
+                >
+                <ui-meta>check · <code>spell dev design check</code></ui-meta>
+                <ui-description
+                  >The bundle inlined into an <code>about:srcdoc</code> frame (as a system's cards show it), then a
+                  board under Claude Design's runtime (<code>tools/vendor/claude-design/dc-runtime.js</code>) whose
+                  button must count clicks.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>The Design System and Design artifact types' references</ui-header>
+                <ui-meta>reference · read 2026-10-05</ui-meta>
+                <ui-description
+                  >The file layout, the bundle's rules (one classic script, no <code>&lt;!--</code>, at most 6 MB), the
+                  preview contract, how a Design installs a system.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+          </ui-items>
+        </ui-section>
+
+        <footer class="spell-doc-footer">
+          <ui-divider></ui-divider>
+          <p class="meta">Last checked 2026-10-05 against branch <code>claude-design</code>.</p>
+        </footer>
+      </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="../../packages/docs/tools/_assets/spell-ui.js"></script>
+  </body>
+</html>
