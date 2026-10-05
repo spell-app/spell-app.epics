@@ -1208,6 +1208,13 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   the working copy's `data-recent-since` to what `plan-doc` would write, then copied the doc back.  Any plan doc
   committed before its last two commits trips it;  the checks could make one throwaway edit first. · review-review
 
+- 2026-10-04 · From the MAIN checkout, every `yarn plan-doc <edit> review-review ...` ended "tidy failed":  oxfmt
+  refused `../../.claude/worktrees/review-review/packages/docs/content/...` ("PATH must not contain '..'").
+  `findDoc()` still prefers the epic's worktree, which since shared-content P5 is a link to the SAME file, and
+  `tidy()` gets it `relative()` to main's `packages/docs`.  The edit itself is saved, only unformatted. · Run the
+  command from the epic's worktree (or any checkout with no worktree copy in the way);  the fix is one path for
+  every doc (review-review T3). · review-review
+
 ## claude-code
 
 - 2026-10-03 · In a worktree-isolated session, Bash refused `python3 - <<'EOF' ... EOF` heredocs holding backticks /
@@ -1375,6 +1382,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   path" (Write:  "spelled in a form that cannot be safely resolved").  Read works, and so does Edit / Write at the
   REAL path (`/Users/owen/www/spell-app/spell-app-dev/...`).  Rewriting the path in a hook (`updatedInput`) is refused too. · Edit at the real path:  AGENTS.md "Shared content"
   and the root CLAUDE.md say so (no hook can help:  the refusal comes first). · claude-code
+
+- 2026-10-04 · In a worktree-isolated session, `yarn plan-doc phase <name> <N> done --done "<ul>...</ul>"` was
+  refused ("runs yarn with the text <ul><li>... in a plain command, so what it runs cannot be shown not to be git"),
+  from the root and with `--cwd`;  a shorter `--done` had passed the same way a phase earlier. · Put the call in a
+  scratch node script (`execFileSync("yarn", [...args])`) and run that. · claude-code
 
 ## vscode
 

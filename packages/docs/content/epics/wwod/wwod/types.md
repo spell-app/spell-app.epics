@@ -122,6 +122,9 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
     export type TaskStatus = keyof typeof TaskStatus
     ```
 
+    NOTE:  its ALL-CAPS values predate the English-values rule below;  new ones are English (`"in progress"`).
+    The rename is `agents/CODE-DEBT.md` (`util`).
+
   - Why:
     - the constants stay contained, and less likely to conflict
     - the type shows its allowed values on hover in your editor
