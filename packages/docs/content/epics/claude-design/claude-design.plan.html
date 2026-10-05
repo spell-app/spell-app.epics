@@ -24,8 +24,13 @@
         <ui-sticky class="spell-h1"
           ><header class="spell-page-head">
             <h1>Epic: Claude Design</h1>
-            <span class="plan-step" hidden></span></header
-        ></ui-sticky>
+            <span class="plan-step"
+              ><ui-label basic color="orange" icon="circle half stroke" href="#p1" title="P1 · Design Spike"
+                >P1</ui-label
+              ></span
+            >
+          </header></ui-sticky
+        >
         <ui-list class="plan-meta">
           <ui-item icon="code branch"
             >Plan doc for <code>/epic claude-design</code>, branch <code>claude-design</code></ui-item
@@ -41,54 +46,15 @@
             <time id="plan-updated">2026-10-05</time></ui-item
           >
         </ui-list>
-        <ui-message class="plan-hung" state="info" size="small" header="Plan hung?">
-          <p>
-            Close its Claude tab, open a new session in this worktree's window, then run
-            <code>/epic claude-design</code> and pick "Reuse": it plans again from the kickoff prompt. This note goes
-            once the plan has its first phase.
-          </p>
-          <ui-code class="plan-hung-prompt" language="text" wrap copy
-            ><script type="text/plain">
-              I want to edit the pages in `spell-app-dev` with Claude Design.
-              I also want to be able to do design-ey things here in VSCode.
-
-              How do I do this?
-
-              Requirements:
-              - We want Claude to understand the spell/ui components, custom components built for the brand page, etc -- and have it modify pages / build new ones using the components for everything possible.
-              - Is there an easy/standard way to teach it about the vocabulary of those components?  Can we take advantage of already having the names/attributes/etc sussed out, so it doesn't have to derive the component shape?
-
-              - It should only need to load `<ui-root>` and that will load all of the other bits.  Will that mess things up?
-              - Where will it load the `<ui-root>` script and other scripts?  Do I have to have that somewhere public for it to be able to find it?  Would pushing a build of spell/ui components (and other components) statically in that folder.  I want to be able to update components, then tell it to reload without a publish step.
-              - How do we handle the brand-specific components?
-
-              - I'm thinking that e.g. the plan docs should move to individual fragments for each phase, question, front matter, etc, and use <ui-include> to load the bits individually when they are displayed.  That should fix flickering/scrolling problems in e.g. VSCode, and may be quicker for claude scripts to work with because they are self contained.  We also won't be loading things that aren't visible.
-
-              Also, I want to be able to edit the spell/ui pages, which I think means moving them into `spell-app-dev`. ?
-
-              And I want to reorganize the folders in spell-app-dev to root level folders:
-
-              ```
-              agents/
-              brand/
-              goals/
-              epics/
-              ui/   => spell/ui docs
-              templates/
-              guides/ => all pages which are currently in Guides section of the docs home page
-              ```
-              And I want a pony.
-            </script></ui-code
-          ></ui-message
-        >
 
         <ui-section id="overview" header="1. Overview" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="lightbulb"></ui-icon>
           <p class="plan-summary lede">
             Give Claude Design (and Claude in VS Code) our real Spell UI and brand elements: a design system on
             claude.ai generated from the vocabularies we already have, with a one-file bundle we sync in one step. Along
-            the way, fix the plan-doc flicker, move <code>spell-app-dev</code>'s folders to the root, bring Spell UI's
-            pages into it, and turn the docs home into a routing page. And a pony.
+            the way, split plan docs into fragments that load when opened (no more flicker), move
+            <code>spell-app-dev</code>'s folders to the root, bring Spell UI's pages into it, and turn the docs home
+            into a routing page. And a pony.
           </p>
           <ui-accordion class="plan-prompt-panel spell-aside" styled>
             <ui-title>Kickoff prompt</ui-title>
@@ -132,6 +98,7 @@
               </blockquote></ui-content
             >
           </ui-accordion>
+          <p class="plan-estimate"><b>Estimate:</b> 27h-41h in all, 27h-41h left</p>
           <ui-section id="o1" header="1.1 How Claude Design sees our components" sticky collapsible dividing collapsed>
             <p>
               Claude Design builds on a <b>design system</b>: an artifact on claude.ai that holds a brand book, tokens,
@@ -357,10 +324,44 @@
           </ui-section>
           <ui-section id="o6" header="1.6 Plan doc flicker, and fragments" sticky collapsible dividing collapsed>
             <p>
-              The doc preview already patches edits into the open page without reloading, and keeps your place. The
-              flicker comes from the cases where that patch gives up and reloads the whole page, plus each edit writing
-              the file three times. Those can be fixed directly, without splitting docs into fragments.
+              Plan docs split into a SKELETON and BODY files (<a href="#q2">Q2</a>). The skeleton holds every section,
+              phase and item line; the bodies load the first time you open them, through two new attributes on our own
+              elements, <code>&lt;ui-section source&gt;</code> and <code>&lt;ui-accordion source&gt;</code>. The reload
+              fallbacks below get fixed along the way.
             </p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>A plan doc's skeleton · sketch</ui-title>
+              <ui-content>
+                <pre><code class="language-html">&lt;ui-section id="p3" data-phase="3" data-status="active" header="P3 · Plan Fragments"
+  source="parts/p3.html" sticky collapsible dividing collapsed&gt;&lt;/ui-section&gt;
+
+&lt;ui-item id="q2" data-status="decided" data-answered&gt;
+  &lt;ui-accordion class="plan-item" source="parts/q2.html"&gt;
+    &lt;ui-title&gt;&lt;a class="plan-id" href="#q2"&gt;Q2&lt;/a&gt; &lt;span class="plan-title"&gt;Fix the reloads, or fragments?&lt;/span&gt;&lt;/ui-title&gt;
+  &lt;/ui-accordion&gt;
+&lt;/ui-item&gt;</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li>
+                Why the skeleton keeps every item line: links to items (<code>#q12</code> from prose, the "To review"
+                lines, other docs, <code>docs:link --hash</code>), the open/all counts and the Review tab's marks all
+                read ids and statuses, so they keep working without loading a single body.
+              </li>
+              <li>
+                Still to handle:
+                <ul>
+                  <li>live updates must notice a changed body file and re-fetch only that body</li>
+                  <li>
+                    plan docs need the page server (<code>&lt;ui-include&gt;</code> refuses <code>file://</code>); the
+                    browser check serves them
+                  </li>
+                  <li><code>h4</code> ids inside an Overview body load that body first</li>
+                  <li>find-in-page misses detail text until it's opened (<a href="#c4">C4</a>)</li>
+                </ul>
+              </li>
+            </ul>
+            <p>The research behind it, from before the answer:</p>
             <ul>
               <li>
                 Why it reloads today (<a
@@ -460,6 +461,11 @@
                     <td>21 epics, 69 files</td>
                   </tr>
                   <tr>
+                    <td><code>pages/</code></td>
+                    <td>the docs home, now a routing page (<a href="#q3">Q3</a>, <a href="#o9">1.9</a>)</td>
+                    <td>1 page</td>
+                  </tr>
+                  <tr>
                     <td>
                       <a href="../../templates/" target="src-packages-docs-content-templates"
                         ><code>templates/</code></a
@@ -533,11 +539,9 @@
                 <code>main</code>.
               </li>
               <li>
-                The docs home (<a href="../../index.html" target="src-packages-docs-content-index-html"
-                  ><code>index.html</code></a
-                >) and the scratch
-                <a href="../../details/" target="src-packages-docs-content-details"><code>details/</code></a> pages have
-                no folder in the new layout yet (<a href="#q3">Q3</a>).
+                The docs home goes to <code>pages/index.html</code> (<a href="#q3">Q3</a>); the scratch
+                <a href="../../details/" target="src-packages-docs-content-details"><code>details/</code></a> pages go
+                with it, to <code>pages/details/</code>.
               </li>
             </ul>
           </ui-section>
@@ -563,9 +567,9 @@
           </ui-section>
           <ui-section id="o9" header="1.9 The docs home and the top bar" sticky collapsible dividing collapsed>
             <p>
-              The Spell Docs home stops listing pages and becomes a routing page: one card per area, in the order Epics,
-              Guides, Templates, Spell UI, Goals, App. The top bar lists the same areas in the same order. (Owen,
-              2026-10-05, added mid-plan.)
+              The Spell Docs home, <code>pages/index.html</code>, stops listing pages and becomes a routing page: one
+              card per area, in the order Epics, Guides, Brand, Spell UI, Templates, Goals, App (<a href="#q6">Q6</a>).
+              The top bar lists the same areas in the same order. (Owen, 2026-10-05, added mid-plan.)
             </p>
             <ul>
               <li>
@@ -604,27 +608,399 @@
                   </tr>
                   <tr>
                     <td>Planned</td>
-                    <td>Epics · Guides · Templates · Spell UI · Goals · App; the Spell logo goes home</td>
+                    <td>
+                      Epics · Guides · Brand · Spell UI · Templates · Goals · App; the Spell logo goes home; Brand shows
+                      once <a href="../../../../brand/" target="src-packages-brand"><code>brand/</code></a> has pages
+                      (<a href="#p11">P11</a>)
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </ui-table>
           </ui-section>
           <ui-section id="o10" header="1.10 The pony" sticky collapsible dividing collapsed>
-            <p>
-              You get a pony. It's the first page Claude Design builds on the new system, drawn from real
-              <code>&lt;ui-*&gt;</code> elements and brought back into <code>spell-app-dev</code>: the end-to-end test
-              that the whole loop works.
-            </p>
+            <p>You get two ponies (<a href="#q7">Q7</a>, <a href="#p10">P10</a>).</p>
+            <ul>
+              <li>
+                <code>brand/pony.html</code>: the first page Claude Design builds on the new system, an SVG pony on a
+                page made only of <code>&lt;ui-*&gt;</code> elements, with buttons that make it do things. Brought back
+                with <code>/design pull</code>: the end-to-end test that the whole loop works.
+              </li>
+              <li><code>spell pony</code>: prints one in the terminal.</li>
+            </ul>
           </ui-section>
         </ui-section>
 
         <ui-section id="phases" header="2. Phases" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="layer group"></ui-icon>
-          <ui-progress class="plan-progress" value="0" total="0" bar-text="ratio" size="small" color="green" hidden
+          <ui-progress class="plan-progress" value="0" total="12" bar-text="ratio" size="small" color="green"
             >phases done</ui-progress
           >
-        </ui-section>
+
+          <ui-section
+            id="p1"
+            data-phase="1"
+            data-status="active"
+            header="P1 · Design Spike"
+            badge="1-2h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle half stroke" color="orange"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    a throwaway design system on claude.ai, with today's one-file Spell UI as its bundle, proves Claude
+                    Design can draw real ui-* elements
+                  </li>
+                  <li>
+                    we learn what works before building on it: ui-root, icons, the system's own files, fonts, the size
+                    cap
+                  </li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> scratchpad only; a private Design System artifact and one Design</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> a Design shows a live ui-button and ui-card; findings recorded as caveats and
+                decisions</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p2"
+            data-phase="2"
+            data-status="todo"
+            header="P2 · Section Sources"
+            badge="2-3h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    ui-section source=file and ui-accordion source=file load their body the first time they're unfolded
+                    or opened
+                  </li>
+                  <li>a link to an id inside an unloaded body loads it, then lands on it</li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> packages/ui/src/components/ui-section/UISection.tsx, ui-accordion,
+                elements/SourceElement.tsx, their vocabularies, tests and docs pages</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> ui tests; a kitchen-sink demo; ui and docs bundles rebuilt</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p3"
+            data-phase="3"
+            data-status="todo"
+            header="P3 · Plan Fragments"
+            badge="4-6h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    a plan doc is a skeleton (every section, phase and item line) plus body files under
+                    epics/name/parts/, loaded when opened
+                  </li>
+                  <li>no more flicker or scroll jumps in the doc preview: edits patch in place, one write per edit</li>
+                  <li>every #id link, count and review mark keeps working; the 21 existing docs are migrated</li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> packages/docs/tools/plan-doc.js, to-ui-section.js, _assets/spell-doc-runtime.js,
+                packages/server/src/liveClient.ts, check-*.js, templates/epics/plan.html, plan-doc.md</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> plan-doc tests, check-live, check-review, plan-doc check on every doc, a timed big-doc
+                edit with no reload</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p4"
+            data-phase="4"
+            data-status="todo"
+            header="P4 · Folder Reorg"
+            badge="5-7h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    spell-app-dev has root folders agents, brand, goals, epics, ui, templates, guides, pages; each is
+                    linked at the root of every checkout
+                  </li>
+                  <li>shorter URLs: /epics/seo/seo.plan.html</li>
+                  <li>
+                    every link, tab name and path in code follows; other running epics keep working through links left
+                    at the old paths
+                  </li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> packages/docs/tools/relocate.js and pages.js, packages/cli/src/dev/shared.ts,
+                packages/server (PageServer, RunningEpics, site.types), packages/vscode (DocPreview, DocView), skills,
+                AGENTS.md files, root package.json shared manifest</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> doc-links --check clean; yarn ts and yarn test in docs, server, cli, vscode; spell dev
+                shared status ok; an old worktree still opens its plan doc</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p5"
+            data-phase="5"
+            data-status="todo"
+            header="P5 · Docs Home & Tabs"
+            badge="2-3h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>pages/index.html is a routing page: a card per area</li>
+                  <li>epics, guides and templates each get their own list page</li>
+                  <li>top bar and cards in the order Epics, Guides, Brand, Spell UI, Templates, Goals, App</li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> packages/docs/tools/index.js, PROPERTIES in packages/server/src/site/site.types.ts,
+                pages/index.html, PageServer redirects</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> each tab lights on its own pages; / lands on the home</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p6"
+            data-phase="6"
+            data-status="todo"
+            header="P6 · Spell UI Pages"
+            badge="3-4h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    Spell UI's hand-written pages live in spell-app-dev/ui, shared and editable from any checkout
+                    without a commit
+                  </li>
+                  <li>the built bundle and data stay tracked, served under /ui/_assets and /ui/_data</li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> packages/server/src/page/page.types.ts (UI_SITE), PageServer.ts,
+                packages/ui/scripts/site-*.ts, tools/Site*.ts, vite.site.config.ts, SiteDataBuilder test</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> /ui/ pages render; site:new, site:index, site:kitchen write into ui/; ui tests
+                pass</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p7"
+            data-phase="7"
+            data-status="todo"
+            header="P7 · Vocabulary Export"
+            badge="2-3h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    one command, spell dev design build, writes the design system's files from the vocabularies:
+                    index.d.ts, a README and preview per component, tokens.json, the brand book
+                  </li>
+                  <li>
+                    the same data gives VS Code autocomplete and hover docs for ui-* tags (custom-elements.json,
+                    html.customData)
+                  </li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> new packages/cli/src/dev/design*.ts (or packages/ui/tools/DesignExport.ts),
+                commands.json</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> unit tests on the output shapes; VS Code autocompletes ui-button size=</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p8"
+            data-phase="8"
+            data-status="todo"
+            header="P8 · Design Bundle"
+            badge="2-3h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>a one-file Spell UI bundle for Claude Design (window.SpellUI), without the docs-only parts</li>
+                  <li>icons, fonts and the lazy engines work there, as the spike decided</li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> packages/docs/tools/bundle-spell-ui.js (a design target), a design entry beside
+                _assets/spell-ui.entry.js</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> no import() survives; size under the cap; a preview card renders</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p9"
+            data-phase="9"
+            data-status="todo"
+            header="P9 · Sync & Skill"
+            badge="2-3h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    /design push: after a component change, one command updates Claude Design (only changed files);
+                    reload there to see it
+                  </li>
+                  <li>/design pull: a design comes back as a page in spell-app-dev; push sends a page up</li>
+                  <li>a spell-design skill builds pages from Spell UI in VS Code</li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> .claude/skills/design/, brand/design-system.json (the system's link),
+                commands.json</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> change a component, push, reload in Claude Design, see the change</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p10"
+            data-phase="10"
+            data-status="todo"
+            header="P10 · Pony"
+            badge="1-2h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    a pony page, brand/pony.html: an SVG pony on a page made only of ui-* elements, with buttons that
+                    make it do things; built in Claude Design, brought back with /design pull
+                  </li>
+                  <li>spell pony prints a pony in the terminal</li>
+                </ul></ui-item
+              ><ui-item icon="folder"><b>Files:</b> brand/pony.html, packages/cli (pony command), commands.json</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> the page renders in the doc preview; spell pony prints a pony</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p11"
+            data-phase="11"
+            data-status="todo"
+            header="P11 · Brand"
+            badge="2-3h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>
+                    after design-system merges: the ui-brand-* elements and spell-brand tokens join the design system
+                    and bundle
+                  </li>
+                  <li>brand pages move to spell-app-dev/brand; the Brand tab lights up</li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> packages/brand (bundle, components.json), the design export and bundle,
+                PROPERTIES</ui-item
+              ><ui-item icon="flask"
+                ><b>Verify:</b> a Design uses a ui-brand-color-picker; the Brand tab lights on brand pages</ui-item
+              ></ui-list
+            >
+          </ui-section>
+          <ui-section
+            id="p12"
+            data-phase="12"
+            data-status="todo"
+            header="P12 · Doc Review"
+            badge="1-2h"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle outline" color="grey"></ui-icon>
+            <ui-list class="plan-phase-body"
+              ><ui-item icon="bullseye"
+                ><b>Goal:</b>
+                <ul>
+                  <li>a durable doc: how to design with Spell UI in Claude Design and VS Code</li>
+                  <li>the changelog entry; every hand check listed in To test</li>
+                </ul></ui-item
+              ><ui-item icon="folder"
+                ><b>Files:</b> guides/claude-design.html (or wherever guides live by then), changelog, this doc</ui-item
+              ><ui-item icon="flask"><b>Verify:</b> yarn plan-doc check; docs:index</ui-item></ui-list
+            >
+          </ui-section></ui-section
+        >
 
         <ui-section
           id="decisions"
@@ -637,52 +1013,66 @@
         >
           <ui-icon slot="icon" name="file circle question"></ui-icon>
           <ui-list class="plan-items" data-kind="decision" divided relaxed
-            ><ui-item data-state="attention" data-changed="2026-10-05T00:21:39-04:00" id="q1" data-status="open"
+            ><ui-item
+              data-answered
+              data-state="recent"
+              data-changed="2026-10-05T00:48:04-04:00"
+              id="q1"
+              data-status="decided"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#q1">Q1</a>
                   <span class="plan-title">How do designs get between Claude Design and spell-app-dev?</span></ui-title
                 ><ui-content
-                  ><p>
+                  ><div class="plan-answer-block">
+                    <div class="plan-answer-title">
+                      <b>Answer</b> · Claude Code carries them: /design pull and /design push
+                    </div>
+                  </div>
+                  <p>
                     How a design made in Claude Design becomes a page in <code>spell-app-dev</code>, and how an existing
                     page gets into Claude Design to edit. Claude Design can't read or write files on your laptop, so
                     something has to carry pages across (<a href="#o5">1.5</a>).
                   </p>
                   <ui-grid class="spell-pros-cons" columns="2" stackable>
-                    <ui-segment
-                      ><ui-label attached="top">A (recommended)</ui-label>
-                      <p>
-                        <b>Claude Code carries them: <code>/design pull</code> and <code>/design push</code></b>
-                      </p>
-                      <ul>
-                        <li>
-                          <code>/design pull &lt;design link&gt; guides/pony.html</code>: Claude reads the design and
-                          writes it as a page, on our page template, keeping the <code>ui-*</code> markup
-                        </li>
-                        <li>
-                          <code>/design push guides/pony.html</code>: sends a page up as a new design to edit there
-                        </li>
-                        <li>cost: two skill commands; a design may need tidying into our page shape</li>
-                      </ul></ui-segment
+                    <ui-column data-chosen
+                      ><ui-segment
+                        ><ui-label attached="top"
+                          >A · Claude Code carries them: <code>/design pull</code> and
+                          <code>/design push</code> (recommended)</ui-label
+                        >
+                        <ul>
+                          <li>
+                            <code>/design pull &lt;design link&gt; guides/pony.html</code>: Claude reads the design and
+                            writes it as a page, on our page template, keeping the <code>ui-*</code> markup
+                          </li>
+                          <li>
+                            <code>/design push guides/pony.html</code>: sends a page up as a new design to edit there
+                          </li>
+                          <li>cost: two skill commands; a design may need tidying into our page shape</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">B</ui-label>
-                      <p><b>By hand</b></p>
-                      <ul>
-                        <li>download or copy the HTML from Claude Design, paste it into a file</li>
-                        <li>cost: nothing to build; every trip is manual, and pages drift from the template</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · By hand</ui-label>
+                        <ul>
+                          <li>download or copy the HTML from Claude Design, paste it into a file</li>
+                          <li>cost: nothing to build; every trip is manual, and pages drift from the template</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">C</ui-label>
-                      <p><b>Claude Design for exploring only</b></p>
-                      <ul>
-                        <li>
-                          pages are only ever edited in VS Code; Claude Design makes mock-ups that Claude Code then
-                          rebuilds
-                        </li>
-                        <li>cost: nothing to build; no edits come back</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Claude Design for exploring only</ui-label>
+                        <ul>
+                          <li>
+                            pages are only ever edited in VS Code; Claude Design makes mock-ups that Claude Code then
+                            rebuilds
+                          </li>
+                          <li>cost: nothing to build; no edits come back</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
                   </ui-grid>
                   <p><b>Net effect (A):</b></p>
@@ -694,7 +1084,12 @@
                   </ul>
                 </ui-content></ui-accordion
               ></ui-item
-            ><ui-item data-state="attention" data-changed="2026-10-05T00:21:41-04:00" id="q2" data-status="open"
+            ><ui-item
+              data-answered
+              data-state="recent"
+              data-changed="2026-10-05T00:48:06-04:00"
+              id="q2"
+              data-status="decided"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#q2">Q2</a>
@@ -702,47 +1097,58 @@
                     >Plan-doc flicker: fix the reloads, or split docs into fragments?</span
                   ></ui-title
                 ><ui-content
-                  ><p>
+                  ><div class="plan-answer-block">
+                    <div class="plan-answer-title">
+                      <b>Answer</b> · Fragments now: &lt;ui-section source&gt; and &lt;ui-accordion source&gt;; a
+                      skeleton keeps every section, phase and item line, the bodies load when opened
+                    </div>
+                  </div>
+                  <p>
                     The plan-doc flicker in VS Code: fix the reasons the live update reloads the whole page, or split
                     plan docs into fragments loaded with <code>&lt;ui-include&gt;</code>, as the kickoff prompt
                     suggests? The detail is in <a href="#o6">1.6</a>.
                   </p>
                   <ui-grid class="spell-pros-cons" columns="2" stackable>
-                    <ui-segment
-                      ><ui-label attached="top">A (recommended)</ui-label>
-                      <p><b>Fix the reloads first, then measure</b></p>
-                      <ul>
-                        <li>
-                          the patch stops giving up on <code>&lt;script type="text/plain"&gt;</code> and on
-                          <code>&lt;body data-recent-since&gt;</code>
-                        </li>
-                        <li>each edit writes the file once (formatted in memory), not 3 times</li>
-                        <li>
-                          then time a big doc (<code>spell-ui-pages</code>, 522 KB); fragments only if it still flickers
-                        </li>
-                        <li>cost: about 2h; every reader keeps working</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">A · Fix the reloads first, then measure (recommended)</ui-label>
+                        <ul>
+                          <li>
+                            the patch stops giving up on <code>&lt;script type="text/plain"&gt;</code> and on
+                            <code>&lt;body data-recent-since&gt;</code>
+                          </li>
+                          <li>each edit writes the file once (formatted in memory), not 3 times</li>
+                          <li>
+                            then time a big doc (<code>spell-ui-pages</code>, 522 KB); fragments only if it still
+                            flickers
+                          </li>
+                          <li>cost: about 2h; every reader keeps working</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">B</ui-label>
-                      <p><b>Fragments now</b></p>
-                      <ul>
-                        <li>
-                          one file per phase and per item, joined with <code>&lt;ui-include load="visible"&gt;</code>
-                        </li>
-                        <li>
-                          cost: plan docs stop opening from disk; find-in-page and <code>#q12</code> links miss unloaded
-                          parts; about 15 readers must follow includes; live updates must watch every fragment
-                        </li>
-                        <li>a day or more</li>
-                      </ul></ui-segment
+                    <ui-column data-chosen
+                      ><ui-segment
+                        ><ui-label attached="top">B · Fragments now</ui-label>
+                        <ul>
+                          <li>
+                            one file per phase and per item, joined with <code>&lt;ui-include load="visible"&gt;</code>
+                          </li>
+                          <li>
+                            cost: plan docs stop opening from disk; find-in-page and <code>#q12</code> links miss
+                            unloaded parts; about 15 readers must follow includes; live updates must watch every
+                            fragment
+                          </li>
+                          <li>a day or more</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">C</ui-label>
-                      <p><b>Both</b></p>
-                      <ul>
-                        <li>A now, B as a later epic once A is measured</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Both</ui-label>
+                        <ul>
+                          <li>A now, B as a later epic once A is measured</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
                   </ui-grid>
                   <p><b>Net effect (A):</b></p>
@@ -752,13 +1158,23 @@
                   </ul>
                 </ui-content></ui-accordion
               ></ui-item
-            ><ui-item data-state="attention" data-changed="2026-10-05T00:21:43-04:00" id="q3" data-status="open"
+            ><ui-item
+              data-answered
+              data-state="recent"
+              data-changed="2026-10-05T00:48:08-04:00"
+              id="q3"
+              data-status="decided"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#q3">Q3</a>
                   <span class="plan-title">Where does the new docs home live?</span></ui-title
                 ><ui-content
-                  ><p>
+                  ><div class="plan-answer-block">
+                    <div class="plan-answer-title">
+                      <b>Answer</b> · In spell-app-dev/pages/: the home is pages/index.html
+                    </div>
+                  </div>
+                  <p>
                     Where the new docs home (the routing page, <a href="#o9">1.9</a>) lives. The new layout has no
                     folder for it: today it's
                     <a href="../../index.html" target="src-packages-docs-content-index-html"
@@ -766,36 +1182,35 @@
                     >, and <code>/</code> redirects there.
                   </p>
                   <ui-grid class="spell-pros-cons" columns="2" stackable>
-                    <ui-segment
-                      ><ui-label attached="top">A (recommended)</ui-label>
-                      <p>
-                        <b>Tracked in spell-app: <code>packages/docs/index.html</code></b>
-                      </p>
-                      <ul>
-                        <li>it only routes (six cards), so it changes with the code, not with content</li>
-                        <li><code>/</code> redirects to it</li>
-                        <li>cost: editing it is a commit</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top"
+                          >A · Tracked in spell-app: <code>packages/docs/index.html</code> (recommended)</ui-label
+                        >
+                        <ul>
+                          <li>it only routes (six cards), so it changes with the code, not with content</li>
+                          <li><code>/</code> redirects to it</li>
+                          <li>cost: editing it is a commit</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">B</ui-label>
-                      <p>
-                        <b>A <code>home/</code> folder in spell-app-dev</b>
-                      </p>
-                      <ul>
-                        <li><code>home/index.html</code>, shared like the rest, URL <code>/home/</code></li>
-                        <li>cost: an eighth root folder for one page</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · A <code>home/</code> folder in spell-app-dev</ui-label>
+                        <ul>
+                          <li><code>home/index.html</code>, shared like the rest, URL <code>/home/</code></li>
+                          <li>cost: an eighth root folder for one page</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">C</ui-label>
-                      <p>
-                        <b>Inside <code>guides/</code></b>
-                      </p>
-                      <ul>
-                        <li>the home is <code>guides/index.html</code>, and the Guides list moves to a sub-page</li>
-                        <li>cost: the home sits under one of its own areas</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Inside <code>guides/</code></ui-label>
+                        <ul>
+                          <li>the home is <code>guides/index.html</code>, and the Guides list moves to a sub-page</li>
+                          <li>cost: the home sits under one of its own areas</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
                   </ui-grid>
                   <p><b>Net effect (A):</b></p>
@@ -815,13 +1230,21 @@
                   </ul>
                 </ui-content></ui-accordion
               ></ui-item
-            ><ui-item data-state="attention" data-changed="2026-10-05T00:21:45-04:00" id="q4" data-status="open"
+            ><ui-item
+              data-answered
+              data-state="recent"
+              data-changed="2026-10-05T00:48:09-04:00"
+              id="q4"
+              data-status="decided"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#q4">Q4</a>
                   <span class="plan-title">How much of Spell UI's site moves into spell-app-dev?</span></ui-title
                 ><ui-content
-                  ><p>
+                  ><div class="plan-answer-block">
+                    <div class="plan-answer-title"><b>Answer</b> · The hand-written pages only</div>
+                  </div>
+                  <p>
                     How much of Spell UI's site (<a href="../../../../ui/site/" target="src-packages-ui-site"
                       ><code>packages/ui/site/</code></a
                     >) moves into <code>spell-app-dev</code>'s new
@@ -829,35 +1252,38 @@
                     >)?
                   </p>
                   <ui-grid class="spell-pros-cons" columns="2" stackable>
-                    <ui-segment
-                      ><ui-label attached="top">A (recommended)</ui-label>
-                      <p><b>The hand-written pages only</b></p>
-                      <ul>
-                        <li>move: 83 pages, <code>images/</code>, <code>examples/</code></li>
-                        <li>
-                          stay tracked: <code>_src/</code>, <code>_assets/</code>, <code>_data/</code>, served at
-                          <code>/ui/_assets/</code> and <code>/ui/_data/</code> over the shared pages
-                        </li>
-                        <li>
-                          cost: a server overlay; 13 <code>site:*</code> scripts get new paths; a page edited on
-                          <code>main</code> shows in every worktree, even one whose bundle is older
-                        </li>
-                      </ul></ui-segment
+                    <ui-column data-chosen
+                      ><ui-segment
+                        ><ui-label attached="top">A · The hand-written pages only (recommended)</ui-label>
+                        <ul>
+                          <li>move: 83 pages, <code>images/</code>, <code>examples/</code></li>
+                          <li>
+                            stay tracked: <code>_src/</code>, <code>_assets/</code>, <code>_data/</code>, served at
+                            <code>/ui/_assets/</code> and <code>/ui/_data/</code> over the shared pages
+                          </li>
+                          <li>
+                            cost: a server overlay; 13 <code>site:*</code> scripts get new paths; a page edited on
+                            <code>main</code> shows in every worktree, even one whose bundle is older
+                          </li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">B</ui-label>
-                      <p><b>Keep it all tracked</b></p>
-                      <ul>
-                        <li>edit pages in VS Code, commit like code</li>
-                        <li>cost: a copy per branch; merge conflicts on pages; not shared across worktrees</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · Keep it all tracked</ui-label>
+                        <ul>
+                          <li>edit pages in VS Code, commit like code</li>
+                          <li>cost: a copy per branch; merge conflicts on pages; not shared across worktrees</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">C</ui-label>
-                      <p><b>Everything, build output too</b></p>
-                      <ul>
-                        <li>cost: each worktree's rebuild overwrites the others' bundle in the one shared folder</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Everything, build output too</ui-label>
+                        <ul>
+                          <li>cost: each worktree's rebuild overwrites the others' bundle in the one shared folder</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
                   </ui-grid>
                   <p><b>Net effect (A):</b></p>
@@ -870,48 +1296,57 @@
                   </ul>
                 </ui-content></ui-accordion
               ></ui-item
-            ><ui-item data-state="attention" data-changed="2026-10-05T00:21:47-04:00" id="q5" data-status="open"
+            ><ui-item
+              data-answered
+              data-state="recent"
+              data-changed="2026-10-05T00:48:11-04:00"
+              id="q5"
+              data-status="decided"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#q5">Q5</a>
                   <span class="plan-title">When do the brand elements come in?</span></ui-title
                 ><ui-content
-                  ><p>
+                  ><div class="plan-answer-block">
+                    <div class="plan-answer-title"><b>Answer</b> · Spell UI first; brand once design-system merges</div>
+                  </div>
+                  <p>
                     The brand elements and pages are on the unmerged <code>design-system</code> branch (P9 Docs Restyle
                     and P10 Doc Review left, 7-10h). When does this epic take them in (<a href="#o4">1.4</a>)?
                   </p>
                   <ui-grid class="spell-pros-cons" columns="2" stackable>
-                    <ui-segment
-                      ><ui-label attached="top">A (recommended)</ui-label>
-                      <p>
-                        <b>Spell UI first; brand once <code>design-system</code> merges</b>
-                      </p>
-                      <ul>
-                        <li>the design system, bundle and sync ship with <code>ui-*</code> only</li>
-                        <li>
-                          a late "Brand" phase adds <code>ui-brand-*</code> and the <code>spell-brand</code> tokens, and
-                          moves the brand pages to
-                          <a href="../../../../brand/" target="src-packages-brand"><code>brand/</code></a>
-                        </li>
-                        <li>cost: the first designs lack the brand elements</li>
-                      </ul></ui-segment
+                    <ui-column data-chosen
+                      ><ui-segment
+                        ><ui-label attached="top"
+                          >A · Spell UI first; brand once <code>design-system</code> merges (recommended)</ui-label
+                        >
+                        <ul>
+                          <li>the design system, bundle and sync ship with <code>ui-*</code> only</li>
+                          <li>
+                            a late "Brand" phase adds <code>ui-brand-*</code> and the <code>spell-brand</code> tokens,
+                            and moves the brand pages to
+                            <a href="../../../../brand/" target="src-packages-brand"><code>brand/</code></a>
+                          </li>
+                          <li>cost: the first designs lack the brand elements</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">B</ui-label>
-                      <p>
-                        <b>Merge <code>design-system</code>'s brand code now</b>
-                      </p>
-                      <ul>
-                        <li>merge that branch into this one first</li>
-                        <li>cost: this epic inherits unfinished work; two epics edit the brand at once</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · Merge <code>design-system</code>'s brand code now</ui-label>
+                        <ul>
+                          <li>merge that branch into this one first</li>
+                          <li>cost: this epic inherits unfinished work; two epics edit the brand at once</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">C</ui-label>
-                      <p><b>Leave brand out</b></p>
-                      <ul>
-                        <li>a follow-up epic</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Leave brand out</ui-label>
+                        <ul>
+                          <li>a follow-up epic</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
                   </ui-grid>
                   <p><b>Net effect (A):</b></p>
@@ -920,38 +1355,51 @@
                   </ul>
                 </ui-content></ui-accordion
               ></ui-item
-            ><ui-item data-state="attention" data-changed="2026-10-05T00:21:48-04:00" id="q6" data-status="open"
+            ><ui-item
+              data-answered
+              data-state="recent"
+              data-changed="2026-10-05T00:48:13-04:00"
+              id="q6"
+              data-status="decided"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#q6">Q6</a>
                   <span class="plan-title">Where does the Brand tab go in the top bar?</span></ui-title
                 ><ui-content
-                  ><p>
+                  ><div class="plan-answer-block">
+                    <div class="plan-answer-title">
+                      <b>Answer</b> · Epics · Guides · Brand · Spell UI · Templates · Goals · App
+                    </div>
+                  </div>
+                  <p>
                     The <code>design-system</code> branch adds a Brand tab to the top bar, and it isn't in the new order
                     (Epics · Guides · Templates · Spell UI · Goals · App, <a href="#o9">1.9</a>). Where does it go?
                   </p>
                   <ui-grid class="spell-pros-cons" columns="2" stackable>
-                    <ui-segment
-                      ><ui-label attached="top">A (recommended)</ui-label>
-                      <p><b>After Spell UI</b></p>
-                      <ul>
-                        <li>Epics · Guides · Templates · Spell UI · Brand · Goals · App</li>
-                        <li>the design areas sit together</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">A · After Spell UI (recommended)</ui-label>
+                        <ul>
+                          <li>Epics · Guides · Templates · Spell UI · Brand · Goals · App</li>
+                          <li>the design areas sit together</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">B</ui-label>
-                      <p><b>After Goals</b></p>
-                      <ul>
-                        <li>Epics · Guides · Templates · Spell UI · Goals · Brand · App</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · After Goals</ui-label>
+                        <ul>
+                          <li>Epics · Guides · Templates · Spell UI · Goals · Brand · App</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">C</ui-label>
-                      <p><b>No tab</b></p>
-                      <ul>
-                        <li>reach Brand from the home's cards only</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · No tab</ui-label>
+                        <ul>
+                          <li>reach Brand from the home's cards only</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
                   </ui-grid>
                   <p><b>Net effect (A):</b></p>
@@ -960,44 +1408,58 @@
                   </ul>
                 </ui-content></ui-accordion
               ></ui-item
-            ><ui-item data-state="attention" data-changed="2026-10-05T00:21:50-04:00" id="q7" data-status="open"
+            ><ui-item
+              data-answered
+              data-state="recent"
+              data-changed="2026-10-05T00:48:14-04:00"
+              id="q7"
+              data-status="decided"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#q7">Q7</a> <span class="plan-title">What kind of pony?</span></ui-title
                 ><ui-content
-                  ><p>
+                  ><div class="plan-answer-block">
+                    <div class="plan-answer-title">
+                      <b>Answer</b> · A pony page and spell pony (A and C); no pony element
+                    </div>
+                  </div>
+                  <p>
                     What kind of pony? It's the end-to-end test: the first thing Claude Design builds on the new system,
                     carried back into <code>spell-app-dev</code> (<a href="#o10">1.10</a>).
                   </p>
                   <ui-grid class="spell-pros-cons" columns="2" stackable>
-                    <ui-segment
-                      ><ui-label attached="top">A (recommended)</ui-label>
-                      <p><b>A pony page</b></p>
-                      <ul>
-                        <li>
-                          <code>brand/pony.html</code>: a pony drawn in SVG, on a page made entirely of
-                          <code>ui-*</code> elements (a card, a rating, buttons that make it do things)
-                        </li>
-                        <li>proves: components, tokens, the bundle, the round trip</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">A · A pony page (recommended)</ui-label>
+                        <ul>
+                          <li>
+                            <code>brand/pony.html</code>: a pony drawn in SVG, on a page made entirely of
+                            <code>ui-*</code> elements (a card, a rating, buttons that make it do things)
+                          </li>
+                          <li>proves: components, tokens, the bundle, the round trip</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">B</ui-label>
-                      <p><b>A pony element</b></p>
-                      <ul>
-                        <li>
-                          <code>&lt;ui-brand-pony&gt;</code>, with a vocabulary, so it lands in the design system itself
-                        </li>
-                        <li>proves: the pipeline for a new element too</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · A pony element</ui-label>
+                        <ul>
+                          <li>
+                            <code>&lt;ui-brand-pony&gt;</code>, with a vocabulary, so it lands in the design system
+                            itself
+                          </li>
+                          <li>proves: the pipeline for a new element too</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
-                    <ui-segment
-                      ><ui-label attached="top">C</ui-label>
-                      <p><b>A command-line pony</b></p>
-                      <ul>
-                        <li><code>spell pony</code> prints one</li>
-                        <li>proves: nothing, but it's a pony</li>
-                      </ul></ui-segment
+                    <ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · A command-line pony</ui-label>
+                        <ul>
+                          <li><code>spell pony</code> prints one</li>
+                          <li>proves: nothing, but it's a pony</li>
+                        </ul></ui-segment
+                      ></ui-column
                     >
                   </ui-grid>
                   <p><b>Net effect (A):</b></p>
@@ -1005,6 +1467,58 @@
                     <li>a "Pony" phase right after the sync works</li>
                   </ul>
                 </ui-content></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="recent"
+              data-changed="2026-10-05T00:48:28-04:00"
+              id="q8"
+              data-status="decided"
+              data-answered
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#q8">Q8</a>
+                  <span class="plan-title">Agents: up to 5, no need to ask</span></ui-title
+                ><ui-content
+                  ><p>
+                    The kickoff prompt didn't say "watch token budget", so the root rule applies: up to 5 agents
+                    (counting the ones they start), without asking.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>phases may run up to 5 agents at once</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="recent"
+              data-changed="2026-10-05T00:48:29-04:00"
+              id="q9"
+              data-status="decided"
+              data-answered
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#q9">Q9</a>
+                  <span class="plan-title"
+                    >The reorg leaves links at the old paths, so other running epics keep working</span
+                  ></ui-title
+                ><ui-content
+                  ><p>
+                    Worktrees on older code (design-system, review-review, precedence-and-types, wwod) look for
+                    <code>packages/docs/content/...</code>. Since shared content is ONE folder for everyone, the move
+                    happens to all of them at once. Folder links left inside spell-app-dev at the old paths (<a
+                      href="../"
+                      target="src-packages-docs-content-epics"
+                      ><code>packages/docs/content/epics</code></a
+                    >
+                    pointing at <a href="../" target="src-packages-docs-content-epics"><code>../../../epics</code></a
+                    >, and so on) keep their tools working until each merges <code>main</code>.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>no running epic breaks on the day of the move</li>
+                    <li>a todo removes the old-path links once every worktree has merged</li>
+                  </ul></ui-content
+                ></ui-accordion
               ></ui-item
             ></ui-list
           >
@@ -1025,7 +1539,64 @@
 
         <ui-section id="caveats" header="5. Caveats" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="triangle exclamation"></ui-icon>
-          <ui-list class="plan-items" data-kind="caveat" divided relaxed></ui-list>
+          <ui-list class="plan-items" data-kind="caveat" divided relaxed
+            ><ui-item data-state="open" data-changed="2026-10-05T00:48:31-04:00" id="c1" data-status="open"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#c1">C1</a>
+                  <span class="plan-title"
+                    >Claude Design's support for our bundle is inferred until the spike proves it</span
+                  ></ui-title
+                ><ui-content
+                  ><p>
+                    Everything about the design system (one classic script, previews running custom elements, files
+                    fetched from the system) comes from the Design System artifact type's own instructions, not from a
+                    working system. Third-party write-ups say Claude Design renders React; the type's previews say any
+                    listed library or classic script. The Design Spike (<a href="#p1">P1</a>) settles it before anything
+                    is built on it.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item data-state="open" data-changed="2026-10-05T00:48:33-04:00" id="c2" data-status="open"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#c2">C2</a>
+                  <span class="plan-title">The reorg moves files other running epics are editing</span></ui-title
+                ><ui-content
+                  ><p>
+                    Shared content means one move for everyone: a session writing into its plan doc mid-move could write
+                    to the old path. The old-path links (see the decisions) cover reads and writes through the links;
+                    the move itself runs in one go, with a <code>spell dev shared</code> lock if one exists.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item data-state="open" data-changed="2026-10-05T00:48:35-04:00" id="c3" data-status="open"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#c3">C3</a>
+                  <span class="plan-title">80 Spell UI pages lose their edit-on-GitHub links</span></ui-title
+                ><ui-content
+                  ><p>
+                    Once the pages live in spell-app-dev (local only, not on GitHub), their "edit on GitHub" links point
+                    nowhere, so they go.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item data-state="open" data-changed="2026-10-05T00:48:36-04:00" id="c4" data-status="open"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#c4">C4</a>
+                  <span class="plan-title">Find-in-page misses plan-doc detail text until it's opened</span></ui-title
+                ><ui-content
+                  ><p>
+                    With fragments (<a href="#q2">Q2</a>), an item's details and a phase's body load only when opened.
+                    Titles, ids and statuses are always in the page, so links, counts and review marks keep working, but
+                    the browser's find can't see unopened detail text.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ></ui-list
+          >
         </ui-section>
 
         <ui-section
@@ -1038,7 +1609,23 @@
           data-tip="For later: not caveats, not issues."
         >
           <ui-icon slot="icon" name="list check"></ui-icon>
-          <ui-list class="plan-items" data-kind="todo" divided relaxed></ui-list>
+          <ui-list class="plan-items" data-kind="todo" divided relaxed
+            ><ui-item data-state="open" data-changed="2026-10-05T00:49:28-04:00" id="t1" data-status="open"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#t1">T1</a>
+                  <span class="plan-title"
+                    >Remove the old-path links in spell-app-dev once every worktree has merged the reorg</span
+                  ></ui-title
+                ><ui-content
+                  ><p>
+                    The links the reorg leaves at <code>packages/docs/content/*</code> (see the decisions) are only for
+                    worktrees on older code. <code>spell dev shared status</code> can say when none is left.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ></ui-list
+          >
         </ui-section>
 
         <ui-section id="issues" header="7. Issues" sticky collapsible dividing collapsed>
@@ -1125,6 +1712,147 @@
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-05T00:21-04:00">2026-10-05 00:21</time></ui-date> Q7 details
                   rewritten</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P1 added: Design
+                  Spike</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P2 added: Section
+                  Sources</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P3 added: Plan
+                  Fragments</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P4 added: Folder
+                  Reorg</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P5 added: Docs
+                  Home &amp; Tabs</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P6 added: Spell UI
+                  Pages</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P7 added:
+                  Vocabulary Export</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P8 added: Design
+                  Bundle</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P9 added: Sync
+                  &amp; Skill</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P10 added:
+                  Pony</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:46-04:00">2026-10-05 00:46</time></ui-date> P11 added:
+                  Brand</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:47-04:00">2026-10-05 00:47</time></ui-date> P12 added: Doc
+                  Review</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:48-04:00">2026-10-05 00:48</time></ui-date> Q1 answered:
+                  Claude Code carries them: /design pull and /design push</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:48-04:00">2026-10-05 00:48</time></ui-date> Q2 answered:
+                  Fragments now: &lt;ui-section source&gt; and &lt;ui-accordion source&gt;; a skeleton keeps every
+                  section, phase and item line, the bodies load when opened</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:48-04:00">2026-10-05 00:48</time></ui-date> Q3 answered: In
+                  spell-app-dev/pages/: the home is pages/index.html</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:48-04:00">2026-10-05 00:48</time></ui-date> Q4 answered: The
+                  hand-written pages only</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:48-04:00">2026-10-05 00:48</time></ui-date> Q5 answered: Spell
+                  UI first; brand once design-system merges</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:48-04:00">2026-10-05 00:48</time></ui-date> Q6 answered: Epics
+                  · Guides · Brand · Spell UI · Templates · Goals · App</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:48-04:00">2026-10-05 00:48</time></ui-date> Q7 answered: A
+                  pony page and spell pony (A and C); no pony element</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T00:52-04:00">2026-10-05 00:52</time></ui-date> P1
+                  active</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed
