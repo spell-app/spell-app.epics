@@ -1389,6 +1389,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   from the root and with `--cwd`;  a shorter `--done` had passed the same way a phase earlier. · Put the call in a
   scratch node script (`execFileSync("yarn", [...args])`) and run that. · claude-code
 
+- 2026-10-05 · `spell-app-dev` in a window's sidebar showed only `agents` and `goals`:  the docs and plan docs
+  (`packages/docs/content`) looked gone.  Every `workspaces/*.code-workspace` hides `packages` in `files.exclude`,
+  and a window's settings reach EVERY folder in it, the shared repo too. · `spell-app-dev/.vscode/settings.json`
+  sets `"packages": false` (folder settings beat the window's);  the window files that lacked the folder got it. ·
+  claude-code
+
 ## vscode
 
 - 2026-10-04 · The side bar's Spell Docs view stopped showing docs in the `shared-content` worktree's window, while
