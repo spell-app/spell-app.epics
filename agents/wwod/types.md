@@ -15,8 +15,8 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
       with a docstring saying what it does -- hoisting makes it callable from above.
   - Arrow functions stay fine for short callbacks passed inline, e.g. `tokens.map((token) => token.value)`.
   - A one-line accessor is a VALUE, not a helper:  fine as an arrow
-    (`const isRoot = () => props.node.kind === "root"`).  Anything with a body is a `function` at the bottom
-    (`WWOD §17`).
+    (`const isRoot = () => props.node.kind === "root"`).  Anything with a body is a `function` at the bottom,
+    components included, e.g. `selected()` vs `detailsFor()` in `packages/app/src/solid/TypeExplorer.tsx`.
   - Why the bottom:  the happy path stays on top, read first.  e.g. `toggleSection()` below `<TypeExplorer>`'s
     `return` (`packages/app/src/solid/TypeExplorer.tsx`).
 
@@ -37,8 +37,7 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
     ```
 
   - Not `params: {...}` then `params.x` in the body.
-  - Methods and functions only.  NEVER destructure a Solid component's props:  they are lazy getters -- SEE:
-    `packages/docs/content/solid/solid-2.md` "The model in six bullets".
+  - Solid props:  SEE:  WWOD §17 › "Props:  `type <Name>Props`, read where used".
 
 - **Functions accept their dependencies as parameters, with sensible defaults:**
   - Never reach into `window` / `document` / globals when a param works:  default the param to the global itself.
@@ -51,8 +50,11 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
     loadImport })` (`packages/app/src/runner/runCompiled.ts`) -- the host says how a project's imports load.
   - Every use of the UI is `ui?.showX(...)`.
 
-- **Structured objects over long parameter lists** in constructors:  `new X(props: XProps)` (below, "Props types
-  live with their class").
+- **Structured objects over long parameter lists:**
+  - Four or more params, or several options, take a `params` object (destructured in the signature, above).
+  - NOT:  positional param threading, `update(project, record, existing, svg, slug, baseVersion)`.
+  - A constructor:  SEE:  WWOD §12 › "Constructor takes ONE `props` object, normalized inside, and maybe a separate
+    `context` object for dependency injection".
 
 - **`(it) =>` for an anonymous item param:**
   - `.filter((it) => it !== undefined)` after `.map()`.
@@ -72,15 +74,15 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
 ### Types
 
 - **`type`, not `interface`:**
-  - ALWAYS use `type` rather than `interface`.  Wrap with `Prettify` (from the package's `util`) when combining
-    types.
+  - ALWAYS use `type` rather than `interface`.  Wrap with `Prettify` (an ambient global, below, "Ambient globals
+    used bare") when combining types.
     - Use `Prettify<>` for easier debugging in TypeScript:  a hover shows the flattened shape, not `A & Omit<B, "x">`.
   - Mix a framework's base type in at the boundary when it's used only once, rather than naming the combination.
   - NOTE:  declaration merging into a built-in needs `interface`, since `type` can't merge -- the one exception,
     `interface Window` in `types/global.d.ts`.
 
 - **Props types live with their class:**
-  - Exception:  class constructor props (`XProps`) and React component props live in the defining file.  Move to
+  - Exception:  class constructor props (`XProps`) and component props live in the defining file.  Move to
     `<folder>.types.ts` once a second file needs them.
   - Every component gets its own `type <Name>Props`, directly below it (WWOD §8 › "Class first, its types and
     helpers below"):  `TypeExplorerProps` below `<TypeExplorer>`, `TreeRowProps` below `<TreeRow>`
@@ -96,6 +98,8 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
     `packages/spell/AGENTS.md` (`match.data`).
 
 - **Named string constants + `typeof` types**, never inline literal unions at call sites:
+  - NEVER hard-code the same string twice:  make it a constant, or pass a sample message into a helper function
+    which can be overridden.
   - `export const CONFIRM = "CONFIRM"`, `export const NONE = "NONE"` (`packages/util/src/spell/constants.ts`), then
     `typeof NONE` where a type needs it.
   - Frozen result singletons:  `export const CANCELLED_RESULT = { ... } as const`.
@@ -165,9 +169,12 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
   - Use a const-array union or a const object (above).
 
 - **String sentinels over booleans for modes**, in English, presentable to the user:
-  - `"last task"` / `"results"` (`TaskResolveWith`), `"off"` ... `"debug"` (`Logger`'s `DebugLevel`),
-    `overwrite: boolean | "check"`.
-  - Never pass a bare `true` / `false` to control behavior:  `forget("skip notification")`, not `forget(true)`.
+  - NEVER a positional boolean:  `forget("skip notification")`, not `forget(true)`.
+  - ONE mode switch:  an English sentinel string -- `"last task"` / `"results"` (`TaskResolveWith`), `"off"` ...
+    `"debug"` (`Logger`'s `DebugLevel`).
+    - NOTE:  both are ALL-CAPS today (`"LAST_TASK"`, `"OFF"`):  the same debt as `TaskStatus` (above).
+  - Several options:  a `params` object, where NAMED booleans are fine -- `assemble(bits, { optional: true })`,
+    `overwrite: boolean | "check"` (above, "Structured objects over long parameter lists").
   - They live in the package root's `constants.ts`.
 
 - **Permissive `XInput` aliases at public boundaries**, normalized once, up front:

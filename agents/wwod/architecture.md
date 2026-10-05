@@ -36,27 +36,31 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
     are `agents/CODE-DEBT.md` entries.
 
 - **A folder's shape:  types file, class files, barrel.**  Consolidate to that shape before you ship it, not in a
-  later pass:
-  - `<folder>.types.ts` -- every type, the constants, the small error classes and the pure helpers over them.
-  - one file per class, named for the class.
+  later pass -- a complex feature too, split into types and logic:
+  - `<folder>.types.ts` -- its types and everything that goes with them (below, "`<folder>.types.ts`").
+  - one file per class, named for the class -- the logic, DOM entry points included.
   - one pure-helpers file if the folder has any, capability-named.
   - `index.ts` (the barrel), and a `README.md` where a reader needs one.
   - sub-folders for what isn't code:  fixtures, assets ...
+  - Callers reach all of it through the package's namespace (`P.X`, WWOD §4).
   - e.g. `packages/server/src/page/`:  `page.types.ts`, `PageServer.ts`, `PageEditor.ts`, `RunningEpics.ts`,
     `index.ts`, plus `cli.ts`, the `yarn server` entry point the barrel leaves out.
 
 - **Class first, its types and helpers below:**
   - Types and helper functions appear AFTER the durable JS structure that uses them, e.g. `ScopeProps` goes
     directly below `class Scope`.
+  - At module level:  constants go BEFORE the function that uses them (or come from `<folder>.types.ts`);  helper
+    functions go AFTER it.
+  - In a class:  all its helpers and constants go AFTER the main methods (WWOD §12).
 
 - **`<folder>.types.ts`:**
   - Centralize shared types in a single `<folder>.types.ts` per folder, e.g. `parser.types.ts`, `rules.types.ts`.
-  - NEVER bare `types.ts` or `constants.ts` -- constants, small error classes and pure helpers
-    for those types live in `<folder>.types.ts` too.
+  - It holds every type, the type guards, the shared constants, the small error classes (WWOD §5) and the pure
+    helpers over them.
+  - NEVER bare `types.ts` or `constants.ts`.
     - The ONE exception:  a `constants.ts` at a package's root, for its string sentinels (WWOD §9 › "String
       sentinels over booleans for modes").
-    - Error classes:  WWOD §5.
-  - Group with `// ## Group Name` headers.
+  - Group with `// ## Group Name` headers -- SEE:  WWOD §6 › "Group headers".
   - MUST be runtime-light:  `import type` only, apart from the package's utilities (`$/util`, `$/ui/util`).
     - Why:  a types file that imports VALUES from its folder's class files is a circular import.
   - Exception:  props types live in the defining file -- WWOD §9 › "Props types live with their class".
@@ -64,19 +68,12 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
 - **The folder's import graph is a DAG, with `<folder>.types.ts` at the BOTTOM:**
   - It imports no class module of its folder, no DOM, no Solid -- ideally no VALUES at all, so its imports erase
     completely.
-  - Everything above it takes it through the package's ONE namespace, `import { P } from "$/parser"` (WWOD §4).
-  - Only where the barrel can't load:  a types-only namespace import of the leaf, named `<NS>T`, never a bare `T`.
-    `packages/app/src/editor.ts`:  `import type * as UIT from "$/app/ui/ui.types"`.
+  - Everything above it takes it through the package's ONE namespace -- SEE:  WWOD §4 › "ONE namespace per
+    sub-system" (and "Types-only leaf import as `PT`" where the barrel can't load).
   - Write the file's position into its module docstring (WWOD §6), and keep the arrows one-way:
     `page.types` <- `PageServer` <- `cli`, and `PageEditor` / `RunningEpics` <- `PageServer`.
   - Two modules that both need a helper and can't agree who owns it:  the helper is generic -- promote it
     (below, "Promotion path").
-
-- **Split a complex feature into types and logic:**
-  - `<feature>.types.ts` -- types, guards, shared constants.  NO DOM:  DOM entry points go in the logic file.
-  - `<Feature>.ts` -- the logic, a class named for the file.
-  - Callers reach both through the package's namespace (`P.X`).
-  - NOT:  a namespace per feature (`R.Rule` for `parser`'s rules) -- ONE namespace per package (below).
 
 - **Hosts are thin adapters:**
   - Our hosts:  the editor (`packages/app/src/editor.ts`), the runner (`packages/app/src/runner/`), the web
@@ -115,13 +112,17 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
     path").
     - Only a sub-system that must register itself is a side-effect import:  `import "$/parser/rulex"` registers on
       `Parser.rulexParser`.
+  - A barrel loads in EVERY environment its package targets (browser, node ...):
+    - node-only and side-effect files stay OUT of it, imported by path, e.g. `$/spell/node/...`
+    - nothing it loads touches an environment global (`window`, `document`, `process` ...) at module-evaluation
+      time
+    - each package's `AGENTS.md` lists its own left-out files
   - When refactoring imports and exports, if you encounter circular import problems create smoke tests
     (`barrel.test.ts`) ensuring no circular import problems in TS/rollup/browser for various entry points.
 
 - **ONE self-namespace per package:**
   - Each sub-system has ONE self-namespace, exported from its top barrel:  `export * as P from "."`
     - each package's `AGENTS.md` lists its own, e.g. `P` ~== `$/parser`
-    - NEVER create a second namespace for a sub-folder (no `R` for rules) -- flatten into parent.
     - Exception:  namespace a file whose names would collide when flattened:
       `export * as render from "./renderAST"` + `export * as stringify from "./stringifyAST"`,
       which deliberately export the same names with different return types.
@@ -130,19 +131,20 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
       are `WordToken` / `ASTLiteral` etc. and flatten straight into `$/parser`.
     - NOTE:  `export *` through a circular barrel is riskier than a named re-export -- it must read the
       leaf's key list EAGERLY, so a mid-body leaf contributes nothing.  See `parser`'s `src/barrel.test.ts`.
-  - Consumers import the namespace and qualify at the use site:  `import { P } from "$/parser"` => `P.Match`
-    (WWOD §4).
-  - A package's deliberate extra namespaces are listed in its own `AGENTS.md` "Types / Exports", with the reason
-    (`ui`:  `E`, `SSR`, `UIT`;  `app`:  `UI`, `F`).
-  - NOT:  a one-to-two-letter namespace per feature folder (`export * as R from "./rules"`) -- one per package.
+  - Consumers:  SEE:  WWOD §4 › "ONE namespace per sub-system".
+  - A package's deliberate extra namespaces are listed in its own `AGENTS.md` "Types / Exports", with the reason.
+  - NOT:  a second namespace for a sub-folder or feature (`export * as R from "./rules"`, `R.Rule` for `parser`'s
+    rules) -- flatten it into the parent;  ONE per package.
 
 - **Promotion path:**  a helper generic enough to lose its feature vocabulary moves up, and is RENAMED on the way.
-  - Where to:  the package's own util (`$/ui/util` ...) while one package uses it;  `$/util` only once 2+ packages
-    do.  SEE:  `packages/util/AGENTS.md` "Overview" for what may land there (generic files vs `src/spell/`).
+  - Where to:  the package's own util (`$/ui/util` ...) while one package uses it;  `$/util` ONLY once 2+ packages
+    do.  SEE:  `packages/util/AGENTS.md` "Overview" for what may land there (generic files vs `src/spell/`;  what
+    lands in `$/util` lands in `ui`'s bundle).
   - Strip the feature word from the file, the exports AND every doc comment.
   - Barrel it through its new home's barrel, e.g. `packages/util/src/index.ts`.
-  - It MUST NOT import back down into the feature.  Swap feature types for general ones, and where the shared home
-    would invert the dependency, keep a small private copy instead (WWOD §2's DRY boundary).
+  - It MUST NOT import back down into the feature:  extraction NEVER makes a util module import from a feature
+    layer.  Swap feature types for general ones, and where the only shared home would invert the dependency, a
+    small private copy is CORRECT.
   - A promoted type may be RE-EXPORTED from the feature's types file so call sites keep their local vocabulary:
     `export type { X } from "$/util"` -- from the barrel, never a deep path.
   - Moving it is usually also a chance to fix it:  the general version can take a parameter the feature-shaped

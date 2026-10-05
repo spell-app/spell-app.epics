@@ -11,10 +11,9 @@ or reviewing Solid code, JSX, `spellCore` rendering, `$/util` reactivity (spell 
   `easy-state` is GONE.
   - How it's built now, and why:  `packages/docs/content/solid-migration.html`.  The record (phases, decisions, log):
     `packages/docs/content/epics/solid-migration/`.
-  - React and Solid JSX COEXIST in `app` / `core`:  Solid is the default;  a React `.tsx` starts with
-    `/** @jsxImportSource react */`, which `tsc` and `app`'s `vite.shared.ts` (`reactFiles()`) both read.  ONLY what
-    compiled spell draws with keeps it (`core`'s `App` / `List`, the forms `F`):  NEVER add React to the app's own UI
-    (`app`'s `build.test.ts` fails on it).
+  - React and Solid JSX COEXIST in `app` / `core`:  Solid is the default, a React file opts in with a first-line
+    `/** @jsxImportSource react */`, and ONLY what compiled spell draws with stays React.  How it's wired and
+    pinned:  SEE `packages/app/AGENTS.md` "Overview".
   - Compiled spell still draws with React, through `view()` (the React bridge onto spell cells).  Moving it is the
     "Core + JSX" thread (plan doc T2):  items marked (planned) below wait on it, or on another open todo -- they
     are NOT in code.
@@ -104,8 +103,9 @@ count() // 1
   `FormStore`;  open to `SP.*`) -- compiled spell can't use them (`blob:` URL, no transpile), so both spellings MUST
   build the same runtime shape.  `Thing` / `List` / `App` themselves keep `getProp` / `setProp`:
   - `@prop({ type, default }) accessor x!: T` -- schema from decorator ARGS via `Symbol.metadata` (polyfilled in
-    `$/util`'s `Schema.ts`);  NEVER an initializer (it runs after `create()`);  object defaults as
-    `{ init: () => [] }`.  BUILT:  `spellDecorators.ts`;  used by the editor (`EditorStore`), `SpellConsole`, forms'
+    `$/util`'s `Schema.ts`);  an initializer runs AFTER `create()`, so defaults go in the args (`default`, or
+    `{ init: () => [] }` for objects):  SEE WWOD §13 › "State initializes LAZILY, in its getter, never in the
+    constructor".  BUILT:  `spellDecorators.ts`;  used by the editor (`EditorStore`), `SpellConsole`, forms'
     `FormStore`
   - `@derived get y()` -- memoized with the equality cutoff;  only for pure, worth-it getters.  BUILT
   - `@thing` on the class -- runs `create()` after the most-derived class's field initializers.  BUILT:
@@ -116,11 +116,13 @@ count() // 1
     `@thing`
   - decorated classes read / call / write as fast as hand-lowered accessors;  construction is ~6x slower (fine for
     few-instance classes;  don't decorate fields on a base every spell Thing inherits)
-  - a decorator MUST start its line, or `vite.decorators.ts` never sees the file
+  - where a decorator goes on its line:  SEE WWOD §12 › "A decorator starts its line"
 - The editor store is a decorated class (`EditorStore` in `app`'s `editor.ts`, BUILT):  `editor.x = y` call sites
   didn't change.  Solid 2 has NO mutable store.
 - `spellCore.flush()` / `flushCells()` (`$/util`) = run pending derived checks, then the host's Solid `flush()`.  BUILT.
-  Tests and imperative code call it, NEVER Solid's `flush()` directly.
+  - spell state:  tests and imperative code call `spellCore.flush()`, NEVER Solid's bare `flush()`, which skips the
+    derived checks
+  - plain Solid signals and stores:  Solid's `flush()`
 - `tracked(read)` (`app`'s `$/app/solid`) = a Solid memo over a read of spell state (boxed, `equals: false`).  A plain
   read in JSX is reactive too (the bridge);  `tracked()` shares one read among readers.  Re-reads on Solid's schedule:
   never mid-write, so program code is safe to run in it (`deferred` is gone).
@@ -135,10 +137,9 @@ count() // 1
   - within a bundle:  Solid + `@spell-app/ui` live in the shared files, NEVER `spell-runtime.js`.  Each `<spell-app>`
     keeps its OWN `spellCore`, all share ONE Solid.  `enableExternalSource` is registered once per Solid, by
     `bridgeSolid()` from the host (`app`'s `cellsBridge.ts`)
-  - across our bundles:  element / runner / editor builds import ONE `spell-solid.js` (and `ui` from `spell-ui.js`),
-    not a Solid each -- `app`'s `vite.solid.config.ts` + `sharedSolid()`, pinned by `element.build.test.ts`.  Any
-    other Solid / `ui` specifier (`solid-js/store`, `$/ui/runtime`) is a build ERROR:  add it to `sharedSolid()`'s
-    list AND to what `vite.solid.config.ts` exports
+  - across our bundles:  element / runner / editor builds import ONE shared Solid (and `ui`), not a Solid each:  SEE
+    `packages/app/AGENTS.md` "Overview".  Any other Solid / `ui` specifier (`solid-js/store`, `$/ui/runtime`) is a
+    build ERROR:  add it to `sharedSolid()`'s list AND to what `vite.solid.config.ts` exports
   - on host pages with their own Solid / `@spell-app/ui`:  an import-map variant of `<spell-app>` (bare specifiers)
     (planned, plan doc T5:  not shipped -- such a page gets a second Solid today)
   - two copies on one page FAIL SILENTLY:  the fork's `register()` swaps `existing.Component` across copies
@@ -192,38 +193,36 @@ spellCore.element({
     is an owner, NOT a tracking scope (`STRICT_READ_UNTRACKED`)
   - need the value now in imperative code or a test?  `flush()` first (`spellCore.flush()` for spell state).  NEVER
     `flush()` inside an `action`, an effect apply or `onSettled`.
-  - a value read ONCE in a body (a starting value, a handle):  `untrack(() => props.x)` -- says the snapshot is
-    meant, and `STRICT_READ_UNTRACKED` stays quiet;  the caller remounts for a new value (`<Show keyed>`, below).
-    `createSignal(untrack(() => props.state) ?? loadState())` (`app`'s `TypeExplorer.tsx`)
+  - a value read ONCE in a body (a starting value, a handle):  `untrack(() => props.x)` reads it without tracking,
+    says the snapshot is meant, and keeps `STRICT_READ_UNTRACKED` quiet;  a new value then takes a remount
+    (`<Show keyed>`, below).  When to:  WWOD §17 › "Be deliberate about reactivity"
 - Effects:
   - `createEffect(compute, apply)` -- two functions, always
   - the apply's RETURN VALUE IS ITS CLEANUP:  use braces, NEVER an expression body that returns a value (halts the page)
   - many React `useEffect`s should be a memo or an event handler instead
   - component setup + teardown:  `onSettled(() => { ...; return cleanup })`, not `onMount`
-  - `onCleanup(fn)` runs when its OWNER is disposed:  in a body, when the component goes.  Setup done in the body (a
-    window listener):  `onCleanup` right after it.  NEVER inside `onSettled` / `createTrackedEffect`:  return the
+  - `onCleanup(fn)` runs when its OWNER is disposed:  in a body, when the component goes.  NEVER inside `onSettled` / `createTrackedEffect`:  return the
     cleanup there (`CLEANUP_IN_FORBIDDEN_SCOPE`).  With no owner (module scope, a ref callback, a handler) it NEVER
     runs (`NO_OWNER_CLEANUP`).  In a `ui` element (`keepAlive`) it runs on `dispose()`, NOT on disconnect.
 - Memos:  eager by default;  create them inside a component / owner, NEVER at module scope (unowned memos recompute
   forever).  `lazy: true` autodisposes when unobserved.
 - Stores:  draft setters only.  A direct `store.x = 1` is SILENTLY IGNORED.
-- Errors:  wrap app roots in `<Errored>`;  it heals itself when the data recovers.
+- Errors:  wrap app roots in an error boundary (`<Errored>`;  the app wraps it:  SEE WWOD §17 › "`<ErrorBoundary>`
+  around every region that can fail alone");  it heals itself when the data recovers.
   - NOTE: an error thrown by a `createEffect` COMPUTE is NOT caught by an enclosing `<Errored>`:  it goes to the
     console, and the fallback never shows (measured, P6:  `app`'s `ASTViewer` / `MatchViewer`).  Read the value in
     JSX (a render expression) where a throw must show the fallback, or give the effect an `{ effect, error }`
     bundle.
-  - load states:  `<Errored>` OUTSIDE `<Loading>`, content innermost, so an error replaces the whole region,
-    spinner included.  `<Loading>` shows its fallback on the FIRST load only;  later, `isPending()`.  State in
-    signals:  `<Switch>`, the error `<Match>` first (`app`'s `InputEditor.tsx`).
+  - load states:  `<Loading>` shows its fallback on the FIRST load only;  later, `isPending()`.  Which order the
+    app nests them in:  WWOD §17 › "Load states:  error, then loading, then loaded".
 - Lists:  `<For each>` keys by identity (item = value, index = accessor);  `keyed={false}` by position (item =
   accessor);  `keyed={(t) => t.id}` by key.  `<Repeat count>` for windowing.  No `.map()` in JSX.
 - `<Show>`:  unkeyed, its children stay mounted while `when` stays truthy, and a child callback gets an ACCESSOR;
   `keyed`, they're REMADE whenever `when` changes value (`!==`), and the callback gets the VALUE.  So `<Show
-  when={key()} keyed>` remounts a subtree:  `key` a memo naming exactly what remakes it, with `equals` to remount
-  only on the change that matters (`app`'s `InputEditor.tsx` `key`, `TypeExplorer.tsx` `shown`).
+  when={key()} keyed>` remounts a subtree each time `key()` changes;  a `key` memo's `equals` decides what counts
+  as a change.  How the app keys it:  WWOD §17 › "Remount with `<Show when={key()} keyed>`".
 - Context:  the context IS the provider.  No default => a missing provider throws.
-  - `useContext()` needs an OWNER:  at module scope it throws `NoOwnerError`, default or not.  App-wide singletons
-    are module imports, not context.
+  - `useContext()` needs an OWNER:  at module scope it throws `NoOwnerError`, default or not.
 - Dynamic components:  `dynamic(() => source())`, created once outside JSX.
 
 ```tsx
@@ -281,8 +280,7 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
 - `render(() => <App />, el)` returns `dispose`.  A ShadowRoot works as the container.
 - `<Portal>` defaults to `document.body`:  inside a shadow root ALWAYS pass `mount`.
 - JSX types for `<ui-*>`:  augment `"@solidjs/web/types/jsx.js"`, NOT `"@solidjs/web"`.
-- `@spell-app/ui` specifics (see `../ui/AGENTS.md`):
-  - events are `ui-*` `CustomEvent`s with `detail`
+- `@spell-app/ui` specifics (its events:  SEE `packages/ui/AGENTS.md` "UI rules"):
   - never write a bare string attribute in JSX (`<ui-toast icon>` requests `true.js`):  write `icon=""`
   - glyphs must be emitted by the build
   - many hosts are `display: contents`
@@ -329,8 +327,8 @@ h(Picker, { onPick: () => go() }) // WRONG:  becomes a getter, passes go()'s res
   `await resolve(() => x())` for async.
 - Under Node, `@solidjs/web` resolves to the SERVER build (no DOM `render`):  component tests need the
   `browser` + `development` conditions plus jsdom or vitest browser mode.  An SSR test project needs its own `solid()`.
-  - `app`:  `*.browser.test.ts(x)` run in Vitest browser mode (chromium, Playwright), Solid's client build;
-    everything else in node (server build, `renderToString`).  See `app`'s `vitest.config.ts`.
+  - `app` runs both, a node project and a browser one (Vitest browser mode, chromium through Playwright):  SEE
+    `packages/app/AGENTS.md` "Overview".
   - `app`'s component tests `render()` from `@solidjs/web` into a fixture and `await uiReady` for the `<ui-*>` tags.
     `@solidjs/testing-library@next` (1.0.0-beta.3) exists but isn't installed.
 - Reactive semantics this repo depends on are pinned as vitest cases:  `util`'s `src/spell/cells.test.ts` (cells, no
@@ -358,12 +356,11 @@ expect(button.textContent).toBe("Clicks: 1")
 - `2.0.0-next.35` runs on rc.13, pinned exactly (`app`, P8).  Config objects, no `<Route>` / `<A>` components.
 - `createRouter({ routes })` once, at module scope:  the instance IS the provider;  its render-prop child is the root
   layout, which stays mounted.
-- It ships Solid JSX SOURCE (`dist/*.jsx`):  the bundler's Solid plugin must compile it out of `node_modules`
-  (`app`'s `vite.shared.ts` `NOT_SOLID_SOURCE`).
-- Links are plain `<a>`, taken by delegation from the WHOLE page:  `explicitLinks: true` limits it to `<a link>`
-  (the app's, so a running program's own links stay its own).
-- `useNavigate()` works only under the router:  code outside components (`app`'s `editor`) gets it handed over by the
-  root layout (`app`'s `src/pages/navigation.ts`).  A bare `history.pushState()` changes the URL, not the page.
+- It ships Solid JSX SOURCE (`dist/*.jsx`):  the bundler's Solid plugin must compile it out of `node_modules`.
+- Links are plain `<a>`, taken by delegation from the WHOLE page:  `explicitLinks: true` limits it to `<a link>`.
+- `useNavigate()` works only under the router:  code outside components gets it handed over by the root layout.
+  A bare `history.pushState()` changes the URL, not the page.
+- How the app does each of these:  SEE `packages/app/AGENTS.md` "Overview" (Routing).
 - A route whose `path` is an ARRAY stays mounted across those URLs:  read `props.params` in an effect's compute.
 - Tests:  `createRouter({ routes, history: memoryHistory("/url") })` per test.
 

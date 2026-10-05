@@ -22,6 +22,7 @@ From:  original WWOD §21 "Logging".
   - A sub-subsystem names its parent in its prefix:  `prefix: "server:api"`.
 - **Quiet by default:**
   - `Logger`'s default level is `WARN`.  Hot paths start lower (`ERROR`, `OFF`), e.g. the tokenizer.
+  - `OFF` drops everything, `warn()` and `error()` included:  no level always shows.
   - Pass `level` as `Logger.DEBUG` ... `Logger.OFF`, never a bare string.
   - Turn one up while debugging by setting its `level` (`this.logger.level = Logger.DEBUG`), or through
     `SPELL_DEBUG` -- never by editing its default and committing it.
@@ -32,7 +33,7 @@ From:  original WWOD §21 "Logging".
   - A logger takes its level from it when named there, else its coded default.
   - Each package also has its own, `SPELL_<PKG>_DEBUG` (`SPELL_UI_DEBUG`, `SPELL_PARSER_DEBUG`):  same format, for
     that package's loggers only, read in its `environment.server.ts`.
-  - In the browser, set `level` from the console instead, on a logger exposed with `setDebugGlobal()` (WWOD §1).
+  - In the browser, set `level` from the console instead, on a logger exposed with `setDebugGlobal()` (below).
 - **Message format:  emitting method first, then the data:**
   - `"method(): what happened:"`, then the values as separate arguments, so the console shows them as objects.
 
@@ -50,5 +51,10 @@ From:  original WWOD §21 "Logging".
   - `console.error` in a best-effort `catch` where no logger exists
   - developer warnings a library MUST always show, whatever the level, e.g. `@spell-app/ui`'s one `console.error`
     naming the tag when an element's render throws (`packages/ui/test/fallback.cases.ts`)
-  - NOT for inspecting objects while debugging:  expose them with `setDebugGlobal()` (WWOD §1)
+  - NOT for inspecting objects while debugging:  expose them with `setDebugGlobal()` (below)
   - SEE:  `packages/cli/AGENTS.md` -- in the CLI `console.*` is SILENCED;  output goes to `process.stdout` / `stderr`
+- **Debug globals through `setDebugGlobal()`:**
+  - Never `console.log` for object inspection:  `setDebugGlobal({ project })` exposes state in the devtools console.
+  - NEVER depend on a debug global in code:  it's for a human at the console, nothing else.
+  - From `$/util`.
+    - TODO:  `$/util` has no `setDebugGlobal()` yet -- write it.
