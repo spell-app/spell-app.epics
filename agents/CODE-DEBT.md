@@ -523,6 +523,21 @@ knowingly kept:
 
 ---
 
+### `commands.json` is shared, but `commands:check` reads each branch's CLI
+
+- **Cost** -- a branch that adds a `spell` command and its row in `commands.json` makes `yarn commands:check` on
+  `main` (and every other branch) fail until that branch merges:  the row names a command their CLI doesn't have.
+- **Cause** -- `packages/docs/content/dev/commands/commands.json` and `commands.md` live in the shared content repo
+  (`../spell-app-dev`, epic `shared-content`):  ONE copy, the same in every checkout.  `spell dev commands check`
+  (`yarn commands:check`) checks that one JSON against the CLI source of the checkout it runs in, which is
+  versioned per branch.
+- **Fix** -- open:  Owen accepted it for now, "revisit later" (epic `shared-content`).  E.g. rows marked with the
+  branch that adds them, skipped by other checkouts' checks;  or the JSON tracked per branch, beside the CLI.
+- **Pinned at** -- `spell dev commands check` (`yarn commands:check`);  the root's `AGENTS.md`, "Commands";  the
+  `shared-content` plan doc.
+
+---
+
 ## app
 
 ### React for spell programs, beside the app's Solid

@@ -475,6 +475,10 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- `packages/app/src/runner/RunnerConsole.tsx` `RunnerConsole()`:  `const console = props.console` reads a prop in the
+  component BODY, an untracked scope:  Solid 2's `STRICT_READ_UNTRACKED` should warn in dev, and a later
+  `console` prop change is never seen.  Prove:  dev build, open a runner, look for the diagnostic;  fix with
+  `untrack(() => props.console)` if it's deliberately read once (`solid-2.md` "Reads").  Found by `/epic wwod` P2.
 - [V] `src/runner/element.build.test.ts` "one Solid per page":  Solid is found in `ui/customElement.js` as well as
   `spell-solid.js`, so the test fails -- with or without the `markdown` epic's changes (checked 2026-10-04 by
   reverting `Markdown.tsx`;  likely from `main`'s merge that day).  Prove:  `yarn vitest run --project node

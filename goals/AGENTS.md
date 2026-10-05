@@ -20,8 +20,11 @@ waiting to be worked in, and the tools that keep it all consistent.  As the root
   decisions and thoughts.
 - `<set>/<topic>/<topic>.md` -- the same topic as a brief for agents:  context, decisions, work, the questions they
   must not decide, pointers.  Same ids as the page.
-- This folder holds content only.  It may be a symlink into a peer content repo, so the tools find it as
-  `<repo root>/goals`, never beside themselves.
+- This folder holds content only, and it's SHARED:  a folder link into the shared content repo `../spell-app-dev`,
+  the same in every checkout (the root's `AGENTS.md`, "Shared content").
+  - Not tracked by spell-app:  committed by itself after every Claude turn;  never `git add` it by hand.
+  - So the tools find it as `<repo root>/goals`, never beside themselves.
+- The tooling is NOT shared:  `packages/docs/tools/goals/`, tracked in spell-app, versioned per branch.
 - `packages/docs/tools/goals/` -- the tools:
   - `goals.js` -- `yarn goals ...` / `spell goals ...` (below)
   - `page.js` -- `GoalsPage`:  every edit to a page, pure (HTML in, HTML out)

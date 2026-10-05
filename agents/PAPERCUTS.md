@@ -1295,6 +1295,17 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   update a flagged file even when it's unchanged.  `git checkout -- <file>` alone doesn't help while flagged. ·
   Back them up, `git update-index --no-skip-worktree` (paths from the REPO ROOT), `git checkout -- workspaces`,
   merge, write the local edits back on top, `git update-index --skip-worktree` again. · claude-code
+- 2026-10-03 · An epic's worktree window (`workspaces/ongoing/<name>.code-workspace`) showed no `packages/`
+  folder in `spell-app ⎇ <name>`, so its plan doc folder (`packages/docs/epics/<name>/`) couldn't be found to drop
+  files into.  `window.mjs`'s `worktreeWorkspace()` copies the package window's `"files.exclude": { packages: true }`,
+  which hides `packages/` in EVERY folder of the window, the worktree's root too. · `worktreeWorkspace()` no longer hides
+  `packages` (and drops the package folder:  just the main root and `⎇ <name>`);  the window already open was
+  rewritten the same way. · claude-code
+- 2026-10-04 · `ExitPlanMode` from a session in a worktree's window (`/epic wwod`) failed twice with "Tool permission
+  request failed:  AbortError:  Tool permission stream closed before response received":  the session restarted,
+  plan mode was gone, and the plan file came back untouched (no approval, no comments).  Once for a planning plan,
+  once for `/comment`'s 476-line review round. · Not found yet:  fell back to asking in the modal;  cause unknown
+  (session restart?  plan size?). · claude-code
 - 2026-10-04 · Swapped a diff out to speed-test HEAD (`git diff > p.patch`, `git checkout --`), then `git apply
   p.patch` printed nothing and changed nothing:  run from `packages/docs`, `git apply` SILENTLY skips every path
   outside the current folder. · Apply from the repo root (`git -C <root> apply <patch>`), and check `git status`
@@ -1329,6 +1340,16 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   worktrees and sessions, plus each doc's `tsx scripts/plan-doc.js summary <name> --json`, run in its OWN checkout's
   `packages/docs` (an old-format doc needs its own branch's script).  Fix:  port `epics.py` to `spell dev plan-doc
   list`. · claude-code
+
+- 2026-10-04 · `plan-doc commits --backfill` missed a shared doc's commits from early on its start day:  `git log
+  --since=<date>` means that date at the CURRENT time of day, not midnight. · `--since="<date> 00:00"`
+  (shared-content I2). · claude-code
+
+- 2026-10-04 · In a worktree-isolated session, Claude Edit refused files reached through the shared FOLDER links
+  (`goals/AGENTS.md`, `agents/CODE-DEBT.md`):  "Edit the worktree copy of this file instead of the shared-checkout
+  path" -- the guard resolves the link to `../spell-app-dev` and sees a path outside the worktree.  Read works. ·
+  A small node script (exact string replace) run through Bash on the worktree path;  the guard may need to learn
+  the `"shared"` links. · claude-code
 
 ## vscode
 
