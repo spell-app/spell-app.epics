@@ -592,6 +592,14 @@ every entry below that date was fixed or disproven;  what's left:
   `clock`, which isn't in `ICONS` in `scripts/bundle-spell-ui.js` (only `clock rotate left` is).  Prove:
   `node scripts/check-spell.js epics/isolate-changes/isolate-changes.plan.html` notes "5 icon(s) with no <svg> drawn",
   all `ui-item[clock]`.  Fix:  add `solid/clock` to `ICONS`, then `yarn docs:update`.
+- `../spell-app-dev/.gitignore` (written by `spell dev shared init`):  ignores `details/`, `*.lock`, `*.tmp`, but
+  NOT plan docs' review inboxes, `epics/*/*.inbox.json` -- which `packages/docs/AGENTS.md` ("Review inbox") calls
+  git-ignored, per-machine state.  spell-app's `.gitignore` still ignores them, but they now live in the shared
+  repo, so the `Stop` hook's auto commit would commit Owen's pending marks.  Prove:  mark an item on a plan doc,
+  end a turn, `git -C ../spell-app-dev log --stat -1`.  Fix:  add the pattern to `spell dev shared init`'s ignore
+  list and to the shared repo's `.gitignore`.
+- spell-app's `.gitignore` comments still say an epic's details pages and plan docs are "committed" (with the
+  branch);  harmless, but stale since `shared-content`.
 
 ## server
 
