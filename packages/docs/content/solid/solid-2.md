@@ -104,9 +104,9 @@ count() // 1
   build the same runtime shape.  `Thing` / `List` / `App` themselves keep `getProp` / `setProp`:
   - `@prop({ type, default }) accessor x!: T` -- schema from decorator ARGS via `Symbol.metadata` (polyfilled in
     `$/util`'s `Schema.ts`);  an initializer runs AFTER `create()`, so defaults go in the args (`default`, or
-    `{ init: () => [] }` for objects):  SEE WWOD §13 › "State initializes LAZILY, in its getter, never in the
-    constructor".  BUILT:  `spellDecorators.ts`;  used by the editor (`EditorStore`), `SpellConsole`, forms'
-    `FormStore`
+    `{ init: () => [] }` for objects).  BUILT:  `spellDecorators.ts`;  used by the editor (`EditorStore`),
+    `SpellConsole`, forms' `FormStore`.
+    SEE WWOD §13 › "State initializes LAZILY, in its getter, never in the constructor"
   - `@derived get y()` -- memoized with the equality cutoff;  only for pure, worth-it getters.  BUILT
   - `@thing` on the class -- runs `create()` after the most-derived class's field initializers.  BUILT:
     `packages/util/src/spell/spellDecorators.ts` (`import { thing } from "$/util"`);  `Thing` / `List` skip their own
@@ -201,14 +201,15 @@ spellCore.element({
   - the apply's RETURN VALUE IS ITS CLEANUP:  use braces, NEVER an expression body that returns a value (halts the page)
   - many React `useEffect`s should be a memo or an event handler instead
   - component setup + teardown:  `onSettled(() => { ...; return cleanup })`, not `onMount`
-  - `onCleanup(fn)` runs when its OWNER is disposed:  in a body, when the component goes.  NEVER inside `onSettled` / `createTrackedEffect`:  return the
-    cleanup there (`CLEANUP_IN_FORBIDDEN_SCOPE`).  With no owner (module scope, a ref callback, a handler) it NEVER
-    runs (`NO_OWNER_CLEANUP`).  In a `ui` element (`keepAlive`) it runs on `dispose()`, NOT on disconnect.
+  - `onCleanup(fn)` runs when its OWNER is disposed:  in a body, when the component goes.  NEVER inside
+    `onSettled` / `createTrackedEffect`:  return the cleanup there (`CLEANUP_IN_FORBIDDEN_SCOPE`).  With no owner
+    (module scope, a ref callback, a handler) it NEVER runs (`NO_OWNER_CLEANUP`).  In a `ui` element (`keepAlive`)
+    it runs on `dispose()`, NOT on disconnect.
 - Memos:  eager by default;  create them inside a component / owner, NEVER at module scope (unowned memos recompute
   forever).  `lazy: true` autodisposes when unobserved.
 - Stores:  draft setters only.  A direct `store.x = 1` is SILENTLY IGNORED.
-- Errors:  wrap app roots in an error boundary (`<Errored>`;  the app wraps it:  SEE WWOD §17 › "`<ErrorBoundary>`
-  around every region that can fail alone");  it heals itself when the data recovers.
+- Errors:  wrap app roots in an error boundary (`<Errored>`);  it heals itself when the data recovers.  The app
+  wraps it:  SEE WWOD §17 › "`<ErrorBoundary>` around every region that can fail alone".
   - NOTE: an error thrown by a `createEffect` COMPUTE is NOT caught by an enclosing `<Errored>`:  it goes to the
     console, and the fallback never shows (measured, P6:  `app`'s `ASTViewer` / `MatchViewer`).  Read the value in
     JSX (a render expression) where a throw must show the fallback, or give the effect an `{ effect, error }`

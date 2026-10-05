@@ -1,31 +1,25 @@
 # WWOD -- What Would Owen Do?
 
 House style for this repo (spell).  Audience:  AI coding agents -- follow these over your defaults.
-- What's about THIS repo -- package map, dependency direction, aliases, worktrees and windows, changelog, ledgers --
-  is in the root `AGENTS.md`;  what's local to one package, in that package's `AGENTS.md`.
 - Examples cite real files by repo path;  read them when unsure.  Where an example has no path, it's illustrative.
+- Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors as control flow"`.
+- How the rules fit together (root and package `AGENTS.md`, spokes, "As WWOD §N, plus:"):  `agents/wwod/README.md`.
 
-This hub holds the universal rules (§1-7).  Topic rules live in the spokes beside it, `agents/wwod/`
-(§8-20) -- read the spoke(s) matching what you're touching, BEFORE writing code.
-Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors as control flow"`.
+The universal rules are here (§1-7);  topic rules in the spokes beside it (§8-20).  Read the spoke(s) for what
+you're touching BEFORE writing code:
 
-| Touching                                                       | Also read                         | §     |
-| -------------------------------------------------------------- | --------------------------------- | ----- |
-| new feature, module layout, file names, barrels, namespaces    | `architecture.md`                 | 8     |
-| types, function signatures, helper functions                   | `types.md`                        | 9     |
-| server routes and APIs, env vars, configuration                | `server-env.md`                   | 10-11 |
-| classes, decorators, state, `Loadable`, value objects, records | `classes-state.md`                | 12-16 |
-| Solid components, JSX                                          | `solid.md`                        | 17    |
-| CSS / styling                                                  | `css.md`                          | 18    |
-| logging, debug output                                          | `logging.md`                      | 19    |
-| tests                                                          | `tests.md`                        | 20    |
-| ANY Solid 2 code:  signals, stores, effects, `<ui-*>`, JSX     | `packages/docs/content/solid/solid-2.md`  | --    |
-| anything inside a package                                      | `packages/<pkg>/AGENTS.md`        | --    |
-
-- Solid mechanics live in `packages/docs/content/solid/solid-2.md`, not here:  READ IT IN FULL before any Solid work.
-  WWOD §17 is house style on top of it.
-- Each package's `AGENTS.md` holds what's local to that package;  a section there that shares a WWOD rule's name
-  EXTENDS it ("As WWOD §N, plus:").
+| Touching                                                       | Also read                                | §     |
+| -------------------------------------------------------------- | ---------------------------------------- | ----- |
+| new feature, module layout, file names, barrels, namespaces    | `architecture.md`                        | 8     |
+| types, function signatures, helper functions                   | `types.md`                               | 9     |
+| server routes and APIs, env vars, configuration                | `server-env.md`                          | 10-11 |
+| classes, decorators, state, `Loadable`, value objects, records | `classes-state.md`                       | 12-16 |
+| Solid components, JSX (house style on top of `solid-2.md`)     | `solid.md`                               | 17    |
+| CSS / styling                                                  | `css.md`                                 | 18    |
+| logging, debug output                                          | `logging.md`                             | 19    |
+| tests                                                          | `tests.md`                               | 20    |
+| ANY Solid 2 code (signals, stores, `<ui-*>`):  read IN FULL    | `packages/docs/content/solid/solid-2.md` | --    |
+| anything inside a package                                      | `packages/<pkg>/AGENTS.md`               | --    |
 
 ## 1. Working process
 
@@ -51,21 +45,15 @@ Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors a
   - Epic work:  in its plan doc, `packages/docs/content/epics/<name>/<name>.plan.html`.
     - Each fidelity / refinement round names the deviations it closed, with literal values.
     - An evaluated-and-rejected approach gets a written census of what it would touch.
-  - Standing problems go in the ledger they belong to, at the repo root, rather than being left implicit:
-    - `agents/CODE-DEBT.md` -- structural debt tolerated on purpose, incl. code that doesn't follow a WWOD rule yet
-    - `agents/SUSPECTED-BUGS.md` -- looks like a bug, not sure
-    - `agents/PAPERCUTS.md` -- tooling that slowed development down
-  - Each ledger keeps its own rules (header of each file), e.g. `agents/SUSPECTED-BUGS.md` deletes an entry once
-    settled.
+  - Standing problems:  in their ledger, never left implicit -- `agents/CODE-DEBT.md` (incl. code that doesn't
+    follow a WWOD rule yet), `agents/SUSPECTED-BUGS.md`, `agents/PAPERCUTS.md`, each with its own rules in its
+    header.  SEE:  root `AGENTS.md` "Long-term debt".
   - NOT:  a `CORRECTED <date>:` annotation on a claim later found wrong -- each file's own rule says how it's fixed.
-- **Debug globals through `setDebugGlobal()`, never `console.log`, for object inspection:**
-  - `setDebugGlobal({ project })` exposes state in the devtools console.
-  - NEVER depend on a debug global in code:  it's for a human at the console, nothing else.
-  - From `$/util`.
-- **Finishing pass for fast-drafted code:**  run `yarn review` in every package you touched (or at the root):
-  `yarn ts`, `yarn lint:fix` (oxlint), `yarn format` (oxfmt), `yarn test` -- all through Vite+ (`vp`;  root
-  `AGENTS.md` "Toolchain:  Vite+").
-  - `packages/ui`:  `yarn test:visual` too, when anything visible changed.
+- **Inspect objects through a debug global, not `console.log`** -- SEE:  WWOD §19 › "Debug globals through
+  `setDebugGlobal()`".
+- **Finishing pass for fast-drafted code:**
+  - Run `yarn review` in every package you touched (or at the root);  what it runs:  SEE:  root `AGENTS.md`
+    "Toolchain:  Vite+".
   - Then sweep for classic drift bugs:
     - operator precedence in template ternaries (`` `${a}` + b ? … ``)
     - inverted comparisons in guard clauses
@@ -86,22 +74,28 @@ Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors a
 
 ## 2. General style
 
-- **DRY:  extract logic duplicated more than ~3 lines** into a shared utility.
-  - Before writing a new one, check `$/util`, the package's own util folder (`$/ui/util` ...) and lodash
+- **DRY:  extract logic duplicated more than ~3 lines** into a shared utility:
+  - Before writing one, check `$/util`, the package's own util folder (`$/ui/util` ...) and lodash
     (re-exported by `$/util`), e.g. lodash for dotted paths, `string.ts` for case conversion.
-  - After implementing a feature, check to see if blocks of code are duplicated
-    and lift up into `<folder>.types.ts` (constants, small pure helpers -- WWOD §8) or a util file.
-  - NEVER hard-code the same string more than once, make it a constant
-    or pass sample message into a helper function which can be overridden.
-  - Boundary:  extraction NEVER makes a util module import from a feature layer.
-    When the only shared home would invert the dependency, a small private copy is CORRECT.
-    SEE:  `packages/util/AGENTS.md` "Overview".
+  - After implementing a feature, look for duplicated blocks and lift them up:  constants and small pure helpers
+    into the folder's types file (WWOD §8 › "`<folder>.types.ts`"), the rest into a util file.
+  - Two functions doing generally the same thing:  consolidate into one, with arguments or dependency injection --
+    especially long chains of business logic in app code, components or route handlers.
+  - NEVER hard-code the same string more than once:  make it a constant (WWOD §9 › "Named string constants +
+    `typeof` types"), or pass a sample message into a helper function which can be overridden.
+  - Where a shared helper lives (the package's util folder, `$/util` once 2+ packages use it), and the small private
+    copy when that home would invert the dependency:  SEE:  WWOD §8 › "Promotion path".
+- **Delete a field, option or export nothing reads**, rather than keeping it.
+- **Ask before adding a dependency:**  ask Owen before adding any runtime dependency to a package;  lodash and
+  `$/util` first (above).
 - **API layers handle client / server communication and throw:**
   - `$fetch()` (`$/util`) throws a `ResponseError` subclass for every failure (WWOD §5 › "Server → client error
     identity");  callers never check `response.ok` themselves.
 - **Models combine property defaulting and business logic:**
   - Complex business logic for manipulating object should be in model class, throw on error,
     e.g. `SpellProjectRoot.createApp()` (`packages/spell/src/SpellProjectRoot.ts`).
+  - Prefer "smarter" methods, which throw (or, in a controller, show feedback) themselves, over callers that check
+    and react.
 - **App controllers use models + API and show feedback to user:**
   - High-level flows for user interaction belong in the app's controller, `editor` (`packages/app/src/editor.ts`),
     which reports success and failure as the flow runs:
@@ -125,33 +119,20 @@ Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors a
   - one `createApp()` for every project type, its message naming `project.type` -- not one per type
   - open `extension` lists instead of closed unions
   - parameterized helpers (`blobKey(id, ext)`) instead of one per kind
-- **Hoist anything generic out of the feature** to its existing or logical home:
-  - Before writing a helper, check if a similar function already exists.
-  - Its home:  `$/util` ONLY when 2+ packages use it, else the package's own util folder.  SEE:
-    `packages/util/AGENTS.md` "Overview" (what lands in `$/util` lands in `ui`'s bundle).
-  - Hoisting an EXISTING feature helper is WWOD §8 › "Promotion path" --
-    it gets renamed to drop the feature's vocabulary on the way out.
-- **Streamline business logic:**
-  - Prefer "smarter" methods which internally throw, show user feedback, etc.
-  - Avoid duplicating large chains of business logic, especially in app code,
-    components, or route handlers.
-  - If two functions do generally the same thing, consider consolidating
-    into one function with arguments, or dependency injection.
 - **Best-effort work:**
-  - `catch (ignored) { console.error(...) }`
-  - Methods documented `- NEVER throws`
+  - `catch (ignored) { this.logger.error(...) }`, or `console.error(...)` where no logger exists
+    (WWOD §19 › "`console.*` is reserved for")
+  - methods documented `- NEVER throws` (WWOD §6 › "Note throws, side effects and conventions")
   - Deliberately un-awaited calls say so, and ALWAYS end in a `.catch(...)`:
     `void editor.compileApp().catch((error) => editor.showError(error))`, plus a comment when the why isn't
     obvious.
 - **No unnecessary case normalization** (`.toLowerCase()`) for values with a defined format (env var names).
-- **Formatting is oxfmt's** (through `vp fmt`), configured once in the repo root's `vite.lint.ts` (`fmt` block):
-  - 120-char width, 2-space indent, no semicolons, double quotes, no trailing commas
+- **Formatting is oxfmt's** (through `vp fmt`):  120-char width, 2-space indent, no semicolons, double quotes, no
+  trailing commas.
   - never hand-format against it;  `yarn format` settles it
-  - Respect a `// oxfmt-ignore` someone added by hand.
-- **TypeScript `private`, not `#private`:**
-  - `private index = 0` -- private to TypeScript, a plain property at runtime.
-  - Strict TypeScript.
-  - NOT:  `#` private fields -- a Proxy can't reach them, and tests can't peek.
+  - where it's configured:  SEE:  root `AGENTS.md` "Toolchain:  Vite+"
+- **Strict TypeScript.**
+  - Private members:  SEE:  WWOD §12 › "TS `private`, never `#private`".
 - **Decorators:**  STANDARD (TC39) only -- WWOD §12 › "Decorators".
 
 ## 3. Naming
@@ -173,23 +154,28 @@ Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors a
 - **Boolean getters prefixed `is` / `has` / `can`:**  `isEditing`, `hasChanges`, `canSave`.
 - **Drop the redundant type word once something is a class member** -- the class already said it:
   - In a `Run` class:  `nextRun(run)` → `next()`, `planRun()` → `planSteps()`, `runActionKeys()` → `actionKeys()`.
-  - Derived reads become GETTERS, not methods:  `runProgress(run)` → `get progress`,
-    `currentStep(run)` → `get currentStep`, `canBack(run)` → `get canBack`.
+  - Same for reads, which become getters:  `runProgress(run)` → `progress`, `currentStep(run)` → `currentStep`,
+    `canBack(run)` → `canBack` -- SEE:  WWOD §12 › "Derived reads are plain getters;  `@derived` only when worth it".
+  - Fluent methods `return this`:  SEE:  WWOD §12 › "Transitions MUTATE, and return a result structure or `this`".
 - **A local-name collision blocks a rename:**
   - `run.index` → `run.step` for the FIELD, but locals meaning "a plan position" stay `index`.
   - `this.step` is unambiguous because it's always prefixed;  a bare local `step` holding a
     number, sitting beside locals meaning "a `Step`", reads as a bug on sight.
 - **Names must be HONEST about what the thing is**, and get fixed when they aren't:
   - `Target` → `Selector` when it holds a selector, not a target;  `TargetResolver` → `ElementResolver`.
-- **Magic strings become named constants declared above the function**, or BELOW the main method if in a class:
+- **Names aren't identifiers:**
+  - NEVER treat a class name or rule name as a stable identifier -- for saved data, lookups, or anything which
+    must survive a rename or a translation.  Names are for people, and change.
+  - Add an explicit property for it instead, e.g. `@proto static importableAs = "enumeration"`
+    (SEE:  `packages/spell/AGENTS.md`).
+- **"People", never "users"**, in what people read:  docs, pages, UI text.
+- **Magic strings become named constants:**
   - `const UTM_KEYS = [...]`, `const SEARCH_REFERRERS = /google|bing/i`.
+  - At module level, declared BEFORE the function that uses them (or from the folder's `.types.ts`);  in a class,
+    AFTER the main methods.  SEE:  WWOD §8 › "Class first, its types and helpers below".
   - Prefer a regex with the `i` flag over `.toLowerCase()` comparisons.
 - **Don't rename for no reason:**  a destructured variable with a clear name keeps it
   (`replayEnabled`, not `shouldEnableReplay`).
-- **Fluent setters and methods** `return this`, so calls chain:
-  - `UI.icons.reset()` returns the `IconPacks` (`packages/ui/src/runtime/IconPacks.ts`)
-  - `Loadable.stopInflightLoadOrSave()` returns the `Loadable` (`packages/util/src/spell/Loadable.ts`)
-  - type the return `this`, so a subclass chains as itself:  `reset(): this { ...;  return this }`
 - **Underscore-prefixed raw params**, normalized into a same-named local:
   - `locationFor(_path?: string | SP.SpellLocation) { const location = new SP.SpellLocation(_path) }`
 - **Qualified ids:**  `projectId` not `id` even where context disambiguates;  `projectName` not `name`;
@@ -203,18 +189,12 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
   - ALWAYS import starting from a package alias, NEVER start import from `../`.  Every package's alias is `$/name`
     (`$/parser`, `$/core`, `$/ui` ...), `$` meaning `packages/`.  `ui` is no exception:  its test helpers are
     `$/ui/test/...`.  The one table is `tsconfig.base.json`.
+  - INSIDE a package, `$/name` is its barrel and `$/name/deep/path` any file in its `src/`, e.g. `$/app/ui`.
+  - From ANOTHER package, import the BARREL only (`$/parser`, never `$/parser/rules/Rule`), except the entry points
+    (opt-in side-effect imports, test helpers, node-only files ...) listed in `tsconfig.base.json`'s header comment.
+  - Other aliases and exceptions are in the package's own "Imports".
   - EXCEPTION:  when subclassing, import the extended class directly from its file, to avoid circular imports --
     SEE:  WWOD §4 › "Circular imports".
-    - INSIDE a package, `$/name` is its barrel and `$/name/deep/path` any file in its `src/`, e.g. `$/app/ui`.
-    - From ANOTHER package, import the BARREL only (`$/parser`, never `$/parser/rules/Rule`), except the entry
-      points named in `tsconfig.base.json`'s header:
-      - `$/parser/rulex` (opt-in side-effect import)
-      - `$/parser/test` and `$/spell/test` (test helpers)
-      - `$/ui/test/...` (`ui`'s test helpers)
-      - `$/spell/node/...` (node-only:  environment, files on disk)
-      - `$/util/class`, `$/util/decorators` ... (`util`'s GENERIC files, from `ui`'s `src/util/index.ts` only:  the
-        barrel also holds spell's heavy utilities)
-    - Other aliases and exceptions are in the package's own "Imports".
 - **Same-folder peers only:**
   - OK to import from direct peers:  `import { Rule } from "./Rule"`, but not subdirectories -- use `$/parser/...`
     instead.
@@ -231,8 +211,7 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
     - Tests may mix:  `import { P, Match, Parser } from "$/parser"`.
   - Why:  one name per type everywhere (`P.AnyMatch`), and `import type { P }` erases completely from output,
     so a `.types.ts` file stays value-free.
-  - NOT:  a second namespace per feature folder for its types (`import * as T from "./tours.types"`) --
-    two names for one type, and breaks "ONE self-namespace" (WWOD §8).
+  - NOT:  a second namespace per feature folder -- SEE:  WWOD §8 › "ONE self-namespace per package".
 - **Types-only leaf import as `PT`:**
   - When, and ONLY when, a file can't load its package's barrel (circular import), it imports the types module
     as a type-only namespace named `<namespace>T`:  `import type * as PT from "./parser.types"`, then `PT.AnyMatch`.
@@ -256,19 +235,18 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
 
     - Use `import type { P }` when file only needs types, e.g. `*.types.ts`, `Tokens.ts`.
 - **Import order:**
-  - Import order:
-    - node_modules
-    - (blank line)
-    - `$/util` and other general utilities, general-to-specific
-    - other sub-system barrels
-    - own barrel
-    - direct peer files, base classes first
-    - (blank line)
-    - side-effect imports (`import "$/parser/rulex"`)
-    - css files (`./foo.css` if in same folder, else `$/name/path/to/foo.css`)
+  - node_modules
+  - (blank line)
+  - `$/util` and other general utilities, general-to-specific
+  - other sub-system barrels
+  - own barrel
+  - direct peer files, base classes first
+  - (blank line)
+  - side-effect imports (`import "$/parser/rulex"`)
+  - css files (`./foo.css` if in same folder, else `$/name/path/to/foo.css`)
   - Frameworks (`solid-js` ...) are node_modules:  no group of their own.
 - **One import statement per module:**
-  - One import statement per module.  Inline type imports:  `import { P, type AnyMatch } from "$/parser"`.
+  - Inline type imports:  `import { P, type AnyMatch } from "$/parser"`.
 
 ## 5. Errors
 
@@ -276,8 +254,8 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
   - NEVER return `{ ok: false, error }` unions.
   - `TypeError` for bad caller input;  `SyntaxError` for a parse error.
   - System errors are defined in `$/util/errors`:  `CustomError`, `UIError`, the `ResponseError` family.
-  - A folder may declare its own small error classes when callers need to tell them apart -- in its
-    `<folder>.types.ts` (WWOD §8), never one file per error class.
+  - A folder's own small error classes, when callers need to tell them apart, live in its `.types.ts`, never one
+    file per class -- SEE:  WWOD §8 › "`<folder>.types.ts`".
   - Error details ride in `cause`, typed (WWOD §5 › "Structured error causes").
 - **Error classes:  body usually empty, named AFTER the class:**
   - `SourceError.prototype.name = "SourceError"`, on the line after the class.
@@ -304,8 +282,8 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
   ```
 
 - **Server → client error identity:**
-  - Server throws `SRV.HttpError(status, message)`;  the listener answers with that status and
-    `{ error: message }` (or the error's `body`) -- SEE:  `packages/server/src/listener.ts`.
+  - The server half (`SRV.HttpError(status, message)`;  the listener answers with that status and
+    `{ error: message }`, or the error's `body`):  SEE:  WWOD §10 › "Caller mistakes throw specific error subclasses".
   - Client:  `$fetch()` turns the status back into a `ResponseError` subclass -- `NotFoundError` (404),
     `AuthenticationError` (401 / 403), `OfflineError`, `CanceledRequestError` ...
   - Only a genuinely-expected error becomes a value (`instanceof NotFoundError → undefined`),
@@ -344,32 +322,27 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
     - classes and class methods/fields
     - loose methods
   - Every exported thing gets one, and every option / type member -- even one-liners.
-- **Explain _why_:**
-  - Explain _why_, don't just restate the code.
+- **Explain _why_**, don't just restate the code.
 - **Note throws, side effects and conventions:**
   - Make sure to note side effects and unexpected conventions.
   - And what it throws, when:  `- throws if ...`, or `- NEVER throws` for best-effort work.
 - **Docstring format:**
-  - Format:
-    - informal style, one line and then `-` bullets
-    - DO NOT use jsdoc `@param` etc
-    - terse text, e.g. `last server version`, not `the last known server version`
-    - two spaces after a period
-    - backticked identifiers/types
-    - format lists as bullets rather than inline commas
-    - `~==` for "equivalent to" and `===` for exactly equals
-  - `--` as em-dash.
-  - `~==` in an example:  `location.projectUrl ~== "@org:project:main"`.
-  - ALL-CAPS invariants:  `NEVER`, `MUST`, `SIDE EFFECT:`,
-    `NOTE: throws if you don't authorize() BEFORE calling!`
+  - informal style, one line and then `-` bullets
+  - DO NOT use jsdoc `@param` etc
+  - terse text, e.g. `last server version`, not `the last known server version`
+  - two spaces after a period
+  - backticked identifiers/types
+  - format lists as bullets rather than inline commas
+  - `~==` for "equivalent to" and `===` for exactly equals, e.g. `location.projectUrl ~== "@org:project:main"`
+  - `--` as em-dash
 - **Marker vocabulary** (line above the item):
-  - Marker vocabulary / invariants: NOTE, TODO, SIDE EFFECT, HACK, NEVER, MUST, DOCME, RENAME, DEPRECATED
-  - plus:
-    - `DEBUG:` `CONSIDER:` `TESTME`
-    - `HACK:` -- state the fragile assumption
-    - `SEE:` -- cross-reference or URL
-    - `REFACTOR:` -- a local cleanup, proposing the new shape inline (structural debt goes in `agents/CODE-DEBT.md`
-      or the plan doc)
+  - ALL-CAPS invariants:  `NEVER`, `MUST`, `SIDE EFFECT:`, e.g.
+    `NOTE: throws if you don't authorize() BEFORE calling!`
+  - `NOTE:` `TODO:` `DEBUG:` `CONSIDER:` `DOCME` `TESTME` `RENAME` `DEPRECATED`
+  - `HACK:` -- state the fragile assumption
+  - `SEE:` -- cross-reference or URL
+  - `REFACTOR:` -- a local cleanup, proposing the new shape inline (structural debt goes in `agents/CODE-DEBT.md`
+    or the plan doc)
 - **OK to ship WIP markers:**
   - `// TODO: selection!`, `// DOCME`, empty group headers for planned code.
   - Terse TODOs, not fully-explained prose:  just enough to pick it up later.
@@ -377,10 +350,14 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
   - Wrap comments at English phrase boundaries, not mid-clause.  Avoid single or double widow words,
     wrap `e.g.` clauses if they don't fit on the original line, etc.,
     and drop filler articles (`the`, `a`) that don't earn their place
+- **Writing for people** -- docs, pages, READMEs, plan docs, long comments:
+  - Bullets and numbered lists, not dense prose;  short titles.
+  - 3+ sentences => a short lead plus bullets, one idea each, nested for sub-points.
+  - Keep every fact, number and caveat when you condense.
 - **Lower inline density;  minimal meta-commentary about the code:**
   - Inline comments are short and operational:
     `// Save files first:  link still works if index isn't updated`.
-  - Long meta-comments narrating the code or justifying correctness are out (WWOD §7);  one sentence is fine.
+  - Long meta-comments narrating the code or justifying correctness are out;  one sentence is fine.
 - **Comments that explain a utility belong as a docstring on the function**, not floating above a call site.
 - **Group headers:**
   - Always place a blank line before a group header like the below.
@@ -395,8 +372,8 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
 
   - Long methods too:  `//////` lines separate their functional groups.
 - **Component banner:**
-  - Separate components -- React / Solid / Svelte components, custom element classes -- with a header like so.
-    A custom element goes by its tag, e.g. `` ### `<ui-component-name>` ``:
+  - Separate components -- React / Solid / Svelte components, custom element classes -- and big classes with a
+    header like so.  A custom element goes by its tag, e.g. `` ### `<ui-component-name>` ``:
 
   ```
 
@@ -406,11 +383,15 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
    ****************/
   ```
 
-- **A module docstring states its POSITION IN THE IMPORT GRAPH**, and what it must never import:
+  - The description:  one line of what it is, then bullets of its responsibilities.
+- **A module or class docstring states its POSITION IN THE IMPORT GRAPH**, and what it must never import or know
+  about:
   - `packages/app/src/runner/element.ts`:  "NEVER imports `$/core`, even indirectly".
   - `packages/app/src/solid/modals/dialogs.ts`:  "`editor` reaches these through a DYNAMIC `import()`, so
     `editor.ts` stays free of Solid and `$/ui`".
-  - What a module deliberately does NOT know about, and why that's what makes it testable.
+  - What it deliberately does NOT know about, and why that matters -- often what makes it testable, e.g.
+    `FormFields` (`packages/ui/src/components/ui-form/FormFields.ts`):  "plain DOM, no Solid, so it reads light-DOM
+    natives and `ui-*` hosts alike";  `EmojiData`:  "no rendering, so the native fallback uses it too".
 - **Record the REJECTED refactor at the site**, so nobody re-proposes it blind:
   - Same for a deliberate non-obvious shape:  "STATIC and instance-free on purpose", "Free
     rather than a method", "Deliberately does not re-plan".
@@ -424,6 +405,7 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
     file that LEFT the folder keeps a row pointing at its new home (`*(none -- $/util)*`).
 - **`// oxfmt-ignore`** only for aligned ternary ladders with per-branch comments
   and hand-packed const tables.  Trailing `//` to force a line break.
+  - Respect a `// oxfmt-ignore` someone added by hand.
 - **The final `else` of an exhaustive ladder documents its condition:**
   - `else /* if (placement === "after") */`.
 - **`oxlint-disable` carries a `-- reason`:**
@@ -443,23 +425,29 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
 
 ## 7. Anti-patterns (Claude habits to drop)
 
-- A file per helper function:  a helper FAMILY shares one capability-named file (WWOD §8).
-- Terse abbreviations (`ctor`, ...).
-- An error class per file, or per call site:  small error classes live in `<folder>.types.ts` (WWOD §5).
-- `{ ok: false, error: "..." }` discriminated result unions + error-mapper functions.
-- Local copies of generic helpers in route / feature files -- move to the package's util folder, or `$/util` once
-  2+ packages use it (WWOD §2 › "Hoist anything generic out of the feature").
-- Long named-import lists from leaf modules (WWOD §4).
-- Long meta-comments narrating the code or justifying correctness;  one sentence is fine.
-- Positional param threading (`update(project, record, existing, svg, slug, baseVersion)`):  four or more params,
-  or any boolean param, take a `params` object instead.
-- One route module per HTTP verb;  helpers and retry loops defined inside route handlers (WWOD §10).
-- Inline modal config with logic inside app classes:  a dialog with logic is a Solid component (`<Chooser>`),
-  a text-only one a `UI.modals` call (SEE:  `packages/app/src/solid/modals/dialogs.ts`).
-- Immutable-record state machines:  a `type X = {...}` plus `nextX(x)` / `endX(x)` free functions
-  returning `{ ...x, changed }` spreads.  That's a mutable class -- see WWOD §12-13.
-- Free functions whose first argument is always the same object, or that thread the same
-  `context` through every call -- both are a class with fields.
-- A distinct input type per method (`getElements(spec)` vs `measureAll(elements)`) instead of
-  one input type for the whole class.
-- Keeping a field, option or export nothing reads.
+Each is a rule elsewhere;  this is the quick list.
+
+- A file per helper function -- SEE:  WWOD §8 › "One exported class per file".
+- Terse abbreviations (`ctor`, ...) -- SEE:  WWOD §3 › "Name methods / vars for business logic, for humans".
+- An error class per file, or per call site -- SEE:  WWOD §5 › "Throw typed errors;  NEVER return error unions".
+- `{ ok: false, error: "..." }` result unions + error-mapper functions -- SEE:  WWOD §5 › "Throw typed errors;  NEVER
+  return error unions".
+- Local copies of generic helpers in route / feature files (unless the shared home would invert the dependency) --
+  SEE:  WWOD §8 › "Promotion path".
+- Long named-import lists from leaf modules -- SEE:  WWOD §4 › "ONE namespace per sub-system".
+- Long meta-comments narrating the code -- SEE:  WWOD §6 › "Lower inline density;  minimal meta-commentary about the
+  code".
+- Positional param threading (`update(project, record, existing, svg, slug, baseVersion)`) -- SEE:  WWOD §9 ›
+  "Structured objects over long parameter lists".
+- A positional boolean (`forget(true)`) -- SEE:  WWOD §9 › "String sentinels over booleans for modes".
+- One route module per HTTP verb;  helpers and retry loops inside route handlers -- SEE:  WWOD §10 › "Route handlers
+  are a few lines, no business logic".
+- Inline modal config with logic inside app classes -- SEE:  WWOD §17 › "Dialogs".
+- Immutable-record state machines (`nextX(x)` returning `{ ...x, changed }`) -- SEE:  WWOD §12 › "A class for
+  anything with IDENTITY, a LIFECYCLE, or that COORDINATES".
+- Free functions whose first argument is always the same object, or that thread one `context` through every call --
+  SEE:  WWOD §12 › "A collaborator constant for the object's life is a `readonly` field set once, NOT a parameter on
+  every method".
+- A distinct input type per method (`getElements(spec)` vs `measureAll(elements)`) -- SEE:  WWOD §9 › "ONE input type
+  for the whole class, not one per method".
+- Keeping a field, option or export nothing reads -- SEE:  WWOD §2 › "Delete a field, option or export nothing reads".

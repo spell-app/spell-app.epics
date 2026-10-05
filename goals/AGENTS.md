@@ -1,7 +1,8 @@
 # goals/ -- goal sets
 
 Plans, one GOAL SET per project or idea:  a page per topic for people, a brief per topic for agents, thoughts
-waiting to be worked in, and the tools that keep it all consistent.  As the root's `AGENTS.md`, plus what's below.
+waiting to be worked in, and the tools that keep it all consistent.  As the root's `AGENTS.md` and WWOD
+(`agents/wwod/WWOD.md`), plus what's below.
 
 - Start at `index.html` (every goal set), or a set's own `<set>/index.html`.  `yarn goals open` shows them served
   live;  they also open straight from disk.
@@ -41,9 +42,9 @@ waiting to be worked in, and the tools that keep it all consistent.  As the root
 
 ## Words
 
-- **people**, never "users".
-- Voice:  concise, friendly, professional.  Bullets and numbered lists over paragraphs.  Short titles (2-6 words),
-  then a one-line note.
+- **people**, never "users":  WWOD §3 › ""People", never "users"".
+- Voice:  concise, friendly, professional.  Bullets and numbered lists over paragraphs:  WWOD §6 › "Writing for
+  people".  Short titles (2-6 words), then a one-line note.
 - Pages talk TO Owen ("your 2017 talk");  the `.md` notes talk to agents ABOUT Owen ("Owen's 2017 talk").
 - Topics have a short name (`app`, `spell/ui`, `AI`) used in conversation and on cards;  folders are
   lower-kebab-case (`spell-ui`, `ai`).

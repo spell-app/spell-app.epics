@@ -24,14 +24,13 @@ changed here applies everywhere at once.
 - The hub's table says which spoke to read for what you're touching;  spokes are read on demand.
 - Each package's `AGENTS.md` holds only what's local to it;  a section that shares a WWOD rule's name extends it
   ("As WWOD §N, plus:").
-- Cite a rule as `WWOD §N › "rule title"`.
 
 ## Adding a rule
 
 1. Put it in the spoke for its topic (or the hub, if every task needs it), as a bullet with a **bold title**, so it
-   can be cited.
+   can be cited (format:  the hub's intro).
 2. A rule we chose AGAINST:  a `NOT:` line under the winning rule, with the why, so nobody re-proposes it.
-3. Cite real code by repo path;  an example with no path is illustrative.
+3. Cite real code by repo path.
 4. New section:  number it after the last (renumbering is fine;  fix the citations).
 
 ## History

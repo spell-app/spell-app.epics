@@ -5,7 +5,7 @@ Styling the app's components and pages, on top of `@spell-app/ui`.  Read with `a
 From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui`'s tokens (no Tailwind).
 
 - `@spell-app/ui`'s own sheets (layers, tokens, units, `::part()` names, utility grammar, global sheets):
-  `packages/ui/AGENTS.md` "UI rules" and `packages/ui/docs/theming.md`.
+  `packages/ui/AGENTS.md` "CSS" and `packages/ui/docs/theming.md`.
 - Class attributes in JSX:  WWOD §17 and `packages/docs/content/solid/solid-2.md` "DOM and `@spell-app/ui` elements".
 
 ## 18. CSS
@@ -29,7 +29,7 @@ From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui
   - native nesting and custom properties;  minimal use of preprocessor features (Lightning CSS), no Less
   - it opens with a comment naming what it styles and anything surprising:  `/* Look of <FileDropdown>
     (FileDropdown.tsx) ... Hosts are display: contents:  rules reach the boxes through ::part(). */`
-  - `ui`'s global sheets (`src/styles/`):  SEE `packages/ui/AGENTS.md`
+  - `ui`'s global sheets (`src/styles/`):  SEE `packages/ui/AGENTS.md` "CSS"
   - TODO:  CSS in the component's own file, e.g. a `postcss`-tagged template, if VS Code still gives IntelliSense
     for it.
 
@@ -70,7 +70,7 @@ From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui
 - **Utilities before one-off rules:**
   - `ui`'s `ui-*` utilities (`ui-stack`, `ui-cluster`, `ui-muted`, `ui-hidden` ...) before a rule of your own:
     `packages/ui/docs/theming.md` "Utilities"
-  - a new utility joins `ui`'s `utilities.css`, named in `ui`'s utility grammar:  SEE `packages/ui/AGENTS.md`
+  - a new utility joins `ui`'s `utilities.css`, named in `ui`'s utility grammar:  SEE `packages/ui/AGENTS.md` "CSS"
 
 - **Naming:**
   - component root class = the component's name, PascalCase, on its root element:  `.TypeExplorer`, `.InputEditor`

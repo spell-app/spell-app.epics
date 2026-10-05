@@ -32,26 +32,24 @@ This spoke is house style on top.
 
 - **A class for anything with IDENTITY, a LIFECYCLE, or that COORDINATES:**
   - "The operations look functional" is no reason to skip the class.  A state machine over a record IS a class:
-    its transitions are methods, not free functions that each take the record and return `{ ...record, changed }`.
+    its transitions are methods (below, "Transitions MUTATE ...").
   - Runtime services are classes (`Keyboard`, `Overlays`, `Styles`), builders are classes (`ClassBuilder`), stateless
     singletons too -- WWOD §8.
   - Free functions only for pure helpers no one class owns, e.g. `extend.ts`'s `getProp()` / `setProp()`, shared by
-    `Observable` and compiled spell.  A helper ONE class uses is a private method or `private static` on it.
-  - SEE:  `packages/ui/AGENTS.md` "UI rules" (in `ui`, a helper that earns a name becomes a private method or a
-    small class).
-- **Transitions MUTATE, and return a result structure, or `this` if nothing else (for chaining);  derived reads are
-  getters:**
+    `Observable` and compiled spell.  A helper ONE class uses is a private method or `private static` on it;  a
+    helper that earns a name becomes a private method or a small class.
+- **Transitions MUTATE, and return a result structure or `this`;  derived reads are getters:**
   - A transition writes props through their setters (`@prop accessor`, or `setProp()`), e.g. `EditorStore`'s
     `showNotice()` / `hideNotice()` set `editor.notice`;  a read is a getter (`get appType()`), reactive because it
     reads a prop (`packages/app/src/editor.ts`).
-  - Immutable-record-plus-spread is the wrong shape here:  it forces every caller to re-assign the result, and a
-    caller that forgets silently keeps a stale object.
+  - Nothing else to return:  `return this`, typed `: this`, so calls chain and a subclass chains as itself, e.g.
+    `UI.icons.reset()` (`packages/ui/src/runtime/IconPacks.ts`), `Loadable.stopInflightLoadOrSave()`.
+  - NOT:  free functions that each take the record and return `{ ...record, changed }`.  Immutable-record-plus-spread
+    forces every caller to re-assign the result, and a caller that forgets silently keeps a stale object.
   - What a prop HOLDS is not made reactive:  replace a held list / plain object, don't change it in place.
     SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" › "Spell cells".
-- **Say what the class does NOT know about, and why that matters:**
-  - In its docstring, e.g. `FormFields` (`packages/ui/src/components/ui-form/FormFields.ts`):  "plain DOM, no Solid,
-    so it reads light-DOM natives and `ui-*` hosts alike";  `EmojiData`:  "no rendering, so the native fallback uses
-    it too".
+- **Say what the class does NOT know about:**
+  SEE:  WWOD §6 › "A module or class docstring states its POSITION IN THE IMPORT GRAPH".
 - **Constructor takes ONE `props` object, normalized inside, and maybe a separate `context` object for dependency
   injection:**
   - Typed `XProps`, declared below the class (WWOD §9), e.g. `Observable`'s `constructor(props)`,
@@ -66,13 +64,15 @@ This spoke is house style on top.
   - Name the one seam a test or another environment swaps, e.g. `LoadableFile.fetch`:  "Replace it to answer
     in-process, e.g. from disk under node".
 - **TS `private`, never `#private`:**
-  - `private` / `protected` for fields and methods alike (WWOD §2).
+  - `private` / `protected` for fields and methods alike.
   - Why:  `#private` throws when reached through a `Proxy` wrapping the instance, and tests can't reach it.
   - NOT:  `#` for private fields, TS `private` for methods -- see above.
-- **`static` class constants, declared next to the section that uses them:**
-  - e.g. `CalendarDates.MINUTE_STEP = 5`, `CodeLines`' `private static readonly TOKENS` above the code reading them,
-    not all gathered at the top.
-  - Behaviour switches are the exception and stay at the top ("ALL-CAPS switches" below).
+- **`static` class constants, declared after the main methods:**
+  - In a class, all helpers and constants go AFTER the main methods, e.g. `CalendarDates.MINUTE_STEP = 5`,
+    `CodeLines`' `private static readonly TOKENS`.
+  - Module level:  WWOD §8 › "Class first, its types and helpers below".
+  - Tuning tables are `as const` objects, e.g. `ThemeSheets.SLOTS = { base: "classic", theme: "theme" } as const`.
+  - Developer / debug switches are the exception and stay at the top ("ALL-CAPS switches" below).
   - If a value property can be overridden per instance or per subclass, use `@proto` to define it on the prototype
     ("`@proto static` defaults" below).
 - **Every `static` member's docstring says WHY it's static:**
@@ -80,7 +80,7 @@ This spoke is house style on top.
     requested once at a time", `EmojiData.loads`).
   - A static that CAN'T become an instance method records that too (called before any instance exists ...), so the
     refactor isn't re-proposed:  WWOD §6 › "Record the rejected refactor".
-- **Class banner:**  big classes and every component get the `/**** ### \`<Name>\`` banner -- WWOD §6.
+- **Class banner:**  SEE:  WWOD §6 › "Component banner".
 - **`////////////////` sections INSIDE a long class, ordered outside-in:**
   - What it owns, then its state, then what callers do to it, then the private machinery, pure statics LAST.
   - e.g. `Loadable`:  load state → loading → saving → `## Internal`.
@@ -88,26 +88,28 @@ This spoke is house style on top.
     before touching anything else, then move them.
 - **Brand checks only where `instanceof` can't work:**
   - TODO (not settled):  this rule, as written.
-  - `instanceof` fails across bundles (each `<spell-app>`'s `spell-runtime.js` is its own copy) and across HMR
-    reloads.  There, and only there:  `static __isX__ = true` + an exported `isX()` guard above the class, with
-    `// NOTE: use this rather than instanceof -- <which bundles / HMR>.`
+  - `instanceof` fails across bundles (each `<spell-app>`'s `spell-runtime.js` is its own copy), across HMR
+    reloads, and on a global the environment lacks (`Element` / `Node` under node or linkedom).  There, and only
+    there:  `static __isX__ = true` + an exported `isX()` guard above the class, with
+    `// NOTE: use this rather than instanceof -- <which bundles / HMR / environment>.`
   - Or duck-type the shape, as cells do:  "a source is `{ subs, version, refresh? }`, never checked with
     `instanceof`" (`packages/util/src/spell/cells.ts`).
 - **Backing field declared immediately AFTER its getter:**  `get record() { ... }` then `private _record`.
 - **Reach the owner's collaborators through one-line delegating getters, not stored copies:**
   - `get ui() { return this.owner.ui }`:  a copied field goes stale when the owner swaps its collaborator.
 - **ALL-CAPS switches at the top of the class:**
-  - Behaviour switches, one-line comment each, e.g. `Match.DEBUG_MATCH_INITIALIZATION`:  "Set `false` to skip
-    constructor `assertType` / `assertArrayType` checks".
-  - Tuning tables as `as const` objects, e.g. `ThemeSheets.SLOTS = { base: "classic", theme: "theme" } as const`.
+  - Developer / debug switches, set by hand, one-line comment each, e.g. `Match.DEBUG_MATCH_INITIALIZATION`:  "Set
+    `false` to skip constructor `assertType` / `assertArrayType` checks".
+  - Behaviour a subclass or instance overrides is NOT one:  "`@proto static` defaults" below.
 - **Debounced write-backs are `xSoon` members:**
   - e.g. `compileApp()` => `compileAppSoon()`:  the name says it's deferred and coalesced.
   - Through `debounce()` from `$/util`.
 - **Derived reads are plain getters;  `@derived` only when worth it:**
   - `@derived get y()` / `this.derive(name, fn)` (`Observable`) ONLY for a pure getter doing real work (loops, list
-    aggregates):  memoizing a cheap getter is ~2x SLOWER.
-  - SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" (derived properties, equality cutoff).
-  - NOT:  `@memoize` every non-trivial getter that can run several times per render -- the ~2x cost above, and cells
+    aggregates):  memoizing a cheap getter costs more than it saves.
+  - SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" (the measurement, derived properties,
+    equality cutoff).
+  - NOT:  `@memoize` every non-trivial getter that can run several times per render -- the cost above, and cells
     already re-run only readers whose value REALLY changed.
 - **A lazily made collaborator keeps its identity:  `this.derived(name, getter)`:**
   - `Derivative.derived()`:  made on first read, the SAME object after (not reactive), `clearDerived(name)` resets;
@@ -138,15 +140,13 @@ This spoke is house style on top.
   - In `ui` (no `$/util` prefs):  one key table and static read / write pairs, every access wrapped, e.g.
     `NavPreferences` (`packages/ui/src/docs-components/ui-docs-nav/NavPreferences.ts`).
 - **Subclass for behaviour, spread for plain config:**
-  - Behaviour that varies is a subclass overriding methods, its class-level defaults `@proto static`, e.g.
-    `Keyword`'s `@proto static highlightAs = "keyword"`;  `TextFile` / `JSONFile` extend `LoadableFile`.
+  - Behaviour that varies is a subclass overriding methods, its class-level defaults `@proto static` ("`@proto
+    static` defaults" below), e.g. `TextFile` / `JSONFile` extend `LoadableFile`.
   - A plain config / spec record (data, no methods) spreads over its defaults:
     `{ ...defaults, ...user, ...overrides }` (`packages/ui/src/elements/Shorthand.ts`).
   - NOT:  config-by-spread over subclassing for pluggable BEHAVIOUR (`{ ...BaseSpec, parse, stringify }`) -- a
     function in a spread record has no `super`, no `instanceof`, no docstring home.
-- **Interning:  a `private static readonly` map, plus a `static reset()` for tests:**
-  - e.g. `EmojiData`'s `private static readonly sets` + `reset()` ("For tests and hot reload");  `RootLoader.loads`
-    ("Folder => its import, started once").
+- **Interning:**  SEE:  WWOD §15 › "Immutable and interned, so `===` is equality".
 - **Converting immutable → mutable requires an await-audit:**
   - With an immutable record a lost race harmlessly dropped a stale copy;  once the record IS `this`, a lost race
     CORRUPTS the live object.
@@ -163,13 +163,12 @@ This spoke is house style on top.
 ### Decorators
 
 - **Standard decorators only:**
-  - Use STANDARD (TC39 2023-11) decorators, NEVER `experimentalDecorators`.  General-purpose ones live in
-    `packages/util/src/decorators.ts` (`@proto`:  import from `$/util`;  `ui` has `$/ui/util`, which re-exports the
-    generic ones).
+  - Use STANDARD (TC39 2023-11) decorators, NEVER `experimentalDecorators` or legacy 3-arg decorators that mutate
+    the property descriptor.  General-purpose ones live in `packages/util/src/decorators.ts` (`@proto`:  import from
+    `$/util`;  `ui` has `$/ui/util`, which re-exports the generic ones).
   - Spell's own (`@prop`, `@derived`, `@thing`) live in `packages/util/src/spell/spellDecorators.ts`, for
     HAND-WRITTEN `Observable`s only.  SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" ›
     "Decorators for HAND-WRITTEN classes".
-  - NOT:  legacy 3-arg decorators that mutate the property descriptor -- `experimentalDecorators` is banned above.
 - **Lowered by esbuild:**
   - Lowered by esbuild via the repo root's `vite.decorators.ts` -- vite 8's own transformer (oxc) doesn't do it yet.
     Which configs use it:  the package's own "Decorators".
@@ -194,13 +193,15 @@ This spoke is house style on top.
     error, not a silent static.
   - A base class hears each one through `static protoDefined(name, value)`, e.g. `P.Rule` registering
     `@proto static importableAs`.
-  - Prefer it to a constructor default or a getter for any per-class constant behaviour switch.
+  - Use it for behaviour a subclass or instance overrides, rather than a constructor default or a getter;  a
+    developer / debug switch set by hand is ALL-CAPS instead ("ALL-CAPS switches at the top of the class").
 - **A decorator starts its line:**
   - A decorator MUST be the first thing on its line, or that plugin won't notice the file.
   - The decorator and its field on ONE line is preferred:  `@proto static inlineInitialType = false`.  NOT
     `static readonly @proto x` (decorator mid-line).
 - **A misapplied decorator throws a self-naming `TypeError`:**
-  - Name the decorator, the member and the fix (WWOD §5), e.g. `packages/util/src/decorators.ts`:
+  - Name the decorator, the member and the fix (WWOD §5).  Today's message (`packages/util/src/decorators.ts`) names
+    the decorator, the member and the problem, and leaves the fix ("make it `static`") implied:
 
     ```ts
     if (!context.static) {
@@ -215,21 +216,22 @@ This spoke is house style on top.
 
 - **The instance IS the store:**
   - A class with reactive state extends `Observable` (`packages/util/src/spell/Observable.ts`):  its props and state
-    are spell cells.  No separate store object:  Solid 2 has no mutable store.
+    are spell cells.  No separate store object (why:  the `solid-2.md` SEE below).
   - Readers (Solid computations through the host's bridge, React through `view()`, `observe()`) re-run when a value
     they read REALLY changes.  Reads are synchronous:  a read right after a write sees it.
   - e.g. `EditorStore` (`packages/app/src/editor.ts`):  `editor.x = y` anywhere, and Solid code reading `editor.x`
     re-runs.
   - SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" › "Spell cells".
 - **Props are public, state is transient:**
-  - Props:  listed by `keys()` and `toJSON()`, persisted.  Declared `@prop(info) accessor x!: T` in hand-written
-    classes, `getProp()` / `setProp()` accessor pairs in compiled spell -- the same runtime shape.
+  - Props:  persisted, listed by `keys()` and `toJSON()` (§16).  Declared `@prop(info) accessor x!: T` in
+    hand-written classes, `getProp()` / `setProp()` accessor pairs in compiled spell -- the same runtime shape.
   - State:  internal, never persisted, e.g. a `Task`'s `status`:  a getter over `getState("status")`, written with
     `setState()`, cleared with `resetState()`.
     - TODO:  `getPref()` to keep state across page loads.
     - TODO:  a `@state` decorator?
-  - A plain field (`foo = 1`) is NOT spell state:  not reactive, not one of `keys()`.  Use one only for what no reader
-    needs, and say so (`EditorStore`:  "a plain field (`compileAppSoonTimer` ...) is NOT reactive").
+  - A plain field (`foo = 1`) is NOT spell state (`solid-2.md` "Spell's decisions" › "Decorators for HAND-WRITTEN
+    classes").  Use one only for what no reader needs, and say so (`EditorStore`:  "a plain field
+    (`compileAppSoonTimer` ...) is NOT reactive").
 - **State initializes LAZILY, in its getter, never in the constructor:**
   - Subclass fields aren't set up yet while a base constructor runs.  Read through `getState(name, init)` /
     `getProp(name, init)`, whose initializer runs on first read:
@@ -240,8 +242,8 @@ This spoke is house style on top.
     }
     ```
 
-  - A prop's default is in its declaration, NEVER an initializer:  `@prop({ default: 1 })`, or
-    `{ init: () => [] }` for an object made once per instance.  SEE:  `spellDecorators.ts` `@prop`.
+  - A prop's default is in its declaration, NEVER an initializer (it runs after `create()`):  `@prop({ default: 1 })`,
+    or `{ init: () => [] }` for an object made once per instance.  SEE:  `spellDecorators.ts` `@prop`.
 - **Template hooks with empty bodies:**
   - The base class defines the hook empty, subclasses override, e.g. `Observable.onRemove()`,
     `Loadable.onContentsUpdated()`.  Add hooks as a class needs them, not up front.
@@ -249,12 +251,12 @@ This spoke is house style on top.
   - Defaults come from the schema (`@prop({ default })`);  a persisted preference is the initializer:
     `getProp(name, () => getPref(KEY, fallback))`.
   - A hook that persists opens with a lifecycle guard (`if (this.wasRemoved) return`), and persists `toJSON()`
-    (props) only:  state is transient.
+    (§16).
   - Normalize or validate a change in the prop's setter, before `setProp()` (a hand-written getter / setter pair).
     Type warnings:  override `checkPropType()`, as `Thing` / `List` do.
 - **Change nested state by dotted path:**
-  - `setState("loadState.isLoaded", true)` writes inside the `loadState` object and tells its readers;  `undefined`
-    deletes the key.  e.g. `Loadable.updateLoadState()`, one `setState()` per key.
+  - `setState("loadState.isLoaded", true)` writes inside the `loadState` object and tells its readers (to unset:
+    §16).  e.g. `Loadable.updateLoadState()`, one `setState()` per key.
 
 ## 14. `Loadable`
 
@@ -263,7 +265,9 @@ This spoke is house style on top.
 
 - **Required subclass surface is `abstract`;  an optional capability is a concrete method that throws:**
   - Required:  `abstract getLoader(loadParams)`.
-  - Optional (saving):  the base's `getSaver()` throws "can't save";  callers ask a getter that compares prototypes:
+  - Optional (saving), the TARGET:  the base's `getSaver()` throws "can't save";  callers ask a getter that compares
+    prototypes.  Today `getSaver()` is `abstract` and there's no `canBeSaved`:  `agents/CODE-DEBT.md` "util".
+    The target getter:
 
     ```ts
     get canBeSaved() {
@@ -275,18 +279,14 @@ This spoke is house style on top.
   - `load()` / `save()` orchestrate (cache, in-flight reuse, fences):  "NOTE: don't override this, override
     `getLoader()` instead!"
   - `getLoader()` / `getSaver()` do the work:  "Don't call this directly, it'll be called from `load()`."
-  - `onContentsUpdated()` reacts;  its docstring says whether to call `super` first or last.
+  - `onContentsUpdated()` reacts:  a template hook (§13).
 - **All mutable load state in ONE state object:**
   - `loadState` (`LoadState`), made lazily by `getState()` -- §13.
-  - Written only through `updateLoadState(props)`:  a `===` write is a no-op, a change tells the readers.
+  - Written only through `updateLoadState(props)`, so §16's `===` no-op holds and a change tells the readers.
   - Exposed as public getters (`isLoaded`, `isLoading`, `isSaving`);  a setter only where callers may write
     (`isDirty`).
 - **Per-instance debug is a `Logger` field:**
-  - `logger = new Logger({ prefix: "Foo", level: Logger.WARN })` (`$/util`), e.g. `Tokenizer`'s.
-  - `logger.debug()` is gated by `level`;  `logger.warn()` / `logger.error()` always show;  `logger.group()` dumps
-    state in a console group.  Turn one instance up with `obj.logger.level = Logger.DEBUG`.
-  - SEE:  WWOD §19.
-  - TODO:  epic `logger-everywhere` (WWOD §19).
+  SEE:  WWOD §19 › "One tagged logger per subsystem, as a class field".
 
 ## 15. Value objects / instance singletons
 
@@ -295,13 +295,15 @@ This spoke is house style on top.
     worked out once and shared by every holder.
   - `readonly` fields set in the constructor, or `Object.freeze(this)` -- e.g. `SpellLocation`'s `readonly path`,
     `projectId` ...;  `Rule.freeze()` ("Rules are shared by every parse, so per-parse state MUST go in `match.data`").
-  - Interned in a `private static readonly` registry:  the same input always gives the same object, e.g.
-    `SpellLocation.registry`.
+  - Interned in a `private static readonly` registry, plus a `static reset()` for tests:  the same input always
+    gives the same object, e.g. `SpellLocation.registry`.  The same shape keeps any per-key object made once, e.g.
+    `EmojiData`'s `private static readonly sets` + `reset()` ("For tests and hot reload"), `RootLoader.loads`
+    ("Folder => its import, started once").
   - Constructor `protected`, reached through the static factories below.  Assign the debug-friendly field (`path`)
     FIRST, so a half-built object still prints, then the rest, then freeze.
 - **Static factory pair:  `xOrDie(input)` throws, `optional(input)` returns `undefined`:**
-  - The throwing one raises a house error naming the input and the problem (WWOD §5), e.g.
-    `new SpellLocation('<path>'):: Invalid path`.
+  - The throwing one raises a house error naming the input, the problem and the fix (WWOD §5).  Today's message,
+    `new SpellLocation('<path>'):: Invalid path`, names only the first two.
   - Subclasses redeclare them verbatim, to narrow the return type.
 - **Subclasses may add methods and fields, but never change the contract of an existing property:**
   - Narrowing an inherited one's type is fine (`declare`-retype it);  changing what it means is not.
@@ -330,8 +332,9 @@ This spoke is house style on top.
   - `setProp(name, undefined)` / `setState(path, undefined)` delete the key:  it leaves `keys()` and `toJSON()`.
     `deleteProp(name)` says the same.
   - `delete this.prop` is NOT trapped -- never use it on an `Observable`.
-  - Writing the value a prop already has (`===`) is a no-op:  no reader re-runs.  So a caller just writes;  it
-    never checks "did this change?" first, or keeps a `somethingChanged` flag to decide whether to notify.
+  - Writing the value a prop already has (`===`) is a no-op (`solid-2.md` "Spell's decisions" › "Updates only on
+    differences").  So a caller just writes;  it never checks "did this change?" first, or keeps a `somethingChanged`
+    flag to decide whether to notify.
 - **`toJSON()` is props only, in `keys()` order:**
   - `Observable.toJSON()` gives exactly that, never state.
   - An override deep-clones, serializes children through their own `toJSON()`, and prunes empty keys.

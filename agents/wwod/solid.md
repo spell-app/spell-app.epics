@@ -80,8 +80,8 @@ export type InputRootProps = {
     `createMemo` only when several readers share it, it's costly, or it must cut off equal values -- with a
     docstring saying which (`currentTree`, `shown` in `TypeExplorer.tsx`).  Same trade-off as
     `derive()`:  WWOD §12 › "Derived reads are plain getters;  `@derived` only when worth it"
-  - accessors vs. inner `function`s:  SEE WWOD §9 › "Inner helpers are regular `function`s, defined at the bottom
-    of the method"
+  - accessors vs. inner `function`s:
+    SEE WWOD §9 › "Inner helpers are regular `function`s, defined at the bottom of the method"
 
 - **Spell app state is spell cells, not signals:**
   - a separate pattern from a component's own signals:  the editor's state (`editor`) and a spell program's Things
@@ -219,7 +219,8 @@ function FileInputEditor() {
     `Promise` with the answer and disposes it, e.g. `<Chooser>` + `openChooser()` (`modals/Chooser.tsx`)
   - map config objects ONCE, in app code, e.g. `dialogs.ts`'s `modalOptions()` turns the app's props into
     `UI.modals`' options for every dialog;  callers never repeat it
-  - how `editor` reaches them:  SEE WWOD §6 (its `dialogs.ts` example)
+  - how `editor` reaches them:  SEE WWOD §6 › "A module or class docstring states its POSITION IN THE IMPORT GRAPH"
+    (its `dialogs.ts` example)
   - TODO:  review the promise-based modals
   - TODO:  make modals cheap to draw when they're rarely shown
 

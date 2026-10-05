@@ -211,8 +211,7 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
   export type ProjectRootPath = `@${string}:${string}`
   ```
 
-- **Ambient globals used bare**, no import:  the repo root's `types/` (`Prettify`, `Class`, `AbstractClass`,
-  `SplitString`, `__PACKAGE_VERSION__`) -- SEE:  root `AGENTS.md` "Overview".
+- **Ambient globals used bare**, no import:  the repo root's `types/` -- the list:  root `AGENTS.md` "Overview".
 
 - **Names assume the namespace:**
   - Assume references to types will be namespaced (WWOD §4), so don't repeat what the namespace already says:
