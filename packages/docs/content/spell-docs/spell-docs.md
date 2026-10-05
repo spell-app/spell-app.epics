@@ -30,9 +30,9 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 
 | File | What |
 |---|---|
-| `scripts/update.js` (`yarn docs:update`) | bundle, `docs:index`, `doc-links.js --check`, `check-spell.js` on every page |
+| `scripts/update.js` (`spell dev docs update`) | bundle, `docs index`, `doc-links.js --check`, `check-spell.js` on every page |
 | `scripts/bundle-spell-ui.js` | builds UI (fork + `yarn build`), then bundles `_assets/spell-ui.entry.js` -> `_assets/spell-ui.js` |
-| `scripts/index.js` (`yarn docs:index`) | rewrites the lists in `index.html` from every page's title and description |
+| `scripts/index.js` (`spell dev docs index`) | rewrites the lists in `index.html` from every page's title and description |
 | `scripts/pages.js` | where the docs are, `findPages()`, `tidy()` (link targets + oxfmt) -- shared by the scripts |
 | `scripts/check-spell.js` | Playwright checks + four screenshots of one page |
 | `scripts/doc-links.js` | links `<code>path</code>` references;  `--check` verifies every link |
@@ -171,7 +171,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 
 ## Verification
 
-- `yarn docs:update` must pass;  `--skip-ui-build` reuses `../ui/dist`, `--no-check` skips the browser checks.
+- `spell dev docs update` must pass;  `--skip-ui-build` reuses `../ui/dist`, `--no-check` skips the browser checks.
 - `node scripts/check-spell.js <page> [outDir]` checks one page and writes four screenshots -- look at them.
   - fails on:  console errors, undefined or unrendered `ui-*`, contents links that don't match the sections /
     headings 1:1, phone-width overflow, a top-level title that doesn't stick (a `<ui-section>` must also say

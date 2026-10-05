@@ -127,8 +127,211 @@
               </blockquote></ui-content
             >
           </ui-accordion>
-          <ui-section id="o1" header="1.1 Structure" sticky collapsible dividing collapsed>
-            <p>What goes where: the part that becomes durable docs in the last phase.</p>
+          <ui-section id="o1" header="1.1 How Claude Design sees our components" sticky collapsible dividing collapsed>
+            <p>
+              Claude Design builds on a <b>design system</b>: an artifact on claude.ai that holds a brand book, tokens, and
+              a component library.  Every design made "with" that system loads its library, so Claude draws with our real
+              <code>&lt;ui-*&gt;</code> elements instead of inventing look-alikes.
+            </p>
+            <ul>
+              <li>
+                What a design system holds (the claude.ai "Design System" artifact type, files under <code>project/</code>):
+                <ul>
+                  <li><code>README.md</code>:  the brand book, which every reader starts from</li>
+                  <li><code>tokens.json</code>:  colors (light and dark), type scale, spacing, radius</li>
+                  <li><code>components/bundle.js</code>:  ONE classic script that assigns <code>window.&lt;namespace&gt;</code> (no <code>import</code>, no network)</li>
+                  <li><code>components/bundle.css</code> and <code>components/index.d.ts</code> (types, read as docs)</li>
+                  <li><code>components/&lt;Comp&gt;/README.md</code> (guidelines) and <code>components/&lt;Comp&gt;/preview.html</code> (a live card)</li>
+                </ul>
+              </li>
+              <li>
+                Claude Code's own <code>/design-sync</code> handles React libraries only.  We don't need it:  a design
+                system takes any single-script bundle, and custom elements register themselves when that script runs.
+              </li>
+              <li>
+                Your old Claude Design project is already in the repo, at <code>packages/brand/spell-design-system/</code>.
+                It's React mock-ups drawn from reference images ("No codebase or Figma was provided").  The new system is
+                built from the real elements instead, and reuses that project's brand book and tokens.
+              </li>
+              <li>
+                Not yet proven:  the claims above come from the artifact type's instructions, not from a working system.
+                The first phase builds a throwaway system to test them (<a href="#o3">1.3</a>).
+              </li>
+            </ul>
+          </ui-section>
+          <ui-section id="o2" header="1.2 Teaching it the vocabulary" sticky collapsible dividing collapsed>
+            <p>
+              Yes:  we already have every element's shape written down, so nothing has to be guessed.  Each tag has a
+              <code>&lt;tag&gt;.vocabulary.en.ts</code>, and <code>yarn site:data</code> already gathers all of them into
+              one file, <code>packages/ui/site/_data/components.json</code> (760 KB, 97 tags in 58 families, plus 391
+              foundation tokens and 27 themes).
+            </p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>ui-button.vocabulary.en.ts · excerpt</ui-title>
+              <ui-content
+                ><pre><code class="language-ts">export const buttonVocabulary = {
+  tag: "ui-button", topics: ["buttons"], aka: ["btn"],
+  attributes: [
+    { name: "size", kind: "size", description: "Size, `mini` ... `massive`" },
+    { name: "primary", kind: "keyOnly" },
+    { name: "type", kind: "enum", values: ["button", "submit", "reset"], default: "button" },
+  ],
+  events: [{ name: "ui-toggle", detail: "{ active: boolean, originalEvent?: Event }" }],
+  slots: [{ name: "" }, { name: "icon" }, { name: "label" }],
+} as const satisfies ComponentVocabulary</code></pre></ui-content
+              >
+            </ui-accordion>
+            <p>One generator turns <code>components.json</code> into every format a reader wants:</p>
+            <ui-table compact>
+              <table>
+                <thead><tr><th>Output</th><th>Read by</th><th>From</th></tr></thead>
+                <tbody>
+                  <tr><td><code>components/index.d.ts</code></td><td>Claude Design</td><td>attributes, events, slots, as typed tag attributes</td></tr>
+                  <tr><td><code>components/&lt;Comp&gt;/README.md</code></td><td>Claude Design</td><td>description, attribute table, slots, events, one example</td></tr>
+                  <tr><td><code>components/&lt;Comp&gt;/preview.html</code></td><td>Claude Design's cards</td><td>the 181 example files in <code>src/components/*/examples/elements/</code></td></tr>
+                  <tr><td><code>tokens.json</code></td><td>Claude Design</td><td>foundation tokens and the <code>spell</code> theme</td></tr>
+                  <tr><td><code>custom-elements.json</code></td><td>the web-components standard;  tools and Claude in VS Code</td><td>the same data</td></tr>
+                  <tr><td>VS Code <code>html.customData</code></td><td>VS Code autocomplete and hover docs for <code>&lt;ui-*&gt;</code> in any <code>.html</code></td><td>the same data</td></tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>The Custom Elements Manifest (<code>custom-elements.json</code>) is the standard answer to "teach a tool our elements".  <code>packages/ui</code> has an analyzer script for it, never run, and it wouldn't understand the vocabulary objects anyway:  we write it from <code>components.json</code> instead.</li>
+            </ul>
+          </ui-section>
+          <ui-section id="o3" header="1.3 One bundle, <ui-root>, and where scripts load from" sticky collapsible dividing collapsed>
+            <p>
+              The bundle is uploaded INTO the design system as a file, so nothing has to be public, and nothing goes to
+              npm.  Claude Design can't reach your laptop (<code>localhost</code> is blocked;  only a few CDNs and the
+              system's own files load), so an update is one sync command, not zero steps.
+            </p>
+            <ul>
+              <li>
+                <code>&lt;ui-root&gt;</code> is fine.  It loads each family with <code>import()</code>, and the one-file
+                build already turns those into inline code:  <code>packages/docs/tools/_assets/spell-ui.js</code> is a
+                classic script (<code>var SpellUI = (() =&gt; {...})()</code>, 2.7 MB, about 800 KB zipped), and its build
+                fails if any <code>import()</code> survives.
+              </li>
+              <li>
+                The design bundle is that build minus the docs-only parts (the docs page runtime, the site header).
+                Things to settle in the spike phase:
+                <ul>
+                  <li>icons:  the one-file build inlines only about 90 icons;  the rest draw nothing unless the icon packs go in as files</li>
+                  <li>the lazy engines (code highlighting, markdown, emoji):  inline them, or upload them as files</li>
+                  <li>fonts:  the <code>spell</code> theme uses local Palatino only, so a design shows a fallback serif unless we ship a font file</li>
+                </ul>
+              </li>
+              <li>
+                The update loop, as planned:
+                <ol>
+                  <li>change a component</li>
+                  <li>in Claude Code:  <code>/design push</code> (rebuilds, then sends only the changed files, about a minute)</li>
+                  <li>reload the design in Claude Design</li>
+                </ol>
+              </li>
+              <li>Alternatives we're not taking:  publish <code>@spell-app/ui</code> to npm and load it from jsDelivr (a real publish, and <code>@spell-app/solid-element</code> is private);  host it on GitHub (jsDelivr's npm path is the allowed one, and its cache lags).</li>
+            </ul>
+          </ui-section>
+          <ui-section id="o4" header="1.4 Brand components" sticky collapsible dividing collapsed>
+            <p>
+              The brand elements are built exactly like <code>ui-*</code>, so they go through the same pipeline and into
+              the same bundle.  The catch:  they live on the <code>design-system</code> branch, which isn't merged yet
+              (P9 Docs Restyle and P10 Doc Review are still to come).
+            </p>
+            <ul>
+              <li>13 <code>&lt;ui-brand-*&gt;</code> tags in <code>packages/brand/components/</code> (panel, field, color, color-set, color-range, color-picker, logo, flourish, blob, composer, checklist, phone), each with a vocabulary file</li>
+              <li>their own <code>packages/brand/_data/components.json</code>, the same shape as ui's</li>
+              <li>the <code>spell-brand</code> theme (347 custom properties) feeds <code>tokens.json</code>;  the old project's <code>readme.md</code> feeds the brand book</li>
+              <li>the design-system plan already wanted "use the Spell UI widgets in Claude Design" as a follow-up epic:  this is that epic</li>
+            </ul>
+          </ui-section>
+          <ui-section id="o5" header="1.5 Design work in VS Code" sticky collapsible dividing collapsed>
+            <p>In VS Code nothing needs syncing:  the page server serves the live build, so a component change shows on the next reload.</p>
+            <ul>
+              <li>autocomplete and hover docs for <code>&lt;ui-*&gt;</code> tags and attributes, from the generated <code>html.customData</code></li>
+              <li>a <code>spell-design</code> skill:  "build a page from Spell UI", which reads the same generated READMEs and <code>index.d.ts</code> Claude Design reads, and checks the page in the doc preview</li>
+              <li>the round trip:  a design made in Claude Design comes back as a page in <code>spell-app-dev</code> (<code>/design pull</code>), and an existing page goes up as a design to edit there</li>
+            </ul>
+          </ui-section>
+          <ui-section id="o6" header="1.6 Plan doc flicker, and fragments" sticky collapsible dividing collapsed>
+            <p>
+              The doc preview already patches edits into the open page without reloading, and keeps your place.  The
+              flicker comes from the cases where that patch gives up and reloads the whole page, plus each edit writing
+              the file three times.  Those can be fixed directly, without splitting docs into fragments.
+            </p>
+            <ul>
+              <li>
+                Why it reloads today (<code>spell-doc-runtime.js</code>, <code>canPatch</code> / <code>patchPage</code>):
+                <ul>
+                  <li>any inline script on the page, even <code>&lt;script type="text/plain"&gt;</code>:  the "Plan hung?" notice has one, so every edit to a doc still being planned reloads it (this doc, right now)</li>
+                  <li>anything outside <code>main</code> changed:  every edit rewrites <code>&lt;body data-recent-since&gt;</code>, which differs per checkout and moves with each commit (PAPERCUTS, 2026-10-04)</li>
+                  <li>more than half of <code>main</code> changed</li>
+                </ul>
+              </li>
+              <li>Each edit writes the file 3 times over about 1 second (the edit, link rewriting, then formatting), against a 250 ms watch debounce, so one edit can patch the page twice.</li>
+              <li>
+                What fragments with <code>&lt;ui-include&gt;</code> would cost:
+                <ul>
+                  <li><code>&lt;ui-include&gt;</code> refuses <code>file://</code>, so plan docs would stop opening from disk, and the browser check loads them from disk</li>
+                  <li>find-in-page and <code>#q12</code> links can't reach content that hasn't loaded</li>
+                  <li>about 15 readers parse plan-doc HTML today (the <code>plan-doc</code> commands, the docs index, the main server's epic cards, the review inbox, the browser checks), and every one would need to follow includes</li>
+                  <li>live updates ignore any changed file except the page itself</li>
+                </ul>
+              </li>
+              <li>What fragments would gain:  less parsing and element set-up on load (a folded section's content is still built, only not drawn).  The biggest doc, <code>spell-ui-pages</code>, is 522 KB with 6,666 elements;  most of that is item details.</li>
+              <li>Script speed:  most of a <code>plan-doc</code> command's time is process start-up and formatting, not file size (parsing the biggest doc takes 19 ms), so smaller files wouldn't make scripts much faster.</li>
+            </ul>
+          </ui-section>
+          <ui-section id="o7" header="1.7 The spell-app-dev reorganization" sticky collapsible dividing collapsed>
+            <p>
+              Each folder becomes a link at the root of every checkout, so URLs get shorter (<code>/epics/seo/seo.plan.html</code>
+              instead of <code>/packages/docs/content/epics/seo/seo.plan.html</code>).  It's a large, mostly mechanical
+              move, and the tool that did the last move (<code>relocate.js</code>) can be reused.
+            </p>
+            <ui-table compact>
+              <table>
+                <thead><tr><th>New folder</th><th>From</th><th>Size</th></tr></thead>
+                <tbody>
+                  <tr><td><code>agents/</code></td><td>already at the root</td><td>3 logs</td></tr>
+                  <tr><td><code>goals/</code></td><td>already at the root</td><td></td></tr>
+                  <tr><td><code>epics/</code></td><td><code>packages/docs/content/epics/</code></td><td>21 epics, 69 files</td></tr>
+                  <tr><td><code>templates/</code></td><td><code>packages/docs/content/templates/</code></td><td>13 files</td></tr>
+                  <tr><td><code>guides/</code></td><td>the 21 pages in the docs home's Guides section, with their <code>.md</code>, <code>.json</code> and experiments</td><td>about 40 files</td></tr>
+                  <tr><td><code>ui/</code></td><td>Spell UI's hand-written pages, <code>packages/ui/site/</code> (<a href="#o8">1.8</a>)</td><td>83 pages, 3.3 MB of images</td></tr>
+                  <tr><td><code>brand/</code></td><td>the brand pages and design files in <code>packages/brand/</code> (after <code>design-system</code> merges)</td><td></td></tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>
+                What changes:
+                <ul>
+                  <li>about 3,300 relative links between pages, and 440 tab names (<code>target="src-packages-docs-content-..."</code>)</li>
+                  <li>about 250 lines of code that name the old paths, mostly through one constant, <code>DOCS</code> in <code>packages/docs/tools/pages.js</code></li>
+                  <li>the page server, the VS Code extension, the CLI's shared-content manifest, the skills and every <code>AGENTS.md</code></li>
+                </ul>
+              </li>
+              <li>Other running epics (<code>design-system</code>, <code>review-review</code>, <code>precedence-and-types</code>, <code>wwod</code>) run older code that looks for <code>packages/docs/content/</code>.  Links left at the old paths inside <code>spell-app-dev</code> keep them working until each merges <code>main</code>.</li>
+              <li>The docs home (<code>index.html</code>) and the scratch <code>details/</code> pages have no folder in the new layout yet (<a href="#q3">Q3</a>).</li>
+            </ul>
+          </ui-section>
+          <ui-section id="o8" header="1.8 Spell UI's pages in spell-app-dev" sticky collapsible dividing collapsed>
+            <p>
+              Yes, moving them is what makes them shared and editable from any checkout without a commit.  Only the
+              hand-written parts should move, though:  the bundle and data beside them are built from each branch's code.
+            </p>
+            <ul>
+              <li>move:  the 83 pages, <code>images/</code> and <code>examples/</code></li>
+              <li>stay tracked:  <code>_src/</code> (code), <code>_assets/</code> (the built bundle, 4.2 MB) and <code>_data/</code> (built from the vocabularies);  the page server serves them under <code>/ui/_assets/</code> and <code>/ui/_data/</code>, laid over the shared pages</li>
+              <li>about 13 scripts in <code>packages/ui</code> name <code>site/</code> (<code>site:new</code>, <code>site:index</code>, <code>site:kitchen</code> ...), and 80 pages carry "edit on GitHub" links that would point nowhere</li>
+            </ul>
+          </ui-section>
+          <ui-section id="o9" header="1.9 The pony" sticky collapsible dividing collapsed>
+            <p>
+              You get a pony.  It's the first page Claude Design builds on the new system, drawn from real
+              <code>&lt;ui-*&gt;</code> elements and brought back into <code>spell-app-dev</code>:  the end-to-end test
+              that the whole loop works.
+            </p>
           </ui-section>
         </ui-section>
 

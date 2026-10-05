@@ -12,7 +12,7 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 ## Before building:  suggest
 
 1. Look the operation up:  `commands.json` (grep its `op` words and `names`), or the page's filter
-   (`yarn docs:open dev/commands/commands.html`).  Does something already do it, under another name, or nearly?
+   (`spell dev docs open dev/commands/commands.html`).  Does something already do it, under another name, or nearly?
 2. Then tell Owen, in a numbered list, BEFORE building it:
    - where it belongs (see "Layers"):  usually a `spell dev <noun> <verb>`, with a skill or yarn alias on top
    - its name (see "Names")
@@ -48,7 +48,7 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 - `commands.json`:  every command sits in some row's `cli` / `skill` / `yarn` `names` (`spell dev x`, `/name`,
   `<package> <script>`, `root` for the repo root).  A new operation gets a new row (`op`, marks, `runs`,
   `target`);  the JSON's shape:  `packages/docs/tools/_assets/commands.js`'s header.
-- `yarn commands:check` must pass (`spell dev commands check`:  exits 1 on a command the page lacks, or a name
+- `spell dev commands check` must pass (root `yarn commands:check`:  exits 1 on a command the page lacks, or a name
   no command has).
 - A new noun or verb, or a roadmap change:  edit the page's "5. Target" / "6. Roadmap" too.
 - Building a roadmap move:  update the affected rows' marks and `target`.

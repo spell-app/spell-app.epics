@@ -1,11 +1,11 @@
 # Plan docs
 
 How to write and update `epics/<name>/<name>.plan.html`, the live doc behind a `/epic <name>` session.
-`plan.html` beside this is the template;  `scripts/plan-doc.js` (`yarn plan-doc`) edits the structured parts.
+`plan.html` beside this is the template;  `scripts/plan-doc.js` (`spell dev plan-doc`) edits the structured parts.
 
 ## Rules
 
-- Use `yarn plan-doc <command>` wherever one exists (below):  it keeps ids, icons, UPDATE markers and the
+- Use `spell dev plan-doc <command>` wherever one exists (below):  it keeps ids, icons, UPDATE markers and the
   "updated" date consistent, and locks the file against parallel agents.  Hand-edit only prose:  the summary,
   Overview, phase bodies, item details.
 - Write for Owen coming back COLD (2026-10-04;  the details skill's "Writing for Owen" is the same rule):  he runs
@@ -32,8 +32,17 @@ How to write and update `epics/<name>/<name>.plan.html`, the live doc behind a `
 
   For a question:  the recommended option's net effect (each option card may carry its own).
 - Lists:  bulleted, or numbered when order or reference matters.
-- NEVER delete an item:  close it (`yarn plan-doc close`), and it stays, closed (not struck).  An item another
-  decision made moot:  `yarn plan-doc cancel`, the one status shown struck through (J16 of `review-review`).
+- NEVER delete an item:  close it (`spell dev plan-doc close`), and it stays, closed (not struck).  An item another
+  decision made moot:  `spell dev plan-doc cancel`, the one status shown struck through (J16 of `review-review`).
+- NEVER drop an item's earlier text (Owen, 2026-10-04, I7 of `review-review`):  the question as first asked, its
+  explanation, its option cards, an earlier answer.  A rewrite -- Add Details, an agent's or a phase's rewrite (e.g.
+  `review-review`'s P8 "Rewrite The Rest"), or one by hand -- MOVES it into the item's folded **Original
+  Discussion** (markup under "Markup the script writes"):
+  - `details <name> <id> --file` and `decide` (answering again) do it for you
+  - rewriting by hand:  write the new text through `details --file`, or put the old text in with `original <name>
+    <id> --file <old.html>`;  never just overwrite it
+  - text already lost:  recover it from the shared content repo's git history, then `original ... --as-of
+    "YYYY-MM-DD HH:MM"` (when it was replaced)
 - Keep the doc current as you go:  a caveat, issue or decision found mid-phase goes in NOW, not at the end.
 
 ## Page header
@@ -68,7 +77,6 @@ Below the meta lines, while planning:  the "Plan hung?" notice, `ui-message.plan
 
 | Section | id | What |
 |---|---|---|
-| Overnight · `<date>` | `#overnight` | TEMPORARY, unnumbered, above the Overview:  a `/bedtime` run's report (summary, a line per phase, problems), `data-bedtime="active"` while it runs, `"done"` after.  Only `yarn plan-doc overnight` writes it;  `/epic review` removes it once the night's judgement calls are reviewed.  Nothing in it is only there:  calls, problems and todos are items, phases are log lines |
 | 1. Overview | `#overview` | 2-sentence summary (`p.plan-summary lede`), the prompt that started the plan (`blockquote.plan-prompt`, folded in a "Kickoff prompt" aside), the total estimate (`p.plan-estimate`, written by the script), then the substance in numbered sub-sections (`#o1` "1.1 Structure" ...):  becomes durable docs |
 | 2. Phases | `#phases` | progress bar, then one sub-section per phase (`#p1` ...):  its estimate as the title's badge;  Goal (bullets), Done (bullets, once done), Files and Verify (hidden until the folder / flask toggle on the Phases title is pressed) |
 | 3. Questions | `#decisions` | open questions first (waiting on the user;  each also asked with AskUserQuestion), then the answered ones, in id order:  settled unless new facts arrive.  A decision IS an answered question (D13 of `review-review`, 2026-10-04):  `decide` writes the answer INTO the question;  `add ... decision` makes a question born answered.  Icon `file circle question` |
@@ -84,7 +92,7 @@ Below the meta lines, while planning:  the "Plan hung?" notice, `ui-message.plan
 - A section with items shows `open/all` at its title's right (its `badge`, set by the page runtime), and its open
   count as a badge in the contents and the rail.  Open:  any `data-status` but `done` and `decided`, so "Questions"
   counts the questions waiting.
-- Older docs:  `yarn plan-doc migrate <name>` brings one up to date, whatever its age, and prints what it changed:
+- Older docs:  `spell dev plan-doc migrate <name>` brings one up to date, whatever its age, and prints what it changed:
   - before 2026-10-01:  a `#plan` section (summary + phase list), a separate `#questions`, another order (an
     answered question moves beside the decision whose title names it, `(Q8)`)
   - before 2026-10-02:  `section.s2|s3` > `ui-sticky.spell-h2|h3` > `h2|h3` sections, phases in
@@ -93,6 +101,10 @@ Below the meta lines, while planning:  the "Plan hung?" notice, `ui-message.plan
     question, as its answer card (`<div class="plan-answer-block" id="d7">`, titled `D7 · ...`:  old `#d7` links
     still land, opening the question);  a stand-alone one becomes a question born answered;  a struck one
     `canceled`.  It chooses the option card the decision names (`B: ...`, `option B`, or the option's words)
+  - before 2026-10-05:  an answered question's answer card FIRST, the question and its option cards below it.
+    `relayout <name>` (or `--all`;  `migrate` does it too) puts each in the order it happened:  the question, its
+    Choices, the answer (I9 of `review-review`, markup under "Markup the script writes");  idempotent, and nothing
+    is dropped
 
 Section markup (the template's;  a hand-written Overview sub-section is the same, nested in `#overview`):
 
@@ -123,7 +135,7 @@ Section markup (the template's;  a hand-written Overview sub-section is the same
   - docs from before 2026-10-04 also have `d1` decisions, each beside the struck question it answers;  the script
     reads both shapes, and `migrate` merges them (the `d7` id stays, on the answer card:  `close d7` finds its question)
 - Phases:  `p1` ...  Shown as `P1 · Short Name`:  a 2-4 word name, so "start P2" is unambiguous.
-- Link to them in prose:  `<a href="#i2">I2</a>`.  `yarn plan-doc check` fails on a link to a missing id.
+- Link to them in prose:  `<a href="#i2">I2</a>`.  `spell dev plan-doc check` fails on a link to a missing id.
 
 ## Markup the script writes
 
@@ -168,7 +180,7 @@ Phase section (in `#phases`, after `<ui-progress class="plan-progress">`:  `valu
 - Files and Verify:  hidden in the browser until the folder / flask toggle on the Phases title is pressed
   (`spell-doc-runtime.js` `wirePhaseToggles()`);  still written for every phase.
 - Estimate:  the title's `badge`.  Wall-clock time for Claude to do the phase, agents included, Owen's review not.
-  `30m`, `2h`, `1h30m`, or a range, `1-2h`.  `yarn plan-doc estimate <name> <N> "..."` changes it;  docs before
+  `30m`, `2h`, `1h30m`, or a range, `1-2h`.  `spell dev plan-doc estimate <name> <N> "..."` changes it;  docs before
   2026-10-04 had an Estimate field (`migrate` moves it into the badge).
 - The total, in the Overview below the summary and the prompt:
 
@@ -206,16 +218,46 @@ With details, the item's line IS the panel's title (it opens on a click, or on a
 - `data-status`:  `open` (questions, caveats, issues, todos), `decided` (an answered question:  a decision in
   force), `done` (closed, never removed:  fixed, passed, accepted;  NOT struck), `canceled` (made moot by another
   decision, or a superseded answer:  closed like `done`, its title struck through;  `cancel`, `reopen` undoes it)
-- an answered question (`decide`) keeps its title;  `data-answered`, and its details start with the answer:
+- an answered question (`decide`) keeps its title;  `data-answered`, and its details read in the order it
+  happened (Owen, 2026-10-04, I9 of `review-review`):  "Original question", "Choices", then the answer
 
   ```html
   <ui-item id="q3" data-status="decided" data-answered data-phase="3" data-changed="2026-10-04T12:46:05-04:00" data-state="recent">
     <ui-accordion class="plan-item">
       <ui-title><a class="plan-id" href="#q3">Q3</a> <span class="plan-title">Which browser first?</span></ui-title>
-      <ui-content><div class="plan-answer-block"><b>Answer:</b>  Chrome</div><p>why ...</p></ui-content>
+      <ui-content>
+        <div class="plan-question"><p>the question as asked ...</p><p><b>Net effect:</b></p><ul><li>...</li></ul></div>
+        <ui-accordion class="spell-aside plan-choices" styled>
+          <ui-title>Choices</ui-title>
+          <ui-content>
+            <ui-accordion class="plan-options" styled fluid exclusive="no" open="1">
+              <ui-title>A · Firefox</ui-title><ui-content><ul><li>...</li></ul></ui-content>
+              <ui-title data-chosen>B · Chrome (recommended)</ui-title><ui-content><ul><li>...</li></ul></ui-content>
+            </ui-accordion>
+          </ui-content>
+        </ui-accordion>
+        <div class="plan-answer-block" id="d4"><div class="plan-answer-title"><b>D4</b> · Chrome</div><p>why ...</p></div>
+      </ui-content>
     </ui-accordion>
   </ui-item>
   ```
+
+  - `div.plan-question`:  the question's text as it was asked, its Net effect too;  the page labels it "Original
+    question".  None when the question had no text
+  - Choices:  the question's option cards, ONE folded aside holding an accordion, a panel per card:  its title the
+    card's label (`B · Chrome (recommended)`), its content the card's body.  The chosen option's title carries
+    `data-chosen` (a green check and green text on the page, not a frame), and `open` opens the accordion on it;
+    `exclusive="no"`:  several can be open to compare.  No option cards:  no Choices.  An OPEN question keeps its
+    option cards (`ui-grid.spell-pros-cons`) and their Choose pills
+  - the answer card:  titled `D4 · ...` when it carries a migrated decision's id (old `#d4` links land on it),
+    else `Answer · ...`
+  - then replies (`.plan-reply`, after the answer), the Original Discussion, the commits
+  - `decide` writes it;  answering again replaces the answer card IN PLACE (the old one into the Original
+    Discussion);  `details --file` on an answered question rewrites the question's text, before the answer card,
+    and lays it out again (its new option cards become the Choices;  the chosen letter stays chosen when the new
+    options have it);  `relayout` converts docs from before 2026-10-05
+  - written by the script:  by hand, write the question's text with its option cards (`ui-grid.spell-pros-cons`)
+    through `details --file`, then `decide --option`;  never hand-write the Choices
 
   `add ... decision "title"`:  a question born answered, its title the answer (no answer block)
 - docs from before 2026-10-04:  a struck question with `<a class="plan-answer" href="#d7">→ D7</a>`, then decision
@@ -223,15 +265,36 @@ With details, the item's line IS the panel's title (it opens on a click, or on a
 - an item's commits (`commit <name> <sha> --item I3 "..."`):  `<div class="plan-commits"><b>Commits:</b>  <ul
   class="plan-commit-list">...</ul></div>` at the end of its details;  an item without details gets a panel
 - details are optional;  they start collapsed
+- an item's earlier text (I7 of `review-review`):  its ORIGINAL DISCUSSION, a folded aside after its current text,
+  before its commits.  `details --file` and `decide` (answering again) move what they replace into it;
+  `original` adds text recovered from git:
+
+  ```html
+  <ui-accordion class="spell-aside plan-original" styled>
+    <ui-title>Original Discussion</ui-title>
+    <ui-content>
+      <div class="plan-version"><h5>As first written</h5><p>the question as first asked ...</p></div>
+      <div class="plan-version" data-as-of="2026-10-04 20:49"><h5>As of 2026-10-04 20:49</h5><p>...</p></div>
+    </ui-content>
+  </ui-accordion>
+  ```
+
+  - one `div.plan-version` per version, oldest first:  the first undated (its "As first written" heading comes with
+    the second), each later one dated when it was replaced;  a version saying the same as one there isn't added
+  - ids inside become `data-original-id`:  no duplicate ids, nothing links into it
+  - ignored by everything that reads an item:  its option cards are never counted or chosen (`approve`, `pick`,
+    the page's Choose pills), `items --json` gives the current text (`details`) and the old apart (`original`),
+    `check` skips its links, the contents leave out its headings
 
 Item state (written by the script on every edit;  the page colors the id badge by it):
 
 - `data-changed`:  when a command last changed the item's status or review marks (`add`, `close`, `reopen`,
   `decide`, `review`, `defer`, `queue`, `unqueue`), ISO local time with offset;  `data-bedtime` too while a
-  `/bedtime` run is on, until `review` (or `queue`) clears it
+  `/bedtime` run is on (`<body data-bedtime>` below), until `review` (or `queue`) clears it
 - `data-phase="N"`:  the phase active when it was added (its "To review" line lists it)
 - `<body data-recent-since>`:  the commit time of `HEAD~2` in the doc's checkout (D2:  green = changed in this
   commit or the last);  none without git history
+- `<body data-bedtime="P3-P6">`:  a `/bedtime` run is on, and what it runs (`bedtime <name> start` / `done`)
 - `data-state`, from those:
 
   | State | Color | When |
@@ -293,29 +356,31 @@ While a phase is active, flag what changed so the user can spot it:
   (the script adds it)
 - a changed prose block gets, just before it:
   `<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE" data-phase="2"><p>what changed</p></ui-message>`
-- `yarn plan-doc phase <name> 2 done` removes every `.plan-update[data-phase="2"]`
+- `spell dev plan-doc phase <name> 2 done` removes every `.plan-update[data-phase="2"]`
 
 ## Review inbox
 
 Owen marks items ON the page (served by the page server):  approve, todo, Add Details, revisit (soon / now, with a
 note), pick an option card.  A question may carry a pick AND a revisit note together ("pick B, but ..."):  the
-revisit mark holds the `pick`.  The marks wait in `<name>.inbox.json` beside the doc (git-ignored) until "send to
-Claude";  Add Details and revisit now go at once (the inbox's `now` queue).  Read it with `yarn plan-doc inbox
+revisit mark holds the `pick`.  An ANSWERED question's Choices take Choose pills too, on every option but the chosen one, only while
+Owen revisits it (its Revisit box open, or a revisit or pick mark):  "pick B instead, because ..." is a revisit
+carrying the pick, talked over;  a plain pick there, once applied, answers it again with that option.  The marks wait in `<name>.inbox.json` beside the doc (git-ignored) until "send to
+Claude";  Add Details and revisit now go at once (the inbox's `now` queue).  Read it with `spell dev plan-doc inbox
 <name>`;  shape, routes and helpers:  `packages/docs/AGENTS.md`, "Review inbox".  NEVER edit the file by hand:  go
 through `tools/inbox.js` (its lock).
 
 How a `/epic review` session takes the marks (nothing outside a session can wake it, except a background command
 it started ending):
 
-1. `yarn plan-doc inbox <name> listen`:  the page stops saying nobody is reviewing.
+1. `spell dev plan-doc inbox <name> listen`:  the page stops saying nobody is reviewing.
    - a HEARTBEAT keeps it so:  `wait` stamps `listening.seen` every 30s, and `apply`, `done`, `clear`, `working`
      each time;  silent for 90s (a killed session, no `unlisten`), the page says nobody is reviewing again
-2. `yarn plan-doc inbox <name> wait` in the BACKGROUND, then end the turn.  It exits when there's work, which wakes
+2. `spell dev plan-doc inbox <name> wait` in the BACKGROUND, then end the turn.  It exits when there's work, which wakes
    the session;  it prints, for each item, its id, kind, status and title, the mark, the note, and a pick's option
    card:
 
    ```text
-   now (1):  start a background agent for each;  `yarn plan-doc inbox review-review done <id>` after
+   now (1):  start a background agent for each;  `spell dev plan-doc inbox review-review done <id>` after
      - I1  issue, open · The phases' progress bar label is cut off at its left end
          Add Details
    sent 2026-10-04T17:32:26.086-04:00 (4 marks):
@@ -328,7 +393,7 @@ it started ending):
        - Q3  question, open · Where should the send button sit?
            picks A · In the page header, asks:  "A, but only on plan docs?"
      ...
-   next:  `yarn plan-doc inbox review-review apply` (approve, pick, todo)
+   next:  `spell dev plan-doc inbox review-review apply` (approve, pick, todo)
    ```
 
    - `now`:  Add Details and revisit now, TAKEN off the queue, each item marked `working` (its spinner);  the mark
@@ -337,7 +402,7 @@ it started ending):
    - `sent`:  every mark the last "send to Claude" covered, once per send (`handedOver` in the inbox);  a mark an
      earlier send already handed over (a revisit still being talked over) says "(sent before)"
    - timeout (3300s):  exit 2, nothing taken;  run it again
-3. `yarn plan-doc inbox <name> apply`:  the mechanical marks, applied and cleared:
+3. `spell dev plan-doc inbox <name> apply`:  the mechanical marks, applied and cleared:
 
    | Mark | On | Does |
    |---|---|---|
@@ -351,7 +416,7 @@ it started ending):
    | revisit with a pick | a question | left, NOT answered ("to talk over:  picks B · ..., asks:  ..."):  answer the note about that option;  once Owen agrees, `decide <name> <id> "<card title>" --option B`, then `clear` |
 
    Each applied mark logs one line (`J9 approved:  closed (accepted)`);  a mark Owen changed meanwhile stays.
-4. Requests for now:  a background agent per item writes into it with `yarn plan-doc details <name> <id> --file
+4. Requests for now:  a background agent per item writes into it with `spell dev plan-doc details <name> <id> --file
    <html>` (Add Details:  replaces the details;  revisit now:  `--append` a reply), then `inbox <name> done <id>`.
 5. `wait` again.  On leaving:  `inbox <name> unlisten`.
 
@@ -394,11 +459,10 @@ decide from WITHOUT asking back:  in the item's details, or an Overview sub-sect
 - End with the **Net effect** (see "Rules").
 - The AskUserQuestion that asks it uses the same option names and order as the doc.
 
-## Commands (`yarn plan-doc ...`, from anywhere in the repo)
+## Commands (`spell dev plan-doc ...`, from anywhere in the repo)
 
-Every command but `new` edits the epic's LIVE doc wherever it is:  its own worktree's
-(`.claude/worktrees/<name>`), else the main checkout's, else the first worktree that has it.  Never the copy a
-worktree took of an epic merged before it was cut:  editing that would fork the record.
+Every checkout's `packages/docs/content` is a link to ONE shared copy (epic `shared-content`):  run from any
+checkout, a command edits the same doc.  `--here` (this checkout's copy) is no longer needed:  accepted and ignored.
 
 | Command | Does |
 |---|---|
@@ -409,27 +473,30 @@ worktree took of an epic merged before it was cut:  editing that would fork the 
 | `add <name> question\|judgement\|caveat\|issue\|todo\|test\|decision "<title>" [--details "<html>"]` | append an item, print its id;  a `decision` is a question born answered (`Q7`) |
 | `close <name> <id>` / `reopen <name> <id>` | close an item (`done`) / open it again |
 | `cancel <name> <id> ["why"]` | an item made moot by another decision:  `canceled`, struck through;  logs why;  `reopen` undoes it |
-| `decide <name> <Q id> "<answer>" [--details "<html>"]` | answer a question:  the answer goes INTO it (`decided`, an answer block first in its details);  prints its id |
+| `decide <name> <Q id> "<answer>" [--details "<html>"] [--option B]` | answer a question:  the answer goes INTO it (`decided`), its details in the order it happened:  the question's text, its option cards as a folded Choices accordion (`--option`:  the chosen one), then the answer card;  answering again replaces the card in place, the old one into its Original Discussion;  prints its id |
 | `commit <name> <sha> --phase N \| --item <id> "<sentence>"` | list a commit under a phase or an item (replaces its entry) |
 | `commits <name> --backfill` | list every phase and item commit in the doc's git history that isn't yet (subjects `P3:  Name -- summary`, `Fix I3:  ...`) |
 | `log <name> "<text>"` | add a timestamped line to the log |
 | `prompt <name> "<text>"` / `prompt <name> --file <path>` | set (replace) the prompt quoted in the Overview;  `""` removes it |
-| `migrate <name>` | bring an older doc (before 2026-10-01, `section.s2` markup, `D` items) into this layout (prints what changed;  "already current" otherwise) |
-| `overnight <name> start "P3-P6" [--branch b]` / `phase <N> "text"` / `problem "text"` / `done "summary"` / `remove` | a `/bedtime` run's Overnight section (`/bedtime`'s cheat sheet) |
+| `migrate <name>` | bring an older doc (before 2026-10-01, `section.s2` markup, `D` items, answer cards first) into this layout (prints what changed;  "already current" otherwise) |
+| `relayout <name> \| --all [--dry-run]` | answered questions in the order they happened (before 2026-10-05:  the answer card first):  the question, its Choices, the answer;  prints per doc the questions changed and those skipped, and why (born answered:  no answer card);  idempotent, drops nothing;  `--dry-run` writes nothing |
+| `bedtime <name> start "P3-P6"` / `bedtime <name> done "summary"` | a `/bedtime` run:  bedtime mode on (`<body data-bedtime="P3-P6">`;  `summary --json`'s `bedtime`) / off;  both logged.  No report section:  the night's judgement calls and issues show red where they belong (D5 of `review-review`) |
+| `overnight <name> remove` | an older doc's Overnight report section (a `/bedtime` run's, before 2026-10-05):  remove it once read |
 | `review <name> <id> ["outcome"]` | mark an item reviewed today;  the outcome goes in the log |
 | `defer <name> <id>` | put an item off:  dated, still not reviewed |
 | `queue <name> <id> "work"` / `unqueue <name> <id>` | work a review decided on, waiting / started or dropped |
 | `items <name> [--section <s>] [--filter unreviewed\|open\|reviewed\|queued\|all] [--json]` | what a review walks:  where reviews stand, the to-do list, each section's counts and items |
-| `items <name> --section <s> --spec <file>` | `/epic review`'s item picker as a details page spec (`yarn details new --from`):  a checkbox per open item, the not-reviewed ones ticked, each labelled by its id |
-| `list [--json]` | every epic in main and the worktrees:  in progress / done, not reviewed / all |
+| `items <name> --section <s> --spec <file>` | `/epic review`'s item picker as a details page spec (`spell dev details new --from`):  a checkbox per open item, the not-reviewed ones ticked, each labelled by its id |
+| `list [--json]` | every epic:  in progress / done, its worktree while it has one (`checkout`), not reviewed / all |
 | `backfill <name> \| --all [--apply]` | one-off:  items not reviewed that Owen named in a past session of the epic (his message, or a modal he answered);  a dry run unless `--apply`, which marks them dated that day (`scripts/review-backfill.js`) |
 | `summary <name> [--json]` | open questions, judgement calls, issues, caveats, todos, tests, and the next phase |
 | `check <name>` | ids unique, every `#id` link resolves, every phase has a status, then `check-spell.js` |
-| `open <name>` | show the doc rendered in VS Code's doc preview (the right side bar's "Spell Docs" tab);  needs the spell extension (`yarn vscode`) |
+| `open <name>` | show the doc rendered in VS Code's doc preview (the right side bar's "Spell Docs" tab);  needs the spell extension (`spell dev vscode`) |
 | `inbox <name> [--json]` | the marks Owen left on the page (`<name>.inbox.json`), by action, with their items' titles, sent or not;  the `now` queue, agents at work, the session listening |
 | `inbox <name> listen [--session <id>]` / `unlisten` | this session (`$CLAUDE_CODE_SESSION_ID`) waits on the inbox / stopped:  the page tells Owen whether anyone is listening |
 | `inbox <name> wait [--timeout <s>] [--json]` | block (polls every 1s, default 3300s) until there's work, print it, exit 0;  timeout:  exit 2.  Work:  requests for now (taken off the queue, their items marked working) and a send not yet handed over (its marks by action) |
 | `inbox <name> apply [ids...]` | apply the sent approve / pick / todo marks to the doc and clear them;  prints a line per item and what it left (revisits) |
 | `inbox <name> working <id> on\|off` | the page's spinner on an item |
 | `inbox <name> done <id>...` / `clear <id>...` | an agent finished the item:  its mark and spinner go / drop marks (a revisit talked over) |
-| `details <name> <id> --file <html> [--append]` | replace an item's details with the file's HTML, or add it after them (a reply);  the answer card stays first, the commits last;  logs "I1 details rewritten" / "I1 reply added" |
+| `details <name> <id> --file <html> [--append]` | replace an item's details with the file's HTML, or add it after them (a reply:  after an answered question's answer card);  the answer card, Original Discussion and commits stay;  on an answered question the new text is the question's, laid out again (Choices, then the answer);  replacing moves the old text into the item's Original Discussion;  logs "I1 details rewritten" / "I1 reply added" |
+| `original <name> <id> --file <html> [--as-of "YYYY-MM-DD HH:MM"]` | put an item's earlier text (recovered from git) into its Original Discussion:  as first written, or dated `--as-of` (when it was replaced), in date order;  commits and an answer card the item has are left out;  prints `added` / `unchanged` / `empty`;  doesn't stamp the item |

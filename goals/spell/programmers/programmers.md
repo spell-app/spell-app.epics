@@ -72,5 +72,5 @@ _None yet._
 ## Pointers
 
 - `packages/parser/AGENTS.md`, `packages/spell/PARSING.md`
-- `packages/vscode/` -- the extension;  `yarn vscode` at the root
+- `packages/vscode/` -- the extension;  `spell dev vscode` at the root
 - `packages/core/` -- the runtime a second target would mirror
