@@ -21,6 +21,10 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
   - Test names are lowercase sentences that carry the why, invariants in CAPS:
     `"disables ONLY the element whose render throws;  its sibling keeps updating"`
     (`packages/ui/test/isolation.test.tsx`).
+- **Test APIs come from Vite+:**
+  - `import { describe, expect, test, vi } from "vite-plus/test"` (`/browser`, `/browser-playwright` for browser
+    tests), never `vitest` itself:  lint rule `vite-plus/prefer-vite-plus-imports` (root `AGENTS.md` "Toolchain:
+    Vite+").
 - **Tests sit beside their module:**
   - `<module>.test.ts(x)` next to `<module>.ts(x)`;  cross-cutting tests in the package's `test/`.
   - Shared helpers come from the package's test entry point:  `$/parser/test`, `$/spell/test`, `$/ui/test/...`,
@@ -80,7 +84,7 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
   ```
 
 - **Custom matchers via module augmentation:**
-  - `expect.extend({...})` plus a `declare module "vitest"` augmentation, in one file in the package's `test/`.
+  - `expect.extend({...})` plus a `declare module "vite-plus/test"` augmentation, in one file in the package's `test/`.
   - Loaded by side-effect import (or the package's vitest `setupFiles`), so a test file gets them without importing
     names.
 - **Reusable suites are exported, parameterized functions:**

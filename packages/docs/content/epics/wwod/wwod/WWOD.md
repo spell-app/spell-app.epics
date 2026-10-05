@@ -63,7 +63,8 @@ Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors a
   - NEVER depend on a debug global in code:  it's for a human at the console, nothing else.
   - From `$/util`.
 - **Finishing pass for fast-drafted code:**  run `yarn review` in every package you touched (or at the root):
-  `yarn ts`, `yarn lint:fix` (oxlint), `yarn format` (oxfmt), `yarn test`.
+  `yarn ts`, `yarn lint:fix` (oxlint), `yarn format` (oxfmt), `yarn test` -- all through Vite+ (`vp`;  root
+  `AGENTS.md` "Toolchain:  Vite+").
   - `packages/ui`:  `yarn test:visual` too, when anything visible changed.
   - Then sweep for classic drift bugs:
     - operator precedence in template ternaries (`` `${a}` + b ? … ``)
@@ -143,7 +144,7 @@ Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors a
     `void editor.compileApp().catch((error) => editor.showError(error))`, plus a comment when the why isn't
     obvious.
 - **No unnecessary case normalization** (`.toLowerCase()`) for values with a defined format (env var names).
-- **Formatting is oxfmt's**, configured once in `.oxfmtrc.json` at the repo root:
+- **Formatting is oxfmt's** (through `vp fmt`), configured once in the repo root's `vite.lint.ts` (`fmt` block):
   - 120-char width, 2-space indent, no semicolons, double quotes, no trailing commas
   - never hand-format against it;  `yarn format` settles it
   - Respect a `// oxfmt-ignore` someone added by hand.

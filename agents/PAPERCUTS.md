@@ -1347,9 +1347,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 - 2026-10-04 · In a worktree-isolated session, Claude Edit refused files reached through the shared FOLDER links
   (`goals/AGENTS.md`, `agents/CODE-DEBT.md`):  "Edit the worktree copy of this file instead of the shared-checkout
-  path" -- the guard resolves the link to `../spell-app-dev` and sees a path outside the worktree.  Read works. ·
-  A small node script (exact string replace) run through Bash on the worktree path;  the guard may need to learn
-  the `"shared"` links. · claude-code
+  path" (Write:  "spelled in a form that cannot be safely resolved").  Read works, and so does Edit / Write at the
+  REAL path (`/Users/owen/www/spell-app/spell-app-dev/...`). · The `PreToolUse` hook `.claude/hooks/shared-path.mjs`
+  rewrites a path through a shared link to its real path before Edit / Write / NotebookEdit run. · claude-code
 
 ## vscode
 
