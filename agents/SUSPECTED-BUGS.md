@@ -610,6 +610,13 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- `spell dev docs update` (check-spell over every page) skips any page whose TEXT mentions
+  `ui/site/_assets/site.js` -- meant to skip Spell UI site pages, it also drops `server.html`, `design-system.plan.html`,
+  `review-review.plan.html` and others that merely name the file, so they're never checked.  Prove:  list the pages
+  it checks;  `server.html` is missing, yet `node tools/check-spell.js content/server.html` runs and passes.  Fix:
+  skip by the page's own `<script src>`, or by path (`packages/ui/site/`), not by text.  (Found in epic
+  `design-system` P9, 2026-10-05.)
+
 - `scripts/plan-rename.js`, re-run in a worktree after merging `main` (as its header says to):  it rewrites EVERY
   `epics/<n>/<n>.html` it finds, including ones written on purpose as the old name.  `review-review.plan.html`'s
   test "open `/packages/docs/epics/seo/seo.html` (the old name)" became `seo.plan.html (the old name)`.  Prove:  on a
