@@ -79,40 +79,6 @@ One `###` heading per item, under its package's `##` section, `---` between item
 
 ---
 
-### Enumerated properties are reachable under inconsistent names
-
-`cards have a suit as one of clubs, diamonds` is meant to make BOTH `the suits of the card` (instance) and
-`card suits` / `is in card suits` (class) work.  Checked by compiling each form, 2026-09-27:
-
-| Spell                                                 | Compiles to                  | Works?                                   |
-|-------------------------------------------------------|------------------------------|------------------------------------------|
-| `card suits`, `x is in card suits`                    | `Card.Suits`                 | yes                                      |
-| `the suits of the card`, `its suits`                  | `card.suits`, `this.suits`   | NO -- runtime defines `prototype.Suits`  |
-| `bank-account account-types` (dashed names)           | no match                     | NO -- only `bank_account account_types`  |
-| `the number of card suits`                            | `Card.Suits.number`          | NO -- `the {property} of` wins           |
-
-- **Cost**:  the instance form is `undefined` at runtime;  types or properties with a dash can't use the class
-  form as written;  counting an enumeration silently compiles to a property read.
-- **Cause**:
-  - `define_property_has` (`classes.ts`) names the enumeration `pluralize(upperFirst(property.value))`, e.g.
-    `Suits` / `Account_types`, and passes it as `enumerationProp`.  `spellCore.defineProperty()` (`core.ts`)
-    defines THAT name on both `Card.prototype` and `Card` -- but the instance form compiles through the
-    `property` rule, which is lower-case (`suits`).
-  - Its generated `typename_groupname` rule matches literals `[typeName, typeName.toLowerCase()]` and
-    `[groupName, groupName.toLowerCase()]` -- values, with underscores -- so the dashed words a user types
-    never match.
-  - `the? number of {arg:plural_identifier} (in|of) {list}` (`lists.ts`) needs `number of X in Y`;
-    `the number of card suits` falls to `the {property} of {expression}` with property `number`.
-  - The enumeration entry sits in the type's `variables` (instance) AND `classVariables`.  That's on purpose:
-    `quoted_property_formula` (`a card "is a (suit)" for its suits`) finds the values through
-    `types.get(type).variables.get("suits")`, and the language server resolves `its suits` to it the same way.
-- **Fix**:  pick ONE naming rule for an enumeration -- instance `suits`, class `Suits`, written `card suits` /
-  `bank-account account-types` -- and apply it in `define_property_has`'s generated rule, its `enumerationProp`,
-  and `spellCore.defineProperty()`.  Then decide whether `the number of {expression}` should count.
-- **Pinned at**:  nowhere yet -- no test covers the instance form or dashed names.
-
----
-
 ### Review:  editor features added by Claude, 2026-09-27 / 28
 
 Everything below went in over two long sessions, tested (vitest, tsc, lint, a headless-Chromium run of the app,
@@ -329,18 +295,6 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 
 ---
 
-### `yarn scopes --builtins` overwrites the built-in types' hand-written docs
-
-- **Cost**:  running it replaces `packages/core/src/spellCore.scopes.js` -- whose `Thing`, `List` and `App` are
-  documented by hand -- with the bare types.  Only a diff before keeping it saves the docs.
-- **Cause**:  `scopes.ts` makes its `LSP.ScopeExplorer` WITHOUT the built-ins' pack, so `exportBuiltIns()` has only
-  the root scope's bare types to write.  The language server's explorer has the pack, and shows the docs.
-- **Fix**:  give `scopes.ts`'s explorer `() => workspace.builtInsPack()`, as the language server does -- then
-  `--builtins` writes the pack back, plus any new built-in type, bare.  One line.
-- **Pinned at**:  `writeBuiltIns()` and the `NOTE` in the header of `packages/lsp/src/scopes.ts`.
-
----
-
 ### Each `<spell-app>`'s runtime stays in memory for the life of the page
 
 - **Cost**:  adding and removing `<spell-app>`s -- e.g. an app that swaps demos in and out -- keeps every copy of
@@ -349,34 +303,6 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   drops a module it's imported.  Restart re-uses the SAME copy, so restarting doesn't add to it.
 - **Fix**:  reuse copies -- a pool of released ones -- or run each app in an iframe, which a page CAN drop.
 - **Pinned at**:  `loadRuntime()` in `packages/app/src/runner/loadRuntime.ts`.
-
----
-
-### Expression rules ending in `{expression}` swallow the operator after them
-
-- **Cost**:  `the bottom card of the deck is the black joker` parses as `the bottom card of (the deck is the black
-  joker)`, compiling to `getItemOf(deck.is_the_$color_joker('black'), -1)` -- the method runs on the DECK, and
-  throws.  It is NOT just position expressions.  Probed 2026-09-28:
-  - `the first card of the deck is red` => `getItemOf(deck.is_red, 1)`
-  - `the first card of the deck is not empty` => `getItemOf(!isEmpty(deck), 1)`
-  - `the number of cards in the deck is 52` => `itemCountOf(deck == 52)`
-  - `the suit of the first card of the deck is hearts` => `getItemOf(deck == 'hearts', 1).suit`
-
-  So any comparison or method alias after a list / position / count expression silently compiles to nonsense,
-  and authors have to parenthesize, e.g. `(the last card of the deck) is ...`, or split the line with
-  `get ...` + `it ...`.
-- **Cause**:  a rule whose syntax ENDS in a full `{expression}` operand -- `the {ordinal} {arg:singular_identifier}
-  (in|of) {expression}` (`lists.ts`), `the? number of ... (in|of) {list:expression}`, and ~20 more in `lists.ts`,
-  `math.ts` and elsewhere -- matches its tail as a whole expression, infix operators included.  The infix
-  rules (`is`, `is not`, `==`, method aliases) never get to wrap the prefix expression, because the trailing
-  operand consumes them first.  Rule `precedence` only breaks ties between whole matches;  it doesn't limit
-  what an operand may contain.
-- **Fix**:  make trailing operands precedence-aware -- e.g. a narrower operand rule (a `{term}` / non-infix
-  expression:  literals, variables, property / position chains, parenthesized) for the last slot of prefix
-  expressions, or real precedence climbing in the parser, where an operand only accepts rules binding tighter
-  than its owner.  Either way it touches every rule ending in `{expression}`, and their tests.
-- **Pinned at**:  `projects/system/library/cards/Deck.spell` `test deck with jokers`, which parenthesizes:
-  `expect (the last card of the deck) is the black joker to be yes`.
 
 ---
 
@@ -405,11 +331,16 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   new `Pile`, e.g. in Solitaire's `pile.state` or `reset the game`.  Each one registered as one of the program's
   things, cluttering "All things" with nameless `Pile`s.  `newThingLike()` now makes them
   `ThingRegistry.quietly()` -- which can't tell a throwaway result from a copy the program means to keep.
+  And since piles are EXCLUSIVE (P8 of precedence-and-types), each such result is marked scratch too
+  (`spellCore.newScratch()`, `List.asScratch()`) so it owns nothing -- else filtering a pile would steal its cards.
+  Solitaire relies on a scratch result keeping its type:  `the state of cards-to-move` reads a `Pile`'s getter.
 - **Fix**:  helpers that make a throwaway -- `map()`, `filter()`, loops -- build a plain `List` or array, NOT the
   collection's own type.  Only "a copy of" (`duplicateCollection()`) makes the same type, and registers.  Then
   `newThingLike()` needn't be quiet.  Touches what every collection helper returns, and their tests.
+  NOTE: a plain `List` loses its type's members, which a program may read off a result -- `the state of
+  cards-to-move` above -- so a range or `where` result probably keeps its type, scratch.
 - **Pinned at**:  `spellCore.newThingLike()` (`core.ts`);  test "NOT a collection helper's result" in
-  `packages/core/src/things.test.ts`.
+  `packages/core/src/things.test.ts`;  "scratch results own nothing" in `packages/core/src/classes/List.test.ts`.
 
 ---
 
