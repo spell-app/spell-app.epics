@@ -1212,8 +1212,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   refused `../../.claude/worktrees/review-review/packages/docs/content/...` ("PATH must not contain '..'").
   `findDoc()` still prefers the epic's worktree, which since shared-content P5 is a link to the SAME file, and
   `tidy()` gets it `relative()` to main's `packages/docs`.  The edit itself is saved, only unformatted. · Run the
-  command from the epic's worktree (or any checkout with no worktree copy in the way);  the fix is one path for
-  every doc (review-review T3). · review-review
+  command from the epic's worktree (or any checkout with no worktree copy in the way).  Fixed on main in 1f9a6061:
+  `findDoc()` returns THIS checkout's path for the same shared file, and `tidy()` never passes a `..` path;  the
+  cleanup is review-review T3. · review-review
 
 ## claude-code
 
