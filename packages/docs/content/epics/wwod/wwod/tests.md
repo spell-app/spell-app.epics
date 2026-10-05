@@ -28,7 +28,7 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
 - **Tests sit beside their module:**
   - `<module>.test.ts(x)` next to `<module>.ts(x)`;  cross-cutting tests in the package's `test/`.
   - Shared helpers come from the package's test entry point:  `$/parser/test`, `$/spell/test`, `$/ui/test/...`,
-    `$/server/test/...` (root "Imports", WWOD §4).
+    `$/server/test/...` (WWOD §4).
 - **Hand-rolled fakes over mock libraries:**
   - Hooks objects of `vi.fn()`:  `const hooks = { onChange: vi.fn() }`.
   - `vi.mock()` only to cut a module seam, e.g. `vi.mock("./loadRuntime", ...)`
