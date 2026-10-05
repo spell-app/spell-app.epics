@@ -166,7 +166,7 @@ you're touching BEFORE writing code:
 - **Names aren't identifiers:**
   - NEVER treat a class name or rule name as a stable identifier -- for saved data, lookups, or anything which
     must survive a rename or a translation.  Names are for people, and change.
-  - Add an explicit property for it instead, e.g. `@proto static importableAs = "enumeration"`
+  - Add an explicit property for it instead, e.g. `@proto static importableAs = "quoted_property"`
     (SEE:  `packages/spell/AGENTS.md`).
 - **"People", never "users"**, in what people read:  docs, pages, UI text.
 - **Magic strings become named constants:**
