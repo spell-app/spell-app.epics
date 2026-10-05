@@ -1378,6 +1378,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## vscode
 
+- 2026-10-04 · The side bar's Spell Docs view stopped showing docs in the `shared-content` worktree's window, while
+  `/api/docs/show` answered "Shown" and the window's registry entry was alive.  It followed an edit of that window's
+  `.code-workspace` (a folder added:  `spell-app-dev`), which re-registered the window (its extensions restarted). ·
+  Show the doc again (`yarn plan-doc open <name>`, or `/spell-docs`);  it came back.  Cause not pinned down. · vscode
+
 - 2026-10-02 · A freshly installed extension feature (`DocView`) never showed after a reload:  docs still opened in a
   new editor tab.  The extension is installed ONCE for all of VS Code, and a `yarn vscode` in another checkout (the
   `solid-migration` worktree, 6 minutes later) had overwritten it with its own branch's build, which also runs THAT
