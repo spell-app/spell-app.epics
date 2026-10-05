@@ -6,7 +6,7 @@
     <title>Precedence And Types</title>
     <meta
       name="description"
-      content="How spell's grammar binds operators and knows what every expression is -- precedence, operands, datatypes, typed calls, multi-word members, built-in member tables and exclusive lists, as built -- for anyone about to change the parser's rules."
+      content="How spell's grammar binds operators and knows what every expression is -- precedence, operands, datatypes, typed calls, multi-word members, built-in member tables, membership and list guards, as built -- for anyone about to change the parser's rules."
     />
     <link rel="stylesheet" href="../../tools/_assets/spell-doc.css" />
   </head>
@@ -21,7 +21,7 @@
         <h1>Precedence And Types</h1>
         <p class="lede">
           How spell's grammar binds operators and knows what every expression is -- and what that bought: paren-free
-          signatures, typed calls, multi-word members, built-in member tables and exclusive lists.
+          signatures, typed calls, multi-word members, built-in member tables, membership and list guards.
         </p>
         <ui-list class="spell-meta">
           <ui-item icon="user">Written for: Owen, and any agent about to change the parser's rules</ui-item>
@@ -82,8 +82,9 @@
               text, another for a list.
             </li>
             <li>
-              Exclusive lists (P8): <code>a pile is an exclusive list of cards</code> -- adding a card to a pile takes
-              it out of its last one, and <code>the pile of a card</code> reads it.
+              Membership (P8, P10): <code>a card belongs to one pile</code> -- adding a card to a pile takes it out of
+              its last one, and <code>the pile of a card</code> reads it. Guards (P10): <code>a tableau can take a card
+              if: …</code>, asked by <code>move</code> only.
             </li>
             <li>
               Not built: the <a href="#typescript-backend">TypeScript check</a>, now an epic of its own; emitting Solid
@@ -1130,12 +1131,18 @@ A 6-token left side, "the first card of the deck", is never tried:  the inner Ch
                   <td>member tables, P7</td>
                 </tr>
                 <tr>
-                  <td><code>a pile is an exclusive list of cards</code></td>
-                  <td class="no negative"><code>class Pile extends Exclusive</code>, then an error</td>
+                  <td><code>a card belongs to one pile</code></td>
+                  <td class="no negative">an error</td>
                   <td class="yes positive">
-                    <code>static exclusive = true</code>, and a <code>pile</code> getter on <code>Card</code>
+                    <code>Pile.exclusive = true</code>, and a <code>pile</code> getter on <code>Card</code>
                   </td>
-                  <td>exclusive lists, P8</td>
+                  <td>membership, P8, P10</td>
+                </tr>
+                <tr>
+                  <td><code>move the card to the tableau</code></td>
+                  <td class="meh warning">a project's own <code>to move</code>, unguarded</td>
+                  <td class="yes positive"><code>spellCore.move(card, tableau)</code>: yes or no, by the guards</td>
+                  <td>guards, P10</td>
                 </tr>
                 <tr>
                   <td><code>turn the bottom card of the deck face up</code></td>
@@ -1654,16 +1661,14 @@ expect it is the ace of clubs to be yes</code></pre>
             </ui-accordion>
             <h4 id="after">Now</h4>
             <ui-accordion class="spell-code" styled open="0">
-              <ui-title>Card.spell, Pile.spell, Deck.spell · 11 lines</ui-title>
+              <ui-title>Card.spell, Pile.spell, Deck.spell · 9 lines</ui-title>
               <ui-content>
                 <pre><code class="language-plaintext">the short rank of a card is:
     …
 to turn a card face up:
     set its direction to up
-a pile is an exclusive list of cards
-to move a card to a pile
-    add the card to the pile
-    pause for 50 msec
+a pile is a list of cards
+a card belongs to one pile
 a deck has with-jokers as yes or no
 expect the last card of the deck is the black joker to be yes
 expect the first card of the deck is the ace of clubs to be yes</code></pre>
@@ -1671,11 +1676,8 @@ expect the first card of the deck is the ace of clubs to be yes</code></pre>
             </ui-accordion>
             <ul>
               <li>
-                <code>to move</code> stays, thin, so Solitaire's calls and its move animation do (<a
-                  href="../epics/precedence-and-types/precedence-and-types.plan.html#d36"
-                  target="precedence-and-types"
-                  >D36</a
-                >).
+                <code>to move</code> went in P10: the built-in <code>move</code> asks the piles' guards (section 8).
+                Solitaire's deal says <code>add</code>, then <code>pause for 50 msec</code>, for its animation.
               </li>
               <li>
                 <code>with-jokers</code> keeps its dash: <code>with</code> is a structural word (<a
@@ -1688,10 +1690,18 @@ expect the first card of the deck is the ace of clubs to be yes</code></pre>
           </ui-section>
         </ui-section>
 
-        <ui-section id="exclusive-lists" header="8. Exclusive lists" sticky collapsible dividing>
+        <ui-section id="membership" header="8. Membership and guards" sticky collapsible dividing>
           <ui-icon slot="icon" name="puzzle piece"></ui-icon>
           <p>
-            From review: "an item lives in one list of this kind at a time" as a property of the list TYPE. Built in P8.
+            From review: "an item lives in one list of this kind at a time". Built in P8 as a property of the list type
+            (<code>a pile is an exclusive list of cards</code>); said from the item's side since P10, with guards on
+            what a list takes and gives up (<a
+              href="../epics/precedence-and-types/precedence-and-types.plan.html#q22"
+              target="precedence-and-types"
+              >Q22</a
+            >-<a href="../epics/precedence-and-types/precedence-and-types.plan.html#q25" target="precedence-and-types"
+              >Q25</a
+            >).
           </p>
           <ui-message state="info">
             <p>
@@ -1702,49 +1712,50 @@ expect the first card of the deck is the ace of clubs to be yes</code></pre>
             </p>
           </ui-message>
 
-          <ui-section id="declaration" header="Declaration" sticky collapsible dividing>
+          <ui-section id="declaration" header="Declaration" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <code>a pile is an exclusive list of cards</code>, or
-                <code>create a type called hand as an exclusive list of cards</code>:
-                <code>create_list_type</code> takes <code>(exclusive:exclusive)?</code>.
+                <code>a card belongs to one pile</code> (<code>belongs_to_one</code>): a card is in at most ONE pile of
+                the FAMILY at a time -- Pile and every sub-type (tableau, foundation, stock-pile, discard-pile).
               </li>
               <li>
-                <code>exclusive</code> on Pile's <code>TypeScope</code>; every sub-type is in the FAMILY rooted at Pile
-                (tableau, foundation, stock-pile, discard-pile), found with <code>exclusiveRoot()</code>.
+                The list types stay plain: <code>a pile is a list of cards</code>. A deck is outside the family, so a
+                card can be in the deck AND one pile (probe X3).
               </li>
               <li>
-                <code>a deck is a list of cards</code> is outside it, so a card can be in the deck AND one pile (probe
-                X3).
+                <code>a card can belong to many piles</code> is the opposite: what lists do anyway, so it compiles to
+                nothing (probe X5).
               </li>
               <li>
-                An exclusive list of a BUILT-IN type (<code>things</code>, <code>numbers</code>) is allowed, with no
-                owner member (<a
-                  href="../epics/precedence-and-types/precedence-and-types.plan.html#j36"
-                  target="precedence-and-types"
-                  >J36</a
-                >).
+                Both types must be declared ABOVE it; a forward mention is refused, saying what to write (probe X6). The
+                live examples say it in <code>Pile.spell</code>, under <code>a pile is a list of cards</code>.
+              </li>
+              <li>
+                A built-in item type (<code>a thing belongs to one bag</code>) gets no member; a built-in list type
+                (<code>one list</code>) is refused: every list would hold the card once.
               </li>
             </ul>
           </ui-section>
-          <ui-section id="derived-member" header="Derived member" sticky collapsible dividing>
+          <ui-section id="derived-member" header="Derived member" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                The item type gains a read-only member named after the family root: <code>the pile of a card</code>, a
+                The item type gains a read-only member named after the list type: <code>the pile of a card</code>, a
                 <code>Pile</code> (<code>TypeScope.declareOwnerMember()</code>). It is the pile holding the card, or
                 nothing.
               </li>
               <li>
-                Declared by Pile's line, so go-to-definition lands there. It replaces a <code>pile</code> another
-                statement declared, e.g. auto-declared by an earlier <code>set</code>.
+                Declared by the <code>belongs to one</code> line, so go-to-definition lands there. It replaces a
+                <code>pile</code> another statement declared, e.g. auto-declared by an earlier <code>set</code>
+                (probe X4).
               </li>
               <li>
-                Declarations write <code>exclusive: true</code> on the type; loading rebuilds the member from that and
-                the item type.
+                Declarations write the member itself:
+                <code>{ property: "pile", of: "Card", datatype: "Pile", exclusive: true }</code>; loading adds it as
+                written.
               </li>
-              <li><code>set the pile of the card to …</code> is refused: "add it to a Pile instead".</li>
+              <li><code>set the pile of the card to …</code> is refused: "move it to a Pile instead".</li>
               <li>
-                Compiled: <code>static exclusive = true</code> in the class, then the getter patched on AFTER it, so it
+                Compiled: two patches where the line is, after both classes -- the family's flag, then the getter, so it
                 wins over any accessor Card has (<a
                   href="../epics/precedence-and-types/precedence-and-types.plan.html#j39"
                   target="precedence-and-types"
@@ -1757,8 +1768,8 @@ expect the first card of the deck is the ace of clubs to be yes</code></pre>
               <ui-content>
                 <pre><code class="language-js">export class Pile extends List {
   static instanceType = Card
-  static exclusive = true
 }
+Pile.exclusive = true
 Object.defineProperty(Card.prototype, 'pile', {
   get() {
     return Pile.ownerOf(this)
@@ -1768,7 +1779,66 @@ Object.defineProperty(Card.prototype, 'pile', {
               </ui-content>
             </ui-accordion>
           </ui-section>
-          <ui-section id="runtime" header="Runtime" sticky collapsible dividing>
+          <ui-section id="guards" header="Guards" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                What a list type takes, or gives up, when something MOVES (<code>list_guard</code>):
+                <ul>
+                  <li><code>a tableau can (add|take) a card if: …</code></li>
+                  <li><code>a stock-pile can (release|remove|give up|let go of) a card if: …</code></li>
+                  <li><code>a foundation can never (release|remove|give up|let go of) a card</code></li>
+                </ul>
+              </li>
+              <li>
+                The body answers yes or no; <code>the card</code> is the card, <code>it</code> / <code>its</code> the
+                list. It compiles to <code>canTake(card)</code> / <code>canGiveUp(card)</code> in the list's class,
+                overriding <code>List</code>'s yes; a sub-type inherits it (probe X7).
+              </li>
+              <li>
+                ONLY <code>move the card to the tableau</code> asks: the pile holding the card gives it up, then the
+                tableau takes it, else nothing changes. It is a statement, or a yes / no (probe X8). A card that belongs
+                to no family: only the tableau is asked.
+              </li>
+              <li>
+                <code>add</code>, <code>remove</code>, <code>empty</code> never ask -- dealing, gathering every card
+                back to deal again: a foundation that <code>can never let go of a card</code> can still be emptied
+                (probe X9,
+                <a href="../epics/precedence-and-types/precedence-and-types.plan.html#q25" target="precedence-and-types"
+                  >Q25</a
+                >).
+              </li>
+              <li>
+                Asking without moving: <code>the tableau can take the card</code>,
+                <code>the stock cannot give up the card</code>.
+              </li>
+              <li>
+                A project's own <code>to move (a card) to (a pile)</code> wins over the built-in one
+                (<code>Priority.overridable</code>), so older projects run as written.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled open="0">
+              <ui-title>Solitaire.spell · the guards · 11 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-plaintext">a stock-pile can give up a card if: the card is its bottom card
+a discard-pile can give up a card if: the card is its bottom card
+a foundation can never let go of a card
+// one card at a time:  the last of its pile
+a foundation can take a card if:
+    if the card is not the bottom card of the pile of the card return no
+    return its name is the suit of the card and its value + 1 is the value of the card
+a tableau can give up a card if: the card is face up
+a tableau can take a card if:
+    if the tableau is empty
+        return the card is a king</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <p>
+              <code>to play a card</code> asks <code>start-pile cannot give up the card</code>, then picks
+              <code>the first pile in piles in all-piles where its droppable is yes and it can take the card</code>,
+              and moves the card and those on it there.
+            </p>
+          </ui-section>
+          <ui-section id="runtime" header="Runtime" sticky collapsible dividing collapsed>
             <ul>
               <li>
                 <code>core</code>'s <code>List</code>: ONE <code>WeakMap</code> per family (<code>ListFamily</code>),
@@ -1792,6 +1862,11 @@ Object.defineProperty(Card.prototype, 'pile', {
                   >J40</a
                 >).
               </li>
+              <li>
+                <code>spellCore.move(card, list)</code> calls <code>list.moveHere(card)</code>: the owner's
+                <code>canGiveUp()</code>, then <code>canTake()</code>, then <code>add</code> -- the owner still changes
+                once.
+              </li>
               <li>Only objects can be owned: a number or text is just held.</li>
               <li>
                 Scratch results own nothing: <code>map()</code>, <code>filter()</code>, ranges, <code>a copy of</code>,
@@ -1802,22 +1877,22 @@ Object.defineProperty(Card.prototype, 'pile', {
                 >) -- or filtering a pile would steal its cards.
               </li>
               <li>
-                Pile.spell's <code>to move</code> is now add, then pause: the bookkeeping went.
                 <a
-                  href="../../../spell/src/parserTests/exclusiveLists.test.ts"
-                  target="src-packages-spell-src-parsertests-exclusivelists-test-ts"
-                  ><code>exclusiveLists.test.ts</code></a
+                  href="../../../spell/src/parserTests/membership.test.ts"
+                  target="src-packages-spell-src-parsertests-membership-test-ts"
+                  ><code>membership.test.ts</code></a
                 >
-                compiles and runs it; a headless Solitaire play-check (deal, 30 stock plays, auto-play, cheat, a second
-                deal) kept every card in exactly one pile.
+                compiles and runs it; a headless Solitaire play-through (P10: eleven deals, stock plays past the end of
+                the stock, clicks, auto-play, cheats, random moves) checked every move against Klondike's rules: none
+                illegal, every refused move changed nothing, every card always in exactly one pile.
               </li>
             </ul>
           </ui-section>
-          <ui-section id="open-questions" header="Settled questions" sticky collapsible dividing>
+          <ui-section id="open-questions" header="Settled questions" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                "In a deck and in a pile" is the default: a family is the exclusive type and its subtypes, nothing to
-                say out loud (<a
+                "In a deck and in a pile" is the default: a family is the list type and its subtypes, nothing to say out
+                loud (<a
                   href="../epics/precedence-and-types/precedence-and-types.plan.html#d7"
                   target="precedence-and-types"
                   >D7</a
@@ -1839,6 +1914,24 @@ Object.defineProperty(Card.prototype, 'pile', {
                   href="../epics/precedence-and-types/precedence-and-types.plan.html#j38"
                   target="precedence-and-types"
                   >J38</a
+                >).
+              </li>
+              <li>
+                Said from the item's side, <code>a card belongs to one pile</code> (<a
+                  href="../epics/precedence-and-types/precedence-and-types.plan.html#q22"
+                  target="precedence-and-types"
+                  >Q22</a
+                >); a list guards what it takes and what it gives up (<a
+                  href="../epics/precedence-and-types/precedence-and-types.plan.html#q23"
+                  target="precedence-and-types"
+                  >Q23</a
+                >,
+                <a href="../epics/precedence-and-types/precedence-and-types.plan.html#q24" target="precedence-and-types"
+                  >Q24</a
+                >); only <code>move</code> asks (<a
+                  href="../epics/precedence-and-types/precedence-and-types.plan.html#q25"
+                  target="precedence-and-types"
+                  >Q25</a
                 >).
               </li>
             </ul>
@@ -2066,7 +2159,7 @@ export class Card extends Thing {
                   href="../epics/precedence-and-types/precedence-and-types.plan.html#d10"
                   target="precedence-and-types"
                   >D10</a
-                >), reactive; since P8 the live cards library makes piles exclusive, so <code>pile</code> is a read-only
+                >), reactive; since P8 (P10's <code>a card belongs to one pile</code>) a card's <code>pile</code> is a read-only
                 getter, <code>Pile.ownerOf(this)</code>.
               </li>
               <li><code>draw()</code> keeps today's <code>spellCore.element()</code> calls, typed.</li>
@@ -2586,6 +2679,20 @@ async function checkAndLower(project: SP.SpellProject, service: TypeScriptServic
                   <td></td>
                   <td>this doc rewritten as built; the plan doc; the changelog</td>
                 </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="../epics/precedence-and-types/precedence-and-types.plan.html#p10"
+                      target="precedence-and-types"
+                      >P10 Membership Syntax</a
+                    >
+                  </td>
+                  <td></td>
+                  <td>
+                    <code>a card belongs to one pile</code>; guards <code>can take</code> / <code>can give up</code> /
+                    <code>can never …</code>; a built-in guarded <code>move</code>; Solitaire rewritten on them
+                  </td>
+                </tr>
               </tbody>
             </table>
           </ui-table>
@@ -2784,10 +2891,10 @@ async function checkAndLower(project: SP.SpellProject, service: TypeScriptServic
               </li>
             </ul>
           </ui-section>
-          <ui-section id="why-lists" header="Exclusive lists" sticky collapsible dividing>
+          <ui-section id="why-lists" header="Membership and guards" sticky collapsible dividing>
             <ul>
               <li>
-                The family is the exclusive type and its subtypes; <code>a pile is an exclusive list of cards</code> (<a
+                The family is the list type and its subtypes; <code>a card belongs to one pile</code> (<a
                   href="../epics/precedence-and-types/precedence-and-types.plan.html#d7"
                   target="precedence-and-types"
                   >D7</a
@@ -2801,10 +2908,17 @@ async function checkAndLower(project: SP.SpellProject, service: TypeScriptServic
                 >).
               </li>
               <li>
-                A thin <code>to move a card to a pile</code> stays, for Solitaire's calls and animation (<a
+                Said from the item's side, with guards only <code>move</code> asks; Pile.spell's thin
+                <code>to move</code> (<a
                   href="../epics/precedence-and-types/precedence-and-types.plan.html#d36"
                   target="precedence-and-types"
                   >D36</a
+                >) went, the built-in <code>move</code> doing it (<a
+                  href="../epics/precedence-and-types/precedence-and-types.plan.html#q22"
+                  target="precedence-and-types"
+                  >Q22</a
+                >-<a href="../epics/precedence-and-types/precedence-and-types.plan.html#q25" target="precedence-and-types"
+                  >Q25</a
                 >).
               </li>
             </ul>
@@ -2974,10 +3088,10 @@ async function checkAndLower(project: SP.SpellProject, service: TypeScriptServic
               </li>
             </ul>
           </ui-section>
-          <ui-section id="limits-lists" header="Exclusive lists" sticky collapsible dividing>
+          <ui-section id="limits-lists" header="Membership and guards" sticky collapsible dividing>
             <ul>
               <li>
-                A <code>set the pile of the card</code> parsed BEFORE the exclusive line isn't refused, and throws when
+                A <code>set the pile of the card</code> parsed BEFORE the <code>belongs to one</code> line isn't refused, and throws when
                 it runs: the compiled <code>card.pile = x</code> meets a getter-only property (<a
                   href="../epics/precedence-and-types/precedence-and-types.plan.html#c19"
                   target="precedence-and-types"
@@ -3067,11 +3181,11 @@ async function checkAndLower(project: SP.SpellProject, service: TypeScriptServic
                 coverage.
               </li>
               <li>
-                Exclusive lists have no fixture: probes X1-X4,
+                Membership and guards have no fixture: probes X1-X9,
                 <a
-                  href="../../../spell/src/parserTests/exclusiveLists.test.ts"
-                  target="src-packages-spell-src-parsertests-exclusivelists-test-ts"
-                  ><code>exclusiveLists.test.ts</code></a
+                  href="../../../spell/src/parserTests/membership.test.ts"
+                  target="src-packages-spell-src-parsertests-membership-test-ts"
+                  ><code>membership.test.ts</code></a
                 >
                 (compiled and run), and <code>core</code>'s
                 <a href="../../../core/src/classes/List.test.ts" target="src-packages-core-src-classes-list-test-ts"
@@ -3143,8 +3257,8 @@ async function checkAndLower(project: SP.SpellProject, service: TypeScriptServic
             </li>
             <li>
               <a href="../../../spell/PARSING.md" target="src-packages-spell-parsing-md"><code>PARSING.md</code></a
-              >: the parse pipeline as it is -- "Expressions", "Datatypes", "Members", "Built-in types", "Exclusive
-              lists".
+              >: the parse pipeline as it is -- "Expressions", "Datatypes", "Members", "Built-in types", "Membership",
+              "Guards".
             </li>
             <li>
               <a href="../solid/solid-2.html" target="src-packages-docs-content-solid-solid-2-html">Solid 2 for spell</a>: why
@@ -3162,7 +3276,7 @@ async function checkAndLower(project: SP.SpellProject, service: TypeScriptServic
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
           <p class="meta">
-            Last checked 2026-10-04 against branch <code>precedence-and-types</code> at <code>9cdfbd4b</code> (P8): the
+            Last checked 2026-10-05 against branch <code>precedence-and-types-p10</code> (P10, before its commit): the
             probe ledger's snapshots, <code>spell test</code> on the cards library and Solitaire.
           </p>
         </footer>
