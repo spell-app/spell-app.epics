@@ -1,7 +1,7 @@
 # WWOD spoke -- Logging & debug
 
 Logging through `$/util`'s `Logger`, verbosity, and what `console.*` is still for.  Read with
-`packages/agents/wwod/WWOD.md` (the hub).
+`agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §21 "Logging".
 
 ## 19. Logging & debug

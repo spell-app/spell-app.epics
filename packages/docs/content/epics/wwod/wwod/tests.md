@@ -1,6 +1,6 @@
 # WWOD spoke -- Tests
 
-Unit and integration tests:  style, fakes, structure.  Read with `packages/agents/wwod/WWOD.md` (the hub).
+Unit and integration tests:  style, fakes, structure.  Read with `agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §22 "Tests".
 
 SEE ALSO, per package (runners, helpers, fixtures stay there):

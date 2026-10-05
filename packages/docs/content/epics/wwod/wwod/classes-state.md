@@ -1,7 +1,7 @@
 # WWOD spoke -- Classes & state
 
 Classes, decorators, spell-cell state, `Loadable`, value objects and records.  Read with
-`packages/agents/wwod/WWOD.md` (the hub).
+`agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §12-16, root `AGENTS.md` "Decorators", `packages/ui/AGENTS.md` "UI rules" (classes rule,
 widened).
 

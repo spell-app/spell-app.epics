@@ -1,7 +1,7 @@
 # WWOD spoke -- Architecture & module layout
 
 Where code lives:  folders, files, barrels, namespaces, singletons, promotion to `util`.
-Read with `packages/agents/wwod/WWOD.md` (the hub).
+Read with `agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, namespaces).
 
 ## 8. Architecture & module layout

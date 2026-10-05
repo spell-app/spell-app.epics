@@ -1,7 +1,7 @@
 # WWOD spoke -- Functions & types
 
 Function signatures, parameters and type design.
-Read with `packages/agents/wwod/WWOD.md` (the hub).
+Read with `agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (types).
 
 ## 9. Functions & types

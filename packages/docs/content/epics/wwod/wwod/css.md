@@ -1,6 +1,6 @@
 # WWOD spoke -- CSS
 
-Styling the app's components and pages, on top of `@spell-app/ui`.  Read with `packages/agents/wwod/WWOD.md`
+Styling the app's components and pages, on top of `@spell-app/ui`.  Read with `agents/wwod/WWOD.md`
 (the hub).
 From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui`'s tokens (no Tailwind).
 

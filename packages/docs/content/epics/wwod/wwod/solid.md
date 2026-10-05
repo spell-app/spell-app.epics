@@ -1,7 +1,7 @@
 # WWOD spoke -- Solid components
 
 House style for Solid 2 components:  the app's UI (`packages/app/src/solid/`, `runner/`, `spellEditor/`, `pages/`).
-Read with `packages/agents/wwod/WWOD.md` (the hub).
+Read with `agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §18 ("Svelte / UI"), rewritten for Solid 2 (D9).
 
 **Solid mechanics:  READ `packages/docs/content/solid/solid-2.md` FIRST;  this spoke is house style on top.**

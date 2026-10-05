@@ -1,6 +1,6 @@
 # WWOD spoke -- Server, API & environment
 
-Route handlers, server-side API code, env vars and configuration.  Read with `packages/agents/wwod/WWOD.md` (the hub).
+Route handlers, server-side API code, env vars and configuration.  Read with `agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §9 "Server / API patterns", §10 "Environment & configuration".
 
 SEE:  `packages/server/AGENTS.md` for `$/server` itself (`SRV.Router`, `SRV.WebServer`, the page server), and

@@ -5,7 +5,7 @@ House style for this repo (spell).  Audience:  AI coding agents -- follow these 
   is in the root `AGENTS.md`;  what's local to one package, in that package's `AGENTS.md`.
 - Examples cite real files by repo path;  read them when unsure.  Where an example has no path, it's illustrative.
 
-This hub holds the universal rules (§1-7).  Topic rules live in the spokes beside it, `packages/agents/wwod/`
+This hub holds the universal rules (§1-7).  Topic rules live in the spokes beside it, `agents/wwod/`
 (§8-20) -- read the spoke(s) matching what you're touching, BEFORE writing code.
 Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors as control flow"`.
 
