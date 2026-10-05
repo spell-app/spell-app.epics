@@ -6,7 +6,7 @@ From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui
 
 - `@spell-app/ui`'s own sheets (layers, tokens, units, `::part()` names, utility grammar, global sheets):
   `packages/ui/AGENTS.md` "CSS" and `packages/ui/docs/theming.md`.
-- Class attributes in JSX:  WWOD §17 and `packages/docs/content/solid/solid-2.md` "DOM and `@spell-app/ui` elements".
+- Class attributes in JSX:  WWOD §17 and `guides/solid/solid-2.md` "DOM and `@spell-app/ui` elements".
 
 ## 18. CSS
 

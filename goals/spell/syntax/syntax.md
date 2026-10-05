@@ -101,6 +101,6 @@ _None yet._
 ## Pointers
 
 - `packages/spell/PARSING.md`, `packages/spell/AGENTS.md`, `packages/parser/AGENTS.md`
-- `packages/docs/content/precedence/precedence.html` and `/Users/owen/www/spell-app/outstanding/precedence-and-types/plan.md`
+- `guides/precedence/precedence.html` and `/Users/owen/www/spell-app/outstanding/precedence-and-types/plan.md`
 - `packages/spell/projects/system/examples/` -- the examples
 - `agents/CODE-DEBT.md` (`## spell`) -- what bites, and why

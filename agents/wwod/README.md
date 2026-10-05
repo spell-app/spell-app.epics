@@ -11,7 +11,7 @@ changed here applies everywhere at once.
 | `types.md` | §9 functions & types |
 | `server-env.md` | §10-11 server & API, environment |
 | `classes-state.md` | §12-16 classes, decorators, state, `Loadable`, value objects, records |
-| `solid.md` | §17 Solid component house style (mechanics:  `packages/docs/content/solid/solid-2.md`) |
+| `solid.md` | §17 Solid component house style (mechanics:  `guides/solid/solid-2.md`) |
 | `css.md` | §18 CSS |
 | `logging.md` | §19 logging & debug |
 | `tests.md` | §20 tests |
@@ -38,4 +38,4 @@ changed here applies everywhere at once.
 ## History
 
 - 2026-10-04, epic `wwod`:  Owen's WWOD rules from `construct-app` (Svelte), merged with this repo's own rules and
-  reviewed file by file.  The plan doc, the original files and the triage:  `packages/docs/content/epics/wwod/`.
+  reviewed file by file.  The plan doc, the original files and the triage:  `epics/wwod/`.

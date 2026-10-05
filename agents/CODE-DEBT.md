@@ -496,7 +496,7 @@ knowingly kept:
 
 - **Cost** -- a branch that adds a `spell` command and its row in `commands.json` makes `yarn commands:check` on
   `main` (and every other branch) fail until that branch merges:  the row names a command their CLI doesn't have.
-- **Cause** -- `packages/docs/content/dev/commands/commands.json` and `commands.md` live in the shared content repo
+- **Cause** -- `guides/dev/commands/commands.json` and `commands.md` live in the shared content repo
   (`../spell-app-dev`, epic `shared-content`):  ONE copy, the same in every checkout.  `spell dev commands check`
   (`yarn commands:check`) checks that one JSON against the CLI source of the checkout it runs in, which is
   versioned per branch.
@@ -517,7 +517,7 @@ knowingly kept:
   React `.tsx` files must say so.  A React file missing its marker compiles as Solid:  `tsc` usually catches it,
   else it fails at runtime.  `$/util`'s `view()` (the cells-to-React bridge) keeps React a dependency of `util`.
 - **Cause**: moving compiled spell to Solid ("Core + JSX Emit":  `core`'s `element()` on `@solidjs/h`, the parser's
-  JSX emit, spell projects to `<ui-*>`) was split off the migration (`packages/docs/content/epics/solid-migration/`, D9,
+  JSX emit, spell projects to `<ui-*>`) was split off the migration (`epics/solid-migration/`, D9,
   todo T2).  Solid is the DEFAULT JSX (`tsconfig.json` `jsxImportSource: "@solidjs/web"`);  React files carry
   `/** @jsxImportSource react */` on their first line, which both TypeScript and `reactFiles()`
   (`packages/app/vite.shared.ts`) read.

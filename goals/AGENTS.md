@@ -37,7 +37,7 @@ waiting to be worked in, and the tools that keep it all consistent.  As the root
   they use the page server's code (`$/server`).
 - `packages/docs/tools/goals/skills/` -- the /goals skills:  `goals`, `goals-thought`, `goals-update`, `goals-open`,
   `goals-open-vs`.  `goals/scripts/goals.sh` there runs its checkout's tool:  every skill calls it.
-- Templates:  `packages/docs/content/templates/goals/`.  Look:  `packages/docs/tools/_assets/goals.css`.  Live buttons:
+- Templates:  `templates/goals/`.  Look:  `packages/docs/tools/_assets/goals.css`.  Live buttons:
   `packages/docs/tools/_assets/goals-live.js`.
 
 ## Words

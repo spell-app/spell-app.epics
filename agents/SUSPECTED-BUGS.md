@@ -335,7 +335,7 @@ size-container hosts that kept a margin from collapsing (table, celled grid, flu
 item `icon` shorthand's glyph (list 20px wide, menu 0 x 0:  `.icon > svg` never reached the slot's fallback).
 Disproven (2026-10-02):  card/content and card/types match class grammar (parity <= 0.14%);  grid/variations' remaining
 gap is consecutive grids (`.ui.grid + .grid`), left out on purpose in `ui-grid.css`.
-Swept 2026-10-01 (branch `worktree-ui-component-creation`, plan doc `packages/docs/content/epics/ui-component-creation/`):
+Swept 2026-10-01 (branch `worktree-ui-component-creation`, plan doc `epics/ui-component-creation/`):
 every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
@@ -391,7 +391,7 @@ every entry below that date was fixed or disproven;  what's left:
 - `src/components/ui-popup/ui-popup.test.tsx` "flips to the other side":  failed once in a full firefox run (arrow
   `::before` top 44px, expected < 0), then passed every time.  Maybe the arrow's `getAnimations` wait.  (2026-10-01)
 - `src/components/ui-section/UISection.tsx` the toggle:  the `header` slot sits INSIDE the fold `<button>`, so a link
-  in a rich title (`<span slot="header">4. Ideas for <a href=...>`, `packages/docs/content/solid/solid-2.html` `#ui`) is
+  in a rich title (`<span slot="header">4. Ideas for <a href=...>`, `guides/solid/solid-2.html` `#ui`) is
   interactive content in a button.  The click half is FIXED (2026-10-02:  `fromControl()` leaves a click on a link /
   control in the title alone, as ui-accordion does;  test "leaves a click on a link inside a rich title").  Left:
   screen readers may not reach a link nested in a button.  Prove with VoiceOver on `#ui`;  a fix would render a
@@ -662,7 +662,7 @@ every entry below that date was fixed or disproven;  what's left:
 
 - `[V]` `src/page/cli.ts` `url`:  a RELATIVE `<file>` resolves against `packages/server`, not the folder `yarn
   server` ran in -- the root's `yarn server` runs `yarn workspace ... server`, whose nested yarn resets `INIT_CWD`.
-  Prove:  `yarn server url packages/docs/content/index.html` at the repo root prints
+  Prove:  `yarn server url pages/index.html` at the repo root prints
   `.../packages/server/packages/docs/index.html`.  An absolute path works.
 
 ## vscode

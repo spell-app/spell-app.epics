@@ -158,7 +158,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   markdown at `v2.solidjs.com/llms-full.txt`. · spell/parser
 - 2026-09-30 · A Solid 2 prototype died with `[REACTIVITY_HALTED] TypeError: r is not a function`, and every
   later update was ignored. · An effect's apply function RETURNS its cleanup:  `v => list.push(v)` returned a
-  number, which Solid then called.  Write `v => { ... }`.  See `packages/docs/content/solid/solid-2.html#effect-apply-returns-its-cleanup`. · spell/parser
+  number, which Solid then called.  Write `v => { ... }`.  See `guides/solid/solid-2.html#effect-apply-returns-its-cleanup`. · spell/parser
 - 2026-09-30 · A skill using `` !`cat file` `` context injection failed to load AT ALL (zero turns, only
   `Shell command permission check failed ... Permission to use Bash has been denied`) in a session with Bash
   denied.  `allowed-tools: Bash(cat ...)` in the skill's frontmatter does not override the denial. · Don't inject docs
@@ -1223,6 +1223,16 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   command from the epic's worktree (or any checkout with no worktree copy in the way).  Fixed on main in 1f9a6061:
   `findDoc()` returns THIS checkout's path for the same shared file, and `tidy()` never passes a `..` path;  the
   cleanup is review-review T3. · review-review
+
+- 2026-10-05 · At 01:46, while design-system's Doc Review ran, another session re-laid out the shared content repo:
+  `spell-app-dev/{guides,epics,pages,templates}`, with `packages/docs/content/<x>` now links into them, and every
+  page's links rewritten for the new depth (`../../packages/docs/tools/_assets/...` from `guides/<topic>/`).  A
+  worktree not yet on that layout (design-system) then can't load any docs page's CSS or bundle:  `check-spell`
+  fails every page ("undefined elements", 2 files not found), `doc-links --check` reports every repo link missing,
+  and the plan doc's real path moved under an open editor.  No worktree in `.claude/worktrees/` held the new tools.
+  · Checked the edited pages on scratch copies with the asset paths pointed at the worktree's
+  `packages/docs/tools/_assets/` (both passed);  wrote new links in the new layout's depth.  Rerun the checks once
+  the branch merges the layout's tools. · design-system
 
 ## claude-code
 

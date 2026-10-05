@@ -5,7 +5,7 @@ Classes, decorators, spell-cell state, `Loadable`, value objects and records.  R
 From:  original WWOD §12-16, root `AGENTS.md` "Decorators", `packages/ui/AGENTS.md` "UI rules" (classes rule,
 widened).
 
-Solid mechanics of spell cells (bridge, flush, `tracked()`):  `packages/docs/content/solid/solid-2.md`
+Solid mechanics of spell cells (bridge, flush, `tracked()`):  `guides/solid/solid-2.md`
 "Spell's decisions".
 This spoke is house style on top.
 
@@ -47,7 +47,7 @@ This spoke is house style on top.
   - NOT:  free functions that each take the record and return `{ ...record, changed }`.  Immutable-record-plus-spread
     forces every caller to re-assign the result, and a caller that forgets silently keeps a stale object.
   - What a prop HOLDS is not made reactive:  replace a held list / plain object, don't change it in place.
-    SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" › "Spell cells".
+    SEE:  `guides/solid/solid-2.md` "Spell's decisions" › "Spell cells".
 - **Say what the class does NOT know about:**
   SEE:  WWOD §6 › "A module or class docstring states its POSITION IN THE IMPORT GRAPH".
 - **Constructor takes ONE `props` object, normalized inside, and maybe a separate `context` object for dependency
@@ -107,7 +107,7 @@ This spoke is house style on top.
 - **Derived reads are plain getters;  `@derived` only when worth it:**
   - `@derived get y()` / `this.derive(name, fn)` (`Observable`) ONLY for a pure getter doing real work (loops, list
     aggregates):  memoizing a cheap getter costs more than it saves.
-  - SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" (the measurement, derived properties,
+  - SEE:  `guides/solid/solid-2.md` "Spell's decisions" (the measurement, derived properties,
     equality cutoff).
   - NOT:  `@memoize` every non-trivial getter that can run several times per render -- the cost above, and cells
     already re-run only readers whose value REALLY changed.
@@ -167,7 +167,7 @@ This spoke is house style on top.
     the property descriptor.  General-purpose ones live in `packages/util/src/decorators.ts` (`@proto`:  import from
     `$/util`;  `ui` has `$/ui/util`, which re-exports the generic ones).
   - Spell's own (`@prop`, `@derived`, `@thing`) live in `packages/util/src/spell/spellDecorators.ts`, for
-    HAND-WRITTEN `Observable`s only.  SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" ›
+    HAND-WRITTEN `Observable`s only.  SEE:  `guides/solid/solid-2.md` "Spell's decisions" ›
     "Decorators for HAND-WRITTEN classes".
 - **Lowered by esbuild:**
   - Lowered by esbuild via the repo root's `vite.decorators.ts` -- vite 8's own transformer (oxc) doesn't do it yet.
@@ -221,7 +221,7 @@ This spoke is house style on top.
     they read REALLY changes.  Reads are synchronous:  a read right after a write sees it.
   - e.g. `EditorStore` (`packages/app/src/editor.ts`):  `editor.x = y` anywhere, and Solid code reading `editor.x`
     re-runs.
-  - SEE:  `packages/docs/content/solid/solid-2.md` "Spell's decisions" › "Spell cells".
+  - SEE:  `guides/solid/solid-2.md` "Spell's decisions" › "Spell cells".
 - **Props are public, state is transient:**
   - Props:  persisted, listed by `keys()` and `toJSON()` (§16).  Declared `@prop(info) accessor x!: T` in
     hand-written classes, `getProp()` / `setProp()` accessor pairs in compiled spell -- the same runtime shape.

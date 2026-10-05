@@ -18,7 +18,7 @@ you're touching BEFORE writing code:
 | CSS / styling                                                  | `css.md`                                 | 18    |
 | logging, debug output                                          | `logging.md`                             | 19    |
 | tests                                                          | `tests.md`                               | 20    |
-| ANY Solid 2 code (signals, stores, `<ui-*>`):  read IN FULL    | `packages/docs/content/solid/solid-2.md` | --    |
+| ANY Solid 2 code (signals, stores, `<ui-*>`):  read IN FULL    | `guides/solid/solid-2.md` | --    |
 | anything inside a package                                      | `packages/<pkg>/AGENTS.md`               | --    |
 
 ## 1. Working process
@@ -42,7 +42,7 @@ you're touching BEFORE writing code:
   - Same before promoting a helper:  check the destination -- `$/util`, or the package's own util folder
     (WWOD §8 › "Promotion path") -- for a name collision.
 - **Record deviations and known issues;  NEVER fix them silently**, unless very minor:
-  - Epic work:  in its plan doc, `packages/docs/content/epics/<name>/<name>.plan.html`.
+  - Epic work:  in its plan doc, `epics/<name>/<name>.plan.html`.
     - Each fidelity / refinement round names the deviations it closed, with literal values.
     - An evaluated-and-rejected approach gets a written census of what it would touch.
   - Standing problems:  in their ledger, never left implicit -- `agents/CODE-DEBT.md` (incl. code that doesn't
@@ -418,7 +418,7 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
     of these, stop and reuse."
   - files table (unaligned `| --- |`), env-var table
   - numbered "Adding a new X" recipe, "Deferred" section
-  - in-flight design notes go in a plan doc (`packages/docs/content/epics/`), not beside the README
+  - in-flight design notes go in a plan doc (`epics/`), not beside the README
 - **User-facing strings stay inline**, where they're used;  only `ui` localizes (its `*.vocabulary.en.ts` files).
   - NOT:  a `MSG.ts` object of every user-facing string per package -- one more file to keep in step, for no
     localization.

@@ -27,7 +27,7 @@ What we're aiming for in three months, next year and someday — and what "shipp
 - **Paused:**
   - the move from React to Solid (`/Users/owen/www/spell-app/outstanding/solid-migration.md`):  needs a call on
     Solid rc.11 or rc.13
-  - precedence and types (`packages/docs/content/precedence/precedence.html`):  designed, nothing built, 14 decisions
+  - precedence and types (`guides/precedence/precedence.html`):  designed, nothing built, 14 decisions
     waiting on Owen
 - **Unreviewed:**  much of the recent code says "not yet reviewed by a person".
 - **Nothing ships yet:**  no npm packages, no website, no installer, no docs for people writing spells.
