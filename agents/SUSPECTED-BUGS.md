@@ -672,6 +672,10 @@ every entry below that date was fixed or disproven;  what's left:
 
 Skills, hooks and their scripts (`.claude/`, `packages/docs/tools/goals/skills/`).
 
+- `scripts/window.test.mjs` fails 1 of 19 on `main` (2026-10-04, after shared-content's cutover):  "a worktree's
+  window:  the main root first, then the worktree's package and root;  theme, tinted".  The written folder list now
+  has a `spell-app-dev` folder its expected array lacks.  Likely the cutover added the folder on purpose and the test
+  wasn't updated;  confirm which side is right.
 - `[V]` `.claude/skills/isolate/SKILL.md` step 0 and `.claude/skills/park/SKILL.md` step 2:  carry edits over with a
   BARE `git stash pop`.  The stash stack is shared by every worktree and session, so it can pop another session's
   stash.  Fix:  `push -u -m <tag>`, find its sha, `stash apply <sha>`, then drop it by sha.  (found by epic `commands`, P2)
