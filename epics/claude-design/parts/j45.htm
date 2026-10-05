@@ -1,0 +1,46 @@
+<!-- plan-doc part:  #j45's details in claude-design.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Chose an OVERLAY in the page server over extra mounts or links, because it works the same for every checkout's own
+  server and for worktrees on the main server, and no page link changes.
+</p>
+<ul>
+  <li>
+    <b>Overlay (chosen):</b> <code>StaticHandler.overlays</code>, a new generic hook: a URL path served from another URL
+    path when a file is there. The page server adds <code>uiBuildPath()</code>: <code>/ui/_assets/x</code> and
+    <code>/ui/_data/x</code> come from
+    <a href="../../../packages/ui/site/" target="src-packages-ui-site"><code>packages/ui/site/</code></a
+    >, the same under <code>/worktrees/&lt;w&gt;/</code> (that worktree's build). The rest of <code>/ui/</code> is just
+    the root's <code>ui</code> link, served by the <code>/</code> mount; the old <code>UI_SITE</code> mount is gone.
+  </li>
+  <li>
+    Extra mounts (<code>/ui/_assets</code>, <code>/ui/_data</code>): fine for one checkout, but each worktree on the
+    main server would need its own pair.
+  </li>
+  <li>
+    Links inside the shared <a href="../../../ui/" target="src-ui"><code>ui/</code></a> pointing at
+    <a href="../../../packages/ui/site/_assets/" target="src-packages-ui-site-assets"
+      ><code>packages/ui/site/_assets</code></a
+    >: impossible, the shared folder is one copy for every checkout, so a link would pick one checkout's build.
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    every page's <code>_assets/site.js</code>, <code>../_assets/site.css</code>, <code>_data/...</code> links work
+    unchanged
+  </li>
+  <li>
+    a file the build lacks falls through to the pages: that's how
+    <a href="../../../ui/_data/search.json" target="src-ui-data-search-json"><code>ui/_data/search.json</code></a> is
+    served
+  </li>
+  <li>
+    old <code>/packages/ui/site/&lt;page&gt;</code> URLs redirect to <code>/ui/&lt;page&gt;</code> once the old file is
+    gone (<code>movedUiPage()</code>)
+  </li>
+  <li>
+    live reload: the build's changes are reported at <code>/ui/...</code> (<code>LiveReload</code>
+    <code>servedAt</code>); before, a rebuilt bundle never reloaded <code>/ui/</code> pages (its path was
+    <code>/packages/ui/site/_assets/...</code>, the page loads <code>/ui/_assets/...</code>): fixed in passing
+  </li>
+</ul>
