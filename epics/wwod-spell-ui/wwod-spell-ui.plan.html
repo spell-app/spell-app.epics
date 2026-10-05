@@ -58,7 +58,12 @@
 
         <ui-section id="overview" header="1. Overview" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="lightbulb"></ui-icon>
-          <p class="plan-summary lede">Two sentences: what this plan does, and why.</p>
+          <p class="plan-summary lede">
+            Bring <code>packages/ui</code> (about 120,000 lines, 62 component families) in line with WWOD, the house
+            style, folder by folder:  the shapes WWOD asks for (constants, errors, constructors, statics, names), not
+            just comments.  Where WWOD and <code>ui</code>'s own <code>AGENTS.md</code> disagree, we settle the rule
+            first, write it down, then change the code to match.
+          </p>
           <ui-accordion class="plan-prompt-panel spell-aside" styled>
             <ui-title>Kickoff prompt</ui-title>
             <ui-content
@@ -71,8 +76,84 @@
               </blockquote></ui-content
             >
           </ui-accordion>
-          <ui-section id="o1" header="1.1 Structure" sticky collapsible dividing collapsed>
-            <p>What goes where: the part that becomes durable docs in the last phase.</p>
+          <ui-section id="o1" header="1.1 Where ui stands today" sticky collapsible dividing collapsed>
+            <p>
+              Five agents read <code>ui</code> against every WWOD rule (2026-10-05), one slice each:  the element core
+              and static render, the runtime and vocabulary, families <code>ui-accordion</code> to
+              <code>ui-loader</code>, families <code>ui-markdown</code> to <code>ui-visibility</code>, and the docs
+              components, tests, tools and scripts.  Nothing was changed.
+            </p>
+            <p>The surface style is already close.  Across all ~900 files:</p>
+            <ul>
+              <li>no <code>interface</code> (outside module augmentation), no TS <code>enum</code>, no <code>#private</code></li>
+              <li>no jsdoc <code>@param</code>, no unicode em-dash, two spaces after every period</li>
+              <li><code>////////////////</code> group headers well formed;  most element classes carry the <code>/****</code> banner</li>
+              <li>no test file mixes <code>it()</code> and <code>test()</code>;  every test imports from <code>vite-plus/test</code></li>
+              <li>CSS:  no <code>rem</code>, no live <code>!important</code>, no <code>:host-context</code>, public tokens read through private aliases</li>
+            </ul>
+            <p>What's far from WWOD is SHAPE, not punctuation:</p>
+            <ui-table compact celled>
+              <table>
+                <thead>
+                  <tr><th>Gap</th><th>WWOD rule</th><th>How many</th><th>Example</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Missing docstrings</td><td>§6 › "Docstrings on every declaration"</td><td>~1,000 (of which ~400 are overrides and <code>@proto static</code> boilerplate:  <a href="#q3">Q3</a>)</td><td><code>UIButton.isDisabled()</code></td></tr>
+                  <tr><td>Loose ALL-CAPS constants</td><td>§9 › "Avoid TS enums, and loose constants"</td><td>~700 in family types files</td><td><code>ui-toast.types.ts</code>:  <code>TIMEOUT</code>, <code>ESCAPE</code>, <code>APPROVE</code> ... (close reasons)</td></tr>
+                  <tr><td>The same string written twice</td><td>§2 › "DRY", §3 › "Magic strings"</td><td>~500 (fallbacks, templates, key names, 18 family constants re-declaring a <code>UIT</code> one)</td><td><code>"data-ui-slotted"</code> × 11 in <code>src/server/</code></td></tr>
+                  <tr><td><code>null</code> where <code>undefined</code> would do</td><td>§9 › "Avoid <code>null</code>"</td><td>~150 of our own (the rest are DOM APIs)</td><td><code>UICalendar</code>:  <code>Moment | null</code> × 29</td></tr>
+                  <tr><td>Statics and module constants in the wrong place</td><td>§12 › "<code>static</code> class constants, declared after the main methods", §8</td><td>~300</td><td><code>tools/SiteCheck.ts</code>:  14 statics above the constructor</td></tr>
+                  <tr><td>Throws without "Method():  problem;  fix"</td><td>§5 › "Guard-clause throws ..."</td><td>~60</td><td><code>IconPack.ts:78</code> <code>`${url} is not an icon pack index`</code></td></tr>
+                  <tr><td>Error classes in the old shape</td><td>§5 › "Error classes", "Structured error causes"</td><td>5 (<code>SourceError</code>, <code>ApiError</code>, 3 in tools)</td><td><b>WWOD quotes <code>SourceError</code> as its example, but the real class sets <code>this.name</code> and takes <code>(kind, message, status)</code></b></td></tr>
+                  <tr><td>Positional booleans, long parameter lists, positional constructors</td><td>§9, §12 › "Constructor takes ONE <code>props</code> object"</td><td>~60</td><td><code>UIForm.check(true)</code>;  9 fallbacks copy <code>NativeFallback</code>'s 4-parameter constructor</td></tr>
+                  <tr><td>Names</td><td>§3:  <code>is</code> / <code>has</code> / <code>can</code>, <code>xForY()</code></td><td>~120</td><td><code>PartContext.ownerOf()</code>, <code>Browser.reducedMotion</code></td></tr>
+                  <tr><td><code>console.*</code> instead of a logger</td><td>§19</td><td>~110 (89 are CLI output in <code>tools/</code>)</td><td>5 different warning prefixes in the runtime</td></tr>
+                  <tr><td>Tests</td><td>§20</td><td>~660 <code>describe()</code>s not call paths;  ~40 long files without banners;  ~30 real sleeps</td><td><code>ui-dropdown.test.tsx:277</code> sleeps 600 ms to outlast a 500 ms timer</td></tr>
+                  <tr><td>Env vars, file names, README</td><td>§11, §8, §6</td><td>9 unprefixed vars;  ~15 files;  <code>README.md</code> missing the required parts</td><td><code>UI_TEST_ALL</code>, <code>test/fixture.ts</code> (class <code>Fixture</code>)</td></tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p>
+              Closest to WWOD today:  <code>Cell.ts</code>, <code>SliderScale.ts</code>, <code>ProgressValues.ts</code>,
+              <code>UISection.tsx</code>, <code>UIPanel.tsx</code>, <code>UICard.tsx</code>.  Furthest:
+              <code>components.types.ts</code>, <code>ui-toast.types.ts</code>, <code>runtime.types.ts</code>,
+              <code>SourceElement.tsx</code>, <code>UIElement.tsx</code>, <code>tools/SiteCheck.ts</code>.
+            </p>
+          </ui-section>
+          <ui-section id="o2" header="1.2 Where WWOD and ui's AGENTS.md disagree" sticky collapsible dividing collapsed>
+            <p>
+              Some of the gaps aren't <code>ui</code> breaking a rule:  WWOD (written for app code) and
+              <code>packages/ui/AGENTS.md</code> (written for a library of custom elements) say different things, or
+              WWOD's own <code>ui</code> examples break WWOD.  Each needs a ruling before code moves;  the big ones are
+              the open questions (<a href="#q1">Q1</a>-<a href="#q5">Q5</a>), the rest are proposed in the plan.
+            </p>
+            <ul>
+              <li>
+                Namespaces:  WWOD §4 wants ONE namespace qualified at the use site (<code>P.Match</code>);
+                <code>ui</code> exports <code>E</code>, <code>V</code>, <code>SSR</code> but no file uses them, and
+                <code>ui</code>'s <code>AGENTS.md</code> says both "plain named imports from
+                <code>components.types</code>" and "<code>UIT.&lt;NAME&gt;</code>, never bare" (<a href="#q4">Q4</a>)
+              </li>
+              <li>
+                Constants:  WWOD §9 wants sets of values as a const array or object;  <code>ui</code> is built on
+                one loose ALL-CAPS constant per word (<a href="#q2">Q2</a>)
+              </li>
+              <li>
+                Logging:  WWOD §19's <code>Logger</code> lives in <code>$/util/spell</code> and imports
+                <code>chalk</code>, which <code>ui</code> must never load (<a href="#q5">Q5</a>)
+              </li>
+              <li>
+                WWOD examples that break WWOD:  <code>SourceError</code> (§5), <code>CodeLines.TOKENS</code> and
+                <code>CalendarDates.MINUTE_STEP</code> (§12 says "after the main methods";  both sit at the top),
+                <code>FormFields</code> / <code>CalendarDates</code> (§12 cites them, but they take positional
+                constructors), <code>ExampleSource.format(html, live)</code> (a positional boolean)
+              </li>
+              <li>
+                WWOD §17 (Solid components) and §18 (CSS naming) were written for the app's function components and
+                sheets;  <code>ui</code>'s controller classes render pieces as private methods, and its shadow sheets
+                use Fomantic's class grammar (<code>.ui.small.button</code>)
+              </li>
+            </ul>
           </ui-section>
         </ui-section>
 
