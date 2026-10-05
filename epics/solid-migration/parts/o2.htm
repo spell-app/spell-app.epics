@@ -1,0 +1,70 @@
+<!-- plan-doc part:  #o2's body in solid-migration.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Decided before the pause; the why and measurements are in
+  <a href="../../../guides/solid/solid-2.html" target="src-guides-solid-solid-2-html"
+    ><code>guides/solid/solid-2.html</code></a
+  >.
+</p>
+<ul>
+  <li>
+    <b>Taken with Owen:</b>
+    <a href="../../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a>
+    from SOURCE; CLEAN BREAK in spell JSX (no <code>SUI.*</code>, raw <code>&lt;ui-*&gt;</code> tags,
+    <code>class=</code>); INCREMENTAL phases, each green, stop for review after each.
+  </li>
+  <li>
+    <b>Solid 2 facts that force the design</b> (measured):
+    <ol>
+      <li>
+        writes are staged: read right after write returns OLD value until microtask / <code>flush()</code>. Spell is
+        imperative (<code>set</code> then <code>print</code> must be exact), so spell state can't be Solid signals
+      </li>
+      <li>
+        write feeding pending async is HELD with its whole batch (entanglement): even flush-per-write can read stale
+      </li>
+      <li>no writes in owned scope (dev throws; <code>untrack</code> doesn't exempt); no mutable store</li>
+      <li>one Solid per page; one uncaught error halts the page's whole scheduler</li>
+    </ol>
+  </li>
+  <li>
+    <b>Spell cells</b> -- BUILT (P11, <a href="#d25">D25</a>-<a href="#d29">D29</a>): each instance keeps a
+    <code>Map</code> record, the ONLY truth, read and written synchronously. Small sync core (cells + memoized derived
+    values, equality cutoff); one <code>enableExternalSource</code> bridge tells Solid, installed by the HOST
+    (<code>bridgeSolid()</code>,
+    <a href="../../../packages/app/src/solid/cellsBridge.ts" target="src-packages-app-src-solid-cellsbridge-ts"
+      ><code>packages/app/src/solid/cellsBridge.ts</code></a
+    >); <code>spellCore.flush()</code> = pending derived checks, then Solid's. Prototype:
+    <code>experiments/spell-cells.core.ts</code>.
+  </li>
+  <li>
+    <b>Accessors for Things, Proxy only for class-less data</b> (editor's nested plain data, JSON): a Proxy costs
+    ~2.5-6x on every access. Accessors BUILT; the Proxy NOT (no proxies at all: a value changed in place notifies
+    nobody, <a href="#c17">C17</a>).
+  </li>
+  <li>
+    <b>Decorators for hand-written classes</b> -- BUILT (P1, P11): <code>@prop({ type, default }) accessor</code>,
+    <code>@derived</code>, <code>@thing</code> (runs <code>create()</code> after all field initializers,
+    <a href="#d8">D8</a>). Used by <code>EditorStore</code>, <code>SpellConsole</code>, <code>FormStore</code>.
+    Prototype: <code>experiments/decorators.ts</code>.
+  </li>
+  <li>
+    <b>Compiled output:</b> no decorators (runs from a <code>blob:</code> URL); accessor pairs + class schema -- BUILT
+    (<code>declareProp()</code>, <a href="#d27">D27</a>). JSX THUNKS and <code>element()</code> on
+    <code>@solidjs/h</code> -- NOT built: compiled spell draws with React (<a href="#d9">D9</a>, <a href="#t2">T2</a>).
+  </li>
+  <li>
+    <b>Bundles</b> -- BUILT (P7, <a href="#d21">D21</a>): Solid +
+    <a href="../../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a> in ONE
+    shared <code>spell-solid.js</code> (+
+    <a href="../../../packages/docs/tools/_assets/spell-ui.js" target="src-packages-docs-tools-assets-spell-ui-js"
+      ><code>spell-ui.js</code></a
+    >) across element / runner / editor builds, never in <code>spell-runtime.js</code>. The import-map
+    <code>&lt;spell-app&gt;</code> variant for host pages already running Solid: NOT shipped (<a href="#t5">T5</a>).
+  </li>
+  <li>
+    <b>Added while building:</b> Solid by default, React files marked (<a href="#d11">D11</a>); the app UI loads
+    <code>$/ui</code> once, Fomantic icon names via <code>&lt;ui-root icons="fomantic"&gt;</code> (<a href="#d15">D15</a
+    >); <code>@solidjs/router@next</code> (<a href="#d23">D23</a>); AST views as framework-free
+    <code>P.Markup</code> (<a href="#d24">D24</a>).
+  </li>
+</ul>

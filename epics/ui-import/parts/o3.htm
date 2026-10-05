@@ -1,0 +1,166 @@
+<!-- plan-doc part:  #o3's body in ui-import.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<ul>
+  <li>
+    <code>host.save(text = host.content)</code>:
+    <ol>
+      <li>
+        dispatches cancelable <code>ui-save</code>; a listener that calls <code>preventDefault()</code>
+        does the saving itself (an editor posting elsewhere)
+      </li>
+      <li>
+        else <code>UI.sources.save(url, text, etag)</code> -&gt; the registered saver (<code>UI.sources.saver = fn</code
+        >). None: <code>ui-error</code> <code>kind: "no-saver"</code>. Inline content with no <code>source</code>:
+        updates content only
+      </li>
+      <li>
+        success: new <code>etag</code>, <code>ui-saved</code>; 409 (file changed underneath): <code>ui-error</code>
+        <code>kind: "conflict"</code>, edits kept
+      </li>
+    </ol>
+  </li>
+  <li>
+    <code>ui</code> ships no saver (it stands alone). The page-server saver: <code>SPELL_SERVER.saveFile</code> in the
+    server's
+    <a href="../../../packages/server/src/liveClient.ts" target="src-packages-server-src-liveclient-ts"
+      ><code>liveClient.ts</code></a
+    >, registered by
+    <a
+      href="../../../packages/docs/tools/_assets/spell-ui-sources.js"
+      target="src-packages-docs-tools-assets-spell-ui-sources-js"
+      ><code>packages/docs/tools/_assets/spell-ui-sources.js</code></a
+    >; a saver that can't import <code>SourceError</code> throws <code>{ kind, message, status }</code> (<a href="#d28"
+      >D28</a
+    >).
+  </li>
+  <li>
+    Server (<a href="#d3">D3</a>): <code>PageEditor</code>'s <code>PUT /_server/page</code> widened from
+    <code>.html</code> to text files (<code>.md</code>, <code>.ts</code>, <code>.tsx</code>, <code>.js</code>,
+    <code>.css</code>, <code>.spell</code>, <code>.txt</code>, <code>.yaml</code>, <code>.svg</code>; NOT
+    <code>.json</code>, <a href="#d25">D25</a>): same token, same-origin, ETag and <code>FileLock</code> rules.
+    <code>PATCH</code> (one element by <code>id</code>) stays pages-only.
+  </li>
+  <li>
+    A script's <code>fetch()</code> (<code>Sec-Fetch-Dest: empty</code>) gets files AS IS, without the injected
+    live-reload tags (<a href="#d24">D24</a>): what an include shows and saves is the file.
+  </li>
+</ul>
+<h4 id="o3-api">Shared API (all three elements)</h4>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Kind</th>
+        <th>Name</th>
+        <th>Type / default</th>
+        <th>What</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>attribute</td>
+        <td><code>source</code></td>
+        <td>URL, reflected</td>
+        <td>same-origin URL; change -&gt; re-fetch</td>
+      </tr>
+      <tr>
+        <td>attribute</td>
+        <td><code>load</code></td>
+        <td><code>eager</code> | <code>visible</code> | <code>idle</code>; <code>eager</code></td>
+        <td>when to fetch: now, scrolled into view, idle (islands)</td>
+      </tr>
+      <tr>
+        <td>property</td>
+        <td><code>content</code></td>
+        <td><code>string</code></td>
+        <td>current text; set -&gt; re-render, <code>dirty</code></td>
+      </tr>
+      <tr>
+        <td>property</td>
+        <td><code>etag</code></td>
+        <td>read-only</td>
+        <td>version of the last load / save, sent as <code>If-Match</code></td>
+      </tr>
+      <tr>
+        <td>property</td>
+        <td><code>dirty</code></td>
+        <td><code>boolean</code>, read-only</td>
+        <td>changed since load / save</td>
+      </tr>
+      <tr>
+        <td>property</td>
+        <td><code>loaded</code></td>
+        <td><code>Promise&lt;string&gt;</code></td>
+        <td>content once loaded</td>
+      </tr>
+      <tr>
+        <td>method</td>
+        <td><code>save(text?)</code></td>
+        <td><code>Promise&lt;boolean&gt;</code></td>
+        <td>
+          <code>true</code> once saved here; <code>false</code> when a listener took over (cancelled
+          <code>ui-save</code>) or it failed (<code>ui-error</code>)
+        </td>
+      </tr>
+      <tr>
+        <td>method</td>
+        <td><code>reload()</code></td>
+        <td><code>Promise&lt;string&gt;</code></td>
+        <td>re-fetch past the cache; drops edits</td>
+      </tr>
+      <tr>
+        <td>event</td>
+        <td><code>ui-load</code></td>
+        <td><code>{ source, content }</code></td>
+        <td>content arrived</td>
+      </tr>
+      <tr>
+        <td>event</td>
+        <td><code>ui-change</code></td>
+        <td><code>{ content }</code></td>
+        <td><code>content</code> set</td>
+      </tr>
+      <tr>
+        <td>event</td>
+        <td><code>ui-save</code></td>
+        <td><code>{ source, content, etag }</code>, cancelable</td>
+        <td>before saving</td>
+      </tr>
+      <tr>
+        <td>event</td>
+        <td><code>ui-saved</code></td>
+        <td><code>{ source, etag }</code></td>
+        <td>saved</td>
+      </tr>
+      <tr>
+        <td>event</td>
+        <td><code>ui-error</code></td>
+        <td><code>{ kind, source, error }</code>, cancelable</td>
+        <td>
+          <code>load</code> | <code>cross-origin</code> | <code>file-protocol</code> | <code>save</code> |
+          <code>conflict</code> | <code>no-saver</code> | <code>render</code>; cancel = no message
+        </td>
+      </tr>
+      <tr>
+        <td>state</td>
+        <td><code>loading</code>, <code>error</code>, <code>saving</code>, <code>dirty</code></td>
+        <td><code>:state()</code></td>
+        <td>for CSS</td>
+      </tr>
+      <tr>
+        <td>part</td>
+        <td><code>loader</code>, <code>error</code></td>
+        <td></td>
+        <td>the loader / message</td>
+      </tr>
+      <tr>
+        <td>text</td>
+        <td>
+          <code>loading</code>, <code>loadError</code>, <code>crossOrigin</code>, <code>fileProtocol</code>,
+          <code>saveError</code>, <code>conflict</code>, <code>noSaver</code>
+        </td>
+        <td></td>
+        <td>translatable strings</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>

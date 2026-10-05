@@ -1,0 +1,88 @@
+<!-- plan-doc part:  #o6's body in claude-design.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Plan docs split into a SKELETON and BODY files (<a href="#q2">Q2</a>). The skeleton holds every section, phase and
+  item line; the bodies load the first time you open them, through two new attributes on our own elements,
+  <code>&lt;ui-section source&gt;</code> and <code>&lt;ui-accordion source&gt;</code>. The reload fallbacks below get
+  fixed along the way.
+</p>
+<ui-accordion class="spell-code" styled>
+  <ui-title>A plan doc's skeleton · sketch</ui-title>
+  <ui-content>
+    <pre><code class="language-html">&lt;ui-section id="p3" data-phase="3" data-status="active" header="P3 · Plan Fragments"
+  source="parts/p3.html" sticky collapsible dividing collapsed&gt;&lt;/ui-section&gt;
+
+&lt;ui-item id="q2" data-status="decided" data-answered&gt;
+  &lt;ui-accordion class="plan-item" source="parts/q2.html"&gt;
+    &lt;ui-title&gt;&lt;a class="plan-id" href="#q2"&gt;Q2&lt;/a&gt; &lt;span class="plan-title"&gt;Fix the reloads, or fragments?&lt;/span&gt;&lt;/ui-title&gt;
+  &lt;/ui-accordion&gt;
+&lt;/ui-item&gt;</code></pre>
+  </ui-content>
+</ui-accordion>
+<ul>
+  <li>
+    Why the skeleton keeps every item line: links to items (<code>#q12</code> from prose, the "To review" lines, other
+    docs, <code>docs:link --hash</code>), the open/all counts and the Review tab's marks all read ids and statuses, so
+    they keep working without loading a single body.
+  </li>
+  <li>
+    Still to handle:
+    <ul>
+      <li>live updates must notice a changed body file and re-fetch only that body</li>
+      <li>
+        plan docs need the page server (<code>&lt;ui-include&gt;</code> refuses <code>file://</code>); the browser check
+        serves them
+      </li>
+      <li><code>h4</code> ids inside an Overview body load that body first</li>
+      <li>find-in-page misses detail text until it's opened (<a href="#c4">C4</a>)</li>
+    </ul>
+  </li>
+</ul>
+<p>The research behind it, from before the answer:</p>
+<ul>
+  <li>
+    Why it reloads today (<a
+      href="../../../packages/docs/tools/_assets/spell-doc-runtime.js"
+      target="src-packages-docs-tools-assets-spell-doc-runtime-js"
+      ><code>spell-doc-runtime.js</code></a
+    >, <code>canPatch</code> / <code>patchPage</code>):
+    <ul>
+      <li>
+        any inline script on the page, even <code>&lt;script type="text/plain"&gt;</code>: the "Plan hung?" notice has
+        one, so every edit to a doc still being planned reloads it (this doc, right now)
+      </li>
+      <li>
+        anything outside <code>main</code> changed: every edit rewrites <code>&lt;body data-recent-since&gt;</code>,
+        which differs per checkout and moves with each commit (PAPERCUTS, 2026-10-04)
+      </li>
+      <li>more than half of <code>main</code> changed</li>
+    </ul>
+  </li>
+  <li>
+    Each edit writes the file 3 times over about 1 second (the edit, link rewriting, then formatting), against a 250 ms
+    watch debounce, so one edit can patch the page twice.
+  </li>
+  <li>
+    What fragments with <code>&lt;ui-include&gt;</code> would cost:
+    <ul>
+      <li>
+        <code>&lt;ui-include&gt;</code> refuses <code>file://</code>, so plan docs would stop opening from disk, and the
+        browser check loads them from disk
+      </li>
+      <li>find-in-page and <code>#q12</code> links can't reach content that hasn't loaded</li>
+      <li>
+        about 15 readers parse plan-doc HTML today (the <code>plan-doc</code> commands, the docs index, the main
+        server's epic cards, the review inbox, the browser checks), and every one would need to follow includes
+      </li>
+      <li>live updates ignore any changed file except the page itself</li>
+    </ul>
+  </li>
+  <li>
+    What fragments would gain: less parsing and element set-up on load (a folded section's content is still built, only
+    not drawn). The biggest doc, <code>spell-ui-pages</code>, is 522 KB with 6,666 elements; most of that is item
+    details.
+  </li>
+  <li>
+    Script speed: most of a <code>plan-doc</code> command's time is process start-up and formatting, not file size
+    (parsing the biggest doc takes 19 ms), so smaller files wouldn't make scripts much faster.
+  </li>
+</ul>

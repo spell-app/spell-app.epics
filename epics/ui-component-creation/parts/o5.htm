@@ -1,0 +1,918 @@
+<!-- plan-doc part:  #o5's body in ui-component-creation.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Built in <a href="#p17">P17</a> (element), <a href="#p18">P18</a> (settings), <a href="#p19">P19</a> (skeletons); docs
+  in <a href="#p20">P20</a>. One element around a page or app. It:
+</p>
+<ul>
+  <li><b>loads</b> each <code>ui-*</code> tag's family the first time the tag shows up inside it; nothing up front</li>
+  <li>
+    <b>waits</b> until everything inside is ready (or <code>timeout</code> passes), then shows it and fires
+    <code>ui-ready</code>
+  </li>
+  <li>meanwhile shows <b>skeletons</b> or a <b>loading message</b> (<code>display</code>, <code>loading</code>)</li>
+  <li>sets <b>icons, emoji, theme, size</b> and an optional <b>box</b> for everything inside</li>
+</ul>
+<ul>
+  <li>
+    Own entry <code>@spell-app/ui/ui-root</code> (<a href="#d56">D56</a>):
+    <code>import "@spell-app/ui/ui-root"</code> is the only script a page needs. Own code 7.70 kB min + gzip (<a
+      href="../../../packages/ui/docs/report.md"
+      target="src-packages-ui-docs-report-md"
+      ><code>docs/report.md</code></a
+    >); pages without a root pay nothing.
+  </li>
+  <li>No Fomantic counterpart, so no class grammar: every attribute is a property.</li>
+  <li>
+    The docs site runs on it:
+    <code>site/src/layouts/Docs.astro</code>
+    wraps every page in <code>&lt;ui-root display="immediately"&gt;</code>; the site's own loader is gone (<a
+      href="#d63"
+      >D63</a
+    >).
+  </li>
+  <li>
+    Docs page:
+    <code>site/src/content/components/ui-root.mdx</code>.
+  </li>
+</ul>
+<p>A page using it (the family's skeleton example):</p>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>examples/elements/skeleton.html · 10 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-html">&lt;ui-root&gt;
+  &lt;ui-card&gt;
+    &lt;ui-content&gt;
+      &lt;ui-header&gt;Report&lt;/ui-header&gt;
+      &lt;ui-description&gt;Shown once every component inside is ready; until then, placeholders.&lt;/ui-description&gt;
+    &lt;/ui-content&gt;
+  &lt;/ui-card&gt;
+  &lt;ui-button primary&gt;Save&lt;/ui-button&gt;
+  &lt;ui-button&gt;Cancel&lt;/ui-button&gt;
+&lt;/ui-root&gt;</code></pre>
+  </ui-content>
+</ui-accordion>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Attribute</th>
+        <th>Does</th>
+        <th>Default</th>
+        <th>See</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>display</code></td>
+        <td>what shows while loading: <code>skeleton</code>, <code>when-ready</code>, <code>immediately</code></td>
+        <td><code>skeleton</code></td>
+        <td><a href="#o5d">display</a>, <a href="#d57">D57</a></td>
+      </tr>
+      <tr>
+        <td><code>loading</code></td>
+        <td>a <code>&lt;ui-loader&gt;</code> with this message (bare: "Loading…")</td>
+        <td>none</td>
+        <td><a href="#o5d">display</a>, <a href="#d57">D57</a></td>
+      </tr>
+      <tr>
+        <td><code>timeout</code></td>
+        <td>longest wait: <code>5s</code>, <code>500ms</code>, or ms</td>
+        <td><code>5s</code></td>
+        <td><a href="#o5a">loading</a>, <a href="#d53">D53</a></td>
+      </tr>
+      <tr>
+        <td><code>icons</code></td>
+        <td>packs for the subtree: built-in ids or <code>pack.js</code> URLs, comma-separated, later wins</td>
+        <td>outer root's, else page's</td>
+        <td><a href="#o5b">settings</a>, <a href="#d58">D58</a></td>
+      </tr>
+      <tr>
+        <td><code>emoji</code></td>
+        <td>emoji names: <code>cldr</code>, <code>fomantic</code></td>
+        <td>outer root's, else page's</td>
+        <td><a href="#o5b">settings</a>, <a href="#d51">D51</a></td>
+      </tr>
+      <tr>
+        <td><code>assets</code></td>
+        <td>folder built-in packs load from</td>
+        <td>beside the library</td>
+        <td><a href="#o5b">settings</a>, <a href="#d58">D58</a></td>
+      </tr>
+      <tr>
+        <td><code>theme</code></td>
+        <td><code>light</code> / <code>dark</code> for the subtree</td>
+        <td>page's</td>
+        <td><a href="#o5c">theme</a></td>
+      </tr>
+      <tr>
+        <td><code>size</code></td>
+        <td><code>mini</code> ... <code>massive</code> for the subtree</td>
+        <td>page's</td>
+        <td><a href="#o5c">theme</a></td>
+      </tr>
+      <tr>
+        <td><code>width</code>, <code>height</code></td>
+        <td>CSS length or <code>window</code>: a box that scrolls</td>
+        <td>no box</td>
+        <td><a href="#o5c">theme</a>, <a href="#d60">D60</a></td>
+      </tr>
+      <tr>
+        <td><code>fixed</code></td>
+        <td>pinned to the viewport: an app shell</td>
+        <td>off</td>
+        <td><a href="#o5c">theme</a>, <a href="#d60">D60</a></td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    Events: <code>ui-ready</code> <code>{ failed }</code>; <code>ui-error</code> <code>{ tag, reason, error? }</code>,
+    cancelable.
+  </li>
+  <li>
+    Parts: <code>loading</code>, <code>skeleton</code>. States: <code>loading</code>, <code>ready</code>,
+    <code>light</code>, <code>dark</code>, <code>box</code>, <code>fixed</code>.
+  </li>
+  <li>Native fallback: a bare <code>&lt;slot&gt;</code>, so a root that fails still shows its content.</li>
+</ul>
+
+<h4 id="o5a">Loading and ready</h4>
+<ul>
+  <li>
+    Tag =&gt; family from a GENERATED catalog,
+    <a
+      href="../../../packages/ui/src/components/ui-root/ui-root.catalog.ts"
+      target="src-packages-ui-src-components-ui-root-ui-root-catalog-ts"
+      ><code>ui-root.catalog.ts</code></a
+    >
+    (<a href="#d65">D65</a>): every tag =&gt; its folder, plus its skeleton.
+    <ul>
+      <li>
+        <code>yarn gen:root</code> (<a
+          href="../../../packages/ui/scripts/gen-root-catalog.ts"
+          target="src-packages-ui-scripts-gen-root-catalog-ts"
+          ><code>scripts/gen-root-catalog.ts</code></a
+        >) writes it from every <code>&lt;tag&gt;.vocabulary.en.ts</code>;
+        <a href="../../../packages/ui/test/root-catalog.test.ts" target="src-packages-ui-test-root-catalog-test-ts"
+          ><code>test/root-catalog.test.ts</code></a
+        >
+        fails while it's stale.
+      </li>
+      <li>
+        Not the <code>ComponentDefinitions</code> roll-up: that imports every vocabulary (~325 kB of source), and a lib
+        entry importing it would split each vocabulary into a chunk shared with its family. The catalog: 92 tags, a few
+        kB.
+      </li>
+      <li>No more guessing from the tag's name (the site's old <code>familyOf()</code>).</li>
+    </ul>
+  </li>
+  <li>
+    <code>RootLoader</code> imports a family through a LITERAL <code>import.meta.glob</code> of every family's
+    <code>index.ts</code>, so each is a literal <code>import()</code>:
+    <ul>
+      <li>the lib build reuses the family's own entry chunk (<code>ui-card.js</code>)</li>
+      <li>
+        the docs' single-file bundle (<a
+          href="../../../packages/docs/tools/bundle-spell-ui.js"
+          target="src-packages-docs-tools-bundle-spell-ui-js"
+          ><code>bundle-spell-ui.js</code></a
+        >) inlines them
+      </li>
+      <li>once per family per page: every root shares the loads</li>
+    </ul>
+  </li>
+  <li>
+    Watching: on first connect, a scan for undefined <code>ui-*</code> tags (<code>:not(:defined)</code>); then, while
+    connected, a <code>MutationObserver</code> on the subtree loads whatever is added. An undefined tag without the
+    <code>ui-</code> prefix (an app's own element) is left alone.
+  </li>
+</ul>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>RootLoader.ts · glob, folderOf(), load() · 27 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">const FAMILIES = import.meta.glob(["../*/index.ts", "!../ui-root/index.ts"])
+
+/****************
+ * ### `RootLoader`
+ * Tag =&gt; family =&gt; `import()`, once per family for the whole page (every root shares the loads).
+ * - Which family defines a tag comes from `ROOT_CATALOG` (generated from the vocabularies, `yarn gen:root`), never
+ *   from guessing at the tag's name.
+ ****************/
+export class RootLoader {
+  /** Folder =&gt; its import, started once. */
+  private static readonly loads = new Map&lt;string, Promise&lt;void&gt;&gt;()
+
+  /** The folder (family) that defines `tag`;  `undefined` for a tag no family defines. */
+  static folderOf(tag: string): string | undefined {
+    return Object.hasOwn(ROOT_CATALOG, tag) ? ROOT_CATALOG[tag].folder : undefined
+  }
+
+  /** Import `folder`'s family (which defines its tags), once;  rejects if it can't be imported. */
+  static load(folder: string): Promise&lt;void&gt; {
+    let load = RootLoader.loads.get(folder)
+    if (!load) {
+      const importer = FAMILIES[`../${folder}/index.ts`]
+      load = importer ? importer().then(() =&gt; undefined) : Promise.reject(new Error(`no family "${folder}"`))
+      RootLoader.loads.set(folder, load)
+    }
+    return load
+  }</code></pre>
+  </ui-content>
+</ui-accordion>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>ui-root.catalog.ts (generated) · excerpt · 13 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">  "ui-button": { folder: "ui-button", skeleton: { display: "inline", width: "6em", height: "2.5em" } },
+  "ui-buttons": { folder: "ui-button" },
+  "ui-calendar": { folder: "ui-calendar", skeleton: { display: "inline", width: "14em", height: "2.5em" } },
+  "ui-card": {
+    folder: "ui-card",
+    skeleton: {
+      width: "18em",
+      parts: [{ shape: "image", ratio: "square" }, { shape: "header" }, { shape: "paragraph", lines: 3 }]
+    }
+  },
+  "ui-cards": { folder: "ui-card" },
+  "ui-checkbox": { folder: "ui-checkbox", skeleton: { display: "inline", width: "6em", height: "1.25em" } },
+  "ui-column": { folder: "ui-grid" },</code></pre>
+  </ui-content>
+</ui-accordion>
+<ul>
+  <li>
+    Ready, in rounds (at most <code>MAX_ROUNDS</code> = 10): import every undefined tag's family, then await
+    <code>ready</code> of every <code>ui-*</code> element inside; again while new tags turn up (a render can add some).
+    <ul>
+      <li>
+        A nested root counts once ITS <code>settled</code> resolves, so the outer root is ready only after every inner
+        one (<a href="#d52">D52</a>).
+      </li>
+    </ul>
+  </li>
+  <li>
+    Then: <code>:state(ready)</code>, <code>ui-ready</code> with <code>{ failed }</code>, the content shows. Content
+    added later loads too, but is never hidden again.
+  </li>
+  <li>
+    Failures (<a href="#d53">D53</a>): each tag once per reason, a cancelable <code>ui-error</code>
+    <code>{ tag, reason, error? }</code>, then a console warning unless cancelled; all listed in <code>ui-ready</code>'s
+    <code>failed</code>.
+    <ul>
+      <li><code>unknown</code>: no family defines the tag (not in the catalog)</li>
+      <li><code>failed</code>: its family's import rejected</li>
+      <li>
+        <code>timeout</code>: still undefined, or not ready, when <code>timeout</code> passed; the content shows anyway,
+        a broken element shows its native fallback
+      </li>
+    </ul>
+  </li>
+</ul>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>UIRoot.tsx · start() · 13 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">  private async start() {
+    if (untrack(this.display) === DISPLAY.skeleton) this.skeletons.set(this.findSkeletons())
+    let timer: ReturnType&lt;typeof setTimeout&gt; | undefined
+    const timeout = new Promise&lt;"timeout"&gt;((resolve) =&gt; {
+      timer = setTimeout(() =&gt; resolve("timeout"), RootTimeout.parse(untrack(() =&gt; this.attrs.timeout)))
+    })
+    const outcome = await Promise.race([this.settle(), timeout])
+    clearTimeout(timer)
+    if (outcome === "timeout") this.timedOut()
+    this.isReady.set(true)
+    this.emit("ui-ready", { failed: [...this.failures] })
+    this.resolveSettled([...this.failures])
+  }</code></pre>
+  </ui-content>
+</ui-accordion>
+
+<h4 id="o5b">Icons and emoji per root</h4>
+<ul>
+  <li>
+    Attributes on the root only (<a href="#d58">D58</a>): <code>&lt;ui-icon-set&gt;</code> and
+    <code>&lt;ui-emoji-set&gt;</code> are removed. A page without a root uses <code>UI.icons.use()</code> /
+    <code>EmojiData.use()</code> in JS.
+  </li>
+  <li>
+    Per root, not page-wide (<a href="#d51">D51</a>): outside any root, the page's set applies. Language stays page-wide
+    for now: no <code>lang</code> attribute.
+  </li>
+  <li>
+    <a href="../../../packages/ui/src/elements/RootSettings.ts" target="src-packages-ui-src-elements-rootsettings-ts"
+      ><code>RootSettings</code></a
+    >
+    (core, <a href="#d66">D66</a>): root element =&gt; <code>{ icons, emoji }</code>.
+    <ul>
+      <li>
+        <code>nearest(element, key)</code> climbs the FLAT tree (slot, parent, shadow host): an icon inside a
+        component's shadow finds the root around the component; a nested root inherits what it doesn't set (<a
+          href="#d52"
+          >D52</a
+        >).
+      </li>
+      <li>In core because icons and emoji read it, and must never import the root.</li>
+      <li>
+        <code>generation</code> (a signal) bumps on any root's change; <code>IconGlyph</code> and
+        <code>&lt;ui-emoji&gt;</code> track it, plus <code>connected</code> (a move to another root), and redraw.
+      </li>
+    </ul>
+  </li>
+  <li>
+    Icons (<a href="#d67">D67</a>): <code>icons="fa7-brands, /packs/lucide/pack.js"</code> makes a CHILD set,
+    <code>UI.icons.scope(packs, { assets, parent })</code>.
+    <ul>
+      <li>its packs win; the parent's answer what they don't</li>
+      <li>
+        <code>parent</code> is a function asked at each lookup, so an inner root follows the outer root's CURRENT packs
+      </li>
+      <li>SVG cache and registered icons stay one per page; <code>IconGlyph.packsFor(element)</code> picks the set</li>
+    </ul>
+  </li>
+  <li>
+    Emoji: <code>emoji="fomantic"</code>. <code>EmojiData</code> keeps loaded names PER SET
+    (<code>setFor(element)</code>; <code>peek</code> / <code>get</code> take a set), so two roots can use different sets
+    at once.
+  </li>
+  <li>
+    <code>assets="/ui/"</code>: the folder built-in packs load from
+    (<code>&lt;assets&gt;icon-packs/&lt;id&gt;/pack.js</code>); replaces <code>base</code>.
+  </li>
+  <li>
+    Timing: emoji apply at once; a root's icon set is made once the runtime loads, so with
+    <code>display="immediately"</code> an icon may draw from the page's packs for a moment (<a href="#c12">C12</a>).
+  </li>
+</ul>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>UIRoot.tsx · applySettings(); RootSettings.ts · nearest() · 23 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">  private applySettings(packs: string[], emoji: string | undefined, assets: string | undefined) {
+    const request = ++this.settingsRequest
+    RootSettings.set(this.host, { emoji })
+    if (!packs.length) return
+    void UI.load().then((ui) =&gt; {
+      if (request !== this.settingsRequest || !this.host.isConnected) return
+      // never this root's own set:  its parent is whatever is ABOVE it
+      const outer = () =&gt; {
+        const above = RootSettings.parentOf(this.host)
+        return above ? IconGlyph.packsFor(above, ui.icons) : ui.icons
+      }
+      RootSettings.set(this.host, { emoji, icons: ui.icons.scope(packs, { assets, parent: outer }) })
+    })
+  }
+
+// RootSettings.ts
+  static nearest&lt;K extends keyof RootSettingsValue&gt;(element: Element | null, key: K): RootSettingsValue[K] | undefined {
+    for (let current = element; current; current = RootSettings.parentOf(current)) {
+      const value = RootSettings.byRoot.get(current)?.[key]
+      if (value !== undefined) return value
+    }
+    return undefined
+  }</code></pre>
+  </ui-content>
+</ui-accordion>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>ui-root.mdx · nested roots · 5 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-html">&lt;ui-root icons="fa7-brands" display="immediately"&gt;
+  &lt;ui-root size="large" display="immediately"&gt;
+    &lt;p&gt;&lt;ui-icon name="slack" label="Slack"&gt;&lt;/ui-icon&gt; large, drawn from the outer root's packs&lt;/p&gt;
+  &lt;/ui-root&gt;
+&lt;/ui-root&gt;</code></pre>
+  </ui-content>
+</ui-accordion>
+
+<h4 id="o5c">Theme, size and box</h4>
+<ul>
+  <li>
+    <a
+      href="../../../packages/ui/src/components/ui-root/ui-root.css"
+      target="src-packages-ui-src-components-ui-root-ui-root-css"
+      ><code>ui-root.css</code></a
+    >
+    styles the HOST by state, never by attribute value (a translation may rename it). The host is
+    <code>display: contents</code>: no box, nothing added to the page's structure.
+  </li>
+  <li>
+    <code>theme="dark"</code> =&gt; <code>:state(dark)</code>: <code>color-scheme</code>, <code>--ui-scheme</code>, text
+    colour and background, as <code>.ui-dark</code>. Every colour token is a <code>light-dark()</code> pair, so the
+    subtree flips. Without a box it paints no background (<a href="#c11">C11</a>).
+  </li>
+  <li>
+    <code>size="small"</code> =&gt; <code>--ui-scale: var(--ui-size-small)</code> on the host, inherited through shadow
+    roots; <code>medium</code> sets nothing.
+  </li>
+  <li>
+    <code>width</code> / <code>height</code> (<a href="#d60">D60</a>): a CSS length, or <code>window</code> (<code
+      >100dvw</code
+    >
+    / <code>100dvh</code>, following a phone's address bar). Either =&gt; <code>:state(box)</code>: a block that scrolls
+    its own content.
+  </li>
+  <li>
+    <code>fixed</code> =&gt; <code>:state(fixed)</code>: <code>position: fixed; inset: 0</code>,
+    <code>overscroll-behavior: contain</code>. A full-page app shell; on iOS the keyboard can cover fields near the
+    bottom (documented).
+  </li>
+  <li>
+    Width, height and scale go in the root's OWN constructed sheet (<code>RootBox</code>), adopted into its shadow:
+    <ul>
+      <li>not an inline <code>style</code>: that's the author's</li>
+      <li>lengths pass <code>CSS.supports()</code> first, so an attribute can't inject other declarations</li>
+    </ul>
+  </li>
+  <li>
+    Tokens: any <code>--ui-*</code> in the root's <code>style</code> reaches everything inside, as on any element.
+    Nothing new.
+  </li>
+  <li>
+    The theme / box / fixed states live in the root's sheet, which arrives with <code>UI.load()</code>: with
+    <code>display="immediately"</code> the content can show a moment in the page's scheme (<a href="#c11">C11</a>).
+  </li>
+</ul>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>RootBox.ts · css() · 9 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">  static css({ width, height, size }: { width?: string; height?: string; size?: string }): string {
+    const declarations: string[] = []
+    const w = RootBox.length("width", width, "100dvw")
+    const h = RootBox.length("height", height, "100dvh")
+    if (w) declarations.push(`width: ${w}`)
+    if (h) declarations.push(`height: ${h}`)
+    if (size &amp;&amp; size !== "medium") declarations.push(`--ui-scale: var(--ui-size-${size})`)
+    return declarations.join("; ")
+  }</code></pre>
+  </ui-content>
+</ui-accordion>
+
+<h4 id="o5d">Display while loading</h4>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th><code>display</code></th>
+        <th>While loading</th>
+        <th>The content (slot)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>skeleton</code> (default, <a href="#d57">D57</a>)</td>
+        <td>
+          a <code>&lt;ui-placeholder&gt;</code> per described element (<a href="#o5e">skeletons</a>); none described: as
+          <code>when-ready</code>
+        </td>
+        <td><code>display: none</code></td>
+      </tr>
+      <tr>
+        <td><code>when-ready</code></td>
+        <td>nothing, space kept</td>
+        <td><code>visibility: hidden</code></td>
+      </tr>
+      <tr>
+        <td><code>immediately</code></td>
+        <td>everything as it arrives</td>
+        <td>untouched</td>
+      </tr>
+      <tr>
+        <td>+ <code>loading="..."</code></td>
+        <td>
+          a <code>&lt;ui-loader&gt;</code> with the message, above any skeletons; not with
+          <code>immediately</code>
+        </td>
+        <td><code>display: none</code></td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    Hidden by an INLINE style on the root's <code>&lt;slot&gt;</code> (<code>slotStyle()</code>), not a sheet: the root
+    renders before any sheet arrives.
+  </li>
+  <li>
+    Eager (<a href="#d64">D64</a>): <code>UIElement</code>'s new <code>@proto static eager</code>. The root sets it, so
+    it renders the moment it's defined, not after <code>UI.load()</code>; its render must look right unstyled until
+    <code>loaded()</code>.
+  </li>
+  <li>
+    Before the root's script runs:
+    <a href="../../../packages/ui/src/styles/native.css" target="src-packages-ui-src-styles-native-css"
+      ><code>native.css</code></a
+    >
+    (in <code>@spell-app/ui/styles</code>) hides an undefined root (not <code>immediately</code>), space kept, only
+    under <code>@media (scripting: enabled)</code> (<a href="#d54">D54</a>): without JS, a crawler or a static SSR page
+    shows the content as sent.
+  </li>
+  <li>
+    Loading message: <code>UIRoot.Loading</code> (<code>LoaderMessage</code>) renders
+    <code>&lt;ui-loader active inline centered text part="loading"&gt;</code>; its text follows <code>loading</code>, or
+    the vocabulary's <code>loading</code> text ("Loading…") for a bare attribute.
+  </li>
+  <li>
+    Swappable (<a href="#d62">D62</a>): <code>UIRoot.Loading</code> and <code>UIRoot.Skeleton</code>, by a subclass or
+    one assignment (<code>UIRoot.Skeleton = MySkeleton</code>).
+    <ul>
+      <li>
+        they hold the root's only STATIC family imports: <code>ui-loader</code>, <code>ui-placeholder</code>; every
+        other family loads on demand
+      </li>
+      <li>both build with the DOM, not JSX: Solid's JSX has no types for our tags</li>
+    </ul>
+  </li>
+  <li>
+    Accessibility: hidden content isn't read half-built; placeholders are
+    <code>aria-hidden</code> (internals); the loader is <code>role="status"</code>.
+  </li>
+</ul>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>UIRoot.tsx · render(), slotStyle() · 21 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">  render(): JSX.Element {
+    this.effects()
+    return (
+      &lt;&gt;
+        &lt;Show when={this.showLoading()}&gt;{this.Loading.render(this.part("loading"), () =&gt; this.message())}&lt;/Show&gt;
+        &lt;Show when={this.showSkeleton()}&gt;{this.Skeleton.render(this.part("skeleton"), this.skeletons.get)}&lt;/Show&gt;
+        &lt;slot class={this.classes()} style={this.slotStyle()} /&gt;
+      &lt;/&gt;
+    )
+  }
+
+  /** The loader's message:  `loading`'s value, or the default text for a bare `loading`. */
+  private message(): string {
+    return this.attrs.loading || this.text("loading")
+  }
+
+  /** Inline style of the slot:  hidden while loading (unless `immediately`);  not drawn while the message or skeletons show. */
+  private slotStyle(): string | undefined {
+    if (this.isReady.get() || this.display() === DISPLAY.immediately) return undefined
+    return this.showLoading() || this.showSkeleton() ? "display: none" : "visibility: hidden"
+  }</code></pre>
+  </ui-content>
+</ui-accordion>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>src/styles/native.css · before the root is defined · 5 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-css">  @media (scripting: enabled) {
+    :where(ui-root):not(:defined):not([display="immediately"]) {
+      visibility: hidden;
+    }
+  }</code></pre>
+  </ui-content>
+</ui-accordion>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>UIRoot.tsx · the swappable renderers; LoaderMessage.ts · render() · 16 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">  /** What shows with `loading`:  swap it for another look (`UIRoot.Loading = MyLoading`). */
+  @proto static Loading: RootLoading = LoaderMessage
+
+  /** What shows with `display="skeleton"`:  swap it for another look (`UIRoot.Skeleton = MySkeleton`). */
+  @proto static Skeleton: RootSkeletonRenderer = PlaceholderSkeleton
+
+// LoaderMessage.ts
+  static render(part: string, message: Accessor&lt;string&gt;): JSX.Element {
+    const loader = document.createElement(loaderVocabulary.tag)
+    for (const name of LOADER_SWITCHES) loader.setAttribute(name, "")
+    loader.setAttribute("part", part)
+    createRenderEffect(message, (text) =&gt; {
+      loader.textContent = text
+    })
+    return loader
+  }</code></pre>
+  </ui-content>
+</ui-accordion>
+
+<h4 id="o5e">Skeletons</h4>
+<ul>
+  <li>
+    Every vocabulary says <code>skeleton</code>: a <code>SkeletonSpec</code>, or <code>null</code> (<a href="#d59"
+      >D59</a
+    >, <a href="#d68">D68</a>).
+    <ul>
+      <li>
+        37 tags describe one (buttons, inputs, cards, tables ...); parts, group wrappers whose children are described,
+        and overlays say <code>null</code>
+      </li>
+      <li>
+        <a href="../../../packages/ui/test/vocabularies.test.ts" target="src-packages-ui-test-vocabularies-test-ts"
+          ><code>test/vocabularies.test.ts</code></a
+        >
+        requires the field, so a new tag must decide
+      </li>
+      <li>drawing data, like <code>states</code>: never translated</li>
+      <li>the catalog carries each one, so the root has it before the family loads</li>
+    </ul>
+  </li>
+  <li>
+    Size from the description, in <code>em</code>: the element's <code>size</code> scales it (<code>--ui-scale</code>),
+    <code>fluid</code> fills the width; children ignored (<a href="#d55">D55</a>).
+  </li>
+  <li>
+    On start, <code>findSkeletons()</code>: every element inside whose tag has one, in page order; one inside another
+    described element is covered by it. Only what's there at start.
+  </li>
+  <li>
+    <code>PlaceholderSkeleton</code> (<a href="#d61">D61</a>) draws one real <code>&lt;ui-placeholder&gt;</code> per
+    element in the root's OWN shadow (a <code>&lt;div part="skeleton"&gt;</code>); the page's DOM is never touched.
+    <ul>
+      <li>stacked; <code>inline</code> ones (buttons, labels, inputs) side by side</li>
+      <li>
+        sizes through the placeholder's public tokens (<code>--ui-placeholder-max-width</code>,
+        <code>--ui-placeholder-image-height</code>), so its own sheet draws them
+      </li>
+    </ul>
+  </li>
+  <li>
+    Limits (<a href="#c13">C13</a>): sizes judged by eye from Fomantic's defaults, so some shift on reveal; a grid of
+    cards shows as one column until ready.
+  </li>
+</ul>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th><code>SkeletonSpec</code></th>
+        <th>Means</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>display</code></td>
+        <td><code>block</code> (default) or <code>inline</code>: beside the next inline skeleton</td>
+      </tr>
+      <tr>
+        <td><code>width</code></td>
+        <td>e.g. <code>18em</code>; default the placeholder's own (up to 30em)</td>
+      </tr>
+      <tr>
+        <td><code>height</code></td>
+        <td>of a part-less block, e.g. <code>2.5em</code></td>
+      </tr>
+      <tr>
+        <td><code>parts</code></td>
+        <td>
+          shapes top to bottom: <code>image</code> (<code>ratio</code>), <code>header</code> (<code>image</code>),
+          <code>paragraph</code> (<code>lines</code>, default 3), <code>line</code> (<code>length</code>); none: one
+          block <code>width</code> x <code>height</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>ui-card / ui-button / ui-column vocabularies · skeleton · 11 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">// ui-card.vocabulary.en.ts
+  skeleton: {
+    width: "18em",
+    parts: [{ shape: "image", ratio: "square" }, { shape: "header" }, { shape: "paragraph", lines: 3 }]
+  },
+
+// ui-button.vocabulary.en.ts
+  skeleton: { display: "inline", width: "6em", height: "2.5em" },
+
+// ui-column.vocabulary.en.ts:  covered by its grid's
+  skeleton: null,</code></pre>
+  </ui-content>
+</ui-accordion>
+<ui-accordion class="spell-code" styled open="0">
+  <ui-title>UIRoot.tsx · findSkeletons() · 10 lines</ui-title>
+  <ui-content>
+    <pre><code class="language-ts">  /** Each element inside whose tag describes a skeleton, in page order, skipping those inside another one. */
+  private findSkeletons(): RootSkeleton[] {
+    const skeletons: RootSkeleton[] = []
+    for (const element of this.host.querySelectorAll("*")) {
+      const spec = Object.hasOwn(ROOT_CATALOG, element.localName) ? ROOT_CATALOG[element.localName].skeleton : undefined
+      if (!spec || skeletons.some((outer) =&gt; outer.element.contains(element))) continue
+      skeletons.push({ element, spec })
+    }
+    return skeletons
+  }</code></pre>
+  </ui-content>
+</ui-accordion>
+
+<h4 id="o5f">Piece =&gt; file</h4>
+<p>
+  Under <a href="../../../packages/ui/" target="src-packages-ui"><code>packages/ui/</code></a
+  >; the family is
+  <a href="../../../packages/ui/src/components/ui-root/" target="src-packages-ui-src-components-ui-root"
+    ><code>src/components/ui-root/</code></a
+  >.
+</p>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Piece</th>
+        <th>File</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>element: loading, ready, display, settings, events</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/UIRoot.tsx"
+            target="src-packages-ui-src-components-ui-root-uiroot-tsx"
+            ><code>UIRoot.tsx</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>every name: attributes, events, parts, states, text</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/ui-root.vocabulary.en.ts"
+            target="src-packages-ui-src-components-ui-root-ui-root-vocabulary-en-ts"
+            ><code>ui-root.vocabulary.en.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>constants, types, <code>RootTimeout</code></td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/ui-root.types.ts"
+            target="src-packages-ui-src-components-ui-root-ui-root-types-ts"
+            ><code>ui-root.types.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>tag =&gt; family + skeleton (generated)</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/ui-root.catalog.ts"
+            target="src-packages-ui-src-components-ui-root-ui-root-catalog-ts"
+            ><code>ui-root.catalog.ts</code></a
+          >, by
+          <a
+            href="../../../packages/ui/scripts/gen-root-catalog.ts"
+            target="src-packages-ui-scripts-gen-root-catalog-ts"
+            ><code>scripts/gen-root-catalog.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>import a family, once per page</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/RootLoader.ts"
+            target="src-packages-ui-src-components-ui-root-rootloader-ts"
+            ><code>RootLoader.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>width / height / scale sheet</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/RootBox.ts"
+            target="src-packages-ui-src-components-ui-root-rootbox-ts"
+            ><code>RootBox.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>theme / box / fixed states</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/ui-root.css"
+            target="src-packages-ui-src-components-ui-root-ui-root-css"
+            ><code>ui-root.css</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>loading message (<code>UIRoot.Loading</code>)</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/LoaderMessage.ts"
+            target="src-packages-ui-src-components-ui-root-loadermessage-ts"
+            ><code>LoaderMessage.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>skeletons (<code>UIRoot.Skeleton</code>)</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/PlaceholderSkeleton.ts"
+            target="src-packages-ui-src-components-ui-root-placeholderskeleton-ts"
+            ><code>PlaceholderSkeleton.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>native fallback (a bare slot)</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/ui-root.fallback.ts"
+            target="src-packages-ui-src-components-ui-root-ui-root-fallback-ts"
+            ><code>ui-root.fallback.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>hidden before it's defined</td>
+        <td>
+          <a href="../../../packages/ui/src/styles/native.css" target="src-packages-ui-src-styles-native-css"
+            ><code>src/styles/native.css</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>eager render</td>
+        <td>
+          <a href="../../../packages/ui/src/elements/UIElement.tsx" target="src-packages-ui-src-elements-uielement-tsx"
+            ><code>src/elements/UIElement.tsx</code></a
+          >
+          (<code>eager</code>)
+        </td>
+      </tr>
+      <tr>
+        <td>a root's settings, from any element inside</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/elements/RootSettings.ts"
+            target="src-packages-ui-src-elements-rootsettings-ts"
+            ><code>src/elements/RootSettings.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>icons per root</td>
+        <td>
+          <a href="../../../packages/ui/src/runtime/IconPacks.ts" target="src-packages-ui-src-runtime-iconpacks-ts"
+            ><code>src/runtime/IconPacks.ts</code></a
+          >
+          (<code>scope()</code>),
+          <a href="../../../packages/ui/src/elements/IconGlyph.ts" target="src-packages-ui-src-elements-iconglyph-ts"
+            ><code>src/elements/IconGlyph.ts</code></a
+          >
+          (<code>packsFor()</code>)
+        </td>
+      </tr>
+      <tr>
+        <td>emoji per root</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-emoji/EmojiData.ts"
+            target="src-packages-ui-src-components-ui-emoji-emojidata-ts"
+            ><code>ui-emoji/EmojiData.ts</code></a
+          >
+          (<code>setFor()</code>)
+        </td>
+      </tr>
+      <tr>
+        <td>skeleton types</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/vocabulary/vocabulary.types.ts"
+            target="src-packages-ui-src-vocabulary-vocabulary-types-ts"
+            ><code>src/vocabulary/vocabulary.types.ts</code></a
+          >
+          (<code>SkeletonSpec</code>, <code>SkeletonPart</code>)
+        </td>
+      </tr>
+      <tr>
+        <td>tests</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/ui-root.test.tsx"
+            target="src-packages-ui-src-components-ui-root-ui-root-test-tsx"
+            ><code>ui-root.test.tsx</code></a
+          >,
+          <a href="../../../packages/ui/test/root-catalog.test.ts" target="src-packages-ui-test-root-catalog-test-ts"
+            ><code>test/root-catalog.test.ts</code></a
+          >,
+          <a href="../../../packages/ui/test/vocabularies.test.ts" target="src-packages-ui-test-vocabularies-test-ts"
+            ><code>test/vocabularies.test.ts</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>examples</td>
+        <td>
+          <a
+            href="../../../packages/ui/src/components/ui-root/examples/elements/types.html"
+            target="src-packages-ui-src-components-ui-root-examples-elements-types-html"
+            ><code>examples/elements/types.html</code></a
+          >,
+          <a
+            href="../../../packages/ui/src/components/ui-root/examples/elements/skeleton.html"
+            target="src-packages-ui-src-components-ui-root-examples-elements-skeleton-html"
+            ><code>skeleton.html</code></a
+          >
+        </td>
+      </tr>
+      <tr>
+        <td>docs page, its replay demo</td>
+        <td>
+          <code>ui-root.mdx</code>,
+          <code>RootDemo.astro</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>

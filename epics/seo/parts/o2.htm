@@ -1,0 +1,80 @@
+<!-- plan-doc part:  #o2's body in seo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Three ways to get flattened HTML were costed (<a href="#d2">D2</a>):</p>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Option</th>
+        <th>Needs</th>
+        <th>Per request</th>
+        <th>Fidelity</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>Solid server render</b> (chosen)</td>
+        <td>fork server path, runtime shim, tree driver, guards</td>
+        <td class="yes positive">yes</td>
+        <td>exact, once each family works</td>
+      </tr>
+      <tr>
+        <td>Simulated DOM (linkedom / happy-dom)</td>
+        <td>patch gaps: no <code>ElementInternals</code>, <code>CSSStyleSheet</code>, custom states</td>
+        <td class="meh warning">slow</td>
+        <td>depends on the fake DOM</td>
+      </tr>
+      <tr>
+        <td>Browser prerender (Playwright)</td>
+        <td>headless Chrome at build</td>
+        <td class="no negative">no</td>
+        <td>exact</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<h4 id="o2-blockers">What the server render must fix</h4>
+
+<ul>
+  <li>
+    today's probe (<a href="../../../packages/ui/test/ssr.ssr.test.tsx" target="src-packages-ui-test-ssr-ssr-test-tsx"
+      ><code>packages/ui/test/ssr.ssr.test.tsx</code></a
+    >) passes only because its stub host has no children, parent or internals; now <code>ServerHost</code> wraps a real
+    linkedom element
+  </li>
+  <li>
+    fork (<a href="../../../packages/solid-element/" target="src-packages-solid-element"
+      ><code>packages/solid-element</code></a
+    >): no server path; <code>customElements</code>, <code>attachInternals</code>, <code>attachShadow</code>,
+    <code>insert</code> all browser-only; hooks throw without an element in context; fixed by
+    <code>@spell-app/solid-element/server</code>'s <code>ServerElement</code> (<a href="#d9">D9</a>)
+  </li>
+  <li>
+    unguarded hooks: <code>PartContext</code> <code>onConnect</code> (34 tags), <code>FormElement</code>
+    <code>onFormReset</code> (8 families); they register and never run under <code>ServerElement.run()</code> (<a
+      href="#d9"
+      >D9</a
+    >)
+  </li>
+  <li>
+    <code>SlotContent</code> uses <code>Element</code> / <code>Node</code> globals: crashes on any host with children;
+    now <code>nodeType</code> tests
+  </li>
+  <li>
+    <code>UI</code> runtime won't construct in node (<code>new CSSStyleSheet()</code>); ~25 families call
+    <code>text()</code>, <code>UI.ids</code>, <code>UI.i18n</code> or <code>UI.browser</code> while rendering;
+    <code>ServerRuntime</code> installs those services (<a href="#d11">D11</a>)
+  </li>
+  <li>
+    <code>isServer</code> short-circuits that EMPTY output today: accordion panels, tab buttons, card slotted parts,
+    table rows; each family got a server branch in <a href="#p3">P3</a>, host ARIA through <code>hostEffect()</code> (<a
+      href="#d10"
+      >D10</a
+    >)
+  </li>
+  <li>
+    icons: async packs + <code>DOMParser</code>; on the server, empty boxes; now SVG read from disk, inline (<a
+      href="#d23"
+      >D23</a
+    >)
+  </li>
+</ul>

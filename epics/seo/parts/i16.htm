@@ -1,0 +1,32 @@
+<!-- plan-doc part:  #i16's details in seo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Solid's compiler, compiling for the server, passed a TypeScript type parameter along as if it were a value. Every
+  modal and flyout render threw <code>V is not defined</code>.
+</p>
+<ul>
+  <li>
+    Where it hit,
+    <a
+      href="../../../packages/ui/src/components/ui-modal/DialogElement.tsx"
+      target="src-packages-ui-src-components-ui-modal-dialogelement-tsx"
+      ><code>packages/ui/src/components/ui-modal/DialogElement.tsx</code></a
+    >, inside a <code>&lt;Show&gt;</code>:
+    <code>part={this.part(UIT.HEADER as PartName&lt;V&gt;)}</code>
+  </li>
+  <li>
+    Why: <code>@solidjs/compiler</code> (rc.11, server output, with <code>hoistProps</code> on by default) hoists a
+    component's children into a module-level constructor, and passes it every free name they use, the class's type
+    parameter <code>V</code> too: <code>new _P$(_self$, V)</code>.
+  </li>
+  <li>Reproduced on a 1-line class; <code>hoistProps: false</code> avoids it.</li>
+  <li>
+    Worked around with methods, <code>dialogPart()</code> and <code>closeText()</code>, which the file still uses
+    (checked 2026-10-04).
+  </li>
+  <li>Any generic class with an <code>as X&lt;V&gt;</code> cast in a component's children will hit it.</li>
+  <li>Not checked: whether rc.13, the version the repo is on now, still does it.</li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>no <code>as X&lt;V&gt;</code> casts in a component's children: move them into a method</li>
+</ul>

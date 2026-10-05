@@ -1,0 +1,65 @@
+<!-- plan-doc part:  #q3's details in solid-migration.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<div class="plan-question">
+  <p>
+    P4 was designed to serve P5: spell state moves to <dfn>spell cells</dfn> (each Thing keeps its values in a
+    <code>Map</code>, read and written synchronously, with one bridge telling Solid about changes) so compiled spell
+    could render through Solid and still read its own writes at once. With P5 gone, compiled spell keeps rendering with
+    React, on today's <code>easy-state</code> store proxies. What the Solid app UI (P6-P8) still needs is to SEE spell
+    state and the editor store change: the Thing Explorer, the project list, the console.
+  </p>
+  <p>
+    Recommend A: same reason P5 went -- B's payoff (read-after-write for spell, keys in order, types) arrives with
+    compiled spell on Solid, which is now another thread.
+  </p>
+</div>
+<ui-accordion class="spell-aside plan-choices" styled
+  ><ui-title>Choices</ui-title
+  ><ui-content
+    ><ui-accordion open="0" class="plan-options" styled fluid exclusive="no"
+      ><ui-title data-chosen>A. Bridge only (recommended)</ui-title
+      ><ui-content
+        ><ul>
+          <li>keep <code>easy-state</code> under <code>Observable</code> and the editor store</li>
+          <li>
+            add one helper in <code>$/util</code>: a Solid accessor that re-reads when <code>easy-state</code> says its
+            inputs changed
+          </li>
+          <li>
+            cells, <code>@prop</code> / <code>@derived</code>, the class schema and the parser emit move to the Core +
+            JSX thread (<a href="#t2">T2</a>)
+          </li>
+          <li>no compiled-output change, no fixture bless; ~1-2h instead of 4-6h; risk low</li>
+        </ul>
+        <pre><code class="language-ts">const title = tracked(
+  () =&gt; editor.project?.title
+)
+// JSX:  &lt;h1&gt;{title()}&lt;/h1&gt;</code></pre></ui-content
+      ><ui-title>B. Full P4, as designed</ui-title
+      ><ui-content
+        ><ul>
+          <li>cells replace <code>easy-state</code> for Things and the editor store now</li>
+          <li>
+            React views (spell output, UI not yet moved) read through a bridge, which stays as long as spell output is
+            React
+          </li>
+          <li>compiled output changes (class schema); fixtures blessed; parser speed test</li>
+          <li>4-6h; risk HIGH: every Thing read / write goes through it</li>
+        </ul>
+        <pre><code class="language-ts">@thing class Card extends Thing {
+  @prop({ type: "text" })
+  accessor suit!: string
+}</code></pre>
+      </ui-content></ui-accordion
+    ></ui-content
+  ></ui-accordion
+>
+<div class="plan-answer-block" id="d13">
+  <div class="plan-answer-title">
+    <b>D13</b> · P4 = bridge only; full spell cells become their own phase, between P8 and P9 (P11 · Spell Cells)
+  </div>
+  <p>
+    Owen, 2026-10-02. P4: keep easy-state, add a <code>$/util</code> helper so Solid UI sees easy-state changes. P11
+    (run after P8, before P9): cells replace easy-state for Things and the editor store, <code>@prop</code> /
+    <code>@derived</code>, class schema and parser emit, React reading through a bridge.
+  </p>
+</div>

@@ -1,0 +1,90 @@
+<!-- plan-doc part:  #o4's body in seo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Without shadow DOM, CSS leaks two ways:</p>
+<h4 id="o4-nested">Component into nested component (<a href="#d5">D5</a>)</h4>
+<ul>
+  <li>
+    <code>.ui.menu .item</code> would reach a nested dropdown's rows; leaky selectors: menu 44, list 34, dropdown 34,
+    form 22, message 21, breadcrumb 14, comment 9
+  </li>
+  <li>
+    fix: each sheet wrapped in <code>@scope</code> from its families' roots (<code>[data-ui=kind]</code>, plus
+    class-grammar markup the page wrote) down to, not into, author content and other components (<a href="#d13">D13</a>,
+    <a href="#d34">D34</a>)
+  </li>
+  <li>
+    every rewritten subject anchored with <code>:where(:scope, *)</code> (<a href="#d18">D18</a>): inside
+    <code>@scope</code> a bare <code>.ui.card</code> means a DESCENDANT of the root; shadow-markup subjects also
+    <code>:not([data-ui-slotted])</code>, so they never land on author content (<a href="#d42">D42</a>)
+  </li>
+  <li>
+    a sheet several families adopt (items take
+    <a
+      href="../../../packages/ui/src/components/ui-list/ui-list.css"
+      target="src-packages-ui-src-components-ui-list-ui-list-css"
+      ><code>ui-list.css</code></a
+    >) is scoped to every kind seen adopting it, and sheets keep their adoption order (<a href="#d19">D19</a>)
+  </li>
+</ul>
+<ui-accordion class="spell-code" styled open="0"
+  ><ui-title>ui-card.css, one rule before and after (spell static, --no-minify) · 13 lines</ui-title
+  ><ui-content>
+    <pre><code class="language-css">/* in the shadow root */
+.ui.cards &gt; .card,
+:host(:state(in-cards)) &gt; .ui.card { margin: ...; width: ...; }
+
+/* static */
+@layer ui.components.card.types {
+  @scope (:is([data-ui="cards"], [data-ui="card"], .ui.cards:not([data-ui]):is(...), .ui.card:not([data-ui]):is(...)))
+    to ([data-ui-slotted]:not([data-ui]) &gt; *, :scope [data-ui] &gt; *) {
+    .ui.cards &gt; .card:where(:scope, :not([data-ui-slotted])),
+    .ui.cards &gt; [data-ui-li] &gt; .card:where(:scope, :not([data-ui-slotted])),
+    :scope:where([data-ui]):is([data-state~="in-cards"]):is(.ui.card) { margin: ...; width: ...; }
+  }
+}</code></pre>
+  </ui-content></ui-accordion
+>
+<h4 id="o4-page">Page into component (<a href="#d6">D6</a>, <a href="#d58">D58</a>)</h4>
+<ul>
+  <li>
+    page CSS never reached a component's own markup: the shadow boundary kept it out. Statically every page subject gets
+    <code>REACH</code>, <code>:where(:not([data-ui] *), [data-ui], [data-ui-slotted], [data-ui-slotted] *)</code>:
+    outside components, roots (were hosts), author content
+  </li>
+  <li>
+    <code>ui-card</code> =&gt; <code>[data-ui="card"]</code>, <code>::part(p)</code> =&gt; <code>[part~="p"]</code>,
+    <code>:state(x)</code> =&gt; <code>[data-state~="x"]</code> (<a href="#d22">D22</a>), in <code>&lt;style&gt;</code>s
+    and local linked sheets (<a href="#d59">D59</a>)
+  </li>
+  <li>
+    <code>@layer ui-slotted, page, ui;</code> opens the stylesheet (linked first, <a href="#d52">D52</a>): a page that
+    layers its CSS as <code>page</code> loses to components; unlayered page CSS still wins on roots and author content,
+    as it beat <code>:host</code> / <code>::slotted()</code> rules in a browser
+  </li>
+</ul>
+<h4 id="o4-rest">Rest of the rewrite</h4>
+<ul>
+  <li>
+    <code>:host(X) &gt; C</code> =&gt; <code>:scope:is(X):is(C)</code>: the root replaced the host, so both land on one
+    element; <code>:state(x)</code> =&gt; <code>[data-state~="x"]</code>
+  </li>
+  <li>
+    host-only rules (token resets) move to <code>@layer ui.reset</code>, minus <code>display</code> (<a href="#d15"
+      >D15</a
+    >); <code>::slotted()</code> and slot rules to <code>@layer ui-slotted</code>, before <code>page</code>, as they
+    lost to the page in a shadow root (<a href="#d42">D42</a>)
+  </li>
+  <li>
+    list groups (cards, list, feed, steps, items): each <code>A &gt; B</code> also matches
+    <code>A &gt; [data-ui-li] &gt; B</code> (<a href="#d14">D14</a>)
+  </li>
+  <li>
+    foundation sheets keep only page selectors;
+    <a href="../../../packages/ui/src/styles/reset.css" target="src-packages-ui-src-styles-reset-css"
+      ><code>reset.css</code></a
+    >
+    scoped to every component (<a href="#d16">D16</a>); typography / native get <code>REACH</code>; page sheets families
+    register while rendering included (<a href="#d35">D35</a>)
+  </li>
+  <li><code>[hidden] { display: none }</code>, unlayered: component <code>display</code> rules beat the browser's</li>
+  <li>inherited properties already crossed shadow boundaries: no change</li>
+</ul>

@@ -1,0 +1,65 @@
+<!-- plan-doc part:  #i1's details in claude-design.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Owen saw "This preview could not run" on the spike system's cards, and the spike Design's counter didn't click
+  (2026-10-05). Cause: the one-file bundle finds its lazy scripts with
+  <code>new URL("lazy/", document.currentScript?.src ?? location.href)</code>.
+</p>
+<ul>
+  <li>
+    a design system's preview INLINES the bundle, so <code>currentScript.src</code> is <code>""</code>, which
+    <code>??</code> doesn't replace
+  </li>
+  <li>
+    the preview frame's <code>location.href</code> is <code>about:srcdoc</code>, which no relative URL resolves against
+    either
+  </li>
+  <li>so <code>new URL</code> threw before any element was defined: every card fell back to its static preview</li>
+</ul>
+<p>
+  Fix:
+  <a href="../../../packages/docs/tools/bundle-spell-ui.js" target="src-packages-docs-tools-bundle-spell-ui-js"
+    ><code>packages/docs/tools/bundle-spell-ui.js</code></a
+  >
+  now writes a <code>bundleUrl(dir)</code> helper that never throws (<code>||</code>, and <code>null</code> on failure,
+  so a lazy script rejects instead). The spike's copy got the same patch. Reproduced and checked locally with Playwright
+  (<code>scratchpad/repro/repro.mjs</code>):
+</p>
+<ul>
+  <li>card, old bundle: <code>Failed to construct 'URL': Invalid base URL</code>, nothing defined</li>
+  <li>card, fixed bundle: <code>SpellUI</code> defined, <code>&lt;ui-button&gt;</code> renders, no errors</li>
+  <li>
+    the Design artboard under Claude Design's own runtime (<a
+      href="../../../packages/docs/tools/vendor/claude-design/dc-runtime.js"
+      target="src-packages-docs-tools-vendor-claude-design-dc-runtime-js"
+      ><code>dc-runtime.js</code></a
+    >) with the fixed bundle: "Clicked 0 times" becomes "Clicked 1 times", the label follows, no errors
+  </li>
+</ul>
+<p>
+  Not yet:
+  <a href="../../../packages/docs/tools/_assets/spell-ui.js" target="src-packages-docs-tools-assets-spell-ui-js"
+    ><code>spell-ui.js</code></a
+  >
+  itself is rebuilt with the next <code>yarn docs:update</code> (docs pages load it by URL, so they never hit this). I
+  can't test inside claude.ai from here (no browser connected), so V1 and V2 are reopened for Owen.
+</p>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>both spike artifacts republished with the fixed bundle</li>
+  <li>the design build (<a href="#p8">P8</a>) inherits the fix</li>
+</ul>
+<div class="plan-commits">
+  <b>Commits:</b>
+  <ul class="plan-commit-list">
+    <li data-sha="23dbbee8120dd62761c47145c470db5556f5fe73">
+      <a
+        class="plan-commit"
+        href="https://github.com/spell-app/spell-app/commit/23dbbee8120dd62761c47145c470db5556f5fe73"
+        target="github"
+        >23dbbee</a
+      >
+      the one-file bundle no longer throws when inlined (claude.ai design-system previews): bundleUrl() never throws on
+      an empty currentScript.src or an about:srcdoc frame
+    </li>
+  </ul>
+</div>

@@ -1233,6 +1233,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   · Checked the edited pages on scratch copies with the asset paths pointed at the worktree's
   `packages/docs/tools/_assets/` (both passed);  wrote new links in the new layout's depth.  Rerun the checks once
   the branch merges the layout's tools. · design-system
+- 2026-10-05 · `check-review.js` timed out at its first step ("waiting for locator('.plan-act-button') to be
+  visible"):  plan docs start with every section folded (2026-10-03), so no item button is visible until a section
+  opens.  And a Playwright wait for a long log line never matched:  oxfmt wraps the line, so the page's
+  `textContent` has a newline and indent where the text has a space. · Wait with `state: "attached"`;  look for a
+  log line by a one-token stamp (`check-live-<ms>`), never a sentence. · claude-design
 
 ## claude-code
 
@@ -1441,3 +1446,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `liveClient()` in a same-origin frame of a live page opens no connection;  the parent hands changes down
   (`__spellLiveChange`).  Restart a running page server to pick it up (`yarn server stop`, `yarn server ensure`). ·
   server
+
+- 2026-10-05 · `plan-doc check` failed with three 403s (Forbidden) on a plan doc after the night's merges (epic
+  `claude-design`):  the worktree's page server had been running since the session started, so its review routes
+  still expected `/packages/docs/content/epics/...` and refused the new `/epics/...` page paths. · Fix:
+  `spell dev server stop`, then `spell dev server start`:  restart a page server after merging anything that
+  changes its routes or the content layout. · server

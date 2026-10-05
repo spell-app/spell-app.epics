@@ -8,6 +8,8 @@ How to write and update `epics/<name>/<name>.plan.html`, the live doc behind a `
 - Use `spell dev plan-doc <command>` wherever one exists (below):  it keeps ids, icons, UPDATE markers and the
   "updated" date consistent, and locks the file against parallel agents.  Hand-edit only prose:  the summary,
   Overview, phase bodies, item details.
+  - in a SPLIT doc (see "Parts";  every new doc), a body's prose is in its part file, `parts/<id>.htm`:  edit it
+    there, at its real path (`/Users/owen/www/spell-app/spell-app-dev/epics/<name>/parts/<id>.htm`)
 - Write for Owen coming back COLD (2026-10-04;  the details skill's "Writing for Owen" is the same rule):  he runs
   5+ epics, and reads an item weeks later, from another session.  Enough that he can pick up ONE phase or item on
   its own.  NOT caveman:
@@ -348,6 +350,53 @@ escaped;  `migrate` folds an old doc's bare quote):
 </ui-accordion>
 ```
 
+## Parts
+
+A plan doc is stored SPLIT (P3 of `claude-design`, 2026-10-05):  a SKELETON plus one BODY file per bulky section
+or item, which the page loads the first time it's opened.  So the doc preview opens fast, an edit to one item patches
+that item, and nothing flickers.  `packages/docs/tools/plan-parts.js` does it.
+
+- New docs start split (`new`);  `split <name>` splits an older one, `join <name>` puts it back in one file.  Every
+  command reads and writes either shape:  `read()` assembles a split doc into one document, the write splits it again.
+- The skeleton, `epics/<name>/<name>.plan.html`, keeps everything a reader or a script needs without a body:  every
+  section, every phase section (id, status, badge, icon), every item LINE (`<ui-item id data-status ...>` and its
+  `<ui-title>`:  id chip, review label, title), the page header, meta lines, the Overview's summary, prompt and
+  estimate.  So `#id` links, counts, item filters, review marks, the docs index and the main server's epic cards
+  all work without a single body.
+- The bodies, `epics/<name>/parts/<id>.htm`, `<id>` the section's or item's own id:
+
+  | Host | Part | Holds |
+  |---|---|---|
+  | an Overview sub-section, `#overview > ui-section#o3` | `parts/o3.htm` | its content (not its title) |
+  | a phase, `#p2` | `parts/p2.htm` | its `ui-list.plan-phase-body`:  Goal, Done, Commits, Files, Verify, To review |
+  | an item with details, `#q7 > ui-accordion.plan-item` | `parts/q7.htm` | its `<ui-content>`'s content |
+  | the log, `#log` | `parts/log.htm` | its feed |
+
+- In the skeleton, a host carries `source="parts/<id>.htm"` (`<ui-section source>`, `<ui-accordion source>`), and:
+  - `data-part-ids`:  the ids inside its body (an `h4`, an old `d7` answer card):  a link to one loads the body
+    first, then lands
+  - `data-commits`:  its body lists commits (the page's git buttons)
+  - a placeholder line, `<p class="plan-part-note">`:  shown only where bodies can't load (`file://`, a bundle
+    from before P2)
+  - and `<body data-spell-needs-server>`:  the browser check loads it from the page server
+- A part file:  a one-line comment saying whose body it is, then the body's markup.  Its relative URLs are relative to
+  `parts/`:  one `../` more than the skeleton's (`../../../guides/x.html`, not `../../guides/x.html`).  `.htm`, not
+  `.html`:  no page walker (the docs index, `docs update`, link repairs, here or in an older checkout) takes it for a
+  page.
+- Edit a body's prose in its part file, at its real path (shared content).  Structured edits stay commands.
+- Where each body goes is decided by rule on EVERY write:  an item that gains details gets a part;  a new Overview
+  sub-section written whole into the skeleton has its body moved into a part by the next command.  Content a host
+  holds beside its part (a hand edit, or an older checkout writing into an empty panel) is kept, after the part's:
+  `check` notes it, the next edit moves it in.
+- Each write:  links (`doc-links.js`) and formatting (oxfmt) happen in memory;  each file is written once,
+  atomically, and only when its text changed:  parts first, then the skeleton.  A log line rewrites `parts/log.htm`;
+  closing an item rewrites the skeleton only.
+- On the page (served by the page server):  a changed part re-fetches its open host in place;  each body that loads
+  re-runs the contents, counts, filters and review buttons.  Find-in-page misses text in bodies not yet opened (C4 of
+  `claude-design`).
+- `check` checks a split doc whole:  ids and links across skeleton and parts;  a missing part is a problem, a part
+  nothing loads a note.
+
 ## UPDATE markers
 
 While a phase is active, flag what changed so the user can spot it:
@@ -480,6 +529,8 @@ checkout, a command edits the same doc.  `--here` (this checkout's copy) is no l
 | `log <name> "<text>"` | add a timestamped line to the log |
 | `prompt <name> "<text>"` / `prompt <name> --file <path>` | set (replace) the prompt quoted in the Overview;  `""` removes it |
 | `migrate <name>` | bring an older doc (before 2026-10-01, `section.s2` markup, `D` items, answer cards first) into this layout (prints what changed;  "already current" otherwise) |
+| `split <name> [--dry-run]` / `split --done [--dry-run]` | store a doc as a skeleton plus part files ("Parts");  `--done`:  every finished epic with no worktree of its own;  "already split" otherwise;  refuses an unmigrated doc |
+| `join <name>` | a split doc back into one file, its `parts/` folder removed |
 | `relayout <name> \| --all [--dry-run]` | answered questions in the order they happened (before 2026-10-05:  the answer card first):  the question, its Choices, the answer;  prints per doc the questions changed and those skipped, and why (born answered:  no answer card);  idempotent, drops nothing;  `--dry-run` writes nothing |
 | `bedtime <name> start "P3-P6"` / `bedtime <name> done "summary"` | a `/bedtime` run:  bedtime mode on (`<body data-bedtime="P3-P6">`;  `summary --json`'s `bedtime`) / off;  both logged.  No report section:  the night's judgement calls and issues show red where they belong (D5 of `review-review`) |
 | `overnight <name> remove` | an older doc's Overnight report section (a `/bedtime` run's, before 2026-10-05):  remove it once read |
@@ -491,7 +542,7 @@ checkout, a command edits the same doc.  `--here` (this checkout's copy) is no l
 | `list [--json]` | every epic:  in progress / done, its worktree while it has one (`checkout`), not reviewed / all |
 | `backfill <name> \| --all [--apply]` | one-off:  items not reviewed that Owen named in a past session of the epic (his message, or a modal he answered);  a dry run unless `--apply`, which marks them dated that day (`scripts/review-backfill.js`) |
 | `summary <name> [--json]` | open questions, judgement calls, issues, caveats, todos, tests, and the next phase |
-| `check <name>` | ids unique, every `#id` link resolves, every phase has a status, then `check-spell.js` |
+| `check <name> [--no-browser] [--links]` | ids unique, every `#id` link resolves, every phase has a status, a split doc's parts there (checked whole);  its file links (`doc-links.js`), printed as `LINK:`, failing only with `--links`;  then `check-spell.js` |
 | `open <name>` | show the doc rendered in VS Code's doc preview (the right side bar's "Spell Docs" tab);  needs the spell extension (`spell dev vscode`) |
 | `inbox <name> [--json]` | the marks Owen left on the page (`<name>.inbox.json`), by action, with their items' titles, sent or not;  the `now` queue, agents at work, the session listening |
 | `inbox <name> listen [--session <id>]` / `unlisten` | this session (`$CLAUDE_CODE_SESSION_ID`) waits on the inbox / stopped:  the page tells Owen whether anyone is listening |

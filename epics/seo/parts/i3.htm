@@ -1,0 +1,21 @@
+<!-- plan-doc part:  #i3's details in seo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Inside <code>@scope (root) to (limit)</code>, a selector with no <code>:scope</code> / <code>&amp;</code> is read as
+  <code>:where(:scope) &lt;selector&gt;</code>, so <code>.ui.card</code>, <code>.ui.cards</code>,
+  <code>.ui.segment</code>, <code>.ui.list</code> never match the root they are written for (checked in Chromium). Only
+  the <code>:scope:is(...)</code> rules from <code>:host(...)</code> reach it. Seen in
+  <code>yarn test:visual --static</code>: a standalone card is 992px wide with no border, <code>ul.ui.cards</code> keeps
+  its UA 24px padding and stacks its cards, so <code>ui-card/types</code> is 2971px tall statically vs 1286px as
+  elements.
+</p>
+<p>
+  Tried in the browser only (<a
+    href="../../../packages/ui/tools/results/fix.mts"
+    target="src-packages-ui-tools-results-fix-mts"
+    ><code>tools/results/fix.mts</code></a
+  >, nothing in <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+  >): appending <code>:where(:scope, *)</code> to every scoped selector (before any <code>::pseudo</code>) keeps
+  specificity, still excludes elements outside the scope and past the limit, and brings static heights to the element
+  ones exactly: card/types 1286 = 1286, segment/types 1165 = 1165, section/types 1532 = 1532, button/variations 1131 =
+  1131. Belongs in <code>StaticSelectors.rewrite()</code>.
+</p>

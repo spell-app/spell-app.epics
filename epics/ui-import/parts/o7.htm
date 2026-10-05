@@ -1,0 +1,48 @@
+<!-- plan-doc part:  #o7's body in ui-import.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<ul>
+  <li>
+    Where:
+    <a href="../../../packages/markdown/" target="src-packages-markdown"><code>packages/markdown/</code></a>
+    (<code>@spell-app/markdown</code>, <code>$/markdown</code>, <code>MD</code>), importing <code>$/parser</code> and
+    <code>$/util</code> only; <code>app</code>, <code>docs</code>, <code>spell</code> may import it.
+  </li>
+  <li>
+    Fits:
+    <ul>
+      <li>source positions on every match (editor round-trip)</li>
+      <li>re-parse of a sub-range (block pass, then inline)</li>
+      <li>per-rule unit tests</li>
+      <li><code>Match.compile()</code> returning HTML strings (rulex returns <code>Rule</code>s the same way)</li>
+    </ul>
+  </li>
+  <li>
+    Hand-written <code>parse()</code> code needed:
+    <ul>
+      <li>
+        tokenizer: the default one breaks markdown (<code>//</code> / <code>--</code> start comments,
+        <code>&lt;Tag</code> is JSX, <code>_</code> is a word character, <code>'</code> strings span lines) -&gt; a
+        whitespace-preserving <code>MarkdownTokenizer</code>
+      </li>
+      <li>
+        container blocks (lists, quotes, lazy continuation, tab stops of 4): CommonMark's line scan, not
+        <code>breakIntoIndentedBlocks</code> (one level per whitespace character)
+      </li>
+      <li>
+        emphasis (delimiter-run stack pass), link reference definitions (two passes), HTML blocks (7 start conditions),
+        tables (the delimiter row decides)
+      </li>
+      <li>
+        no lookahead / negation; <code>Choice</code> parses every alternative; <code>IncrementalParse</code> assumes
+        indentation
+      </li>
+    </ul>
+  </li>
+  <li>
+    Effort: a useful GFM subset ~1.5-2 weeks; full CommonMark + GFM (~650 spec examples) 4-8 weeks; incremental +1-2
+    weeks. Speed: marked ~1 ms a doc; spell's parser ~77 ms on 259 lines.
+  </li>
+  <li>
+    Verdict: worth it if markdown must live inside spell's tooling (LSP, completion, one AST, spell-aware editing); for
+    rendering alone, marked is ~70x faster. A todo (<a href="#t5">T5</a>), not a phase.
+  </li>
+</ul>

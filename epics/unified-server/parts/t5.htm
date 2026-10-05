@@ -1,0 +1,33 @@
+<!-- plan-doc part:  #t5's details in unified-server.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  In the Page Server phase (<a href="#p2">P2</a>), the script that every served page runs for live reload and edits
+  (<code>liveClient()</code>) was written as a TypeScript function that the server sends as text, <code>(fn)()</code>,
+  not as a separate <code>.js</code> file.
+</p>
+<ul>
+  <li>
+    Why: the VS Code extension's bundle is CommonJS, which has no <code>import.meta.url</code> to find a
+    <code>.js</code> file beside it by.
+  </li>
+  <li>
+    The cost: it needs a <code>__name</code> shim. tsx (its <code>keepNames</code>) wraps nested functions in
+    <code>__name(fn, "fn")</code>, a helper that lives in the module, not in the function's text.
+  </li>
+  <li>It MUST stay self-contained: no imports, no module helpers.</li>
+</ul>
+<ui-accordion class="spell-code" styled open="0"
+  ><ui-title>packages/server/src/liveClient.ts · liveClientScript() · 6 lines</ui-title
+  ><ui-content>
+    <pre><code class="language-ts">return [
+  "// spell server:  live reload and page edits (packages/server/src/liveClient.ts)",
+  "var __name = (fn) =&gt; fn;",
+  `(${liveClient.toString()})()`,
+  ""
+].join("\n")</code></pre>
+  </ui-content></ui-accordion
+>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>the extension and the page server serve the same script without finding a file on disk</li>
+  <li>anyone editing <code>liveClient()</code> must not import anything into it</li>
+</ul>
