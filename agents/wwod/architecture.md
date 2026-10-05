@@ -19,7 +19,7 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
     `freePort` + `listenPreferred`), `packages/server/src/safePath.ts` (`resolveInside` + `isInside`).
   - Avoid single-concept micro-modules:  a one-function file, a one-constant file.
   - Separate a file's functional groups with `////////////////` group headers (WWOD §6).
-  - Tests follow their module:  `Router.ts` => `Router.test.ts`.  Rename the test with the module.
+  - Its test:  SEE:  WWOD §20 › "Tests sit beside their module".
   - NOT:  "fewer, bigger files" holding several classes -- a class is found by its file name, and a barrel lists
     its leaf files base-classes-first.
 
@@ -27,11 +27,11 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
   - PascalCase when the module IS one class and nothing else:  `Router.ts`, `FileLock.ts`, `Logger.ts`.
   - camelCase capability name when it holds a family:  `ports.ts`, `safePath.ts`, `bodies.ts`.
   - The folder's types:  `<folder>.types.ts` (below).
-  - Server code:  every file that runs on the server ends with `.server.ts`;  its server-only types are
-    `<feature>.types.server.ts` (WWOD §10 › "Server code stays out of the browser bundle").  Today's `src/node/`
-    folders predate it:  `agents/CODE-DEBT.md`.
+  - Server code:  `.server.ts` -- SEE:  WWOD §10 › "Server code stays out of the browser bundle".
   - A custom element's files take its tag:  `ui-button/ui-button.types.ts` ...  SEE:  `packages/ui/AGENTS.md`
     "Overview".
+  - A runnable script in a `scripts/` or `tools/` folder is named for its command, kebab-case:
+    `packages/ui/scripts/gen-styles.ts`, `packages/docs/tools/check-spell.js`.
   - NEVER any other kebab-case name.  Existing ones (`packages/spell/src/node/disk-fetch.ts`, `file-utils.ts` ...)
     are `agents/CODE-DEBT.md` entries.
 
