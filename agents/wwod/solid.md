@@ -5,7 +5,9 @@ Read with `agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §18 ("Svelte / UI"), rewritten for Solid 2 (D9).
 
 **Solid mechanics:  READ `packages/docs/content/solid/solid-2.md` FIRST;  this spoke is house style on top.**
-- A rule here that leans on a mechanic cites `solid-2.md`;  it never restates it.
+- A rule here that leans on a mechanic cites `solid-2.md`.  The few mechanics this house style is built on
+  (reading once with `untrack`, `onCleanup`, `<Loading>`, `<Show keyed>`, `useContext`, `ClassBuilder`) are stated
+  here, with the rule that uses them (Owen, epic `wwod`).
 - `@spell-app/ui`'s own elements (controller classes, `render()`):  `packages/ui/AGENTS.md` "Solid authoring".
 - Styling:  WWOD §18 (`css.md`).
 
@@ -27,7 +29,8 @@ From:  original WWOD §18 ("Svelte / UI"), rewritten for Solid 2 (D9).
   - app-wide services are module imports, read where used:  `import { editor } from "$/app/editor"`, then
     `editor.file` in JSX or a `tracked()`.  ONE copy of each per page bundle, never handed down through context
   - context only for a value that differs per subtree:  `ConsoleInspectorContext` (`ConsoleLines.tsx`), read with
-    `useContext()` in the component body -- it needs an owner (`solid-2.md` "Rules when writing Solid code")
+    `useContext()` in the component body:  it needs an OWNER -- at module scope it throws `NoOwnerError`, default
+    or not
   - take the INSTANCE you're handed;  never reach for a parallel one, and say why in the docstring:
     `<RunnerConsole console>` shows the console it's given, NOT the imported `spellCore`'s -- every `<spell-app>`
     runs on its own runtime copy (`runner/RunnerConsole.tsx`)
@@ -74,7 +77,9 @@ export type InputRootProps = {
 - **Be deliberate about reactivity:**
   - make a value reactive only when the UI must follow it
   - a prop read ONCE (a starting value, a handle):  `untrack(() => props.x)` in the body, and its docstring says
-    "read once, as it mounts";  the caller remounts for a new one (`solid-2.md` "Rules when writing Solid code").
+    "read once, as it mounts";  the caller remounts for a new one ("Remount with `<Show when={key()} keyed>`",
+    below).  `untrack` reads without tracking, says the snapshot is meant, and keeps `STRICT_READ_UNTRACKED`
+    quiet;  a plain `props.x` in a body warns.
     `createSignal(untrack(() => props.state) ?? loadState())` (`TypeExplorer.tsx`)
   - derived values:  a plain accessor by default (`const isRoot = () => props.node.kind === "root"`);
     `createMemo` only when several readers share it, it's costly, or it must cut off equal values -- with a
@@ -135,6 +140,9 @@ function update(changed: TypeExplorerState) {
     root class, then a caller's `props.class` or variants, then the state object:
     `class={["ScopeTreeNode", props.node.kind, { selected: isSelected() }]}`, `class={["TreeRow", props.class]}`
   - state keys lowercase (WWOD §18)
+  - the ONE built class string:  `@spell-app/ui`'s shadow markup, whose Fomantic class grammar needs a fixed word
+    order (`[class*="four wide"]`).  `ClassBuilder` builds it from the vocabulary (`class={this.classes()}`) --
+    never by hand, never in app code
 
 - **Render pieces as inner functions:**
   - a piece that reads the component's own state is a `function` at the BOTTOM returning JSX, after the `return`
@@ -150,7 +158,8 @@ function update(changed: TypeExplorerState) {
 - **Load states:  error, then loading, then loaded:**
   - always in that order:  an error beats a spinner, a spinner beats stale content
   - async values (a memo returning a `Promise`, a lazy component):  `<ErrorBoundary>` outside `<Loading>` outside
-    the content (`InputEditor.tsx`).  The ladder's mechanics:  `solid-2.md` "Rules when writing Solid code"
+    the content (`InputEditor.tsx`).  `<Loading>` shows its fallback on the FIRST load only;  a refresh after that
+    keeps the old content -- show it's on the way with `isPending()`
   - state kept in signals:  `<Switch>` with the error `<Match>` first;  a `ui-*` control's own `loading`
     attribute when it has one (`<ui-dropdown loading={!state().ready}>`, `FileDropdown.tsx`)
   - a value that arrives later:  `<Show when={loaded()} keyed>`, so the child gets the loaded value
@@ -172,7 +181,8 @@ function update(changed: TypeExplorerState) {
     `<Show when={key()} keyed>`;  `key` is a memo whose docstring says EXACTLY what remakes it
   - give the memo `equals` to remount on the change that matters only:  `shown` (`TypeExplorer.tsx`) is a new object
     only when the selected PATH changes
-  - mechanics (keyed vs. unkeyed, value vs. accessor):  `solid-2.md` "Rules when writing Solid code"
+  - unkeyed `<Show>` keeps its children mounted while `when` stays truthy, and a child callback gets an ACCESSOR;
+    `keyed` REMAKES them whenever `when` changes value (`!==`), and the callback gets the VALUE
 
 ```tsx
 function FileInputEditor() {
@@ -204,7 +214,11 @@ function FileInputEditor() {
     (`SpellAppRunner.tsx`'s runtime copy)
   - a late async result checks a `gone` flag that cleanup sets:
     `loadScopes(...).then((it) => gone || setScopes(it))` (`SpellAppRunner.tsx`)
-  - which hook when (`onCleanup`, `onSettled`, an effect's apply):  `solid-2.md` "Rules when writing Solid code"
+  - which hook when:  setup done in the body (a window listener):  `onCleanup` right after it;  setup that needs the
+    mounted DOM:  `onSettled(() => { ...; return cleanup })`;  per-change resources:  the effect apply's return
+  - `onCleanup(fn)` runs when its OWNER is disposed.  NEVER inside `onSettled` / `createTrackedEffect` (return the
+    cleanup there:  `CLEANUP_IN_FORBIDDEN_SCOPE`);  with no owner (module scope, a ref callback, a handler) it
+    NEVER runs (`NO_OWNER_CLEANUP`);  in a `ui` element (`keepAlive`) it runs on `dispose()`, NOT on disconnect
   - TODO:  a shared mechanism, so a listener can't outlive its component:  `UI.on(component, event, caller, opts)`,
     `UI.once()`
 

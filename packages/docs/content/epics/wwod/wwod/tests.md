@@ -26,7 +26,9 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
     tests), never `vitest` itself:  lint rule `vite-plus/prefer-vite-plus-imports` (root `AGENTS.md` "Toolchain:
     Vite+").
 - **Tests sit beside their module:**
-  - `<module>.test.ts(x)` next to `<module>.ts(x)`;  cross-cutting tests in the package's `test/`.
+  - `<module>.test.ts(x)` next to `<module>.ts(x)`:  `Router.ts` => `Router.test.ts`.  Cross-cutting tests in the
+    package's `test/`.
+  - The test is renamed with its module (below, "Tests follow the logic").
   - Shared helpers come from the package's test entry point:  `$/parser/test`, `$/spell/test`, `$/ui/test/...`,
     `$/server/test/...` (WWOD §4).
 - **Hand-rolled fakes over mock libraries:**
@@ -45,7 +47,7 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
     is born where the logic now lives.
   - Test files track modules as they merge, not one file per concept.
   - Delete redundant tests;  merge overlapping assertions.
-  - The test file is RENAMED with the module it follows, in the same commit (WWOD §8).
+  - The test file is RENAMED with the module it follows, in the same commit.
   - `describe()` names the NEW call path, e.g. `describe("Sources.load()")`, not the old free function's name.
   - DELETE a test whose surface no longer exists rather than reworking it to assert something else.
     - Inlining a helper removes the separately-testable seam;  if a surviving test covers the behaviour, the orphan
@@ -84,7 +86,8 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
   ```
 
 - **Custom matchers via module augmentation:**
-  - `expect.extend({...})` plus a `declare module "vite-plus/test"` augmentation, in one file in the package's `test/`.
+  - `expect.extend({...})` plus a `declare module "vite-plus/test"` augmentation, in one file in the package's
+    `test/`.
   - Loaded by side-effect import (or the package's vitest `setupFiles`), so a test file gets them without importing
     names.
 - **Reusable suites are exported, parameterized functions:**

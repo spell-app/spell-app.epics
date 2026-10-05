@@ -5,7 +5,9 @@ Read with `agents/wwod/WWOD.md` (the hub).
 From:  original WWOD §18 ("Svelte / UI"), rewritten for Solid 2 (D9).
 
 **Solid mechanics:  READ `packages/docs/content/solid/solid-2.md` FIRST;  this spoke is house style on top.**
-- A rule here that leans on a mechanic cites `solid-2.md`;  it never restates it.
+- A rule here that leans on a mechanic cites `solid-2.md`.  The few mechanics this house style is built on
+  (reading once with `untrack`, `onCleanup`, `<Loading>`, `<Show keyed>`, `useContext`, `ClassBuilder`) are stated
+  here, with the rule that uses them (Owen, epic `wwod`).
 - `@spell-app/ui`'s own elements (controller classes, `render()`):  `packages/ui/AGENTS.md` "Solid authoring".
 - Styling:  WWOD §18 (`css.md`).
 
@@ -27,17 +29,16 @@ From:  original WWOD §18 ("Svelte / UI"), rewritten for Solid 2 (D9).
   - app-wide services are module imports, read where used:  `import { editor } from "$/app/editor"`, then
     `editor.file` in JSX or a `tracked()`.  ONE copy of each per page bundle, never handed down through context
   - context only for a value that differs per subtree:  `ConsoleInspectorContext` (`ConsoleLines.tsx`), read with
-    `useContext()` in the component body -- it needs an owner (`solid-2.md` "Rules when writing Solid code")
+    `useContext()` in the component body:  it needs an OWNER -- at module scope it throws `NoOwnerError`, default
+    or not
   - take the INSTANCE you're handed;  never reach for a parallel one, and say why in the docstring:
     `<RunnerConsole console>` shows the console it's given, NOT the imported `spellCore`'s -- every `<spell-app>`
     runs on its own runtime copy (`runner/RunnerConsole.tsx`)
   - NOT:  `getAppContext()` at module scope, destructured before props -- `useContext()` throws without an owner,
     and app singletons are imports anyway
 
-- **Imports:**  WWOD §4 (one namespace per package, barrels, order;  the component's own `.css` last).  Plus:
-  - bundles that must not pull in the editor (the runners, `<spell-app>`) import the panes' FILES, never the
-    `$/app/solid` barrel, with a comment saying why (`packages/app/AGENTS.md` "Overview";  `TypeExplorer.tsx`,
-    `RunnerConsole.tsx`)
+- **Imports:**  WWOD §4 (one namespace per package, barrels, order;  the component's own `.css` last).  Bundles that
+  must not pull in the editor import the panes' FILES:  SEE `packages/app/AGENTS.md` "Overview".
 
 - **Props:  `type <Name>Props`, read where used:**
   - one `type <Name>Props` per component, directly BELOW it (WWOD §9 › "Props types live with their class"):
@@ -76,14 +77,16 @@ export type InputRootProps = {
 - **Be deliberate about reactivity:**
   - make a value reactive only when the UI must follow it
   - a prop read ONCE (a starting value, a handle):  `untrack(() => props.x)` in the body, and its docstring says
-    "read once, as it mounts";  the caller remounts for a new one (`solid-2.md` "Rules when writing Solid code").
+    "read once, as it mounts";  the caller remounts for a new one ("Remount with `<Show when={key()} keyed>`",
+    below).  `untrack` reads without tracking, says the snapshot is meant, and keeps `STRICT_READ_UNTRACKED`
+    quiet;  a plain `props.x` in a body warns.
     `createSignal(untrack(() => props.state) ?? loadState())` (`TypeExplorer.tsx`)
   - derived values:  a plain accessor by default (`const isRoot = () => props.node.kind === "root"`);
     `createMemo` only when several readers share it, it's costly, or it must cut off equal values -- with a
     docstring saying which (`currentTree`, `shown` in `TypeExplorer.tsx`).  Same trade-off as
     `derive()`:  WWOD §12 › "Derived reads are plain getters;  `@derived` only when worth it"
-  - a one-line accessor (`const isOpen = () => ...`) is a VALUE, not a helper:  fine as an arrow.  Anything with a
-    body is a `function` at the bottom (WWOD §9 › "Inner helpers are regular")
+  - accessors vs. inner `function`s:
+    SEE WWOD §9 › "Inner helpers are regular `function`s, defined at the bottom of the method"
 
 - **Spell app state is spell cells, not signals:**
   - a separate pattern from a component's own signals:  the editor's state (`editor`) and a spell program's Things
@@ -97,8 +100,8 @@ export type InputRootProps = {
   - signals are for state the component itself owns:  open / closed, a selection, a cache counter
 
 - **New values, never in-place changes:**
-  - nothing is proxied:  a list or object changed in place notifies nobody (`solid-2.md` "Spell's decisions").
-    Build the next value and set it:  `update()` and `toggled()` in `TypeExplorer.tsx`
+  - build the next value and set it (why:  `solid-2.md` "Spell's decisions" › "Spell cells", values are NOT made
+    reactive):  `update()` and `toggled()` in `TypeExplorer.tsx`
   - data the UI must NOT follow entry by entry (caches, lookups per object) goes in a plain `Map` / `WeakMap`, with a
     comment saying so, plus ONE counter signal bumped when readers must redraw (`detailsByTree` + `loads`,
     `TypeExplorer.tsx`).  Never Things in a store (`solid-2.md` "Spell's decisions")
@@ -120,9 +123,9 @@ function update(changed: TypeExplorerState) {
 ```
 
 - **Events:  `onClick`, or `on()` for `ui-*`:**
-  - native events:  `onClick` / `onInput` ...;  `ui-*` events:  `ref={on<Detail>("ui-change", handler)}`, `on()`
-    from `$/app/solid` (`on.ts`) -- never a hand-rolled listener ref.  Why:  `solid-2.md` "DOM and
-    `@spell-app/ui` elements"
+  - native events:  `onClick` / `onInput` ...;  `ui-*` events:  `ref={on<Detail>("ui-change", handler)}`, with
+    our `on()` (`$/app/solid`, `on.ts`), not Solid 1's removed `on()` -- never a hand-rolled listener ref.  Why:
+    `solid-2.md` "DOM and `@spell-app/ui` elements"
   - a handler that does more than one call is a named `function` at the bottom (`choose()` in `FileDropdown.tsx`)
   - NOT:  `use:` directives (`use:activate`) -- gone in Solid 2;  a ref directive factory (`on()`) instead
   - TODO:  review the event semantics we landed on (`ui-*` event names, `detail` shapes, `on()`)
@@ -137,6 +140,9 @@ function update(changed: TypeExplorerState) {
     root class, then a caller's `props.class` or variants, then the state object:
     `class={["ScopeTreeNode", props.node.kind, { selected: isSelected() }]}`, `class={["TreeRow", props.class]}`
   - state keys lowercase (WWOD §18)
+  - the ONE built class string:  `@spell-app/ui`'s shadow markup, whose Fomantic class grammar needs a fixed word
+    order (`[class*="four wide"]`).  `ClassBuilder` builds it from the vocabulary (`class={this.classes()}`) --
+    never by hand, never in app code
 
 - **Render pieces as inner functions:**
   - a piece that reads the component's own state is a `function` at the BOTTOM returning JSX, after the `return`
@@ -152,7 +158,8 @@ function update(changed: TypeExplorerState) {
 - **Load states:  error, then loading, then loaded:**
   - always in that order:  an error beats a spinner, a spinner beats stale content
   - async values (a memo returning a `Promise`, a lazy component):  `<ErrorBoundary>` outside `<Loading>` outside
-    the content (`InputEditor.tsx`).  The ladder's mechanics:  `solid-2.md` "Rules when writing Solid code"
+    the content (`InputEditor.tsx`).  `<Loading>` shows its fallback on the FIRST load only;  a refresh after that
+    keeps the old content -- show it's on the way with `isPending()`
   - state kept in signals:  `<Switch>` with the error `<Match>` first;  a `ui-*` control's own `loading`
     attribute when it has one (`<ui-dropdown loading={!state().ready}>`, `FileDropdown.tsx`)
   - a value that arrives later:  `<Show when={loaded()} keyed>`, so the child gets the loaded value
@@ -174,7 +181,8 @@ function update(changed: TypeExplorerState) {
     `<Show when={key()} keyed>`;  `key` is a memo whose docstring says EXACTLY what remakes it
   - give the memo `equals` to remount on the change that matters only:  `shown` (`TypeExplorer.tsx`) is a new object
     only when the selected PATH changes
-  - mechanics (keyed vs. unkeyed, value vs. accessor):  `solid-2.md` "Rules when writing Solid code"
+  - unkeyed `<Show>` keeps its children mounted while `when` stays truthy, and a child callback gets an ACCESSOR;
+    `keyed` REMAKES them whenever `when` changes value (`!==`), and the callback gets the VALUE
 
 ```tsx
 function FileInputEditor() {
@@ -206,24 +214,27 @@ function FileInputEditor() {
     (`SpellAppRunner.tsx`'s runtime copy)
   - a late async result checks a `gone` flag that cleanup sets:
     `loadScopes(...).then((it) => gone || setScopes(it))` (`SpellAppRunner.tsx`)
-  - which hook when (`onCleanup`, `onSettled`, an effect's apply):  `solid-2.md` "Rules when writing Solid code"
+  - which hook when:  setup done in the body (a window listener):  `onCleanup` right after it;  setup that needs the
+    mounted DOM:  `onSettled(() => { ...; return cleanup })`;  per-change resources:  the effect apply's return
+  - `onCleanup(fn)` runs when its OWNER is disposed.  NEVER inside `onSettled` / `createTrackedEffect` (return the
+    cleanup there:  `CLEANUP_IN_FORBIDDEN_SCOPE`);  with no owner (module scope, a ref callback, a handler) it
+    NEVER runs (`NO_OWNER_CLEANUP`);  in a `ui` element (`keepAlive`) it runs on `dispose()`, NOT on disconnect
   - TODO:  a shared mechanism, so a listener can't outlive its component:  `UI.on(component, event, caller, opts)`,
     `UI.once()`
 
-- **Component docs:**
-  - a `/**** ### \`<Name>\`` banner above every component (WWOD §6 › "Component banner"):  one line of what it is,
-    then bullets of responsibilities
-  - it says what the signature can't:  props read ONCE, `SIDE EFFECT`s (`<AppRoot>` sets `editor`'s app root),
-    what the CALLER must provide (`<ui-*>` tags defined, a `<Loading>` around it), why an import skips a barrel
+- **Component docs:**  the banner:  SEE WWOD §6 › "Component banner".  Plus, it says what the signature can't:
+  - props read ONCE, `SIDE EFFECT`s (`<AppRoot>` sets `editor`'s app root), what the CALLER must provide (`<ui-*>`
+    tags defined, a `<Loading>` around it), why an import skips a barrel
 
 - **Dialogs:**
-  - a message, a yes / no, or one field:  `UI.modals` through `$/app/solid/modals` (`alert()`, `confirm()`,
-    `prompt()` in `dialogs.ts`), behind `editor.alert()` ...
+  - a message, a yes / no, or one field:  `UI.modals`, e.g. `alert()`, `confirm()`, `prompt()` (`$/app/solid/modals`,
+    `dialogs.ts`), behind `editor.alert()` ...
   - per-field logic, or a body of its own:  a real component, opened by a function that mounts it, resolves a
-    `Promise` with the answer and disposes it:  `<Chooser>` + `openChooser()` (`modals/Chooser.tsx`)
-  - map config objects ONCE, in app code:  `dialogs.ts`'s `modalOptions()` turns the app's props into `UI.modals`'
-    options for every dialog;  callers never repeat it
-  - `editor` reaches the dialogs through a dynamic `import()`, so `editor.ts` stays free of Solid and `$/ui`
+    `Promise` with the answer and disposes it, e.g. `<Chooser>` + `openChooser()` (`modals/Chooser.tsx`)
+  - map config objects ONCE, in app code, e.g. `dialogs.ts`'s `modalOptions()` turns the app's props into
+    `UI.modals`' options for every dialog;  callers never repeat it
+  - how `editor` reaches them:  SEE WWOD §6 › "A module or class docstring states its POSITION IN THE IMPORT GRAPH"
+    (its `dialogs.ts` example)
   - TODO:  review the promise-based modals
   - TODO:  make modals cheap to draw when they're rarely shown
 

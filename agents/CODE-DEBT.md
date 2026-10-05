@@ -542,6 +542,18 @@ knowingly kept:
 
 ---
 
+### `UIT` names two different things
+
+- **Cost**:  `packages/app/src/editor.ts` imports `import type * as UIT from "$/app/ui/ui.types"`, while `UIT` is also
+  `@spell-app/ui`'s own namespace (`packages/ui/src/index.ts`).  WWOD §4 wants one name per type;  a reader of
+  `UIT.X` can't tell which package's types it is.
+- **Cause**:  the app's types-only import predates WWOD's `<NS>T` rule (`<NS>` = the package's namespace:  `app`'s
+  is `UI`).
+- **Fix**:  rename `app`'s import (e.g. `UIAppT`, or `import type { UI }` if the barrel can load there).
+- **Pinned at**:  WWOD §4 "Types-only leaf import as `PT`";  epic `wwod` P5 audit.
+
+---
+
 ## util
 
 ### `src/spell/constants.ts`:  a bare constants file of ALL-CAPS sentinels

@@ -39,20 +39,23 @@ SEE:  `packages/server/AGENTS.md` for `$/server` itself (`SRV.Router`, `SRV.WebS
 - **Caller mistakes throw specific error subclasses:**
   - A specific `Error` subclass for anything the caller got wrong (`NotFoundError` ...), each mapped to its status:
     400 bad input, 403, 404.  `SRV.HttpError(status, message)` is the general case.
-  - Anything else thrown answers 500 (`SRV.toListener()`, `packages/server/src/listener.ts`);  `respondWithJSON()`
-    MUST answer a mapped error with its own status, not 500.
+  - The listener (`SRV.toListener()`, `packages/server/src/listener.ts`) answers a thrown `SRV.HttpError` with its
+    status and `{ error: message }` (or the error's `body`);  anything else thrown answers 500.
+    `respondWithJSON()` MUST answer a mapped error with its own status, not 500.
   - Inside a handler, throw;  NEVER hand-write `reply.status(4xx).send(...)` for an error.
   - ONE error body shape per server, so the client parses one thing.
-  - Client side, an answered error becomes `$/util`'s `ResponseError` family (WWOD §5).
+  - Client side, an answered error becomes `$/util`'s `ResponseError` family -- SEE:  WWOD §5 › "Server → client
+    error identity".
   - TODO:  response examples, for each error class.
+  - TODO:  how a `TypeError` from a handler answers -- epic wwod T6.
 - **Grow `response-utils.ts` (name will change), don't write route-local helpers:**
   - New request / response capability = a small helper in `response-utils.ts` under its own `////` banner, e.g.
     `getIdParams()` ("Id utilities"), `sendTextFile()` ("Text responses").
   - Generic, app-agnostic pieces (body parsing, static files, routing) belong in `$/server` instead.
-- **Shared constants live in `<feature>.types.ts`:**
-  - Cache headers, content types, header lists:  named constants in `<feature>.types.ts`, so client and server share
-    them;  never string literals in a route file.
-  - Server-only constants, or ones complex enough:  a single server-only `<feature>.types.server.ts`.
+- **Shared constants live in `<folder>.types.ts`:**
+  - Cache headers, content types, header lists:  named constants, so client and server share them;  never string
+    literals in a route file.  SEE:  WWOD §8 › "`<folder>.types.ts`".
+  - Server-only types and constants, or ones complex enough:  a single server-only `<folder>.types.server.ts`.
 - **`...OrDie` throwing twins:**
 
   ```ts
@@ -72,13 +75,9 @@ SEE:  `packages/server/AGENTS.md` for `$/server` itself (`SRV.Router`, `SRV.WebS
   - The thing acted on first, then what it becomes, then options.
   - e.g. `duplicateApp(projectId, newProjectId)`, `SpellLocation.getFileLocation(projectId, filePath)`,
     `sendFile(response, path, options)`.
-- **Abstract class = interface + shared policy in one:**
-  - `abstract` for the primitives each subclass supplies.
-  - Concrete composed logic on the same class, built from those primitives.
-  - e.g. `Loadable` (`packages/util/src/spell/Loadable.ts`):  `abstract getLoader()` / `getSaver()`, with the
-    load / save state policy on the class.
 - **Server code stays out of the browser bundle:**
   - All files that run on the server end with `.server.ts`:  `environment.server.ts`, `projectUtils.server.ts`.
+  - Its server-only types:  `<folder>.types.server.ts` (above, "Shared constants live in `<folder>.types.ts`").
   - Anything touching the file system, `process` or node built-ins is server code.
   - Today's `src/node/` folders (`$/spell/node/...`, WWOD §4) predate the suffix:  `agents/CODE-DEBT.md`.
 - **API docstrings use stock bullets:**

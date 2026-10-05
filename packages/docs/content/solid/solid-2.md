@@ -193,18 +193,11 @@ spellCore.element({
     is an owner, NOT a tracking scope (`STRICT_READ_UNTRACKED`)
   - need the value now in imperative code or a test?  `flush()` first (`spellCore.flush()` for spell state).  NEVER
     `flush()` inside an `action`, an effect apply or `onSettled`.
-  - a value read ONCE in a body (a starting value, a handle):  `untrack(() => props.x)` reads it without tracking,
-    says the snapshot is meant, and keeps `STRICT_READ_UNTRACKED` quiet;  a new value then takes a remount
-    (`<Show keyed>`, below).  When to:  WWOD §17 › "Be deliberate about reactivity"
 - Effects:
   - `createEffect(compute, apply)` -- two functions, always
   - the apply's RETURN VALUE IS ITS CLEANUP:  use braces, NEVER an expression body that returns a value (halts the page)
   - many React `useEffect`s should be a memo or an event handler instead
   - component setup + teardown:  `onSettled(() => { ...; return cleanup })`, not `onMount`
-  - `onCleanup(fn)` runs when its OWNER is disposed:  in a body, when the component goes.  NEVER inside
-    `onSettled` / `createTrackedEffect`:  return the cleanup there (`CLEANUP_IN_FORBIDDEN_SCOPE`).  With no owner
-    (module scope, a ref callback, a handler) it NEVER runs (`NO_OWNER_CLEANUP`).  In a `ui` element (`keepAlive`)
-    it runs on `dispose()`, NOT on disconnect.
 - Memos:  eager by default;  create them inside a component / owner, NEVER at module scope (unowned memos recompute
   forever).  `lazy: true` autodisposes when unobserved.
 - Stores:  draft setters only.  A direct `store.x = 1` is SILENTLY IGNORED.
@@ -214,17 +207,12 @@ spellCore.element({
     console, and the fallback never shows (measured, P6:  `app`'s `ASTViewer` / `MatchViewer`).  Read the value in
     JSX (a render expression) where a throw must show the fallback, or give the effect an `{ effect, error }`
     bundle.
-  - load states:  `<Loading>` shows its fallback on the FIRST load only;  later, `isPending()`.  Which order the
-    app nests them in:  WWOD §17 › "Load states:  error, then loading, then loaded".
 - Lists:  `<For each>` keys by identity (item = value, index = accessor);  `keyed={false}` by position (item =
   accessor);  `keyed={(t) => t.id}` by key.  `<Repeat count>` for windowing.  No `.map()` in JSX.
-- `<Show>`:  unkeyed, its children stay mounted while `when` stays truthy, and a child callback gets an ACCESSOR;
-  `keyed`, they're REMADE whenever `when` changes value (`!==`), and the callback gets the VALUE.  So `<Show
-  when={key()} keyed>` remounts a subtree each time `key()` changes;  a `key` memo's `equals` decides what counts
-  as a change.  How the app keys it:  WWOD §17 › "Remount with `<Show when={key()} keyed>`".
 - Context:  the context IS the provider.  No default => a missing provider throws.
-  - `useContext()` needs an OWNER:  at module scope it throws `NoOwnerError`, default or not.
 - Dynamic components:  `dynamic(() => source())`, created once outside JSX.
+- More, as house style with this repo's examples (read once with `untrack`, `onCleanup`, load states, `<Show keyed>`,
+  `useContext` needs an owner, the `ClassBuilder` exception):  WWOD §17, `agents/wwod/solid.md`.
 
 ```tsx
 createEffect(
@@ -262,9 +250,6 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
 ## DOM and `@spell-app/ui` elements
 
 - `class`, not `className`;  array / object form, NEVER built class strings.  No `classList`.
-  - The ONE exception:  `@spell-app/ui`'s shadow markup, whose Fomantic class grammar needs a fixed word order
-    (`[class*="four wide"]`).  `ClassBuilder` builds it from the vocabulary (`class={this.classes()}`) -- never by
-    hand, never in app code.
 - NEVER an inline `style={{ [A]: x, [B]: y }}` with two or more COMPUTED keys:  the server compile (rc.11) drops the
   `;` between them (`--a:1px--b:2`) and the browser ignores both.  Return the object from a method or variable
   (`style={this.titleStyle()}`);  literal keys and single computed keys are fine.  (Found by `$/ui/server`, 2026-10-02.)
