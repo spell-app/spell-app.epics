@@ -1412,6 +1412,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   and a window's settings reach EVERY folder in it, the shared repo too. · `spell-app-dev/.vscode/settings.json`
   sets `"packages": false` (folder settings beat the window's);  the window files that lacked the folder got it. ·
   claude-code
+- 2026-10-05 · A worktree-isolated agent's Bash refused any command with a shell variable in a program or path
+  position (`node $E/edit.mjs ...`, `sed -n ... $P`), any heredoc (`python3 - <<'EOF'`, `cat > f <<EOF`), and any
+  `cd <main checkout>`:  "cannot be shown not to be git".  Auto mode also refused a bulk `yarn vp fmt` over shared
+  pages. · Literal absolute paths only;  write scripts and JSON edit specs with the Write tool, then run them with
+  `node <literal path>`;  read the main checkout by absolute path (`ls -L`), never by `cd`. · claude-code
 
 ## vscode
 

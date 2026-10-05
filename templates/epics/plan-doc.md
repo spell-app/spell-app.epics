@@ -461,7 +461,8 @@ decide from WITHOUT asking back:  in the item's details, or an Overview sub-sect
 
 ## Commands (`spell dev plan-doc ...`, from anywhere in the repo)
 
-Every checkout's `packages/docs/content` is a link to ONE shared copy (epic `shared-content`):  run from any
+Every checkout's `epics` is a link to ONE shared copy (epic `shared-content`;  `packages/docs/content/epics` on code
+from before 2026-10-05):  run from any
 checkout, a command edits the same doc.  `--here` (this checkout's copy) is no longer needed:  accepted and ignored.
 
 | Command | Does |
