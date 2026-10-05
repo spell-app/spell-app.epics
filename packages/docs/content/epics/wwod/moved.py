@@ -15,7 +15,8 @@ from pathlib import Path
 
 SECTIONS = ("Documentation", "Functions", "Decorators", "Types / Exports", "Imports")
 THRESHOLD = 0.6
-ROOT = next(p for p in Path(__file__).resolve().parents if (p / "tsconfig.base.json").exists())  # the repo root
+ROOT = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "tsconfig.base.json").exists())
+# ^ the checkout run from, NOT this file's:  the file sits in the shared content repo, linked into every checkout
 WWOD = Path(__file__).parent / "wwod"
 
 

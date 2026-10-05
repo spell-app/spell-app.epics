@@ -15,7 +15,8 @@ import re
 import sys
 from pathlib import Path
 
-REPO = next(p for p in Path(__file__).resolve().parents if (p / "tsconfig.base.json").exists())  # the repo root
+REPO = next(p for p in [Path.cwd(), *Path.cwd().parents] if (p / "tsconfig.base.json").exists())
+# ^ the checkout run from, NOT this file's:  the file sits in the shared content repo, linked into every checkout
 CITE = re.compile(r"(?:WWOD\s+)?§(\d+)(?:\s*›\s*\"([^\"]+)\")?")
 PATH = re.compile(r"`((?:packages|scripts|\.claude|types)/[^`\s*<>{}]+|[A-Z][A-Z-]+\.md)`")
 
