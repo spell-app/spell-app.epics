@@ -1448,6 +1448,13 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## vscode
 
+- 2026-10-06 · Nothing in the side bar's Spell Docs view was clickable (the plan doc and a details page, epic
+  `outline-spell`'s window, after a `handoff` move).  The page itself was fine:  served 200, no console errors, and
+  in Playwright -- inside a cross-origin iframe with `DocView`'s exact `sandbox`, 300px wide -- a click unfolded
+  "1. Overview".  So the VS Code webview wasn't passing clicks to its iframe;  cause not pinned down.  No `spell dev`
+  command can rebuild the view (`DocView` builds its html ONCE). · Try "Developer: Reload Webviews", or close and
+  reopen the Spell Docs view;  meanwhile ask in the modal.  CONSIDER:  a `spell dev window reload-view` that resets
+  the webview's html. · vscode
 - 2026-10-04 · The side bar's Spell Docs view stopped showing docs in the `shared-content` worktree's window, while
   `/api/docs/show` answered "Shown" and the window's registry entry was alive.  It followed an edit of that window's
   `.code-workspace` (a folder added:  `spell-app-dev`), which re-registered the window (its extensions restarted). ·
