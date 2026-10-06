@@ -969,6 +969,10 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 - 2026-10-05 · `yarn review` failed `SiteDataBuilder.test.ts` ("site data is current") right after `yarn site:build`:
   review's `yarn format` reflowed a new sheet's multi-line `var(` token defaults, which the site data quotes verbatim.
   · Format new CSS (`yarn vp fmt <file>`) BEFORE `yarn site:build` / the brand's `yarn build`, or rebuild after review. · ui
+- 2026-10-06 · `<ui-docs-themes>` stopped rendering (`addEventListener ... parameter 2 is not of type 'Object'`) after
+  `<ui-popup on="click">` became `on={UIT.CLICK}`:  Solid compiles an `on`-prefixed attribute with an EXPRESSION as an
+  event listener (event `""`, handler `"click"`);  a string literal stays an attribute. · Keep `on="..."` literal on
+  a composed `ui-*` tag (epic `wwod-spell-ui`, C12). · ui
 
 ## app
 
