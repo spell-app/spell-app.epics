@@ -36,3 +36,304 @@
     <li>not covered: a phrase after another operator, e.g. <code>x + 1 is a king</code></li>
   </ul>
 </div>
+<div class="plan-reply">
+  <p><b>Your note (revisit, 2026-10-06):</b> "“is face up” is literal, “is a (suit)” would embed all suits"</p>
+  <p>
+    <b>How I read it.</b> There are two kinds of phrase, and they collide in different ways. J11's text described the
+    bug with a placeholder phrase (a card's <code>is (color)</code>), but what P5 actually hit was a literal one (<code
+      >is a face card</code
+    >). You're asking whether the owner check covers both kinds, and what is different about each.
+  </p>
+  <ul>
+    <li>
+      "Literal phrase": fixed words, one method, e.g. <code>- it "is face up" if its direction is up</code>. Its rule
+      matches those words and nothing else.
+    </li>
+    <li>
+      "Placeholder phrase": a phrase with a slot filled from a list of values, e.g. <code>- it "is a (suit)"</code>, or
+      <code>- it "is a suit"</code> in the outline Solitaire, where spell works out the slot itself.
+    </li>
+    <li>
+      "Embed": the placeholder's rule spells out every value in the list, so <code>is a (suit)</code> becomes
+      <code>is (a|an) (club|diamond|heart|spade)</code>.
+    </li>
+    <li>
+      Every line below was run through the parser on this branch (2026-10-06, at <code>6adf06e1</code>), in a throwaway
+      test since deleted. The rule shapes come from the <code>SPELL: DECLARES</code> comments in the compiled output.
+    </li>
+  </ul>
+
+  <h4>What each phrase's rule matches</h4>
+  <ui-table celled compact striped>
+    <table>
+      <thead>
+        <tr>
+          <th>The phrase</th>
+          <th>Its rule (<code>syntax</code>)</th>
+          <th>What it matches</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>a card's <code>it "is face up" if ...</code></td>
+          <td><code>{operator:is} face up</code>, rule <code>method_postfix</code>, of <code>Card</code></td>
+          <td>only <code>is face up</code> / <code>isn't face up</code></td>
+        </tr>
+        <tr>
+          <td>a rank's <code>a rank "is a face card" if ...</code> (Deck.spell)</td>
+          <td><code>{operator:is} a face card</code>, of <code>Rank</code></td>
+          <td rowspan="2">
+            the SAME words for both owners. Only the owner can tell them apart: this was P5's collision
+          </td>
+        </tr>
+        <tr>
+          <td>a card's <code>it "is a face card" if ...</code> (Card.spell)</td>
+          <td><code>{operator:is} a face card</code>, of <code>Card</code></td>
+        </tr>
+        <tr>
+          <td>a card's <code>it "is a suit"</code>, the deck's suits declared ABOVE</td>
+          <td>
+            <code>{operator:is} (a|an) (expression:club|diamond|heart|spade)</code>, rule <code>quoted_property</code>
+          </td>
+          <td>only the four suits: the values ARE the filter</td>
+        </tr>
+        <tr>
+          <td>the same, the deck's suits declared BELOW (a "kind declared further down", P3)</td>
+          <td>
+            <code>{operator:is} (a|an) (expression:{constant}|{number})</code>, with
+            <code>kinds: { suit: "Suit" }</code> and <code>values: { suit: [] }</code>
+          </td>
+          <td>
+            any known value or number while parsing; then checked against the suits where the phrase is USED
+            (<code>kindValue()</code>): <code>the card is a red</code> is refused
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+
+  <h4>The owner check covers both kinds</h4>
+  <ul>
+    <li>
+      Both rules start with the same line: a literal phrase is a <code>MethodPostfixRule</code> (or
+      <code>MethodInfixRule</code>), a placeholder phrase a <code>QuotedPropertyRule</code>, and each one refuses an
+      operand KNOWN not to be its owner (<code>thisType</code>).
+    </li>
+    <li>
+      For a literal phrase, the owner is the only thing that can tell two phrases apart. For a placeholder phrase, the
+      values filter first, and the owner matters when two kinds share a value (<code>red</code> as a color and as a
+      team).
+    </li>
+  </ul>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>methods.ts, classes.ts, expressions.ts · the owner check · 12 lines</ui-title
+    ><ui-content>
+      <pre><code class="language-ts">// MethodPostfixRule.parse() and MethodInfixRule.parse(), methods.ts:  a literal phrase
+if (!SuffixLeft.couldBeA(scope, this.thisType)) return undefined
+
+// QuotedPropertyRule.parse(), classes.ts:  a placeholder phrase
+if (!SuffixLeft.couldBeA(scope, this.thisType)) return undefined
+
+// SuffixLeft, expressions.ts:  set by compound_expression for the FIRST suffix after an operand only
+couldBeA(scope: P.Scope, type: P.Datatype | undefined): boolean {
+  return !SuffixLeft.current || scope.couldBeA(SuffixLeft.current.datatype, type)
+}</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>
+    With J8's card and game (a card's <code>"colors" as one of red, black</code> and <code>it "is (color)"</code>; a
+    game's <code>"teams" as one of red, blue</code> and <code>it "is (team)"</code>; the card also has
+    <code>it "is face up"</code>):
+  </p>
+  <ui-table celled compact striped>
+    <table>
+      <thead>
+        <tr>
+          <th>Spell</th>
+          <th>Compiles to now</th>
+          <th>Before P5 (J8's probe)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>if the game is red</code></td>
+          <td><code>if (game.is_$team('red'))</code>: the game's own phrase</td>
+          <td><code>game.is_$color('red')</code>: TypeError when it runs</td>
+        </tr>
+        <tr>
+          <td><code>if the card is red</code></td>
+          <td><code>if (card.is_$color('red'))</code></td>
+          <td>the same</td>
+        </tr>
+        <tr>
+          <td><code>if the game is face up</code> (literal, wrong owner)</td>
+          <td>error, "Don't understand <code>is face up</code>" (line 13, column 12)</td>
+          <td>no owner check yet, so the card's <code>is_face_up</code> (not probed then)</td>
+        </tr>
+        <tr>
+          <td><code>if the card is a face card</code> (two literal phrases, same words)</td>
+          <td><code>if (card.is_a_face_card)</code>: the card's</td>
+          <td>the rank's: 2 of the card's own tests failed (P5)</td>
+        </tr>
+        <tr>
+          <td><code>if the card is a spade</code>, suits declared below</td>
+          <td><code>if (card.is_a_$suit('spades'))</code></td>
+          <td>the same</td>
+        </tr>
+        <tr>
+          <td><code>if the card is a red</code>, suits declared below</td>
+          <td>error, "Don't understand <code>is a red</code>": red is a value, but not a suit</td>
+          <td>the same</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+
+  <h4>What the note turns up that isn't handled</h4>
+  <ol>
+    <li>
+      <b
+        >After <code>and</code> or <code>or</code>, a phrase still doesn't check whose it is, and the program fails when
+        it runs.</b
+      >
+      <ul>
+        <li>
+          <code>if the card is face up and the game is red</code> compiles to
+          <code>card.is_face_up &amp;&amp; game.is_$color('red')</code>: the CARD's placeholder phrase on a game, a
+          TypeError.
+        </li>
+        <li>
+          <code>if the card is red and the game is face up</code> compiles to
+          <code>card.is_$color('red') &amp;&amp; game.is_face_up</code>: the card's literal phrase on a game, silently
+          false.
+        </li>
+        <li>
+          Why: <code>SuffixLeft</code> is set only for the FIRST suffix after an operand. In
+          <code>the card is face up and the game is red</code>, <code>is red</code> is the third suffix (after
+          <code>is face up</code> and <code>and the game</code>), so its left side counts as unknown, and unknown fits
+          anything.
+        </li>
+        <li>
+          P5's reply named only <code>x + 1 is a king</code> as not covered. A test joined with <code>and</code> is far
+          more common.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b
+        >A placeholder phrase written <code>for its suits</code>, where <code>suit</code> is a value kind, embeds NO
+        suits, and the compiler crashes on its first use.</b
+      >
+      <ul>
+        <li>
+          <code>- its "suit" is a suit</code> then <code>- it "is a (suit)" for its suits</code> makes the rule
+          <code>{operator:is} (a|an)</code>, with <code>values: { }</code>. The only sign is a console warning,
+          "couldn't figure out enumeration for Card suits"; the line has no error.
+        </li>
+        <li>
+          Then <code>if the card is a spade</code> throws while compiling: "TypeError: Cannot read properties of
+          undefined (reading 'value')", in <code>QuotedPropertyRule.compileASTExpression()</code> (<a
+            href="../../../packages/spell/src/rules/classes.ts"
+            target="src-packages-spell-src-rules-classes-ts"
+            ><code>classes.ts</code></a
+          >, line 2008). The same with the deck above or below the card.
+        </li>
+        <li>
+          Why: <code>computeBits()</code> looks up the property named after <code>for its</code>, here
+          <code>suits</code>. A value kind's property is singular, <code>suit</code>, so the lookup finds nothing.
+        </li>
+        <li>
+          What works: <code>for its suit</code>, and <code>it "is a suit"</code> with no <code>for</code> (the outline
+          Solitaire's way). The sentence style's <code>a card "is a (suit)" for its suits</code> works too, because its
+          list is the class variable <code>Suits</code>.
+        </li>
+        <li>Only on this branch: value kinds are new in P2 · Value Types.</li>
+      </ul>
+    </li>
+    <li>
+      Unknown owner, as designed: inside <code>to check a thing:</code>, <code>if the thing is red</code> compiles to
+      <code>this.is_$color('red')</code>. The first phrase declared wins. Nothing new here.
+    </li>
+    <li>
+      A word no phrase takes falls through to a plain <code>is</code> comparison.
+      <code>if the game is black</code> compiles to <code>game == 'black'</code>, and
+      <code>if the card is blue</code> to <code>card == 'blue'</code>. These no longer crash, but they give no error
+      either, and they are always false. J8's option C promised an error here; that half of C ("blue isn't a color")
+      isn't built.
+    </li>
+  </ol>
+
+  <h4>The ways to go</h4>
+  <ui-grid class="spell-pros-cons" columns="2" stackable>
+    <ui-column
+      ><ui-segment
+        ><ui-label attached="top">A · Fix 1 and 2 now (recommended)</ui-label>
+        <ul>
+          <li>
+            1: <code>compound_expression</code> also remembers the operand after an infix (<code>the game</code> after
+            <code>and</code>) and how tightly that infix binds. A phrase after a looser operator (<code>and</code>,
+            <code>or</code>) takes that operand as its left side; after a tighter one (<code>+</code>) it stays unknown
+          </li>
+          <li>
+            2: <code>for its suits</code> falls back to the singular property, <code>suit</code>, and its kind's values.
+            A placeholder that finds no values is an error on its own line, never a rule <code>is (a|an)</code>
+          </li>
+          <li>cost: about 1-2h with tests; the saved projects should compile as they do now</li>
+          <li>why recommended: 1 is the same runtime crash J11 was about, in the commonest place it still happens</li>
+        </ul>
+        <pre><code class="language-js">// the card is face up and
+//   the game is red
+card.is_face_up &amp;&amp;
+  game.is_$team('red')</code></pre>
+      </ui-segment></ui-column
+    >
+    <ui-column
+      ><ui-segment
+        ><ui-label attached="top">B · Log them, fix later</ui-label>
+        <ul>
+          <li>
+            1 and 2 go into
+            <a href="../../../agents/SUSPECTED-BUGS.md" target="src-agents-suspected-bugs-md"
+              ><code>agents/SUSPECTED-BUGS.md</code></a
+            >, "Found by epic outline-spell"; J11 is closed as fixed for the first suffix
+          </li>
+          <li>cost: no work now</li>
+          <li>
+            risk: <code>... and the game is red</code> still crashes when it runs; <code>for its suits</code> on a value
+            kind still crashes the compiler
+          </li>
+        </ul>
+        <pre><code class="language-js">// the card is face up and
+//   the game is red
+card.is_face_up &amp;&amp;
+  game.is_$color('red')
+// TypeError</code></pre>
+      </ui-segment></ui-column
+    >
+  </ui-grid>
+
+  <p><b>Net effect</b> (A, recommended):</p>
+  <ul>
+    <li>
+      literal and placeholder phrases both keep refusing a known wrong owner; nothing changes for the first suffix
+    </li>
+    <li>
+      <code>if the card is face up and the game is red</code> compiles to <code>game.is_$team('red')</code>, not the
+      card's method
+    </li>
+    <li><code>if the card is red and the game is face up</code> is an error, not silently false</li>
+    <li>
+      <code>it "is a (suit)" for its suits</code> on a value kind embeds the four suits, as <code>for its suit</code>
+      does
+    </li>
+    <li>a placeholder phrase with no values is an error on its own line, not a compiler crash later</li>
+    <li>
+      still not built: <code>if the game is black</code> stays <code>game == 'black'</code> (J8's "blue isn't a color"
+      check), and an owner of unknown type still takes the first phrase declared
+    </li>
+  </ul>
+</div>
+<div class="plan-reply plan-reply-owen">
+  <div class="plan-reply-title"><b>Owen</b> · <time>2026-10-06 17:30</time> · revisit now</div>
+  <p>"is face up" is literal, "is a (suit)" would embed all suits</p>
+</div>
