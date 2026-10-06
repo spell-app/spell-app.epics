@@ -503,7 +503,7 @@
                 ><b>Verify:</b> <code>yarn measure</code> before / after the spike;
                 <code>spell dev agents check</code></ui-item
               ><ui-item icon="list check" class="plan-to-review"
-                ><b>To review:</b> <a href="#j1">J1</a>, <a href="#c5">C5</a>, <a href="#i12">I12</a></ui-item
+                ><b>To review:</b> <a href="#j1">J1</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -554,6 +554,9 @@
                 >, <code>server.types.ts</code>, every <code>chalk</code> importer</ui-item
               ><ui-item icon="flask"
                 ><b>Verify:</b> <code>yarn review</code> in util, parser, cli, ui; <code>yarn measure</code></ui-item
+              ><ui-item icon="list check" class="plan-to-review"
+                ><b>To review:</b> <a href="#j2">J2</a>, <a href="#j3">J3</a>, <a href="#c6">C6</a>,
+                <a href="#c7">C7</a>, <a href="#i13">I13</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -2192,6 +2195,94 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:13:07-04:00"
+              id="j2"
+              data-status="open"
+              data-phase="2"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j2">J2</a>
+                  <span class="plan-title"
+                    >I12: the docs site adds the &lt;ui-docs-*&gt; families to &lt;ui-root&gt; (DocsFamilies.add()), not
+                    RootLoader's own glob</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="2">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Chose <code>RootLoader.add(barrels)</code> plus
+                    <a
+                      href="../../packages/ui/src/docs-components/DocsFamilies.ts"
+                      target="src-packages-ui-src-docs-components-docsfamilies-ts"
+                      ><code>src/docs-components/DocsFamilies.ts</code></a
+                    >, which
+                    <a href="../../packages/ui/site/_src/site.ts" target="src-packages-ui-site-src-site-ts"
+                      ><code>site/_src/site.ts</code></a
+                    >
+                    calls before <code>&lt;ui-root&gt;</code> is defined. The other options were a build-time flag
+                    around the glob (<code>import.meta.env</code>) and Rolldown chunking options. Why:
+                  </p>
+                  <ul>
+                    <li>
+                      The docs families aren't part of the library. With them out of <code>RootLoader</code> they're out
+                      of <code>dist/</code> and out of the docs' single-file bundle (<a
+                        href="../../packages/docs/tools/bundle-spell-ui.js"
+                        target="src-packages-docs-tools-bundle-spell-ui-js"
+                        ><code>bundle-spell-ui.js</code></a
+                      >
+                      builds from <code>dist/index.js</code>), with no flag to keep in step.
+                    </li>
+                    <li>
+                      The catalog still names their tags. In the library, <code>&lt;ui-docs-*&gt;</code> now fails like
+                      any unknown family ("no family …"); only the site's pages use them (80 pages under
+                      <a href="../../ui/" target="src-ui"><code>ui/</code></a
+                      >; none elsewhere in the shared content).
+                      <a href="../../packages/brand/src/brand-docs.ts" target="src-packages-brand-src-brand-docs-ts"
+                        ><code>brand-docs.ts</code></a
+                      >
+                      already imports its three families itself.
+                    </li>
+                    <li>
+                      <code>DocsFamilies</code> imports <code>RootLoader</code> from its leaf, not the
+                      <code>ui-root</code> barrel: the barrel defines <code>&lt;ui-root&gt;</code>, which the site
+                      defines only after the theme is in.
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:13:08-04:00"
+              id="j3"
+              data-status="open"
+              data-phase="2"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j3">J3</a>
+                  <span class="plan-title"
+                    >I12: MarkdownSanitizer imports SourceError and fails closed, like the other engines</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="2">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Chose to give <code>MarkdownSanitizer</code> a real value import from <code>runtime.types</code>:
+                    <code>throw new SourceError("render", …)</code> where <code>DOMPurify.isSupported</code> is false.
+                    The other option was a Rolldown option, and none exists that puts the runtime helpers in
+                    <code>core.js</code>: a <code>codeSplitting</code> group named <code>core</code> changed nothing.
+                  </p>
+                  <ul>
+                    <li>
+                      It's the pattern <code>CodeEngine</code>, <code>MarkdownEngine</code> and
+                      <code>TemporalPolyfill</code> already use, and their headers explain why. The docs bundler already
+                      allows <code>runtime.types</code> into these classic scripts.
+                    </li>
+                    <li>
+                      The import does real work: before, an unsupported browser got back markup DOMPurify never cleaned.
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -2222,17 +2313,18 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                 >Other epics touching ui (design-system) will conflict: merge main in before each phase</span
               ></ui-item
             ><ui-item
-              data-state="open"
-              data-changed="2026-10-05T20:13:26-04:00"
+              data-state="recent"
+              data-changed="2026-10-05T21:16:29-04:00"
               id="c5"
-              data-status="open"
+              data-status="done"
               data-phase="1"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#c5">C5</a>
                   <span class="plan-title"
                     >Q4's spike couldn't test the Rolldown runtime chunk: main already has one (I12)</span
-                  > </ui-title
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="2">UPDATE</ui-label></ui-title
                 ><ui-content
                   ><p>
                     The notes in
@@ -2314,6 +2406,53 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                       </div></ui-content
                     ></ui-accordion
                   ></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="open"
+              data-changed="2026-10-05T21:13:16-04:00"
+              id="c6"
+              data-status="open"
+              data-phase="2"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#c6">C6</a>
+                  <span class="plan-title"
+                    >I12: the docs site now fetches the element core while it restores the theme, not when
+                    &lt;ui-root&gt; loads</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="2">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>ThemeSheets.pageStyles()</code> now does <code>import("$/ui/core")</code> instead of
+                    <code>import("$/ui/runtime")</code>. In the site bundle that is a 2.4 kB
+                    <code>core-&lt;hash&gt;.js</code> facade over the shared chunks (<code>UIElement</code> …).
+                    <code>ThemePreference.restore()</code> starts it before <code>&lt;ui-root&gt;</code> is imported,
+                    where before it loaded a 0.6 kB <code>runtime-&lt;hash&gt;.js</code>. It's the same bytes, which
+                    <code>&lt;ui-root&gt;</code> needs straight after, and the site's eager size is unchanged (210.0 kB
+                    / 46.8 gz). If it ever shows on first paint, <code>ThemePreference</code> can pass
+                    <code>(await UI.load()).styles</code> to <code>apply()</code>, and the import goes away.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="open"
+              data-changed="2026-10-05T21:13:16-04:00"
+              id="c7"
+              data-status="open"
+              data-phase="2"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#c7">C7</a>
+                  <span class="plan-title">I12: ui-markdown.js is +0.12 kB min (gzip the same)</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="2">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The six family <code>import()</code>s that <code>MDEngine</code> no longer does statically are now
+                    in <code>MarkdownRenderer.mdFamilies()</code>, in <code>ui-markdown.js</code>: 21.22 → 21.34 kB min,
+                    7.39 kB gz both. <code>MDEngine</code>'s own chunk stops importing six families (191.63 → 191.44 kB
+                    min).
+                  </p></ui-content
                 ></ui-accordion
               ></ui-item
             ></ui-list
@@ -2541,15 +2680,16 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                 ></ui-accordion
               ></ui-item
             ><ui-item
-              data-state="attention"
-              data-changed="2026-10-05T20:07:28-04:00"
+              data-state="recent"
+              data-changed="2026-10-05T21:16:28-04:00"
               id="i12"
-              data-status="open"
+              data-status="done"
               data-phase="1"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#i12">I12</a>
-                  <span class="plan-title">yarn measure's structure checks already fail on main</span> </ui-title
+                  <span class="plan-title">yarn measure's structure checks already fail on main</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="2">UPDATE</ui-label></ui-title
                 ><ui-content
                   ><p>Seen in P1's baseline (2026-10-05), before any change:</p>
                   <ul>
@@ -2564,7 +2704,227 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                       >, every docs-components file
                     </li>
                   </ul>
-                  <p>Looked at in P10 (or earlier if a phase makes it worse).</p></ui-content
+                  <p>Looked at in P10 (or earlier if a phase makes it worse).</p>
+                  <div class="plan-reply">
+                    <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-05 21:11</time> · re: I12</div>
+                    <p>
+                      Root cause: four lazy chunks that core's own code can't reach each shared modules with
+                      <code>core.js</code>, and Rolldown only folds shared modules (and its <code>__name</code> helpers)
+                      into <code>core.js</code> when every lazy chunk using them is reachable from core or already loads
+                      it. Each one broke that rule in its own way, in three commits:
+                    </p>
+                    <ul>
+                      <li>
+                        <b><code>&lt;ui-docs-*&gt;</code> families</b> (8c2c785d): <code>RootLoader</code>'s second
+                        glob, <code>import.meta.glob("../../docs-components/*/index.ts")</code>, made seven lazy chunks
+                        of the LIB build that import <code>$/ui/core</code> and other families. So every core module
+                        carried them in its "who needs me" set. The ones <code>UIRuntime</code> also uses
+                        (<code>ValueSets</code>, <code>Vocabulary</code>, <code>BuiltInPacks</code>,
+                        <code>IconName</code>, <code>decorators</code> / <code>dom</code> / <code>string</code>) then
+                        had a set Rolldown wouldn't merge into <code>core.js</code>, because
+                        <code>ui-root</code> reaches those chunks and core doesn't. So they went to a shared
+                        <code>BuiltInPacks-&lt;hash&gt;.js</code>.
+                      </li>
+                      <li>
+                        <b>Themes</b> (8c2c785d): <code>ThemeSheets.pageStyles()</code> did
+                        <code>import("$/ui/runtime")</code>. That barrel isn't an entry, so the call made a new lazy
+                        chunk out of <code>runtime/index.ts</code> +
+                        <a href="../../packages/ui/src/runtime/load.ts" target="src-packages-ui-src-runtime-load-ts"
+                          ><code>load.ts</code></a
+                        >
+                        +
+                        <a
+                          href="../../packages/ui/src/runtime/runtime.types.ts"
+                          target="src-packages-ui-src-runtime-runtime-types-ts"
+                          ><code>runtime.types.ts</code></a
+                        >. The chain is <code>UIRuntime</code> → <code>$/ui/styles</code> →
+                        <a
+                          href="../../packages/ui/src/styles/themes/themes.ts"
+                          target="src-packages-ui-src-styles-themes-themes-ts"
+                          ><code>themes.ts</code></a
+                        >
+                        → <code>import()</code> →
+                        <a href="../../packages/ui/src/runtime/load.ts" target="src-packages-ui-src-runtime-load-ts"
+                          ><code>load.ts</code></a
+                        >
+                        → <code>import("./UIRuntime")</code>, so <code>load-*.js</code> and
+                        <code>runtime.types-*.js</code> split out too.
+                      </li>
+                      <li>
+                        <b><code>MDEngine</code></b> (28e0ebde, after the bisect's first bad commit): its static
+                        <code>import "$/ui/components/ui-table"</code> (and five more families) made a lazy chunk that
+                        imports the core through those families. It's the same mechanism as the docs families, and it's
+                        enough by itself to bring <code>BuiltInPacks-*.js</code> back.
+                      </li>
+                      <li>
+                        <b><code>MarkdownSanitizer</code></b> (364f93a8, I6): DOMPurify alone, no core import. Under
+                        <code>keepNames</code> every chunk depends on Rolldown's runtime module, and Rolldown hosts that
+                        module only in a chunk every user reaches statically. This chunk reaches nothing, so the helpers
+                        went to <code>rolldown-runtime-&lt;hash&gt;.js</code>. <code>CodeEngine</code>,
+                        <code>MarkdownEngine</code> and <code>TemporalPolyfill</code> already avoid this with a real
+                        <code>SourceError</code> / <code>TEMPORAL_POLYFILL</code> import, and their headers explain it;
+                        the sanitizer was written later without one.
+                      </li>
+                      <li>
+                        <code>ui-flyout</code> / <code>ui-panel</code> in <code>entriesMissingCore</code>: a symptom
+                        only. Those two use only modules that had moved to <code>BuiltInPacks-*.js</code>, so their
+                        chunks stopped importing <code>core.js</code>.
+                      </li>
+                    </ul>
+                    <p>
+                      How I checked: in a frozen export of HEAD, I removed each cause on its own. Every one of the four,
+                      removed alone, made its own chunk go away, and removing all four brings back 93abde40's layout
+                      (<code>core.js</code>, <code>forms.js</code>, families, lazy engines, nothing else).
+                    </p>
+                    <p><b>Fix</b> (import paths and entry structure only, no Rolldown option):</p>
+                    <ul>
+                      <li>
+                        <code>RootLoader</code> globs only the library's families. It gains
+                        <code>RootLoader.add(barrels)</code>, and a new
+                        <a
+                          href="../../packages/ui/src/docs-components/DocsFamilies.ts"
+                          target="src-packages-ui-src-docs-components-docsfamilies-ts"
+                          ><code>src/docs-components/DocsFamilies.ts</code></a
+                        >
+                        holds the docs glob. The site's <code>site.ts</code> calls
+                        <code>DocsFamilies.add()</code> before <code>&lt;ui-root&gt;</code> is defined. So
+                        <code>dist/</code> no longer carries the doc-only families, and neither does the docs'
+                        single-file bundle built from it.
+                      </li>
+                      <li>
+                        <code>ThemeSheets.pageStyles()</code>: <code>import("$/ui/core")</code>, the core ENTRY, which
+                        <code>UIRuntime</code>'s chunk loads anyway.
+                      </li>
+                      <li>
+                        <code>MDEngine</code> imports no family. <code>MarkdownRenderer.loadMD()</code> imports the six
+                        families beside it (<code>mdFamilies()</code>); an <code>import()</code> of a family is its own
+                        lib entry, so it adds no chunk.
+                      </li>
+                      <li>
+                        <code>MarkdownSanitizer</code> imports <code>SourceError</code> from
+                        <code>runtime.types</code> and uses it. It now fails closed: where
+                        <code>DOMPurify.isSupported</code> is false it throws instead of returning markup it didn't
+                        clean.
+                      </li>
+                      <li>
+                        <a
+                          href="../../packages/ui/tools/package.config.ts"
+                          target="src-packages-ui-tools-package-config-ts"
+                          ><code>tools/package.config.ts</code></a
+                        >: <code>docs-components/</code> gets a bucket of its own, <code>docs</code>, no longer
+                        <code>core</code>. A new check, <code>docsBundled</code>, fails if one ever shows up in the lib
+                        build again.
+                      </li>
+                    </ul>
+                    <p><b>Net effect:</b></p>
+                    <ul>
+                      <li>
+                        <code>yarn measure</code>: every check is empty (it was <code>runtimeChunks</code> 1,
+                        <code>coreOutsideCore</code> 71, <code>entriesMissingCore</code> 2).
+                      </li>
+                      <li>
+                        <code>core.js</code> 90.95 → 107.19 kB min (26.39 → 31.25 gz): the 16.6 kB of
+                        <code>BuiltInPacks</code> + <code>runtime.types</code> + <code>load</code> + Rolldown's helpers
+                        are back where they belong. Reported <code>core</code> 73.11 → 23.00 kB gz, because docs modules
+                        no longer count as core.
+                      </li>
+                      <li>
+                        A page with one button: 7 files / 46.49 kB gz → 3 files / 44.23 kB gz (dist files, Solid
+                        excluded). Dropdown 10 → 6 files, 68.08 → 65.70 kB.
+                      </li>
+                      <li>
+                        Family chunks the same or smaller (<code>ui-root</code> 9.04 → 8.92, <code>ui-modal</code> 9.22
+                        → 9.17 kB gz). <code>ui-markdown.js</code> is +0.12 kB min (gzip the same): the six
+                        <code>import()</code>s moved there from <code>MDEngine</code>.
+                      </li>
+                      <li>
+                        <b>The real <code>yarn build</code> still has ONE extra chunk,</b>
+                        <code>rolldown-runtime-&lt;hash&gt;.js</code> (1.2 kB), and every family imports it. Before this
+                        fix it had four: <code>BuiltInPacks</code>, <code>SiteData</code>, <code>runtime</code>,
+                        <code>rolldown-runtime</code>. The cause is the <code>styles</code> entry, which
+                        <code>yarn measure</code> doesn't build: <code>ThemeSheets</code>' lazy glob needs Rolldown's
+                        helpers, and <code>styles.js</code> doesn't load core. A new issue has the options.
+                      </li>
+                      <li>
+                        Tests:
+                        <a
+                          href="../../packages/ui/src/components/ui-root/RootLoader.test.ts"
+                          target="src-packages-ui-src-components-ui-root-rootloader-test-ts"
+                          ><code>RootLoader.test.ts</code></a
+                        >
+                        (4) and
+                        <a
+                          href="../../packages/ui/src/components/ui-markdown/MarkdownSanitizer.test.ts"
+                          target="src-packages-ui-src-components-ui-markdown-markdownsanitizer-test-ts"
+                          ><code>MarkdownSanitizer.test.ts</code></a
+                        >
+                        (2) are new.
+                      </li>
+                    </ul>
+                  </div>
+                </ui-content></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:12:56-04:00"
+              id="i13"
+              data-status="open"
+              data-phase="2"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#i13">I13</a>
+                  <span class="plan-title"
+                    >The real dist/ still has a rolldown-runtime chunk: the styles entry, which yarn measure doesn't
+                    build</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="2">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    After I12's fix, <code>yarn measure</code> passes, but a real <code>yarn build</code> still writes
+                    <code>rolldown-runtime-&lt;hash&gt;.js</code> (1.2 kB min, 0.65 gz). <code>core.js</code>,
+                    <code>styles.js</code> and every family import it, so every page makes one extra request. 93abde40's
+                    <code>dist/</code> had none.
+                  </p>
+                  <ul>
+                    <li>
+                      Why: since the Themes Port (8c2c785d), the <code>styles</code> entry holds code,
+                      <code>ThemeSheets</code>. Its lazy <code>import.meta.glob("./*.css")</code> needs Rolldown's
+                      helpers (<code>__exportAll</code> for <code>classic</code> / <code>dark</code>, which are static
+                      imports too; under <code>keepNames</code>, <code>__name</code> as well).
+                      <code>styles.js</code> never loads <code>core.js</code>, so Rolldown has no single chunk that both
+                      reach, and it splits the helpers out.
+                    </li>
+                    <li>
+                      Tried: loading <code>classic</code> / <code>dark</code> from their static imports. That drops
+                      <code>__exportAll</code>, but <code>styles.js</code> still does a bare
+                      <code>import "./rolldown-runtime.js"</code>. Without <code>ThemeSheets</code> the chunk is gone,
+                      so it's the glob's loaders. Reverted.
+                    </li>
+                    <li>
+                      <code>yarn measure</code> can't see it: it builds <code>core</code>, <code>forms</code>, the
+                      families and <code>api</code>, never <code>styles</code> or <code>index</code>.
+                    </li>
+                  </ul>
+                  <p>Options:</p>
+                  <ol>
+                    <li>
+                      Move <code>ThemeSheets</code> out of <code>@spell-app/ui/styles</code>, into the runtime
+                      (<code>UI.themes.apply()</code>, where <code>UI.styles</code> already is).
+                      <code>styles</code> goes back to pure data. This changes the API: callers are
+                      <code>&lt;ui-docs-themes&gt;</code>, <code>ThemePreference</code> and
+                      <a href="../../packages/brand/src/brand-ui.ts" target="src-packages-brand-src-brand-ui-ts"
+                        ><code>brand-ui.ts</code></a
+                      >.
+                    </li>
+                    <li>
+                      Export <code>ThemeSheets</code> from <code>@spell-app/ui/core</code> instead: about 1 kB more in
+                      <code>core.js</code>, same callers.
+                    </li>
+                    <li>
+                      Accept the chunk, and add <code>styles</code> to what <code>yarn measure</code> builds so the
+                      check shows it.
+                    </li>
+                  </ol></ui-content
                 ></ui-accordion
               ></ui-item
             ></ui-list
@@ -2820,6 +3180,42 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-05T20:47-04:00">2026-10-05 20:47</time></ui-date> Q5 answered: A
                   ui-only devWarn(): nothing added to the component bundles</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T21:12-04:00">2026-10-05 21:12</time></ui-date> I12 reply
+                  added</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T21:12-04:00">2026-10-05 21:12</time></ui-date> I12 reply
+                  added</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T21:16-04:00">2026-10-05 21:16</time></ui-date> I12 closed: yarn
+                  measure's structure checks already fail on main</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T21:16-04:00">2026-10-05 21:16</time></ui-date> C5 closed: Q4's
+                  spike couldn't test the Rolldown runtime chunk: main already has one (I12)</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T21:16-04:00">2026-10-05 21:16</time></ui-date> P2: E / F built
+                  (core.ts, forms.ts; api.ts re-exports them); yarn measure clean with them: core.js 108.9 kB min / 31.8
+                  gz; C5 resolved</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed
