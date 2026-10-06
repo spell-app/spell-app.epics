@@ -1,20 +1,418 @@
 <!-- plan-doc part:  #j3's details in outline-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Chose <code>a "card" is a thing</code> to work with or without a body, and <code>its "suit" is ...</code> only inside
-  one.
+  In P1 · Bullets And Bodies, quotes around a NEW name ("quotes teach a new word") were made to work in exactly two
+  places: a type's name in the line that declares it, with or without a body, and a property's name after
+  <code>its</code>, inside an outline body. You'd notice it when a quoted name works in one line and gives "Don't
+  understand" in another.
 </p>
 <ul>
   <li>
-    why: "quotes teach a new word" fits any declaration of a type; a quoted property needs <code>its</code>, which only
-    means the type in a body
+    In short: <code>a "card" is a thing</code> works with or without a body; <code>its "suit" is ...</code> works only
+    inside one.
   </li>
   <li>
-    a declaration (the editor's outline, the Type Explorer) names them WITHOUT quotes: <code>card</code>,
-    <code>suit</code>
+    "Outline body": the indented, bulleted lines under a type's heading, e.g. under
+    <code>a card is a thing where:</code>, where <code>it</code> / <code>its</code> mean a card.
   </li>
-  <li>the other way: quoted names only in outline bodies</li>
+  <li>
+    "Sentence style": today's way, one fact per line, each naming its type again:
+    <code>a card has a suit as one of ...</code>.
+  </li>
+  <li>Every line below was run through the parser on this branch (2026-10-06), in a throwaway test, since deleted.</li>
 </ul>
+
+<h4>What works and what doesn't</h4>
+<ui-table celled compact striped>
+  <table>
+    <thead>
+      <tr>
+        <th>Line</th>
+        <th>What spell does now</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>a "card" is a thing</code></td>
+        <td>Works, no body needed: <code>export class Card extends Thing {}</code>, as without quotes</td>
+      </tr>
+      <tr>
+        <td><code>a "deck" is a list of cards</code></td>
+        <td>Works: <code>class Deck extends List</code> with <code>static instanceType = Card</code></td>
+      </tr>
+      <tr>
+        <td><code>a "card" is a thing where:</code>, then a body</td>
+        <td>Works; so does <code>a "deck" is a list of cards with:</code></td>
+      </tr>
+      <tr>
+        <td><code>create a type called "hand" as a list of cards</code></td>
+        <td>
+          Fails, "Don't understand". Quoted names were added only to the <code>a ... is a ...</code> forms, so "anywhere
+          a type is declared" means those two forms, not this older one
+        </td>
+      </tr>
+      <tr>
+        <td><code>- its "suit" is one of clubs, diamonds</code> (in a body)</td>
+        <td>Works: <code>Card.Suits</code> and a <code>suit</code> property</td>
+      </tr>
+      <tr>
+        <td><code>- its "short rank" is a text</code> (in a body)</td>
+        <td>Works: a <code>short_rank</code> property holding text</td>
+      </tr>
+      <tr>
+        <td><code>- its "short rank" is text</code> (in a body)</td>
+        <td>
+          <b>Fails:</b> "Don't understand <code>text</code>", plus a junk empty <code>get short_rank() {}</code>. See
+          "Found while checking" below
+        </td>
+      </tr>
+      <tr>
+        <td><code>a card has a "suit" as one of clubs, diamonds</code></td>
+        <td>Fails, "Don't understand": the sentence style takes property names without quotes only</td>
+      </tr>
+      <tr>
+        <td><code>the "short name" of a card is: ...</code></td>
+        <td>Fails the same way</td>
+      </tr>
+      <tr>
+        <td><code>- it has a "suit" as a number</code> (in a body)</td>
+        <td>
+          Fails: <code>it has ...</code> is the sentence form with <code>it</code> for <code>a card</code>, so no quotes
+        </td>
+      </tr>
+      <tr>
+        <td><code>its "suit" is a number</code> (top level, no body)</td>
+        <td>Fails: <code>its</code> means the type only directly inside a type's body</td>
+      </tr>
+      <tr>
+        <td><code>- its suit is a number</code> (in a body, no quotes)</td>
+        <td>
+          Fails today. Your answer to Q4 (how a bullet declares a property) makes it work in P2 · Value Types: todo T3
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ui-accordion class="spell-code" styled
+  ><ui-title>classes.ts · the syntaxes that take quoted names · 9 lines</ui-title
+  ><ui-content>
+    <pre><code class="language-ts">// create_type
+"(a|an) {type:quoted_type} is (a|an) {superType:type}"
+`(a|an) {type:quoted_type} is (a|an) {superType:type} ${TYPE_BODY_SYNTAX}`
+// create_list_type
+"(a|an) {type:quoted_type} is (a|an) list of {instanceType:type}"
+`(a|an) {type:quoted_type} is (a|an) list of {instanceType:type} ${TYPE_BODY_SYNTAX}`
+// define_property_has, property_value_getter, its_quoted_property (for property_value_either)
+"{type:subject_its} {property:quoted_member} is {specifier:outline_specifier}"
+"{type:subject_its} {property:quoted_member} is :? {expression_body}?"
+"{type:subject_its} {property:quoted_member}"</code></pre>
+  </ui-content></ui-accordion
+>
+
+<h4>Why it went this way</h4>
+<ul>
+  <li>
+    Your rule (from Q3, curly quotes): "something in quotes means I'm teaching you new language". A type's declaration
+    is always where its word is taught, body or not, so a quoted type name means the same thing in both.
+    <ul>
+      <li>It also lets you write the quotes first and add the body later, without the line breaking in between.</li>
+    </ul>
+  </li>
+  <li>
+    A quoted property name needs a word in front saying WHOSE property it is. In the outline that word is
+    <code>its</code>, and <code>its</code> means the type only in a body (<code>subject_its</code> in
+    <a href="../../../packages/spell/src/rules/types.ts" target="src-packages-spell-src-rules-types-ts"
+      ><code>types.ts</code></a
+    >, which looks for the body's <code>P.SubjectScope</code>). At the top level there's no type for <code>its</code> to
+    mean.
+  </li>
+  <li>
+    The sentence style already frames a property's name with fixed words: <code>a card has ... as</code>,
+    <code>the ... of a card is</code>. The words in between are read up to <code>as</code> / <code>of</code>, so quotes
+    there would tell a reader nothing new.
+  </li>
+  <li>Smallest change: only the rules the outline needs got a quoted form.</li>
+</ul>
+
+<h4>The other ways it could have gone</h4>
+<ui-grid class="spell-pros-cons" columns="2" stackable>
+  <ui-column
+    ><ui-segment
+      ><ui-label attached="top">A · As built (recommended)</ui-label>
+      <ul>
+        <li>quoted type names in every <code>a ... is a ...</code> declaration, body or not</li>
+        <li>quoted property names only as <code>its "x"</code>, in a body</li>
+        <li>why recommended: quotes mean "a new word" wherever a word is taught, and nothing else changes</li>
+        <li>
+          cost: each type declaration tries 4 syntaxes (with or without a body, quoted or not): part of P1's +5% on the
+          speed test (caveat C5)
+        </li>
+      </ul></ui-segment
+    ></ui-column
+  >
+  <ui-column
+    ><ui-segment
+      ><ui-label attached="top">B · Quoted names only in outline bodies</ui-label>
+      <ul>
+        <li><code>a "card" is a thing where:</code> works; <code>a "card" is a thing</code> alone is an error</li>
+        <li>gain: quotes would mean "outline style" and nothing else; 1 fewer syntax per type rule</li>
+        <li>
+          cost: an error while you're typing a heading whose body isn't written yet; a test in
+          <a
+            href="../../../packages/spell/src/parserTests/outline.test.ts"
+            target="src-packages-spell-src-parsertests-outline-test-ts"
+            ><code>outline.test.ts</code></a
+          >
+          ("a list type's body, a quoted type name ...") changes
+        </li>
+      </ul></ui-segment
+    ></ui-column
+  >
+  <ui-column
+    ><ui-segment
+      ><ui-label attached="top">C · Quoted property names in sentences too</ui-label>
+      <ul>
+        <li><code>a card has a "suit" as one of ...</code>, <code>the "short name" of a card is: ...</code></li>
+        <li>
+          takes: a <code>{property:quoted_member}</code> syntax beside each <code>{property:member_words}</code> one:
+          <code>define_property_has</code> (<code>a card has</code>, <code>cards have</code>),
+          <code>the_property_of_a_thing</code> (feeds <code>property_value_either</code>),
+          <code>property_value_getter</code>'s <code>the "x" of a card is</code>. About 4 more registrations, their
+          tests, the ui highlighter bundle rebuilt
+        </li>
+        <li>collides with nothing found: today those lines are just "Don't understand"</li>
+        <li>cost: one more syntax tried on every sentence-style property line; two spellings for the same line</li>
+      </ul></ui-segment
+    ></ui-column
+  >
+</ui-grid>
+
+<h4>What a declaration shows</h4>
+<p>
+  The editor's outline (its symbol list) and the Type Explorer name things WITHOUT their quotes:
+  <code>card</code>, <code>suit</code>.
+</p>
+<ul>
+  <li>
+    Both ask the line's rule <code>getDeclaration(match)</code>, which names the thing with
+    <code>declaredText()</code> (<a
+      href="../../../packages/parser/src/rules/Rule.ts"
+      target="src-packages-parser-src-rules-rule-ts"
+      ><code>packages/parser/src/rules/Rule.ts</code></a
+    >).
+  </li>
+  <li>
+    The default is the source text. <code>quoted_type</code> and <code>quoted_member</code> override it to give the name
+    without quotes; <code>subject_it</code> / <code>subject_its</code> override it to give the type, <code>card</code>,
+    never <code>it</code>.
+  </li>
+</ul>
+<ui-table celled compact striped>
+  <table>
+    <thead>
+      <tr>
+        <th>Line</th>
+        <th>Declaration shown</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>a "card" is a thing</code></td>
+        <td>type <code>card</code></td>
+      </tr>
+      <tr>
+        <td><code>a "bank-account" is a thing</code></td>
+        <td>type <code>bank-account</code> (the class is <code>Bank_Account</code>)</td>
+      </tr>
+      <tr>
+        <td><code>a "Card" is a thing</code></td>
+        <td>type <code>Card</code></td>
+      </tr>
+      <tr>
+        <td><code>- its "short rank" is a number</code></td>
+        <td>property <code>short rank</code> of <code>card</code></td>
+      </tr>
+      <tr>
+        <td><code>- its "with jokers" is yes or no</code></td>
+        <td>property <code>with jokers</code> of <code>deck</code></td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ui-accordion class="spell-code" styled
+  ><ui-title>Rule.ts, types.ts, properties.ts · declaredText() · 12 lines</ui-title
+  ><ui-content>
+    <pre><code class="language-ts">// Rule.ts:  the default
+declaredText(match: P.Match): string {
+  return match.inputText.trimEnd()
+}
+
+// quoted_type (types.ts):  "A declaration names the type without its quotes, e.g. `card`."
+declaredText(match: P.Match): string {
+  return `${match.raw}`
+}
+
+// quoted_member (properties.ts):  "... names the member without its quotes, e.g. `short rank`."
+declaredText(match: P.Match): string { return `${match.raw}` }</code></pre>
+  </ui-content></ui-accordion
+>
+
+<h4>What a quoted name may hold</h4>
+<ul>
+  <li>
+    A type: ONE word, starting with a letter, then letters, digits, <code>_</code> or <code>-</code>, and not a reserved
+    word. The same word an unquoted <code>a card is</code> takes. The unit tests on <code>quoted_type</code> (in
+    <a href="../../../packages/spell/src/rules/types.ts" target="src-packages-spell-src-rules-types-ts"
+      ><code>types.ts</code></a
+    >):
+    <ul>
+      <li><code>"card"</code> is <code>Card</code></li>
+      <li><code>"bank-account"</code> is <code>Bank_Account</code></li>
+      <li><code>"playing card"</code> is refused: two words</li>
+      <li><code>"if"</code> is refused: a reserved word</li>
+    </ul>
+  </li>
+  <li>
+    A property: the words a property name takes without quotes (<code>member_words</code>), EVERY word inside the
+    quotes. No structural word (<code>of</code>, <code>the</code>, <code>is</code>, <code>as</code> ...), except that
+    the FIRST word may be one of <code>with</code>, <code>for</code>, <code>from</code>, <code>in</code>,
+    <code>on</code>, <code>by</code>, <code>at</code>, <code>into</code>. The unit tests on
+    <code>quoted_member</code> (in
+    <a href="../../../packages/spell/src/rules/properties.ts" target="src-packages-spell-src-rules-properties-ts"
+      ><code>properties.ts</code></a
+    >):
+    <ul>
+      <li><code>"rank"</code> is <code>rank</code></li>
+      <li><code>"short rank"</code> is <code>short_rank</code></li>
+      <li><code>"short-rank"</code> is <code>short_rank</code> too</li>
+      <li><code>"with jokers"</code> is <code>with_jokers</code></li>
+      <li><code>"rank of"</code> is refused: <code>of</code> is structural</li>
+    </ul>
+  </li>
+  <li>
+    So <code>its "short rank"</code> and <code>a card has a short rank</code> name the same property. One difference:
+    unquoted words just stop at a structural word (<code>jokers with</code> reads as <code>jokers</code>), while a
+    quoted name is refused whole.
+  </li>
+</ul>
+<ui-accordion class="spell-code" styled
+  ><ui-title>types.ts, properties.ts · what fits inside the quotes · 14 lines</ui-title
+  ><ui-content>
+    <pre><code class="language-ts">// types.ts:  quoted_type
+const QUOTED_TYPE_NAME = /^[A-Za-z][\w-]*$/
+const name = token.innerText
+if (!QUOTED_TYPE_NAME.test(name) || blacklist?.[name.toLowerCase()]) return undefined
+
+// properties.ts:  quoted_member
+const words = token.innerText.trim().split(/\s+/)
+const isMemberWord = (word: string, index: number) =&gt; {
+  const lower = word.toLowerCase()
+  return (
+    QUOTED_MEMBER_WORD.test(word) &amp;&amp;
+    (!MEMBER_STOP_WORDS.has(lower) || (index === 0 &amp;&amp; MEMBER_LEADING_WORDS.has(lower)))
+  )
+}
+return words[0] &amp;&amp; words.every(isMemberWord) ? words : undefined</code></pre>
+  </ui-content></ui-accordion
+>
+
+<h4>Found while checking (2026-10-06)</h4>
+<ol>
+  <li>
+    <b>A quoted type isn't known to the lines ABOVE it, so "works like the unquoted line" isn't fully true yet.</b>
+    <ul>
+      <li>
+        <code>a deck "is good" if it is a card</code>, above <code>a "card" is a thing</code>: "Don't understand
+        <code>is a card</code>". Without the quotes it works.
+      </li>
+      <li>
+        Why: before a project parses, a quick scan finds every type it declares, so a line can name a type declared
+        further down. The scan is a pattern, <code>SpellParser.TYPE_DECLARATION</code>, and it doesn't allow a quote:
+        <code>an?[ \t]+([\w-]+)[ \t]+is\b</code>.
+      </li>
+      <li>
+        Not hit by <code>a pile is a list of cards</code> above <code>a "card" is a thing</code>: that slot takes any
+        type word. It shows wherever a line needs a KNOWN type, like <code>is a card</code>.
+      </li>
+      <li>Fix: let the pattern take an optional quote on each side of the name. Small; not done.</li>
+    </ul>
+  </li>
+  <li>
+    <b
+      ><code>its "short rank" is text</code> fails, though <code>a card has a short rank as text</code> works: the two
+      styles don't mean the same yet (Q1, both styles with the same meaning).</b
+    >
+    <ul>
+      <li>
+        The outline's specifier, <code>outline_specifier_datatype</code>, needs the article:
+        <code>(a|an) {datatype:singular_type}</code>. The sentence style's makes it optional:
+        <code>as (a|an)? {datatype:singular_type}</code>.
+      </li>
+      <li>
+        Without the article, <code>text</code> is read as the value of a getter: a junk <code>get short_rank() {}</code>
+        and an error.
+      </li>
+      <li>
+        Likely why: after <code>is</code>, a bare word can be a value (<code>its "color" is red</code>), so the article
+        tells a type from a value. P2 · Value Types already reworks what follows <code>is</code> (<code
+          >is up or down</code
+        >
+        without <code>either</code>), so it fits there.
+      </li>
+    </ul>
+  </li>
+  <li>
+    Not about quotes, but the sketch's first line won't parse as written: <code>A “card” is a two sided thing</code>.
+    <ul>
+      <li>A capital <code>A</code> fails, quoted or not: <code>A card is a thing</code> is "Don't understand".</li>
+      <li>Curly quotes aren't quotes yet: Q3's answer deferred them out of this epic.</li>
+    </ul>
+  </li>
+</ol>
+
 <p><b>Net effect:</b></p>
 <ul>
-  <li><code>a "deck" is a list of cards</code> compiles as <code>a deck is a list of cards</code></li>
+  <li>
+    <code>a "deck" is a list of cards</code> compiles as <code>a deck is a list of cards</code>; the same for
+    <code>a "card" is a thing</code>, with or without a body
+  </li>
+  <li><code>create a type called "hand" ...</code> stays unquoted only</li>
+  <li>
+    quoted property names: only <code>its "x" ...</code> in a body; the sentence style stays unquoted (<code
+      >a card has a suit as ...</code
+    >)
+  </li>
+  <li>
+    the editor's outline and the Type Explorer show names without quotes: <code>card</code>, <code>short rank</code>
+  </li>
+  <li>P2 (todo T3) adds unquoted <code>its rank is a number</code> in a body, so quotes become optional there</li>
+  <li>
+    two gaps to fix, not done: the type scan should see <code>a "card" is</code>, and
+    <code>its "x" is text</code> should work like <code>as text</code>
+  </li>
 </ul>
+<ui-accordion class="spell-aside plan-original" styled
+  ><ui-title>Original Discussion</ui-title
+  ><ui-content
+    ><div class="plan-version">
+      <p>
+        Chose <code>a "card" is a thing</code> to work with or without a body, and <code>its "suit" is ...</code> only
+        inside one.
+      </p>
+      <ul>
+        <li>
+          why: "quotes teach a new word" fits any declaration of a type; a quoted property needs <code>its</code>, which
+          only means the type in a body
+        </li>
+        <li>
+          a declaration (the editor's outline, the Type Explorer) names them WITHOUT quotes: <code>card</code>,
+          <code>suit</code>
+        </li>
+        <li>the other way: quoted names only in outline bodies</li>
+      </ul>
+      <p><b>Net effect:</b></p>
+      <ul>
+        <li><code>a "deck" is a list of cards</code> compiles as <code>a deck is a list of cards</code></li>
+      </ul>
+    </div></ui-content
+  ></ui-accordion
+>
