@@ -551,6 +551,8 @@ every entry below that date was fixed or disproven;  what's left:
   `packages/app/AGENTS.md` says the demo runs "on the dev server".  Seen 2026-10-06 in worktree `output-targets`
   (epic `output-targets`, hand check V5);  not checked on `main`.  Prove:  open the demo page, or
   `curl -s localhost:<editor port>/element/spell-app.js | head -c 100`.
+  - FIXED on branch `output-targets` (`d3eae46a`, 2026-10-06):  `appRoutes.ts` serves `dist-element/` at
+    `/element`, and `vite.config.ts` proxies `/element` to the page server.  Drop this entry once it's on `main`.
 - `packages/app/src/runner/RunnerConsole.tsx` `RunnerConsole()`:  `const console = props.console` reads a prop in the
   component BODY, an untracked scope:  Solid 2's `STRICT_READ_UNTRACKED` should warn in dev, and a later
   `console` prop change is never seen.  Prove:  dev build, open a runner, look for the diagnostic;  fix with
