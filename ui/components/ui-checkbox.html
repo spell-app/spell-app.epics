@@ -350,6 +350,29 @@
                 </ui-docs-example>
               </ui-section>
 
+              <ui-section id="examples-examples-two-values" header="Two Values" sticky collapsible dividing>
+                <ui-docs-example>
+                  <p slot="description">
+                    Ours, not Fomantic's: <code>off-value</code> is what a box submits while unchosen, so the form always
+                    hears one of two values (<code>panel=open</code> or <code>panel=closed</code>).
+                  </p>
+                  <ui-form>
+                    <form>
+                      <ui-field
+                        ><ui-checkbox type="toggle" name="panel" value="open" off-value="closed"
+                          >Panel open</ui-checkbox
+                        ></ui-field
+                      >
+                      <ui-field
+                        ><ui-checkbox name="reply" value="yes" off-value="no" selected
+                          >Reply by email</ui-checkbox
+                        ></ui-field
+                      >
+                    </form>
+                  </ui-form>
+                </ui-docs-example>
+              </ui-section>
+
               <ui-message size="small" class="site-not-ported"
                 >Not ported: Using Callbacks, Checking Conditions and Attaching Events to other Elements -- they are
                 jQuery behaviours (<code>check</code>, <code>set checked</code>, <code>beforeChecked</code>,
@@ -383,7 +406,7 @@
                   A checkbox is a real form control.
 
                   - While chosen, it submits `name=value` with its form (`value` defaults to `on`, as natively); unchosen, it
-                    submits nothing.
+                    submits nothing, unless it has an `off-value` ("Two values", below).
                   - `form.reset()` restores the starting state, and a disabled `<fieldset>` disables it.
                   - `required` asks for it to be chosen.
                   - `disabled` leaves it out of the form; `readonly` keeps it in but cancels clicks.
@@ -391,11 +414,42 @@
               </ui-markdown>
             </ui-section>
 
+            <ui-section id="usage-two-values" header="Two values" sticky collapsible dividing>
+              <ui-markdown>
+                <script type="text/markdown">
+                  A native checkbox submits nothing while unchosen, so the server never hears "closed". `off-value` fixes
+                  that: `<ui-checkbox name="panel" value="open" off-value="closed">` submits `panel=open` while chosen and
+                  `panel=closed` while not -- no hidden input needed, the element submits it itself.
+
+                  - `form.values` (`<ui-form>`) reads the off-value instead of `false`; several boxes of one name list what
+                    each submits.
+                  - `required` still means "must be chosen": an off-value never satisfies it.
+                  - Radios have no `off-value`: their group submits the chosen one.
+                  - Needs JavaScript: a static server render (no script) submits nothing while unchosen, as a native box.
+                  - A subclass sets both values for every element it defines, with `@E.proto static` class defaults; the
+                    attributes still win on any one element.
+                </script>
+              </ui-markdown>
+              <ui-code language="js">
+                <script type="text/plain">
+                  import { E } from "@spell-app/ui/core"
+                  import { UICheckbox } from "@spell-app/ui/ui-checkbox"
+
+                  class UIDoor extends UICheckbox {
+                    @E.proto static onValue = "open"
+                    @E.proto static offValue = "closed"
+                  }
+                  UIDoor.define("ui-door") // <ui-door name="panel">Open</ui-door> submits panel=open / panel=closed
+                </script>
+              </ui-code>
+            </ui-section>
+
             <ui-section id="usage-events" header="Events" sticky collapsible dividing>
               <ui-markdown>
                 <script type="text/markdown">
-                  `ui-change` fires when the user chooses or unchooses, with `{ selected, value, originalEvent }`. Setting
-                  `selected` from code fires nothing -- Fomantic's `set checked`.
+                  `ui-change` fires when the user chooses or unchooses, with `{ selected, value, originalEvent }`. `value` is
+                  what the box stands for after the change: its `value`, or once unchosen its `off-value` when it has one.
+                  Setting `selected` from code fires nothing -- Fomantic's `set checked`.
                 </script>
               </ui-markdown>
               <ui-code language="js">
