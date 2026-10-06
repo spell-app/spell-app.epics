@@ -233,6 +233,59 @@
 
           <ui-section id="2026-10" header="October 2026" sticky collapsible dividing>
             <ui-section
+              id="docs-sidebar"
+              header="2026-10-06 · Docs Side Bar:  live reload over websockets"
+              sticky
+              collapsible
+              dividing
+            >
+              <ui-list class="spell-meta">
+                <ui-item icon="book"
+                  >Durable doc:
+                  <a href="server.html#live-reload" target="src-guides-server-html"
+                    >Page Server, live reload</a
+                  ></ui-item
+                >
+                <ui-item icon="code branch">Branch <code>docs-sidebar</code>, merged into main 2026-10-06</ui-item>
+              </ui-list>
+              <ul>
+                <li>
+                  The cause of the side bar's docs stalling on their placeholders (in one window and not another):
+                  Chrome allows 6 HTTP/1.1 connections per host, and every VS Code window shares them (one network
+                  process). Each live page held one for good, its live-reload <code>EventSource</code>, so 6 docs pages
+                  open anywhere left every other page's parts and scripts waiting forever.
+                </li>
+                <li>
+                  Live reload is a websocket now, which doesn't count toward the 6:
+                  <a href="../packages/server/src/webSocket.ts" target="src-packages-server-src-websocket-ts"
+                    ><code>packages/server/src/webSocket.ts</code></a
+                  >
+                  (the server's half, node built-ins only); <code>LiveReload</code> sends
+                  <code>{ event, data }</code> frames and a ping every 30s; <code>/_server/events</code> is a websocket
+                  upgrade.
+                </li>
+                <li>
+                  The page's live client connects over it, and reconnects by itself after a server restart (0.5s, then
+                  doubling to 10s).
+                </li>
+                <li>
+                  A plan doc's review inbox listens through the live client (<code>spell-server:file</code>) instead of
+                  opening a second connection of its own; <code>spell-ui.js</code> rebuilt.
+                </li>
+                <li>
+                  <code>spell dev window reload-view [--review]</code>: rebuilds a doc view from scratch, a new iframe
+                  at the page it shows, for a view gone wrong some other way (bridge op <code>reload-view</code>,
+                  <code>DocView.rebuild()</code>).
+                </li>
+                <li>
+                  Tests: the websocket's frames, more than 6 pages connected at once, a page closing its socket; the
+                  page server's live events over a real <code>WebSocket</code>; <code>reload-view</code> in the window
+                  CLI.
+                </li>
+              </ul>
+            </ui-section>
+
+            <ui-section
               id="merge-regen"
               header="2026-10-05 · Merge Regen:  generated files regenerate on merge"
               sticky
@@ -2305,11 +2358,12 @@
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
           <p class="meta">
-            Last updated 2026-10-06: wwod-spell-ui and output-targets added at their Doc Reviews (in worktrees). Before
-            that, 2026-10-05: merge-regen merged into main. Before that, 2026-10-05: claude-design merged into main
-            (moved to October). Before that, 2026-10-05: claude-design added at its Doc Review (in worktrees); before
-            that, 2026-10-05: design-system added at its Doc Review (in worktrees); before that, precedence-and-types
-            P10 added, and wwod at its Doc Review. Before that, 2026-10-04 from
+            Last updated 2026-10-06: docs-sidebar merged into main. Before that, 2026-10-06: wwod-spell-ui and
+            output-targets added at their Doc Reviews (in worktrees). Before that, 2026-10-05: merge-regen merged into
+            main. Before that, 2026-10-05: claude-design merged into main (moved to October). Before that, 2026-10-05:
+            claude-design added at its Doc Review (in worktrees); before that, 2026-10-05: design-system added at its
+            Doc Review (in worktrees); before that, precedence-and-types P10 added, and wwod at its Doc Review. Before
+            that, 2026-10-04 from
             <code>main</code> at <code>48627e28</code>, plus seo, spell-ui-pages, stay-put, epic-review, commands,
             vite-plus and markdown; precedence-and-types added from its worktree, 2026-10-04.
           </p>
