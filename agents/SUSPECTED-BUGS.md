@@ -329,6 +329,18 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 - `rules/Sequence.ts` `parse()`: author's `TODOC: WHY?? FOR USE AS A LITERAL STRING??` still unanswered.
 
+### 7. Found by epic `outline-spell` (2026-10-06, probing J8;  also on `main`)
+
+- `packages/spell/src/rules/classes.ts` `QuotedPropertyRule`:  a quoted phrase's rule, e.g. `is (red|black)` from
+  `a card "is (color)" for its colors`, never checks whose phrase it is:  `if the game is black` (a game, no such
+  phrase) compiles to `game.is_$color('black')` and throws a TypeError when run.  Two kinds sharing a value make it
+  likelier.  Prove:  that line after the card's phrase and `a game is a thing`.  Plan doc `outline-spell` J8, option C.
+- `assignment_statement` over a constant:  after a list of values holding `red`, `set red to 5` compiles to
+  `'red' = 5`, broken javascript.  Prove:  `cards have a color as either red or black`, then `set red to 5`.
+- the other way round:  `set red to 5` ABOVE `cards have a color as either red or black` gives
+  `Card.Colors = [red, 'black']`, i.e. `[5, 'black']`:  `identifier_list` takes the variable.  Prove:  those two
+  lines, in that order.
+
 ## parser
 
 ### 1. Behavior bugs

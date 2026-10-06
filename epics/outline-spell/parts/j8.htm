@@ -1,9 +1,432 @@
 <!-- plan-doc part:  #j8's details in outline-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  P2's goal said two kinds sharing a value shouldn't collide. Not needed: values are plain text when the code runs (your
-  Q10 answer), so <code>red</code> in two kinds is the same text, and both compile to <code>'red'</code>. Nothing
-  collides.
+  P2 · Value Types set out to keep two kinds that list the same value from colliding, and I dropped that goal. Values
+  are plain text when the code runs (your answer to Q10, "values stay text"), so <code>red</code> in two kinds is the
+  same text, and both compile to <code>'red'</code>. Checking it properly turned up one real collision, though: it isn't
+  in the values, it's in the phrases built from them. <code>if the game is red</code> calls the CARD's method, and the
+  program fails when it runs.
 </p>
 <ul>
-  <li>what would change it: values that are objects (Q10's other option)</li>
+  <li>
+    "Value kind": a list of values that is a kind of thing of its own, declared in a type's outline body, e.g.
+    <code>- "colors" as one of red, black</code> in a card's body makes the kind <code>color</code>.
+  </li>
+  <li>
+    "Known value": a word spell has already seen in a value list above the line it's reading. Inside the parser this is
+    a "constant", a <code>ScopeConstant</code>.
+  </li>
+  <li>
+    "Scoped to its kind": <code>red</code> would mean "a color" in a card's code and "a team" in a game's code, and a
+    word one kind doesn't list would be an error there.
+  </li>
+  <li>
+    Every spell line below was run through the parser on this branch (2026-10-06), with P2's uncommitted changes, in a
+    throwaway test since deleted.
+  </li>
 </ul>
+
+<h4>What P2 decided, and why</h4>
+<ul>
+  <li>
+    Values are plain text when the code runs (Q10), so <code>red</code> in two kinds is the same text: both compile to
+    <code>'red'</code>, and nothing in the compiled VALUES collides.
+  </li>
+  <li>What would change that: values that are objects (Q10's other option).</li>
+  <li>That still holds. What the check below adds: the values don't collide, but a few things that READ values do.</li>
+</ul>
+
+<h4>How values are stored today</h4>
+<ul>
+  <li>
+    One list for the whole project, <code>scope.constants</code>. Every value list adds its words to it:
+    <ul>
+      <li>
+        a value kind, <code>- "colors" as one of red, black</code> (<code>value_kind.mutateScope()</code> in
+        <a href="../../../../packages/spell/src/rules/classes.ts" target="src-packages-spell-src-rules-classes-ts"
+          ><code>classes.ts</code></a
+        >)
+      </li>
+      <li>
+        a sentence-style list,
+        <code>a card has a color as one of red, black</code> (<code>define_property_has.mutateScope()</code>, the same
+        line as on <code>main</code>)
+      </li>
+      <li>a getter's bare answer, <code>its "color" is red if ...</code> (<code>property_value_either</code>)</li>
+    </ul>
+  </li>
+  <li>
+    Two kinds listing <code>red</code> add TWO records named <code>red</code>, each remembering which line declared it.
+    A lookup by name, <code>scope.constants.get("red")</code>, always returns the FIRST one (<code
+      >ScopeList.get()</code
+    >
+    in
+    <a href="../../../../packages/parser/src/scope/ScopeList.ts" target="src-packages-parser-src-scope-scopelist-ts"
+      ><code>ScopeList.ts</code></a
+    >).
+  </li>
+  <li>
+    The data a scoped version would need is already there per kind: the kind's <code>P.TypeScope</code> has
+    <code>valueKind.values</code>, and its owner has the list, e.g. <code>Card.Colors</code>. Nothing reads them to
+    decide what a word means yet.
+  </li>
+</ul>
+<ui-accordion class="spell-code" styled
+  ><ui-title>classes.ts, constants.ts · how a value becomes known, and how it's read · 14 lines</ui-title
+  ><ui-content>
+    <pre><code class="language-ts">// value_kind.mutateScope() (and define_property_has's, the same):  every value goes in ONE project list
+values.forEach((value) =&gt; {
+  if (typeof value === "string") scope.constants?.add({ name: value, declaredBy: match })
+})
+
+// SpellConstant.parse():  any word, looked up by name -- the first record wins
+match.data.scopeConstant = scope.constants?.get(match.value) ?? NONE
+
+// known_constant.parse():  matches ONLY a word some list above already declared
+if (match?.data.scopeConstant !== NONE) return match
+return undefined</code></pre>
+  </ui-content></ui-accordion
+>
+
+<h4>What a bare word compiles to</h4>
+<ui-table celled compact striped>
+  <table>
+    <thead>
+      <tr>
+        <th>Spell</th>
+        <th>Compiles to</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>set x to purple</code>, nothing lists <code>purple</code></td>
+        <td>Error: "Don't understand". An unknown bare word is not a value</td>
+      </tr>
+      <tr>
+        <td><code>set x to red</code>, a card's body lists <code>red</code> above</td>
+        <td><code>export let x = 'red'</code></td>
+      </tr>
+      <tr>
+        <td><code>if x is red</code>, the same</td>
+        <td><code>if (x == 'red') { ... }</code></td>
+      </tr>
+      <tr>
+        <td><code>- its "color" is red if ...</code>, nothing lists <code>red</code></td>
+        <td><code>return 'red'</code>: a getter's answer takes any word, and makes it known</td>
+      </tr>
+      <tr>
+        <td>
+          a value named like a type: <code>- "pieces" as one of card, pile</code>, then <code>its piece is card</code>
+        </td>
+        <td><code>(this.piece == 'card')</code>: text, not the <code>Card</code> class. No collision</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+
+<h4>Where sharing a value does NOT matter</h4>
+<ul>
+  <li>
+    Two kinds, each comparing its own value: a card's <code>- it "is hot" if its color is red</code> and a game's
+    <code>- it "is home" if its team is red</code>.
+    <ul>
+      <li>Compile to <code>return (this.color == 'red')</code> and <code>return (this.team == 'red')</code>: right.</li>
+    </ul>
+  </li>
+  <li>
+    Two kinds, each with a property of the same name: <code>the "warmth" of a color is:</code> and
+    <code>the "warmth" of a team is:</code>, both with <code>- 1 if it is red</code>-style lines.
+    <ul>
+      <li>
+        Compile to <code>Color.warmth(color)</code> and <code>Team.warmth(team)</code>, and a game's
+        <code>its "heat" is the warmth of its team</code> to <code>return Team.warmth(this.team)</code>: the kind's
+        class keeps them apart already.
+      </li>
+    </ul>
+  </li>
+  <li>
+    A sentence-style list and a value kind sharing <code>hearts</code>:
+    <code>Card.Suits = ['clubs', 'hearts']</code> and <code>Deck.Marks = ['hearts', 'stars']</code>. Each property's
+    check uses its own list.
+  </li>
+  <li>
+    Top-level code: <code>if the color of the card is red</code> compiles to <code>if (card.color == 'red')</code>.
+  </li>
+</ul>
+
+<h4>Where it DOES matter (found 2026-10-06)</h4>
+<ol>
+  <li>
+    <b
+      >A phrase on one kind answers for another kind, and the program fails when it runs:
+      <code>if the game is red</code> calls the card's method.</b
+    >
+    <ul>
+      <li>
+        "Phrase": a quoted sentence with a <code>(placeholder)</code> filled from a value list, e.g.
+        <code>- it "is (color)" for its colors</code>, which lets you write <code>if the card is red</code>.
+      </li>
+      <li>
+        Each phrase becomes a rule that matches <code>is</code> plus one of ITS values, here
+        <code>is (red|black)</code>. That rule never checks whose phrase it is. With a card's
+        <code>"is (color)"</code> and a game's <code>"is (team)"</code>, <code>is red</code> fits both, and the card's,
+        declared first, wins.
+      </li>
+      <li>
+        The same happens with no shared value at all: with only the card's phrase,
+        <code>if the game is black</code> compiles to <code>game.is_$color('black')</code>. Sharing a value makes it hit
+        CORRECT code too.
+      </li>
+      <li>On <code>main</code> too, in the sentence style: <code>a card "is (color)" for its colors</code>.</li>
+    </ul>
+    <ui-accordion class="spell-code" styled
+      ><ui-title>The probe, and what it compiled to · 19 lines</ui-title
+      ><ui-content>
+        <pre><code class="language-spell">a card is a thing where:
+	- "colors" as one of red, black
+	- its "color" is a color
+	- it "is (color)" for its colors
+a game is a thing where:
+	- "teams" as one of red, blue
+	- its "team" is a team
+	- it "is (team)" for its teams
+set the card to a new card
+set the game to a new game
+if the game is red
+	print 1
+if the game is black
+	print 2
+if the card is blue
+	print 3</code></pre>
+        <pre><code class="language-js">if (game.is_$color('red')) { ... }    // TypeError: Game has no is_$color
+if (game.is_$color('black')) { ... }  // TypeError, and black isn't a team
+if (card.is_$team('blue')) { ... }    // TypeError: Card has no is_$team</code></pre>
+      </ui-content></ui-accordion
+    >
+  </li>
+  <li>
+    <b>Whether a line parses depends on ANOTHER kind declared above it.</b>
+    <ul>
+      <li>
+        A card's <code>- it "is odd" if its color is red or blue</code>, where <code>blue</code> is only a team:
+        <ul>
+          <li>
+            game declared BELOW the card, or no game: error, "Don't understand <code>or blue</code>" (line 4, column 35)
+          </li>
+          <li>
+            game declared ABOVE the card: no error, <code>return spellCore.includes(['red', 'blue'], this.color)</code>
+          </li>
+        </ul>
+      </li>
+      <li>
+        A card's <code>- it "is blue" if its color is blue</code>: an error with the game below, but
+        <code>return (this.color == 'blue')</code> with the game above. That's a test that can never be true, compiled
+        without a word.
+      </li>
+      <li>
+        Why: <code>is red or blue</code> reads as "one of" only when every word is a known value (<code
+          >value_choices</code
+        >
+        in
+        <a href="../../../../packages/spell/src/rules/lists.ts" target="src-packages-spell-src-rules-lists-ts"
+          ><code>lists.ts</code></a
+        >), known from ANY kind, and only from lines above. Moving the game up or down changes the card's meaning.
+      </li>
+    </ul>
+  </li>
+  <li>
+    Another kind's value can be assigned: <code>set the color of the card to blue</code> compiles to
+    <code>card.color = 'blue'</code>. The property's setter warns when it runs (<code>blue</code> isn't in
+    <code>Card.Colors</code>), so it's caught, but only then. <code>purple</code>, listed nowhere, is a parse error.
+  </li>
+  <li>
+    The editor (read from the code in
+    <a href="../../../../packages/lsp/src/SpellLanguageService.ts" target="src-packages-lsp-src-spelllanguageservice-ts"
+      ><code>SpellLanguageService.ts</code></a
+    >, not run):
+    <ul>
+      <li>
+        completion offers every kind's values wherever a value fits: after <code>its color is </code>, also
+        <code>blue</code>
+      </li>
+      <li>
+        "Go to definition" and "Find references" on <code>red</code> in the game's code go to the CARD's
+        <code>"colors"</code> line, since every use resolves to the first <code>red</code> record
+      </li>
+      <li>the Type Explorer is right: each kind lists its own <code>red</code></li>
+    </ul>
+  </li>
+</ol>
+
+<h4>Found while checking, not about kinds</h4>
+<p>Both happen on <code>main</code> too, with a sentence-style list. Scoping values to kinds wouldn't fix either.</p>
+<ol>
+  <li>
+    <b>A value can't be used as a variable's name afterwards, and the output is broken JavaScript.</b>
+    <code>a card has a color as one of red, black</code>, then <code>set red to 5</code>, compiles to
+    <code>'red' = 5</code>: the browser refuses to load it ("Invalid left-hand side in assignment").
+  </li>
+  <li>
+    The other way round, a variable named like a value is read as the variable: <code>set red to 5</code> ABOVE
+    <code>- "colors" as one of red, black</code> compiles to <code>Card.Colors = [red, 'black']</code>, i.e.
+    <code>[5, 'black']</code>, and <code>its color is red</code> to <code>this.color == red</code>.
+  </li>
+</ol>
+
+<h4>What scoping values to their kind would take</h4>
+<ul>
+  <li>
+    Where values would live: on their kind, which already has them (<code>valueKind.values</code>); the project list
+    kept only for words nobody owns (a getter's <code>red</code> with no list).
+  </li>
+  <li>
+    The hard part: spell reads <code>red</code> before it knows what kind is wanted. Every place that reads a value
+    would need "the kind expected here", passed in while parsing:
+    <ul>
+      <li>
+        a comparison, <code>its color is red</code>: from the left side. Today an operator after a value (<code
+          >is red</code
+        >) is parsed WITHOUT seeing the left side (<code>compound_expression.parse()</code> in
+        <a
+          href="../../../../packages/spell/src/rules/expressions.ts"
+          target="src-packages-spell-src-rules-expressions-ts"
+          ><code>expressions.ts</code></a
+        >), so this is new plumbing
+      </li>
+      <li>
+        <code>is red or blue</code> (<code>value_choices</code>) and <code>is one of ...</code> (<code>is_in</code>)
+      </li>
+      <li>an assignment, <code>set the color of the card to red</code>: from the property</li>
+      <li>a getter's answer, <code>its "color" is red if ...</code>: from the property, when it has a kind</li>
+      <li>a phrase's placeholder: from its own list (it already matches only those words)</li>
+    </ul>
+  </li>
+  <li>
+    Sentence-style lists (<code>a card has a color as one of ...</code>) have no kind, only a property: their values
+    would be scoped to the property, a second case.
+  </li>
+  <li>
+    A word with no expected kind, <code>set x to red</code> at the top level: still the project list, or an error asking
+    which <code>red</code>.
+  </li>
+  <li>The editor: completion and "go to definition" by expected kind.</li>
+  <li>
+    Size: a phase of its own. <code>constants.ts</code>,
+    <a href="../../../packages/spell/src/rules/lists.ts" target="src-packages-spell-src-rules-lists-ts"
+      ><code>lists.ts</code></a
+    >,
+    <a href="../../../packages/spell/src/rules/expressions.ts" target="src-packages-spell-src-rules-expressions-ts"
+      ><code>expressions.ts</code></a
+    >,
+    <a href="../../../packages/spell/src/rules/assignment.ts" target="src-packages-spell-src-rules-assignment-ts"
+      ><code>assignment.ts</code></a
+    >,
+    <a href="../../../packages/spell/src/rules/classes.ts" target="src-packages-spell-src-rules-classes-ts"
+      ><code>classes.ts</code></a
+    >, <code>ScopeConstant</code>, the language server, their tests, the snapshots, and the ui highlighter bundle
+    rebuilt. What it buys is compile-time errors; what the code does when it runs doesn't change, since values stay
+    text.
+  </li>
+</ul>
+
+<h4>The ways to go</h4>
+<ui-grid class="spell-pros-cons" columns="2" stackable>
+  <ui-column
+    ><ui-segment
+      ><ui-label attached="top">A · Keep as is</ui-label>
+      <ul>
+        <li>values stay one project-wide list of text; nothing changes</li>
+        <li>gain: no work; the compiled values are right</li>
+        <li>
+          cost: <code>if the game is red</code> still fails when it runs; a line's meaning still depends on other kinds
+          above it
+        </li>
+        <li>not recommended: the evidence shows a real collision</li>
+      </ul>
+      <pre><code class="language-js">// if the game is red
+game.is_$color('red') // TypeError</code></pre>
+    </ui-segment></ui-column
+  >
+  <ui-column
+    ><ui-segment
+      ><ui-label attached="top">B · Scope values to their kind</ui-label>
+      <ul>
+        <li><code>red</code> means a color in a card's code, a team in a game's</li>
+        <li>gain: <code>its color is blue</code> is "blue isn't a color", wherever the game is</li>
+        <li>gain: completion and "go to definition" by kind</li>
+        <li>
+          cost: a phase of its own (see above): the expected kind threaded through every place that reads a value;
+          sentence-style lists scoped to their property
+        </li>
+        <li>runtime unchanged: values stay text (Q10)</li>
+      </ul>
+      <pre><code class="language-spell">- its color is red or blue
+# error: blue isn't a color</code></pre>
+    </ui-segment></ui-column
+  >
+  <ui-column
+    ><ui-segment
+      ><ui-label attached="top">C · Check the left side (recommended)</ui-label>
+      <ul>
+        <li>values stay one project list (J8's drop stands); only the readers that misfire are fixed</li>
+        <li>
+          a phrase applies only to its own type: <code>the game is red</code> picks the game's <code>"is (team)"</code>;
+          <code>the game is black</code> is an error
+        </li>
+        <li>
+          comparing a value kind to words it doesn't list is an error: <code>its color is blue</code> says "blue isn't a
+          color", above or below
+        </li>
+        <li>
+          how: <code>compound_expression</code> hands the left side's type to the operator after it (the first step B
+          needs anyway); a left side of unknown type (<code>it</code> in a method) passes
+        </li>
+        <li>cost: about a day; a P2 follow-up, or its own issue</li>
+        <li>why recommended: fixes the one runtime failure and the order trap, at a fraction of B, and leads to B</li>
+      </ul>
+      <pre><code class="language-js">// if the game is red
+game.is_$team('red')</code></pre>
+    </ui-segment></ui-column
+  >
+</ui-grid>
+<p>
+  Either way, the two bugs under "Found while checking" (<code>'red' = 5</code>, and a variable read inside a value
+  list) are separate: they belong in
+  <a href="../../../agents/SUSPECTED-BUGS.md" target="src-agents-suspected-bugs-md"
+    ><code>agents/SUSPECTED-BUGS.md</code></a
+  >
+  or an issue of their own.
+</p>
+
+<p><b>Net effect</b> (C, recommended):</p>
+<ul>
+  <li>
+    values stay plain text in one project-wide list: <code>red</code> in two kinds still compiles to <code>'red'</code>
+  </li>
+  <li><code>if the game is red</code> compiles to <code>game.is_$team('red')</code>, not the card's method</li>
+  <li>
+    <code>if the game is black</code>, when a game lists no <code>black</code>, is a parse error, not a runtime
+    TypeError
+  </li>
+  <li>
+    <code>its color is red or blue</code> is "blue isn't a color" whether or not another kind above lists
+    <code>blue</code>
+  </li>
+  <li>editor completion and "go to definition" still see every kind's values (B's, if ever)</li>
+  <li>the two older bugs (<code>set red to 5</code>, a variable inside a value list) logged separately; still there</li>
+  <li>what would change this call: values that are objects (Q10's other option)</li>
+</ul>
+<ui-accordion class="spell-aside plan-original" styled
+  ><ui-title>Original Discussion</ui-title
+  ><ui-content
+    ><div class="plan-version">
+      <p>
+        P2's goal said two kinds sharing a value shouldn't collide. Not needed: values are plain text when the code runs
+        (your Q10 answer), so <code>red</code> in two kinds is the same text, and both compile to <code>'red'</code>.
+        Nothing collides.
+      </p>
+      <ul>
+        <li>what would change it: values that are objects (Q10's other option)</li>
+      </ul>
+    </div></ui-content
+  ></ui-accordion
+>
