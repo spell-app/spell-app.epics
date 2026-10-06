@@ -79,8 +79,10 @@ SEE:  `packages/server/AGENTS.md` for `$/server` itself (`SRV.Router`, `SRV.WebS
   - All files that run on the server end with `.server.ts`:  `environment.server.ts`, `projectUtils.server.ts`.
     - The suffix IS the signal:  a reader (Owen) knows from the name alone that the file never runs in a browser.
       So NEVER a server-only file without it, and NEVER `.server.ts` on code a browser bundle loads -- not even a
-      catalog or table only server code reads (`StaticCatalog.server.ts`).  (Owen, 2026-10-06, epic `wwod-spell-ui`
+      catalog or table only server code reads (`StaticCatalog.ssr.ts`).  (Owen, 2026-10-06, epic `wwod-spell-ui`
       J7.)
+    - `.ssr.ts` ~== `.server.ts` (shorter;  tests `<Name>.ssr.test.ts`), e.g. `ui`'s static render,
+      `packages/ui/src/static/StaticRender.ssr.ts`.  (Owen, 2026-10-06, epic `wwod-spell-ui` J19.)
   - Its server-only types:  `<folder>.types.server.ts` (above, "Shared constants live in `<folder>.types.ts`").
   - Anything touching the file system, `process` or node built-ins is server code.
   - Today's `src/node/` folders (`$/spell/node/...`, WWOD §4) predate the suffix:  `agents/CODE-DEBT.md`.

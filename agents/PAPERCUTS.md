@@ -1085,6 +1085,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## docs
 
+- 2026-10-06 · `/epic review output-targets`:  Owen picked option A on two JUDGEMENT CALLS (J1, J2:  their option
+  cards, A the one already chosen), and `spell dev plan-doc inbox <name> apply` left them:  "not a question:  can't
+  pick A".  The page offers Choose on a judgement call's cards, but `apply` only takes picks on questions. · Applied
+  by hand:  `plan-doc review <name> <id> "picked A ..."`, `close`, `inbox clear`.  Fix:  `apply` should treat a pick
+  of a judgement call's chosen card as an approval (or the page shouldn't offer Choose there). · docs (plan-doc
+  inbox)
 - 2026-10-01 · `tidy()` (`packages/docs/tools/pages.js`) failed on a page outside `packages/docs`:  oxfmt
   refuses any path containing `..` ("PATH must not contain \"..\""), and `tidy()` runs in `packages/docs`. ·
   Pass ABSOLUTE paths to `tidy()`:  oxfmt and `doc-links.py` both accept them (`packages/docs/tools/goals/goals.js`
