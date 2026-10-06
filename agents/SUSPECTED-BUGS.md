@@ -2,6 +2,10 @@
 
 Things that look like bugs but haven't been confirmed.  Add to the right section, under its package;  when one is confirmed and
 fixed, or disproven, delete it (note a disproof in a line at the top if the reasoning is worth keeping).
+- Fixed 2026-10-06 (outline-spell P2, value kinds;  branch `outline-spell`, not yet merged):  `its suit is diamonds or
+  hearts` compiled to `(this.suit == 'diamonds') || 'hearts'`, always true (now `spellCore.includes(...)`, rule
+  `value_choices`);  `the color of a suit is ...` / `a rank "is ..." if ...` on a type nobody declared compiled against
+  a class that doesn't exist (now a parse error, `SpellStatement.refuseUnknownType()`).
 - Fixed 2026-10-02 (unified-server P6, the app's API off Express):  `:filePath*` kept only the first segment (nested
   project files 404 / EISDIR);  an unknown `DELETE /api/...` missed the API's own 404.
 - Fixed 2026-10-04 (precedence-and-types P3, binding power):  `draw the cards of the deck` as an expression gave
@@ -324,18 +328,6 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 - `rules/if.ts` `else_if`: is `priority` (was `precedence`) load-bearing, or does rule order suffice?
 
 - `rules/Sequence.ts` `parse()`: author's `TODOC: WHY?? FOR USE AS A LITERAL STRING??` still unanswered.
-
-### 7. Found by epic `outline-spell` (2026-10-05, probing the outline sketch)
-
-- `packages/spell/src/rules/expressions.ts` `is` + `or`:  `the color of a card is red if its suit is diamonds or
-  hearts otherwise ...` compiles the test to `(this.suit == 'diamonds') || 'hearts'`, which is ALWAYS true.  Today's
-  `Card.spell` dodges it with `is either`.  Same root as caveat C5 of `precedence-and-types` (`or` is both an operator
-  and a list separator).  Prove:  compile that line, read the `if`.
-- `packages/spell/src/rules/classes.ts` `property_value_getter` / `quoted_type_expression`:  an UNDECLARED singular
-  word is taken as a type, e.g. `the color of a suit is ...` or `a rank "is a face card" if ...` with no `suit` /
-  `rank` type:  it parses and compiles to `Object.defineProperty(Suit.prototype, ...)` / `Rank.prototype` with no such
-  class, so it throws at runtime.  Expected:  a parse error ("no type `suit`").  Prove:  either line after only
-  `a card is a thing`.
 
 ## parser
 
