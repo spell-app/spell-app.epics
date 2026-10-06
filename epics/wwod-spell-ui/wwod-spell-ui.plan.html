@@ -408,6 +408,1559 @@
               for review.
             </p>
           </ui-section>
+          <ui-section
+            id="o4"
+            header="1.4 Boolean names: is / has / can, or bare?"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <p>
+              The proposal for <a href="#p13">P13</a> (Boolean Names): which true / false names in our code start with
+              <code>is</code> / <code>has</code> / <code>can</code> (<code>isOpen</code>) and which are a bare word
+              (<code>open</code>). Nothing is renamed yet: you pick on the page, in five questions,
+              <a href="#q22">Q22</a> to <a href="#q26">Q26</a>, and a later phase does the renames. You'd notice the
+              problem reading any controller: <code>this.attrs.open</code> (what the page author wrote),
+              <code>this.isOpen()</code> (what we worked out) and <code>this.open.get()</code> (a cell) can all sit in
+              one class.
+            </p>
+
+            <h4 id="o4-settled">Already settled</h4>
+            <ul>
+              <li>
+                Public element API stays bare, like the platform (you, 2026-10-06, <a href="#j13">J13</a>; WWOD §3's
+                exception): attributes, element properties, <code>:state()</code>, event <code>detail</code>.
+                <code>el.open</code>, <code>nag.dismissed</code>, <code>el.readOnly</code>.
+              </li>
+              <li>
+                Earlier renames already went toward <code>is</code> / <code>has</code>:
+                <ul>
+                  <li>
+                    <a href="#j12">J12</a>a: <code>UIElement.isLoaded</code> / <code>isConnected</code> /
+                    <code>isFormDisabled</code>, <code>PartContextProps.isDirect</code>
+                  </li>
+                  <li>
+                    J12b (commit <code>c9b6aaa8</code>): the controller's word matches the public word, prefixed
+                    (<code>isVisible</code>, <code>isCollapsed</code>, <code>isVeiled</code> ...)
+                  </li>
+                  <li><a href="#j30">J30</a>: <code>UI.browser.isReducedMotion</code> / <code>isDark</code></li>
+                </ul>
+              </li>
+              <li>So this section is about everything else: the names only our own code sees.</li>
+            </ul>
+
+            <h4 id="o4-counted">How the numbers were counted</h4>
+            <ul>
+              <li>
+                A one-off script (not committed) ran TypeScript 6's type checker over every package with a
+                <a href="../../packages/ui/tsconfig.json" target="src-packages-ui-tsconfig-json"
+                  ><code>tsconfig.json</code></a
+                >
+                (all 14, <code>util</code> to <code>vscode</code>) and listed every declaration whose type is
+                <code>boolean</code> (or <code>boolean | undefined</code>): 2,170 in all, 1,971 outside test files.
+              </li>
+              <li>
+                Each name is sorted by its shape:
+                <ul>
+                  <li><b>is / has / can</b>: <code>isOpen</code>, <code>hasIcon</code>, <code>canAdd</code></li>
+                  <li>
+                    <b>other verb</b>: <code>should</code> / <code>was</code> / <code>did</code> / <code>needs</code> /
+                    <code>uses</code> / <code>shows</code> ... (<code>wasCancelled</code>, <code>showToolbar</code>)
+                  </li>
+                  <li>
+                    <b>bare</b>: everything else (<code>open</code>, <code>scrolls</code>, <code>ignoreCase</code>)
+                  </li>
+                  <li><b>CONST</b>: <code>ISOLATE_ERRORS</code></li>
+                </ul>
+              </li>
+              <li>
+                <b>Sites</b> = the declaration plus every reference TypeScript's <code>findReferences</code> finds, in
+                every package that compiles the file (tests included), each counted once even when overrides share them.
+                So a site is one identifier a rename would change.
+              </li>
+              <li>
+                Not counted: mentions in <code>.md</code> docs and comments, and names reached through a string
+                (<code>setState("isLoaded")</code>). The rename phase greps for those.
+              </li>
+              <li>
+                Why not <code>git grep</code>: words like <code>open</code>, <code>active</code> and
+                <code>selected</code> match thousands of unrelated lines; the checker knows which <code>open</code> is a
+                boolean.
+              </li>
+            </ul>
+
+            <h4 id="o4-survey">The survey, by kind (outside tests)</h4>
+            <ui-table compact celled>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Kind</th>
+                    <th>is / has / can</th>
+                    <th>other verb</th>
+                    <th>bare</th>
+                    <th>Section</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Getters, and methods with no arguments, on our classes (not hosts)</td>
+                    <td>112</td>
+                    <td>3</td>
+                    <td>49</td>
+                    <td><a href="#o4-1">1.4.1</a></td>
+                  </tr>
+                  <tr>
+                    <td>Cells, memos and plain fields (instance)</td>
+                    <td>113</td>
+                    <td>6</td>
+                    <td>58</td>
+                    <td><a href="#o4-2">1.4.2</a></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Runtime services (<a href="../../packages/ui/src/runtime/" target="src-packages-ui-src-runtime"
+                        ><code>ui/src/runtime/</code></a
+                      >; also counted in the other rows)
+                    </td>
+                    <td>32</td>
+                    <td>2</td>
+                    <td>71</td>
+                    <td><a href="#o4-3">1.4.3</a></td>
+                  </tr>
+                  <tr>
+                    <td>Settings: option / props types (243) and static class switches (107, 3 of them CONST)</td>
+                    <td>32</td>
+                    <td>20</td>
+                    <td>295</td>
+                    <td><a href="#o4-4">1.4.4</a></td>
+                  </tr>
+                  <tr>
+                    <td>Data records we define (plus 17 public event <code>detail</code> fields, all bare, settled)</td>
+                    <td>30</td>
+                    <td>1</td>
+                    <td>163</td>
+                    <td><a href="#o4-5">1.4.5</a></td>
+                  </tr>
+                  <tr>
+                    <td>Locals, parameters, local accessors</td>
+                    <td>217</td>
+                    <td>13</td>
+                    <td>350</td>
+                    <td><a href="#o4-6">1.4.6</a></td>
+                  </tr>
+                  <tr>
+                    <td>Functions and methods with arguments that return a boolean</td>
+                    <td>169</td>
+                    <td>16</td>
+                    <td>173</td>
+                    <td><a href="#o4-6">1.4.6</a></td>
+                  </tr>
+                  <tr>
+                    <td>Host members (public element API, settled)</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>17</td>
+                    <td><a href="#j13">J13</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p>
+              Most "bare" methods and functions are not yes / no questions at all: they're verbs
+              (<code>matches()</code>) or actions that report success (<code>requestClose(): boolean</code>). The
+              sections below sort them.
+            </p>
+
+            <h4 id="o4-platform">What the platform does</h4>
+            <ui-table compact celled>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Bare</th>
+                    <th>is / has / can</th>
+                    <th>A verb</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      state on elements: <code>el.open</code>, <code>el.hidden</code>, <code>input.checked</code>,
+                      <code>img.complete</code>, <code>video.paused</code>
+                    </td>
+                    <td>
+                      <code>node.isConnected</code>, <code>el.isContentEditable</code>, <code>event.isTrusted</code>,
+                      <code>entry.isIntersecting</code>, <code>window.isSecureContext</code>
+                    </td>
+                    <td>
+                      <code>el.matches(selector)</code>, <code>node.contains(other)</code>, <code>set.has(x)</code>,
+                      <code>CSS.supports(...)</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      settings: <code>{ once, passive, capture }</code>, <code>EventInit</code>'s
+                      <code>{ bubbles, cancelable, composed }</code>, <code>attachShadow({ delegatesFocus })</code>
+                    </td>
+                    <td>
+                      yes / no functions: <code>node.isSameNode(n)</code>, <code>node.hasChildNodes()</code>,
+                      <code>el.hasAttribute(name)</code>, <code>Array.isArray(x)</code>,
+                      <code>navigator.canShare()</code>
+                    </td>
+                    <td>
+                      actions that return true / false: <code>el.checkValidity()</code>,
+                      <code>target.dispatchEvent(e)</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      records: <code>validity.valid</code>, <code>response.ok</code>,
+                      <code>event.defaultPrevented</code>, <code>event.ctrlKey</code>
+                    </td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>The platform's bare words are mostly PUBLIC state (what J13 copies) and SETTINGS.</li>
+              <li>
+                It reaches for <code>is</code> / <code>has</code> where the bare word would be a noun or unclear
+                (<code>isConnected</code>, <code>isIntersecting</code>, <code>isSameNode</code>), and for yes / no
+                functions.
+              </li>
+              <li>It's not consistent: one rule can't just say "do what the platform does".</li>
+            </ul>
+
+            <ui-section
+              id="o4-1"
+              header="1.4.1 Controller members: getters and methods"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <p>
+                Members a controller (the <code>UIElement</code> subclass behind a <code>&lt;ui-*&gt;</code> tag), or
+                any other class of ours, offers its own code: <code>isOpen()</code>, <code>isDisabled()</code> (a hook
+                every element may override), <code>get isDirty</code>. A page author never sees them: the host's API is
+                the public one.
+              </p>
+              <ui-table compact celled>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Shape</th>
+                      <th>Real examples</th>
+                      <th>How many</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>is / has / can</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/components/ui-dropdown/UIDropdown.tsx"
+                          target="src-packages-ui-src-components-ui-dropdown-uidropdown-tsx"
+                          ><code>UIDropdown.tsx:187</code></a
+                        >
+                        <code>isOpen()</code>;
+                        <a
+                          href="../../packages/ui/src/elements/UIElement.tsx"
+                          target="src-packages-ui-src-elements-uielement-tsx"
+                          ><code>UIElement.tsx:284</code></a
+                        >
+                        <code>isDisabled()</code> (the hook, 21 declarations with its overrides);
+                        <a
+                          href="../../packages/ui/src/components/ui-checkbox/CheckControl.tsx"
+                          target="src-packages-ui-src-components-ui-checkbox-checkcontrol-tsx"
+                          ><code>CheckControl.tsx:95</code></a
+                        >
+                        <code>isSelected()</code>;
+                        <a
+                          href="../../packages/util/src/spell/Loadable.ts"
+                          target="src-packages-util-src-spell-loadable-ts"
+                          ><code>Loadable.ts:66</code></a
+                        >
+                        <code>get isLoaded</code>
+                      </td>
+                      <td>112</td>
+                    </tr>
+                    <tr>
+                      <td>bare adjective (state)</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/components/ui-checkbox/CheckControl.tsx"
+                          target="src-packages-ui-src-components-ui-checkbox-checkcontrol-tsx"
+                          ><code>CheckControl.tsx:211</code></a
+                        >
+                        <code>indeterminate()</code> (and
+                        <a
+                          href="../../packages/ui/src/components/ui-checkbox/UICheckbox.tsx"
+                          target="src-packages-ui-src-components-ui-checkbox-uicheckbox-tsx"
+                          ><code>UICheckbox.tsx:42</code></a
+                        >);
+                        <a
+                          href="../../packages/ui/src/components/ui-tab/UITab.tsx"
+                          target="src-packages-ui-src-components-ui-tab-uitab-tsx"
+                          ><code>UITab.tsx:74</code></a
+                        >
+                        <code>ownSelected()</code>;
+                        <a
+                          href="../../packages/util/src/spell/Loadable.ts"
+                          target="src-packages-util-src-spell-loadable-ts"
+                          ><code>Loadable.ts:123</code></a
+                        >
+                        <code>get cacheIsValid</code>;
+                        <a href="../../packages/docs/tools/plan-doc.js" target="src-packages-docs-tools-plan-doc-js"
+                          ><code>plan-doc.js:347</code></a
+                        >
+                        <code>get bedtime</code>
+                      </td>
+                      <td>5</td>
+                    </tr>
+                    <tr>
+                      <td>a verb that already asks the question</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/components/ui-section/UISection.tsx"
+                          target="src-packages-ui-src-components-ui-section-uisection-tsx"
+                          ><code>UISection.tsx:240</code></a
+                        >
+                        <code>scrolls()</code>;
+                        <a
+                          href="../../packages/ui/src/components/ui-placeholder/PlaceholderShape.tsx"
+                          target="src-packages-ui-src-components-ui-placeholder-placeholdershape-tsx"
+                          ><code>PlaceholderShape.tsx:29</code></a
+                        >
+                        <code>holdsShapes()</code>;
+                        <a
+                          href="../../packages/ui/src/elements/SourceElement.tsx"
+                          target="src-packages-ui-src-elements-sourceelement-tsx"
+                          ><code>SourceElement.tsx:196</code></a
+                        >
+                        <code>readsInline()</code>;
+                        <a
+                          href="../../packages/ui/src/runtime/Browser.ts"
+                          target="src-packages-ui-src-runtime-browser-ts"
+                          ><code>Browser.ts:139</code></a
+                        >
+                        <code>popoverHintReflects()</code>
+                      </td>
+                      <td>8</td>
+                    </tr>
+                    <tr>
+                      <td>settings copied from props</td>
+                      <td>
+                        <a href="../../packages/util/src/spell/Task.ts" target="src-packages-util-src-spell-task-ts"
+                          ><code>Task.ts:71</code></a
+                        >
+                        <code>get optional</code>;
+                        <a href="../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
+                          ><code>AST.ts:375</code></a
+                        >
+                        <code>get wrap</code> (5 classes); <code>get echoInTests</code> (4);
+                        <code>get autoUpdateContentsOnSave</code> (4)
+                      </td>
+                      <td>17</td>
+                    </tr>
+                    <tr>
+                      <td>actions that return true / false</td>
+                      <td>
+                        <code>UINag.show()</code>, <code>DismissalStore.dismiss()</code>,
+                        <code>FileLock.tryAcquire()</code>,
+                        <a href="../../packages/docs/tools/plan-doc.js" target="src-packages-docs-tools-plan-doc-js"
+                          ><code>plan-doc.js</code></a
+                        >'s <code>migrate*()</code>
+                      </td>
+                      <td>~20</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ui-accordion class="spell-code" styled
+                ><ui-title>CheckControl.tsx · UITab.tsx · two shapes in one family · 16 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">// CheckControl.tsx:95
+isSelected(): boolean {
+  return !!this.selectedState.get() || (isServer &amp;&amp; this.initial)
+}
+
+// CheckControl.tsx:211
+/** Neither on nor off?  Checkbox only;  tracked. */
+protected indeterminate(): boolean {
+  return false
+}
+
+// UITab.tsx:74
+/** Its own `selected` (or `active`):  the tabs read it for the first pane to show.  Tracked. */
+ownSelected(): boolean {
+  return this.attrs.selected || E.Converters.boolean(this.activeAttribute.get(), UIT.ACTIVE)
+}</code></pre>
+                </ui-content></ui-accordion
+              >
+              <p><b>Counter-examples</b>, where the other form reads better or is forced:</p>
+              <ul>
+                <li>
+                  A verb: <code>scrolls()</code> asks "is the content its own scroll box?";
+                  <code>isScrolling()</code> would mean "is it moving right now". <code>holdsShapes()</code>, like the
+                  platform's <code>matches()</code>, needs no prefix.
+                </li>
+                <li>
+                  Forced: a member that fills a platform contract keeps the platform's name:
+                  <code>static formAssociated</code>, <code>delegatesFocus</code> (<a href="#o4-8">1.4.8</a>),
+                  <code>FormHost.willValidate</code> / <code>checkValidity()</code>.
+                </li>
+                <li>
+                  A clash the prefix doesn't cure: <code>UIElement.isConnected</code> is a <code>Cell</code>, the host's
+                  <code>isConnected</code> is Node's boolean. <code>if (this.isConnected)</code> in a controller is
+                  always true (it tests the object), and TypeScript doesn't say so. The bare <code>connected</code>
+                  (before J12a) read as a boolean too. The cure is a lint rule
+                  (<code>strict-boolean-expressions</code>), not the name.
+                </li>
+              </ul>
+              <p><b>DX:</b></p>
+              <ul>
+                <li>Page author: unaffected; these never reach the page (J13).</li>
+                <li>
+                  Reader: in a controller, <code>this.attrs.open</code> is what the author wrote and
+                  <code>this.isOpen()</code> is what we worked out. The prefix marks the line between public and ours.
+                </li>
+                <li>
+                  Autocomplete: typing <code>this.is</code> lists every yes / no a controller knows, in one place.
+                </li>
+                <li>
+                  Collisions: controllers aren't elements, so nothing collides there. On a HOST class a TypeScript
+                  <code>private</code> field is still a real property (a page can read <code>el.settled</code> on
+                  <code>SourceHost</code>): a prefix keeps our privates off words the platform might add later (it added
+                  <code>inert</code> and <code>popover</code>).
+                </li>
+              </ul>
+              <p>
+                <b>Recommendation:</b> A, <code>is</code> / <code>has</code> / <code>can</code> (or <code>was</code> /
+                <code>did</code> / <code>should</code> / <code>needs</code>) for state; a third-person verb when it
+                already asks the question; never a bare adjective or participle. Here that's 5 renames (<code
+                  >indeterminate()</code
+                >
+                x2, <code>ownSelected()</code>, <code>cacheIsValid</code>, <code>bedtime</code>), part of
+                <a href="#q22">Q22</a>'s 28.
+              </p>
+            </ui-section>
+
+            <ui-section id="o4-2" header="1.4.2 Signals, cells and memos" sticky collapsible dividing collapsed>
+              <p>
+                Fields that hold reactive state: a <code>Cell</code> (a signal as one object, <code>.get()</code> /
+                <code>.set()</code>), a <code>createMemo</code> (a derived value you call), and plain fields a class
+                keeps for itself (<code>private started = false</code>).
+              </p>
+              <ui-table compact celled>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Shape</th>
+                      <th>Real examples</th>
+                      <th>How many</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>is / has / can</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/components/ui-toast/UIToast.tsx"
+                          target="src-packages-ui-src-components-ui-toast-uitoast-tsx"
+                          ><code>UIToast.tsx:63</code></a
+                        >
+                        <code>readonly isPaused = new E.Cell(false)</code>;
+                        <a
+                          href="../../packages/ui/src/components/ui-button/UIButton.tsx"
+                          target="src-packages-ui-src-components-ui-button-uibutton-tsx"
+                          ><code>UIButton.tsx:76</code></a
+                        >
+                        <code>readonly hasText = createMemo(...)</code>;
+                        <a
+                          href="../../packages/ui/src/components/ui-section/UISection.tsx"
+                          target="src-packages-ui-src-components-ui-section-uisection-tsx"
+                          ><code>UISection.tsx:205</code></a
+                        >
+                        <code>isCollapsed</code> (memo);
+                        <a
+                          href="../../packages/ui/src/components/ui-dimmer/UIDimmer.tsx"
+                          target="src-packages-ui-src-components-ui-dimmer-uidimmer-tsx"
+                          ><code>UIDimmer.tsx:58</code></a
+                        >
+                        <code>private isHovered = false</code>
+                      </td>
+                      <td>cells 24, memos 53, fields 36</td>
+                    </tr>
+                    <tr>
+                      <td>bare state</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/elements/SourceElement.tsx"
+                          target="src-packages-ui-src-elements-sourceelement-tsx"
+                          ><code>SourceElement.tsx:70</code></a
+                        >
+                        <code>saving</code> and <code>:73</code> <code>dirty</code> (cells);
+                        <a
+                          href="../../packages/ui/src/elements/SourceBody.ts"
+                          target="src-packages-ui-src-elements-sourcebody-ts"
+                          ><code>SourceBody.ts:28</code></a
+                        >
+                        <code>overdue</code>;
+                        <a
+                          href="../../packages/ui/src/components/ui-include/UIInclude.tsx"
+                          target="src-packages-ui-src-components-ui-include-uiinclude-tsx"
+                          ><code>UIInclude.tsx:42</code></a
+                        >
+                        <code>inserted</code>;
+                        <a
+                          href="../../packages/ui/src/docs-components/ui-docs-themes/UIDocsThemes.tsx"
+                          target="src-packages-ui-src-docs-components-ui-docs-themes-uidocsthemes-tsx"
+                          ><code>UIDocsThemes.tsx:63</code></a
+                        >
+                        <code>open</code>;
+                        <a
+                          href="../../packages/ui/src/components/ui-section/UISection.tsx"
+                          target="src-packages-ui-src-components-ui-section-uisection-tsx"
+                          ><code>UISection.tsx:169</code></a
+                        >
+                        <code>collapsible</code> and <code>:237</code> <code>foldAtEnd</code> (memos);
+                        <a
+                          href="../../packages/ui/src/runtime/IconPacks.ts"
+                          target="src-packages-ui-src-runtime-iconpacks-ts"
+                          ><code>IconPacks.ts:29</code></a
+                        >
+                        /
+                        <a
+                          href="../../packages/ui/src/components/ui-root/UIRoot.tsx"
+                          target="src-packages-ui-src-components-ui-root-uiroot-tsx"
+                          ><code>UIRoot.tsx:95</code></a
+                        >
+                        <code>private started</code>; brand's <code>dragging</code>, <code>choice</code>
+                      </td>
+                      <td>21 to rename</td>
+                    </tr>
+                    <tr>
+                      <td>a verb</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/components/ui-table/UITable.tsx"
+                          target="src-packages-ui-src-components-ui-table-uitable-tsx"
+                          ><code>UITable.tsx:113</code></a
+                        >
+                        <code>scrolls</code> (memo); brand <code>UIBrandColor.passes</code>
+                      </td>
+                      <td>2</td>
+                    </tr>
+                    <tr>
+                      <td>a command</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/components/ui-root/UIRoot.tsx"
+                          target="src-packages-ui-src-components-ui-root-uiroot-tsx"
+                          ><code>UIRoot.tsx:101</code></a
+                        >
+                        / <code>:106</code> <code>showLoading</code> / <code>showSkeleton</code> (memos)
+                      </td>
+                      <td>2</td>
+                    </tr>
+                    <tr>
+                      <td>settings (fields copied from props)</td>
+                      <td>
+                        <code>SearchMatcher.ignoreCase</code>, <code>Tokenizer.rewriteFixtureChars</code>,
+                        <code>RovingTabindex.wrap</code>, parser's <code>ScopeVariable.exclusive</code>
+                      </td>
+                      <td>see <a href="#o4-4">1.4.4</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ui-accordion class="spell-code" styled
+                ><ui-title>UISection.tsx · one word, two answers · 9 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">// UISection.tsx:169:  the attribute is `collapsible`;  the memo merges it with the group's `collapsing`
+readonly collapsible = createMemo((): boolean =&gt; {
+  const own = this.collapsibleAttribute.get()
+  if (own !== undefined) return E.Converters.boolean(own, this.definition.attribute("collapsible").attribute)
+  return !!this.attrs.collapsible || !!this.group()?.attrs.collapsing
+})
+
+// UISection.tsx:205
+readonly isCollapsed = createMemo(() =&gt; this.collapsible() &amp;&amp; !!this.collapsedState.get())</code></pre>
+                </ui-content></ui-accordion
+              >
+              <ui-accordion class="spell-code" styled
+                ><ui-title>SourceElement.tsx · a cell and a getter for the same fact · 9 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">// SourceElement.tsx:73:  tracked, drives :state(dirty)
+readonly dirty = new E.Cell(untrack(() =&gt; this.edited.get()) !== undefined)
+
+// SourceElement.tsx:334:  synchronous (J13);  the cell is staged until the microtask
+get isDirty(): boolean {
+  return this.dirtyNow
+}
+private dirtyNow = untrack(this.dirty.get)</code></pre>
+                </ui-content></ui-accordion
+              >
+              <p><b>Counter-examples:</b></p>
+              <ul>
+                <li>
+                  A name clash: renaming the <code>dirty</code> cell to <code>isDirty</code> collides with the getter.
+                  The toast already solved this: <code>isClosing</code> (a plain field, read at once) beside
+                  <code>isClosingTracked</code> (the cell,
+                  <a
+                    href="../../packages/ui/src/components/ui-toast/UIToast.tsx"
+                    target="src-packages-ui-src-components-ui-toast-uitoast-tsx"
+                    ><code>UIToast.tsx:72</code></a
+                  >). So <code>dirty</code> becomes <code>isDirtyTracked</code>, <code>dirtyNow</code> becomes
+                  <code>isDirtyNow</code>.
+                </li>
+                <li>
+                  A verb stays: the table's <code>scrolls</code> memo. <code>showLoading</code> /
+                  <code>showSkeleton</code> read as commands, so <code>shouldShowLoading</code> /
+                  <code>shouldShowSkeleton</code>.
+                </li>
+                <li>
+                  The public word inside: <code>this.attrs.collapsible</code> and <code>this.collapsible()</code> are
+                  two different answers with one name; <code>isCollapsible()</code> tells them apart (J12b's rule: the
+                  controller's word is the public word, prefixed).
+                </li>
+              </ul>
+              <p><b>DX:</b></p>
+              <ul>
+                <li>
+                  A cell's <code>.get()</code> and a memo's <code>()</code> already say "reactive"; the prefix says "yes
+                  / no".
+                </li>
+                <li>
+                  A method and a memo are called the same way (<code>isOpen()</code>), so promoting one to the other
+                  touches no caller (see <a href="#o4-7">1.4.7</a>).
+                </li>
+              </ul>
+              <p>
+                <b>Recommendation:</b> the same rule as <a href="#o4-1">1.4.1</a>: one rule for everything a class
+                holds. 23 renames here: cells <code>saving</code>, <code>dirty</code>, <code>overdue</code>,
+                <code>inserted</code>, <code>open</code>, brand's <code>choice</code> / <code>dragging</code>; memos
+                <code>collapsible</code>, <code>foldAtEnd</code> (<code>hasFoldAtEnd</code>), <code>showLoading</code>,
+                <code>showSkeleton</code>; fields <code>running</code> (util <code>Reaction</code>),
+                <code>changePending</code> (core), <code>runtimeLoaded</code> / <code>showingMatchRuleNames</code> (app
+                <code>EditorStore</code>), <code>started</code> x2, <code>fresh</code>, <code>dirtyNow</code>,
+                <code>initial</code> (<code>isInitiallySelected</code>), <code>SourceHost.settled</code>, brand's
+                <code>refreshQueued</code>, vscode's <code>forceRun</code> (<code>shouldForceRun</code>). Part of
+                <a href="#q22">Q22</a>.
+              </p>
+            </ui-section>
+
+            <ui-section id="o4-3" header="1.4.3 Runtime and service flags" sticky collapsible dividing collapsed>
+              <p>
+                Flags on <code>UI.*</code> services, which page scripts DO read (<code>UI.browser.isDark</code>), so
+                this is the one place outside elements where a page author meets our names.
+              </p>
+              <ui-table compact celled>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Shape</th>
+                      <th>Real examples</th>
+                      <th>How many</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>is / has getters</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/runtime/Browser.ts"
+                          target="src-packages-ui-src-runtime-browser-ts"
+                          ><code>Browser.ts:73</code></a
+                        >
+                        <code>get isReducedMotion</code>, <code>:78</code> <code>get isDark</code> (J30);
+                        <code>isChromium</code> ... <code>isTouch</code>;
+                        <a
+                          href="../../packages/ui/src/runtime/AppStylesheet.ts"
+                          target="src-packages-ui-src-runtime-appstylesheet-ts"
+                          ><code>AppStylesheet.ts:62</code></a
+                        >
+                        <code>get isStarted</code>
+                      </td>
+                      <td>9 getters</td>
+                    </tr>
+                    <tr>
+                      <td>bare, under a verb</td>
+                      <td>
+                        <code>runtime.types.ts:70-96</code> <code>BrowserSupports</code>:
+                        <code>UI.browser.supports.popover</code>, <code>.anchorPositioning</code> ... ("supports
+                        popover")
+                      </td>
+                      <td>14</td>
+                    </tr>
+                    <tr>
+                      <td>settings</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/runtime/Keyboard.ts"
+                          target="src-packages-ui-src-runtime-keyboard-ts"
+                          ><code>Keyboard.ts:28</code></a
+                        >
+                        <code>warnConflicts</code> (a <code>@proto</code> default);
+                        <a
+                          href="../../packages/ui/src/runtime/Overlays.ts"
+                          target="src-packages-ui-src-runtime-overlays-ts"
+                          ><code>Overlays.ts:45</code></a
+                        >
+                        <code>useCloseWatcher</code>
+                      </td>
+                      <td>4</td>
+                    </tr>
+                    <tr>
+                      <td>bare state</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/runtime/IconPacks.ts"
+                          target="src-packages-ui-src-runtime-iconpacks-ts"
+                          ><code>IconPacks.ts:29</code></a
+                        >
+                        <code>private started</code>, beside AppStylesheet's <code>isStarted</code>
+                      </td>
+                      <td>1</td>
+                    </tr>
+                    <tr>
+                      <td>data copied from the platform</td>
+                      <td>
+                        <code>Chord.ts:22-28</code> <code>ctrl</code> / <code>meta</code> / <code>alt</code> /
+                        <code>shift</code> (KeyboardEvent's <code>ctrlKey</code> ...)
+                      </td>
+                      <td>4</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ui-accordion class="spell-code" styled
+                ><ui-title>Browser.ts · IconPacks.ts · AppStylesheet.ts · 11 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">// Browser.ts:78
+/** The OS / browser is in dark mode (`prefers-color-scheme`).  Live. */
+get isDark(): boolean {
+  return this.matches("(prefers-color-scheme: dark)")
+}
+
+// IconPacks.ts:29
+/** `start()` has run */
+private started = false
+
+// AppStylesheet.ts:62
+get isStarted(): boolean { return !!this.treeObserver }</code></pre>
+                </ui-content></ui-accordion
+              >
+              <p><b>Counter-examples:</b></p>
+              <ul>
+                <li>
+                  <code>supports.isPopover</code> or <code>supports.hasPopover</code> would be worse: the verb is in the
+                  object's name already, the way <code>CSS.supports()</code> reads.
+                </li>
+                <li><code>chord.isCtrl</code>: no; the modifiers are data copied from <code>KeyboardEvent</code>.</li>
+                <li>
+                  The bare platform form, <code>UI.browser.dark</code>, is what J30 moved away from; it would sit beside
+                  <code>matchMedia(...).matches</code> as yet another shape.
+                </li>
+              </ul>
+              <p>
+                <b>DX:</b> a page script reading <code>UI.browser.isDark</code> gets the same shape our own code uses;
+                autocomplete on <code>UI.browser.is</code> lists the browser tests in one place.
+              </p>
+              <p>
+                <b>Recommendation:</b> nothing new: members follow <a href="#o4-1">1.4.1</a>, settings
+                <a href="#o4-4">1.4.4</a>, <code>supports.*</code> stays (a verb). One rename,
+                <code>IconPacks.started</code> to <code>isStarted</code>, counted in <a href="#q22">Q22</a>.
+              </p>
+            </ui-section>
+
+            <ui-section
+              id="o4-4"
+              header="1.4.4 Settings: options, props and class switches"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <p>
+                A SETTING is something a caller hands us to say HOW to behave: an options object for one call, a
+                constructor's props, a JSX component's props, or a <code>@proto static</code> default a subclass
+                overrides. The platform writes these bare (<code>{ once: true }</code>), and WWOD §9 already does (<code
+                  >assemble(bits, { optional: true })</code
+                >).
+              </p>
+              <ui-table compact celled>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Shape</th>
+                      <th>Real examples</th>
+                      <th>How many</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>bare (the norm)</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/elements/elements.types.ts"
+                          target="src-packages-ui-src-elements-elements-types-ts"
+                          ><code>elements.types.ts:204</code></a
+                        >
+                        <code>ValidateOptions { optional, trim }</code>;
+                        <code>runtime.types.ts:115-121</code>
+                        <code>KeyRegistrationOptions { preventDefault, stopPropagation, global, inEditable }</code>;
+                        <code>ToastOptions { closeOnClick, pauseOnHover }</code> (Fomantic's, public through
+                        <code>UI.toast()</code>); spell's <code>static parenthesize = true</code> (12 rule classes)
+                      </td>
+                      <td>295</td>
+                    </tr>
+                    <tr>
+                      <td>is / has / can</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/elements/PartContext.ts"
+                          target="src-packages-ui-src-elements-partcontext-ts"
+                          ><code>PartContext.ts:273</code></a
+                        >
+                        <code>PartContextProps.isDirect</code> (J12a);
+                        <a
+                          href="../../packages/ui/src/components/ui-section/ui-section.fallback.ts"
+                          target="src-packages-ui-src-components-ui-section-ui-section-fallback-ts"
+                          ><code>ui-section.fallback.ts:265</code></a
+                        >
+                        <code>AnnounceParams.isCancelable</code>;
+                        <a
+                          href="../../packages/parser/src/scope/ScopeVariable.ts"
+                          target="src-packages-parser-src-scope-scopevariable-ts"
+                          ><code>ScopeVariable.ts:102</code></a
+                        >
+                        <code>ScopeVariableProps.isAlias</code>;
+                        <a
+                          href="../../packages/ui/src/runtime/Keyboard.ts"
+                          target="src-packages-ui-src-runtime-keyboard-ts"
+                          ><code>Keyboard.ts:170</code></a
+                        >
+                        <code>KeyboardProps.isApple</code>; <code>UIElement</code>'s <code>static isPart</code> /
+                        <code>canRenderUnstyled</code>
+                      </td>
+                      <td>32</td>
+                    </tr>
+                    <tr>
+                      <td>other verbs</td>
+                      <td>
+                        app's <code>showToolbar</code> / <code>useRunner</code>; solid-element's <code>keepAlive</code>;
+                        <code>Overlays.useCloseWatcher</code>
+                      </td>
+                      <td>20</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ui-accordion class="spell-code" styled
+                ><ui-title>PartContext.ts · ui-section.fallback.ts · 12 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">// PartContext.ts:42-50
+private readonly isDirect: boolean
+constructor({ host, noun, isDirect = false, barrier = PartContext.isBarrier }: PartContextProps) {
+  this.isDirect = isDirect
+}
+// the one caller, UIIcon.tsx:28
+new E.PartContext({ host: this.host, noun: this.vocabulary.noun, isDirect: true })
+
+// ui-section.fallback.ts:208-211:  one setting, two names, one line apart
+private announce({ open, originalEvent, isCancelable = true }: AnnounceParams): boolean {
+  const init = { bubbles: true, composed: true, cancelable: isCancelable, detail }</code></pre>
+                </ui-content></ui-accordion
+              >
+              <p><b>Counter-examples:</b></p>
+              <ul>
+                <li>
+                  A NOUN can't go bare: <code>{ alias: true }</code> reads as if it held the alias; likewise
+                  <code>{ part: true }</code>, <code>{ apple: true }</code>, <code>{ newVariable: true }</code>. So
+                  <code>isAlias</code>, <code>isPart</code>, <code>isApple</code>, <code>isNewVariable</code> keep their
+                  prefix. (<code>ToastOptions.closeIcon: true</code> is one too, but it's Fomantic's public name: kept.)
+                </li>
+                <li>
+                  A prefix reads worse on a verb: <code>{ shouldPreventDefault: true }</code> against the platform-like
+                  <code>{ preventDefault: true }</code>; <code>static shouldParenthesize</code> against
+                  <code>static parenthesize</code>.
+                </li>
+                <li>
+                  The field takes the setting's name, as the platform does:
+                  <code>new Event(type, { bubbles })</code> gives <code>event.bubbles</code>;
+                  <code>attachShadow({ delegatesFocus })</code> gives <code>root.delegatesFocus</code>. So PartContext's
+                  private <code>isDirect</code> becomes <code>direct</code> with its prop. This reverses J12a's
+                  <code>direct</code> to <code>isDirect</code>
+                  (one prop, one caller).
+                </li>
+              </ul>
+              <p><b>DX:</b></p>
+              <ul>
+                <li>
+                  Page author: writes <code>UI.toast({ closeOnClick: true })</code> and
+                  <code>keyboard.register(keys, fn, { global: true })</code>; bare matches what they know from
+                  <code>addEventListener(..., { once: true })</code>.
+                </li>
+                <li>
+                  Reader: JSX props read like attributes, <code>&lt;SplitPanel bordered scrolling&gt;</code> like
+                  <code>&lt;input disabled&gt;</code>.
+                </li>
+                <li>Autocomplete: inside <code>{ }</code> it lists the options anyway; a prefix adds nothing there.</li>
+              </ul>
+              <p>
+                <b>Recommendation:</b> A, settings bare; a noun keeps <code>is</code> / <code>has</code>; the field a
+                setting is copied into keeps its name. 8 names, 13 declarations, ~53 sites, 19 files:
+                <code>isDirect</code> to <code>direct</code> (prop and field), <code>isCancelable</code> to
+                <code>cancelable</code>, <code>isEditable</code> to <code>editable</code> (UIMarkdown's
+                <code>RenderParams</code>), <code>isGlobal</code> to <code>global</code> (<code>TokenViewParams</code>),
+                <code>isRequired</code> to <code>required</code> (SiteCheck's <code>TocCheckParams</code>),
+                <code>isEscaped</code> to <code>escaped</code> (parser's <code>LiteralProps</code>,
+                <code>RuleProps</code> and the <code>Literal</code> field), app's <code>TreeRowProps</code> /
+                <code>GroupRowProps</code> <code>isOpen</code> to <code>open</code>, cli's <code>TreePaneProps</code> /
+                <code>DetailsPaneProps</code> <code>isFocused</code> to <code>focused</code>. <a href="#q23">Q23</a>.
+              </p>
+            </ui-section>
+
+            <ui-section
+              id="o4-5"
+              header="1.4.5 Data records and messages we define"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <p>
+                Object shapes our code builds and reads back: a report, a row, a calendar cell, a match's data. No page
+                author writes them, and nobody passes them as options. (Event <code>detail</code> is public: settled by
+                J13.)
+              </p>
+              <ui-table compact celled>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Shape</th>
+                      <th>Real examples</th>
+                      <th>How many</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>is / has / can</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/elements/elements.types.ts"
+                          target="src-packages-ui-src-elements-elements-types-ts"
+                          ><code>elements.types.ts:731</code></a
+                        >
+                        <code>StickyWatchState.isBound</code>; util's <code>LoadState { isLoaded, isDirty }</code>;
+                        cli's <code>TreeRow { hasChildren, isOpen }</code>;
+                        <code>ApiCell { isSwatch, isRange }</code>
+                      </td>
+                      <td>30</td>
+                    </tr>
+                    <tr>
+                      <td>bare, ours</td>
+                      <td>
+                        <code>ui-calendar.types.ts:150-160</code>
+                        <code>CalendarCell { adjacent, disabled, active, today, focus, range }</code>;
+                        <code>dev.types.ts:208-220</code> <code>LiveSession { inRepo, this, used }</code>;
+                        <a
+                          href="../../packages/ui/src/components/components.types.ts"
+                          target="src-packages-ui-src-components-components-types-ts"
+                          ><code>components.types.ts:146</code></a
+                        >
+                        <code>ItemContext.interactive</code>; spell's
+                        <code>MethodSignatureData { startsWithKeyword, foundKeyword, ... }</code>
+                      </td>
+                      <td>59 (57 names)</td>
+                    </tr>
+                    <tr>
+                      <td>bare, copied from outside (kept)</td>
+                      <td>
+                        <ul>
+                          <li><code>BrowserSupports</code> (<a href="#o4-3">1.4.3</a>)</li>
+                          <li>public attribute typings (<code>CommonAttributes</code>)</li>
+                          <li>
+                            <code>&lt;option&gt;</code>-like <code>MenuOption</code> /
+                            <code>Choice { disabled, selected }</code>
+                          </li>
+                          <li>LSP's <code>HighlightSpan { declaration, defaultLibrary, bold }</code></li>
+                          <li>JSON on disk (<code>ProjectManifestImport.active</code>)</li>
+                          <li>the docs site's published data (<code>SiteEvent.cancelable</code>)</li>
+                          <li>
+                            <code>ok</code> results (<code>Response.ok</code>),
+                            <code>ValidationResult.valid</code> (<code>ValidityState</code>)
+                          </li>
+                          <li>
+                            Fomantic's <code>VisibilityCalculations</code> (<code>&lt;ui-visibility&gt;</code>'s event
+                            detail)
+                          </li>
+                          <li>
+                            upstream ports: markdown's commonmark.js <code>Block { open, tight }</code>, solid-element's
+                            <code>NormalizedProp.reflect</code>
+                          </li>
+                          <li>
+                            settings in record clothes (<code>OverlayEntry.closeOnEscape</code>,
+                            <code>TableColumn.sortable</code>)
+                          </li>
+                        </ul>
+                      </td>
+                      <td>104</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ui-accordion class="spell-code" styled
+                ><ui-title>ui-calendar.types.ts · UICalendar.tsx · 16 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">// ui-calendar.types.ts:150-160
+/** a day of the previous / next month */
+adjacent: boolean
+/** can't be chosen (see `CalendarView`) */
+disabled: boolean
+/** holds the value */
+active: boolean
+/** holds today */
+today: boolean
+/** the focus moment:  the grid's tab stop */
+focus: boolean
+/** inside the highlighted range */
+range: boolean
+
+// UICalendar.tsx:516-525
+[UIT.ACTIVE]: cell().active,
+tabindex={cell().focus ? 0 : -1}</code></pre>
+                </ui-content></ui-accordion
+              >
+              <p><b>Counter-examples:</b></p>
+              <ul>
+                <li>
+                  Nouns read as holding the thing: <code>cell().focus</code> looks like a moment,
+                  <code>cell().range</code> like a range, <code>session.this</code> like an object. A prefix fixes it:
+                  <code>isFocus</code>, <code>isInRange</code>, <code>isThis</code>.
+                </li>
+                <li>
+                  Where the record feeds class names one to one, bare reads cleanly:
+                  <code>[UIT.ACTIVE]: cell().active</code>; <code>cell().isActive</code> a touch less so.
+                </li>
+                <li>
+                  The platform's own records lean bare (<code>ValidityState.valid</code> / <code>valueMissing</code>,
+                  <code>Response.ok</code>), but not always (<code>IntersectionObserverEntry.isIntersecting</code>).
+                </li>
+              </ul>
+              <p>
+                <b>DX:</b> a record read across files (<code>state.isBound</code> in <code>UISticky</code>) reads like a
+                member, so one rule covers both, and autocomplete groups the yes / no fields.
+              </p>
+              <p>
+                <b>Recommendation:</b> A, records we define follow members (<code>is</code> / <code>has</code> /
+                <code>can</code>, or a verb); shapes copied from outside keep their names. 57 names, 59 declarations,
+                ~270 sites, 71 files: <code>ui</code> 23 of them (<code>CalendarCell</code> 6,
+                <code>TabPaneState</code> 3, <code>ItemContext</code> 2, <code>SidebarLayout</code> 2,
+                <code>StaticSelectorResult</code> 2 ...), cli 14, spell 9, parser 4, core 3, the rest one or two each.
+                <a href="#q24">Q24</a>.
+              </p>
+            </ui-section>
+
+            <ui-section
+              id="o4-6"
+              header="1.4.6 Locals, parameters and yes / no functions"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <p>
+                Names that live inside one function (<code>const isActive</code>, <code>let found</code>), and the
+                functions whose answer is true / false (<code>isEmpty(x)</code>, <code>hasClass()</code>).
+              </p>
+              <ui-table compact celled>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Kind</th>
+                      <th>Real examples</th>
+                      <th>is / has / can · bare</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>locals</td>
+                      <td>
+                        <code>const isOpen</code> (7 places), <code>const isDisabled</code>; bare <code>applied</code>,
+                        <code>ok</code>, <code>first</code>, <code>removed</code>, <code>found</code>
+                      </td>
+                      <td>165 · 224</td>
+                    </tr>
+                    <tr>
+                      <td>parameters</td>
+                      <td>
+                        <code>connected</code> (12, mostly callbacks typed by their context), <code>open</code>,
+                        <code>selected</code>; <code>isOpen</code>, <code>isShowing</code>
+                      </td>
+                      <td>29 · 106</td>
+                    </tr>
+                    <tr>
+                      <td>yes / no functions</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/elements/PartContext.ts"
+                          target="src-packages-ui-src-elements-partcontext-ts"
+                          ><code>PartContext.ts:233</code></a
+                        >
+                        <code>static isSameOwner(a, b)</code>; but
+                        <a
+                          href="../../packages/ui/src/components/ui-tab/UITabs.tsx"
+                          target="src-packages-ui-src-components-ui-tab-uitabs-tsx"
+                          ><code>UITabs.tsx:478</code></a
+                        >
+                        <code>static sameList(a, b)</code>, same package
+                      </td>
+                      <td>169 · 173</td>
+                    </tr>
+                    <tr>
+                      <td>verbs (kept)</td>
+                      <td>
+                        <code>Chord.matches(event)</code>, <code>Focus.containsDeep()</code>,
+                        <code>IconPack.answers(name)</code>, brand's <code>inGamut(color)</code>
+                      </td>
+                      <td>part of the bare</td>
+                    </tr>
+                    <tr>
+                      <td>actions that report success (kept)</td>
+                      <td>
+                        <code>requestClose(): boolean</code> (false when vetoed), <code>FileLock.tryAcquire()</code>,
+                        markdown's <code>parseBackticks(): boolean</code> (consumed?)
+                      </td>
+                      <td>part of the bare</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ui-accordion class="spell-code" styled
+                ><ui-title>PartContext.ts · UITabs.tsx · two shapes for one idea · 8 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">// PartContext.ts:233
+private static isSameOwner(this: void, a: E.OwnerMatch | undefined, b: E.OwnerMatch | undefined) {
+  return a?.owner === b?.owner &amp;&amp; a?.ownerNoun === b?.ownerNoun &amp;&amp; a?.depth === b?.depth
+}
+
+// UITabs.tsx:478
+private static sameList(a: readonly Element[], b: readonly Element[]): boolean {
+  return a.length === b.length &amp;&amp; a.every((element, index) =&gt; element === b[index])
+}</code></pre>
+                </ui-content></ui-accordion
+              >
+              <p><b>Counter-examples:</b></p>
+              <ul>
+                <li>
+                  A past participle reads best bare in a local: <code>if (applied)</code>,
+                  <code>let found = false</code>, <code>if (changed)</code>. <code>isApplied</code> /
+                  <code>wasFound</code> add nothing; a local is read three lines from where it's set.
+                </li>
+                <li>
+                  A noun doesn't: <code>const first = ...</code> holding a boolean reads as the first item;
+                  <code>isFirst</code> doesn't.
+                </li>
+                <li>
+                  The platform's precedent for pairs: <code>node.isSameNode(other)</code>, so
+                  <code>isSameList(a, b)</code>.
+                </li>
+                <li>
+                  A positional boolean parameter is already banned (WWOD §9, a sentinel instead); its name isn't this
+                  phase's business. (<code>new StatusReporter(interactive)</code> in cli is one.)
+                </li>
+              </ul>
+              <p>
+                <b>DX:</b> locals are read where they're made, so the name matters less than for members; a strict rule
+                there is ~1,000 renames for little gain. A yes / no function is read far from its body, so its name
+                matters like a member's.
+              </p>
+              <p>
+                <b>Recommendation:</b> A, locals and parameters free, within the noun rule (bare when it reads as a yes
+                / no: <code>applied</code>, <code>found</code>, <code>visible</code>; <code>is</code> when the bare word
+                is a noun: <code>isFirst</code>); yes / no functions are <code>is</code> / <code>has</code> /
+                <code>can</code> or a verb; <code>sameX(a, b)</code> becomes <code>isSameX(a, b)</code>. 12 names, 13
+                declarations, ~48 sites, 17 files: <code>sameTokens</code>, <code>sameStatement</code>,
+                <code>sameSpan</code>, <code>sameStyle</code>, <code>sameRange</code>, <code>sameName</code>,
+                <code>sameList</code>, <code>same</code> (<code>CalendarDates</code>, <code>ColorLadder</code>),
+                <code>sameTree</code>, <code>sameChips</code>, <code>sameColors</code>, <code>samePage</code>. Locals
+                change by hand, in files being touched anyway. <a href="#q25">Q25</a>.
+              </p>
+            </ui-section>
+
+            <ui-section
+              id="o4-7"
+              header="1.4.7 Derived yes / no reads: methods or getters?"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <p>
+                One idea has four call shapes today: a method <code>this.isOpen()</code>, a memo
+                <code>this.isSelected()</code> (a function too), a getter <code>this.isDirty</code> /
+                <code>UI.browser.isDark</code>, and a cell <code>this.isPaused.get()</code>. WWOD §12 says derived reads
+                are plain getters; WWOD §17 (<a href="../wwod/wwod/solid.md" target="src-epics-wwod-wwod-solid-md"
+                  ><code>solid.md</code></a
+                >) says a derived value in Solid is a plain accessor (<code>const isRoot = () =&gt; ...</code>).
+              </p>
+              <ui-table compact celled>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Shape</th>
+                      <th>Real examples</th>
+                      <th>How many</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>method, no arguments</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/components/ui-dropdown/UIDropdown.tsx"
+                          target="src-packages-ui-src-components-ui-dropdown-uidropdown-tsx"
+                          ><code>UIDropdown.tsx:187</code></a
+                        >
+                        <code>isOpen()</code>;
+                        <a
+                          href="../../packages/ui/src/elements/UIElement.tsx"
+                          target="src-packages-ui-src-elements-uielement-tsx"
+                          ><code>UIElement.tsx:284</code></a
+                        >
+                        <code>isDisabled()</code>, a hook with 20 overrides;
+                        <a
+                          href="../../packages/ui/src/components/ui-checkbox/RadioGroup.ts"
+                          target="src-packages-ui-src-components-ui-checkbox-radiogroup-ts"
+                          ><code>RadioGroup.ts:88</code></a
+                        >
+                        <code>isRequired()</code>
+                      </td>
+                      <td>60 in controllers (34 names), 5 elsewhere</td>
+                    </tr>
+                    <tr>
+                      <td>memo</td>
+                      <td>
+                        <a
+                          href="../../packages/ui/src/components/ui-button/UIButton.tsx"
+                          target="src-packages-ui-src-components-ui-button-uibutton-tsx"
+                          ><code>UIButton.tsx:76</code></a
+                        >
+                        <code>hasText</code>;
+                        <a
+                          href="../../packages/ui/src/components/ui-section/UISection.tsx"
+                          target="src-packages-ui-src-components-ui-section-uisection-tsx"
+                          ><code>UISection.tsx:205</code></a
+                        >
+                        <code>isCollapsed</code>
+                      </td>
+                      <td>58</td>
+                    </tr>
+                    <tr>
+                      <td>getter</td>
+                      <td>
+                        <a
+                          href="../../packages/util/src/spell/Loadable.ts"
+                          target="src-packages-util-src-spell-loadable-ts"
+                          ><code>Loadable.ts:66</code></a
+                        >
+                        <code>isLoaded</code>;
+                        <a
+                          href="../../packages/ui/src/runtime/Browser.ts"
+                          target="src-packages-ui-src-runtime-browser-ts"
+                          ><code>Browser.ts:78</code></a
+                        >
+                        <code>isDark</code>;
+                        <a
+                          href="../../packages/ui/src/elements/SourceElement.tsx"
+                          target="src-packages-ui-src-elements-sourceelement-tsx"
+                          ><code>SourceElement.tsx:334</code></a
+                        >
+                        <code>isDirty</code> (J13);
+                        <a
+                          href="../../packages/ui/src/docs-components/ui-docs-search/UIDocsSearch.tsx"
+                          target="src-packages-ui-src-docs-components-ui-docs-search-uidocssearch-tsx"
+                          ><code>UIDocsSearch.tsx:138</code></a
+                        >
+                        <code>private get hasShortcuts</code>
+                      </td>
+                      <td>50 (2 in controllers)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ui-accordion class="spell-code" styled
+                ><ui-title>UIDropdown.tsx · UIButton.tsx · UIDocsSearch.tsx · 12 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">// UIDropdown.tsx:187:  a method
+isOpen(): boolean {
+  return this.openState.get()
+}
+
+// UIButton.tsx:76:  a memo, called the same way
+readonly hasText = createMemo(() =&gt; this.slots.has("") || !!this.attrs.content || !!this.stateText())
+
+// UIDocsSearch.tsx:138:  a getter, the odd one out in a controller
+private get hasShortcuts(): boolean {
+  return this.attrs.shortcuts !== false
+}</code></pre>
+                </ui-content></ui-accordion
+              >
+              <p><b>Counter-examples:</b></p>
+              <ul>
+                <li>
+                  A getter can't become a memo without touching every caller (<code>this.isOpen</code> to
+                  <code>this.isOpen()</code>); a method can, and controllers promote reads to memos often (J12b did
+                  several).
+                </li>
+                <li>
+                  A hook is a method: 20 elements override <code>isDisabled()</code>; overriding a getter works in
+                  TypeScript but <code>super.isDisabled</code> reads like a field.
+                </li>
+                <li>
+                  Off the reactive path a getter is right: <code>UI.browser.isDark</code> (a media query, read now),
+                  <code>loadable.isLoaded</code>, and SourceElement's <code>isDirty</code> (deliberately untracked).
+                </li>
+              </ul>
+              <p>
+                <b>DX:</b> in a controller, "called" already means "tracked"; one shape for every tracked read means a
+                reader never has to look up which kind of member it is.
+              </p>
+              <p>
+                <b>Recommendation:</b> A, in a Solid controller a TRACKED yes / no read is a call, a method or a memo
+                (interchangeable,
+                <a href="../wwod/wwod/solid.md" target="src-epics-wwod-wwod-solid-md"><code>solid.md</code></a
+                >'s "plain accessor"); an untracked read, and anything outside controllers, is a getter (§12). One
+                rename: UIDocsSearch's <code>get hasShortcuts</code> to <code>hasShortcuts()</code> (4 sites); a
+                sentence in §12 pointing at §17. <a href="#q26">Q26</a>.
+              </p>
+            </ui-section>
+
+            <ui-section
+              id="o4-8"
+              header="1.4.8 Statics, constants and test helpers"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <ul>
+                <li>
+                  <code>UIElement.ISOLATE_ERRORS</code> (<a
+                    href="../../packages/ui/src/elements/UIElement.tsx"
+                    target="src-packages-ui-src-elements-uielement-tsx"
+                    ><code>UIElement.tsx:59</code></a
+                  >): a constant, WWOD's constant style. Stays.
+                </li>
+                <li>
+                  <code>@proto static</code> class config on <code>UIElement</code>:
+                  <ul>
+                    <li><code>isPart</code> (6), <code>canRenderUnstyled</code> (3): facts about the class. Stay.</li>
+                    <li>
+                      <code>delegatesFocus</code> (63), <code>formAssociated</code> (3): the platform's words. Stay.
+                    </li>
+                    <li><code>inlineContent</code>: a setting. Stays.</li>
+                  </ul>
+                </li>
+                <li>
+                  spell's rule switches, <code>static parenthesize</code> (12), <code>operandInExpressions</code>,
+                  <code>inlineInitialType</code>; <code>Keyboard.warnConflicts</code>,
+                  <code>Overlays.useCloseWatcher</code>: settings (<a href="#o4-4">1.4.4</a>). Stay.
+                </li>
+                <li>
+                  Test helpers: 199 boolean declarations in test files. Most are host typings (<code
+                    >{ open: true }</code
+                  >, public) and verb helpers (<code>covers()</code>). A handful of adjective helpers (<code
+                    >stacked(el)</code
+                  >
+                  in the ui-form / ui-grid tests, <code>oneRow()</code>) would become <code>isStacked(el)</code> /
+                  <code>isOneRow()</code>, in whichever phase touches those files.
+                </li>
+              </ul>
+              <p><b>Recommendation:</b> nothing new; the members and settings rules cover these. No question.</p>
+            </ui-section>
+
+            <ui-section
+              id="o4-9"
+              header="1.4.9 Overall: the rule for WWOD §3, and the size of the rename"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <p>
+                With every recommended option (A on <a href="#q22">Q22</a> to <a href="#q26">Q26</a>), WWOD §3's boolean
+                rule would read:
+              </p>
+              <ui-accordion class="spell-code" styled
+                ><ui-title>WWOD.md §3 · proposed · 17 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-markdown">- **A boolean's name reads as a yes / no question:**
+  - What a class holds or works out, and the records we read back:  `is` / `has` / `can` (or `was` / `did` /
+    `should` / `needs`):  `isOpen`, `hasIcon`, `canAdd`, `state.isBound`;  or a third-person verb that already
+    asks it:  `scrolls()`, `matches(x)`, `supports.popover`.  NEVER a bare adjective or participle (`open`,
+    `dirty`, `saving`).
+  - Settings are bare, the platform's way:  options objects, constructor and component props, `@proto static`
+    switches (`{ once: true }`, `{ optional: true }`, `static parenthesize = true`).  The field a setting is
+    copied into keeps its name (`new Event(type, { bubbles })` -&gt; `event.bubbles`).
+  - A noun is never bare, anywhere:  `isAlias`, `isPart`, `isFirst`, not `alias`, `part`, `first`.
+  - Yes / no functions:  `isX(value)` / `hasX` / `canX`, or a verb (`contains`, `covers`);  `isSameX(a, b)`,
+    never `sameX`.  An action that reports success stays a verb (`requestClose(): boolean`).
+  - Locals and parameters:  free, within the noun rule (`if (applied)`, `let found`).
+  - EXCEPT names copied from outside, which keep their shape:  a custom element's PUBLIC API (bare, J13), platform
+    members (`formAssociated`, `headersSent`), protocols (LSP modifiers), JSON on disk, Fomantic's published
+    names, upstream ports.
+- In a Solid controller, a tracked read is a call (`isOpen()`, a method or a memo);  elsewhere a getter
+  (WWOD §12;  SEE:  §17).</code></pre>
+                </ui-content></ui-accordion
+              >
+              <h4 id="o4-size">The rename it implies</h4>
+              <ui-table compact celled>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Package</th>
+                      <th>Declarations</th>
+                      <th>Sites</th>
+                      <th>Files</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>ui</code></td>
+                      <td>50</td>
+                      <td>226</td>
+                      <td>57</td>
+                    </tr>
+                    <tr>
+                      <td><code>cli</code></td>
+                      <td>17</td>
+                      <td>62</td>
+                      <td>15</td>
+                    </tr>
+                    <tr>
+                      <td><code>parser</code></td>
+                      <td>9</td>
+                      <td>56</td>
+                      <td>15</td>
+                    </tr>
+                    <tr>
+                      <td><code>spell</code></td>
+                      <td>9</td>
+                      <td>33</td>
+                      <td>7</td>
+                    </tr>
+                    <tr>
+                      <td><code>brand</code></td>
+                      <td>8</td>
+                      <td>30</td>
+                      <td>11</td>
+                    </tr>
+                    <tr>
+                      <td><code>app</code></td>
+                      <td>6</td>
+                      <td>18</td>
+                      <td>3</td>
+                    </tr>
+                    <tr>
+                      <td><code>core</code></td>
+                      <td>4</td>
+                      <td>18</td>
+                      <td>4</td>
+                    </tr>
+                    <tr>
+                      <td><code>lsp</code></td>
+                      <td>4</td>
+                      <td>13</td>
+                      <td>2</td>
+                    </tr>
+                    <tr>
+                      <td><code>util</code></td>
+                      <td>3</td>
+                      <td>12</td>
+                      <td>3</td>
+                    </tr>
+                    <tr>
+                      <td><code>vscode</code></td>
+                      <td>2</td>
+                      <td>6</td>
+                      <td>2</td>
+                    </tr>
+                    <tr>
+                      <td><code>docs</code> (tools)</td>
+                      <td>1</td>
+                      <td>9</td>
+                      <td>2</td>
+                    </tr>
+                    <tr>
+                      <td><code>server</code></td>
+                      <td>1</td>
+                      <td>2</td>
+                      <td>1</td>
+                    </tr>
+                    <tr>
+                      <td><b>All</b></td>
+                      <td><b>114</b> (102 names)</td>
+                      <td><b>~485</b></td>
+                      <td><b>119</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>For comparison, the "B" options:</p>
+              <ul>
+                <li>members bare, like the platform (Q22 B): 234 declarations, ~1,145 sites, 161 files</li>
+                <li>every setting prefixed (Q23 B): 230 declarations, ~888 sites, 229 files</li>
+                <li>every boolean local and parameter prefixed (Q25 B): 350 declarations, ~1,007 sites, 171 files</li>
+                <li>controller methods to getters (Q26 B): 60 declarations, ~284 sites, 46 files</li>
+              </ul>
+              <h4 id="o4-how">How it would be done</h4>
+              <ol>
+                <li>
+                  A new phase after your picks (not P13): a one-off TypeScript script, the survey's twin, reads a rename
+                  list (<code>file:line</code>, old name, new name) and applies TypeScript's own
+                  <code>findRenameLocations</code> to each, in every package that compiles the file. So no
+                  <code>open</code> that isn't THIS <code>open</code> is touched.
+                </li>
+                <li>
+                  The same list drives a grep of docs, comments and string paths (<code>setState("...")</code>) for the
+                  old names; what it finds is fixed by hand.
+                </li>
+                <li>
+                  Four commits, each with <code>yarn review</code> green in every package touched:
+                  <ul>
+                    <li>
+                      R1 members, cells, memos and the <code>hasShortcuts</code> getter (Q22, Q26): 29 declarations
+                    </li>
+                    <li>R2 settings (Q23): 13</li>
+                    <li>R3 records (Q24): 59</li>
+                    <li>R4 <code>isSameX</code> (Q25): 13</li>
+                  </ul>
+                </li>
+                <li>
+                  Then WWOD §3 / §12 in the words above, <code>ui</code>'s docs that cite a renamed name, and the
+                  committed bundles rebuilt (<code>spell dev worktree merge-main</code> regenerates them on merge
+                  anyway).
+                </li>
+                <li>Estimate: 2-3h, agents per package.</li>
+              </ol>
+              <p><b>Net effect</b> (every recommended option):</p>
+              <ul>
+                <li>WWOD §3's boolean bullet replaced by the text above; §12 gains one sentence</li>
+                <li>114 declarations renamed, ~485 sites in 119 files, across 12 packages</li>
+                <li>
+                  no change a page author can see: element API, <code>UI.*</code> options and published data keep their
+                  names
+                </li>
+                <li>one J12a choice reversed: <code>PartContextProps.isDirect</code> back to <code>direct</code></li>
+              </ul>
+            </ui-section>
+          </ui-section>
         </ui-section>
 
         <ui-section id="phases" header="2. Phases" sticky collapsible dividing collapsed>
@@ -1761,6 +3314,11 @@
                   <li>
                     options go in the plan doc as cards Owen picks on the page; the renames themselves are a later phase
                   </li>
+                  <li>
+                    Proposal: <a href="#o4">1.4 Boolean names</a>. Questions: <a href="#q22">Q22</a> (our members),
+                    <a href="#q23">Q23</a> (settings), <a href="#q24">Q24</a> (data records),
+                    <a href="#q25">Q25</a> (locals and yes / no functions), <a href="#q26">Q26</a> (methods or getters)
+                  </li>
                 </ul></ui-item
               ><ui-item icon="folder"
                 ><b>Files:</b> the plan doc (an Overview section),
@@ -1768,7 +3326,11 @@
                   ><code>agents/wwod/WWOD.md</code></a
                 >
                 §3 (only after Owen picks)</ui-item
-              ><ui-item icon="flask"><b>Verify:</b> Owen picks on the page</ui-item></ui-list
+              ><ui-item icon="flask"><b>Verify:</b> Owen picks on the page</ui-item
+              ><ui-item icon="list check" class="plan-to-review"
+                ><b>To review:</b> <a href="#q22">Q22</a>, <a href="#q23">Q23</a>, <a href="#q24">Q24</a>,
+                <a href="#q25">Q25</a>, <a href="#q26">Q26</a></ui-item
+              ></ui-list
             >
           </ui-section></ui-section
         >
@@ -1784,6 +3346,321 @@
         >
           <ui-icon slot="icon" name="file circle question"></ui-icon>
           <ui-list class="plan-items" data-kind="decision" divided relaxed
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-06T14:56:12-04:00"
+              id="q22"
+              data-status="open"
+              data-phase="13"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#q22">Q22</a>
+                  <span class="plan-title"
+                    >P13: our own members (controller getters / methods, cells, memos, fields, runtime flags): is / has,
+                    or bare?</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="13">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Everything a class of ours holds or works out, which only our own code reads: <code>isOpen()</code>,
+                    a <code>saving</code> cell, <code>UI.browser.isDark</code>. Public element names stay bare (<a
+                      href="#j13"
+                      >J13</a
+                    >). The full write-up, with examples, counter-examples and counts: <a href="#o4-1">1.4.1</a>,
+                    <a href="#o4-2">1.4.2</a>, <a href="#o4-3">1.4.3</a>.
+                  </p>
+                  <ui-grid class="spell-pros-cons" columns="3" stackable
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top"
+                          >A · is / has / can, or a verb; never a bare adjective (recommended)</ui-label
+                        >
+                        <ul>
+                          <li>WWOD §3 as today, sharpened</li>
+                          <li>
+                            28 renames, ~110 sites, 23 files: <code>saving</code> to <code>isSaving</code>,
+                            <code>collapsible()</code> to <code>isCollapsible()</code>
+                          </li>
+                          <li>verbs stay: <code>scrolls()</code>, <code>holdsShapes()</code></li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · Bare, like the platform</ui-label>
+                        <ul>
+                          <li>reverses §3, J12a / J12b and J30</li>
+                          <li>234 renames, ~1,145 sites, 161 files</li>
+                          <li>
+                            the author attribute <code>this.attrs.open</code> and our own <code>this.open()</code> look
+                            alike
+                          </li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Leave as it is</ui-label>
+                        <ul>
+                          <li>no renames, no rule change</li>
+                          <li>the 28 bare ones stay beside their prefixed neighbours</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ></ui-grid
+                  >
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>WWOD §3 states the members rule (<a href="#o4-9">1.4.9</a>)</li>
+                    <li>the rename phase, step R1: 28 declarations, ~110 sites</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-06T14:56:20-04:00"
+              id="q23"
+              data-status="open"
+              data-phase="13"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#q23">Q23</a>
+                  <span class="plan-title"
+                    >P13: settings (options objects, constructor and component props, class switches): bare, or is /
+                    has?</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="13">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    What a caller hands us to say how to behave: options like <code>{ once: true }</code>, constructor
+                    props, JSX component props, <code>@proto static</code> switches. The platform writes these bare, and
+                    so does WWOD §9 (<code>{ optional: true }</code>). Write-up: <a href="#o4-4">1.4.4</a>.
+                  </p>
+                  <ui-grid class="spell-pros-cons" columns="3" stackable
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top"
+                          >A · Bare, the platform way; a noun keeps is / has (recommended)</ui-label
+                        >
+                        <ul>
+                          <li>
+                            <code>isDirect</code> to <code>direct</code>, <code>isCancelable</code> to
+                            <code>cancelable</code>, <code>isEscaped</code> to <code>escaped</code> ...
+                          </li>
+                          <li>8 names, 13 declarations, ~53 sites, 19 files</li>
+                          <li>nouns stay prefixed: <code>isAlias</code>, <code>isPart</code></li>
+                          <li>the field a setting is copied into keeps its name, as <code>event.bubbles</code> does</li>
+                          <li>reverses J12a for <code>PartContextProps</code></li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · is / has on every setting</ui-label>
+                        <ul>
+                          <li>230 declarations, ~888 sites, 229 files</li>
+                          <li>
+                            <code>{ global: true }</code> to <code>{ isGlobal: true }</code>,
+                            <code>static parenthesize</code> to <code>shouldParenthesize</code>
+                          </li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Leave as it is</ui-label>
+                        <ul>
+                          <li>no renames</li>
+                          <li><code>isCancelable</code> keeps feeding <code>cancelable</code>, one line apart</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ></ui-grid
+                  >
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>WWOD §3 says settings are bare (<a href="#o4-9">1.4.9</a>)</li>
+                    <li>the rename phase, step R2: 13 declarations, ~53 sites</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-06T14:56:25-04:00"
+              id="q24"
+              data-status="open"
+              data-phase="13"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#q24">Q24</a>
+                  <span class="plan-title"
+                    >P13: data records and messages we define (not event detail): is / has, or bare?</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="13">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Shapes our code builds and reads back, which no page author writes:
+                    <code>CalendarCell { active, today, focus }</code>, <code>StickyWatchState.isBound</code>, cli dev
+                    reports. Write-up: <a href="#o4-5">1.4.5</a>.
+                  </p>
+                  <ui-grid class="spell-pros-cons" columns="3" stackable
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top"
+                          >A · is / has like members; outside formats keep their names (recommended)</ui-label
+                        >
+                        <ul>
+                          <li>57 names, 59 declarations, ~270 sites, 71 files</li>
+                          <li>
+                            <code>cell().focus</code> to <code>cell().isFocus</code>, <code>session.this</code> to
+                            <code>session.isThis</code>
+                          </li>
+                          <li>kept (104): JSON on disk, LSP, Fomantic, platform shapes, upstream ports</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · Bare, like the platform records</ui-label>
+                        <ul>
+                          <li>the <code>ValidityState.valid</code> / <code>Response.ok</code> style</li>
+                          <li>
+                            29 names, 30 declarations, ~115 sites, 38 files: <code>isBound</code> to <code>bound</code>,
+                            <code>isLoaded</code> to <code>loaded</code>
+                          </li>
+                          <li>nouns still need a prefix</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Leave as it is</ui-label>
+                        <ul>
+                          <li>no renames</li>
+                          <li>163 bare beside 30 prefixed</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ></ui-grid
+                  >
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>WWOD §3: records follow the members rule (<a href="#o4-9">1.4.9</a>)</li>
+                    <li>the rename phase, step R3: 59 declarations, ~270 sites</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-06T14:56:30-04:00"
+              id="q25"
+              data-status="open"
+              data-phase="13"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#q25">Q25</a>
+                  <span class="plan-title">P13: locals, parameters and yes / no functions: a rule, or free?</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="13">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Names inside one function (<code>let found</code>), and functions that answer true / false:
+                    <code>isSameOwner(a, b)</code> sits in the same package as <code>sameList(a, b)</code>. Write-up:
+                    <a href="#o4-6">1.4.6</a>.
+                  </p>
+                  <ui-grid class="spell-pros-cons" columns="3" stackable
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top"
+                          >A · Locals free (a noun takes is); functions is / has / can or a verb (recommended)</ui-label
+                        >
+                        <ul>
+                          <li>
+                            <code>sameX(a, b)</code> to <code>isSameX(a, b)</code>: 12 names, 13 declarations, ~48
+                            sites, 17 files
+                          </li>
+                          <li>
+                            <code>if (applied)</code>, <code>let found</code> stay; <code>first</code> holding a boolean
+                            becomes <code>isFirst</code>
+                          </li>
+                          <li>locals fixed by hand when a file is touched anyway</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · is / has on every boolean local and parameter too</ui-label>
+                        <ul>
+                          <li>350 declarations, ~1,007 sites, 171 files, plus the <code>isSameX</code> rename</li>
+                          <li>
+                            <code>applied</code> to <code>isApplied</code>, <code>found</code> to <code>wasFound</code>
+                          </li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · No rule for these</ui-label>
+                        <ul>
+                          <li>no renames</li>
+                          <li><code>sameList</code> and <code>isSameOwner</code> stay side by side</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ></ui-grid
+                  >
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>WWOD §3 gains the functions and locals lines (<a href="#o4-9">1.4.9</a>)</li>
+                    <li>the rename phase, step R4: 13 declarations, ~48 sites</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-06T14:56:35-04:00"
+              id="q26"
+              data-status="open"
+              data-phase="13"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#q26">Q26</a>
+                  <span class="plan-title">P13: derived yes / no reads: isOpen() method, or get isOpen?</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="13">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    One idea, four call shapes today: a method <code>isOpen()</code>, a memo <code>hasText()</code>, a
+                    getter <code>UI.browser.isDark</code>, a cell <code>isPaused.get()</code>. WWOD §12 says derived
+                    reads are getters; WWOD §17 (solid.md) says a derived value in Solid is a plain accessor. Write-up:
+                    <a href="#o4-7">1.4.7</a>.
+                  </p>
+                  <ui-grid class="spell-pros-cons" columns="3" stackable
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top"
+                          >A · Calls in Solid controllers, getters elsewhere (recommended)</ui-label
+                        >
+                        <ul>
+                          <li>a tracked read is a method or a memo, swapped freely without touching callers</li>
+                          <li>
+                            untracked reads stay getters: <code>isDirty</code> (J13), <code>UI.browser.isDark</code>
+                          </li>
+                          <li>1 rename (<code>hasShortcuts</code>, 4 sites); one sentence in §12</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">B · Getters everywhere (§12 as written)</ui-label>
+                        <ul>
+                          <li>60 controller methods to getters, ~284 sites, 46 files</li>
+                          <li>memos stay calls: two shapes in one class</li>
+                          <li>the <code>isDisabled()</code> hook becomes an overridden getter</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ><ui-column
+                      ><ui-segment
+                        ><ui-label attached="top">C · Methods everywhere</ui-label>
+                        <ul>
+                          <li>50 getters to methods, ~234 sites, 72 files</li>
+                          <li>undoes the J13 and J30 getters</li>
+                        </ul></ui-segment
+                      ></ui-column
+                    ></ui-grid
+                  >
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>WWOD §12 gains: in a Solid controller a tracked read is a call (<a href="#o4-9">1.4.9</a>)</li>
+                    <li>step R1 gains 1 rename</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ><ui-item
               data-answered
               data-state="old"
@@ -18287,6 +20164,13 @@ length    := "full" | "very long" | "long" | "medium" | "short" | "very short"</
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-06T14:37-04:00">2026-10-06 14:37</time></ui-date> P13
                   active</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T14:56-04:00">2026-10-06 14:56</time></ui-date> P13: proposal
+                  written (1.4), questions Q22 - Q26; waiting on Owen's picks</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed
