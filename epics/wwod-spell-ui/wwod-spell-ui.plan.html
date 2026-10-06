@@ -676,7 +676,8 @@
                 <code>yarn test:hmr</code>, <code>yarn ts</code> in each caller package</ui-item
               ><ui-item icon="list check" class="plan-to-review"
                 ><b>To review:</b> <a href="#j4">J4</a>, <a href="#j5">J5</a>, <a href="#j6">J6</a>,
-                <a href="#j7">J7</a>, <a href="#j8">J8</a>, <a href="#i14">I14</a></ui-item
+                <a href="#j7">J7</a>, <a href="#j8">J8</a>, <a href="#j9">J9</a>, <a href="#j10">J10</a>,
+                <a href="#c8">C8</a>, <a href="#i14">I14</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -2636,6 +2637,120 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                   </p></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:40:19-04:00"
+              id="j9"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j9">J9</a>
+                  <span class="plan-title"
+                    >SourceError kinds keep their kebab spelling (file-protocol, not file protocol)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The error kinds stayed <code>load</code>, <code>cross-origin</code>, <code>file-protocol</code>,
+                    <code>save</code>, <code>conflict</code>, <code>no-saver</code>, <code>render</code>, though Q1's
+                    example showed <code>"file protocol"</code>. Why: pages read them, so they fall under AGENTS.md
+                    "Functions &amp; types" ("values a page reads keep their published spelling").
+                  </p>
+                  <ul>
+                    <li>they reach pages as the <code>ui-error</code> event's <code>detail.kind</code></li>
+                    <li>
+                      a page's saver that can't import <code>SourceError</code> throws
+                      <code>{ kind: "conflict" }</code> itself
+                    </li>
+                    <li>
+                      both are published:
+                      <a href="../../ui/components/ui-include.html" target="src-ui-components-ui-include-html"
+                        ><code>ui/components/ui-include.html</code></a
+                      >
+                      (Events) and
+                      <a href="../../guides/ui-import/ui-import.html" target="src-guides-ui-import-ui-import-html"
+                        ><code>guides/ui-import/ui-import.html</code></a
+                      >
+                      list every value; WWOD §5's own example uses <code>kind: "file-protocol"</code>
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      <code>SOURCE_ERROR_KINDS</code> is now <code>SourceErrorKinds</code> (const array) +
+                      <code>SourceErrorKind</code> (its type), same values
+                    </li>
+                    <li>
+                      a NOTE on <code>SourceErrorKinds</code> (<a
+                        href="../../packages/ui/src/runtime/runtime.types.ts"
+                        target="src-packages-ui-src-runtime-runtime-types-ts"
+                        ><code>src/runtime/runtime.types.ts</code></a
+                      >) says why they're kebab-case
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:40:30-04:00"
+              id="j10"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j10">J10</a>
+                  <span class="plan-title"
+                    >Source checks throw instead of returning a SourceError: checkSource(), SourceMarkup.checkNesting(),
+                    parse()</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Three methods RETURNED a <code>SourceError</code> for the caller to test (WWOD §5: never return
+                    error unions). They now throw it; behaviour is the same, since every caller already turned the
+                    returned error into a failure.
+                  </p>
+                  <ul>
+                    <li>
+                      <code>SourceElement.refuseSource(source): SourceError | undefined</code> -&gt;
+                      <code>checkSource(source)</code>, which throws; default does nothing.
+                      <code>schedule()</code> catches it into <code>loadFailed()</code>. Only override:
+                      <code>UIInclude</code>
+                    </li>
+                    <li>
+                      <code>SourceMarkup.refusal(host, source, counts): SourceError | undefined</code> -&gt;
+                      <code>SourceMarkup.checkNesting(...)</code>, which throws (callers:
+                      <code>UIInclude.checkSource()</code>, <code>SourceBody.fetch()</code>)
+                    </li>
+                    <li>
+                      <code>SourceMarkup.parse(): DocumentFragment | SourceError</code> and
+                      <code>UIInclude.parse()</code> -&gt; <code>DocumentFragment</code>, throwing a
+                      <code>render</code> error; <code>UIInclude.insert()</code> catches it into
+                      <code>loadFailed(error, "render")</code>
+                    </li>
+                    <li>
+                      Named <code>check...</code>: a method named <code>refuse...</code> that usually doesn't refuse
+                      wasn't honest (WWOD §3)
+                    </li>
+                  </ul>
+                  <p>
+                    Also <code>SourceError.kindFor(error, otherwise)</code>, replacing four copies of
+                    <code>error instanceof SourceError ? error.kind : "load"</code> (<code>SourceElement</code> x2,
+                    <code>SourceBody</code>, <code>UICode</code>): <code>kind</code> is now a getter over an optional
+                    <code>cause</code>, so each copy would have needed a <code>??</code> too.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      one small change: a non-<code>SourceError</code> thrown while
+                      <code>&lt;ui-include&gt;</code> parses (DOMParser, URL rewriting) now shows as a
+                      <code>render</code> failure instead of escaping the effect
+                    </li>
+                    <li>no caller outside <code>ui</code></li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -2805,6 +2920,39 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                   </p></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="open"
+              data-changed="2026-10-05T21:40:36-04:00"
+              id="c8"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#c8">C8</a>
+                  <span class="plan-title">new SourceError(message, { cause }) isn't type-checked at construction</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    With the empty body WWOD §5 asks for, <code>SourceError</code> / <code>ApiError</code> keep
+                    <code>Error</code>'s constructor, whose <code>options.cause</code> is <code>unknown</code>. So
+                    TypeScript checks the cause when it's READ (<code>declare cause: SourceErrorCause | undefined</code
+                    >), not when it's written:
+                  </p>
+                  <pre><code>new SourceError("...", { cause: { kind: "lod" } })   // compiles;  error.kind is "lod" at run time</code></pre>
+                  <ul>
+                    <li>
+                      the 20 call sites were checked by hand, and the tests read <code>kind</code> back on each path
+                      they cover
+                    </li>
+                    <li>
+                      a typed constructor (<code
+                        >constructor(message: string, options: { cause: SourceErrorCause }) { super(message, options)
+                        }</code
+                      >) would catch it, at the cost of a non-empty body: a WWOD §5 question, not taken here
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -2875,11 +3023,12 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                   </p></ui-content
                 ></ui-accordion
               ></ui-item
-            ><ui-item data-state="attention" data-changed="2026-10-05T20:03:27-04:00" id="i4" data-status="open"
+            ><ui-item data-state="recent" data-changed="2026-10-05T21:40:36-04:00" id="i4" data-status="done"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#i4">I4</a>
-                  <span class="plan-title">Sources.fetch() throws away the network error</span></ui-title
+                  <span class="plan-title">Sources.fetch() throws away the network error</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
                 ><ui-content
                   ><p>
                     <a href="../../packages/ui/src/runtime/Sources.ts" target="src-packages-ui-src-runtime-sources-ts"
@@ -3637,6 +3786,13 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                   I11's NativeFallback bullet fixed (the Safari &amp;lt; 17.4 --errored try/catch is gone; render() adds
                   ERRORED_STATE directly); I11 stays open for its HostAttribute / core / forms / runtime
                   bullets</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T21:40-04:00">2026-10-05 21:40</time></ui-date> I4 closed:
+                  Sources.fetch() throws away the network error</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed

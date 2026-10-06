@@ -602,7 +602,8 @@ Where code knowingly doesn't follow a WWOD rule yet (`agents/wwod/`, epic `wwod`
   `cause`.  Today it's three ways, so `error.name` and logs differ by package:
   - `$/util`'s `CustomError`:  `get name()` from `this.constructor.name` (mangled by a minifier), details in
     `props.error`;  `getDier()` throws `UIError` with `props.error`
-  - `ui`'s `ApiError`, `SourceError`:  `this.name =` in the constructor
+  - `ui`'s `ApiError`, `SourceError`:  `this.name =` in the constructor (fixed on branch `wwod-spell-ui`, P3:  drop
+    this line when it merges)
   - `server`'s `HttpError`, `FileLockError`, `cli`'s `CliError`, `vscode`'s `BridgeError`:  no name at all
 - **Cause**:  written per package, before WWOD.
 - **Fix**:  the system errors move to `$/util/errors` (epic `wwod` todo T6), renamed (`NotFoundError`,
