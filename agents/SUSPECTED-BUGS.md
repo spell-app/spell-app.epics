@@ -18,6 +18,12 @@ fixed, or disproven, delete it (note a disproof in a line at the top if the reas
   file compiles `Card.declareProp('pile', { type: 'Pile' })` + the accessor at its top.  Probe `M5` pins it.  NOT
   for a built-in or IMPORTED type, e.g. Solitaire-import's `set the name of cards-to-move ...`:  still a plain field
   (plan doc caveat).
+- Fixed 2026-10-06 (worktree `docs-sidebar`):  the side bar's docs stuck on their placeholders ("Loads from
+  parts/p1.htm ..."), in one window and not another.  Chrome allows 6 HTTP/1.1 connections per host, and EVERY VS
+  Code window shares them (one network process:  `lsof` showed exactly 6 to `127.0.0.1:4747`);  each live page held
+  one for good (its live-reload `EventSource`, plus one more for a plan doc's review inbox).  Live reload is now a
+  websocket (`packages/server/src/webSocket.ts`), which doesn't count toward the 6;  the inbox listens through the
+  live client.
 `[V]` = checked against the code by hand.  Everything else is unverified.
 
 Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how to prove it. ``
@@ -638,22 +644,6 @@ every entry below that date was fixed or disproven;  what's left:
   never reloads a page already in view, so re-running it doesn't help.  Workaround:  `spell dev docs link
   <main checkout>/epics/<name>/<name>.plan.html --show`.  Fix:  show plan docs (shared content) at their `/epics/`
   address from any checkout, or have the server announce a shared file's change under every address that serves it.
-  - Then, on the `/epics/` address (worktree server, port 61857), J1 showed in the side bar but its body stayed the
-    placeholder ("Loads from parts/j1.htm when opened ...").  NOT reproduced headless:  `parts/j1.htm` serves 200 from
-    both servers, and a fresh load + click, a `#j1` link, and a click followed by an in-place update all show the
-    body.  Untested:  the side bar's own iframe (sandbox `allow-scripts allow-forms allow-same-origin
-    allow-downloads`), and an item opened WHILE its part file was still being written.
-  - Later the same night, Owen:  "sidebar is broken -- html files aren't loading";  every part showed its placeholder
-    ("Loads from parts/p1.htm ..."), and a details page didn't load either.  Both servers (4747, 61857) send
-    `parts/*.htm` as `text/html; charset=utf-8`, 200.  So:  the side bar's iframe, not the files.  Next step:  open the
-    view's webview developer tools (Developer:  Open Webview Developer Tools) and read the iframe's console / network.
-  - Likely cause (2026-10-06, worktree `docs-sidebar`):  Chrome's 6-connections-per-host cap, SHARED by every VS Code
-    window.  `lsof` showed exactly 6 connections to `127.0.0.1:4747`, all from ONE process:  VS Code's network
-    service (`Code Helper --utility-sub-type=network.mojom.NetworkService`), which serves all 14 window renderers.
-    Each live page holds one open for good (its `EventSource`), and `retainContextWhenHidden` keeps hidden views'
-    pages alive.  So 6 docs pages across all windows fill the pool, and the 7th page's requests (its parts, its
-    scripts) wait forever:  placeholders, nothing clickable (PAPERCUTS `vscode`, 2026-10-06 and 2026-10-04).
-    Another port (a worktree's server) has its own pool, which is why another window can work.
 
 - `spell dev docs update` (check-spell over every page) skips any page whose TEXT mentions
   `ui/site/_assets/site.js` -- meant to skip Spell UI site pages, it also drops `server.html`, `design-system.plan.html`,

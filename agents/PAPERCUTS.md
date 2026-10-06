@@ -1453,12 +1453,17 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   in Playwright -- inside a cross-origin iframe with `DocView`'s exact `sandbox`, 300px wide -- a click unfolded
   "1. Overview".  So the VS Code webview wasn't passing clicks to its iframe;  cause not pinned down.  No `spell dev`
   command can rebuild the view (`DocView` builds its html ONCE). · Try "Developer: Reload Webviews", or close and
-  reopen the Spell Docs view;  meanwhile ask in the modal.  CONSIDER:  a `spell dev window reload-view` that resets
-  the webview's html. · vscode
+  reopen the Spell Docs view;  meanwhile ask in the modal.  Likely the 6-connection cap below (a page whose scripts
+  never load draws no `ui-*`, so nothing clicks), fixed 2026-10-06 (worktree `docs-sidebar`).  Still stuck:
+  `spell dev window reload-view [--review]` rebuilds the view, a new iframe (same worktree). · vscode
 - 2026-10-04 · The side bar's Spell Docs view stopped showing docs in the `shared-content` worktree's window, while
   `/api/docs/show` answered "Shown" and the window's registry entry was alive.  It followed an edit of that window's
   `.code-workspace` (a folder added:  `spell-app-dev`), which re-registered the window (its extensions restarted). ·
-  Show the doc again (`yarn plan-doc open <name>`, or `/spell-docs`);  it came back.  Cause not pinned down. · vscode
+  Show the doc again (`yarn plan-doc open <name>`, or `/spell-docs`);  it came back.  Cause found 2026-10-06
+  (worktree `docs-sidebar`):  every VS Code window shares Chrome's 6 connections per host, and each live docs page
+  held one for good (its live-reload `EventSource`);  a 7th page's requests waited forever.  Fixed:  live reload is
+  a websocket now, which doesn't count.  Check:  `lsof -nP -iTCP -sTCP:ESTABLISHED | grep 4747` (6 from one
+  `Code Helper` = the cap). · vscode
 
 - 2026-10-02 · A freshly installed extension feature (`DocView`) never showed after a reload:  docs still opened in a
   new editor tab.  The extension is installed ONCE for all of VS Code, and a `yarn vscode` in another checkout (the
