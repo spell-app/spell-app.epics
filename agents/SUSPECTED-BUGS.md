@@ -622,6 +622,14 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- A plan doc open in the side bar (Spell Docs view) didn't show an item added after it loaded:  epic
+  `output-targets`, 2026-10-05, J1 (the doc's FIRST judgement call, into an empty "4. Judgement calls" section, with
+  its body in a new part file, `parts/j1.htm`) never appeared for Owen, while a fresh load of the same URL showed it
+  with its details.  Suspect the live update (`wireLiveUpdate()` / `wireSourceBodies()`) patching a new item and its
+  new part into an empty `ui-list.plan-items`.  Prove:  open a split plan doc served by the page server, `plan-doc add
+  <name> judgement "x"` into an empty section, then `details <name> j<n> --file ...`;  look without reloading.  Not
+  yet reproduced on purpose.
+
 - `spell dev docs update` (check-spell over every page) skips any page whose TEXT mentions
   `ui/site/_assets/site.js` -- meant to skip Spell UI site pages, it also drops `server.html`, `design-system.plan.html`,
   `review-review.plan.html` and others that merely name the file, so they're never checked.  Prove:  list the pages
