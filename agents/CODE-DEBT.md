@@ -438,6 +438,20 @@ knowingly kept:
 
 ---
 
+### The "generic" parser holds spell's tree and its writers
+
+- **Cost**:  `packages/parser` is meant to know no language, but `src/ast/AST.ts` is spell's tree (nodes like
+  `ASTSpellCoreExpression`, `ASTJSXElement`, `ASTReactiveProperty`), and `src/writers/` (`P.JSWriter`, from epic
+  `output-targets` P2, 2026-10-05) writes it as javascript.  Markdown, the second language on the parser, uses
+  none of it.
+- **Cause**:  the tree was always there;  the writers went beside it (Q4 of `output-targets`) because
+  `ASTNode.compile()` -- which `Match.compile()` calls -- must reach `JSWriter` with no new wiring.
+- **Fix**:  a package of its own (e.g. `packages/outputs/`) for the tree AND the writers, `spell` -> it ->
+  `parser`, with the parser exposing a hook for `Match.compile()`.  Moves 76 classes and every `P.AST*` use.
+- **Pinned at**:  `epics/output-targets/output-targets.plan.html`, caveat C1.
+
+---
+
 ## ui
 
 ### `ui-popup.anchored.css` skips the CSS pipeline
