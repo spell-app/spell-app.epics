@@ -622,13 +622,21 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
-- A plan doc open in the side bar (Spell Docs view) didn't show an item added after it loaded:  epic
-  `output-targets`, 2026-10-05, J1 (the doc's FIRST judgement call, into an empty "4. Judgement calls" section, with
-  its body in a new part file, `parts/j1.htm`) never appeared for Owen, while a fresh load of the same URL showed it
-  with its details.  Suspect the live update (`wireLiveUpdate()` / `wireSourceBodies()`) patching a new item and its
-  new part into an empty `ui-list.plan-items`.  Prove:  open a split plan doc served by the page server, `plan-doc add
-  <name> judgement "x"` into an empty section, then `details <name> j<n> --file ...`;  look without reloading.  Not
-  yet reproduced on purpose.
+- A running epic's plan doc shown at its WORKTREE address never updates live:  `spell dev plan-doc open <name>`, run
+  in worktree `<name>`, shows `/worktrees/<name>/epics/<name>/<name>.plan.html` (main server, port 4747) in the side
+  bar, and no edit to the doc ever reaches that page;  the same doc at `/epics/<name>/<name>.plan.html` (either
+  server) updates in place.  Owen saw no J1 (epic `output-targets`, 2026-10-05) while every fresh load showed it.
+  Proven:  two headless pages, one at each address, then `plan-doc estimate <name> 9 "1h"`:  P9's badge changed on
+  the `/epics/` page only.  Likely mechanism (not read):  the page server names a change by the shared file's
+  `/epics/...` path, and the worktree-address page waits for its own.  Also:  `plan-doc open` (`DocView.show()`)
+  never reloads a page already in view, so re-running it doesn't help.  Workaround:  `spell dev docs link
+  <main checkout>/epics/<name>/<name>.plan.html --show`.  Fix:  show plan docs (shared content) at their `/epics/`
+  address from any checkout, or have the server announce a shared file's change under every address that serves it.
+  - Then, on the `/epics/` address (worktree server, port 61857), J1 showed in the side bar but its body stayed the
+    placeholder ("Loads from parts/j1.htm when opened ...").  NOT reproduced headless:  `parts/j1.htm` serves 200 from
+    both servers, and a fresh load + click, a `#j1` link, and a click followed by an in-place update all show the
+    body.  Untested:  the side bar's own iframe (sandbox `allow-scripts allow-forms allow-same-origin
+    allow-downloads`), and an item opened WHILE its part file was still being written.
 
 - `spell dev docs update` (check-spell over every page) skips any page whose TEXT mentions
   `ui/site/_assets/site.js` -- meant to skip Spell UI site pages, it also drops `server.html`, `design-system.plan.html`,
