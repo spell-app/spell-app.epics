@@ -152,6 +152,10 @@ you're touching BEFORE writing code:
     `this` binding.
   - Prototype methods for internal imperative mutations (`deleteNodes()`).
 - **Boolean getters prefixed `is` / `has` / `can`:**  `isEditing`, `hasChanges`, `canSave`.
+  - EXCEPT a custom element's PUBLIC API (attributes, properties, `:state()`, event `detail`), which copies the
+    platform:  bare booleans (`el.open`, `el.disabled`, `nag.dismissed`), the platform's camelCase (`readOnly`,
+    `maxLength`, `htmlFor`).  `is` / `has` / `can` are for our own members (a controller's `isOpen`).  (Owen,
+    2026-10-06, epic `wwod-spell-ui` J13.)
 - **Drop the redundant type word once something is a class member** -- the class already said it:
   - In a `Run` class:  `nextRun(run)` → `next()`, `planRun()` → `planSteps()`, `runActionKeys()` → `actionKeys()`.
   - Same for reads, which become getters:  `runProgress(run)` → `progress`, `currentStep(run)` → `currentStep`,
