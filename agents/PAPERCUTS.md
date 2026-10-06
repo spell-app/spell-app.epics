@@ -1238,6 +1238,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   opens.  And a Playwright wait for a long log line never matched:  oxfmt wraps the line, so the page's
   `textContent` has a newline and indent where the text has a space. · Wait with `state: "attached"`;  look for a
   log line by a one-token stamp (`check-live-<ms>`), never a sentence. · claude-design
+- 2026-10-05 · A worktree cut from `main` minutes before `claude-design` P4 merged (the shared repo's folders moved
+  to its root) ran `spell dev plan-doc new`, which warned "docs index not updated:  index.html missing
+  `<!-- index:start -->`", and every `plan-doc check` failed its browser half (`ERR_FILE_NOT_FOUND`, undefined
+  `ui-*`):  the shared repo already had the new layout, the worktree's tools the old one;  `shared status` showed
+  the new links `missing`. · `git merge main` (here a fast-forward), `yarn install`, then `spell dev shared link`;
+  both errors gone. · wwod-spell-ui
 
 ## claude-code
 
