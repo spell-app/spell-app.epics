@@ -1271,6 +1271,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   worktree's page server had started BEFORE the new `POST /api/review/draft` route existed, so it answered 404.
   · `spell dev server stop`, then `ensure`:  restart a page server after changing a route module (as the
   2026-10-05 `server` entry says). · windows-and-review
+- 2026-10-06 · `check-spell.js` fails a durable page whose spell code sits in a folded code block,
+  `<ui-accordion class="spell-code" styled>` around `<ui-code language="spell">` (the only way to colour spell:
+  highlight.js has no spell):  "4 ui-accordion.spell-code without a <pre>".  Its `codeWithoutPre` looks for a
+  light-DOM `<pre>`;  `<ui-code>` draws its `<pre>` in its shadow root. · Left as is on
+  `guides/outline-spell.html` (the page renders and folds right).  Fix:  count `ui-code` as the block's `<pre>`
+  in `inspectPage()`. · outline-spell
 
 ## claude-code
 
