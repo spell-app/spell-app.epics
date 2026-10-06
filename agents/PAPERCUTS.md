@@ -1255,6 +1255,16 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (suspect:  the answer route on the main server for a `/worktrees/<name>/` page, or the page loaded before the
   worktree's server restart). · Asked the same questions in two modals instead.  Look at `detailsRoutes.ts` with a
   `/worktrees/` page before trusting a page for bedtime again. · wwod-spell-ui
+- 2026-10-06 · `yarn review` (or `yarn format`) in `packages/docs` rewrites all 52 generated emoji chunks
+  (`tools/_assets/emoji/<set>/<letter>.js`):  `bundle-spell-ui.js` writes their keys quoted, oxfmt unquotes them,
+  so every docs review leaves 52 changed files nobody meant to touch.  Hit twice in one day (worktrees
+  `docs-sidebar`, `windows-and-review`). · `git checkout -- packages/docs/tools/_assets/emoji` after the review.
+  Fix:  have `bundle-spell-ui.js` write the chunks as oxfmt would (unquoted keys where valid), or add the folder to
+  the `fmt` ignores. · windows-and-review
+- 2026-10-06 · A review page's draft saves all failed ("Not saved") although the page loaded fine:  this
+  worktree's page server had started BEFORE the new `POST /api/review/draft` route existed, so it answered 404.
+  · `spell dev server stop`, then `ensure`:  restart a page server after changing a route module (as the
+  2026-10-05 `server` entry says). · windows-and-review
 
 ## claude-code
 
