@@ -587,7 +587,7 @@ every entry below that date was fixed or disproven;  what's left:
   test project (vitest + chromium), while `getComputedStyle(el)["padding-left"]` there is `"0px"`;  on the dev server
   it reads `0`.  Probably the `#top` ... private fields as the vitest transform lowers them (declared, no
   initializer).  `src/solid/SplitPanel.tsx` reads padding itself now.  Prove:  `getPadding(document.body).left` in any
-  `*.browser.test.ts`.
+  `*.browser.test.ts`.  MOOT once epic `output-targets` merges:  its P4 deletes `DOM.ts`, nothing reading it any more.
 - `SP.SpellProjectRoot.guides.load()` (the chooser's "Open Guide" list):  the API answers 500, `ENOENT ... scandir
   .../projects/system/guides`:  the folder isn't in git (no guides yet), so EVERY load of the chooser logs a failed
   request.  React's `ProjectMenu` left the rejection unhandled;  the Solid one (P8) says "Couldn't load Guides".

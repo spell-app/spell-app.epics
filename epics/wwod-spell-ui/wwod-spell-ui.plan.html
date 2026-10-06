@@ -628,7 +628,7 @@
                 ><b>Verify:</b> <code>yarn review</code> in util, parser, cli, ui; <code>yarn measure</code></ui-item
               ><ui-item icon="list check" class="plan-to-review"
                 ><b>To review:</b> <a href="#j2">J2</a>, <a href="#j3">J3</a>, <a href="#c6">C6</a>,
-                <a href="#c7">C7</a>, <a href="#i13">I13</a></ui-item
+                <a href="#c7">C7</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -817,8 +817,9 @@
               ><ui-item icon="list check" class="plan-to-review"
                 ><b>To review:</b> <a href="#j26">J26</a>, <a href="#j27">J27</a>, <a href="#j28">J28</a>,
                 <a href="#j29">J29</a>, <a href="#j30">J30</a>, <a href="#j31">J31</a>, <a href="#j32">J32</a>,
-                <a href="#j33">J33</a>, <a href="#j34">J34</a>, <a href="#j35">J35</a>, <a href="#t2">T2</a>,
-                <a href="#t3">T3</a></ui-item
+                <a href="#j33">J33</a>, <a href="#j34">J34</a>, <a href="#j35">J35</a>, <a href="#j36">J36</a>,
+                <a href="#t2">T2</a>, <a href="#t3">T3</a>, <a href="#t4">T4</a>, <a href="#t5">T5</a>,
+                <a href="#i16">I16</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -4752,6 +4753,86 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                   </p></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-05T23:23:22-04:00"
+              id="j36"
+              data-status="open"
+              data-phase="4"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j36">J36</a>
+                  <span class="plan-title"
+                    >I13: themes move into the runtime (UI.themes), and classicThemeCSS / darkThemeCSS leave
+                    $/ui/styles</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Chose option 1 of I13, <code>ThemeSheets</code> as a runtime service (<code>UI.themes</code>), over
+                    exporting it from <code>core</code> (option 2) or accepting the chunk (option 3), because it is the
+                    smallest variant that leaves no <code>rolldown-runtime-*.js</code> and keeps every
+                    <code>yarn measure</code> check clean (numbers: I13's reply).
+                  </p>
+                  <ul>
+                    <li>
+                      option 3 fails the criterion by definition: measured, its chunk trips
+                      <code>runtimeChunks</code> and <code>coreOutsideCore</code>
+                    </li>
+                    <li>
+                      options 1 and 2 both still had the chunk until <code>classicThemeCSS</code> /
+                      <code>darkThemeCSS</code> left <code>$/ui/styles</code>: the glob's <code>import()</code> of two
+                      sheets <code>styles.js</code> also imports statically needs <code>__exportAll</code> in chunks
+                      that never load <code>core</code>. Only
+                      <a
+                        href="../../packages/ui/src/styles/styles.test.ts"
+                        target="src-packages-ui-src-styles-styles-test-ts"
+                        ><code>styles.test.ts</code></a
+                      >
+                      read them; it imports the two sheets itself now. A removed public export (Q1)
+                    </li>
+                    <li>
+                      with that, 1 and 2 cost a component page the same bytes (67,124 gz with the runtime and
+                      <code>styles.js</code>, HEAD 69,081); option 1 keeps ~1 kB of it out of <code>core</code> (32,277
+                      vs 33,300 gz), in the lazy runtime
+                    </li>
+                    <li>
+                      also: <code>yarn measure</code> now builds the <code>styles</code> entry, so this chunk can't come
+                      back unseen (option 3's second half, kept as a guard)
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      <code>import { ThemeSheets } from "@spell-app/ui/styles"</code> becomes
+                      <code>const { themes } = await UI.load()</code>, then <code>themes.apply("github")</code>,
+                      <code>themes.names</code>, <code>themes.own</code> (was <code>OWN</code>),
+                      <code>themes.base</code> (<code>BASE</code>), <code>themes.slots</code> (<code>SLOTS</code>),
+                      <code>themes.current</code>
+                    </li>
+                    <li>
+                      the theme names exist only once the runtime has loaded: <code>&lt;ui-docs-themes&gt;</code>'s
+                      <code>menu</code> memo is <code>lazy</code> now, its fallback test loads the runtime first
+                    </li>
+                    <li>
+                      <a href="../../agents/wwod/classes-state.md" target="src-agents-wwod-classes-state-md"
+                        ><code>agents/wwod/classes-state.md</code></a
+                      >
+                      (read-only here) still cites <code>ThemeSheets.SLOTS</code> as its "tuning table" example; the
+                      shape lives on as <code>Themes</code>' <code>slots</code>
+                    </li>
+                    <li>
+                      the committed bundles built from the old code (<a
+                        href="../../packages/brand/_assets/ui/"
+                        target="src-packages-brand-assets-ui"
+                        ><code>packages/brand/_assets/ui/</code></a
+                      >, <code>packages/docs/tools/_assets/spell-ui*.js</code>) keep working until rebuilt; their
+                      entries are updated
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -5171,6 +5252,74 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                         ><code>src/styles/</code></a
                       >
                       belongs to another P4 agent
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="recent"
+              data-bedtime
+              data-changed="2026-10-05T23:30:23-04:00"
+              id="t4"
+              data-status="open"
+              data-phase="4"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#t4">T4</a>
+                  <span class="plan-title">P8: UI.themes' own tests move to src/runtime/Themes.test.ts</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    P4 moved <code>ThemeSheets</code> into the runtime (<a
+                      href="../../packages/ui/src/runtime/Themes.ts"
+                      target="src-packages-ui-src-runtime-themes-ts"
+                      ><code>src/runtime/Themes.ts</code></a
+                    >, I13), but its seven class tests stayed in
+                    <a
+                      href="../../packages/ui/src/styles/themes/themes.test.ts"
+                      target="src-packages-ui-src-styles-themes-themes-test-ts"
+                      ><code>src/styles/themes/themes.test.ts</code></a
+                    >, as <code>describe("UI.themes")</code>: they share that file's <code>ThemeHarness</code>, and
+                    test-file shape is P8's.
+                  </p>
+                  <ul>
+                    <li>
+                      WWOD §20 › "Tests follow the logic": they belong beside
+                      <a href="../../packages/ui/src/runtime/Themes.ts" target="src-packages-ui-src-runtime-themes-ts"
+                        ><code>Themes.ts</code></a
+                      >;
+                      <a
+                        href="../../packages/ui/src/styles/themes/themes.test.ts"
+                        target="src-packages-ui-src-styles-themes-themes-test-ts"
+                        ><code>themes.test.ts</code></a
+                      >
+                      keeps the per-theme cases
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="recent"
+              data-bedtime
+              data-changed="2026-10-05T23:30:23-04:00"
+              id="t5"
+              data-status="open"
+              data-phase="4"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#t5">T5</a>
+                  <span class="plan-title">P5-P7: new HostAttribute(host, name) takes a props object</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>HostAttribute</code>'s constructor is still positional, <code>(host, name)</code>, against the
+                    recipe's "constructors take ONE props object". P4 changed only <code>get()</code> (Q17); the
+                    constructor is called from 22 component fields, which P5-P7 restyle anyway.
+                  </p>
+                  <ul>
+                    <li>
+                      e.g. <code>new E.HostAttribute({ host: this.host, name: UIT.ARIA_LABEL })</code>, in the same pass
+                      that moves each family to <code>E</code>
                     </li>
                   </ul></ui-content
                 ></ui-accordion
@@ -5595,10 +5744,11 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                 </ui-content></ui-accordion
               ></ui-item
             ><ui-item
-              data-state="attention"
-              data-changed="2026-10-05T21:12:56-04:00"
+              data-bedtime
+              data-state="recent"
+              data-changed="2026-10-05T23:23:25-04:00"
               id="i13"
-              data-status="open"
+              data-status="done"
               data-phase="2"
               ><ui-accordion class="plan-item"
                 ><ui-title
@@ -5606,7 +5756,8 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                   <span class="plan-title"
                     >The real dist/ still has a rolldown-runtime chunk: the styles entry, which yarn measure doesn't
                     build</span
-                  > </ui-title
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
                 ><ui-content
                   ><p>
                     After I12's fix, <code>yarn measure</code> passes, but a real <code>yarn build</code> still writes
@@ -5653,8 +5804,204 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                       Accept the chunk, and add <code>styles</code> to what <code>yarn measure</code> builds so the
                       check shows it.
                     </li>
-                  </ol></ui-content
-                ></ui-accordion
+                  </ol>
+                  <div class="plan-reply">
+                    <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-05 23:25</time> · re: I13</div>
+                    <p>
+                      Measured all three (Q21). Option 1, <code>UI.themes</code>, is the smallest clean one, but only
+                      together with one more change that options 1 and 2 BOTH need: <code>classicThemeCSS</code> /
+                      <code>darkThemeCSS</code> leave <code>$/ui/styles</code>.
+                    </p>
+                    <ul>
+                      <li>
+                        Why the extra change: the theme glob dynamic-imports
+                        <a
+                          href="../../packages/ui/src/styles/themes/classic.css"
+                          target="src-packages-ui-src-styles-themes-classic-css"
+                          ><code>classic.css</code></a
+                        >
+                        and
+                        <a
+                          href="../../packages/ui/src/styles/themes/dark.css"
+                          target="src-packages-ui-src-styles-themes-dark-css"
+                          ><code>dark.css</code></a
+                        >, which <code>styles.js</code> ALSO imported statically for the two exports. Wherever the glob
+                        lives, those two then become their own chunks that need <code>__exportAll</code>, and neither
+                        imports <code>core.js</code>: the runtime chunk comes back. Only
+                        <a
+                          href="../../packages/ui/src/styles/styles.test.ts"
+                          target="src-packages-ui-src-styles-styles-test-ts"
+                          ><code>styles.test.ts</code></a
+                        >
+                        read the two exports; it now imports the sheets itself.
+                      </li>
+                      <li>
+                        Each variant built from a clean copy of HEAD (<code>8c5dfdac</code>), not the live tree (other
+                        P4 agents are editing it): <code>vp build</code> into
+                        <a href="../../packages/ui/dist/" target="src-packages-ui-dist"><code>dist/</code></a
+                        >, then <code>yarn measure</code> with the <code>styles</code> entry added to what it builds
+                        (else it can't see the chunk at all).
+                      </li>
+                      <li>
+                        Sizes in bytes. Build columns: raw
+                        <a href="../../packages/ui/dist/" target="src-packages-ui-dist"><code>dist/</code></a> files
+                        (gzip 9). Measure columns: esbuild-minified, gzip 9.
+                      </li>
+                    </ul>
+                    <ui-table compact celled
+                      ><table>
+                        <thead>
+                          <tr>
+                            <th>Variant</th>
+                            <th>
+                              <code>rolldown-runtime-*.js</code> in
+                              <a href="../../packages/ui/dist/" target="src-packages-ui-dist"><code>dist/</code></a>
+                            </th>
+                            <th><code>yarn measure</code> checks</th>
+                            <th class="num right aligned"><code>core.js</code> min / gz</th>
+                            <th class="num right aligned"><code>styles.js</code> min / gz</th>
+                            <th class="num right aligned"><code>UIRuntime</code> min / gz</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>HEAD = option 3 (accept the chunk, measure <code>styles</code>)</td>
+                            <td>yes (1,563 B raw, 1,161 / 650 min / gz)</td>
+                            <td>2 fail: <code>runtimeChunks</code>, <code>coreOutsideCore</code></td>
+                            <td class="num right aligned">109,520 / 31,832</td>
+                            <td class="num right aligned">137,910 / 19,691</td>
+                            <td class="num right aligned">50,632 / 16,908</td>
+                          </tr>
+                          <tr>
+                            <td>HEAD, <code>ThemeSheets</code> kept, classic / dark exports dropped</td>
+                            <td>yes</td>
+                            <td>2 fail</td>
+                            <td class="num right aligned">109,520 / 31,832</td>
+                            <td class="num right aligned">131,469 / 18,202</td>
+                            <td class="num right aligned">50,632 / 16,908</td>
+                          </tr>
+                          <tr>
+                            <td>2: <code>ThemeSheets</code> exported from <code>core</code></td>
+                            <td>yes (<code>classic</code> / <code>dark</code> chunks import it)</td>
+                            <td>2 fail</td>
+                            <td class="num right aligned">112,770 / 32,887</td>
+                            <td class="num right aligned">128,316 / 17,016</td>
+                            <td class="num right aligned">50,632 / 16,908</td>
+                          </tr>
+                          <tr>
+                            <td>2 + classic / dark exports dropped</td>
+                            <td><b>none</b></td>
+                            <td>all clean</td>
+                            <td class="num right aligned">113,869 / 33,300</td>
+                            <td class="num right aligned">128,196 / 16,939</td>
+                            <td class="num right aligned">50,589 / 16,885</td>
+                          </tr>
+                          <tr>
+                            <td>1: <code>UI.themes</code>, a runtime service</td>
+                            <td>yes (same cause)</td>
+                            <td>2 fail</td>
+                            <td class="num right aligned">109,520 / 31,832</td>
+                            <td class="num right aligned">134,696 / 18,475</td>
+                            <td class="num right aligned">54,153 / 17,907</td>
+                          </tr>
+                          <tr>
+                            <td>
+                              <b>1 + classic / dark exports dropped (picked; the final code measures the same)</b>
+                            </td>
+                            <td><b>none</b></td>
+                            <td>all clean</td>
+                            <td class="num right aligned">110,645 / 32,277</td>
+                            <td class="num right aligned">128,196 / 16,939</td>
+                            <td class="num right aligned">54,121 / 17,908</td>
+                          </tr>
+                        </tbody>
+                      </table></ui-table
+                    >
+                    <p>What a page pays, gzipped, measured:</p>
+                    <ul>
+                      <li>
+                        <code>core</code> alone (every page): 1 + drop is 445 B over HEAD's
+                        <code>core.js</code> (Rolldown's helpers move back in), but HEAD also fetched the 650 B runtime
+                        chunk: <b>205 B less, one request fewer</b>. Option 2 + drop: 818 B more than HEAD.
+                      </li>
+                      <li>
+                        A page with any element also loads <code>UIRuntime</code> and <code>styles.js</code> (the
+                        runtime imports the sheets): HEAD 69,081; option 2 + drop 67,124; option 1 + drop 67,124. Both
+                        save ~2 kB (classic / dark no longer ride in <code>styles.js</code>), the same bytes: option 1
+                        keeps ~1 kB of them out of <code>core</code>, in the lazy runtime, so it's the smaller one
+                        wherever <code>core</code> loads without the runtime.
+                      </li>
+                      <li>
+                        <code>yarn measure</code>'s "page with one button": HEAD 66.35 kB, option 2 + drop 66.33, option
+                        1 + drop 66.31.
+                      </li>
+                    </ul>
+                    <p>Done in P4 (judgement for the pick, below):</p>
+                    <ul>
+                      <li>
+                        <a href="../../packages/ui/src/runtime/Themes.ts" target="src-packages-ui-src-runtime-themes-ts"
+                          ><code>src/runtime/Themes.ts</code></a
+                        >
+                        (was <code>src/styles/themes/themes.ts</code>), built by <code>UIRuntime</code> as
+                        <code>UI.themes</code>: <code>apply()</code>, <code>load()</code>, <code>has()</code>,
+                        <code>names</code>, <code>sheets</code>, <code>own</code>, <code>base</code>,
+                        <code>slots</code>,
+                        <code>current</code>
+                      </li>
+                      <li>
+                        <code>$/ui/styles</code> holds no code again; <code>classicThemeCSS</code> /
+                        <code>darkThemeCSS</code> are gone (every theme, classic and dark included, is a lazy chunk)
+                      </li>
+                      <li>
+                        <code>yarn measure</code> builds the <code>styles</code> entry too (<a
+                          href="../../packages/ui/tools/package.config.ts"
+                          target="src-packages-ui-tools-package-config-ts"
+                          ><code>tools/package.config.ts</code></a
+                        >), so its checks see this chunk if it comes back
+                      </li>
+                      <li>
+                        callers moved: <code>ThemePreference</code>, <code>&lt;ui-docs-themes&gt;</code> (element,
+                        fallback, tests),
+                        <a href="../../packages/brand/src/brand-ui.ts" target="src-packages-brand-src-brand-ui-ts"
+                          ><code>brand-ui.ts</code></a
+                        >, both docs bundle entries (<a
+                          href="../../packages/docs/tools/_assets/spell-ui.entry.js"
+                          target="src-packages-docs-tools-assets-spell-ui-entry-js"
+                          ><code>spell-ui.entry.js</code></a
+                        >,
+                        <a
+                          href="../../packages/docs/tools/_assets/spell-ui.design.entry.js"
+                          target="src-packages-docs-tools-assets-spell-ui-design-entry-js"
+                          ><code>spell-ui.design.entry.js</code></a
+                        >),
+                        <a
+                          href="../../packages/ui/src/components/ui-panel/ui-panel.test.tsx"
+                          target="src-packages-ui-src-components-ui-panel-ui-panel-test-tsx"
+                          ><code>ui-panel.test.tsx</code></a
+                        >,
+                        <a
+                          href="../../packages/ui/src/styles/themes/themes.test.ts"
+                          target="src-packages-ui-src-styles-themes-themes-test-ts"
+                          ><code>themes.test.ts</code></a
+                        >,
+                        <a href="../../packages/ui/docs/theming.md" target="src-packages-ui-docs-theming-md"
+                          ><code>docs/theming.md</code></a
+                        >
+                      </li>
+                    </ul>
+                    <p><b>Net effect:</b></p>
+                    <ul>
+                      <li>
+                        a real <code>yarn build</code> writes no <code>rolldown-runtime-*.js</code>; every
+                        <code>yarn measure</code> check clean with <code>styles</code> measured
+                      </li>
+                      <li>
+                        <code>import { ThemeSheets } from "@spell-app/ui/styles"</code> becomes
+                        <code>(await UI.load()).themes</code>: the names are there only once the runtime has loaded
+                      </li>
+                    </ul>
+                  </div>
+                </ui-content></ui-accordion
               ></ui-item
             ><ui-item
               data-state="attention"
@@ -5745,6 +6092,68 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                   <p><b>Net effect:</b></p>
                   <ul>
                     <li>nothing changes now; P10 decides</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-05T23:30:14-04:00"
+              id="i16"
+              data-status="open"
+              data-phase="4"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#i16">I16</a>
+                  <span class="plan-title"
+                    >P4 runtime: runtime.types.ts importing package.json brings a Rolldown runtime chunk back
+                    (runtime.types-&lt;hash&gt;.js)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Seen at the end of P4's Styles slice, in the LIVE tree (other P4 agents mid-edit):
+                    <code>yarn measure</code> fails three checks, and a real <code>yarn build</code> writes a
+                    <code>runtime.types-&lt;hash&gt;.js</code> that holds Rolldown's helpers, which
+                    <code>core.js</code> and every lazy chunk import: I13's symptom under another name.
+                  </p>
+                  <ul>
+                    <li><code>runtimeChunks</code>: <code>runtime.types-FRf7swcM.js</code></li>
+                    <li>
+                      <code>coreOutsideCore</code>: <code>\0rolldown/runtime.js</code>,
+                      <a
+                        href="../../packages/ui/src/runtime/runtime.types.ts"
+                        target="src-packages-ui-src-runtime-runtime-types-ts"
+                        ><code>src/runtime/runtime.types.ts</code></a
+                      >
+                    </li>
+                    <li>
+                      <code>unattributed</code>:
+                      <a href="../../packages/ui/package.json" target="src-packages-ui-package-json"
+                        ><code>packages/ui/package.json</code></a
+                      >
+                    </li>
+                    <li>
+                      the cause, by the module list: the runtime slice's new
+                      <code>import { version } from "../../package.json"</code> in
+                      <a
+                        href="../../packages/ui/src/runtime/runtime.types.ts"
+                        target="src-packages-ui-src-runtime-runtime-types-ts"
+                        ><code>src/runtime/runtime.types.ts</code></a
+                      >
+                      (for <code>RUNTIME_VERSION</code>)
+                    </li>
+                    <li>
+                      NOT I13's fix: HEAD plus the Styles slice alone builds with no runtime chunk and every check clean
+                      (I13's reply)
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      the runtime slice should check <code>yarn measure</code> before it hands back; a
+                      <code>define</code>, or a <code>version</code> passed some other way, may avoid the JSON module
+                    </li>
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
@@ -6190,6 +6599,21 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-05T23:21-04:00">2026-10-05 23:21</time></ui-date> I2 closed:
                   Styles.register() with linked: true on a sheet already there never refreshes the page</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T23:23-04:00">2026-10-05 23:23</time></ui-date> I13 reply
+                  added</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T23:23-04:00">2026-10-05 23:23</time></ui-date> I13 closed: The
+                  real dist/ still has a rolldown-runtime chunk: the styles entry, which yarn measure doesn't
+                  build</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed
