@@ -53,7 +53,7 @@
             <!--
               EXAMPLES:  Fomantic's flag page, in its order (Definition, Types:  the flag list, Size, Autosizing), plus our own
               extras (Names, Other flags).  The glyph is the reader's platform flag EMOJI, so the look depends on the OS:
-              Windows shows two letters unless the page loads a flag font (Theming tab).  The flag list is generated from
+              Windows' Chrome / Edge show two letters unless the page loads a flag font (Theming tab, "A flag font").  The flag list is generated from
               `FLAG_ALIASES` (`ui-flag.types.ts`) / `UIT.SpecialFlags` with English region names.
             -->
             <ui-section id="examples-definition" header="Definition" sticky collapsible dividing>
@@ -97,9 +97,12 @@
 
             <ui-section id="examples-types" header="Types" sticky collapsible dividing>
               <ui-message state="info" size="small"
-                >Flags are the Unicode flag emoji, as in Fomantic 2.9's default theme. To return to the sprite
-                approach using the famfamfam icon set, pick the <b>Famfamfam</b> theme above: it draws the 16 x 11
-                sprite cell for every country it has.</ui-message
+                >Flags are the Unicode flag emoji, as in Fomantic 2.9's default theme: no images, by design. Windows'
+                Chrome and Edge have no flag emoji and show the two letters instead; a page that wants flags there loads
+                a flag font (Theming tab, "A flag font").</ui-message
+              >
+              <ui-message size="small" class="site-not-ported"
+                >Not ported: Fomantic's <code>famfamfam</code> sprite theme -- flags are emoji only.</ui-message
               >
               <ui-message size="small" class="site-not-ported"
                 >Not ported: Fomantic's <code>@flags</code> variable to trim the generated CSS -- there is no per-flag
@@ -1800,34 +1803,58 @@
                   private alias, so nothing inside blocks them.
 
                   - `--ui-flag-size-small` ... `-massive` are the size ratios; `--ui-flag-distance` the space after a flag.
-                  - Windows' emoji font has no flags and shows the two letters instead. To get real flags there, load a flag font
-                    (for example the "Twemoji Country Flags" polyfill) and name it first in `--ui-flag-font-family`, once for the
-                    page.
+                  - `--ui-flag-font-family` is the font flags draw with; it defaults to the colour emoji fonts,
+                    `--ui-font-family-emoji`. Windows' Chrome / Edge need a flag font: "A flag font", below.
                   - Never set the `--_ui-*` names: they're the sheet's private plumbing.
                 </script>
               </ui-markdown>
+              <ui-markdown>Edit a value below to try it.</ui-markdown>
+              <ui-docs-tokens family="ui-flag" playground></ui-docs-tokens>
+            </ui-section>
+
+            <ui-section id="theming-a-flag-font" header="A flag font" sticky collapsible dividing>
+              <ui-markdown>
+                <script type="text/markdown">
+                  Flags are emoji, drawn by the reader's emoji font. Mac, iPhone, Android, ChromeOS, Linux (Noto Color Emoji)
+                  and Firefox everywhere draw them. **Windows' Chrome and Edge don't:** Microsoft's emoji font, Segoe UI Emoji,
+                  has no country flags (Windows 10 or 11), so 🇫🇷 shows as the letters "FR", and England / Scotland / Wales
+                  as a plain black flag. Rainbow, transgender and pirate flags work everywhere.
+
+                  A page that wants flags there loads a flag font itself; `@spell-app/ui` ships no font bytes:
+
+                  - Which font: "Twemoji Country Flags", through the `country-flag-emoji-polyfill` package (about 77 KB of
+                    woff2, per its package; not measured here). Country flags only.
+                  - How: call `polyfillCountryFlagEmojis()` once. It checks whether the browser can draw flags, and only if it
+                    can't (Windows Chromium) adds an `@font-face` for the font, fetched from a CDN by default. Elsewhere it
+                    does nothing, and nothing is downloaded.
+                  - Then name the font first in `--ui-flag-font-family`, once for the page, in front of the emoji fonts.
+                    `<ui-flag>` reads it, and so do the flags in `<ui-dropdown>` and `<ui-select>` rows.
+                  - Without it, nothing breaks: Windows readers see the two letters.
+                </script>
+              </ui-markdown>
+              <ui-code language="js">
+                <script type="text/plain">
+                  // the page's own module script, once
+                  import { polyfillCountryFlagEmojis } from "country-flag-emoji-polyfill"
+                  polyfillCountryFlagEmojis()
+                </script>
+              </ui-code>
               <ui-code language="css">
                 <script type="text/plain">
+                  /* the page's stylesheet:  the flag font first, then the emoji fonts it falls back to */
                   :root {
-                    --ui-flag-font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
-                      sans-serif;
+                    --ui-flag-font-family: "Twemoji Country Flags", var(--ui-font-family-emoji), var(--ui-font-family);
                   }
                 </script>
               </ui-code>
-              <ui-markdown>Edit a value below to try it.</ui-markdown>
-              <ui-docs-tokens family="ui-flag" playground></ui-docs-tokens>
             </ui-section>
 
             <ui-section id="theming-themes" header="Themes" sticky collapsible dividing>
               <ui-markdown>
                 <script type="text/markdown">
-                  The theme picker above lists the Fomantic themes that restyle this component; the one in the header applies a
-                  theme to the whole site.
-
-                  - **Famfamfam** draws flags from Mark James' famfamfam sprite (16 x 11 cells), as Fomantic's `famfamfam` theme
-                    does. The element puts the resolved code in its class (`ui flag fr`), which the sheet selects on.
-                  - A country the sprite lacks (`ss`, `xk`, `rainbow`, `pirate` ...) keeps its emoji, and a sized flag stays one
-                    sprite cell, as in Fomantic.
+                  No Fomantic theme restyles flags here, so the theme picker above has nothing to switch; the one in the
+                  header still applies a theme to the whole site. Fomantic's `famfamfam` sprite theme isn't ported: flags
+                  are emoji only, by design.
                 </script>
               </ui-markdown>
             </ui-section>
