@@ -23,3 +23,203 @@
     the deck above OR below the card (both compiled and run)
   </li>
 </ul>
+<div class="plan-reply plan-reply-owen">
+  <div class="plan-reply-title"><b>Owen</b> · <time>2026-10-06 17:27</time> · revisit now</div>
+  <p>I think we need the parens in this case</p>
+</div>
+<div class="plan-reply">
+  <div class="plan-reply-title">
+    <b>Claude</b> · <time>2026-10-06 17:30</time> · re: "I think we need the parens in this case"
+  </div>
+  <p>
+    You're asking for the blank in a phrase to be marked by the writer, <code>it "is a (suit)"</code>, not guessed from
+    a bare word. Today (the inferred phrases built in P3) any word in the phrase that names a card property with a list
+    of values becomes a blank on its own, so <code>it "is a suit"</code> quietly means <code>it "is a (suit)"</code>.
+  </p>
+
+  <h4>What each way of writing it does on this branch today</h4>
+  <p>
+    I ran all three through the parser (a throwaway test, now deleted). Two cards: one whose suit and rank lists are its
+    own (<code>its "suit" is one of clubs, ...</code>), and one whose lists come from the deck, as in the live Solitaire
+    (<code>its "suit" is a suit</code>, with the deck's <code>"suits" as one of ...</code>). Each was then used as
+    <code>the queen is a spade</code> and <code>the queen is the queen of spades</code>.
+  </p>
+  <ui-table compact celled>
+    <table>
+      <thead>
+        <tr>
+          <th>The card's lines</th>
+          <th>Lists on the card</th>
+          <th>Lists on the deck (like Card.spell)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>it "is a (suit)"</code> (parens, no <code>for</code>)</td>
+          <td><b>broken JS</b>, no error shown</td>
+          <td><b>broken JS</b>, and "Don't understand spades" where it's used</td>
+        </tr>
+        <tr>
+          <td><code>it "is a (suit)" for its suits</code> (today's sentence style)</td>
+          <td>works</td>
+          <td><b>crashes</b> when the phrase is used</td>
+        </tr>
+        <tr>
+          <td><code>it "is a suit"</code> (as built)</td>
+          <td>works</td>
+          <td>works</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ul>
+    <li>
+      So <code>it "is a (suit)"</code> alone does NOT work today: the inference reads <code>(suit)</code> as a word
+      naming <code>suit</code> and puts parens round it again, <code>((suit))</code>. The compiled method is not valid
+      JavaScript:
+      <pre><code class="language-js">'is_a_$(suit)'((suit)) {
+  return this[''(suit)''] === (suit)
+}</code></pre>
+    </li>
+    <li>
+      The sentence style (<code>for its suits</code>) only works when the list is the card's own. When it's the deck's,
+      it looks for a property called <code>suits</code> (not <code>suit</code>), finds none, and compiling
+      <code>the queen is a spade</code> throws <code>Cannot read properties of undefined (reading 'value')</code> (<a
+        href="../../../packages/spell/src/rules/classes.ts"
+        target="src-packages-spell-src-rules-classes-ts"
+        ><code>classes.ts</code></a
+      >, line 2008). So <code>for its suits</code> can't be used in Card.spell today either.
+    </li>
+    <li>
+      The risk J9 names is real: with <code>its "color"</code> on the card, <code>it "is my color"</code> compiles to
+      <code>is_my_$color(color) { return this.color === color }</code>, with no warning.
+    </li>
+    <li>
+      Found on the way: a phrase with nothing after it, <code>it "is face up"</code> (no <code>if ...</code>), compiles
+      to an empty getter, <code>get is_face_up() {}</code>, with no error. That matters for A below: the old bare
+      <code>it "is a suit"</code> would land there.
+    </li>
+  </ul>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>What works today, compiled (lists on the deck) · 12 lines</ui-title
+    ><ui-content>
+      <pre><code class="language-spell">a card is a thing where:
+	- its "suit" is a suit
+	- its "rank" is a rank
+	- it "is a suit"
+	- it "is the rank of suits"
+set spade to the queen is a spade
+set qos to the queen is the queen of spades</code></pre>
+      <pre><code class="language-js">is_a_$suit(suit) {
+  return this.suit === suit
+}
+is_the_$rank_of_$suits(rank, suit) {
+  return this.rank === rank &amp;&amp; this.suit === suit
+}
+let spade = queen.is_a_$suit('spades')
+let qos = queen.is_the_$rank_of_$suits('queen', 'spades')</code></pre>
+    </ui-content></ui-accordion
+  >
+
+  <h4>The ways to go</h4>
+  <ui-grid class="spell-pros-cons" columns="2" stackable>
+    <ui-column
+      ><ui-segment
+        ><ui-label attached="top">A · Parens required, no <code>for</code> (recommended)</ui-label>
+        <ul>
+          <li>a blank is ONLY a word in parens; <code>for its suits</code> is worked out from the paren word</li>
+          <li>
+            a bare word is always just a word, so the "risk" in J9's text goes away: <code>it "is my color"</code> stays
+            literal
+          </li>
+          <li>
+            a <code>(word)</code> naming no property with a list of values is an error on that line, not a silent guess
+          </li>
+          <li>
+            the compiled JS is the same as today's: <code>is_a_$suit(suit)</code>,
+            <code>is_the_$rank_of_$suits(rank, suit)</code>
+          </li>
+          <li>
+            cost: small. <code>inferPlaceholders()</code> in
+            <a href="../../../packages/spell/src/rules/classes.ts" target="src-packages-spell-src-rules-classes-ts"
+              ><code>classes.ts</code></a
+            >
+            reads <code>(word)</code> instead of every word (about 10 lines); plus an error for a bare phrase with no
+            blank and no <code>if</code>, so the old <code>it "is a suit"</code> doesn't become an empty getter
+          </li>
+          <li>
+            also changes: <code>examples/OutlineSolitaire/Card.spell</code> and its frozen test copy (re-blessed: same
+            output expected), the "inferred phrases" tests in
+            <a
+              href="../../../packages/spell/src/parserTests/outline.test.ts"
+              target="src-packages-spell-src-parsertests-outline-test-ts"
+              ><code>outline.test.ts</code></a
+            >, the durable page
+            <a href="../../../guides/outline-spell.html" target="src-guides-outline-spell-html"
+              ><code>guides/outline-spell.html</code></a
+            >, <code>PARSING.md</code>
+          </li>
+          <li>why recommended: it's your note, and the outline lines stay short</li>
+        </ul>
+        <pre><code class="language-spell">- it "is a (suit)"
+- it "is the (rank) of (suits)"</code></pre>
+      </ui-segment></ui-column
+    >
+    <ui-column
+      ><ui-segment
+        ><ui-label attached="top">B · Parens AND <code>for its ...</code></ui-label>
+        <ul>
+          <li>the outline says exactly what the sentence style says; no inference at all</li>
+          <li>gain: one way to write a phrase, in both styles</li>
+          <li>cost: longer lines, and the <code>for</code> repeats what the parens already say</li>
+          <li>
+            cost: <code>for its suits</code> must first be fixed for a list from a value kind (the crash above), or
+            Card.spell can't use it
+          </li>
+          <li>Card.spell, its test copy, the tests and the durable page change as in A</li>
+        </ul>
+        <pre><code class="language-spell">- it "is a (suit)" for its suits
+- it "is the (rank) of (suits)"
+    for its ranks and its suits</code></pre>
+      </ui-segment></ui-column
+    >
+    <ui-column
+      ><ui-segment
+        ><ui-label attached="top">C · Keep it as built</ui-label>
+        <ul>
+          <li>bare words become blanks when they name a property with a list of values</li>
+          <li>gain: no work; your sketch's lines work as written</li>
+          <li>cost: the J9 risk stays (<code>it "is my color"</code> turns into a blank)</li>
+          <li>cost: <code>it "is a (suit)"</code> still compiles to broken JS, and needs fixing anyway</li>
+        </ul>
+        <pre><code class="language-spell">- it "is a suit"
+- it "is the rank of suits"</code></pre>
+      </ui-segment></ui-column
+    >
+  </ui-grid>
+  <p>Whichever you pick, I'll make it a follow-up commit on <code>outline-spell</code>. Nothing is changed yet.</p>
+
+  <p><b>Net effect</b> (A, recommended):</p>
+  <ul>
+    <li>
+      <code>- it "is a (suit)"</code> and <code>- it "is the (rank) of (suits)"</code> are how an outline writes a
+      phrase with blanks; they compile as today
+    </li>
+    <li>a phrase without parens never gets a blank: <code>it "is my color"</code> means those exact words</li>
+    <li><code>it "is a suit"</code> with no parens and no <code>if ...</code> is an error, not an empty getter</li>
+    <li><code>(word)</code> naming no property with a list of values is an error on its line</li>
+    <li>the broken JS from <code>it "is a (suit)"</code> goes away</li>
+    <li>
+      Card.spell (live example and frozen test copy), the outline tests,
+      <a href="../../../guides/outline-spell.html" target="src-guides-outline-spell-html"
+        ><code>guides/outline-spell.html</code></a
+      >
+      and <code>PARSING.md</code> show the parens
+    </li>
+    <li>J9's title becomes "A phrase infers <code>for its ...</code> from its <code>(blanks)</code>"</li>
+    <li>
+      not covered by A: the <code>for its suits</code> crash with a deck's list stays, unless fixed alongside (a
+      separate bug)
+    </li>
+  </ul>
+</div>
