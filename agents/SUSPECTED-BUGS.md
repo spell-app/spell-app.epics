@@ -573,8 +573,8 @@ every entry below that date was fixed or disproven;  what's left:
   `<ui-radio>`s inside Solid's `render()`;  three warm runs printed nothing.  Probably `solid-element` reading signals
   while an element upgrades inside an owner.  Prove:  clear `node_modules/.vite` / vitest's cache, rerun once.
   - P8 (2026-10-02):  the dev server prints them on EVERY page load, with stacks:  `constructor.isLoaded` /
-    `createProps.get` from `packages/ui/src/components/ui-button/UIButton.tsx` `invokers()` / `resolveInvoker()`
-    (~lines 379-396, read in an effect's APPLY), and an unnamed one from `packages/ui/src/elements/RootSettings.ts`
+    `createProps.get` from `packages/ui/src/components/ui-button/UIButton.tsx` `hasNativeInvokers()` (`invokers()` until
+    epic `wwod-spell-ui` P5) / `resolveInvoker()` (~lines 379-396, read in an effect's APPLY), and an unnamed one from `packages/ui/src/elements/RootSettings.ts`
     `set()` via `UIRoot.applySettings()` (`UIRoot.tsx` ~242-275).  So `ui`'s, not the app's:  those reads belong in
     the effects' compute (or `untrack()`).
 - `packages/app/src/solid/ProjectDropdown.tsx` `<ProjectDropdown>`:  the dev server warns `[WIDE_SCOPE_DEPS] memo
