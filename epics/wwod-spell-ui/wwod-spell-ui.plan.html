@@ -674,6 +674,8 @@
               ><ui-item icon="flask"
                 ><b>Verify:</b> <code>yarn review</code>, <code>yarn gen:spell</code>, <code>yarn gen:markdown</code>,
                 <code>yarn test:hmr</code>, <code>yarn ts</code> in each caller package</ui-item
+              ><ui-item icon="list check" class="plan-to-review"
+                ><b>To review:</b> <a href="#j4">J4</a>, <a href="#j5">J5</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -2347,6 +2349,79 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:36:42-04:00"
+              id="j4"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j4">J4</a>
+                  <span class="plan-title">Fallbacks pick their tag's vocabulary from @proto static vocabularies</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    A fallback class serving several tags (<code>CardFallback</code> for <code>&lt;ui-card&gt;</code> +
+                    <code>&lt;ui-cards&gt;</code>) now lists them in <code>@proto static vocabularies</code>, the FIRST
+                    being the default; <code>NativeFallback</code>'s constructor picks the host tag's into
+                    <code>vocabulary</code>. Chose a list over a tag-keyed map because each vocabulary already carries
+                    its <code>tag</code>: a map would write every tag twice.
+                  </p>
+                  <pre><code>export class CardFallback extends NativeFallback&lt;FallbackVocabulary&gt; {\n  @proto static vocabularies = [cardVocabulary, cardsVocabulary]\n  ...</code></pre>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      13 fallbacks lost their constructor, not 9: breadcrumb, card, comment, feed, form, grid, image,
+                      parts, placeholder, shape, sidebar, step, tab (the plan's count missed parts, placeholder, shape,
+                      sidebar, step and tab). Form's and grid's <code>private static VOCABULARIES</code> became the
+                      <code>@proto</code> list
+                    </li>
+                    <li>
+                      <code>ItemFallback</code> / <code>ListFallback</code> had constructors only to compute
+                      <code>owner</code> / <code>nested</code> from the parent: now plain field initializers (<code
+                        >private readonly owner = OWNERS.get(this.host.parentElement?.localName ?? "")</code
+                      >), so no fallback has a constructor any more
+                    </li>
+                    <li>A translated tag still gets the default, as before (same default each class used)</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:36:48-04:00"
+              id="j5"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j5">J5</a>
+                  <span class="plan-title">NativeFallback.attr() keeps returning null</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>attr(name)</code> is <code>host.getAttribute(name)</code> typed to the vocabulary's attribute
+                    names, so it stays at the platform boundary AGENTS.md allows <code>null</code> for (Q9). The rest of
+                    <code>NativeFallback</code> went to <code>undefined</code>: <code>form()</code> and the private
+                    <code>defaultText()</code>.
+                  </p>
+                  <p>
+                    Why not switch it too: 148 calls in ~50 fallbacks, many testing absence with <code>=== null</code> /
+                    <code>!== null</code> (<code>href === null</code>, <code>this.attr(CLOSEDBY) === null</code> ...).
+                    Tried it: <code>yarn tsc</code> reports NOTHING, because TypeScript doesn't flag a
+                    <code>=== null</code> on a <code>string | undefined</code>, so every one of those would silently
+                    flip.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li><code>attr()</code>'s docstring says why it's <code>null</code></li>
+                    <li>
+                      The 8 callers that write <code>this.attr(x) ?? undefined</code> keep it; P5-P7 could revisit per
+                      family, auditing each <code>=== null</code> by hand
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -3289,6 +3364,15 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-05T21:27-04:00">2026-10-05 21:27</time></ui-date> P3
                   active</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-05T21:36-04:00">2026-10-05 21:36</time></ui-date> P3 Fallbacks:
+                  I11's NativeFallback bullet fixed (the Safari &amp;lt; 17.4 --errored try/catch is gone; render() adds
+                  ERRORED_STATE directly); I11 stays open for its HostAttribute / core / forms / runtime
+                  bullets</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed
