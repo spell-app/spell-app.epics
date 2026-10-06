@@ -1132,6 +1132,8 @@
               ><ui-item icon="flask"
                 ><b>Verify:</b> <code>yarn review</code>, <code>yarn site:build</code>,
                 <code>yarn site:check --all</code> (screenshots looked at)</ui-item
+              ><ui-item icon="list check" class="plan-to-review"
+                ><b>To review:</b> <a href="#j74">J74</a>, <a href="#j75">J75</a>, <a href="#j76">J76</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -1190,7 +1192,12 @@
               ><ui-item icon="bullseye"
                 ><b>Goal:</b>
                 <ul>
-                  <li>env vars renamed <code>SPELL_UI_*</code> and read in one <code>tools/environment.ts</code></li>
+                  <li>
+                    env vars renamed <code>SPELL_UI_*</code> and read in one
+                    <a href="../../packages/ui/tools/environment.ts" target="src-packages-ui-tools-environment-ts"
+                      ><code>tools/environment.ts</code></a
+                    >
+                  </li>
                   <li>
                     tools print to stdout / stderr like the <code>spell</code> CLI; scripts named for their yarn
                     commands, parsing flags with <code>parseArgs</code>
@@ -2428,8 +2435,13 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                   ><p>
                     WWOD §11: <code>UI_TEST_ALL</code>, <code>UI_SOLID_PROD</code>, <code>FA_PACKAGE_DIR</code>, the six
                     <code>UI_VISUAL_*</code> become <code>SPELL_UI_*</code>, read in one
-                    <code>tools/environment.ts</code>. WWOD §8: a script is named for its command, so
-                    <code>site:data</code> runs <code>scripts/site-data.ts</code> (today <code>gen-site-data.ts</code>).
+                    <a href="../../packages/ui/tools/environment.ts" target="src-packages-ui-tools-environment-ts"
+                      ><code>tools/environment.ts</code></a
+                    >. WWOD §8: a script is named for its command, so <code>site:data</code> runs
+                    <a href="../../packages/ui/scripts/site-data.ts" target="src-packages-ui-scripts-site-data-ts"
+                      ><code>scripts/site-data.ts</code></a
+                    >
+                    (today <code>gen-site-data.ts</code>).
                   </p>
                   <p><b>Net effect:</b></p>
                   <ul>
@@ -7255,6 +7267,215 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:43:36-04:00"
+              id="j74"
+              data-status="open"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j74">J74</a>
+                  <span class="plan-title">ui's env vars renamed SPELL_UI_* with no fallback to the old names</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Chose a clean rename over reading the old names for a while with a warning (what the
+                    <a href="../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"
+                      ><code>agents/CODE-DEBT.md</code></a
+                    >
+                    entry suggested), because every variable is set by our own scripts or our own CLI:
+                    <code>yarn test:all</code> sets <code>SPELL_UI_TEST_ALL</code>, <code>VisualRunner</code> sets the
+                    six <code>SPELL_UI_VISUAL_*</code> for its Playwright child, and <code>SPELL_UI_SOLID_PROD</code> /
+                    <code>SPELL_UI_FA_PACKAGE_DIR</code> are typed by hand.
+                  </p>
+                  <ul>
+                    <li>
+                      <code>UI_TEST_ALL</code> -&gt; <code>SPELL_UI_TEST_ALL</code>; <code>UI_SOLID_PROD</code> -&gt;
+                      <code>SPELL_UI_SOLID_PROD</code>; <code>FA_PACKAGE_DIR</code> -&gt;
+                      <code>SPELL_UI_FA_PACKAGE_DIR</code>;
+                      <code>UI_VISUAL_OS / BASE_URL / WS / PARITY / STATIC / WORKERS</code> -&gt;
+                      <code>SPELL_UI_VISUAL_*</code>
+                    </li>
+                    <li>
+                      ONE reader,
+                      <a href="../../packages/ui/tools/environment.ts" target="src-packages-ui-tools-environment-ts"
+                        ><code>packages/ui/tools/environment.ts</code></a
+                      >: <code>environment</code> (<code>isAllBrowsers</code>, <code>isSolidProduction</code>,
+                      <code>fontAwesomeDir</code>, <code>isCI</code>, <code>invocationDir</code>,
+                      <code>visual.{os, baseUrl, ws, isParity, isStatic, workers}</code>), helpers
+                      <code>getString / getBoolean / getPath / getChoice / getCountOrPercent</code> below it, unexported
+                      (not promoted: no second package uses them yet)
+                    </li>
+                    <li>
+                      The configs import it:
+                      <a href="../../vite.config.ts" target="src-vite-config-ts"><code>vite.config.ts</code></a> /
+                      <a href="../../vitest.config.ts" target="src-vitest-config-ts"><code>vitest.config.ts</code></a>
+                      (Vite bundles relative imports into the config) and
+                      <a
+                        href="../../packages/ui/tools/visual/playwright.config.ts"
+                        target="src-packages-ui-tools-visual-playwright-config-ts"
+                        ><code>tools/visual/playwright.config.ts</code></a
+                      >
+                      (Playwright transpiles it); no <code>process.env</code> read left outside it but
+                      <code>VisualRunner</code>'s forwarding to its child
+                    </li>
+                    <li>
+                      <code>VisualSettings.ENV</code> is gone: the names are <code>VisualVariables</code>, beside
+                      <code>environment</code>
+                    </li>
+                    <li>
+                      A boolean is false when unset, empty, <code>0</code>, <code>false</code>, <code>no</code> or
+                      <code>off</code>; ANY other value is true (<code>CI=woodpecker</code>), rather than throwing on an
+                      unknown word: <code>CI</code> is set by other people's services
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      a shell with <code>UI_SOLID_PROD=1</code> exported now silently gets the dev runtime: set
+                      <code>SPELL_UI_SOLID_PROD=1</code>
+                    </li>
+                    <li>
+                      docs fixed:
+                      <a href="../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+                        ><code>packages/ui/AGENTS.md</code></a
+                      >,
+                      <a href="../../packages/ui/docs/icons.md" target="src-packages-ui-docs-icons-md"
+                        ><code>docs/icons.md</code></a
+                      >,
+                      <a href="../../packages/ui/docs/report.md" target="src-packages-ui-docs-report-md"
+                        ><code>docs/report.md</code></a
+                      >,
+                      <a href="../../packages/ui/docs/visual-testing.md" target="src-packages-ui-docs-visual-testing-md"
+                        ><code>docs/visual-testing.md</code></a
+                      >,
+                      <a href="../../packages/ui/tools/README.md" target="src-packages-ui-tools-readme-md"
+                        ><code>tools/README.md</code></a
+                      >, <code>commands.json</code>,
+                      <a href="../../guides/ui-component-creation.html" target="src-guides-ui-component-creation-html"
+                        ><code>guides/ui-component-creation.html</code></a
+                      >, the three ledgers; no CI file names them
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:43:51-04:00"
+              id="j75"
+              data-status="open"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j75">J75</a>
+                  <span class="plan-title">yarn test:hmr stays on node:test; its sleeps become real waits but one</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Kept
+                    <a href="../../packages/ui/tools/hmr.e2e.ts" target="src-packages-ui-tools-hmr-e2e-ts"
+                      ><code>tools/hmr.e2e.ts</code></a
+                    >
+                    on <code>node:test</code> / <code>node:assert</code> rather than <code>vite-plus/test</code> (WWOD
+                    §20 › "Test APIs come from Vite+"), because <code>yarn test:hmr</code> is
+                    <code>tsx tools/hmr.e2e.ts</code>: node runs a <code>node:test</code> suite as a plain script, while
+                    Vitest's <code>describe()</code> only works inside its own runner.
+                  </p>
+                  <ul>
+                    <li>
+                      Moving it means a third Vitest project (or config) for one file that owns a dev server, a browser
+                      and real edits to source files: not worth it, and it must never run alongside the other tests; the
+                      reason is in the file's docstring
+                    </li>
+                    <li>
+                      Free functions over module-level <code>let server / browser / page</code> became two classes:
+                      <code>HmrPage</code> (the page and what the scenarios do to it) and
+                      <code>SourceFiles</code> (edits on disk, <code>restoreAll()</code>,
+                      <code>assertRestored()</code>); in-page arrow helpers became <code>function</code>s at the bottom
+                    </li>
+                    <li>
+                      Sleeps: the button's <code>size</code> 50 ms -&gt; wait for its <code>large</code> class; the
+                      segment's 50 ms -&gt; <code>recolorSegment()</code> waits for its class; <code>update()</code>'s
+                      100 ms -&gt; two animation frames (<code>SETTLE_FRAMES</code>); the 400 ms after a syntax error
+                      stays, named <code>ERROR_GUARD</code>: <code>@solidjs/vite-plugin</code> drops updates for 200 ms
+                      after an error and fires no event
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li><code>yarn test:hmr</code> 8 / 8, four runs in a row, ~3 s</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:43:52-04:00"
+              id="j76"
+              data-status="open"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j76">J76</a>
+                  <span class="plan-title"
+                    >Three tools share a DevServer; the demo and the visual fixture share FamilySheets</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Chose two small shared classes over keeping three copies of a Vite start-up and two copies of the
+                    sheet registration (WWOD §2 › DRY), each new file mine (P9 "Tools 2").
+                  </p>
+                  <ul>
+                    <li>
+                      <a href="../../packages/ui/tools/DevServer.ts" target="src-packages-ui-tools-devserver-ts"
+                        ><code>tools/DevServer.ts</code></a
+                      >: <code>DevServer.start({ port, ...viteConfig })</code> -&gt; <code>.origin</code> /
+                      <code>.url(path)</code> / <code>.vite</code> / <code>.close()</code>; preferred port or the next
+                      free one, origin from <code>resolvedUrls</code> (I10). Used by <code>VisualRunner</code> (5391),
+                      <code>hmr.e2e.ts</code> (5390), <code>screenshots.ts</code> (5198)
+                    </li>
+                    <li>
+                      <a
+                        href="../../packages/ui/tools/demo/FamilySheets.ts"
+                        target="src-packages-ui-tools-demo-familysheets-ts"
+                        ><code>tools/demo/FamilySheets.ts</code></a
+                      >: <code>FamilySheets.register()</code> globs every
+                      <code>ui-&lt;family&gt;/ui-&lt;family&gt;.css</code> (<code>import.meta.glob</code>); replaces the
+                      demo's ~57 hand-written <code>?inline</code> imports and its name map, and the fixture's copy of
+                      the loop
+                    </li>
+                    <li>
+                      The demo now puts EVERY family sheet on the page, as the visual fixture already did:
+                      <code>item</code>, <code>panel</code> and <code>root</code> are new there (page-level rules only
+                      reach class-grammar markup; <code>:host</code> rules do nothing on a page)
+                    </li>
+                    <li>
+                      Q18's constants rule applied to the
+                      <a href="../../packages/ui/tools/" target="src-packages-ui-tools"><code>tools/</code></a> files I
+                      touched too (module <code>const</code>s below the class), for one shape across the package, though
+                      tools ship in no bundle
+                    </li>
+                    <li>
+                      File names kept: <code>hmr.e2e.ts</code> (a test file, for <code>test:hmr</code>),
+                      <code>visual/cli.ts</code> (for <code>test:visual</code>), <code>screenshots.ts</code> already
+                      matches
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      <code>yarn dev</code> serves the demo (200s for
+                      <a href="../../pages/index.html" target="src-pages-index-html"><code>index.html</code></a
+                      >, <code>index.ts</code>, <code>FamilySheets.ts</code>);
+                      <code>yarn screenshots button,ui-label</code> wrote 11 PNGs, no page errors
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -8378,13 +8599,17 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                   </p></ui-content
                 ></ui-accordion
               ></ui-item
-            ><ui-item data-state="attention" data-changed="2026-10-05T20:03:35-04:00" id="i10" data-status="open"
+            ><ui-item
+              data-bedtime
+              data-state="attention"
+              data-changed="2026-10-06T00:43:19-04:00"
+              id="i10"
+              data-status="open"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#i10">I10</a>
-                  <span class="plan-title"
-                    >Small tool bugs: screenshots port, SiteData.reset(), CI=false</span
-                  ></ui-title
+                  <span class="plan-title">Small tool bugs: screenshots port, SiteData.reset(), CI=false</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
                 ><ui-content
                   ><ul>
                     <li>
@@ -8399,8 +8624,48 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                       <code>Boolean(process.env.CI)</code>: <code>CI=false</code> counts as CI
                     </li>
                   </ul>
-                  <p>P7 / P9.</p></ui-content
-                ></ui-accordion
+                  <p>P7 / P9.</p>
+                  <div class="plan-reply">
+                    <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-06 00:43</time> · re: I10</div>
+                    <p>P9 ("Tools 2") fixed two of the three bullets:</p>
+                    <ul>
+                      <li>
+                        <b>Done:</b> the screenshots port.
+                        <a href="../../packages/ui/tools/screenshots.ts" target="src-packages-ui-tools-screenshots-ts"
+                          ><code>tools/screenshots.ts</code></a
+                        >
+                        now starts Vite through the new
+                        <a href="../../packages/ui/tools/DevServer.ts" target="src-packages-ui-tools-devserver-ts"
+                          ><code>tools/DevServer.ts</code></a
+                        >, which takes 5198 or the next free port and hands back where Vite REALLY listens
+                        (<code>resolvedUrls</code>), so a busy port can't send it to another server.
+                        <code>yarn test:visual</code> (<code>VisualRunner</code>) and <code>yarn test:hmr</code> use the
+                        same class. Also found and fixed on the way: <code>yarn screenshots button</code> shot nothing
+                        (the demo's <code>?only=</code> compared <code>button</code> with <code>ui-button</code>);
+                        <code>?only=</code> now takes either.
+                      </li>
+                      <li>
+                        <b>Done:</b> <code>CI=false</code>.
+                        <a href="../../vitest.config.ts" target="src-vitest-config-ts"><code>vitest.config.ts</code></a>
+                        reads <code>environment.isCI</code> (<a
+                          href="../../packages/ui/tools/environment.ts"
+                          target="src-packages-ui-tools-environment-ts"
+                          ><code>tools/environment.ts</code></a
+                        >): unset, empty, <code>0</code>, <code>false</code>, <code>no</code> or <code>off</code> mean
+                        not CI; any other value means CI.
+                      </li>
+                      <li>
+                        <b>Not mine:</b> <code>SiteData.reset()</code> is P7's ("Docs 2"). The working tree already
+                        clears its URL like <code>SearchData.reset()</code>, but no reply from that agent says so yet,
+                        so I10 stays open for it to close.
+                      </li>
+                    </ul>
+                    <p><b>Net effect:</b></p>
+                    <ul>
+                      <li>2 / 3 bullets done; I10 can close once P7 confirms <code>SiteData.reset()</code></li>
+                    </ul>
+                  </div>
+                </ui-content></ui-accordion
               ></ui-item
             ><ui-item
               data-bedtime
@@ -9136,6 +9401,42 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="recent"
+              data-bedtime
+              data-changed="2026-10-06T00:44:05-04:00"
+              id="i18"
+              data-status="done"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#i18">I18</a>
+                  <span class="plan-title">yarn screenshots shot nothing: the demo's ?only= never matched</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>yarn screenshots</code> passed bare names (<code>button</code>) to
+                    <code>tools/demo/index.html?only=</code>, which compared them with the folder,
+                    <code>ui-button</code>: every pair was skipped and the script timed out after 30 s waiting for
+                    <code>.pair</code>.
+                  </p>
+                  <ul>
+                    <li>
+                      Fixed in P9: <code>?only=</code> takes <code>button</code> or <code>ui-button</code>; the script
+                      strips <code>ui-</code> too
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      <code>yarn screenshots button,ui-label</code>: 11 PNGs in
+                      <a href="../../packages/ui/.cache/screenshots/" target="src-packages-ui-cache-screenshots"
+                        ><code>.cache/screenshots/</code></a
+                      >
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -9768,6 +10069,20 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-06T00:24-04:00">2026-10-06 00:24</time></ui-date> P7
                   active</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T00:43-04:00">2026-10-06 00:43</time></ui-date> I10 reply
+                  added</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T00:44-04:00">2026-10-06 00:44</time></ui-date> I18 closed: yarn
+                  screenshots shot nothing: the demo's ?only= never matched</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed

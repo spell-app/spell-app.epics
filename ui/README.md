@@ -137,7 +137,7 @@ From `packages/ui`:
 
 ## Checking
 
-From `packages/ui`:  `yarn site:check <page...>` or `yarn site:check --all` (`tools/SiteCheck.ts`) loads pages from
+From `packages/ui`:  `yarn site:check <page...>` or `yarn site:check --all` (`scripts/site-check.ts`, on `tools/SiteCheck.ts`) loads pages from
 the page server in Playwright, at desktop, phone and dark, and fails on console errors, 404s, undefined or
 unrendered `ui-*` tags, missing tabs, an empty "On this page", phone-width overflow, a nav flyout that won't open,
 a section id that doesn't follow its nesting, a flat level 2 header, a deep link that doesn't land.

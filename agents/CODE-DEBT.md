@@ -651,10 +651,11 @@ Where code knowingly doesn't follow a WWOD rule yet (`agents/wwod/`, epic `wwod`
 
 - **Cost**:  WWOD §11:  ONE `environment.server.ts` per package reads `process.env`, parsing through helpers,
   throwing at startup.  Today env is read in ~20 files (`app`'s `EditorServer.ts`, `server`'s `open.ts` /
-  `PageServer.ts` / `page/cli.ts`, `cli`'s runner and `goalsCommand.ts`, `vscode`'s `WindowBridge.ts`, `docs` and
-  `ui` tools), parsed inline (`Number(...) ||`), and `spell`'s `environment.ts` logs on import.  Names without
-  `SPELL_`:  `VITE_PORT`, `API_SERVER`, `GOALS_DIR`, `FA_PACKAGE_DIR`, `BENCH`, `INCREMENTAL_FULL`,
-  `UI_TEST_ALL` / `UI_SOLID_PROD` (-> `SPELL_UI_*`, D20).
+  `PageServer.ts` / `page/cli.ts`, `cli`'s runner and `goalsCommand.ts`, `vscode`'s `WindowBridge.ts`, `docs`
+  tools), parsed inline (`Number(...) ||`), and `spell`'s `environment.ts` logs on import.  Names without
+  `SPELL_`:  `VITE_PORT`, `API_SERVER`, `GOALS_DIR`, `BENCH`, `INCREMENTAL_FULL`.
+  - `ui` is done (epic `wwod-spell-ui`, P9):  ONE `packages/ui/tools/environment.ts` with its parse helpers, the
+    variables renamed `SPELL_UI_*` with no fallback to the old names;  its helpers are `ui`'s own, not promoted.
 - **Cause**:  no rule before WWOD.
 - **Fix**:  the parse helpers (epic `wwod` T13), then one `environment.server.ts` per package;  renamed variables
   keep reading the old name for a while, with a warning.

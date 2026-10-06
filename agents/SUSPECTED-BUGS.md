@@ -405,7 +405,7 @@ every entry below that date was fixed or disproven;  what's left:
     paints before any resize, so probably test-only.  Prove:  insert + `page.viewport()` with no frame between.
 - `src/elements/MenuOptions.test.ts` "filters 5000 cold options in under 50 ms":  failed once in a full
   `yarn test:all` in webkit, passes 3 / 3 alone.  A wall-clock budget under 3-browser load;  maybe skip budgets under
-  `UI_TEST_ALL`, as CI skips the dropdown's 16 ms one.  (2026-10-01)
+  `SPELL_UI_TEST_ALL`, as CI skips the dropdown's 16 ms one.  (2026-10-01)
 - `src/components/ui-popup/ui-popup.test.tsx` "flips to the other side":  failed once in a full firefox run (arrow
   `::before` top 44px, expected < 0), then passed every time.  Maybe the arrow's `getAnimations` wait.  (2026-10-01)
 - `src/components/ui-section/UISection.tsx` the toggle:  the `header` slot sits INSIDE the fold `<button>`, so a link

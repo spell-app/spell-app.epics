@@ -1,0 +1,2259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Targets and Writers</title>
+    <meta
+      name="description"
+      content="How spell compiles one program for several targets:  js/solid and ts/solid, the writers that walk the spell tree, the declarations file, the tree diagrammer and the core contract."
+    />
+    <link rel="stylesheet" href="../../packages/docs/tools/_assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page">
+    <spell-site-header root="../.."></spell-site-header>
+    <div class="spell-doc">
+      <main class="spell-doc-main">
+        <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
+          <ui-breadcrumb-section href="../../pages/index.html" target="src-packages-docs-index-html"
+            >Docs</ui-breadcrumb-section
+          >
+          <ui-breadcrumb-section active>Targets and Writers</ui-breadcrumb-section>
+        </ui-breadcrumb>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>Targets and Writers</h1></header></ui-sticky
+        >
+        <p class="lede">
+          How spell compiles one program for several destinations. A <b>target</b> is where the code goes
+          (<code>js/solid</code>, <code>ts/solid</code>); a <b>writer</b> is the class that walks the spell tree and
+          writes that target's code.
+        </p>
+        <ui-list class="spell-meta">
+          <ui-item icon="user"
+            >Written for: a developer who knows the repo, about to change what the compiler writes, add a target, or
+            read a spell tree</ui-item
+          >
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="green">built</ui-label> on branch <code>output-targets</code>, epic
+            <a href="../../epics/output-targets/output-targets.plan.html" target="output-targets">Output Targets</a>
+            (P1-P8)</ui-item
+          >
+          <ui-item icon="flask"
+            >Checked on: branch <code>output-targets</code>, 2026-10-06, against the code, the fixtures' snapshots, and
+            <code>spell parse --tree</code> run for the examples (see <a href="#12-sources">Sources</a>)</ui-item
+          >
+        </ui-list>
+
+        <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <ui-statistics class="spell-stats" size="mini">
+            <ui-statistic value="2" label="targets"></ui-statistic>
+            <ui-statistic value="14" label="operator meanings"></ui-statistic>
+            <ui-statistic value="34" label="tsc errors left, Solitaire"></ui-statistic>
+          </ui-statistics>
+          <ul>
+            <li>
+              Spell's middle is ONE tree: syntaxes (English today) on the way in, targets on the way out. N syntaxes
+              plus M targets, never N × M.
+            </li>
+            <li>
+              Two targets today:
+              <ul>
+                <li><code>js/solid</code>: always compiled, since the editor, the runners and <code>spell run</code> run it</li>
+                <li>
+                  <code>ts/solid</code>: the same code with types, checked by <code>tsc</code>; the app never runs it
+                </li>
+              </ul>
+            </li>
+            <li>
+              A writer is a class with one method per tree class, found by the class's NAME.
+              <code>P.JSWriter</code> writes JavaScript; <code>P.TSWriter</code> extends it through a few hooks;
+              <code>P.TreeWriter</code> writes boxes for a diagram.
+            </li>
+            <li>
+              The tree says what a program MEANS: 14 operators as meanings (<code>equals</code>, not
+              <code>==</code>), plain text values, <code>Self</code> and <code>Nothing</code>. Names are still spelled
+              for JavaScript (see <a href="#10-limits">Limits</a>).
+            </li>
+            <li>
+              A project's declarations live in <code>&lt;Project&gt;.declarations.json</code> beside its output: the
+              compiled JavaScript is just code.
+            </li>
+            <li>
+              Any line's tree can be drawn: <code>&lt;ui-tree-diagram&gt;</code>, <code>spell parse --tree</code>,
+              the app's Spell Tree pane, VS Code's "Show Tree for This Line".
+            </li>
+            <li>
+              Proven by the fixture snapshots (JavaScript, TypeScript, and what <code>tsc</code> says about it) and the
+              CORE CONTRACT: every test program prints the same on both targets. Solitaire as TypeScript still has 34
+              <code>tsc</code> errors (105 before the typed writer), nearly all from <code>@spell/core</code>'s loose
+              types.
+            </li>
+          </ul>
+          <ui-message state="positive" header="Adding a target">
+            <ul>
+              <li>
+                A writer class, an entry in <code>SP.TARGETS</code>, a line in the contract test, and a core if the
+                language is new: <a href="#8-adding-a-target">8. Adding a target</a>.
+              </li>
+            </ul>
+          </ui-message>
+        </ui-section>
+
+        <ui-section id="2-targets" header="2. Targets" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="bullseye"></ui-icon>
+          <p>
+            A target is a LANGUAGE / RUNTIME pair: <code>js/solid</code> is JavaScript running on
+            <code>@spell/core</code> (Solid). Each target has a writer, a file it writes, and what its runtime can do.
+          </p>
+
+          <ui-section id="big-picture" header="The big picture" sticky collapsible dividing collapsed>
+            <p>
+              Read left to right. Everything left of the tree is about how spell is WRITTEN; everything right of it is
+              about where it RUNS. The tree is the only thing both sides share.
+            </p>
+            <figure style="margin: 1em 0">
+              <svg
+                viewBox="0 0 830 220"
+                role="img"
+                aria-label="Syntaxes feed rules, rules build one spell tree, writers turn the tree into each target's code.  JSWriter writes js/solid, TSWriter ts/solid;  a Python writer is later."
+                style="width: 100%; height: auto; font-family: var(--spell-sans); font-size: 13px"
+              >
+                <defs>
+                  <marker
+                    id="tw-arrow1"
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerWidth="7"
+                    markerHeight="7"
+                    orient="auto"
+                  >
+                    <path d="M0,0 L10,5 L0,10 z" style="fill: var(--spell-muted)" />
+                  </marker>
+                </defs>
+                <g style="fill: var(--spell-muted); font: var(--spell-eyebrow-font); letter-spacing: 0.1em">
+                  <text x="70" y="18" text-anchor="middle">SYNTAXES</text>
+                  <text x="225" y="18" text-anchor="middle">PARSE</text>
+                  <text x="390" y="18" text-anchor="middle">MIDDLE</text>
+                  <text x="555" y="18" text-anchor="middle">WRITERS</text>
+                  <text x="740" y="18" text-anchor="middle">TARGETS</text>
+                </g>
+                <g style="fill: var(--spell-tint); stroke: var(--spell-rule)">
+                  <rect x="10" y="34" width="120" height="40" rx="6" />
+                  <rect x="10" y="96" width="120" height="40" rx="6" style="stroke-dasharray: 4 3" />
+                  <rect x="10" y="158" width="120" height="40" rx="6" style="stroke-dasharray: 4 3" />
+                  <rect x="165" y="96" width="120" height="40" rx="6" />
+                  <rect x="495" y="34" width="120" height="40" rx="6" />
+                  <rect x="495" y="96" width="120" height="40" rx="6" />
+                  <rect x="495" y="158" width="120" height="40" rx="6" style="stroke-dasharray: 4 3" />
+                  <rect x="650" y="34" width="170" height="40" rx="6" />
+                  <rect x="650" y="96" width="170" height="40" rx="6" />
+                  <rect x="650" y="158" width="170" height="40" rx="6" style="stroke-dasharray: 4 3" />
+                </g>
+                <rect
+                  x="320"
+                  y="66"
+                  width="140"
+                  height="100"
+                  rx="8"
+                  style="fill: var(--spell-doc-accent-soft); stroke: var(--spell-doc-accent); stroke-width: 2"
+                />
+                <g style="fill: var(--spell-ink)" text-anchor="middle">
+                  <text x="70" y="59">English</text>
+                  <text x="70" y="121" style="fill: var(--spell-muted)">Español</text>
+                  <text x="70" y="183" style="fill: var(--spell-muted)">…</text>
+                  <text x="225" y="113">rules +</text>
+                  <text x="225" y="129">scopes</text>
+                  <text x="390" y="104" style="font-weight: 600">spell tree</text>
+                  <text x="390" y="124" style="fill: var(--spell-muted); font-size: 11px">meaning,</text>
+                  <text x="390" y="139" style="fill: var(--spell-muted); font-size: 11px">datatypes</text>
+                  <text x="555" y="59">JSWriter</text>
+                  <text x="555" y="121">TSWriter</text>
+                  <text x="555" y="183" style="fill: var(--spell-muted)">PyWriter</text>
+                  <text x="735" y="53">js/solid</text>
+                  <text x="735" y="67" style="fill: var(--spell-muted); font-size: 11px">+ @spell/core · runs</text>
+                  <text x="735" y="115">ts/solid</text>
+                  <text x="735" y="129" style="fill: var(--spell-muted); font-size: 11px">+ @spell/core · tsc</text>
+                  <text x="735" y="177" style="fill: var(--spell-muted)">py</text>
+                  <text x="735" y="191" style="fill: var(--spell-muted); font-size: 11px">+ spell_core · later</text>
+                </g>
+                <g style="stroke: var(--spell-muted); stroke-width: 1.5; fill: none" marker-end="url(#tw-arrow1)">
+                  <path d="M130,54 C150,54 145,116 163,116" />
+                  <path d="M130,116 L163,116" style="stroke-dasharray: 4 3" />
+                  <path d="M130,178 C150,178 145,116 163,116" style="stroke-dasharray: 4 3" />
+                  <path d="M285,116 L318,116" />
+                  <path d="M460,116 C478,116 475,54 493,54" />
+                  <path d="M460,116 L493,116" />
+                  <path d="M460,116 C478,116 475,178 493,178" style="stroke-dasharray: 4 3" />
+                  <path d="M615,54 L648,54" />
+                  <path d="M615,116 L648,116" />
+                  <path d="M615,178 L648,178" style="stroke-dasharray: 4 3" />
+                </g>
+              </svg>
+              <figcaption class="meta">
+                Solid lines are built; dashed ones are later (other syntaxes, a Python target). A new target is one more
+                writer box, not a row of them.
+              </figcaption>
+            </figure>
+          </ui-section>
+
+          <ui-section id="how-it-flows" header="What happens, in order" sticky collapsible dividing collapsed>
+            <p>
+              When a project compiles (<code>SpellProject.compile()</code>, its "Combining output" and "Saving compiled
+              output" tasks):
+            </p>
+            <ui-steps class="spell-steps" ordered>
+              <ui-step
+                header="Parse"
+                description="The project's .spell files are matched against one syntax's rules (English today), building scopes as they go."
+              ></ui-step>
+              <ui-step
+                header="Build the tree"
+                description="Each match builds its tree node (getAST()).  The node holds what the program means:  the operator `equals`, not `==`;  the text `up`, not the already-quoted `'up'`;  Self, not `this`."
+              ></ui-step>
+              <ui-step
+                header="Pick the targets"
+                description="js/solid first, always;  then project.json's targets, or the one --target names for this run."
+              ></ui-step>
+              <ui-step
+                header="Check each target"
+                description="A project that draws (any JSX in any file), on a target that can't draw, stops with a parse error naming both."
+              ></ui-step>
+              <ui-step
+                header="Write"
+                description="Each target's writer writes every file's tree (SpellProject.combineCompiled()), its class members gathered into their classes from every file."
+              ></ui-step>
+              <ui-step
+                header="Split out the declarations"
+                description="Markers on each declaring statement come out of the text (SpellDeclarations.split()):  the code is just code, and the declarations, with where each one's code starts, go to their own file."
+              ></ui-step>
+              <ui-step
+                header="Save"
+                description="<Project>.compiled.js, <Project>.declarations.json, and each other target's file, e.g. <Project>.compiled.ts."
+              ></ui-step>
+              <ui-step
+                header="Run"
+                description="js/solid's code imports @spell/core, which papers over the rest:  lists counted from 1, drawing, reactive properties."
+              ></ui-step>
+            </ui-steps>
+          </ui-section>
+
+          <ui-section id="the-table" header="The targets" sticky collapsible dividing collapsed>
+            <p>
+              <code>SP.TARGETS</code>, in <a href="../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"><code>packages/spell/src/targets.ts</code></a>:
+            </p>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>target</th>
+                    <th>writer</th>
+                    <th>file</th>
+                    <th>draws</th>
+                    <th>core</th>
+                    <th>who uses it</th>
+                  </tr>
+                  <tr>
+                    <td><code>js/solid</code></td>
+                    <td><code>P.JSWriter</code></td>
+                    <td><code>&lt;Project&gt;.compiled.js</code></td>
+                    <td class="yes positive">into the page</td>
+                    <td><code>@spell/core</code></td>
+                    <td>the editor, the runners, the language server, <code>spell run</code>: always compiled</td>
+                  </tr>
+                  <tr>
+                    <td><code>ts/solid</code></td>
+                    <td><code>P.TSWriter</code></td>
+                    <td><code>&lt;Project&gt;.compiled.ts</code></td>
+                    <td class="yes positive">into the page</td>
+                    <td><code>@spell/core</code></td>
+                    <td>
+                      checked by <code>tsc</code>; never run by the app (the contract test runs it, through
+                      <code>tsx</code>)
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>targets.ts (excerpt) · 23 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-ts">/** A target spell compiles to -- see `TARGETS`. */
+export type Target = {
+  /** Its name, LANGUAGE/RUNTIME, e.g. `js/solid`. */
+  name: string
+  /** Writes its code. */
+  writer: P.Writer
+  /** End of its compiled output file's name, e.g. `.compiled.js`. */
+  suffix: string
+  /** What its runtime can do. */
+  can: TargetAbilities
+}
+
+/** What a target's runtime can do -- checked while compiling, so a project asks only what its targets give. */
+export type TargetAbilities = {
+  /** Draw a UI:  `dom` into the page, `html` as text (e.g. server pages), or not at all. */
+  draw: "dom" | "html" | false
+}
+
+/** Every target, by name. */
+export const TARGETS: Record&lt;string, Target&gt; = {
+  "js/solid": { name: "js/solid", writer: P.JSWriter.instance, suffix: ".compiled.js", can: { draw: "dom" } },
+  // the same code and runtime, typed:  checked by `tsc`, never run
+  "ts/solid": { name: "ts/solid", writer: P.TSWriter.instance, suffix: ".compiled.ts", can: { draw: "dom" } }
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li><code>SP.RUNNING_TARGET</code> is <code>"js/solid"</code>: the one everything runs.</li>
+              <li>
+                <code>SP.targetFor(name)</code> throws for an unknown name, listing the ones there are: "There's no
+                target 'x': try js/solid, ts/solid."
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="picking" header="Picking targets" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A project lists its own in <code>project.json</code>; no list means <code>js/solid</code> only. No
+                project in the repo lists any yet.
+              </li>
+              <li>
+                <code>spell compile &lt;project&gt; --target &lt;name&gt;</code> compiles to that one, this run only,
+                instead of the list. <code>js/solid</code> is still compiled with it.
+              </li>
+              <li>
+                <code>--stdout</code> prints the asked-for target's output (else <code>js/solid</code>'s) and writes
+                nothing.
+              </li>
+              <li>
+                <code>SpellProject.targets</code> is the list in order: <code>js/solid</code>, then the rest, each name
+                once. <code>outputFileFor(target)</code> is each one's file.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>project.json with targets · 4 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-json">{
+  "imports": [{ "path": "/Solitaire.spell", "active": true }],
+  "targets": ["js/solid", "ts/solid"]
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Compiling one project as TypeScript · 2 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-bash">spell compile Solitaire --target ts/solid           # writes Solitaire.compiled.ts too
+spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="files" header="The files written" sticky collapsible dividing collapsed>
+            <p>All beside the project's <code>project.json</code>:</p>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>file</th>
+                    <th>what</th>
+                    <th>when</th>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.compiled.js</code></td>
+                    <td><code>js/solid</code>'s code: just code, no declaration comments</td>
+                    <td>always</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.declarations.json</code></td>
+                    <td>what the project offers importers (see <a href="#5-declarations">5</a>)</td>
+                    <td>always; from <code>js/solid</code>'s output</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.compiled.ts</code></td>
+                    <td><code>ts/solid</code>'s code</td>
+                    <td>when <code>ts/solid</code> is picked</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li><code>compile(scope, { save: false })</code> keeps them in memory: that's how <code>--stdout</code> works.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="can-draw" header="Can it draw?" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>can.draw</code> is <code>"dom"</code> (into the page), <code>"html"</code> (as text, e.g. server
+                pages) or <code>false</code>.
+              </li>
+              <li>
+                <code>SpellProject.draws(parts)</code>: does any file's tree hold a JSX element, anywhere?
+              </li>
+              <li>
+                A project that draws, on a target whose <code>draw</code> is <code>false</code>, stops with a parse
+                error: "'Solitaire' draws a UI, which target 'py' can't."
+              </li>
+              <li>
+                Both targets today draw into the page, so nothing hits it yet. The test registers a target of its own,
+                <code>test/no-draw</code> (<a href="../../packages/spell/src/SpellProject.imports.test.ts" target="src-packages-spell-src-spellproject-imports-test-ts"><code>packages/spell/src/SpellProject.imports.test.ts</code></a>).
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="3-writers" header="3. Writers" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="feather"></ui-icon>
+          <p>
+            Every writer lives in <a href="../../packages/parser/src/writers/" target="src-packages-parser-src-writers"><code>packages/parser/src/writers/</code></a>, beside the tree it writes (<code
+              >packages/parser/src/ast/</code
+            >). <code>P.Writer&lt;Output&gt;</code> is the base: a target's writer outputs a <code>string</code>,
+            <code>TreeWriter</code> a box.
+          </p>
+          <ui-cards class="spell-flow" stackable>
+            <ui-card>
+              <ui-content>
+                <ui-header>P.Writer</ui-header>
+                <ui-description
+                  >The base: finds a node's method by its class name, and knows nothing about any language.</ui-description
+                >
+              </ui-content>
+            </ui-card>
+            <ui-card>
+              <ui-content>
+                <ui-header>P.JSWriter</ui-header>
+                <ui-description
+                  >JavaScript: the <code>js/solid</code> writer, and what <code>ASTNode.compile()</code>
+                  calls.</ui-description
+                >
+              </ui-content>
+            </ui-card>
+            <ui-card>
+              <ui-content>
+                <ui-header>P.TSWriter</ui-header>
+                <ui-description
+                  >A <code>JSWriter</code> that adds types: overrides a few hooks and three node
+                  kinds.</ui-description
+                >
+              </ui-content>
+            </ui-card>
+            <ui-card>
+              <ui-content>
+                <ui-header>P.TreeWriter</ui-header>
+                <ui-description
+                  >Not a target: writes each node as a box for <code>&lt;ui-tree-diagram&gt;</code> (see
+                  <a href="#6-tree-diagrams">6</a>).</ui-description
+                >
+              </ui-content>
+            </ui-card>
+          </ui-cards>
+
+          <ui-section id="before-after" header="Before and after" sticky collapsible dividing collapsed>
+            <p>
+              Before this epic, every tree class wrote its own JavaScript, twice: <code>compile()</code> for the text,
+              <code>renderChildren()</code> for the AST viewer's coloured copy. Now a node is data, and one method per
+              class, in one writer, writes it.
+            </p>
+            <figure style="margin: 1em 0">
+              <svg
+                viewBox="0 0 830 250"
+                role="img"
+                aria-label="Before:  a node class wrote JavaScript twice.  Now:  the node is data;  JSWriter's method named for its class writes it as a string;  TSWriter extends JSWriter."
+                style="width: 100%; height: auto; font-family: var(--spell-sans); font-size: 13px"
+              >
+                <defs>
+                  <marker
+                    id="tw-arrow2"
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerWidth="7"
+                    markerHeight="7"
+                    orient="auto"
+                  >
+                    <path d="M0,0 L10,5 L0,10 z" style="fill: var(--spell-muted)" />
+                  </marker>
+                </defs>
+                <g style="fill: var(--spell-muted); font: var(--spell-eyebrow-font); letter-spacing: 0.1em">
+                  <text x="10" y="18">BEFORE</text>
+                  <text x="350" y="18">NOW</text>
+                </g>
+                <line x1="330" y1="10" x2="330" y2="240" style="stroke: var(--spell-rule)" />
+                <rect
+                  x="10"
+                  y="34"
+                  width="300"
+                  height="150"
+                  rx="8"
+                  style="fill: var(--spell-tint); stroke: var(--spell-rule)"
+                />
+                <text x="24" y="58" style="fill: var(--spell-ink); font-weight: 600; font-family: var(--spell-mono)">
+                  class ASTIfStatement
+                </text>
+                <text x="24" y="78" style="fill: var(--spell-muted); font-size: 11px">condition, statements</text>
+                <rect
+                  x="24"
+                  y="92"
+                  width="272"
+                  height="34"
+                  rx="5"
+                  style="fill: var(--spell-card); stroke: var(--spell-rule)"
+                />
+                <text x="36" y="114" style="fill: var(--spell-ink); font-family: var(--spell-mono); font-size: 12px">
+                  compile() → "if (…) {…}"
+                </text>
+                <rect
+                  x="24"
+                  y="134"
+                  width="272"
+                  height="34"
+                  rx="5"
+                  style="fill: var(--spell-card); stroke: var(--spell-rule)"
+                />
+                <text x="36" y="156" style="fill: var(--spell-ink); font-family: var(--spell-mono); font-size: 12px">
+                  renderChildren() → spans
+                </text>
+                <text x="10" y="210" style="fill: var(--spell-muted); font-size: 12px">
+                  JavaScript decided inside each of
+                </text>
+                <text x="10" y="226" style="fill: var(--spell-muted); font-size: 12px">~75 node classes, twice over.</text>
+
+                <rect
+                  x="350"
+                  y="34"
+                  width="155"
+                  height="70"
+                  rx="8"
+                  style="fill: var(--spell-tint); stroke: var(--spell-rule)"
+                />
+                <text x="362" y="58" style="fill: var(--spell-ink); font-weight: 600; font-family: var(--spell-mono)">
+                  ASTIfStatement
+                </text>
+                <text x="362" y="78" style="fill: var(--spell-muted); font-size: 11px">condition, statements</text>
+                <text x="362" y="93" style="fill: var(--spell-muted); font-size: 11px">(data only)</text>
+                <rect
+                  x="525"
+                  y="34"
+                  width="175"
+                  height="70"
+                  rx="8"
+                  style="fill: var(--spell-doc-accent-soft); stroke: var(--spell-doc-accent); stroke-width: 2"
+                />
+                <text
+                  x="612"
+                  y="64"
+                  text-anchor="middle"
+                  style="fill: var(--spell-ink); font-family: var(--spell-mono); font-weight: 600"
+                >
+                  JSWriter
+                </text>
+                <text
+                  x="612"
+                  y="84"
+                  text-anchor="middle"
+                  style="fill: var(--spell-ink); font-family: var(--spell-mono); font-size: 11px"
+                >
+                  .ASTIfStatement(node)
+                </text>
+                <rect
+                  x="720"
+                  y="34"
+                  width="100"
+                  height="70"
+                  rx="8"
+                  style="fill: var(--spell-tint); stroke: var(--spell-rule)"
+                />
+                <text x="770" y="64" text-anchor="middle" style="fill: var(--spell-ink); font-weight: 600">string</text>
+                <text x="770" y="84" text-anchor="middle" style="fill: var(--spell-muted); font-size: 11px">
+                  the file's text
+                </text>
+                <rect
+                  x="525"
+                  y="140"
+                  width="175"
+                  height="50"
+                  rx="8"
+                  style="fill: var(--spell-tint); stroke: var(--spell-rule)"
+                />
+                <text
+                  x="612"
+                  y="162"
+                  text-anchor="middle"
+                  style="fill: var(--spell-ink); font-family: var(--spell-mono); font-weight: 600"
+                >
+                  TSWriter
+                </text>
+                <text x="612" y="180" text-anchor="middle" style="fill: var(--spell-muted); font-size: 11px">
+                  extends JSWriter: a few hooks
+                </text>
+                <rect
+                  x="720"
+                  y="140"
+                  width="100"
+                  height="50"
+                  rx="8"
+                  style="fill: var(--spell-card); stroke: var(--spell-rule); stroke-dasharray: 4 3"
+                />
+                <text x="770" y="162" text-anchor="middle" style="fill: var(--spell-muted); font-size: 12px">
+                  source map
+                </text>
+                <text x="770" y="180" text-anchor="middle" style="fill: var(--spell-muted); font-size: 11px">
+                  later (T2)
+                </text>
+                <g style="stroke: var(--spell-muted); stroke-width: 1.5; fill: none" marker-end="url(#tw-arrow2)">
+                  <path d="M505,69 L523,69" />
+                  <path d="M700,69 L718,69" />
+                  <path d="M612,138 L612,106" style="stroke-dasharray: 4 3" />
+                </g>
+                <text x="350" y="214" style="fill: var(--spell-muted); font-size: 12px">
+                  A new target is one more writer class;
+                </text>
+                <text x="350" y="230" style="fill: var(--spell-muted); font-size: 12px">the nodes don't change.</text>
+              </svg>
+              <figcaption class="meta">
+                One method per tree class, in one writer. The dashed box is the source map the sketch hoped for: not
+                built yet (see <a href="#10-limits">Limits</a>).
+              </figcaption>
+            </figure>
+          </ui-section>
+
+          <ui-section id="finding-methods" header="One method per tree class" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A writer finds its method for a node by the node's CLASS NAME: <code>ASTIfStatement(node)</code> writes
+                an <code>ASTIfStatement</code>.
+              </li>
+              <li>
+                No method of its own: the nearest base class's writes it, e.g. <code>ASTCoreMethodInvocation</code> by
+                <code>ASTScopedMethodInvocation(node)</code>. None at all: <code>write()</code> throws, unless the
+                writer has <code>ASTNode(node)</code>, the root of every chain (<code>TreeWriter</code> does).
+              </li>
+              <li>Each class's method is looked up once, then remembered.</li>
+              <li>
+                Because it goes by name, EVERY build must keep class names (<code>keepNames</code>; rule names
+                already needed it). <a href="../../packages/app/src/build.test.ts" target="src-packages-app-src-build-test-ts"><code>packages/app/src/build.test.ts</code></a> pins that, and
+                <a href="../../packages/parser/src/writers/JSWriter.test.ts" target="src-packages-parser-src-writers-jswriter-test-ts"><code>packages/parser/src/writers/JSWriter.test.ts</code></a> checks every tree class finds a method.
+              </li>
+              <li>
+                Write a child with <code>this.write(child)</code>, NEVER <code>child.compile()</code>:
+                <code>compile()</code> is always <code>JSWriter.instance.write(this)</code>, so a subclass's overrides
+                would never reach the child.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Writer.ts (excerpt, docs left out) · 27 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-ts">write(node: P.ASTNode): Output {
+  return this.methodFor(node, "").call(this, node)
+}
+
+writeAsMember(member: P.ASTClassMember): Output {
+  return this.methodFor(member, "AsMember").call(this, member)
+}
+
+protected methodFor(node: P.ASTNode, suffix: "" | "AsMember"): (node: P.ASTNode) =&gt; Output {
+  const key = `${node.nodeType}${suffix}`
+  let method = this.methods.get(key)
+  if (method) return method
+  for (let type = node.constructor; type &amp;&amp; type !== Object; type = Object.getPrototypeOf(type)) {
+    const found = (this as unknown as Record&lt;string, unknown&gt;)[`${type.name}${suffix}`]
+    if (typeof found === "function") {
+      method = found as (node: P.ASTNode) =&gt; Output
+      break
+    }
+  }
+  if (!method) {
+    throw new TypeError(
+      `${this.constructor.name}.write():  no \`${key}()\` method writes a ${node.nodeType}, nor one for any class it extends`
+    )
+  }
+  this.methods.set(key, method)
+  return method
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="members" header="Class members" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A class member is written two ways: INSIDE its class's body, or patched onto its class from outside.
+              </li>
+              <li>
+                <code>writeAsMember(member)</code> calls <code>&lt;class&gt;AsMember(node)</code>, e.g.
+                <code>ASTReactivePropertyAsMember</code> writes <code>get rank() {…}</code> /
+                <code>set rank(value) {…}</code> in the class body.
+              </li>
+              <li>
+                Plain <code>write()</code> patches it on from outside: <code>Card.prototype.play = function () {…}</code>,
+                or <code>Object.defineProperty(Card.prototype, 'pile', {…})</code> for a property.
+              </li>
+              <li>
+                Members from every file of a project are gathered into their class first (<code>SP.hoistClassMembers()</code>,
+                in <code>SpellProject.combineCompiled()</code>): <code>Card.move_to_$pile</code> from
+                <code>Pile.spell</code> goes in <code>class Card</code>.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="jswriter" header="JSWriter" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <a href="../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"><code>packages/parser/src/writers/JSWriter.ts</code></a>: every <code>compile()</code> method the tree
+                classes had (53 of them, plus the member variants), moved here with byte-identical output.
+              </li>
+              <li>
+                <code>list()</code>, <code>args()</code>, <code>array()</code> write lists of nodes;
+                <code>P.jsText</code> (<a href="../../packages/parser/src/writers/jsText.ts" target="src-packages-parser-src-writers-jstext-ts"><code>packages/parser/src/writers/jsText.ts</code></a>, once
+                <code>stringifyAST.ts</code>) is plain text helpers: <code>InParens</code>, <code>Block</code>,
+                <code>inQuotes()</code> …
+              </li>
+              <li><code>JSWriter.OPERATORS</code> spells each operator's meaning (see <a href="#4-meaning">4</a>).</li>
+              <li><code>JSWriter.instance</code> is the one <code>ASTNode.compile()</code> and <code>js/solid</code> use.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="tswriter" header="TSWriter" sticky collapsible dividing collapsed>
+            <p>
+              <a href="../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"><code>packages/parser/src/writers/TSWriter.ts</code></a>: the JavaScript, plus a type wherever TypeScript
+              needs one and spell knows it.
+            </p>
+            <ui-section id="ts-hooks" header="Hooks" sticky collapsible dividing collapsed>
+              <p>
+                <code>JSWriter</code> calls these where a type could go; each writes nothing in JavaScript. Adding them
+                didn't move a byte of the JavaScript snapshots.
+              </p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <tbody>
+                    <tr>
+                      <th>hook</th>
+                      <th>JSWriter</th>
+                      <th>TSWriter</th>
+                    </tr>
+                    <tr>
+                      <td><code>params(method, thisType?)</code></td>
+                      <td><code>(card, message = "Really?")</code></td>
+                      <td><code>(this: Card, card: Card, message: string = "Really?")</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>valueType(property)</code></td>
+                      <td>nothing</td>
+                      <td><code>: (typeof Card.Suits)[number]</code> after a getter's parens</td>
+                    </tr>
+                    <tr>
+                      <td><code>getterBody(property)</code></td>
+                      <td><code>{ return this.getProp('suit') }</code></td>
+                      <td>the same, <code>as</code> its type when known</td>
+                    </tr>
+                    <tr>
+                      <td><code>setterParams(property, thisType?)</code></td>
+                      <td><code>value</code></td>
+                      <td><code>this: Card, value: string</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>thisParam(thisType?)</code></td>
+                      <td>nothing</td>
+                      <td><code>this: Card</code>, for a function written outside its class</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>And three node kinds of its own:</p>
+              <ul>
+                <li><code>ASTAssignmentStatement</code>: a new variable, typed when spell knows its datatype.</li>
+                <li>
+                  <code>ASTReactiveProperty</code>, <code>ASTPropertyDefinition</code>: patched on from outside, so an
+                  <code>interface</code> merged with the class comes first.
+                </li>
+              </ul>
+            </ui-section>
+
+            <ui-section id="ts-types" header="Where types come from" sticky collapsible dividing collapsed>
+              <ul>
+                <li>
+                  <code>typeFor(datatype)</code> turns spell's datatype into TypeScript: <code>text</code> and
+                  <code>character</code> → <code>string</code>, <code>number</code> and <code>integer</code> →
+                  <code>number</code>, <code>choice</code> → <code>boolean</code>, <code>date</code> →
+                  <code>Date</code>, <code>nothing</code> → <code>undefined</code>, <code>thing</code> →
+                  <code>Thing</code>, <code>app</code> → <code>App</code>; a project's own type (<code>Card</code>) as
+                  is.
+                </li>
+                <li>
+                  Parameters: every one typed. Spell doesn't know: <code>any /* spell: type unknown */</code>, since
+                  TypeScript needs something there.
+                </li>
+                <li>
+                  Reactive properties: from their <code>check</code>: <code>{ type: 'number' }</code> →
+                  <code>number</code>, <code>{ oneOf: Card.Suits }</code> → <code>(typeof Card.Suits)[number]</code>.
+                </li>
+                <li>
+                  New variables: typed when spell knows (<code>let count: number = 0</code>). Set from a
+                  <code>spellCore</code> call, which returns <code>unknown</code>: <code>as Card</code> when spell knows,
+                  else the marker. Anything else left bare, so TypeScript works it out
+                  (<code>let it = new Card(…)</code>).
+                </li>
+                <li>
+                  Lists: <code>any /* spell: list */</code>. <code>@spell/core</code>'s <code>List</code> doesn't say
+                  what it holds, and spell sets properties on lists, which a <code>List</code> can't have.
+                </li>
+                <li>
+                  Every gap is greppable: Solitaire has 56 <code>spell: type unknown</code> markers, FizzBuzz 1 (its loop
+                  variable).
+                </li>
+              </ul>
+            </ui-section>
+
+            <ui-section id="ts-output" header="What it writes" sticky collapsible dividing collapsed>
+              <ui-tabs class="spell-tabs" pointing secondary basic aria-label="FizzBuzz in each target">
+                <ui-tab label="js/solid">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>FizzBuzz.snapshot.js · 14 lines</ui-title>
+                    <ui-content>
+                      <pre><code class="language-js">import { spellCore, Thing, List, App } from "@spell/core"
+
+spellCore.heading("File FizzBuzz.spell")
+/** File FizzBuzz.spell */
+export function play_fizzbuzz() {
+  spellCore.map(spellCore.getRange(1, 100), (number) =&gt; {
+    if (spellCore.isOfType(number / 15, 'integer')) { spellCore.console.log(number, "fizzbuzz") }
+    else if (spellCore.isOfType(number / 3, 'integer')) { spellCore.console.log(number, "fizz") }
+    else if (spellCore.isOfType(number / 5, 'integer')) { spellCore.console.log(number, "buzz") }
+    else { spellCore.console.log(number) }
+  })
+}
+
+play_fizzbuzz()</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+                <ui-tab label="ts/solid">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>FizzBuzz.snapshot.ts · 14 lines</ui-title>
+                    <ui-content>
+                      <pre><code class="language-ts">import { spellCore, Thing, List, App } from "@spell/core"
+
+spellCore.heading("File FizzBuzz.spell")
+/** File FizzBuzz.spell */
+export function play_fizzbuzz() {
+  spellCore.map(spellCore.getRange(1, 100), (number: any /* spell: type unknown */) =&gt; {
+    if (spellCore.isOfType(number / 15, 'integer')) { spellCore.console.log(number, "fizzbuzz") }
+    else if (spellCore.isOfType(number / 3, 'integer')) { spellCore.console.log(number, "fizz") }
+    else if (spellCore.isOfType(number / 5, 'integer')) { spellCore.console.log(number, "buzz") }
+    else { spellCore.console.log(number) }
+  })
+}
+
+play_fizzbuzz()</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+                <ui-tab label="Solitaire, typed">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>Solitaire.snapshot.ts (two excerpts) · 13 lines</ui-title>
+                    <ui-content>
+                      <pre><code class="language-ts">  /** card suits */
+  static Suits = ['clubs', 'diamonds', 'hearts', 'spades']
+  static { this.declareProp('suit', { oneOf: Card.Suits }) }
+  get suit(): (typeof Card.Suits)[number] { return this.getProp('suit') as (typeof Card.Suits)[number] }
+  set suit(value: (typeof Card.Suits)[number]) { this.setProp('suit', value) }
+
+export interface Card { pile: any /* spell: type unknown */ }
+Card.declareProp('pile', { type: 'Pile' })
+Object.defineProperty(Card.prototype, 'pile', {
+  get(this: Card): any /* spell: type unknown */ { return this.getProp('pile') },
+  set(this: Card, value: any /* spell: type unknown */) { this.setProp('pile', value) },
+  configurable: true
+})</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+              </ui-tabs>
+              <ul>
+                <li>
+                  <code>export interface Card { … }</code> merges with <code>export class Card</code> wherever it is in
+                  the file, so TypeScript knows the class has the member patched on from outside.
+                </li>
+                <li>
+                  <code>pile</code> above is declared <code>{ type: 'Pile' }</code>, yet still comes out unknown: one
+                  of the gaps the typed output shows (see <a href="#10-limits">Limits</a>).
+                </li>
+              </ul>
+            </ui-section>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="4-meaning" header="4. The tree means things" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="language"></ui-icon>
+          <p>
+            Moving the writing out of the tree classes wasn't enough: some JavaScript was decided BEFORE the tree
+            existed, in the rules. Now the tree holds the meaning, and the writer decides the spelling.
+          </p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>what</th>
+                  <th>before</th>
+                  <th>in the tree now</th>
+                  <th>JSWriter writes</th>
+                </tr>
+                <tr>
+                  <td>operators</td>
+                  <td>
+                    the JavaScript, from the rule: <code>getOutputOperator()</code>, or <code>"==="</code> written by
+                    the rule itself
+                  </td>
+                  <td>a meaning, <code>P.ASTOperator</code>: <code>equals</code>, <code>and</code> …</td>
+                  <td><code>==</code>, <code>&amp;&amp;</code> … (<code>JSWriter.OPERATORS</code>)</td>
+                </tr>
+                <tr>
+                  <td>text values</td>
+                  <td>already quoted: <code>`"${tagName}"`</code></td>
+                  <td>
+                    <code>ASTStringLiteral</code>: <code>value</code> the plain text, escapes undone, plus its
+                    <code>quote</code>
+                  </td>
+                  <td>the source's own spelling (<code>raw</code>), else the value in its quote</td>
+                </tr>
+                <tr>
+                  <td>the thing a method runs on</td>
+                  <td><code>ASTThisLiteral</code></td>
+                  <td><code>ASTSelfLiteral</code></td>
+                  <td><code>this</code></td>
+                </tr>
+                <tr>
+                  <td>spell's <code>nothing</code></td>
+                  <td><code>ASTUndefinedLiteral</code></td>
+                  <td><code>ASTNothingLiteral</code></td>
+                  <td><code>undefined</code></td>
+                </tr>
+                <tr>
+                  <td>JSX that didn't parse</td>
+                  <td><code>ASTNullLiteral</code></td>
+                  <td><code>ASTMissingExpression</code>, beside the error saying why</td>
+                  <td><code>null</code></td>
+                </tr>
+                <tr>
+                  <td>names, constants, enumeration values</td>
+                  <td><code>is_a_$suit</code>, <code>'up'</code>, <code>"clubs"</code></td>
+                  <td class="meh warning">unchanged: still JavaScript, in scope records</td>
+                  <td>as is (see <a href="#10-limits">Limits</a>)</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+
+          <ui-section id="operators" header="The 14 operators" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Rules say what an operator MEANS with <code>getOperator()</code> (was <code>getOutputOperator()</code>,
+                which returned JavaScript). Its default throws, so a new operator rule must say.
+              </li>
+              <li>
+                <code>equals</code> is spell's forgiving <code>is</code> (<code>"2"</code> is <code>2</code>);
+                <code>exactly equals</code> is <code>is exactly</code>.
+              </li>
+              <li>
+                <code>plus</code> adds numbers or joins text: a writer can tell which from the two sides' datatypes.
+              </li>
+            </ul>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>meaning</th>
+                    <th>JavaScript</th>
+                    <th>meaning</th>
+                    <th>JavaScript</th>
+                  </tr>
+                  <tr>
+                    <td><code>and</code></td>
+                    <td><code>&amp;&amp;</code></td>
+                    <td><code>less than</code></td>
+                    <td><code>&lt;</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>or</code></td>
+                    <td><code>||</code></td>
+                    <td><code>greater than</code></td>
+                    <td><code>&gt;</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>equals</code></td>
+                    <td><code>==</code></td>
+                    <td><code>at most</code></td>
+                    <td><code>&lt;=</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>not equals</code></td>
+                    <td><code>!=</code></td>
+                    <td><code>at least</code></td>
+                    <td><code>&gt;=</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>exactly equals</code></td>
+                    <td><code>===</code></td>
+                    <td><code>plus</code> / <code>minus</code></td>
+                    <td><code>+</code> / <code>-</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>not exactly equals</code></td>
+                    <td><code>!==</code></td>
+                    <td><code>times</code> / <code>divided by</code></td>
+                    <td><code>*</code> / <code>/</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+          </ui-section>
+
+          <ui-section id="text-values" header="Text values" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>quote</code> set (<code>"</code>, <code>'</code> or a back tick): a text VALUE. A writer quotes it
+                its own way, or writes <code>raw</code>, how the spell source spelled it.
+              </li>
+              <li>
+                <code>quote</code> unset: a FRAGMENT of output, written as is, e.g. inside an
+                <code>ASTQuotedExpression</code>, which adds the quotes itself.
+              </li>
+              <li>
+                Converted: spell's text literals, JSX text, attribute text and tag names, test messages,
+                <code>expect</code> / <code>echo</code> strings, headings, a list's <code>instanceType</code>.
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="5-declarations" header="5. The declarations file" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="scroll"></ui-icon>
+          <p>
+            A project's DECLARATIONS are what it offers projects that import it: its types, functions, and the syntax to
+            call them. They live in <code>&lt;Project&gt;.declarations.json</code>, beside its compiled output, so
+            another project can import it without re-parsing its <code>.spell</code> files.
+          </p>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>FizzBuzz.snapshot.declarations.json (arrays on one line) · 15 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-json">{
+  "spellVersion": "0.8.0",
+  "provides": ["play_fizzbuzz"],
+  "statements": [
+    {
+      "syntax": "play fizzbuzz",
+      "output": "play_fizzbuzz",
+      "rule": "method_call",
+      "alias": ["statement", "expression"],
+      "kind": "function",
+      "defined": "/FizzBuzz.spell:23-331"
+    }
+  ],
+  "codeLines": [4]
+}</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ul>
+            <li>
+              <code>version</code> (from <code>project.json</code>, when it has one), <code>spellVersion</code>,
+              <code>provides</code>: what it exports.
+            </li>
+            <li><code>statements</code>: what each declaring statement added to scope.</li>
+            <li>
+              <code>codeLines</code>: the line (counted from 0) of <code>.compiled.js</code> where each statement's code
+              starts.
+            </li>
+          </ul>
+
+          <ui-section id="decl-how" header="How it's made" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                While compiling, each declaring statement still gets a marker above its code,
+                <code>/*! SPELL: DECLARES {…} */</code> (<code>commentFor()</code>). It's never written to disk.
+              </li>
+              <li>
+                <code>SpellDeclarations.split()</code> takes the markers out of the compiled text: the code is just
+                code, and each marker's object (read with JSON5) goes into <code>statements</code>, with its line in
+                <code>codeLines</code>.
+              </li>
+              <li>
+                Made from <code>js/solid</code>'s output only: the file is the same for every target, and its
+                <code>codeLines</code> point into <code>.compiled.js</code>.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="decl-readers" header="Who reads it" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Importing: <code>SpellProject.declarationsOf()</code>, fresh each time. A project compiled before the
+                file existed still works: <code>SpellDeclarations.fromComments()</code> reads its
+                <code>.compiled.js</code>'s old comments.
+              </li>
+              <li>
+                The Type Explorer (<a href="../../packages/lsp/src/ScopesSource.ts" target="src-packages-lsp-src-scopessource-ts"><code>packages/lsp/src/ScopesSource.ts</code></a>) finds a declaration's code by
+                <code>codeLines</code>; it falls back to scanning for markers.
+              </li>
+              <li>
+                The runner fetches declarations lazily, only when you open one's details: from the server
+                (<code>/api/projects/declarations/&lt;id&gt;</code>), beside a <code>src=</code> app's
+                <code>.compiled.js</code>, or pushed by <code>&lt;spell-editor&gt;</code>.
+              </li>
+              <li>Scope packs (<code>.scopes.js</code>) didn't change.</li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="6-tree-diagrams" header="6. Tree diagrams" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="tree"></ui-icon>
+          <p>
+            Any line of spell can be drawn as its real tree: the quickest way to check, by eye, that a line's tree says
+            what it means. Two halves, with plain data in between, since <code>ui</code> may never import spell:
+          </p>
+          <ul>
+            <li><code>P.TreeWriter</code> writes a spell tree as boxes (<code>P.TreeNode</code>, plain JSON).</li>
+            <li><code>&lt;ui-tree-diagram&gt;</code>, a Spell UI element, draws any tree of such boxes as an SVG.</li>
+          </ul>
+
+          <ui-section id="fizzbuzz-tree" header="The tree for one line" sticky collapsible dividing collapsed>
+            <p>
+              FizzBuzz's first <code>if</code> line, with numbers for the variable, as <code>spell parse --tree</code>
+              gives it. Nothing in it is JavaScript: <code>Core isOfType</code> doesn't know it will become
+              <code>spellCore.isOfType(…)</code>.
+            </p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>spell parse … --tree · 11 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-plaintext">$ spell parse "if 30 divided by 15 is an integer: print 30, \"fizzbuzz\"" --tree
+If
+  condition: Core isOfType  choice
+    args: divided by
+      lhs: Number 30
+      rhs: Number 15
+    args: Text "integer"
+  statements: Print
+    args: Number 30
+    args: Text "fizzbuzz"
+
+if (spellCore.isOfType(30 / 15, 'integer')) { spellCore.console.log(30, "fizzbuzz") }</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <figure style="margin: 1em 0">
+              <svg
+                viewBox="0 0 830 320"
+                role="img"
+                aria-label="Tree:  If, its condition Core isOfType (a choice) of divided by (Number 30, Number 15) and Text integer;  its statements Print of Number 30 and Text fizzbuzz"
+                style="width: 100%; height: auto; font-family: var(--spell-mono); font-size: 12px"
+              >
+                <g style="stroke: var(--spell-muted); stroke-width: 1.5; fill: none">
+                  <path d="M415,54 L230,100" />
+                  <path d="M415,54 L620,100" />
+                  <path d="M230,144 L140,190" />
+                  <path d="M230,144 L320,190" />
+                  <path d="M620,144 L540,190" />
+                  <path d="M620,144 L700,190" />
+                  <path d="M140,224 L70,270" />
+                  <path d="M140,224 L210,270" />
+                </g>
+                <g
+                  style="fill: var(--spell-muted); font-family: var(--spell-sans); font-size: 11px; font-style: italic"
+                >
+                  <text x="312" y="72" text-anchor="end">condition</text>
+                  <text x="522" y="72">statements</text>
+                  <text x="176" y="165" text-anchor="end">args</text>
+                  <text x="284" y="165">args</text>
+                  <text x="572" y="165" text-anchor="end">args</text>
+                  <text x="668" y="165">args</text>
+                  <text x="98" y="245" text-anchor="end">lhs</text>
+                  <text x="182" y="245">rhs</text>
+                </g>
+                <rect
+                  x="365"
+                  y="20"
+                  width="100"
+                  height="34"
+                  rx="6"
+                  style="fill: var(--spell-doc-accent-soft); stroke: var(--spell-doc-accent); stroke-width: 2"
+                />
+                <g style="fill: var(--spell-tint); stroke: var(--spell-rule)">
+                  <rect x="150" y="100" width="160" height="44" rx="6" />
+                  <rect x="570" y="100" width="100" height="44" rx="6" />
+                  <rect x="80" y="190" width="120" height="34" rx="6" />
+                  <rect x="250" y="190" width="140" height="34" rx="6" />
+                  <rect x="480" y="190" width="120" height="34" rx="6" />
+                  <rect x="625" y="190" width="150" height="34" rx="6" />
+                  <rect x="15" y="270" width="110" height="34" rx="6" />
+                  <rect x="155" y="270" width="110" height="34" rx="6" />
+                </g>
+                <g style="fill: var(--spell-ink)" text-anchor="middle">
+                  <text x="415" y="42" style="font-weight: 600">If</text>
+                  <text x="230" y="119">Core isOfType</text>
+                  <text x="230" y="135" style="fill: var(--spell-muted); font-size: 11px">choice</text>
+                  <text x="620" y="127">Print</text>
+                  <text x="140" y="212">divided by</text>
+                  <text x="320" y="212">Text "integer"</text>
+                  <text x="540" y="212">Number 30</text>
+                  <text x="700" y="212">Text "fizzbuzz"</text>
+                  <text x="70" y="292">Number 30</text>
+                  <text x="210" y="292">Number 15</text>
+                </g>
+                <g style="fill: var(--spell-muted); font-family: var(--spell-sans); font-size: 11px">
+                  <text x="400" y="270">a datatype rides on a node as a second line,</text>
+                  <text x="400" y="286">when spell knows it;  operators show their</text>
+                  <text x="400" y="302">meaning (divided by), not JavaScript's "/"</text>
+                </g>
+              </svg>
+              <figcaption class="meta">
+                Drawn by hand to match <code>spell parse --tree</code>; <code>--tree --html</code> gives the live
+                element instead.
+              </figcaption>
+            </figure>
+          </ui-section>
+
+          <ui-section id="treewriter" header="TreeWriter" sticky collapsible dividing collapsed>
+            <p><a href="../../packages/parser/src/writers/TreeWriter.ts" target="src-packages-parser-src-writers-treewriter-ts"><code>packages/parser/src/writers/TreeWriter.ts</code></a>: labels in spell's words.</p>
+            <ul>
+              <li>Operators: their meaning (<code>divided by</code>, <code>equals</code>).</li>
+              <li>
+                Literals: <code>Number 30</code>, <code>Text "fizzbuzz"</code>, <code>Choice true</code>,
+                <code>Nothing</code>, <code>Self</code>.
+              </li>
+              <li>
+                Calls: <code>Call name</code>; a <code>spellCore</code> call is <code>Core name</code>; printing is
+                <code>Print</code>.
+              </li>
+              <li>Names: <code>Variable number</code>, <code>Type Card</code>, <code>Property rank</code>.</li>
+              <li>
+                Statements: <code>If</code>, <code>Otherwise if</code>, <code>Otherwise</code>, <code>Set</code>,
+                <code>Return</code>, <code>Method name</code>.
+              </li>
+              <li>
+                Anything else: <code>ASTNode(node)</code>, its class name in words (<code>ASTTryCatchBlock</code> →
+                <code>Try catch block</code>), and a child box per field holding tree.
+              </li>
+              <li>
+                Left out, their contents drawn in their place: parentheses, a call's argument list, a block's braces.
+                <code>TreeWriter.treeOf()</code> gives nothing for a blank line.
+              </li>
+              <li>Slots: the tree's field names (<code>condition</code>, <code>statements</code>, <code>lhs</code>).</li>
+              <li>
+                Second line: the node's datatype, else its match's; NOT for operators, whose match is only their suffix
+                (<code>+ 2</code>). Hover text: the spell it came from.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="the-element" header="&lt;ui-tree-diagram&gt;" sticky collapsible dividing collapsed>
+            <p>
+              <a href="../../packages/ui/src/components/ui-tree-diagram/" target="src-packages-ui-src-components-ui-tree-diagram"><code>packages/ui/src/components/ui-tree-diagram/</code></a>; its Spell UI docs page:
+              <a href="../../ui/components/ui-tree-diagram.html" target="src-ui-components-ui-tree-diagram-html"><code>ui/components/ui-tree-diagram.html</code></a>.
+            </p>
+            <ul>
+              <li>
+                Data: <code>{ label, detail?, slot?, title?, children? }</code> per box (<code>TreeDiagramNode</code>),
+                set as the <code>tree</code> property, a <code>tree='{…}'</code> attribute, or a
+                <code>&lt;script type="application/json"&gt;</code> child for static pages.
+              </li>
+              <li>
+                Draws top-down, the root accented, the datatype as a muted second line, light and dark. Redraws only when
+                <code>tree</code> is set to a NEW object.
+              </li>
+              <li>
+                Slot labels sit ON their line, at its midpoint, the line broken under them: spaced so no label overlaps
+                another label or line.
+              </li>
+              <li>
+                Boxes sized from character counts (0.6 of the font size per monospace character), so layout is a pure
+                function, testable without a browser. Shrinks to <code>--ui-tree-diagram-min-scale</code> (0.75), then
+                scrolls sideways.
+              </li>
+              <li>
+                Fallback, if drawing throws: the tree as nested lists. Nothing to draw: a hidden
+                <code>svg.ui.tree.diagram.empty</code>.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="where-trees-show" header="Where trees show" sticky collapsible dividing collapsed>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>where</th>
+                    <th>how</th>
+                    <th>from</th>
+                  </tr>
+                  <tr>
+                    <td>command line</td>
+                    <td>
+                      <code>spell parse "&lt;spell&gt;" --tree</code>: indented boxes, then the JavaScript;
+                      <code>--tree --json</code>: the data; <code>--tree --html</code>: a
+                      <code>&lt;ui-tree-diagram&gt;</code> ready to paste into a docs page
+                    </td>
+                    <td><a href="../../packages/cli/src/commands/parseCommand.ts" target="src-packages-cli-src-commands-parsecommand-ts"><code>packages/cli/src/commands/parseCommand.ts</code></a></td>
+                  </tr>
+                  <tr>
+                    <td>the app</td>
+                    <td>
+                      the "Spell Tree" pane, the right column's last: the tree of the cursor's line. It REPLACES the Match
+                      inspector
+                    </td>
+                    <td><a href="../../packages/app/src/solid/TreeViewer.tsx" target="src-packages-app-src-solid-treeviewer-tsx"><code>packages/app/src/solid/TreeViewer.tsx</code></a>, <code>SP.BlockLine.lineAt()</code></td>
+                  </tr>
+                  <tr>
+                    <td>VS Code</td>
+                    <td>
+                      "Spell: Show Tree for This Line" (command palette, editor right-click) opens a "Spell Tree" view
+                      under Spell Docs, which follows the cursor while it's visible
+                    </td>
+                    <td>
+                      the language server's <code>spell/lineTree</code> request (unsaved edits included);
+                      <a href="../../packages/vscode/src/TreeView.ts" target="src-packages-vscode-src-treeview-ts"><code>packages/vscode/src/TreeView.ts</code></a>, drawn with the docs bundle
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>docs pages</td>
+                    <td>paste <code>spell parse … --tree --html</code></td>
+                    <td>the docs bundle (<a href="../../packages/docs/tools/_assets/spell-ui.js" target="src-packages-docs-tools-assets-spell-ui-js"><code>packages/docs/tools/_assets/spell-ui.js</code></a>), which has the element</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="7-testing" header="7. How it's tested" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="flask"></ui-icon>
+
+          <ui-section id="fixture-snapshots" header="Fixture snapshots" sticky collapsible dividing collapsed>
+            <p>
+              Each test project in <a href="../../packages/spell/projects/test/" target="src-packages-spell-projects-test"><code>packages/spell/projects/test/</code></a> (FizzBuzz, Solitaire) is compiled and
+              compared with files beside it:
+            </p>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>file</th>
+                    <th>what</th>
+                    <th>test</th>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.snapshot.js</code></td>
+                    <td><code>js/solid</code>'s code</td>
+                    <td><a href="../../packages/spell/src/test/fixtures.test.ts" target="src-packages-spell-src-test-fixtures-test-ts"><code>packages/spell/src/test/fixtures.test.ts</code></a></td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.snapshot.declarations.json</code></td>
+                    <td>its declarations</td>
+                    <td>the same</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.snapshot.ts</code></td>
+                    <td><code>ts/solid</code>'s code</td>
+                    <td>the same</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.snapshot.tsc.txt</code></td>
+                    <td>
+                      what <code>tsc</code> says about the TypeScript: one line per error,
+                      <code>line:column TScode message</code>
+                    </td>
+                    <td><a href="../../packages/spell/src/test/typescript.test.ts" target="src-packages-spell-src-test-typescript-test-ts"><code>packages/spell/src/test/typescript.test.ts</code></a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>
+                Changed on purpose: <code>yarn test:fixtures:bless</code> in <a href="../../packages/spell/" target="src-packages-spell"><code>packages/spell</code></a>, then read the
+                diff.
+              </li>
+              <li>
+                <code>tsc</code> is the workspace's (TS 7), against <code>@spell/core</code>'s source, with
+                <code>core</code>'s own <code>strict</code> settings, but <code>strictFunctionTypes</code> off.
+              </li>
+              <li>
+                FizzBuzz must check CLEAN; an error in <code>core</code>'s own files fails. Solitaire's errors are a
+                snapshot, not a failure: 34 today.
+              </li>
+              <li>P2 and P3 moved where JavaScript is decided without changing a byte of <code>.snapshot.js</code>.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="core-contract" header="The core contract" sticky collapsible dividing collapsed>
+            <p>
+              <a href="../../packages/cli/src/contract.test.ts" target="src-packages-cli-src-contract-test-ts"><code>packages/cli/src/contract.test.ts</code></a>: every test project, compiled for each target, run as
+              <code>spell run</code> runs it, must print the same thing, line for line, and match a snapshot.
+            </p>
+            <figure style="margin: 1em 0">
+              <svg
+                viewBox="0 0 830 190"
+                role="img"
+                aria-label="The test programs compile to each target and run;  their transcripts must match each other and the snapshot.  A Python row is later."
+                style="width: 100%; height: auto; font-family: var(--spell-sans); font-size: 13px"
+              >
+                <defs>
+                  <marker
+                    id="tw-arrow3"
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerWidth="7"
+                    markerHeight="7"
+                    orient="auto"
+                  >
+                    <path d="M0,0 L10,5 L0,10 z" style="fill: var(--spell-muted)" />
+                  </marker>
+                </defs>
+                <rect
+                  x="10"
+                  y="70"
+                  width="150"
+                  height="50"
+                  rx="6"
+                  style="fill: var(--spell-doc-accent-soft); stroke: var(--spell-doc-accent); stroke-width: 2"
+                />
+                <g style="fill: var(--spell-tint); stroke: var(--spell-rule)">
+                  <rect x="220" y="14" width="180" height="40" rx="6" />
+                  <rect x="220" y="76" width="180" height="40" rx="6" />
+                  <rect x="220" y="138" width="180" height="40" rx="6" style="stroke-dasharray: 4 3" />
+                  <rect x="460" y="14" width="120" height="40" rx="6" />
+                  <rect x="460" y="76" width="120" height="40" rx="6" />
+                  <rect x="460" y="138" width="120" height="40" rx="6" style="stroke-dasharray: 4 3" />
+                  <rect x="650" y="70" width="170" height="50" rx="6" />
+                </g>
+                <g style="fill: var(--spell-ink)" text-anchor="middle">
+                  <text x="85" y="92">test programs</text>
+                  <text x="85" y="108" style="fill: var(--spell-muted); font-size: 11px">projects/test/*</text>
+                  <text x="310" y="39">js/solid · .mjs, node</text>
+                  <text x="310" y="101">ts/solid · .mts, tsx</text>
+                  <text x="310" y="163" style="fill: var(--spell-muted)">py · python, later</text>
+                  <text x="520" y="39">transcript</text>
+                  <text x="520" y="101">transcript</text>
+                  <text x="520" y="163" style="fill: var(--spell-muted)">transcript</text>
+                  <text x="735" y="92" style="font-weight: 600">must match</text>
+                  <text x="735" y="108" style="fill: var(--spell-muted); font-size: 11px">each other + snapshot</text>
+                </g>
+                <g style="stroke: var(--spell-muted); stroke-width: 1.5; fill: none" marker-end="url(#tw-arrow3)">
+                  <path d="M160,95 C190,95 190,34 218,34" />
+                  <path d="M160,95 L218,96" />
+                  <path d="M160,95 C190,95 190,158 218,158" style="stroke-dasharray: 4 3" />
+                  <path d="M400,34 L458,34" />
+                  <path d="M400,96 L458,96" />
+                  <path d="M400,158 L458,158" style="stroke-dasharray: 4 3" />
+                  <path d="M580,34 C615,34 615,95 648,95" />
+                  <path d="M580,96 L648,95" />
+                  <path d="M580,158 C615,158 615,95 648,95" style="stroke-dasharray: 4 3" />
+                </g>
+              </svg>
+              <figcaption class="meta">
+                FizzBuzz printing the same 100 lines on every target is the real test of a new one.
+              </figcaption>
+            </figure>
+            <ul>
+              <li>
+                Each target's code runs through <code>CLI.runCode()</code>, in the child process <code>spell run</code>
+                uses (<a href="../../packages/cli/src/runner/runProject.ts" target="src-packages-cli-src-runner-runproject-ts"><code>packages/cli/src/runner/runProject.ts</code></a>). TypeScript runs from an <code>.mts</code>
+                file, whose types <code>tsx</code> strips.
+              </li>
+              <li>
+                Both targets must print the same, and that must match
+                <code>packages/cli/src/__snapshots__/contract/&lt;Project&gt;.out.txt</code>. The snapshot is what
+                catches a broken core method, which both targets share: breaking <code>spellCore.getRange()</code> by
+                one failed FizzBuzz, as it should (tried, then put back).
+              </li>
+              <li>
+                A FAKE PAGE (linkedom, <code>RunSpec.dom</code>): <code>App.start()</code> draws instead of being skipped,
+                and the page's <code>&lt;body&gt;</code> is printed when the program ends, so Solitaire's whole dealt
+                board is compared.
+              </li>
+              <li>
+                <code>Math.random()</code> is seeded (<a href="../../packages/cli/src/runner/hooks.mjs" target="src-packages-cli-src-runner-hooks-mjs"><code>packages/cli/src/runner/hooks.mjs</code></a>, before lodash keeps
+                its own reference), so the deal is the same every run, on every target.
+              </li>
+              <li>
+                What a core must HAVE is <code>SC.SpellCore</code> (<a href="../../packages/core/src/spellCore.types.ts" target="src-packages-core-src-spellcore-types-ts"><code>packages/core/src/spellCore.types.ts</code></a>,
+                whose docs now call it the core contract). What it must DO is print what the snapshots say.
+              </li>
+              <li>
+                Changed on purpose: <code>yarn vp test run src/contract.test.ts -u</code> in
+                <a href="../../packages/cli/" target="src-packages-cli"><code>packages/cli</code></a>, then read the diff.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="unit-tests" header="Unit tests" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <a href="../../packages/parser/src/writers/JSWriter.test.ts" target="src-packages-parser-src-writers-jswriter-test-ts"><code>packages/parser/src/writers/JSWriter.test.ts</code></a>: every tree class finds a method;
+                <a href="../../packages/parser/src/writers/TSWriter.test.ts" target="src-packages-parser-src-writers-tswriter-test-ts"><code>TSWriter.test.ts</code></a>, <a href="../../packages/parser/src/writers/TreeWriter.test.ts" target="src-packages-parser-src-writers-treewriter-test-ts"><code>TreeWriter.test.ts</code></a> beside it.
+              </li>
+              <li>
+                <a href="../../packages/spell/src/SpellProject.imports.test.ts" target="src-packages-spell-src-spellproject-imports-test-ts"><code>packages/spell/src/SpellProject.imports.test.ts</code></a>: the default and unknown target names, the
+                can't-draw error.
+              </li>
+              <li>
+                <code>&lt;ui-tree-diagram&gt;</code>: its layout (no label overlaps, on random trees), data, CSS and
+                fallback, beside it in <a href="../../packages/ui/src/components/ui-tree-diagram/" target="src-packages-ui-src-components-ui-tree-diagram"><code>packages/ui/src/components/ui-tree-diagram/</code></a>.
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="8-adding-a-target" header="8. Adding a target" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="puzzle piece"></ui-icon>
+          <ui-steps class="spell-steps" ordered>
+            <ui-step
+              header="Write the writer"
+              description="In packages/parser/src/writers/, exported from its index.ts.  A new language extends P.Writer;  a variant extends an existing writer and overrides only what differs, as TSWriter does.  One method per tree class, named for it;  children through this.write()."
+            ></ui-step>
+            <ui-step
+              header="Add it to SP.TARGETS"
+              description="packages/spell/src/targets.ts:  its name (LANGUAGE/RUNTIME), its writer's instance, its file suffix, and can.draw.  A new ability (react?  which core?) joins TargetAbilities when the first target needs it."
+            ></ui-step>
+            <ui-step
+              header="Snapshot it"
+              description="fixtures.test.ts:  each fixture's output as <Project>.snapshot.<ext>, then yarn test:fixtures:bless and read what it wrote.  A typed language may want a checker run, as typescript.test.ts runs tsc."
+            ></ui-step>
+            <ui-step
+              header="Run it in the core contract"
+              description="contract.test.ts:  a file extension in TARGET_FILES (a test fails until every target has one), and a way to run that language:  CLI.runCode() runs node today."
+            ></ui-step>
+            <ui-step
+              header="Give it a core"
+              description="A new language needs its own spellCore, with every method SC.SpellCore lists, printing what the contract snapshots say.  The same language on a new runtime may only need a different build of @spell/core."
+            ></ui-step>
+            <ui-step
+              header="Keep the docs true"
+              description="This page's table of targets, and commands.json if the CLI changes."
+            ></ui-step>
+          </ui-steps>
+
+          <ui-section id="python-notes" header="Notes for a Python target" sticky collapsible dividing collapsed>
+            <p>
+              From the sketch this epic started from: not built. Python is its own epic (T1), starting from the writers,
+              the meaning-only tree, the targets table and the contract's test programs.
+            </p>
+            <ul>
+              <li>
+                Decide first: Python a person would happily read and edit, or Python that just runs? Readable leans much
+                harder on the datatypes and the writer.
+              </li>
+              <li>
+                <code>spell_core</code> is the big part: today's core is about 4,150 lines of code in
+                <a href="../../packages/core/src/" target="src-packages-core-src"><code>packages/core/src</code></a>.
+              </li>
+              <li>Names wait on spell names in the tree (T4): <code>$</code> isn't legal in Python.</li>
+            </ul>
+
+            <ui-section id="disagreements" header="Where languages disagree" sticky collapsible dividing collapsed>
+              <p>
+                The big concepts carry over. These small ones don't, and each needs a home: the WRITER (spelling), the
+                CORE (behaviour at run time), or the TYPES (known datatypes let the writer use the native form).
+              </p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <tbody>
+                    <tr>
+                      <th>thing</th>
+                      <th>JavaScript</th>
+                      <th>Python</th>
+                      <th>handled by</th>
+                    </tr>
+                    <tr>
+                      <td>an empty list, as a condition</td>
+                      <td>true</td>
+                      <td>false</td>
+                      <td>core (<code>isTruthy</code>), or native when the type is <code>choice</code></td>
+                    </tr>
+                    <tr>
+                      <td>text plus a number</td>
+                      <td>joins them</td>
+                      <td>TypeError</td>
+                      <td>writer (<code>str(…)</code>) when types are known; else a core call</td>
+                    </tr>
+                    <tr>
+                      <td><code>nothing</code></td>
+                      <td><code>undefined</code></td>
+                      <td><code>None</code></td>
+                      <td>writer (<code>ASTNothingLiteral</code>)</td>
+                    </tr>
+                    <tr>
+                      <td>whole-number division</td>
+                      <td><code>6</code></td>
+                      <td><code>6.0</code></td>
+                      <td>core (<code>isOfType</code>, printing)</td>
+                    </tr>
+                    <tr>
+                      <td>a multi-line block passed as a function</td>
+                      <td>arrow function</td>
+                      <td>a nested <code>def</code>, lifted above the call</td>
+                      <td>writer</td>
+                    </tr>
+                    <tr>
+                      <td>computed properties, setters</td>
+                      <td><code>get</code> / <code>set</code></td>
+                      <td><code>@property</code></td>
+                      <td>writer</td>
+                    </tr>
+                    <tr>
+                      <td>class set-up (<code>static { … }</code>)</td>
+                      <td>static block</td>
+                      <td>calls after the class</td>
+                      <td>writer</td>
+                    </tr>
+                    <tr>
+                      <td>waiting (<code>pause for 50 msec</code>)</td>
+                      <td><code>async</code> / <code>await</code></td>
+                      <td><code>async def</code>, <code>asyncio</code></td>
+                      <td>writer + core</td>
+                    </tr>
+                    <tr>
+                      <td>names</td>
+                      <td><code>$</code> legal; <code>class</code>, <code>new</code> reserved</td>
+                      <td><code>$</code> illegal; <code>class</code>, <code>None</code>, <code>is</code> reserved</td>
+                      <td>writer, from the spell name (T4)</td>
+                    </tr>
+                    <tr>
+                      <td>lists counted from 1</td>
+                      <td colspan="2">neither</td>
+                      <td>core</td>
+                    </tr>
+                    <tr>
+                      <td>drawing</td>
+                      <td>Solid, into the page</td>
+                      <td>HTML text, or nothing</td>
+                      <td>core (<code>element()</code>), and the target's <code>can.draw</code></td>
+                    </tr>
+                    <tr>
+                      <td>reactive properties</td>
+                      <td>signals behind <code>getProp</code></td>
+                      <td>a plain dictionary</td>
+                      <td>core</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+            </ui-section>
+
+            <ui-section id="python-sketch" header="FizzBuzz in Python, sketched" sticky collapsible dividing collapsed>
+              <p>
+                Python's lambdas hold one expression, so a <code>PyWriter</code> would lift the loop's body into a
+                nested <code>def</code> just above the call. <code>45 / 15</code> is <code>3.0</code> in Python;
+                <code>core.is_of_type(3.0, "integer")</code> still says yes: that's the core's job.
+              </p>
+              <ui-tabs class="spell-tabs" pointing secondary basic aria-label="A Python writer, sketched">
+                <ui-tab label="fizzbuzz.py">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>fizzbuzz.py (sketch) · 17 lines</ui-title>
+                    <ui-content>
+                      <pre><code class="language-python">from spell_core import core, Thing, List, App
+
+
+def play_fizzbuzz():
+    def each_number(number):
+        if core.is_of_type(number / 15, "integer"):
+            core.console.log(number, "fizzbuzz")
+        elif core.is_of_type(number / 3, "integer"):
+            core.console.log(number, "fizz")
+        elif core.is_of_type(number / 5, "integer"):
+            core.console.log(number, "buzz")
+        else:
+            core.console.log(number)
+
+    core.map(core.get_range(1, 100), each_number)
+
+
+play_fizzbuzz()</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+                <ui-tab label="PyWriter.ts">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>PyWriter.ts (sketch) · 30 lines</ui-title>
+                    <ui-content>
+                      <pre><code class="language-ts">export class PyWriter extends P.Writer {
+  ASTIfStatement(node: P.ASTIfStatement): string {
+    return `if ${this.write(node.condition)}:${this.indented(node.statements)}`
+  }
+
+  ASTElseIfStatement(node: P.ASTElseIfStatement): string {
+    return `elif ${this.write(node.condition)}:${this.indented(node.statements)}`
+  }
+
+  /** `spellCore` is `core`, from `spell_core`. */
+  ASTSpellCoreExpression(node: P.ASTSpellCoreExpression): string {
+    return "core"
+  }
+
+  /** `spellCore.getRange(...)` =&gt; `core.get_range(...)`:  Python's names. */
+  ASTScopedMethodInvocation(node: P.ASTScopedMethodInvocation): string {
+    return `${this.write(node.thing)}.${snakeCase(node.methodName)}${this.write(node.args)}`
+  }
+
+  /**
+   * An inline method (`node.inline`) with a one-expression body stays a `lambda`;  anything longer is lifted
+   * into a nested `def` just before the statement that uses it, named for what it does, e.g. `each_number`.
+   */
+  ASTMethodDefinition(node: P.ASTMethodDefinition): string {
+    if (!node.inline) return `def ${node.methodName}${this.params(node)}:${this.indented(node.body)}`
+    if (isOneExpression(node.body)) return `lambda ${this.paramNames(node)}: ${this.write(node.body)}`
+    const name = this.names.fresh(node)
+    this.before(`def ${name}${this.params(node)}:${this.indented(node.body)}`)
+    return name
+  }
+}</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+              </ui-tabs>
+              <ui-message state="info" header="A sketch">
+                <ul>
+                  <li>
+                    The node classes are real (<a href="../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"><code>packages/parser/src/ast/AST.ts</code></a>); the helpers
+                    (<code>params()</code>, <code>paramNames()</code>, <code>indented()</code>, <code>before()</code>, <code>names</code>, <code>snakeCase()</code>,
+                    <code>isOneExpression()</code>) don't exist yet.
+                  </li>
+                </ul>
+              </ui-message>
+            </ui-section>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="9-why" header="9. Why it's built this way" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="gavel"></ui-icon>
+          <p>
+            From the plan doc's questions (Q) and judgement calls (J): each links to the full reasoning and the options
+            turned down.
+          </p>
+
+          <ui-section id="why-words" header="The words" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>Target</b>, not "output": the standard word (TypeScript's <code>target</code>, LLVM's targets).
+                The CLI used "target" for the project a command acts on, so that argument became <b>project</b>:
+                <code>spell compile &lt;project&gt; --target &lt;name&gt;</code> (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q1"
+                  target="output-targets"
+                  >Q1</a
+                >, <a href="../../epics/output-targets/output-targets.plan.html#q11" target="output-targets">Q11</a>).
+              </li>
+              <li>
+                <b>Writer</b>, not "emitter" or "scribe": plain English, and no new word to explain. "Translator" and
+                "dialect" already mean the human-language side; "backend" means the app's server (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q2"
+                  target="output-targets"
+                  >Q2</a
+                >).
+              </li>
+              <li>
+                Only what people read says "project": the CLI's own code still says <code>CliTarget</code>,
+                <code>resolveTarget()</code> … Renaming touches ~20 files for nothing anyone sees, and the recent-projects
+                file on disk needs a migration (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j11"
+                  target="output-targets"
+                  >J11</a
+                >, T6).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-scope" header="Two targets, Python later" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>ts/solid</code> is cheap: <code>TSWriter</code> extends <code>JSWriter</code>, runs on the same
+                core, and <code>tsc</code> says at once how good spell's datatypes are.
+              </li>
+              <li>
+                Python is big (a core in Python, a readable-or-runs decision), so it's its own epic, starting from a
+                working harness: the contract's test programs (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q3"
+                  target="output-targets"
+                  >Q3</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-where" header="Where the code lives" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Writers in the parser, <a href="../../packages/parser/src/writers/" target="src-packages-parser-src-writers"><code>packages/parser/src/writers/</code></a>, beside <code>src/ast/</code>: the tree
+                classes are there already, and <code>match.compile()</code> reaches a writer with no new wiring. A new
+                package would mean moving 76 classes and every <code>P.AST*</code> use (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q4"
+                  target="output-targets"
+                  >Q4</a
+                >).
+              </li>
+              <li>
+                The targets table in spell, <a href="../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"><code>packages/spell/src/targets.ts</code></a>: a target is about a spell PROJECT
+                (its file, whether its spell may draw), and the parser shouldn't know projects exist (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j12"
+                  target="output-targets"
+                  >J12</a
+                >).
+              </li>
+              <li>
+                Only <code>can.draw</code>: no <code>core</code> field and no <code>can.react</code> until a target needs
+                them; one core exists, and nothing checks reactivity (J12).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-writers" header="How writers work" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Methods found by CLASS NAME, not a <code>kind</code> on every node: 76 classes would each grow one, and
+                inheritance (a core call written as a scoped call) needs the chain walk anyway. Names are safe here:
+                builds keep them already for rule names, and a rename fails a test, not a project (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j3"
+                  target="output-targets"
+                  >J3</a
+                >).
+              </li>
+              <li>
+                Plain strings, not tagged <code>Code</code>: P2's whole point was byte-identical output, and nothing reads
+                the tags yet. Tagging comes with its first reader, source maps (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j2"
+                  target="output-targets"
+                  >J2</a
+                >, T2).
+              </li>
+              <li>
+                The ASTViewer went: Monaco already colours code, and keeping it meant moving 54
+                <code>renderChildren()</code> methods into the writer too. The Javascript Output pane is a read-only
+                Monaco now (<a href="../../epics/output-targets/output-targets.plan.html#q6" target="output-targets"
+                  >Q6</a
+                >, <a href="../../epics/output-targets/output-targets.plan.html#j1" target="output-targets">J1</a>).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-meaning" header="Meaning first, names later" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Operators, text values and <code>this</code> / <code>undefined</code> / <code>null</code> are decided in
+                the tree and rules, so they moved.
+              </li>
+              <li>
+                Names, constants and enumeration values are baked into SCOPE RECORDS, which the language server, scope
+                packs and importing projects read. Changing them changes every reader: a phase of its own (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j4"
+                  target="output-targets"
+                  >J4</a
+                >, T4).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-declarations" header="Declarations in a file" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A file beside the output, the same for every target, rather than a comment per language: a Python
+                project could import a JavaScript-built one (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q8"
+                  target="output-targets"
+                  >Q8</a
+                >).
+              </li>
+              <li>
+                Markers inside compiling, split out at the end, rather than declarations made straight from the tree:
+                one place still decides what a statement declares, and code lines are exact, whatever the writer
+                printed. Straight from the tree needs source maps first (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j10"
+                  target="output-targets"
+                  >J10</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-picking" header="project.json and a flag" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Both: <code>project.json</code> says what a project is for; <code>--target</code> overrides it for one run
+                (<a href="../../epics/output-targets/output-targets.plan.html#q7" target="output-targets">Q7</a>).
+              </li>
+              <li>
+                <code>js/solid</code> always: the app, runners and language server run it, whatever else is picked
+                (J12).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-typescript" header="TypeScript" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Types only where spell knows them or TypeScript can't work them out: writing <code>any</code> where
+                TypeScript already has a type would throw it away (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j13"
+                  target="output-targets"
+                  >J13</a
+                >).
+              </li>
+              <li>
+                Unknown is <code>any /* spell: type unknown */</code>: passes <code>tsc --strict</code>, and every gap is
+                greppable (<a href="../../epics/output-targets/output-targets.plan.html#q16" target="output-targets"
+                  >Q16</a
+                >).
+              </li>
+              <li>
+                <code>tsc</code>'s errors are a snapshot, not a failure, so a change shows as a diff;
+                <code>strictFunctionTypes</code> off, since <code>core</code> types every callback's item
+                <code>unknown</code> and a callback taking a <code>Card</code> could never be passed (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j14"
+                  target="output-targets"
+                  >J14</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-diagrams" header="Tree diagrams" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                An element plus a command, not a command printing SVG: one element works in docs pages, the app and VS
+                Code, live (<a href="../../epics/output-targets/output-targets.plan.html#q5" target="output-targets"
+                  >Q5</a
+                >). The command is <code>spell parse --tree</code>, not a new one (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q12"
+                  target="output-targets"
+                  >Q12</a
+                >).
+              </li>
+              <li>
+                The app's Spell Tree pane replaces the Match inspector (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q13"
+                  target="output-targets"
+                  >Q13</a
+                >); a box shows its datatype as a second, muted line (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q14"
+                  target="output-targets"
+                  >Q14</a
+                >).
+              </li>
+              <li>
+                VS Code: a view of its own, from the language server's live parse, so unsaved edits show; a page in
+                Spell Docs could only see saved files (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q15"
+                  target="output-targets"
+                  >Q15</a
+                >, <a href="../../epics/output-targets/output-targets.plan.html#j5" target="output-targets">J5</a>).
+              </li>
+              <li>
+                Labels in spell's words, wrappers left out (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j6"
+                  target="output-targets"
+                  >J6</a
+                >); slot labels on the line, so they never collide (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j7"
+                  target="output-targets"
+                  >J7</a
+                >); sizes from character counts, so layout is pure and testable (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j8"
+                  target="output-targets"
+                  >J8</a
+                >); nested lists as the fallback, since the layout may be what threw (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j9"
+                  target="output-targets"
+                  >J9</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-contract" header="The core contract" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Every fixture, Solitaire under a fake page (<a
+                  href="../../epics/output-targets/output-targets.plan.html#q17"
+                  target="output-targets"
+                  >Q17</a
+                >).
+              </li>
+              <li>
+                In the cli's tests, running each target as <code>spell run</code> does; linkedom rather than jsdom:
+                already in the repo (<code>ui</code>, <code>docs</code>), and React draws into it fine (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j15"
+                  target="output-targets"
+                  >J15</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="10-limits" header="10. Limits" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="triangle exclamation"></ui-icon>
+          <p>What's open, from the plan doc's caveats (C) and todos (T).</p>
+
+          <ui-section id="limits-tree" header="The tree and writers" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>Names are still JavaScript.</b> A method's name (<code>is_a_$suit</code>), a constant
+                (<code>'up'</code>) and an enumeration's values (<code>"clubs"</code>) live in scope records spelled for
+                JavaScript. A Python writer would see them as is until T4 makes them spell names, read by every reader
+                and spelled by each writer.
+              </li>
+              <li>
+                <b>No source maps.</b> Writers return strings, not text tagged with its node (T2). So the Javascript
+                Output pane no longer follows the cursor, as the old ASTViewer did (J1).
+              </li>
+              <li>
+                The parser, meant to be generic, holds spell's tree and its writers (C1, recorded in
+                <a href="../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a>).
+              </li>
+              <li>
+                No target can't-draw yet: the check only fires for one that comes later. A target has no
+                <code>core</code> or <code>can.react</code> field yet.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-typescript" header="TypeScript" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>Solitaire as TypeScript has 34 <code>tsc</code> errors</b> (C5;
+                <a href="../../packages/spell/projects/test/Solitaire/Solitaire.snapshot.tsc.txt" target="src-packages-spell-projects-test-solitaire-solitaire-snapshot-tsc-txt"><code>packages/spell/projects/test/Solitaire/Solitaire.snapshot.tsc.txt</code></a>), nearly all from
+                <code>@spell/core</code>'s loose types:
+                <ul>
+                  <li>
+                    17 from <code>spellCore</code> methods returning <code>unknown</code>, used inline, e.g.
+                    <code>spellCore.getItemOf(deck, -1).name</code>
+                  </li>
+                  <li>
+                    4 from <code>new List()</code> / <code>new Deck()</code> (<code>List</code>'s constructor requires
+                    its props); 2 from <code>typeof Pile</code> not being a <code>new () =&gt; unknown</code>
+                  </li>
+                  <li>3 from <code>spellCore.RUNTIME</code> typed <code>| undefined</code></li>
+                  <li>
+                    <code>card.value + 1</code> (<code>spellCore.itemOf()</code> returns
+                    <code>string | number | undefined</code>), <code>event.card</code> on a <code>SpellEvent</code>
+                  </li>
+                  <li>
+                    1 that's spell's own: <code>this.symbol</code> on <code>Foundation</code>, a property nothing
+                    declares
+                  </li>
+                </ul>
+              </li>
+              <li>
+                The writer can't fix <code>core</code>'s: T7 tightens its types (<code>List&lt;T&gt;</code>,
+                <code>getItemOf&lt;T&gt;()</code>, callbacks over <code>T</code>, optional <code>List</code> props,
+                <code>RUNTIME</code> always set), which also lets <code>strictFunctionTypes</code> back on.
+              </li>
+              <li>
+                Some properties with a type check still come out unknown, e.g. Solitaire's <code>Card.pile</code>,
+                declared <code>{ type: 'Pile' }</code> (see <a href="#ts-output">What it writes</a>).
+              </li>
+              <li>
+                A member patched onto a class from ANOTHER project can't be typed: its <code>interface</code> clashes
+                with the import, and the fix is a <code>declare module</code> block. No fixture does this yet (C6).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-contract" header="The core contract" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>tsx</code> compiles <code>core</code>'s <a href="../../packages/core/src/classes/App.tsx" target="src-packages-core-src-classes-app-tsx"><code>App.tsx</code></a> with classic JSX in the runner, so the
+                fake page sets a global <code>React</code>: harmless, but the runner's JSX settings differ from the
+                app's build (C7).
+              </li>
+              <li>
+                Only the page when the program ends is compared: clicks never happen, so event handlers (<code
+                  >on card-click</code
+                >) aren't exercised (C7).
+              </li>
+              <li>There's no machine-readable list of core methods yet: Python's epic will want one (T1).</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-diagrams" header="Tree diagrams" sticky collapsible dividing collapsed>
+            <ul>
+              <li>Redraws only when <code>tree</code> is set to a NEW object (C2).</li>
+              <li>
+                Its screen-reader name is a one-line summary (root and child count): pages should describe the shape in
+                text where it matters (C3).
+              </li>
+              <li>
+                Layout packs small subtrees to the left, counts wide CJK characters as one cell, and a scrolling wide
+                tree may not be keyboard-focusable in Safari (C4).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-merge" header="Until it merges" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>VS Code's Spell Tree view is built, not installed:</b> an installed extension runs the source of the
+                checkout it was built in. Install from <code>main</code> after merging (<code>spell dev vscode</code>).
+              </li>
+              <li>
+                <b><code>main</code>'s docs bundle has no <code>&lt;ui-tree-diagram&gt;</code> yet:</b> pasted
+                <code>--tree --html</code> draws nothing there. The Compile Targets sketch's tree figure is redrawn with
+                it at merge (T5), and shared guides naming the parser's removed markup code are fixed then too (T3).
+              </li>
+              <li>
+                The CLI's internal names (<code>CliTarget</code>, <code>resolveTarget()</code>,
+                <code>targetChoices</code>, <code>session.targets()</code>, <code>RECENT_TARGETS_FILE</code>) still say
+                "target" for a project (T6).
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="11-history" header="11. History" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="clock rotate left"></ui-icon>
+          <ui-feed class="spell-history" size="small">
+            <ui-event icon="book">
+              <ui-content>
+                <ui-summary>This page, from the plan doc and the code <ui-date>2026-10-06</ui-date></ui-summary>
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built, P1-P8: the ASTViewer retired, <code>JSWriter</code>, meaning in the tree, the tree
+                  diagrammer, the declarations file, targets, <code>ts/solid</code>, the core contract
+                  <ui-date>2026-10-05 – 06</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Planned as epic <code>output-targets</code>: target and writer, two targets, Python later
+                  <ui-date>2026-10-05</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="pen to square">
+              <ui-content>
+                <ui-summary
+                  >Sketched as
+                  <a href="../compile-targets/compile-targets.html" target="src-guides-compile-targets-compile-targets-html"
+                    >Compile Targets</a
+                  >, from a conversation about running spell in several languages
+                  <ui-date>2026-10-05</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+          </ui-feed>
+        </ui-section>
+
+        <ui-section id="12-sources" header="12. Sources" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="book"></ui-icon>
+          <ui-items class="spell-sources" divided>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../../epics/output-targets/output-targets.plan.html" target="output-targets"
+                    >Epic: Output Targets</a
+                  ></ui-header
+                >
+                <ui-meta>plan doc · every phase, question, judgement call, caveat and todo</ui-meta>
+                <ui-description>The record: what each phase built, and why.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><a href="../../packages/parser/src/writers/" target="src-packages-parser-src-writers"><code>packages/parser/src/writers/</code></a></ui-header>
+                <ui-meta>code · <code>output-targets</code>, 2026-10-06</ui-meta>
+                <ui-description
+                  ><a href="../../packages/parser/src/writers/Writer.ts" target="src-packages-parser-src-writers-writer-ts"><code>Writer.ts</code></a>, <a href="../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"><code>JSWriter.ts</code></a>, <a href="../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"><code>TSWriter.ts</code></a>,
+                  <a href="../../packages/parser/src/writers/TreeWriter.ts" target="src-packages-parser-src-writers-treewriter-ts"><code>TreeWriter.ts</code></a>, <a href="../../packages/parser/src/writers/jsText.ts" target="src-packages-parser-src-writers-jstext-ts"><code>jsText.ts</code></a>, and their tests.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><a href="../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"><code>packages/parser/src/ast/AST.ts</code></a></ui-header>
+                <ui-meta>code</ui-meta>
+                <ui-description
+                  >The tree's classes: <code>AST_OPERATORS</code>, <code>ASTStringLiteral</code>'s
+                  <code>quote</code>, <code>ASTSelfLiteral</code>, <code>ASTNothingLiteral</code>,
+                  <code>ASTMissingExpression</code>.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><a href="../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"><code>packages/spell/src/targets.ts</code></a></ui-header>
+                <ui-meta>code</ui-meta>
+                <ui-description><code>SP.TARGETS</code>, <code>SP.targetFor()</code>, <code>SP.RUNNING_TARGET</code>.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><a href="../../packages/spell/src/SpellProject.ts" target="src-packages-spell-src-spellproject-ts"><code>packages/spell/src/SpellProject.ts</code></a></ui-header>
+                <ui-meta>code</ui-meta>
+                <ui-description
+                  ><code>targets</code>, <code>outputFileFor()</code>, <code>combineCompiled()</code>,
+                  <code>draws()</code>, and the compiler's "Combining output" task.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><a href="../../packages/spell/src/SpellDeclarations.ts" target="src-packages-spell-src-spelldeclarations-ts"><code>packages/spell/src/SpellDeclarations.ts</code></a></ui-header>
+                <ui-meta>code</ui-meta>
+                <ui-description
+                  ><code>split()</code>, <code>fromComments()</code>: the declarations file.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><a href="../../packages/spell/src/test/typescript.test.ts" target="src-packages-spell-src-test-typescript-test-ts"><code>packages/spell/src/test/typescript.test.ts</code></a></ui-header>
+                <ui-meta>test</ui-meta>
+                <ui-description>Every fixture as TypeScript, checked by <code>tsc</code>.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><a href="../../packages/cli/src/contract.test.ts" target="src-packages-cli-src-contract-test-ts"><code>packages/cli/src/contract.test.ts</code></a></ui-header>
+                <ui-meta>test</ui-meta>
+                <ui-description>The core contract: every target prints the same.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><a href="../../packages/ui/src/components/ui-tree-diagram/" target="src-packages-ui-src-components-ui-tree-diagram"><code>packages/ui/src/components/ui-tree-diagram/</code></a></ui-header>
+                <ui-meta>code</ui-meta>
+                <ui-description
+                  >The element; the app's pane is <a href="../../packages/app/src/solid/TreeViewer.tsx" target="src-packages-app-src-solid-treeviewer-tsx"><code>packages/app/src/solid/TreeViewer.tsx</code></a>, VS Code's view
+                  <a href="../../packages/vscode/src/TreeView.ts" target="src-packages-vscode-src-treeview-ts"><code>packages/vscode/src/TreeView.ts</code></a>.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../compile-targets/compile-targets.html" target="src-guides-compile-targets-compile-targets-html"
+                    >Compile Targets</a
+                  ></ui-header
+                >
+                <ui-meta>sketch · 2026-10-05, superseded by this page</ui-meta>
+                <ui-description
+                  >Where the pictures and the Python notes came from; its plan of steps is now history.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+          </ui-items>
+        </ui-section>
+
+        <footer class="spell-doc-footer">
+          <ui-divider></ui-divider>
+          <p class="meta">Last checked 2026-10-06 against branch <code>output-targets</code>.</p>
+        </footer>
+      </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="../../packages/docs/tools/_assets/spell-ui.js"></script>
+  </body>
+</html>

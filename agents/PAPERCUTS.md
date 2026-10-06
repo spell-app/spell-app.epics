@@ -836,7 +836,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 - 2026-10-01 · First `yarn test:all` in a while:  92 failures (firefox 35, webkit 52, chromium 5), most keyboard /
   focus tests.  Vitest runs a browser's test files in parallel iframes of ONE page, which has one focus, and firefox
   / webkit hand it to whichever iframe asked last;  WebKit also needs Option+Tab to reach buttons and links. ·
-  `fileParallelism: !process.env.UI_TEST_ALL` in `vitest.config.ts`;  `Keys.tab()` (`test/keys.ts`) for Tab in
+  `fileParallelism: !environment.isAllBrowsers` (`SPELL_UI_TEST_ALL`) in `vitest.config.ts`;  `Keys.tab()` (`test/keys.ts`) for Tab in
   tests;  `yarn test:all` now ~10 min. · ui
 - 2026-10-01 · `"files": ["dist", "CHANGELOG.md"]` packed `reference/Fomantic-UI/CHANGELOG.md` too:  yarn matches a
   bare name at any depth. · `"/CHANGELOG.md"`, anchored;  check with `yarn pack --dry-run`. · ui
@@ -867,7 +867,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   desktop row count after `page.viewport(414, …)`.  Two tries failed the same way:  `:host(:state(x))` setting
   `--_table-stack-by`, and page-sheet `:state(x) > table` rules.  Chromium / Firefox fine. · A private CLASS on the
   table (`stack-by-container`, via `extraClasses()`) instead of a state.  Prove a WebKit-only CSS idea with
-  `UI_TEST_ALL=1 npx vitest run --project browser <family>` before building on it. · ui
+  `SPELL_UI_TEST_ALL=1 yarn vitest run --project browser <family>` before building on it. · ui
 - 2026-10-01 · Why sessions go missing from the VS Code Claude panel (extension 2.1.287, read from its source):  the
   list shows ONLY sessions filed under the window's FIRST folder, exact path (no subfolders, parents or worktrees;
   extra folders of a multi-root window don't count), and a session's file MOVES with it:  `EnterWorktree` files it
