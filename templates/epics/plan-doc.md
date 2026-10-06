@@ -414,7 +414,9 @@ note), pick an option card.  A question may carry a pick AND a revisit note toge
 revisit mark holds the `pick`.  An ANSWERED question's Choices take Choose pills too, on every option but the chosen one, only while
 Owen revisits it (its Revisit box open, or a revisit or pick mark):  "pick B instead, because ..." is a revisit
 carrying the pick, talked over;  a plain pick there, once applied, answers it again with that option.  The marks wait in `<name>.inbox.json` beside the doc (git-ignored) until "send to
-Claude";  Add Details and revisit now go at once (the inbox's `now` queue).  Read it with `spell dev plan-doc inbox
+Claude";  Add Details and revisit now go at once (the inbox's `now` queue), and Owen may call one off ("nevermind":
+`canceled`, handed to the waiting session to stop that item's agent;  `plan-doc details` then refuses its write).
+A todo may carry Owen's note (Make Todo's box), written into the new todo.  Read it with `spell dev plan-doc inbox
 <name>`;  shape, routes and helpers:  `packages/docs/AGENTS.md`, "Review inbox".  NEVER edit the file by hand:  go
 through `tools/inbox.js` (its lock).
 

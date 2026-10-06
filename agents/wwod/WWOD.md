@@ -234,6 +234,12 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
       ```
 
     - Use `import type { P }` when file only needs types, e.g. `*.types.ts`, `Tokens.ts`.
+- **Direct imports that save bundle bytes:**
+  - A direct import from the defining file is fine wherever the namespace would make a shipped bundle bigger (a
+    leaf pulled into a third chunk, a barrel dragging its siblings in), with ONE short line above it saying so:
+    `// Import directly:  through F it splits ControlLabels into a chunk of its own`.
+  - Measure it (`yarn measure` in `ui`), don't guess;  then it's settled:  no judgement call to report unless it
+    changes a public shape.  (Owen, 2026-10-06, epic `wwod-spell-ui` J23.)
 - **Import order:**
   - node_modules
   - (blank line)
