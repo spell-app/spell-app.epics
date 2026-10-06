@@ -37,7 +37,8 @@ How to write and update `epics/<name>/<name>.plan.html`, the live doc behind a `
 - NEVER delete an item:  close it (`spell dev plan-doc close`), and it stays, closed (not struck).  An item another
   decision made moot:  `spell dev plan-doc cancel`, the one status shown struck through (J16 of `review-review`).
 - NEVER drop an item's earlier text (Owen, 2026-10-04, I7 of `review-review`):  the question as first asked, its
-  explanation, its option cards, an earlier answer.  A rewrite -- Add Details, an agent's or a phase's rewrite (e.g.
+  explanation, its option cards, an earlier answer.  Add Details doesn't rewrite:  it adds a More Details card under
+  the text (`details --more`, "Markup the script writes").  A rewrite -- an agent's or a phase's (e.g.
   `review-review`'s P8 "Rewrite The Rest"), or one by hand -- MOVES it into the item's folded **Original
   Discussion** (markup under "Markup the script writes"):
   - `details <name> <id> --file` and `decide` (answering again) do it for you
@@ -68,7 +69,10 @@ durable doc's own meta list (`ui-list.spell-meta`) starts with the plan doc, ONE
 <ui-item icon="map"><b>Plan doc:</b>  <a href="epics/unified-server/unified-server.plan.html" target="unified-server">epic unified-server</a></ui-item>
 ```
 
-Below the meta lines, while planning:  the "Plan hung?" notice, `ui-message.plan-hung`.
+Below the meta lines, while planning:  the "Plan hung?" notice, FOLDED (P3 of `windows-and-review`):
+`<ui-accordion class="plan-hung spell-aside" styled><ui-title>Plan hung?</ui-title><ui-content>`.  `new` folds the
+template's `ui-message.plan-hung` (the template keeps it:  it's shared, and older checkouts' scripts only know that
+one);  `migrate` folds an older doc's.
 - How to restart a hung plan:  a new session in the worktree's window, `/epic <name>`, "Reuse".  Plus the kickoff
   prompt in a `ui-code.plan-hung-prompt` with a copy button (`setPrompt()` keeps it in step with the Overview's
   quote).
@@ -154,7 +158,12 @@ Phase section (in `#phases`, after `<ui-progress class="plan-progress">`:  `valu
 <ui-section id="p2" data-phase="2" data-status="done" header="P2 · Short Name" badge="1-2h" sticky collapsible dividing collapsed>
   <ui-icon slot="icon" name="circle check" color="green"></ui-icon>
   <ui-list class="plan-phase-body">
-    <ui-item icon="bullseye"><b>Goal:</b>  <ul><li>what it's for, a bullet per outcome</li></ul></ui-item>
+    <ui-item icon="circle exclamation"><b>Symptom:</b>  what's wrong today, one line</ui-item>
+    <ui-item icon="wand magic sparkles"><b>Changes:</b>  what changes, two or three lines</ui-item>
+    <ui-item icon="pen to square" class="plan-updated"><b>Updated:</b>  <ul class="plan-updated-list">
+      <li data-phase="3"><time>2026-10-06 14:30</time>  what changed in the plan, and why</li>
+    </ul></ui-item>
+    <ui-item icon="bullseye"><b>Goal:</b>  <ul><li>the details:  a bullet per outcome</li></ul></ui-item>
     <ui-item icon="circle check"><b>Done:</b>  <ul><li>what was built, most-asked-about first</li></ul></ui-item>
     <ui-item icon="code branch" class="plan-commits"><b>Commits:</b>  <ul class="plan-commit-list">
       <li data-sha="2c71ac57..."><a class="plan-commit" href="https://github.com/spell-app/spell-app/commit/2c71ac57..." target="github">2c71ac5</a>  one or two sentences</li>
@@ -166,7 +175,17 @@ Phase section (in `#phases`, after `<ui-progress class="plan-progress">`:  `valu
 </ui-section>
 ```
 
-- Goal:  a `<ul>`, one bullet per outcome, in Owen's terms (what he'll see or be able to do), not the build steps.
+- A phase reads Symptom (one line), Changes (two or three lines), then the details (Owen, 2026-10-06;  P3 of
+  `windows-and-review`):  `add-phase --symptom ... --changes ...`;  `phase-body <name> <N> --symptom ...` sets
+  them on a phase written before, and `migrate` splits a Goal written as `<p><b>Symptom:</b> ...</p><p><b>Changes:</b>
+  ...</p>` into the two fields.  Without either flag, `add-phase` writes the older shape (Goal, Files, Verify).
+- Updated:  a change to the phase's plan (after Owen's feedback, or found while building), FENCED right under
+  Symptom / Changes, one dated line each:  `updated <name> <N> "<p>what changed, and why</p>"`.  Never an "Updated"
+  word buried in the text.  It STAYS once the phase is done (the record of how the plan moved);  while its phase is
+  still to do, the line is also listed at the top of the phases, in a "Plan changes" box (`ui-message.plan-changes`,
+  written by the script on every edit), so a re-review sees what moved at a glance.
+- Goal:  the details:  a `<ul>`, one bullet per outcome, in Owen's terms (what he'll see or be able to do), not the
+  build steps.  Optional once the phase has a Symptom or Changes.
 - Done:  written when the phase is done (`phase <name> <N> done --done "<ul>..."`), a `<ul>` of what was BUILT,
   ordered by what Owen asks about first:  where to see it, what changed in how he works, what's still rough or
   untested by hand, then the rest.  Not the commit list:  that's Commits.
@@ -267,6 +286,22 @@ With details, the item's line IS the panel's title (it opens on a click, or on a
 - an item's commits (`commit <name> <sha> --item I3 "..."`):  `<div class="plan-commits"><b>Commits:</b>  <ul
   class="plan-commit-list">...</ul></div>` at the end of its details;  an item without details gets a panel
 - details are optional;  they start collapsed
+- Add Details (`details --more`, P3 of `windows-and-review`):  the item's text stays on top, labelled "Original
+  Reply" on the page, and the new text goes under it in a white "More Details" card, open and foldable:
+
+  ```html
+  <div class="plan-first"><p>the item's text, as it was</p></div>
+  <ui-accordion class="plan-more" styled open="0">
+    <ui-title>More Details</ui-title>
+    <ui-content><p>what the text left out ...</p></ui-content>
+  </ui-accordion>
+  ```
+
+  - the text is wrapped once (`div.plan-first`);  an answered question's `div.plan-question` is labelled already
+    ("Original question"), never wrapped.  An open question's options still pick inside it;  answered, its text
+    becomes the question's (`layoutAnswer()`), the card after the answer
+  - the card goes after the text and the answer card, before replies, the Original Discussion and the commits
+  - a second Add Details replaces the card:  the old card's text goes into the Original Discussion
 - an item's earlier text (I7 of `review-review`):  its ORIGINAL DISCUSSION, a folded aside after its current text,
   before its commits.  `details --file` and `decide` (answering again) move what they replace into it;
   `original` adds text recovered from git:
@@ -406,6 +441,8 @@ While a phase is active, flag what changed so the user can spot it:
 - a changed prose block gets, just before it:
   `<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE" data-phase="2"><p>what changed</p></ui-message>`
 - `spell dev plan-doc phase <name> 2 done` removes every `.plan-update[data-phase="2"]`
+- a change to a PHASE's plan is not a marker:  it's that phase's fenced Updated line (`updated <name> <N>`, "Markup
+  the script writes"), which stays
 
 ## Review inbox
 
@@ -467,8 +504,9 @@ it started ending):
    | revisit with a pick | a question | left, NOT answered ("to talk over:  picks B · ..., asks:  ..."):  answer the note about that option;  once Owen agrees, `decide <name> <id> "<card title>" --option B`, then `clear` |
 
    Each applied mark logs one line (`J9 approved:  closed (accepted)`);  a mark Owen changed meanwhile stays.
-4. Requests for now:  a background agent per item writes into it with `spell dev plan-doc details <name> <id> --file
-   <html>` (Add Details:  replaces the details;  revisit now:  `--append` a reply), then `inbox <name> done <id>`.
+4. Requests for now:  a background agent per item writes into it with `spell dev plan-doc details <name> <id>
+   [--more | --append] --file <html>` (Add Details:  `--more`, a More Details card under the item's text;  revisit
+   now:  `--append` a reply), then `inbox <name> done <id>`.
 5. `wait` again.  On leaving:  `inbox <name> unlisten`.
 
 A reply to Owen's revisit note (`details --append`), dated, quoting the note:
@@ -519,7 +557,9 @@ checkout, a command edits the same doc.  `--here` (this checkout's copy) is no l
 | Command | Does |
 |---|---|
 | `new <name> [--title "..."] [--prompt "..." \| --prompt-file <path>]` | copy the template to `epics/<name>/<name>.plan.html`, fill it (the prompt that started the plan goes in the Overview), update the docs index |
-| `add-phase <name> "Short Name" [--goal <html>] [--files ...] [--verify ...] [--estimate 1-2h]` | append a phase to the list and to `#phases`;  the goal a `<ul>`, the estimate the title's badge |
+| `add-phase <name> "Short Name" --symptom <html> --changes <html> [--goal <html>] [--files ...] [--verify ...] [--estimate 1-2h]` | append a phase to the list and to `#phases`:  Symptom (one line), Changes (two or three), then the details (the goal a `<ul>`);  the estimate the title's badge.  Neither `--symptom` nor `--changes`:  the older shape, Goal / Files / Verify |
+| `phase-body <name> <N> [--symptom ...] [--changes ...] [--goal ...] [--files ...] [--verify ...]` | set a phase's body fields, each in its place (`""` removes one) |
+| `updated <name> <N> "<html>"` / `--file <path>` | a change to phase N's plan:  a dated line in its fenced Updated block, under Symptom / Changes;  kept once done;  listed in "Plan changes" atop the phases while N is to do |
 | `phase <name> <N> todo\|active\|done [--done <html>] [--no-open]` | set a phase's status;  `done` removes its UPDATE markers, and `--done` writes its Done field;  brings the doc forward in VS Code |
 | `estimate <name> <N> "1-2h"` | change a phase's estimate (its title's badge);  the Overview's total follows |
 | `add <name> question\|judgement\|caveat\|issue\|todo\|test\|decision "<title>" [--details "<html>"]` | append an item, print its id;  a `decision` is a question born answered (`Q7`) |
@@ -552,5 +592,5 @@ checkout, a command edits the same doc.  `--here` (this checkout's copy) is no l
 | `inbox <name> apply [ids...]` | apply the sent approve / pick / todo marks to the doc and clear them;  prints a line per item and what it left (revisits) |
 | `inbox <name> working <id> on\|off` | the page's spinner on an item |
 | `inbox <name> done <id>...` / `clear <id>...` | an agent finished the item:  its mark and spinner go / drop marks (a revisit talked over);  a mark's note is kept in the item first, as Owen's reply card |
-| `details <name> <id> --file <html> [--append]` | replace an item's details with the file's HTML, or add it after them (a reply:  after an answered question's answer card);  the answer card, Original Discussion and commits stay;  on an answered question the new text is the question's, laid out again (Choices, then the answer);  replacing moves the old text into the item's Original Discussion;  logs "I1 details rewritten" / "I1 reply added" |
+| `details <name> <id> --file <html> [--append \| --more]` | `--more` (Add Details):  the item's text stays on top as "Original Reply", the file's HTML in a "More Details" card under it (a second one replaces the card, the old into the Original Discussion);  else replace an item's details with the file's HTML, or add it after them (a reply:  after an answered question's answer card);  the answer card, Original Discussion and commits stay;  on an answered question the new text is the question's, laid out again (Choices, then the answer);  replacing moves the old text into the item's Original Discussion;  logs "I1 details rewritten" / "I1 reply added" |
 | `original <name> <id> --file <html> [--as-of "YYYY-MM-DD HH:MM"]` | put an item's earlier text (recovered from git) into its Original Discussion:  as first written, or dated `--as-of` (when it was replaced), in date order;  commits and an answer card the item has are left out;  prints `added` / `unchanged` / `empty`;  doesn't stamp the item |
