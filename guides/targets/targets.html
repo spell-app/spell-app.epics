@@ -49,7 +49,7 @@
           <ui-statistics class="spell-stats" size="mini">
             <ui-statistic value="2" label="targets"></ui-statistic>
             <ui-statistic value="14" label="operator meanings"></ui-statistic>
-            <ui-statistic value="35" label="tsc errors left, Solitaire"></ui-statistic>
+            <ui-statistic value="10" label="tsc errors left, Solitaire"></ui-statistic>
           </ui-statistics>
           <ul>
             <li>
@@ -88,9 +88,9 @@
             </li>
             <li>
               Proven by the fixture snapshots (JavaScript, TypeScript, and what <code>tsc</code> says about it) and the
-              CORE CONTRACT: every test program prints the same on both targets. Solitaire as TypeScript still has 35
-              <code>tsc</code> errors (105 before the typed writer), nearly all from <code>@spell/core</code>'s loose
-              types.
+              CORE CONTRACT: every test program prints the same on both targets. Solitaire as TypeScript still has 10
+              <code>tsc</code> errors (105 before the typed writer, 35 before <code>@spell/core</code>'s types were
+              tightened), most because lists don't yet say what they hold.
             </li>
           </ul>
           <ui-message state="positive" header="Adding a target">
@@ -1465,11 +1465,12 @@ if (spellCore.isOfType(30 / 15, 'integer')) { spellCore.console.log(30, "fizzbuz
               </li>
               <li>
                 <code>tsc</code> is the workspace's (TS 7), against <code>@spell/core</code>'s source, with
-                <code>core</code>'s own <code>strict</code> settings, but <code>strictFunctionTypes</code> off.
+                <code>core</code>'s own <code>strict</code> settings (<code>strictFunctionTypes</code> too, since
+                <code>core</code>'s callbacks are typed over what a list holds: T7).
               </li>
               <li>
                 FizzBuzz must check CLEAN; an error in <code>core</code>'s own files fails. Solitaire's errors are a
-                snapshot, not a failure: 35 today. Every run prints each fixture's count (<code>Solitaire:  35 tsc
+                snapshot, not a failure: 10 today. Every run prints each fixture's count (<code>Solitaire:  10 tsc
                 errors</code>).
               </li>
               <li>
@@ -2049,8 +2050,8 @@ play_fizzbuzz()</code></pre>
               </li>
               <li>
                 <code>tsc</code>'s errors are a snapshot, not a failure, so a change shows as a diff;
-                <code>strictFunctionTypes</code> off, since <code>core</code> types every callback's item
-                <code>unknown</code> and a callback taking a <code>Card</code> could never be passed (<a
+                <code>strictFunctionTypes</code> was off at first, since <code>core</code> typed every callback's item
+                <code>unknown</code>, and came back on once T7 typed them over what a list holds (<a
                   href="../../epics/output-targets/output-targets.plan.html#j14"
                   target="output-targets"
                   >J14</a
@@ -2164,25 +2165,22 @@ play_fizzbuzz()</code></pre>
           <ui-section id="limits-typescript" header="TypeScript" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <b>Solitaire as TypeScript has 35 <code>tsc</code> errors</b> (C5;
+                <b>Solitaire as TypeScript has 10 <code>tsc</code> errors</b> (C5;
                 <a
                   href="../../packages/spell/projects/test/Solitaire/Solitaire.snapshot.tsc.txt"
                   target="src-packages-spell-projects-test-solitaire-solitaire-snapshot-tsc-txt"
                   ><code>packages/spell/projects/test/Solitaire/Solitaire.snapshot.tsc.txt</code></a
-                >), nearly all from <code>@spell/core</code>'s loose types:
+                >), down from 35 once T7 tightened <code>@spell/core</code>'s types (<code>List&lt;T&gt;</code>,
+                <code>getItemOf()</code> returning what the list holds, callbacks over it, optional constructor props,
+                <code>RUNTIME</code> always set):
                 <ul>
                   <li>
-                    17 from <code>spellCore</code> methods returning <code>unknown</code>, used inline, e.g.
-                    <code>spellCore.getItemOf(deck, -1).name</code>
+                    7 "Object is of type unknown" on a list's item, e.g. <code>spellCore.getItemOf(deck, -1).name</code>:
+                    the writer emits <code>class Deck extends List</code>, not <code>List&lt;Card&gt;</code>, though
+                    spell knows (T12)
                   </li>
                   <li>
-                    4 from <code>new List()</code> / <code>new Deck()</code> (<code>List</code>'s constructor requires
-                    its props); 2 from <code>typeof Pile</code> not being a <code>new () =&gt; unknown</code>
-                  </li>
-                  <li>3 from <code>spellCore.RUNTIME</code> typed <code>| undefined</code></li>
-                  <li>
-                    <code>card.value + 1</code> (<code>spellCore.itemOf()</code> returns
-                    <code>string | number | undefined</code>), <code>event.card</code> on a <code>SpellEvent</code>
+                    <code>card.value + 1</code>: <code>card.value</code> may be <code>undefined</code>, which is true
                   </li>
                   <li>
                     2 that are spell's own: <code>this.symbol</code> on <code>Foundation</code>, a property nothing
@@ -2190,11 +2188,6 @@ play_fizzbuzz()</code></pre>
                     its sub-classes have
                   </li>
                 </ul>
-              </li>
-              <li>
-                The writer can't fix <code>core</code>'s: T7 tightens its types (<code>List&lt;T&gt;</code>,
-                <code>getItemOf&lt;T&gt;()</code>, callbacks over <code>T</code>, optional <code>List</code> props,
-                <code>RUNTIME</code> always set), which also lets <code>strictFunctionTypes</code> back on.
               </li>
               <li>
                 A member patched onto a class from ANOTHER project can't be typed: its <code>interface</code> clashes
