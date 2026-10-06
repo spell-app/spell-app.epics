@@ -96,6 +96,12 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
   - `undefined` values work for e.g. argument or method spread where `null` does not.
   - "Looked, not found", where `undefined` already means "not looked yet":  `NONE` from `$/util` -- SEE:
     `packages/spell/AGENTS.md` (`match.data`).
+- **Leave an optional property OUT, never fill it with "nothing":**
+  - An optional property that doesn't apply is simply absent:  no `null`, `""`, `false` or `"none"` written to
+    say "skipped".  A `ui` vocabulary with no skeleton has no `skeleton` key.
+  - Why:  one way to say "not set";  the data stays short, and a reader never wonders whether `""` means something.
+  - A check that every entry "said which" is the wrong check:  test what's there, not what's missing.  (Owen,
+    2026-10-06, epic `wwod-spell-ui` J26.)
 
 - **Named string constants + `typeof` types**, never inline literal unions at call sites:
   - NEVER hard-code the same string twice:  make it a constant, or pass a sample message into a helper function
