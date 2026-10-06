@@ -544,6 +544,13 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- `/demo/spell-app.html` on the editor's dev server (`spell dev server start --all`, e.g. `localhost:61858`) draws
+  nothing:  `<spell-app>` is never defined, because `/element/spell-app.js` comes back as the HTML page (vite's
+  fallback).  Only the app's own server (`packages/app/src/server/index.ts`, `{ prefix: "/element", dir:
+  "dist-element" }`) serves `dist-element/`, and the editor started by the page server doesn't go through it.
+  `packages/app/AGENTS.md` says the demo runs "on the dev server".  Seen 2026-10-06 in worktree `output-targets`
+  (epic `output-targets`, hand check V5);  not checked on `main`.  Prove:  open the demo page, or
+  `curl -s localhost:<editor port>/element/spell-app.js | head -c 100`.
 - `packages/app/src/runner/RunnerConsole.tsx` `RunnerConsole()`:  `const console = props.console` reads a prop in the
   component BODY, an untracked scope:  Solid 2's `STRICT_READ_UNTRACKED` should warn in dev, and a later
   `console` prop change is never seen.  Prove:  dev build, open a runner, look for the diagnostic;  fix with
