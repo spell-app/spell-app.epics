@@ -6,6 +6,10 @@ fixed, or disproven, delete it (note a disproof in a line at the top if the reas
   hearts` compiled to `(this.suit == 'diamonds') || 'hearts'`, always true (now `spellCore.includes(...)`, rule
   `value_choices`);  `the color of a suit is ...` / `a rank "is ..." if ...` on a type nobody declared compiled against
   a class that doesn't exist (now a parse error, `SpellStatement.refuseUnknownType()`).
+- Fixed 2026-10-06 (outline-spell J8 / J11 / I7;  branch `outline-spell`, not yet merged):  a quoted phrase's rule
+  never checked whose phrase it was, so `if the game is black` took a card's `is (color)`, `game.is_$color('black')`,
+  and threw when run.  A user's phrase now refuses an operand known to be another type's, right after it and after
+  `and` / `or` (`SuffixLeft`, `expressions.ts`).
 - Fixed 2026-10-02 (unified-server P6, the app's API off Express):  `:filePath*` kept only the first segment (nested
   project files 404 / EISDIR);  an unknown `DELETE /api/...` missed the API's own 404.
 - Fixed 2026-10-04 (precedence-and-types P3, binding power):  `draw the cards of the deck` as an expression gave
@@ -331,10 +335,6 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ### 7. Found by epic `outline-spell` (2026-10-06, probing J8;  also on `main`)
 
-- `packages/spell/src/rules/classes.ts` `QuotedPropertyRule`:  a quoted phrase's rule, e.g. `is (red|black)` from
-  `a card "is (color)" for its colors`, never checks whose phrase it is:  `if the game is black` (a game, no such
-  phrase) compiles to `game.is_$color('black')` and throws a TypeError when run.  Two kinds sharing a value make it
-  likelier.  Prove:  that line after the card's phrase and `a game is a thing`.  Plan doc `outline-spell` J8, option C.
 - `assignment_statement` over a constant:  after a list of values holding `red`, `set red to 5` compiles to
   `'red' = 5`, broken javascript.  Prove:  `cards have a color as either red or black`, then `set red to 5`.
 - the other way round:  `set red to 5` ABOVE `cards have a color as either red or black` gives
