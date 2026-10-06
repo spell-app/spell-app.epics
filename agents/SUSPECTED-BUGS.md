@@ -313,6 +313,18 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 - `rules/Sequence.ts` `parse()`: author's `TODOC: WHY?? FOR USE AS A LITERAL STRING??` still unanswered.
 
+### 7. Found by epic `outline-spell` (2026-10-05, probing the outline sketch)
+
+- `packages/spell/src/rules/expressions.ts` `is` + `or`:  `the color of a card is red if its suit is diamonds or
+  hearts otherwise ...` compiles the test to `(this.suit == 'diamonds') || 'hearts'`, which is ALWAYS true.  Today's
+  `Card.spell` dodges it with `is either`.  Same root as caveat C5 of `precedence-and-types` (`or` is both an operator
+  and a list separator).  Prove:  compile that line, read the `if`.
+- `packages/spell/src/rules/classes.ts` `property_value_getter` / `quoted_type_expression`:  an UNDECLARED singular
+  word is taken as a type, e.g. `the color of a suit is ...` or `a rank "is a face card" if ...` with no `suit` /
+  `rank` type:  it parses and compiles to `Object.defineProperty(Suit.prototype, ...)` / `Rank.prototype` with no such
+  class, so it throws at runtime.  Expected:  a parse error ("no type `suit`").  Prove:  either line after only
+  `a card is a thing`.
+
 ## parser
 
 ### 1. Behavior bugs
