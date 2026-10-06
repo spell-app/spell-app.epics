@@ -1244,6 +1244,13 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `ui-*`):  the shared repo already had the new layout, the worktree's tools the old one;  `shared status` showed
   the new links `missing`. · `git merge main` (here a fast-forward), `yarn install`, then `spell dev shared link`;
   both errors gone. · wwod-spell-ui
+- 2026-10-05 · `/bedtime`'s details page (`spell dev details new bedtime-2026-10-05 --epic wwod-spell-ui`, shown
+  from a worktree through the MAIN page server, `127.0.0.1:4747/api/docs/show?path=/worktrees/wwod-spell-ui/...`):
+  Owen filled it in and pressed Send, but no `<slug>.answer.json` appeared beside the page and the background
+  `details show --wait` never woke;  Owen was left asking "what am I supposed to be doing?". Cause not found yet
+  (suspect:  the answer route on the main server for a `/worktrees/<name>/` page, or the page loaded before the
+  worktree's server restart). · Asked the same questions in two modals instead.  Look at `detailsRoutes.ts` with a
+  `/worktrees/` page before trusting a page for bedtime again. · wwod-spell-ui
 
 ## claude-code
 

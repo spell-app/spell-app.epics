@@ -637,6 +637,10 @@ every entry below that date was fixed or disproven;  what's left:
     both servers, and a fresh load + click, a `#j1` link, and a click followed by an in-place update all show the
     body.  Untested:  the side bar's own iframe (sandbox `allow-scripts allow-forms allow-same-origin
     allow-downloads`), and an item opened WHILE its part file was still being written.
+  - Later the same night, Owen:  "sidebar is broken -- html files aren't loading";  every part showed its placeholder
+    ("Loads from parts/p1.htm ..."), and a details page didn't load either.  Both servers (4747, 61857) send
+    `parts/*.htm` as `text/html; charset=utf-8`, 200.  So:  the side bar's iframe, not the files.  Next step:  open the
+    view's webview developer tools (Developer:  Open Webview Developer Tools) and read the iframe's console / network.
 
 - `spell dev docs update` (check-spell over every page) skips any page whose TEXT mentions
   `ui/site/_assets/site.js` -- meant to skip Spell UI site pages, it also drops `server.html`, `design-system.plan.html`,
