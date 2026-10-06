@@ -1247,6 +1247,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## claude-code
 
+- 2026-10-05 · `/epic output-targets`, started from the root window (`workspaces/spell-app.code-workspace`):
+  `spell dev window open <name>` asked "which package?", Owen picked `spell-app`, and `--pkg spell-app` failed
+  ("no package spell-app"):  `scripts/window.mjs` `open()` accepts only `packages/` names, though the root window
+  has its own workspace file and theme. · Opened with `--pkg spell` instead.  Fix:  let `--pkg spell-app` (the
+  root window) through, its theme read from `workspaces/spell-app.code-workspace`. · claude-code
+
 - 2026-10-03 · In a worktree-isolated session, Bash refused `python3 - <<'EOF' ... EOF` heredocs holding backticks /
   quotes, `grep -l ... | xargs sed -i`, `for n in ...; do sips $n ...` and `sed -n "$VAR"` ("too complex to verify
   that it stays inside the worktree"), several retries each. · Write the script to the scratchpad and run
