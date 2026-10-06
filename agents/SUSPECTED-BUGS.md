@@ -647,6 +647,13 @@ every entry below that date was fixed or disproven;  what's left:
     ("Loads from parts/p1.htm ..."), and a details page didn't load either.  Both servers (4747, 61857) send
     `parts/*.htm` as `text/html; charset=utf-8`, 200.  So:  the side bar's iframe, not the files.  Next step:  open the
     view's webview developer tools (Developer:  Open Webview Developer Tools) and read the iframe's console / network.
+  - Likely cause (2026-10-06, worktree `docs-sidebar`):  Chrome's 6-connections-per-host cap, SHARED by every VS Code
+    window.  `lsof` showed exactly 6 connections to `127.0.0.1:4747`, all from ONE process:  VS Code's network
+    service (`Code Helper --utility-sub-type=network.mojom.NetworkService`), which serves all 14 window renderers.
+    Each live page holds one open for good (its `EventSource`), and `retainContextWhenHidden` keeps hidden views'
+    pages alive.  So 6 docs pages across all windows fill the pool, and the 7th page's requests (its parts, its
+    scripts) wait forever:  placeholders, nothing clickable (PAPERCUTS `vscode`, 2026-10-06 and 2026-10-04).
+    Another port (a worktree's server) has its own pool, which is why another window can work.
 
 - `spell dev docs update` (check-spell over every page) skips any page whose TEXT mentions
   `ui/site/_assets/site.js` -- meant to skip Spell UI site pages, it also drops `server.html`, `design-system.plan.html`,
