@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Compile Targets</title>
-    <meta name="description" content="One sentence." />
+    <meta
+      name="description"
+      content="A sketch of spell writing code for many languages:  one spell tree, a writer per language, a core per language."
+    />
     <link rel="stylesheet" href="../../packages/docs/tools/_assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page">
@@ -20,206 +23,1166 @@
         <ui-sticky class="spell-h1"
           ><header class="spell-page-head"><h1>Compile Targets</h1></header></ui-sticky
         >
-        <p class="lede">One sentence: what this doc settles, and for whom.</p>
+        <p class="lede">
+          A sketch, not a plan: how spell could write the same program as JavaScript, TypeScript or Python, the way the
+          human-language plan lets the same program be WRITTEN in English or Spanish.
+        </p>
         <ui-list class="spell-meta">
-          <ui-item icon="user">Written for: who reads this, and what they're about to do</ui-item>
-          <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="orange">draft</ui-label> (or decided / built)</ui-item
-          >
+          <ui-item icon="user">Written for: Owen, deciding whether this becomes an epic</ui-item>
+          <ui-item icon="flag">Status: <ui-label size="mini" color="orange">sketch</ui-label></ui-item>
           <ui-item icon="flask"
-            >Researched on: branch, date, and how the claims were checked (see
-            <a href="#4-sources">Sources</a>)</ui-item
+            >Researched on: <code>main</code>, 2026-10-05, from the compiler's source and the test fixtures' compiled
+            output (see <a href="#13-sources">Sources</a>)</ui-item
           >
         </ui-list>
 
         <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="lightbulb"></ui-icon>
           <ui-statistics class="spell-stats" size="mini">
-            <ui-statistic value="3×" label="faster"></ui-statistic>
-            <ui-statistic value="1.2" label="ms, median"></ui-statistic>
-            <ui-statistic value="0" label="breaking changes"></ui-statistic>
+            <ui-statistic value="1" label="tree in the middle"></ui-statistic>
+            <ui-statistic value="~75" label="node kinds to write"></ui-statistic>
+            <ui-statistic value="0" label="diff, step 1"></ui-statistic>
           </ui-statistics>
           <ul>
-            <li>The conclusion first, one idea per bullet.</li>
-            <li>Every fact, number and caveat survives condensing.</li>
-            <li>Headline numbers above: 2-4 of them, each also stated (with its caveat) in the body.</li>
+            <li>
+              Spell's middle is ONE tree: syntaxes (English, Spanish ...) on the way in, targets (<code>js/solid</code>,
+              <code>ts/solid</code>, <code>py</code> ...) on the way out. N syntaxes plus M targets, never N × M.
+            </li>
+            <li>
+              A target is three things: a WRITER (walks the tree, writes one language's code), a CORE (that language's
+              <code>spellCore</code>), and what it CAN do (draw? react?).
+            </li>
+            <li>
+              The seam already exists: nearly every rule builds a tree node (<code>getAST()</code>), about 75 kinds of
+              them. But today each node writes its own JavaScript, so the tree can't feed a second language yet.
+            </li>
+            <li>
+              Scopes, methods, types and properties carry over easily. The work is in the small things languages
+              disagree on: truthiness, text plus number, <code>nothing</code>, multi-line lambdas, names. Known
+              datatypes let a writer use the language's own operator; unknown ones fall back to a
+              <code>spellCore</code> call.
+            </li>
+            <li>
+              Step 1 changes nothing you can see: move every node's <code>compile()</code> into a
+              <code>JSWriter</code> with byte-identical output, proven by the fixture snapshots.
+            </li>
           </ul>
           <ui-message state="positive" header="Recommendation">
             <ul>
-              <li>What to do, in one line.</li>
+              <li>Call it a TARGET (the destination) with a WRITER (the code that walks the tree).</li>
+              <li>Do step 1 and 2 first: they're worth having even if no second language ever ships.</li>
+              <li>Then <code>ts/solid</code>, the cheap one; then <code>py</code>, the stress test.</li>
             </ul>
           </ui-message>
         </ui-section>
 
-        <ui-section id="2-the-design" header="2. The design" sticky collapsible dividing collapsed>
+        <ui-section id="2-naming" header="2. What to call it" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="pen to square"></ui-icon>
           <p>
-            A short lead, then a nested <code>&lt;ui-section&gt;</code> per distinct part. A
-            <dfn class="spell-term" tabindex="0">coined term</dfn>
-            <ui-popup
-              header="coined term"
-              content="What it means here, in one line:  hover or focus the term."
-            ></ui-popup>
-            gets its meaning in a popup.
+            Two things need names: the DESTINATION (<code>js/solid</code>, <code>py</code>) and the CODE that walks the
+            tree and writes text for it. "Emitter" names the second, and reads like compiler jargon.
           </p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>word</th>
+                  <th>names</th>
+                  <th>reads as</th>
+                  <th>verdict</th>
+                </tr>
+                <tr>
+                  <td><b>target</b></td>
+                  <td>the destination</td>
+                  <td>the standard word: TypeScript's <code>target</code>, LLVM's targets, Rust's target triples</td>
+                  <td class="yes positive">pick, for the destination</td>
+                </tr>
+                <tr>
+                  <td><b>writer</b></td>
+                  <td>the walker</td>
+                  <td>plain English; says what it does. <code>JSWriter</code>, <code>PyWriter</code></td>
+                  <td class="yes positive">pick, for the walker</td>
+                </tr>
+                <tr>
+                  <td>scribe</td>
+                  <td>the walker</td>
+                  <td>on theme: a scribe copies a spell into another script. Fun, but one more word to explain</td>
+                  <td class="meh warning">if you want flavour</td>
+                </tr>
+                <tr>
+                  <td>backend</td>
+                  <td>either</td>
+                  <td>overloaded: "backend" already means the app's server here</td>
+                  <td class="no negative">clashes</td>
+                </tr>
+                <tr>
+                  <td>emitter / code generator</td>
+                  <td>the walker</td>
+                  <td>compiler jargon</td>
+                  <td class="no negative">the one you don't like</td>
+                </tr>
+                <tr>
+                  <td>printer</td>
+                  <td>the walker</td>
+                  <td>Prettier's word, but sounds like it formats, not translates</td>
+                  <td class="meh warning">misleading</td>
+                </tr>
+                <tr>
+                  <td>translator / dialect</td>
+                  <td>either</td>
+                  <td>already taken by the HUMAN-language side: a Spanish translation of spell</td>
+                  <td class="no negative">clashes</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <p>The rest of this page uses <b>target</b> and <b>writer</b>.</p>
+        </ui-section>
 
-          <ui-section id="how-it-flows" header="How it flows" sticky collapsible dividing collapsed>
+        <ui-section id="3-big-picture" header="3. The big picture" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="map"></ui-icon>
+          <p>
+            Read left to right. Everything left of the tree is about how spell is WRITTEN; everything right of it is
+            about where it RUNS. The tree is the only thing both sides share.
+          </p>
+          <figure style="margin: 1em 0">
+            <svg
+              viewBox="0 0 830 220"
+              role="img"
+              aria-label="Syntaxes feed rules, rules build one spell tree, writers turn the tree into each target's code"
+              style="width: 100%; height: auto; font-family: var(--spell-sans); font-size: 13px"
+            >
+              <defs>
+                <marker
+                  id="arrow1"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto"
+                >
+                  <path d="M0,0 L10,5 L0,10 z" style="fill: var(--spell-muted)" />
+                </marker>
+              </defs>
+              <g style="fill: var(--spell-muted); font: var(--spell-eyebrow-font); letter-spacing: 0.1em">
+                <text x="70" y="18" text-anchor="middle">SYNTAXES</text>
+                <text x="225" y="18" text-anchor="middle">PARSE</text>
+                <text x="390" y="18" text-anchor="middle">MIDDLE</text>
+                <text x="555" y="18" text-anchor="middle">WRITERS</text>
+                <text x="740" y="18" text-anchor="middle">TARGETS</text>
+              </g>
+              <g style="fill: var(--spell-tint); stroke: var(--spell-rule)">
+                <rect x="10" y="34" width="120" height="40" rx="6" />
+                <rect x="10" y="96" width="120" height="40" rx="6" />
+                <rect x="10" y="158" width="120" height="40" rx="6" />
+                <rect x="165" y="96" width="120" height="40" rx="6" />
+                <rect x="495" y="34" width="120" height="40" rx="6" />
+                <rect x="495" y="96" width="120" height="40" rx="6" />
+                <rect x="495" y="158" width="120" height="40" rx="6" />
+                <rect x="650" y="34" width="170" height="40" rx="6" />
+                <rect x="650" y="96" width="170" height="40" rx="6" />
+                <rect x="650" y="158" width="170" height="40" rx="6" />
+              </g>
+              <rect
+                x="320"
+                y="66"
+                width="140"
+                height="100"
+                rx="8"
+                style="fill: var(--spell-doc-accent-soft); stroke: var(--spell-doc-accent); stroke-width: 2"
+              />
+              <g style="fill: var(--spell-ink)" text-anchor="middle">
+                <text x="70" y="59">English</text>
+                <text x="70" y="121">Español</text>
+                <text x="70" y="183">…</text>
+                <text x="225" y="113">rules +</text>
+                <text x="225" y="129">scopes</text>
+                <text x="390" y="104" style="font-weight: 600">spell tree</text>
+                <text x="390" y="124" style="fill: var(--spell-muted); font-size: 11px">meaning, types,</text>
+                <text x="390" y="139" style="fill: var(--spell-muted); font-size: 11px">spell names</text>
+                <text x="555" y="59">JSWriter</text>
+                <text x="555" y="121">TSWriter</text>
+                <text x="555" y="183">PyWriter</text>
+                <text x="735" y="53">js/solid</text>
+                <text x="735" y="67" style="fill: var(--spell-muted); font-size: 11px">+ @spell/core</text>
+                <text x="735" y="115">ts/solid</text>
+                <text x="735" y="129" style="fill: var(--spell-muted); font-size: 11px">+ @spell/core</text>
+                <text x="735" y="177">py</text>
+                <text x="735" y="191" style="fill: var(--spell-muted); font-size: 11px">+ spell_core</text>
+              </g>
+              <g style="stroke: var(--spell-muted); stroke-width: 1.5; fill: none" marker-end="url(#arrow1)">
+                <path d="M130,54 C150,54 145,116 163,116" />
+                <path d="M130,116 L163,116" />
+                <path d="M130,178 C150,178 145,116 163,116" />
+                <path d="M285,116 L318,116" />
+                <path d="M460,116 C478,116 475,54 493,54" />
+                <path d="M460,116 L493,116" />
+                <path d="M460,116 C478,116 475,178 493,178" />
+                <path d="M615,54 L648,54" />
+                <path d="M615,116 L648,116" />
+                <path d="M615,178 L648,178" />
+              </g>
+            </svg>
+            <figcaption class="meta">
+              One tree in the middle: a new syntax or a new target is one more box, not a row of them.
+            </figcaption>
+          </figure>
+          <ui-section id="how-it-flows" header="What happens, in order" sticky collapsible dividing collapsed>
             <ui-steps class="spell-steps" ordered>
-              <ui-step header="step one" description="What happens first, and when."></ui-step>
-              <ui-step header="step two" description="What it hands on."></ui-step>
-              <ui-step header="step three" description="Where it ends."></ui-step>
+              <ui-step
+                header="Parse"
+                description="The project's .spell files are matched against one syntax's rules (English today), building scopes as they go:  unchanged."
+              ></ui-step>
+              <ui-step
+                header="Build the tree"
+                description="Each match builds its tree node (getAST()), as now, but the node holds only MEANING:  `equals`, not `===`;  the value 'up', not the text &quot;'up'&quot;;  the spell name `is a suit`, not `is_a_$suit`."
+              ></ui-step>
+              <ui-step
+                header="Check the target"
+                description="The target says what it can do.  A project that draws, compiled for a target that can't, gets an ordinary parse error in the editor."
+              ></ui-step>
+              <ui-step
+                header="Write"
+                description="The target's writer walks the tree and returns CODE:  text pieces, each tagged with the node it came from."
+              ></ui-step>
+              <ui-step
+                header="Finish"
+                description="The same code gives the file's text, the AST viewer's coloured markup and a source map.  The project's declarations go in a file beside it, readable by any target."
+              ></ui-step>
+              <ui-step
+                header="Run"
+                description="The output imports that language's core (@spell/core, spell_core), which papers over the rest:  lists from 1, drawing, reactive properties."
+              ></ui-step>
             </ui-steps>
           </ui-section>
+        </ui-section>
 
-          <ui-section id="the-parts" header="The parts" sticky collapsible dividing collapsed>
-            <ui-cards class="spell-flow" stackable>
-              <ui-card>
-                <ui-content>
-                  <ui-header>a part</ui-header>
-                  <ui-description>What it owns.</ui-description>
-                </ui-content>
-              </ui-card>
-              <ui-card>
-                <ui-content>
-                  <ui-header>another part</ui-header>
-                  <ui-description>What it leaves to the first.</ui-description>
-                </ui-content>
-              </ui-card>
-            </ui-cards>
-          </ui-section>
+        <ui-section id="4-today" header="4. Today vs the sketch" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="layer group"></ui-icon>
+          <p>
+            Today every tree node is a class with TWO ways to write itself as JavaScript: <code>compile()</code> for the
+            text, <code>renderChildren()</code> for the AST viewer's coloured copy of the same text. In the sketch, a
+            node is just data, and one writer method per node kind does both jobs at once.
+          </p>
+          <figure style="margin: 1em 0">
+            <svg
+              viewBox="0 0 830 250"
+              role="img"
+              aria-label="Today:  a node class writes JS twice.  Sketch:  the node is data;  a writer makes code, which gives text, markup and a source map"
+              style="width: 100%; height: auto; font-family: var(--spell-sans); font-size: 13px"
+            >
+              <defs>
+                <marker
+                  id="arrow2"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto"
+                >
+                  <path d="M0,0 L10,5 L0,10 z" style="fill: var(--spell-muted)" />
+                </marker>
+              </defs>
+              <g style="fill: var(--spell-muted); font: var(--spell-eyebrow-font); letter-spacing: 0.1em">
+                <text x="10" y="18">TODAY</text>
+                <text x="350" y="18">THE SKETCH</text>
+              </g>
+              <line x1="330" y1="10" x2="330" y2="240" style="stroke: var(--spell-rule)" />
+              <rect
+                x="10"
+                y="34"
+                width="300"
+                height="150"
+                rx="8"
+                style="fill: var(--spell-tint); stroke: var(--spell-rule)"
+              />
+              <text x="24" y="58" style="fill: var(--spell-ink); font-weight: 600; font-family: var(--spell-mono)">
+                class ASTIfStatement
+              </text>
+              <text x="24" y="78" style="fill: var(--spell-muted); font-size: 11px">condition, statements</text>
+              <rect
+                x="24"
+                y="92"
+                width="272"
+                height="34"
+                rx="5"
+                style="fill: var(--spell-card); stroke: var(--spell-rule)"
+              />
+              <text x="36" y="114" style="fill: var(--spell-ink); font-family: var(--spell-mono); font-size: 12px">
+                compile() → "if (…) {…}"
+              </text>
+              <rect
+                x="24"
+                y="134"
+                width="272"
+                height="34"
+                rx="5"
+                style="fill: var(--spell-card); stroke: var(--spell-rule)"
+              />
+              <text x="36" y="156" style="fill: var(--spell-ink); font-family: var(--spell-mono); font-size: 12px">
+                renderChildren() → spans
+              </text>
+              <text x="10" y="210" style="fill: var(--spell-muted); font-size: 12px">
+                JavaScript decided inside each of
+              </text>
+              <text x="10" y="226" style="fill: var(--spell-muted); font-size: 12px">
+                ~75 node classes, twice over.
+              </text>
 
-          <ui-section id="today-vs-proposed" header="Today vs proposed" sticky collapsible dividing collapsed>
+              <rect
+                x="350"
+                y="34"
+                width="150"
+                height="70"
+                rx="8"
+                style="fill: var(--spell-tint); stroke: var(--spell-rule)"
+              />
+              <text x="364" y="58" style="fill: var(--spell-ink); font-weight: 600; font-family: var(--spell-mono)">
+                If
+              </text>
+              <text x="364" y="78" style="fill: var(--spell-muted); font-size: 11px">condition, body,</text>
+              <text x="364" y="93" style="fill: var(--spell-muted); font-size: 11px">otherwise (data only)</text>
+              <rect
+                x="530"
+                y="34"
+                width="130"
+                height="70"
+                rx="8"
+                style="fill: var(--spell-doc-accent-soft); stroke: var(--spell-doc-accent); stroke-width: 2"
+              />
+              <text x="595" y="64" text-anchor="middle" style="fill: var(--spell-ink); font-family: var(--spell-mono)">
+                JSWriter
+              </text>
+              <text x="595" y="84" text-anchor="middle" style="fill: var(--spell-ink); font-family: var(--spell-mono)">
+                .If(node)
+              </text>
+              <rect
+                x="690"
+                y="34"
+                width="130"
+                height="70"
+                rx="8"
+                style="fill: var(--spell-tint); stroke: var(--spell-rule)"
+              />
+              <text x="755" y="64" text-anchor="middle" style="fill: var(--spell-ink); font-weight: 600">Code</text>
+              <text x="755" y="84" text-anchor="middle" style="fill: var(--spell-muted); font-size: 11px">
+                tagged text pieces
+              </text>
+              <g style="fill: var(--spell-card); stroke: var(--spell-rule)">
+                <rect x="560" y="160" width="80" height="34" rx="5" />
+                <rect x="660" y="160" width="80" height="34" rx="5" />
+                <rect x="760" y="160" width="60" height="34" rx="5" />
+              </g>
+              <g style="fill: var(--spell-ink); font-size: 12px" text-anchor="middle">
+                <text x="600" y="182">text</text>
+                <text x="700" y="182">markup</text>
+                <text x="790" y="182">map</text>
+              </g>
+              <g style="stroke: var(--spell-muted); stroke-width: 1.5; fill: none" marker-end="url(#arrow2)">
+                <path d="M500,69 L528,69" />
+                <path d="M660,69 L688,69" />
+                <path d="M755,104 C755,130 600,130 600,158" />
+                <path d="M755,104 C755,130 700,130 700,158" />
+                <path d="M755,104 L790,158" />
+              </g>
+              <text x="350" y="210" style="fill: var(--spell-muted); font-size: 12px">
+                A PyWriter is one more class beside JSWriter;
+              </text>
+              <text x="350" y="226" style="fill: var(--spell-muted); font-size: 12px">the nodes don't change.</text>
+            </svg>
+            <figcaption class="meta">
+              One walk gives the text, the viewer's colours and the source map: they can't drift apart.
+            </figcaption>
+          </figure>
+
+          <ui-section id="leaks" header="Where JavaScript leaks into the tree" sticky collapsible dividing collapsed>
+            <p>
+              Moving the writing out isn't enough: some JavaScript is decided BEFORE the tree exists, in the rules. Each
+              of these becomes meaning in the tree, and the writer decides the spelling.
+            </p>
             <ui-table celled compact striped unstackable>
               <table>
                 <tbody>
                   <tr>
-                    <th>case</th>
                     <th>today</th>
-                    <th>proposed</th>
-                    <th class="num right aligned">ms</th>
+                    <th>where</th>
+                    <th>in the tree, instead</th>
                   </tr>
                   <tr>
-                    <td>an input</td>
-                    <td class="no negative">what goes wrong</td>
-                    <td class="yes positive">what should happen</td>
-                    <td class="num right aligned">1.2</td>
+                    <td><code>operator: "==="</code>, <code>"&amp;&amp;"</code></td>
+                    <td>
+                      <a
+                        href="../../packages/spell/src/rules/classes.ts"
+                        target="src-packages-spell-src-rules-classes-ts"
+                        ><code>packages/spell/src/rules/classes.ts</code></a
+                      >
+                    </td>
+                    <td><code>equals</code>, <code>and</code></td>
                   </tr>
                   <tr>
-                    <td>another</td>
-                    <td class="meh warning">works, but slowly</td>
-                    <td class="yes positive">fast</td>
-                    <td class="num right aligned">0.4</td>
+                    <td><code>getOutputOperator()</code> passes the source operator through</td>
+                    <td>
+                      <a
+                        href="../../packages/spell/src/rules/expressions.ts"
+                        target="src-packages-spell-src-rules-expressions-ts"
+                        ><code>packages/spell/src/rules/expressions.ts</code></a
+                      >
+                    </td>
+                    <td>each operator rule names its meaning: <code>add</code>, <code>less than</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>this.direction == 'up'</code> and <code>this.suit === suit</code>, a few lines apart</td>
+                    <td>
+                      <a
+                        href="../../packages/spell/projects/test/Solitaire/Solitaire.snapshot.js"
+                        target="src-packages-spell-projects-test-solitaire-solitaire-snapshot-js"
+                        ><code>packages/spell/projects/test/Solitaire/Solitaire.snapshot.js</code></a
+                      >
+                    </td>
+                    <td>one <code>equals</code>; the writer picks <code>==</code> or <code>===</code> once</td>
+                  </tr>
+                  <tr>
+                    <td>string literals arrive quoted, <code>`"${tagName}"`</code></td>
+                    <td>
+                      <a href="../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
+                        ><code>packages/parser/src/ast/AST.ts</code></a
+                      >
+                      (<code>ASTJSXElement</code>)
+                    </td>
+                    <td>the plain value; each writer quotes its own way</td>
+                  </tr>
+                  <tr>
+                    <td>names made legal for JS while parsing: <code>is_a_$suit</code></td>
+                    <td>declarations' <code>output</code></td>
+                    <td>the spell name, <code>is a {suit}</code>; each writer makes its own legal name</td>
+                  </tr>
+                  <tr>
+                    <td><code>this</code>, <code>undefined</code>, <code>null</code> nodes</td>
+                    <td>
+                      <a href="../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
+                        ><code>packages/parser/src/ast/AST.ts</code></a
+                      >
+                    </td>
+                    <td><code>Self</code>, <code>Nothing</code>: <code>self</code> / <code>None</code> in Python</td>
+                  </tr>
+                  <tr>
+                    <td>declarations in a JS comment, <code>/*! SPELL: DECLARES {…} */</code></td>
+                    <td>
+                      <a
+                        href="../../packages/spell/src/SpellDeclarations.ts"
+                        target="src-packages-spell-src-spelldeclarations-ts"
+                        ><code>packages/spell/src/SpellDeclarations.ts</code></a
+                      >
+                    </td>
+                    <td>a file beside the output, so a Python project could import a JS-built one</td>
                   </tr>
                 </tbody>
               </table>
             </ui-table>
           </ui-section>
+        </ui-section>
 
-          <ui-section id="trade-offs" header="Trade-offs" sticky collapsible dividing collapsed>
-            <ui-grid class="spell-pros-cons" columns="2" stackable>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attached="top" color="green"><ui-icon name="thumbs up"></ui-icon> For</ui-label>
-                  <ul>
-                    <li>What this choice buys.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attached="top" color="red"><ui-icon name="thumbs down"></ui-icon> Against</ui-label>
-                  <ul>
-                    <li>What it costs, and who pays.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-            </ui-grid>
+        <ui-section id="5-a-target" header="5. What a target is" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="folder"></ui-icon>
+          <ui-cards class="spell-flow" stackable>
+            <ui-card>
+              <ui-content>
+                <ui-header>a writer</ui-header>
+                <ui-description
+                  >Walks the tree; one method per node kind. Writers inherit: <code>TSWriter</code> is a
+                  <code>JSWriter</code> that adds type annotations.</ui-description
+                >
+              </ui-content>
+            </ui-card>
+            <ui-card>
+              <ui-content>
+                <ui-header>a core</ui-header>
+                <ui-description
+                  >That language's <code>spellCore</code>: lists from 1, <code>isOfType</code>, drawing, reactive
+                  properties. Every core implements the same list of methods.</ui-description
+                >
+              </ui-content>
+            </ui-card>
+            <ui-card>
+              <ui-content>
+                <ui-header>what it can do</ui-header>
+                <ui-description
+                  >Draw (into the page, into HTML, not at all), react to changes, wait. Checked while parsing, so a
+                  mismatch is an error in the editor.</ui-description
+                >
+              </ui-content>
+            </ui-card>
+          </ui-cards>
+          <p>
+            A target's name is LANGUAGE / RUNTIME. The two parts are mostly independent: <code>js/solid</code> and
+            <code>js/react</code> would write the same JavaScript, since drawing already goes through
+            <code>spellCore.element()</code> and properties through <code>getProp()</code> / <code>setProp()</code>.
+            What differs is the core they load.
+          </p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>target</th>
+                  <th>writer</th>
+                  <th>core</th>
+                  <th>draws</th>
+                  <th>reacts</th>
+                </tr>
+                <tr>
+                  <td><code>js/solid</code></td>
+                  <td><code>JSWriter</code></td>
+                  <td><code>@spell/core</code> (Solid)</td>
+                  <td class="yes positive">into the page</td>
+                  <td class="yes positive">yes</td>
+                </tr>
+                <tr>
+                  <td><code>ts/solid</code></td>
+                  <td><code>TSWriter</code></td>
+                  <td><code>@spell/core</code> (Solid)</td>
+                  <td class="yes positive">into the page</td>
+                  <td class="yes positive">yes</td>
+                </tr>
+                <tr>
+                  <td><code>js/react</code></td>
+                  <td><code>JSWriter</code></td>
+                  <td>a React build of the core</td>
+                  <td class="yes positive">into the page</td>
+                  <td class="yes positive">yes</td>
+                </tr>
+                <tr>
+                  <td><code>py/html</code></td>
+                  <td><code>PyWriter</code></td>
+                  <td><code>spell_core</code></td>
+                  <td class="meh warning">HTML text: server pages</td>
+                  <td class="no negative">no</td>
+                </tr>
+                <tr>
+                  <td><code>py</code></td>
+                  <td><code>PyWriter</code></td>
+                  <td><code>spell_core</code></td>
+                  <td class="no negative">no</td>
+                  <td class="no negative">no</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>targets.ts (sketch) · 14 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-ts">/** Every target spell can compile to, by name. */
+export const TARGETS = {
+  "js/solid": { writer: JSWriter, core: "@spell/core", can: { draw: "dom", react: true } },
+  "ts/solid": { writer: TSWriter, core: "@spell/core", can: { draw: "dom", react: true } },
+  "js/react": { writer: JSWriter, core: "@spell/core-react", can: { draw: "dom", react: true } },
+  "py/html": { writer: PyWriter, core: "spell_core", can: { draw: "html", react: false } },
+  py: { writer: PyWriter, core: "spell_core", can: { draw: false, react: false } },
+} as const satisfies Record&lt;string, Target&gt;
+
+export type Target = {
+  writer: Class&lt;Writer&gt;
+  core: string
+  can: { draw: "dom" | "html" | false; react: boolean }
+}</code></pre>
+            </ui-content>
+          </ui-accordion>
+        </ui-section>
+
+        <ui-section id="6-fizzbuzz" header="6. FizzBuzz, three ways" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="list check"></ui-icon>
+          <p>
+            The real fixture,
+            <a
+              href="../../packages/spell/projects/test/FizzBuzz/FizzBuzz.spell"
+              target="src-packages-spell-projects-test-fizzbuzz-fizzbuzz-spell"
+              ><code>packages/spell/projects/test/FizzBuzz/FizzBuzz.spell</code></a
+            >:
+          </p>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>FizzBuzz.spell · 7 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-plaintext">to play fizzbuzz
+	for each number from 1 to 100
+		if the number divided by 15 is an integer: print the number, "fizzbuzz"
+		otherwise if the number divided by 3 is an integer: print the number, "fizz"
+		otherwise if the number divided by 5 is an integer: print the number, "buzz"
+		otherwise print the number
+
+play fizzbuzz</code></pre>
+            </ui-content>
+          </ui-accordion>
+
+          <ui-section id="fizzbuzz-tree" header="The tree for one line" sticky collapsible dividing collapsed>
+            <p>
+              The first <code>if</code> line, as the sketch's tree. Nothing in it is JavaScript:
+              <code>IsA</code> doesn't know it will become <code>spellCore.isOfType(…)</code> in one language and
+              <code>core.is_of_type(…)</code> in another.
+            </p>
+            <figure style="margin: 1em 0">
+              <svg
+                viewBox="0 0 830 310"
+                role="img"
+                aria-label="Tree:  If, with condition IsA integer of Divide number by 15, body Print number and fizzbuzz, otherwise the next If"
+                style="width: 100%; height: auto; font-family: var(--spell-mono); font-size: 12px"
+              >
+                <g style="stroke: var(--spell-muted); stroke-width: 1.5; fill: none">
+                  <path d="M410,54 L195,104" />
+                  <path d="M410,54 L410,104" />
+                  <path d="M410,54 L660,104" />
+                  <path d="M195,138 L195,184" />
+                  <path d="M410,138 L365,184" />
+                  <path d="M410,138 L510,184" />
+                  <path d="M195,218 L105,264" />
+                  <path d="M195,218 L255,264" />
+                </g>
+                <g
+                  style="fill: var(--spell-muted); font-family: var(--spell-sans); font-size: 11px; font-style: italic"
+                >
+                  <text x="270" y="78">condition</text>
+                  <text x="416" y="86">body</text>
+                  <text x="545" y="78">otherwise</text>
+                  <text x="201" y="166">value</text>
+                </g>
+                <rect
+                  x="360"
+                  y="20"
+                  width="100"
+                  height="34"
+                  rx="6"
+                  style="fill: var(--spell-doc-accent-soft); stroke: var(--spell-doc-accent); stroke-width: 2"
+                />
+                <g style="fill: var(--spell-tint); stroke: var(--spell-rule)">
+                  <rect x="110" y="104" width="170" height="34" rx="6" />
+                  <rect x="360" y="104" width="100" height="34" rx="6" />
+                  <rect x="590" y="104" width="140" height="34" rx="6" style="stroke-dasharray: 4 3" />
+                  <rect x="135" y="184" width="120" height="34" rx="6" />
+                  <rect x="300" y="184" width="130" height="34" rx="6" />
+                  <rect x="445" y="184" width="130" height="34" rx="6" />
+                  <rect x="40" y="264" width="130" height="34" rx="6" />
+                  <rect x="200" y="264" width="110" height="34" rx="6" />
+                </g>
+                <g style="fill: var(--spell-ink)" text-anchor="middle">
+                  <text x="410" y="42" style="font-weight: 600">If</text>
+                  <text x="195" y="126">IsA · integer</text>
+                  <text x="410" y="126">Print</text>
+                  <text x="660" y="126" style="fill: var(--spell-muted)">If …</text>
+                  <text x="195" y="206">Divide</text>
+                  <text x="365" y="206">Variable number</text>
+                  <text x="510" y="206">Text "fizzbuzz"</text>
+                  <text x="105" y="286">Variable number</text>
+                  <text x="255" y="286">Number 15</text>
+                </g>
+                <g style="fill: var(--spell-muted); font-family: var(--spell-sans); font-size: 11px">
+                  <text x="600" y="206">datatypes ride on every node:</text>
+                  <text x="600" y="222">number ÷ number → number,</text>
+                  <text x="600" y="238">so a writer can use its own "/"</text>
+                </g>
+              </svg>
+            </figure>
           </ui-section>
 
-          <ui-section id="the-code" header="The code" sticky collapsible dividing collapsed>
-            <p>Prefer an excerpt from a real, runnable file; say which.</p>
-            <ui-accordion class="spell-code" styled>
-              <ui-title>example.ts · 6 lines</ui-title>
-              <ui-content>
-                <pre><code class="language-ts">// every code block starts folded:  no `open`
-export function greet(name: string): string {
-  return `hello, ${name}`
+          <ui-section id="fizzbuzz-out" header="What each writer makes of it" sticky collapsible dividing collapsed>
+            <p>
+              <code>js/solid</code> is today's real output. The other two are what their writers WOULD write. Python's
+              lambdas hold one expression, so <code>PyWriter</code> lifts the loop's body into a nested
+              <code>def</code> just above the call.
+            </p>
+            <ui-tabs class="spell-tabs" pointing secondary basic aria-label="FizzBuzz in each target">
+              <ui-tab label="js/solid">
+                <ui-accordion class="spell-code" styled>
+                  <ui-title>FizzBuzz.snapshot.js (real, header trimmed) · 12 lines</ui-title>
+                  <ui-content>
+                    <pre><code class="language-js">import { spellCore, Thing, List, App } from "@spell/core"
+
+export function play_fizzbuzz() {
+  spellCore.map(spellCore.getRange(1, 100), (number) =&gt; {
+    if (spellCore.isOfType(number / 15, 'integer')) { spellCore.console.log(number, "fizzbuzz") }
+    else if (spellCore.isOfType(number / 3, 'integer')) { spellCore.console.log(number, "fizz") }
+    else if (spellCore.isOfType(number / 5, 'integer')) { spellCore.console.log(number, "buzz") }
+    else { spellCore.console.log(number) }
+  })
 }
 
-const message = greet("spell")</code></pre>
-              </ui-content>
-            </ui-accordion>
-            <p>Variants of one snippet (before / after, TS / JS) go in tabs, one code block per tab.</p>
-            <ui-tabs class="spell-tabs" pointing secondary basic aria-label="Before and after">
-              <ui-tab label="Before">
-                <ui-accordion class="spell-code" styled>
-                  <ui-title>before.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return "hello, " + name
-}</code></pre>
+play_fizzbuzz()</code></pre>
                   </ui-content>
                 </ui-accordion>
               </ui-tab>
-              <ui-tab label="After">
+              <ui-tab label="ts/solid">
                 <ui-accordion class="spell-code" styled>
-                  <ui-title>after.ts · 3 lines</ui-title>
+                  <ui-title>FizzBuzz.ts (sketch) · 12 lines</ui-title>
                   <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return `hello, ${name}`
-}</code></pre>
+                    <pre><code class="language-ts">import { spellCore, Thing, List, App } from "@spell/core"
+
+export function play_fizzbuzz(): void {
+  spellCore.map(spellCore.getRange(1, 100), (number: number) =&gt; {
+    if (spellCore.isOfType(number / 15, "integer")) { spellCore.console.log(number, "fizzbuzz") }
+    else if (spellCore.isOfType(number / 3, "integer")) { spellCore.console.log(number, "fizz") }
+    else if (spellCore.isOfType(number / 5, "integer")) { spellCore.console.log(number, "buzz") }
+    else { spellCore.console.log(number) }
+  })
+}
+
+play_fizzbuzz()</code></pre>
+                  </ui-content>
+                </ui-accordion>
+              </ui-tab>
+              <ui-tab label="py">
+                <ui-accordion class="spell-code" styled>
+                  <ui-title>fizzbuzz.py (sketch) · 17 lines</ui-title>
+                  <ui-content>
+                    <pre><code class="language-python">from spell_core import core, Thing, List, App
+
+
+def play_fizzbuzz():
+    def each_number(number):
+        if core.is_of_type(number / 15, "integer"):
+            core.console.log(number, "fizzbuzz")
+        elif core.is_of_type(number / 3, "integer"):
+            core.console.log(number, "fizz")
+        elif core.is_of_type(number / 5, "integer"):
+            core.console.log(number, "buzz")
+        else:
+            core.console.log(number)
+
+    core.map(core.get_range(1, 100), each_number)
+
+
+play_fizzbuzz()</code></pre>
                   </ui-content>
                 </ui-accordion>
               </ui-tab>
             </ui-tabs>
-            <ui-message state="warning" header="Heads up">
+            <ui-message state="info" header="Where the core earns its keep">
               <ul>
-                <li>A trap the reader will fall into, and how to avoid it.</li>
+                <li>
+                  In Python, <code>45 / 15</code> is <code>3.0</code>, not <code>3</code>. The writer doesn't care:
+                  <code>core.is_of_type(3.0, "integer")</code> says yes, and that's the core's job, in every language.
+                </li>
               </ul>
             </ui-message>
-            <ui-accordion class="spell-aside" styled>
-              <ui-title>Aside: why not the obvious approach?</ui-title>
-              <ui-content>
-                <p>A digression the main text can skip. Starts collapsed.</p>
-              </ui-content>
-            </ui-accordion>
           </ui-section>
         </ui-section>
 
-        <ui-section id="3-history" header="3. History" sticky collapsible dividing collapsed>
-          <p class="meta">What changed in the decision, newest first. Not every edit: only what a reader must know.</p>
+        <ui-section id="7-a-writer" header="7. Inside a writer" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="code branch"></ui-icon>
+          <p>
+            A writer is a class with one method per node kind. Each returns CODE: text pieces, each tagged with the node
+            that made it. That one value is flattened for the file, wrapped in spans for the AST viewer, and walked for
+            a source map.
+          </p>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>Writer.ts (sketch) · 24 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-ts">/**
+ * Writes the spell tree as one language's code.
+ * - One method per node kind, named for it:  `If` writes an `If` node.
+ * - Returns `Code`:  text pieces tagged with the node that made them, so ONE walk gives the text, the AST viewer's
+ *   markup and a source map.
+ */
+export abstract class Writer {
+  /** Writes `node` with the method named for its kind. */
+  write(node: Node): Code {
+    return this[node.kind](node)
+  }
+
+  /** A `spellCore` call:  each writer spells the core's name, and its methods' names, its own way. */
+  abstract core(method: string, ...args: Node[]): Code
+
+  /** `a + b` in the language's own operator when both sides are numbers, else the core's `add`. */
+  Add({ left, right }: Add): Code {
+    if (left.datatype === "number" &amp;&amp; right.datatype === "number") return code`${left} + ${right}`
+    return this.core("add", left, right)
+  }
+
+  abstract If(node: If): Code
+  abstract Lambda(node: Lambda): Code
+}</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ui-tabs class="spell-tabs" pointing secondary basic aria-label="One node, two writers">
+            <ui-tab label="JSWriter">
+              <ui-accordion class="spell-code" styled>
+                <ui-title>JSWriter.ts (sketch) · 13 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-ts">export class JSWriter extends Writer {
+  If({ condition, body, otherwise }: If): Code {
+    return code`if (${condition}) ${this.block(body)}${otherwise &amp;&amp; code` else ${otherwise}`}`
+  }
+
+  Lambda({ params, body }: Lambda): Code {
+    return code`(${params.join(", ")}) =&gt; ${this.block(body)}`
+  }
+
+  core(method: string, ...args: Node[]): Code {
+    return code`spellCore.${method}(${this.list(args)})`
+  }
+}</code></pre>
+                </ui-content>
+              </ui-accordion>
+            </ui-tab>
+            <ui-tab label="PyWriter">
+              <ui-accordion class="spell-code" styled>
+                <ui-title>PyWriter.ts (sketch) · 22 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-ts">export class PyWriter extends Writer {
+  If({ condition, body, otherwise }: If): Code {
+    const rest = otherwise instanceof If ? code`el${otherwise}` : otherwise &amp;&amp; code`else:${this.indented(otherwise)}`
+    return code`if ${condition}:${this.indented(body)}${rest}`
+  }
+
+  /**
+   * A one-expression body stays a `lambda`;  anything longer is lifted into a nested `def` written just before
+   * the statement that uses it, named for what it does, e.g. `each_number`.
+   */
+  Lambda(node: Lambda): Code {
+    if (node.body.isExpression) return code`lambda ${node.params.join(", ")}: ${node.body}`
+    const name = this.names.fresh(node.purpose)
+    this.before(code`def ${name}(${node.params.join(", ")}):${this.indented(node.body)}`)
+    return code`${name}`
+  }
+
+  /** `getRange` -&gt; `core.get_range`:  Python's names. */
+  core(method: string, ...args: Node[]): Code {
+    return code`core.${snakeCase(method)}(${this.list(args)})`
+  }
+}</code></pre>
+                </ui-content>
+              </ui-accordion>
+            </ui-tab>
+          </ui-tabs>
+        </ui-section>
+
+        <ui-section id="8-disagreements" header="8. Where languages disagree" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>
+            The big concepts carry over. These small ones don't, and each needs a home: the WRITER (it's spelling), the
+            CORE (it's behaviour at run time), or the TYPES (known datatypes let the writer use the fast, native form).
+          </p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>thing</th>
+                  <th>JavaScript</th>
+                  <th>Python</th>
+                  <th>handled by</th>
+                </tr>
+                <tr>
+                  <td>an empty list, as a condition</td>
+                  <td>true</td>
+                  <td>false</td>
+                  <td>core (<code>isTruthy</code>), or native when the type is <code>flag</code></td>
+                </tr>
+                <tr>
+                  <td>text plus a number</td>
+                  <td>joins them</td>
+                  <td>TypeError</td>
+                  <td>writer (<code>str(…)</code>) when types are known; else core <code>add</code></td>
+                </tr>
+                <tr>
+                  <td><code>nothing</code></td>
+                  <td><code>undefined</code> (and <code>null</code>)</td>
+                  <td><code>None</code></td>
+                  <td>writer</td>
+                </tr>
+                <tr>
+                  <td>whole-number division</td>
+                  <td><code>6</code></td>
+                  <td><code>6.0</code></td>
+                  <td>core (<code>isOfType</code>, printing)</td>
+                </tr>
+                <tr>
+                  <td>a multi-line block passed as a function</td>
+                  <td>arrow function</td>
+                  <td>lifted nested <code>def</code></td>
+                  <td>writer</td>
+                </tr>
+                <tr>
+                  <td>computed properties, setters</td>
+                  <td><code>get</code> / <code>set</code></td>
+                  <td><code>@property</code></td>
+                  <td>writer</td>
+                </tr>
+                <tr>
+                  <td>class set-up (<code>static { … }</code>)</td>
+                  <td>static block</td>
+                  <td>calls after the class</td>
+                  <td>writer</td>
+                </tr>
+                <tr>
+                  <td>waiting (<code>pause for 50 msec</code>)</td>
+                  <td><code>async</code> / <code>await</code></td>
+                  <td><code>async def</code>, <code>asyncio</code></td>
+                  <td>writer + core</td>
+                </tr>
+                <tr>
+                  <td>names</td>
+                  <td><code>$</code> legal; <code>class</code>, <code>new</code> reserved</td>
+                  <td><code>$</code> illegal; <code>class</code>, <code>None</code>, <code>is</code> reserved</td>
+                  <td>writer, from the SPELL name</td>
+                </tr>
+                <tr>
+                  <td>lists counted from 1</td>
+                  <td colspan="2">neither</td>
+                  <td>core</td>
+                </tr>
+                <tr>
+                  <td>drawing</td>
+                  <td>Solid, into the page</td>
+                  <td>HTML text, or nothing</td>
+                  <td>core (<code>element()</code>), and the target's "can"</td>
+                </tr>
+                <tr>
+                  <td>reactive properties</td>
+                  <td>signals behind <code>getProp</code></td>
+                  <td>a plain dictionary</td>
+                  <td>core</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ui-message state="warning" header="The types matter">
+            <ul>
+              <li>
+                Without datatypes, every <code>+</code> becomes <code>core.add(a, b)</code>: correct, but slow and ugly.
+                precedence-and-types put a datatype on every match; the gaps it lists (C10, C14: calls, recursive calls)
+                decide how often a writer has to fall back.
+              </li>
+            </ul>
+          </ui-message>
+        </ui-section>
+
+        <ui-section id="9-core-contract" header="9. The core as a contract" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="gavel"></ui-icon>
+          <p>
+            <a href="../../packages/core/src/spellCore.types.ts" target="src-packages-core-src-spellcore-types-ts"
+              ><code>packages/core/src/spellCore.types.ts</code></a
+            >
+            already lists the core's methods by family. It becomes the list EVERY core must implement, and one set of
+            spell programs proves they agree: each target runs them, and their printed output must match, line for line.
+          </p>
+          <figure style="margin: 1em 0">
+            <svg
+              viewBox="0 0 830 190"
+              role="img"
+              aria-label="The same test programs compile to each target, run, and their transcripts must match"
+              style="width: 100%; height: auto; font-family: var(--spell-sans); font-size: 13px"
+            >
+              <defs>
+                <marker
+                  id="arrow3"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto"
+                >
+                  <path d="M0,0 L10,5 L0,10 z" style="fill: var(--spell-muted)" />
+                </marker>
+              </defs>
+              <rect
+                x="10"
+                y="70"
+                width="150"
+                height="50"
+                rx="6"
+                style="fill: var(--spell-doc-accent-soft); stroke: var(--spell-doc-accent); stroke-width: 2"
+              />
+              <g style="fill: var(--spell-tint); stroke: var(--spell-rule)">
+                <rect x="220" y="14" width="180" height="40" rx="6" />
+                <rect x="220" y="76" width="180" height="40" rx="6" />
+                <rect x="220" y="138" width="180" height="40" rx="6" />
+                <rect x="460" y="14" width="120" height="40" rx="6" />
+                <rect x="460" y="76" width="120" height="40" rx="6" />
+                <rect x="460" y="138" width="120" height="40" rx="6" />
+                <rect x="650" y="70" width="170" height="50" rx="6" />
+              </g>
+              <g style="fill: var(--spell-ink)" text-anchor="middle">
+                <text x="85" y="92">test programs</text>
+                <text x="85" y="108" style="fill: var(--spell-muted); font-size: 11px">projects/test/*.spell</text>
+                <text x="310" y="39">js/solid · node</text>
+                <text x="310" y="101">ts/solid · tsc, node</text>
+                <text x="310" y="163">py · python</text>
+                <text x="520" y="39">transcript</text>
+                <text x="520" y="101">transcript</text>
+                <text x="520" y="163">transcript</text>
+                <text x="735" y="92" style="font-weight: 600">must match</text>
+                <text x="735" y="108" style="fill: var(--spell-muted); font-size: 11px">line for line</text>
+              </g>
+              <g style="stroke: var(--spell-muted); stroke-width: 1.5; fill: none" marker-end="url(#arrow3)">
+                <path d="M160,95 C190,95 190,34 218,34" />
+                <path d="M160,95 L218,96" />
+                <path d="M160,95 C190,95 190,158 218,158" />
+                <path d="M400,34 L458,34" />
+                <path d="M400,96 L458,96" />
+                <path d="M400,158 L458,158" />
+                <path d="M580,34 C615,34 615,95 648,95" />
+                <path d="M580,96 L648,95" />
+                <path d="M580,158 C615,158 615,95 648,95" />
+              </g>
+            </svg>
+            <figcaption class="meta">
+              FizzBuzz printing the same 100 lines under node and Python is the real test of a new target.
+            </figcaption>
+          </figure>
+        </ui-section>
+
+        <ui-section id="10-order" header="10. A rough order" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="list check"></ui-icon>
+          <ui-steps class="spell-steps" ordered>
+            <ui-step
+              header="JSWriter, zero diff"
+              description="Move every node's compile() and renderChildren() into one JSWriter returning Code.  The fixture snapshots and the rules' tests must not change by a byte.  Worth it alone:  text and markup can't drift."
+            ></ui-step>
+            <ui-step
+              header="Take the JavaScript out of the tree"
+              description="Operators as meanings, plain values, spell names, Self and Nothing, declarations in a file beside the output.  Snapshots still unchanged:  JSWriter now does the spelling."
+            ></ui-step>
+            <ui-step
+              header="Targets and what they can do"
+              description="The TARGETS table, picked per project;  the parse checks the project against its target's 'can'."
+            ></ui-step>
+            <ui-step
+              header="ts/solid"
+              description="TSWriter extends JSWriter, adding annotations from the datatypes.  Cheap, and it shows how good the type info really is:  tsc is the judge."
+            ></ui-step>
+            <ui-step
+              header="The core contract"
+              description="spellCore's method list as the spec;  the test programs run per target, transcripts compared."
+            ></ui-step>
+            <ui-step
+              header="py"
+              description="PyWriter and spell_core in Python:  the stress test for lambdas, truthiness, names and async."
+            ></ui-step>
+            <ui-step
+              header="Then, if wanted"
+              description="py/html (server pages through the core's element()), js/react (a core build, not a writer)."
+            ></ui-step>
+          </ui-steps>
+        </ui-section>
+
+        <ui-section id="11-questions" header="11. Open questions" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <ol>
+            <li>
+              <b>The names:</b> target + writer? Or scribe for the walker? (See
+              <a href="#2-naming">What to call it</a>.)
+            </li>
+            <li>
+              <b>Where writers live:</b> inside spell (<code>packages/spell/src/targets/</code>), or a package of their
+              own between <code>spell</code> and <code>lsp</code>? Leaning: inside spell until a second writer exists.
+            </li>
+            <li>
+              <b><code>js/react</code>:</b> only a different core build, the writer unchanged? Leaning: yes.
+            </li>
+            <li>
+              <b>Python's goal:</b> code a person would happily read and edit, or code that just runs? Readable leans
+              much harder on the types, and on the writer.
+            </li>
+            <li>
+              <b>When:</b> after precedence-and-types' wrap-up, so the types it leaves open (C10, C14) are known first?
+              Leaning: yes; step 1 doesn't depend on them, so it could start any time.
+            </li>
+          </ol>
+        </ui-section>
+
+        <ui-section id="12-history" header="12. History" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="clock rotate left"></ui-icon>
           <ui-feed class="spell-history" size="small">
-            <ui-event icon="check">
-              <ui-content>
-                <ui-summary>Built, and the numbers re-measured <ui-date>2026-10-01</ui-date></ui-summary>
-              </ui-content>
-            </ui-event>
-            <ui-event icon="gavel">
+            <ui-event icon="pen to square">
               <ui-content>
                 <ui-summary
-                  >Decided: the proposed design, over the obvious one <ui-date>2026-09-30</ui-date></ui-summary
+                  >Sketched, from a conversation about writing spell for many languages
+                  <ui-date>2026-10-05</ui-date></ui-summary
                 >
               </ui-content>
             </ui-event>
           </ui-feed>
         </ui-section>
 
-        <ui-section id="4-sources" header="4. Sources and experiments" sticky collapsible dividing collapsed>
-          <ul>
-            <li>Runnable scripts in <code>&lt;topic&gt;/experiments/</code>, each saying how to run it.</li>
-            <li>Tables quote medians of several runs, never a single run.</li>
-          </ul>
+        <ui-section id="13-sources" header="13. Sources" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="flask"></ui-icon>
           <ui-items class="spell-sources" divided>
             <ui-item>
               <ui-content>
-                <ui-header><code>experiments/measure.ts</code></ui-header>
-                <ui-meta>experiment · <code>yarn tsx &lt;topic&gt;/experiments/measure.ts</code></ui-meta>
-                <ui-description>What it measures, and which claim above it backs.</ui-description>
+                <ui-header
+                  ><a href="../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
+                    ><code>packages/parser/src/ast/AST.ts</code></a
+                  ></ui-header
+                >
+                <ui-meta>code · <code>main</code>, 2026-10-05</ui-meta>
+                <ui-description
+                  >The ~75 node classes, each with <code>compile()</code> and
+                  <code>renderChildren()</code>.</ui-description
+                >
               </ui-content>
             </ui-item>
             <ui-item>
               <ui-content>
-                <ui-header><a href="https://example.com/" target="ext-example-com">An external reference</a></ui-header>
-                <ui-meta>reference · read 2026-10-01</ui-meta>
-                <ui-description>What it says that this doc relies on.</ui-description>
+                <ui-header
+                  ><a href="../../packages/spell/src/SpellProject.ts" target="src-packages-spell-src-spellproject-ts"
+                    ><code>packages/spell/src/SpellProject.ts</code></a
+                  ></ui-header
+                >
+                <ui-meta>code · <code>combineCompiled()</code></ui-meta>
+                <ui-description
+                  >Where a project's files become one module, with its declarations header.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="../../packages/spell/src/SpellDeclarations.ts"
+                    target="src-packages-spell-src-spelldeclarations-ts"
+                    ><code>packages/spell/src/SpellDeclarations.ts</code></a
+                  ></ui-header
+                >
+                <ui-meta>code</ui-meta>
+                <ui-description>Writes and reads the <code>/*! SPELL: DECLARES */</code> comments.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="../../packages/core/src/spellCore.types.ts"
+                    target="src-packages-core-src-spellcore-types-ts"
+                    ><code>packages/core/src/spellCore.types.ts</code></a
+                  ></ui-header
+                >
+                <ui-meta>code</ui-meta>
+                <ui-description>spellCore's method families: the start of the core contract.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="../../packages/spell/projects/test/FizzBuzz/FizzBuzz.snapshot.js"
+                    target="src-packages-spell-projects-test-fizzbuzz-fizzbuzz-snapshot-js"
+                    ><code>packages/spell/projects/test/FizzBuzz/FizzBuzz.snapshot.js</code></a
+                  ></ui-header
+                >
+                <ui-meta>fixture · compiled output</ui-meta>
+                <ui-description>The real <code>js/solid</code> FizzBuzz quoted above.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="../../packages/spell/projects/test/Solitaire/Solitaire.snapshot.js"
+                    target="src-packages-spell-projects-test-solitaire-solitaire-snapshot-js"
+                    ><code>packages/spell/projects/test/Solitaire/Solitaire.snapshot.js</code></a
+                  ></ui-header
+                >
+                <ui-meta>fixture · compiled output</ui-meta>
+                <ui-description>Classes, reactive properties, <code>==</code> beside <code>===</code>.</ui-description>
               </ui-content>
             </ui-item>
           </ui-items>
@@ -227,9 +1190,7 @@ const message = greet("spell")</code></pre>
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">
-            Last checked 2026-10-01 against branch <code>main</code>: re-run the experiments to update.
-          </p>
+          <p class="meta">Last checked 2026-10-05 against branch <code>main</code>.</p>
         </footer>
       </main>
     </div>
