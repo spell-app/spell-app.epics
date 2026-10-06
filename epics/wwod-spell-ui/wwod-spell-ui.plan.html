@@ -1001,9 +1001,9 @@
                 <a href="#j40">J40</a>, <a href="#j41">J41</a>, <a href="#j42">J42</a>, <a href="#j43">J43</a>,
                 <a href="#j44">J44</a>, <a href="#j45">J45</a>, <a href="#j46">J46</a>, <a href="#j47">J47</a>,
                 <a href="#j48">J48</a>, <a href="#j49">J49</a>, <a href="#j50">J50</a>, <a href="#j51">J51</a>,
-                <a href="#j52">J52</a>, <a href="#j53">J53</a>, <a href="#t6">T6</a>, <a href="#t7">T7</a>,
-                <a href="#t8">T8</a>, <a href="#t9">T9</a>, <a href="#t10">T10</a>, <a href="#t11">T11</a>,
-                <a href="#t12">T12</a>, <a href="#t13">T13</a>, <a href="#t14">T14</a>, <a href="#i17">I17</a></ui-item
+                <a href="#j52">J52</a>, <a href="#j53">J53</a>, <a href="#t7">T7</a>, <a href="#t8">T8</a>,
+                <a href="#t10">T10</a>, <a href="#t12">T12</a>, <a href="#t13">T13</a>, <a href="#t14">T14</a>,
+                <a href="#i17">I17</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -1034,6 +1034,9 @@
               ><ui-item icon="flask"
                 ><b>Verify:</b> <code>yarn review</code>, <code>yarn gen:root</code>,
                 <code>yarn site:data</code></ui-item
+              ><ui-item icon="list check" class="plan-to-review"
+                ><b>To review:</b> <a href="#j54">J54</a>, <a href="#j55">J55</a>, <a href="#j56">J56</a>,
+                <a href="#j57">J57</a>, <a href="#j58">J58</a>, <a href="#j59">J59</a>, <a href="#j60">J60</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -6031,6 +6034,482 @@ E.PartContext.controllerFor&lt;X&gt;(this.context.resolve())                    
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:15:39-04:00"
+              id="j54"
+              data-status="open"
+              data-phase="6"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j54">J54</a>
+                  <span class="plan-title"
+                    >P6 Families 8: UIT.PopupTrigger and UIT.SearchMatch are const objects, with PopupTriggers /
+                    SearchMatches lists for the vocabularies</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The popup's trigger words (<code>"hover"</code> x5, <code>"click"</code> x5,
+                    <code>"focus"</code> x2) and the search's match words were literal strings compared in code, and the
+                    vocabularies repeated the lists. Chose the <code>UIT.Key</code> shape (a const object, same name as
+                    its type) plus a list built from it, over a bare const array, because the code COMPARES single
+                    values:
+                  </p>
+                  <pre>
+export const PopupTrigger = { hover: "hover", focus: "focus", click: "click", manual: "manual" } as const\nexport type PopupTrigger = (typeof PopupTrigger)[keyof typeof PopupTrigger]\nexport const PopupTriggers = [PopupTrigger.hover, PopupTrigger.focus, PopupTrigger.click, PopupTrigger.manual] as const\n\nif (trigger === UIT.PopupTrigger.click) ...      // UIPopup, PopupFallback\nvalues: UIT.PopupTriggers, default: UIT.PopupTrigger.hover   // ui-popup.vocabulary.en.ts</pre>
+                  <ul>
+                    <li>
+                      Same for <code>UIT.SearchMatch</code> /
+                      <code>UIT.SearchMatches</code> (<code>SearchMatcher</code>,
+                      <a
+                        href="../../packages/ui/src/components/ui-search/ui-search.vocabulary.en.ts"
+                        target="src-packages-ui-src-components-ui-search-ui-search-vocabulary-en-ts"
+                        ><code>ui-search.vocabulary.en.ts</code></a
+                      >).
+                    </li>
+                    <li>
+                      Option not taken: a const array only (<code>PopupTriggers</code>), which leaves every comparison a
+                      literal.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      The type names <code>UIT.PopupTrigger</code> / <code>UIT.SearchMatch</code> are unchanged; nothing
+                      outside <code>ui-popup</code> / <code>ui-search</code> read them.
+                    </li>
+                    <li>
+                      Published values unchanged (<code>on="click"</code>, <code>full-text-search="fuzzy"</code>).
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:15:50-04:00"
+              id="j55"
+              data-status="open"
+              data-phase="6"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j55">J55</a>
+                  <span class="plan-title"
+                    >P6 Families 8: ui-search renames and shapes (SearchMatcher.groupsFor, SearchMatcherProps,
+                    isShowing, RemoteStatus)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>What <code>ui-search</code> became, where a choice was open:</p>
+                  <ul>
+                    <li>
+                      <b>Public:</b> <code>SearchMatcher.groups()</code> -&gt; <code>SearchMatcher.groupsFor()</code> (a
+                      pure lookup, WWOD §3); its <code>response</code> takes <code>undefined</code>, no longer
+                      <code>null</code>. Callers: <code>UISearch</code> and
+                      <a
+                        href="../../packages/ui/src/components/ui-search/ui-search.test.tsx"
+                        target="src-packages-ui-src-components-ui-search-ui-search-test-tsx"
+                        ><code>ui-search.test.tsx</code></a
+                      >
+                      (4 lines, updated). <code>SearchMatcherOptions</code> -&gt; <code>SearchMatcherProps</code>, moved
+                      from the types file to below the class (props live with their class); the constructor destructures
+                      it with inline defaults.
+                    </li>
+                    <li>
+                      <b>Private:</b> <code>enough</code> / <code>shown</code> / <code>busy</code> -&gt;
+                      <code>isLongEnough</code> / <code>isShowing</code> / <code>isFetching</code>;
+                      <code>resultsElement()</code> / <code>categoryElement()</code> / <code>messageElement()</code> /
+                      <code>marked()</code> / <code>resultId()</code> -&gt; <code>results()</code> /
+                      <code>category()</code> / <code>messageBox()</code> (the <code>message</code> memo has the bare
+                      noun) / <code>markedText()</code> / <code>idFor()</code>; <code>controller</code> (an
+                      <code>AbortController</code>) -&gt; <code>abortController</code>;
+                      <code>SearchMatcher.fuzzy()</code> -&gt; <code>isFuzzyMatch()</code>; the min-characters check
+                      written 3x is <code>isLongEnoughQuery(text)</code>.
+                    </li>
+                    <li>
+                      <code>RemoteAnswer.status</code> and <code>SearchMessage.kind</code> are const objects
+                      (<code>RemoteStatus.idle</code>, <code>SearchMessageKind.empty</code>) in
+                      <a
+                        href="../../packages/ui/src/components/ui-search/ui-search.types.ts"
+                        target="src-packages-ui-src-components-ui-search-ui-search-types-ts"
+                        ><code>ui-search.types.ts</code></a
+                      >, NOT module constants below <code>UISearch</code> (Q18): the types file's
+                      <code>RemoteAnswer</code> / <code>SearchMessage</code> types need them, and a types file never
+                      imports a class file.
+                    </li>
+                    <li>
+                      <code>location.assign(url)</code> -&gt; <code>this.host.ownerDocument.location.assign(url)</code>:
+                      the host's own document, not the global (same page in practice).
+                    </li>
+                    <li>
+                      <code>DEFAULT_FIELDS_TEXT</code> deleted: an absent <code>search-fields</code> passes
+                      <code>undefined</code> and <code>SearchMatcher</code>'s own default applies.
+                    </li>
+                    <li>
+                      The types file no longer value-imports the vocabulary: the fallback's <code>CHANGE_EVENT</code> /
+                      part name are module constants typed <code>E.EventName</code> / <code>E.PartName</code>.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      One public rename (<code>groups</code> -&gt; <code>groupsFor</code>); behaviour unchanged; 310
+                      browser + 11 ssr tests of the four families pass.
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:16:06-04:00"
+              id="j56"
+              data-status="open"
+              data-phase="6"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j56">J56</a>
+                  <span class="plan-title"
+                    >P6 Families 8: ui-popup's AnchorNames / AriaRefs became private statics of UIPopup, not files of
+                    their own</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <a
+                      href="../../packages/ui/src/components/ui-popup/UIPopup.tsx"
+                      target="src-packages-ui-src-components-ui-popup-uipopup-tsx"
+                      ><code>UIPopup.tsx</code></a
+                    >
+                    held two module-level helper classes, <code>AnchorNames</code> (add / remove / read an inline
+                    <code>anchor-name</code> list) and <code>AriaRefs</code> (add an idref relation, by attribute or
+                    element reflection, returning the undo). Chose private statics on <code>UIPopup</code>, the one
+                    class that uses them (WWOD §12, <code>ui</code> AGENTS.md "Overview": a helper ONE class uses),
+                    under a <code>// ## Target markup</code> group:
+                  </p>
+                  <pre>
+UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   UIPopup.anchorNamesIn(style)\nUIPopup.addAriaRelation({ element, relation, host })   // returns the undo\nUIPopup.idsIn(element, attribute)</pre>
+                  <ul>
+                    <li>
+                      Option not taken: <code>AnchorNames.ts</code> / <code>AriaRefs.ts</code> beside it -- two
+                      micro-modules (WWOD §8 › "Avoid single-concept micro-modules") for 5 methods nothing else reads.
+                    </li>
+                    <li>
+                      Also: <code>renderServer()</code> -&gt; <code>serverMarkup()</code>, <code>anchorBox()</code> /
+                      <code>ariaTarget()</code> -&gt; <code>anchorBoxFor()</code> / <code>ariaTargetFor()</code>,
+                      <code>interactive</code> -&gt; <code>isInteractive</code>; <code>ariaElement</code> /
+                      <code>target</code> hold <code>undefined</code>, not <code>null</code>; <code>null</code> stays at
+                      two platform boundaries, commented (<code>internals.ariaLabel</code>, element reflection).
+                      <code>PopoverMode</code> (<code>auto | manual | hint</code>) names the two inline unions.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      No public change;
+                      <a href="../../agents/PAPERCUTS.md" target="src-agents-papercuts-md"
+                        ><code>agents/PAPERCUTS.md</code></a
+                      >'s 2026-09-29 popup entry now cites <code>UIPopup.addAriaRelation()</code>.
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:16:07-04:00"
+              id="j57"
+              data-status="open"
+              data-phase="6"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j57">J57</a>
+                  <span class="plan-title"
+                    >P6 Families 8: ui-menu reads its parent through PartContext.ownerController(), unchecked;
+                    ui-select's fallback reads multiple from the select</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>UIMenu.parent</code> was
+                      <code>controller instanceof UIMenu ? controller : undefined</code> over the owner-controller cast;
+                      now <code>this.context.ownerController&lt;UIMenu&gt;()</code> (T12's shape), unchecked: only
+                      <code>&lt;ui-menu&gt;</code> owns <code>menu</code> parts (<code>ownsParts</code>), so the owner
+                      IS a menu, and the static render no longer meets an <code>instanceof</code>.
+                      <code>UIMenu.activatedItem()</code> keeps <code>instanceof HTMLElement</code> /
+                      <code>ShadowRoot</code>, commented: a click handler the static render never runs.
+                    </li>
+                    <li>
+                      <code>ui-menu</code>: <code>HORIZONTAL</code> / <code>VERTICAL</code> / <code>ITEM_PART</code> /
+                      <code>ITEM_TYPE</code> were copies of <code>UIT.HORIZONTAL</code> / <code>VERTICAL</code> /
+                      <code>ITEM</code> (same values): gone; <code>ITEM_TAG</code> -&gt;
+                      <code>itemVocabulary.tag</code> (as the dropdown / select fallbacks); <code>menubar</code> /
+                      <code>refreshQueued</code> -&gt; <code>isMenubar</code> / <code>isRefreshQueued</code>;
+                      <code>sameContext</code> -&gt; <code>isSameContext</code>.
+                    </li>
+                    <li>
+                      <code>SelectFallback.chosen(host, multiple, choices)</code> / <code>sync(select, multiple)</code>:
+                      the positional boolean is gone rather than turned into an option -- <code>chosen()</code> reads
+                      <code>this.flag("multiple")</code>, <code>sync()</code> reads <code>select.multiple</code> (the
+                      select is built with it). <code>SelectFallback</code> gets its own copy of
+                      <code>DropdownFallback.itemAttribute()</code> (3 lines, typed by the item vocabulary).
+                    </li>
+                    <li>
+                      <code>UISelect</code>: <code>showsPlaceholder</code> / <code>customizable()</code> /
+                      <code>sameItems</code> -&gt; <code>isShowingPlaceholder</code> / <code>isCustomizable()</code> /
+                      <code>isSameList</code> (the dropdown's names).
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      No public change; T12 stays open for <code>UIFeedEvent</code>'s cast (not this agent's family).
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:16:15-04:00"
+              id="j58"
+              data-status="open"
+              data-phase="6"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j58">J58</a>
+                  <span class="plan-title"
+                    >P6 Families 8: colours derived from a token (oklch(from var(--ui-ink) ...)) are not literal
+                    colours; only ui-search's bare px media queries changed</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The search, select, menu and popup sheets have no literal colour (<code>#...</code>,
+                    <code>oklch(0 0 0)</code>, <code>white</code>); what they have outside token defaults are RELATIVE
+                    colours of a token, e.g.
+                    <code>border: 0.2em solid oklch(from var(--ui-ink) l c h / 0.1)</code> (search's loader),
+                    <code>--_ui-menu-divider: oklch(from var(--ui-ink-on-dark) l c h / 0.08)</code> (inverted menu).
+                    Left as they are: they follow the theme already, and P5 changed only true literals (flyout, J39).
+                  </p>
+                  <ul>
+                    <li>
+                      Option not taken: a public token per relative colour (about 15 in
+                      <a
+                        href="../../packages/ui/src/components/ui-menu/ui-menu.css"
+                        target="src-packages-ui-src-components-ui-menu-ui-menu-css"
+                        ><code>ui-menu.css</code></a
+                      >'s inverted block alone).
+                    </li>
+                    <li>
+                      Changed:
+                      <a
+                        href="../../packages/ui/src/components/ui-search/ui-search.css"
+                        target="src-packages-ui-src-components-ui-search-ui-search-css"
+                        ><code>ui-search.css</code></a
+                      >'s four bare px queries -&gt; <code>@custom-media</code> (it now imports
+                      <a href="../../packages/ui/src/styles/media.css" target="src-packages-ui-src-styles-media-css"
+                        ><code>media.css</code></a
+                      >): <code>(width &gt;= 768px)</code> -&gt; <code>(--ui-tablet), (--ui-computer)</code>,
+                      <code>(width &gt;= 992px)</code> -&gt; <code>(--ui-computer)</code>,
+                      <code>(width &gt;= 1920px)</code> -&gt; <code>(--ui-widescreen)</code>,
+                      <code>(width &lt; 768px)</code> -&gt; <code>(--ui-mobile)</code>. Same ranges, so no pixel should
+                      move; P10's <code>yarn test:visual</code> confirms.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>No rendering change expected.</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:16:30-04:00"
+              id="j59"
+              data-status="open"
+              data-phase="6"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j59">J59</a>
+                  <span class="plan-title"
+                    >P6 Families 6: T9's two shared helpers -- UIT.TitleControls and $/util/dom byDocumentOrder</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>T9's copies became one helper each. Where they live was the call.</p>
+                  <ul>
+                    <li>
+                      <code>UIT.TITLE_CONTROLS</code> + <code>UIT.TitleControls.isClicked(event, toggle)</code> (<a
+                        href="../../packages/ui/src/components/components.types.ts"
+                        target="src-packages-ui-src-components-components-types-ts"
+                        ><code>components.types.ts</code></a
+                      >, the Accordion group) replace <code>UIAccordion.isFromControl()</code>,
+                      <code>UISection.fromControl()</code> and both <code>CONTROLS</code> copies. <code>toggle</code> is
+                      a selector: the accordion passes <code>"summary"</code>, the section <code>"button.toggle"</code>.
+                      Chose UIT over the element core: UIT already holds the small shared classes
+                      (<code>ToggleCommands</code>, <code>WordWidthClasses</code>), and both families import it. It
+                      duck-types <code>matches</code> instead of <code>instanceof Element</code>, so UIT stays
+                      <code>import type</code> only.
+                    </li>
+                    <li>
+                      <code>byDocumentOrder(a, b)</code> in
+                      <a href="../../packages/util/src/dom.ts" target="src-packages-util-src-dom-ts"
+                        ><code>packages/util/src/dom.ts</code></a
+                      >, beside <code>NodeType</code>, replaces <code>RadioGroup.byDocumentOrder</code> (now
+                      <code>byHostOrder</code>, a one-line wrapper over the hosts),
+                      <code>FormFields.byDocumentOrder</code> and <code>ControlLabels</code>' inline comparator, plus
+                      their two <code>DOCUMENT_POSITION_FOLLOWING = 4</code> copies.
+                      <a href="../../packages/util/AGENTS.md" target="src-packages-util-agents-md"
+                        ><code>packages/util/AGENTS.md</code></a
+                      >
+                      says a helper only ONE package uses stays in that package. It went to
+                      <code>$/util/dom</code> anyway, as the brief asked and as P2 did with <code>NodeType</code> /
+                      <code>flatParentFor</code>. The bundle is the same either way: <code>$/ui/util</code> re-exports
+                      <a href="../../packages/util/src/dom.ts" target="src-packages-util-src-dom-ts"
+                        ><code>dom.ts</code></a
+                      >
+                      into <code>core</code>.
+                    </li>
+                  </ul>
+                  <p>
+                    Options: A) UIT + <code>$/util/dom</code> (taken); B) a new element-core file for the click check,
+                    and <code>$/ui/util</code> for the comparator.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      One click check, one comparator. Behaviour unchanged: accordion, section, checkbox, form and
+                      elements tests all pass.
+                    </li>
+                    <li>
+                      The accordion, checkbox and form families and <code>ControlLabels</code> were touched for T9 only.
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:16:43-04:00"
+              id="j60"
+              data-status="open"
+              data-phase="6"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j60">J60</a>
+                  <span class="plan-title"
+                    >P6 Families 6: public renames, a new sidebar token, three types files deleted</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Section, panel, sidebar, sticky, visibility, reveal, rail, text and segment are restyled to WWOD.
+                    These are the calls Owen might have made differently.
+                  </p>
+                  <ul>
+                    <li>
+                      Public renames (boolean names; nothing outside each family read them):
+                      <code>UISection.folded</code> -&gt; <code>isFolded</code>, <code>.stuck</code> -&gt;
+                      <code>isStuck</code>; <code>UISticky.bound</code> -&gt; <code>isBound</code>;
+                      <code>UIVisibility.visible</code> -&gt; <code>isOnScreen</code>.
+                      <code>UISidebar.wordWidth()</code> (a public static) is gone:
+                      <code>UIT.WordWidthClasses.classFor()</code> replaces it (T6), and so does the fallback's copy.
+                    </li>
+                    <li>
+                      <code>UISticky</code> had no <code>stuck</code> field and no <code>null</code> at line 56 (it
+                      already used <code>edge</code> + <code>undefined</code>). The boolean was <code>bound</code>.
+                    </li>
+                    <li>
+                      <code>fold-icon</code>'s values are now a const object,
+                      <code>FoldIconPlace = { start, end }</code> (the <code>UIT.Key</code> shape), so
+                      <code>"start"</code> isn't written twice. <code>FOLD_END</code> is gone, and
+                      <code>&lt;ui-panel&gt;</code> uses <code>FoldIconPlace.end</code>.
+                    </li>
+                    <li>
+                      The section's <code>TITLE</code> / <code>HEADER</code> / <code>CONTENT</code> were the same names
+                      and values as UIT's, so it uses <code>UIT.TITLE</code> / <code>UIT.HEADER</code> /
+                      <code>UIT.CONTENT</code>. <code>UIT.TITLE</code> is documented as the
+                      <code>title</code> ATTRIBUTE, and here it's a class word.
+                    </li>
+                    <li>
+                      <a
+                        href="../../packages/ui/src/components/ui-sidebar/ui-sidebar.css"
+                        target="src-packages-ui-src-components-ui-sidebar-ui-sidebar-css"
+                        ><code>ui-sidebar.css</code></a
+                      >: <code>inverted</code>'s literal <code>oklch(0.22 0.005 260)</code> is now the default of a NEW
+                      public token, <code>--ui-sidebar-inverted-background</code>, through its alias
+                      <code>--_ui-sidebar-inverted-background</code> (<a
+                        href="../../packages/ui/test/component-tokens.test.ts"
+                        target="src-packages-ui-test-component-tokens-test-ts"
+                        ><code>test/component-tokens.test.ts</code></a
+                      >
+                      wants each alias named after its token). Rejected: a shared <code>--ui-*</code> surface token,
+                      because none has this exact dark value, so it would move pixels.
+                    </li>
+                    <li>
+                      <code>ui-rail.types.ts</code>, <code>ui-text.types.ts</code> and
+                      <code>ui-segment.types.ts</code> held only a docstring, so they're deleted (as J37).
+                      <a
+                        href="../../packages/ui/src/components/ui-panel/ui-panel.types.ts"
+                        target="src-packages-ui-src-components-ui-panel-ui-panel-types-ts"
+                        ><code>ui-panel.types.ts</code></a
+                      >
+                      lost the unused <code>PanelVocabulary</code>.
+                      <a
+                        href="../../packages/ui/src/components/ui-sidebar/ui-sidebar.types.ts"
+                        target="src-packages-ui-src-components-ui-sidebar-ui-sidebar-types-ts"
+                        ><code>ui-sidebar.types.ts</code></a
+                      >
+                      no longer value-imports its vocabularies: the fallback's <code>VOCABULARIES</code> and
+                      <code>WIDTH</code> moved into
+                      <a
+                        href="../../packages/ui/src/components/ui-sidebar/ui-sidebar.fallback.ts"
+                        target="src-packages-ui-src-components-ui-sidebar-ui-sidebar-fallback-ts"
+                        ><code>ui-sidebar.fallback.ts</code></a
+                      >.
+                    </li>
+                    <li>
+                      Left as they were:
+                      <a
+                        href="../../packages/ui/src/components/ui-panel/ui-panel.css"
+                        target="src-packages-ui-src-components-ui-panel-ui-panel-css"
+                        ><code>ui-panel.css</code></a
+                      >'s 8 <code>--spell-*</code> reads (each has a <code>--ui-*</code> fallback, and
+                      <code>ui</code> imports nothing from <code>brand</code>: only names are shared). The
+                      <code>0 0 #0000</code> empty shadows in
+                      <a
+                        href="../../packages/ui/src/components/ui-segment/ui-segment.css"
+                        target="src-packages-ui-src-components-ui-segment-ui-segment-css"
+                        ><code>ui-segment.css</code></a
+                      >
+                      /
+                      <a
+                        href="../../packages/ui/src/components/ui-section/ui-section.css"
+                        target="src-packages-ui-src-components-ui-section-ui-section-css"
+                        ><code>ui-section.css</code></a
+                      >
+                      are placeholders, not colours, as P5 left
+                      <a
+                        href="../../packages/ui/src/components/ui-card/ui-card.css"
+                        target="src-packages-ui-src-components-ui-card-ui-card-css"
+                        ><code>ui-card.css</code></a
+                      >'s.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      No caller outside the families changed. Behaviour unchanged. CSS: one rule could move pixels, and
+                      only if a page sets the new token.
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -6520,9 +6999,9 @@ E.PartContext.controllerFor&lt;X&gt;(this.context.resolve())                    
             ><ui-item
               data-state="recent"
               data-bedtime
-              data-changed="2026-10-05T23:50:13-04:00"
+              data-changed="2026-10-06T00:15:03-04:00"
               id="t6"
-              data-status="open"
+              data-status="done"
               data-phase="5"
               ><ui-accordion class="plan-item"
                 ><ui-title
@@ -6530,7 +7009,8 @@ E.PartContext.controllerFor&lt;X&gt;(this.context.resolve())                    
                   <span class="plan-title"
                     >ui-sidebar: use UIT.WordWidths / UIT.WordWidthClasses.classFor(), drop SIDEBAR_WORD_WIDTHS and
                     UISidebar.wordWidth()</span
-                  > </ui-title
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
                 ><ui-content
                   ><p>
                     Added in P5 (Families 5) for <code>&lt;ui-flyout&gt;</code>; the sidebar's agent owns
@@ -6612,9 +7092,9 @@ E.PartContext.controllerFor&lt;X&gt;(this.context.resolve())                    
             ><ui-item
               data-state="recent"
               data-bedtime
-              data-changed="2026-10-05T23:51:26-04:00"
+              data-changed="2026-10-06T00:07:28-04:00"
               id="t9"
-              data-status="open"
+              data-status="done"
               data-phase="5"
               ><ui-accordion class="plan-item"
                 ><ui-title
@@ -6622,7 +7102,8 @@ E.PartContext.controllerFor&lt;X&gt;(this.context.resolve())                    
                   <span class="plan-title"
                     >One shared 'click came from a control inside the title' check and one document-order
                     comparator</span
-                  > </ui-title
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
                 ><ui-content
                   ><p>Copies across families, left for whoever owns the shared home (P6 / P9):</p>
                   <ul>
@@ -6692,14 +7173,15 @@ E.PartContext.controllerFor&lt;X&gt;(this.context.resolve())                    
             ><ui-item
               data-state="recent"
               data-bedtime
-              data-changed="2026-10-05T23:53:38-04:00"
+              data-changed="2026-10-06T00:16:16-04:00"
               id="t11"
-              data-status="open"
+              data-status="done"
               data-phase="5"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#t11">T11</a>
-                  <span class="plan-title">P6: ui-select calls UIT.Flags itself; SelectFlags goes</span> </ui-title
+                  <span class="plan-title">P6: ui-select calls UIT.Flags itself; SelectFlags goes</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="6">UPDATE</ui-label></ui-title
                 ><ui-content
                   ><p>
                     P5 (I6) made <code>SelectFlags.emoji()</code> (<a
@@ -8306,6 +8788,29 @@ E.PartContext.controllerFor&lt;X&gt;(this.context.resolve())                    
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-06T00:01-04:00">2026-10-06 00:01</time></ui-date> P6
                   active</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T00:07-04:00">2026-10-06 00:07</time></ui-date> T9 closed: One
+                  shared 'click came from a control inside the title' check and one document-order
+                  comparator</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T00:15-04:00">2026-10-06 00:15</time></ui-date> T6 closed:
+                  ui-sidebar: use UIT.WordWidths / UIT.WordWidthClasses.classFor(), drop SIDEBAR_WORD_WIDTHS and
+                  UISidebar.wordWidth()</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T00:16-04:00">2026-10-06 00:16</time></ui-date> T11 closed: P6:
+                  ui-select calls UIT.Flags itself; SelectFlags goes</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed

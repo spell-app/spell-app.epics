@@ -615,7 +615,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 - 2026-09-29 · Removing one of two popups on a target wiped the page's own `aria-describedby`:  the host was already
   detached, so `getRootNode()` returned the host itself, the undo took the element-reflection branch, and setting
   `ariaDescribedByElements = null` REMOVES the content attribute. · The undo is a closure made at add time,
-  remembering attribute vs reflection (`AriaRefs` in `UIPopup.tsx`). · spell/ui popup
+  remembering attribute vs reflection (`UIPopup.addAriaRelation()` in `UIPopup.tsx`). · spell/ui popup
 - 2026-09-29 · A modal reopened right after closing closed itself again:  `<dialog>`'s `close` event is a queued
   task, so the first close's event arrived after the re-open and read as "the browser forced it". · Ignore
   `close` while `dialog.open` (`UIModal.onClose`). · spell/ui modal
