@@ -19,3 +19,38 @@
 <ul>
   <li>the usual edit keys work in every side bar page</li>
 </ul>
+<p><b>2026-10-06, after P2:</b> the keybindings never fired, so the keys still did nothing.</p>
+<ul>
+  <li>
+    Why: they were bound <code>when: focusedView == spell.docView</code>. VS Code draws a side-bar webview in an overlay
+    outside its pane, and never tells the pane when focus goes into the page, so <code>focusedView</code> is empty
+    there.
+  </li>
+  <li>
+    What VS Code does instead (read in its own source): Copy, Cut, Paste, Select All, Undo and Redo, by key or menu,
+    with a webview focused, become <code>document.execCommand("copy")</code> ... on the view's OWN document: our
+    side-bar wrapper, not the docs page framed inside it. So they landed on an empty page.
+  </li>
+  <li>
+    Fix: the wrapper's script (<a
+      href="../../../packages/vscode/src/DocView.ts"
+      target="src-packages-vscode-src-docview-ts"
+      ><code>packages/vscode/src/DocView.ts</code></a
+    >, <code>html()</code>) replaces <code>document.execCommand</code> for those six, and sends each to the extension as
+    <code>{ spell: "edit", command }</code>. From there it's P2's path: the extension reads the clipboard for a paste
+    and hands the command into the page (<a
+      href="../../../packages/server/src/liveClient.ts"
+      target="src-packages-server-src-liveclient-ts"
+      ><code>liveClient.ts</code></a
+    >
+    <code>edit()</code>). The keybindings and their command are gone.
+  </li>
+</ul>
+<p><b>Net effect</b></p>
+<ul>
+  <li>
+    The edit keys and the Edit menu both work in the Spell Docs and Review side-bar pages, once the extension is
+    reinstalled.
+  </li>
+  <li>Still needs your hand check: V2.</li>
+</ul>
