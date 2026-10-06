@@ -24,6 +24,12 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- `packages/spell/src/rules/classes.ts` (around line 1450, the rule matching an enumeration's values as arguments):
+  a string argument that ISN'T one of the enumeration's values compiles as the literal text `'arg.value'` --
+  `` output: valueIndex !== -1 ? String(values[valueIndex]) : `'arg.value'` `` is missing its `${}`.  Prove:  a
+  method taking an enumeration value, called with a word not in it;  read the compiled output.  Found reading the
+  code in epic `output-targets` P3, 2026-10-05;  not run.
+
 - [V] `packages/spell/src/rules/methods.ts` `MethodDefinition.getRule()`:  a signature that STARTS with its receiver --
   `to (a card) flips: ...`, or paren-free `to a card flips: ...` -- THROWS while parsing ("Rule 'flips' starts with an
   expression, so it would recurse forever"):  its call rule `{thisArg:expression} flips` is aliased `expression`, so
