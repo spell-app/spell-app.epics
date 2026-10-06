@@ -1,0 +1,54 @@
+<!-- plan-doc part:  #j10's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  How declarations moved into <code>&lt;Project&gt;.declarations.json</code> (<a href="#q8">Q8</a>). The
+  <code>/*! SPELL: DECLARES */</code> comments did TWO jobs: they carried declarations to importing projects, AND they
+  marked where each declaration's code is in the compiled output, which the runner's Type Explorer reads to show a
+  declaration's code from a scope pack. Chose to keep the comments as an INTERNAL marker while compiling, and split them
+  out at the end, over generating the declarations separately from the tree.
+</p>
+<ul>
+  <li>
+    Compiling still puts a marker on each declaring statement (<code>commentFor()</code>), never written to disk.
+    <code>SpellDeclarations.split()</code> takes them out: the compiled <code>.js</code> is just code, and the
+    declarations file gets each marker's object plus <code>codeLines</code>, the line its code starts on.
+  </li>
+  <li>
+    The Type Explorer (<a href="../../../packages/lsp/src/ScopesSource.ts" target="src-packages-lsp-src-scopessource-ts"
+      ><code>packages/lsp/src/ScopesSource.ts</code></a
+    >) finds code by <code>codeLines</code>; the runner fetches the declarations lazily, only when you open a
+    declaration's details: from the server (<code>/api/projects/declarations/&lt;id&gt;</code>, new), beside a
+    <code>src=</code> app's <code>.compiled.js</code>, or pushed by <code>&lt;spell-editor&gt;</code>.
+  </li>
+  <li>
+    Older compiled files still work: importing reads the comments when there's no declarations file
+    (<code>fromComments()</code>), and the Type Explorer falls back to scanning markers.
+  </li>
+  <li>Scope packs didn't change: the examples' <code>.scopes.js</code> came out identical.</li>
+</ul>
+<ui-grid class="spell-pros-cons" columns="2" stackable>
+  <ui-column>
+    <ui-segment>
+      <ui-label attached="top" color="green">A · Markers inside, split at the end (chosen)</ui-label>
+      <ul>
+        <li>One place decides what a statement declares, as before</li>
+        <li>Code lines exact, whatever the writer printed</li>
+      </ul>
+    </ui-segment>
+  </ui-column>
+  <ui-column>
+    <ui-segment>
+      <ui-label attached="top" color="blue">B · Declarations straight from the tree</ui-label>
+      <ul>
+        <li>No markers at all</li>
+        <li>Code positions would need source maps (<a href="#t2">T2</a>), not built yet</li>
+      </ul>
+    </ui-segment>
+  </ui-column>
+</ui-grid>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    every compiled project has a <code>.declarations.json</code> beside it; its <code>.compiled.js</code> is just code
+  </li>
+  <li>when source maps come (T2), B becomes possible</li>
+</ul>
