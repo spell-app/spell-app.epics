@@ -817,7 +817,8 @@
               ><ui-item icon="list check" class="plan-to-review"
                 ><b>To review:</b> <a href="#j26">J26</a>, <a href="#j27">J27</a>, <a href="#j28">J28</a>,
                 <a href="#j29">J29</a>, <a href="#j30">J30</a>, <a href="#j31">J31</a>, <a href="#j32">J32</a>,
-                <a href="#t2">T2</a></ui-item
+                <a href="#j33">J33</a>, <a href="#j34">J34</a>, <a href="#j35">J35</a>, <a href="#t2">T2</a>,
+                <a href="#t3">T3</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -4599,6 +4600,158 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-05T23:21:54-04:00"
+              id="j33"
+              data-status="open"
+              data-phase="4"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j33">J33</a>
+                  <span class="plan-title">Runtime: xSoon members stay hand-rolled, no shared debounce</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    P4 (Runtime 1): <code>AppStylesheet.schedule()</code> is now <code>syncSoon()</code> and
+                    <code>VisibilityWatch.schedule()</code> is <code>checkSoon()</code> (WWOD §12 › "Debounced
+                    write-backs are <code>xSoon</code> members"), but both keep their few lines of timer code instead of
+                    a shared <code>debounce()</code>.
+                  </p>
+                  <ul>
+                    <li>
+                      <code>$/util</code>'s <code>debounce()</code> is on its spell side, which <code>ui</code> must not
+                      import; <code>lodash-es</code> would add lodash to the runtime chunk
+                    </li>
+                    <li>
+                      neither fits a plain debounce: <code>syncSoon()</code> must set <code>ready</code> to a PROMISE of
+                      the sync to come, which a debounce does not return; <code>checkSoon()</code> coalesces to one
+                      check per task (a flag + <code>setTimeout(0)</code>), not a delay
+                    </li>
+                    <li>
+                      a helper in <code>$/ui/util</code> would land in the <code>core</code> bundle for two lazy-chunk
+                      callers
+                    </li>
+                  </ul>
+                  <p>
+                    <b>Net effect:</b> names follow WWOD; the bodies are as before (one comment on
+                    <code>syncSoon()</code> says why); <code>AppStylesheetProps.debounce</code> is now
+                    <code>syncDelay</code> (nothing passed it).
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-05T23:21:58-04:00"
+              id="j34"
+              data-status="open"
+              data-phase="4"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j34">J34</a>
+                  <span class="plan-title">Runtime: page globals stay, except Focus</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    P4 (Runtime 1), WWOD §9 › "Functions accept their dependencies as parameters": only
+                    <code>Focus</code> changed.
+                  </p>
+                  <ul>
+                    <li>
+                      <code>Focus.activeElementDeep(root = document)</code> already took its root; it now compares with
+                      <code>root</code>'s own <code>&lt;body&gt;</code> (I1)
+                    </li>
+                    <li>
+                      <code>Focus.trap(root)</code> now listens on <code>root.ownerDocument</code> and asks that
+                      document for the active element, instead of the global <code>document</code>: the same on the
+                      page, right inside an iframe
+                    </li>
+                    <li>
+                      left on the global <code>document</code> / <code>window</code>: <code>Keyboard</code>,
+                      <code>Overlays</code>, <code>Styles</code>, <code>AppStylesheet</code> -- each built ONCE per page
+                      by <code>UIRuntime</code>, and no test or caller needs another document
+                    </li>
+                  </ul>
+                  <p>
+                    <b>Net effect:</b> no signature changed for the DI; <code>trap()</code> behaves the same on the main
+                    page.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-05T23:22:14-04:00"
+              id="j35"
+              data-status="open"
+              data-phase="4"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j35">J35</a>
+                  <span class="plan-title"
+                    >Runtime: E / UIT through $/ui/core, @proto direct; three new runtime constants</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    P4 (Runtime 1), the ten service files of
+                    <a href="../../packages/ui/src/runtime/" target="src-packages-ui-src-runtime"
+                      ><code>src/runtime/</code></a
+                    >
+                    it owns:
+                  </p>
+                  <ul>
+                    <li>
+                      shared code now comes through <code>import { E, UIT } from "$/ui/core"</code>:
+                      <code>E.Warnings</code>, <code>E.Vocabulary</code>, <code>E.Prettify</code>,
+                      <code>UIT.Key.*</code> (RovingTabindex's arrows, Focus's Tab, Overlays' Escape),
+                      <code>UIT.IN</code> / <code>OUT</code> / <code>TABINDEX</code> / <code>TRUE</code> /
+                      <code>VERTICAL</code> / <code>HORIZONTAL</code> / <code>NONE</code>
+                    </li>
+                    <li>
+                      <code>proto</code> stays a direct <code>$/ui/util</code> import, under
+                      <code>// Import directly to avoid circular import</code>, as in P3. Strictly, no runtime leaf is
+                      in <code>core</code>'s static graph (<a
+                        href="../../packages/ui/src/runtime/load.ts"
+                        target="src-packages-ui-src-runtime-load-ts"
+                        ><code>load.ts</code></a
+                      >
+                      imports <code>UIRuntime</code> dynamically), so <code>@E.proto</code> would work today; chose the
+                      rule's form so it can't break when that changes
+                    </li>
+                    <li>
+                      added to
+                      <a
+                        href="../../packages/ui/src/runtime/runtime.types.ts"
+                        target="src-packages-ui-src-runtime-runtime-types-ts"
+                        ><code>runtime.types.ts</code></a
+                      >
+                      (Runtime 2's file, additions only, plus one member): <code>CssDisplay</code> (<code
+                        >{ none, contents }</code
+                      >: Focus, Transitions, Visibility), <code>UTILITIES_SHEET</code> (Styles, UIRuntime),
+                      <code>VisibilityDirection</code> (<code>{ up, down, static }</code>;
+                      <code>VisibilityCalculations.direction</code> now uses it)
+                    </li>
+                    <li>
+                      one-class constants are module consts below their class: <code>Overlays</code>'
+                      <code>TOAST</code> (kind AND pool), <code>DEFAULT_POOL</code>, <code>MODAL_KINDS</code>,
+                      <code>SCROLLBAR_WIDTH_PROPERTY</code> (also in the scroll-lock CSS); <code>Visibility</code>'s
+                      <code>LAZY_IMAGE_ATTRIBUTES</code> / <code>LAZY_IMAGE_DEFAULTS</code> (was <code>DATA_SRC</code>,
+                      <code>DATA_SRCSET</code>, <code>FADE</code>, <code>IN</code>, <code>DEFAULT_DURATION</code>)
+                    </li>
+                    <li>
+                      add / remove listener pairs became one <code>AbortController</code> each (Keyboard, Focus.trap,
+                      RovingTabindex, Overlays, Transitions, AppStylesheet)
+                    </li>
+                  </ul>
+                  <p>
+                    <b>Net effect:</b> same behaviour; runtime tests 140 + 1 todo green, <code>yarn test:hmr</code> 8 /
+                    8.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -4969,6 +5122,57 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                     P9's: read <code>ValueSets.setFor()</code> there (and decide whether <code>width</code> =&gt;
                     <code>widths</code> belongs in <code>KIND_VALUES</code>), or say why it differs.
                   </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="recent"
+              data-bedtime
+              data-changed="2026-10-05T23:22:03-04:00"
+              id="t3"
+              data-status="open"
+              data-phase="4"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#t3">T3</a>
+                  <span class="plan-title"
+                    >Name the foundation sheets in $/ui/styles, so UIRuntime stops listing them</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="4">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Found in P4 (Runtime 1): <code>UIRuntime.registerFoundation()</code> needs each foundation sheet BY
+                    NAME (<code>layers</code>, <code>reset</code> ... for <code>Styles</code>), but
+                    <code>$/ui/styles</code> exports <code>foundationCSS</code> / <code>pageCSS</code> as bare text
+                    arrays (a dozen tests read them that way).
+                  </p>
+                  <ul>
+                    <li>
+                      now:
+                      <a
+                        href="../../packages/ui/src/runtime/UIRuntime.ts"
+                        target="src-packages-ui-src-runtime-uiruntime-ts"
+                        ><code>UIRuntime.ts</code></a
+                      >
+                      keeps two module tables, <code>FOUNDATION_SHEETS</code> and <code>PAGE_SHEETS</code> (built from
+                      it, plus <code>UTILITIES_SHEET</code>, typography, native): each name written once,
+                      <code>"utilities"</code> once (<a
+                        href="../../packages/ui/src/runtime/runtime.types.ts"
+                        target="src-packages-ui-src-runtime-runtime-types-ts"
+                        ><code>runtime.types.ts</code></a
+                      >), and no <code>setUtilities()</code> call (it was <code>Styles</code>' default)
+                    </li>
+                    <li>still: the ORDER lives twice, there and in <code>styles/index.ts</code></li>
+                    <li>
+                      fix: <code>styles/index.ts</code> exports
+                      <code>foundationSheets = { layers: layersCSS, ... }</code> and derives
+                      <code>foundationCSS = Object.values(foundationSheets)</code>; <code>UIRuntime</code> imports the
+                      record. Not done here:
+                      <a href="../../packages/ui/src/styles/" target="src-packages-ui-src-styles"
+                        ><code>src/styles/</code></a
+                      >
+                      belongs to another P4 agent
+                    </li>
+                  </ul></ui-content
                 ></ui-accordion
               ></ui-item
             ></ui-list
