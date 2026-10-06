@@ -675,7 +675,8 @@
                 ><b>Verify:</b> <code>yarn review</code>, <code>yarn gen:spell</code>, <code>yarn gen:markdown</code>,
                 <code>yarn test:hmr</code>, <code>yarn ts</code> in each caller package</ui-item
               ><ui-item icon="list check" class="plan-to-review"
-                ><b>To review:</b> <a href="#j4">J4</a>, <a href="#j5">J5</a></ui-item
+                ><b>To review:</b> <a href="#j4">J4</a>, <a href="#j5">J5</a>, <a href="#j6">J6</a>,
+                <a href="#j7">J7</a>, <a href="#j8">J8</a>, <a href="#i14">I14</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -2422,6 +2423,219 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:38:18-04:00"
+              id="j6"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j6">J6</a>
+                  <span class="plan-title">P3 server: the static marks are one constant each in server.types.ts</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The attributes the static render writes (<code>data-ui</code>, <code>data-ui-slotted</code>,
+                    <code>data-ui-li</code>, <code>data-state</code>) were spelled out ~25 times across
+                    <code>StaticFlattener</code>, <code>StaticInteractions</code>, <code>StaticPageStyles</code>,
+                    <code>StaticSelectors</code>, <code>StaticStylesheet</code>. Now ONE constant each in
+                    <a
+                      href="../../packages/ui/src/server/server.types.ts"
+                      target="src-packages-ui-src-server-server-types-ts"
+                      ><code>src/server/server.types.ts</code></a
+                    >, every selector built from them.
+                  </p>
+                  <ul>
+                    <li>
+                      <code>ROOT_ATTRIBUTE</code> / <code>SLOTTED_ATTRIBUTE</code> / <code>LIST_ITEM_ATTRIBUTE</code> /
+                      <code>STATE_ATTRIBUTE</code>, plus the selectors <code>ROOT</code> (<code>[data-ui]</code>),
+                      <code>SLOTTED</code>, <code>LIST_ITEM</code>; <code>REACH</code> moved there from
+                      <code>StaticPageStyles</code> (two files use it; still <code>SSR.REACH</code> from the barrel)
+                    </li>
+                    <li>
+                      The strings are a PUBLISHED contract, so kept as spelled: component sheets (<code
+                        >:not([data-ui])</code
+                      >
+                      in ui-table, ui-items, ui-statistic),
+                      <a href="../../packages/ui/src/styles/native.css" target="src-packages-ui-src-styles-native-css"
+                        ><code>native.css</code></a
+                      >, <code>UITable</code> (writes <code>data-ui</code>) and every
+                      <code>*.ssr.test.tsx</code> expectation read them
+                    </li>
+                    <li>
+                      What components write comes from <code>UIT</code>, not a server copy:
+                      <code>UIT.STATIC_CONTROL</code> (<code>data-ui-control</code>, was a second copy in
+                      <code>StaticFlattener</code>), <code>UIT.PART_STATIC_CLASS_PREFIX</code> (<code>in-</code>),
+                      <code>UIT.TOGGLE_COMMANDS</code> (the <code>--show</code> / <code>--close</code> /
+                      <code>--toggle</code> keys of <code>StaticInteractions</code>' command tables)
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      no <code>data-ui*</code> string left in
+                      <a href="../../packages/ui/src/server/" target="src-packages-ui-src-server"
+                        ><code>src/server/</code></a
+                      >
+                      outside <code>server.types.ts</code> (docstrings aside)
+                    </li>
+                    <li>output byte-for-byte the same: ssr 241 / 241</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:38:29-04:00"
+              id="j7"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j7">J7</a>
+                  <span class="plan-title">P3 server: StaticCatalog stays its own file</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <a
+                      href="../../packages/ui/src/server/StaticCatalog.ts"
+                      target="src-packages-ui-src-server-staticcatalog-ts"
+                      ><code>StaticCatalog.ts</code></a
+                    >
+                    is one class with one static (<code>classes</code>, 93 controller classes) and ~92 imports. WWOD §8
+                    › "One exported class per file" warns against one-constant micro-modules; I kept it anyway, and
+                    wrote why into its banner.
+                  </p>
+                  <ul>
+                    <li>
+                      Folding it into <code>StaticRender</code> (<code>StaticRender.catalog</code>) would make the
+                      ENGINE import every family: today
+                      <a
+                        href="../../packages/ui/src/server/StaticRender.ts"
+                        target="src-packages-ui-src-server-staticrender-ts"
+                        ><code>StaticRender.ts</code></a
+                      >
+                      imports <code>$/ui/elements</code> and its peers only, and renders whatever it's given
+                      (<code>define()</code>)
+                    </li>
+                    <li>
+                      It changes for a different reason than the engine: a family becoming server-ready edits the
+                      catalog, never <code>StaticRender</code>
+                    </li>
+                    <li>
+                      It's an exported class with a test of its own (<a
+                        href="../../packages/ui/src/server/StaticCatalog.ssr.test.ts"
+                        target="src-packages-ui-src-server-staticcatalog-ssr-test-ts"
+                        ><code>StaticCatalog.ssr.test.ts</code></a
+                      >, in step with
+                      <a
+                        href="../../packages/ui/tools/visual/StaticFamilies.ts"
+                        target="src-packages-ui-tools-visual-staticfamilies-ts"
+                        ><code>tools/visual/StaticFamilies.ts</code></a
+                      >), and <code>spell static</code> (<a
+                        href="../../packages/ui/tools/StaticDocument.ts"
+                        target="src-packages-ui-tools-staticdocument-ts"
+                        ><code>tools/StaticDocument.ts</code></a
+                      >) names it
+                    </li>
+                    <li>
+                      NOT changed: the barrel still exports it, so
+                      <code>import { StaticRender } from "$/ui/server"</code> loads every family too (noted in the
+                      barrel's header); splitting it out of the barrel would change <code>StaticDocument</code> and
+                      three tests for a node-only load cost
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b> no code change; the banner records the rejected fold.</p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:38:42-04:00"
+              id="j8"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j8">J8</a>
+                  <span class="plan-title">P3 server: renames, registries, sentinels and throws in src/server/</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The rest of
+                    <a href="../../packages/ui/src/server/" target="src-packages-ui-src-server"
+                      ><code>src/server/</code></a
+                    >'s recipe, for the choices you might notice.
+                  </p>
+                  <ul>
+                    <li>
+                      Public renames (pure lookups, WWOD §3): <code>ServerHost.state(element)</code> -&gt;
+                      <code>ServerHost.stateFor(element)</code> (2 callers, both <code>StaticFlattener</code>);
+                      <code>StaticRender.kind(tag)</code> -&gt; <code>StaticRender.kindFor(tag)</code> (1 caller,
+                      <code>define()</code>). Private: <code>slotOf</code> -&gt; <code>slotFor</code>,
+                      <code>ariaAttribute</code> -&gt; <code>ariaAttributeFor</code>. Grepped
+                      <a href="../../packages/" target="src-packages"><code>packages/</code></a> and spell-app-dev: no
+                      other mention
+                    </li>
+                    <li>
+                      Kept: <code>StaticRender.tags()</code> (tag =&gt; kind map, read by
+                      <a
+                        href="../../packages/ui/tools/StaticDocument.ts"
+                        target="src-packages-ui-tools-staticdocument-ts"
+                        ><code>tools/StaticDocument.ts</code></a
+                      >; every param it feeds is called <code>tags</code>), and <code>StaticRender.families</code> /
+                      <code>lastTags</code> / <code>sheetUsage</code> stay public statics: tools and tests read them
+                    </li>
+                    <li>
+                      Registries: <code>ServerHost</code>'s module <code>WeakMap</code> -&gt;
+                      <code>private static states</code> + <code>ServerHost.reset()</code> (NOT <code>readonly</code>: a
+                      <code>WeakMap</code> can't be cleared, so <code>reset()</code> replaces it);
+                      <code>ServerRuntime</code>'s <code>REGISTERED</code> / <code>SVG_FILES</code> -&gt;
+                      <code>private static readonly registered</code> / <code>svgFiles</code> +
+                      <code>ServerRuntime.reset()</code> (also clears <code>pageSheets</code>). Nothing calls the resets
+                      yet
+                    </li>
+                    <li>
+                      Every other module constant (about 30) is a <code>private static readonly</code> under a
+                      <code>// ## Constants</code> group after its class's methods; <code>StaticSelectorOptions</code> /
+                      <code>StaticSelectorResult</code> moved to <code>server.types.ts</code> (<code
+                        >StaticStylesheet</code
+                      >
+                      uses them too)
+                    </li>
+                    <li>
+                      Positional booleans: <code>StaticSelectors.anchor(selector, slotted)</code> -&gt;
+                      <code>anchor(selector, { slotted })</code>;
+                      <code>StaticStylesheet.move(rule, selectors, boxless, into)</code> -&gt;
+                      <code>move({ rule, selectors, into, boxless })</code> (both private)
+                    </li>
+                    <li>
+                      Throws: <code>StaticSelectors</code>' unbalanced parentheses is a <code>SyntaxError</code> (WWOD
+                      §5: a parse error), not <code>TypeError</code>:
+                      <code
+                        >"StaticSelectors.rewrite(): unbalanced parentheses in `x`; balance them in the sheet it came
+                        from"</code
+                      >. <code>ServerRuntime</code>'s missing service stays an <code>Error</code> (a family not
+                      server-ready, not caller input):
+                      <code
+                        >"ServerRuntime: UI.toasts isn't available in a server render; stub it in
+                        ServerRuntime.create(), or leave the family that reads it out of StaticRender.define()"</code
+                      >
+                    </li>
+                    <li>
+                      Dedupe: <code>StaticStylesheet.rewriteRule()</code>'s keyframes check is
+                      <code>StaticPageStyles.inKeyframes()</code>; <code>ServerRuntime</code> imports
+                      <code>IconPacks</code> once (it took the type from the barrel AND the class by path)
+                    </li>
+                  </ul>
+                  <p>
+                    <b>Net effect:</b> ssr 241 / 241, browser dsd + static-form 3 / 3, unchanged; no caller outside
+                    <a href="../../packages/ui/src/server/" target="src-packages-ui-src-server"
+                      ><code>src/server/</code></a
+                    >
+                    changed.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -3059,6 +3273,56 @@ export const CLOSE_CLASS = "close icon"</code></pre>
                       check shows it.
                     </li>
                   </ol></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T21:38:30-04:00"
+              id="i14"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#i14">I14</a>
+                  <span class="plan-title">P3 server: ui-table.types.ts keeps its own copy of data-ui</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <a
+                      href="../../packages/ui/src/components/ui-table/ui-table.types.ts"
+                      target="src-packages-ui-src-components-ui-table-ui-table-types-ts"
+                      ><code>src/components/ui-table/ui-table.types.ts</code></a
+                    >
+                    has <code>export const DATA_UI = "data-ui"</code>, which <code>UITable</code> writes on its
+                    <code>&lt;table&gt;</code> in a server render. It duplicates <code>SSR.ROOT_ATTRIBUTE</code> (<a
+                      href="../../packages/ui/src/server/server.types.ts"
+                      target="src-packages-ui-src-server-server-types-ts"
+                      ><code>src/server/server.types.ts</code></a
+                    >), but a component may NEVER import <code>$/ui/server</code>.
+                  </p>
+                  <ul>
+                    <li>
+                      Fix (P5-P7, the table's restyle): a <code>STATIC_ROOT = "data-ui"</code> in
+                      <a
+                        href="../../packages/ui/src/components/components.types.ts"
+                        target="src-packages-ui-src-components-components-types-ts"
+                        ><code>components.types.ts</code></a
+                      >
+                      beside <code>UIT.STATIC_CONTROL</code>; <code>UITable</code> uses <code>UIT.STATIC_ROOT</code>,
+                      and <code>server.types.ts</code>' <code>ROOT_ATTRIBUTE</code> becomes
+                      <code>UIT.STATIC_ROOT</code> (the server already reads <code>UIT</code> for
+                      <code>STATIC_CONTROL</code>)
+                    </li>
+                    <li>
+                      Not done in P3:
+                      <a
+                        href="../../packages/ui/src/components/components.types.ts"
+                        target="src-packages-ui-src-components-components-types-ts"
+                        ><code>components.types.ts</code></a
+                      >
+                      and <code>ui-table</code> aren't P3's files
+                    </li>
+                  </ul></ui-content
                 ></ui-accordion
               ></ui-item
             ></ui-list
