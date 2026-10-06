@@ -58,7 +58,7 @@ This spoke is house style on top.
   - The collaborators it's given (the host, a fetcher, the runtime) go in `context`, apart from its own data.
 - **A collaborator constant for the object's life is a `readonly` field set once, NOT a parameter on every method:**
   - `FormFields` takes its `host` once (`private readonly host`) instead of threading it through every lookup;
-    `CalendarDates` keeps the page's `Temporal` as `readonly T`.
+    `CalendarDates` keeps the page's `Temporal` as `readonly temporal`.
   - Document it:  "STATIC for the object's life ... a test that needs a different one builds a different object."
 - **The injected escape hatch is what makes it testable:**
   - Name the one seam a test or another environment swaps, e.g. `LoadableFile.fetch`:  "Replace it to answer
@@ -68,10 +68,13 @@ This spoke is house style on top.
   - Why:  `#private` throws when reached through a `Proxy` wrapping the instance, and tests can't reach it.
   - NOT:  `#` for private fields, TS `private` for methods -- see above.
 - **`static` class constants, declared after the main methods:**
-  - In a class, all helpers and constants go AFTER the main methods, e.g. `CalendarDates.MINUTE_STEP = 5`,
-    `CodeLines`' `private static readonly TOKENS`.
+  - In a class, all helpers and constants go AFTER the main methods, e.g. `EmojiData`'s registries
+    (`private static readonly sets`, `loads`:  `packages/ui/src/components/ui-emoji/EmojiData.ts`).
   - Module level:  WWOD §8 › "Class first, its types and helpers below".
-  - Tuning tables are `as const` objects, e.g. `ThemeSheets.SLOTS = { base: "classic", theme: "theme" } as const`.
+    - `ui` keeps a constant ONE class uses as a module `const` below the class instead (a static's name survives
+      minification):  `packages/ui/AGENTS.md` "Classes" (epic `wwod-spell-ui`, Q18).
+  - Tuning tables are `as const` objects, e.g. `UI.themes`' `slots = { base: BASE, theme: "theme" } as const`
+    (`packages/ui/src/runtime/Themes.ts`).
   - Developer / debug switches are the exception and stay at the top ("ALL-CAPS switches" below).
   - If a value property can be overridden per instance or per subclass, use `@proto` to define it on the prototype
     ("`@proto static` defaults" below).

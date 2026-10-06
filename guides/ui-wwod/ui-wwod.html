@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ui and WWOD</title>
+    <meta name="description" content="How @spell-app/ui follows the house style, where it departs from it, and why" />
+    <link rel="stylesheet" href="../../packages/docs/tools/_assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page">
+    <spell-site-header root="../.."></spell-site-header>
+    <div class="spell-doc">
+      <main class="spell-doc-main">
+        <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
+          <ui-breadcrumb-section href="../../pages/index.html" target="src-packages-docs-index-html"
+            >Docs</ui-breadcrumb-section
+          >
+          <ui-breadcrumb-section active>ui and WWOD</ui-breadcrumb-section>
+        </ui-breadcrumb>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>ui and WWOD</h1></header></ui-sticky
+        >
+        <p class="lede">
+          <a href="../../../spell-app/packages/ui/README.md" target="src-packages-ui-readme-md"
+            ><code>@spell-app/ui</code></a
+          >
+          follows the house style (<a href="../wwod.html" target="src-guides-wwod-html">WWOD</a>) everywhere, except in
+          the few places this page lists, each with the reason it departs.
+        </p>
+        <ui-list class="spell-meta">
+          <ui-item icon="user"
+            >Written for: anyone writing or reviewing code in
+            <a href="../../../spell-app/packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
+            >, who knows WWOD and wants to know where <code>ui</code> differs</ui-item
+          >
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="green">built</ui-label> (branch, not merged)</ui-item
+          >
+          <ui-item icon="flask"
+            >Researched on: branch <code>wwod-spell-ui</code>, 2026-10-05 to 10-06; sizes from
+            <code>yarn measure</code>, counts from a grep census (see <a href="#4-sources">Sources</a>)</ui-item
+          >
+          <ui-item icon="map"
+            >Plan doc:
+            <a href="../../epics/wwod-spell-ui/wwod-spell-ui.plan.html" target="wwod-spell-ui"
+              >WWOD for Spell UI</a
+            ></ui-item
+          >
+        </ui-list>
+
+        <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
+          <ui-statistics class="spell-stats" size="mini">
+            <ui-statistic value="0" label="named imports from core (was 163)"></ui-statistic>
+            <ui-statistic value="186" label="nulls (was 457)"></ui-statistic>
+            <ui-statistic value="5" label="test sleeps (was 24)"></ui-statistic>
+          </ui-statistics>
+          <ul>
+            <li>
+              The rules live in
+              <a href="../../../spell-app/packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+                ><code>packages/ui/AGENTS.md</code></a
+              >: every section named like a WWOD rule starts "As WWOD §N, plus:" and lists only what
+              <code>ui</code> adds or changes. This page is the why behind them.
+            </li>
+            <li>
+              Most departures have ONE reason: bundle size. A web component library ships every byte to every page, so
+              where WWOD's shape costs bytes in a family's chunk, <code>ui</code> picks the smaller shape.
+            </li>
+            <li>
+              The rest come from what <code>ui</code> is: a port of Fomantic UI (its class grammar stays), code node
+              must load without a DOM (vocabularies, the static render), and a forked custom-element layer that keeps
+              upstream's shape.
+            </li>
+            <li>
+              The restyle (epic <code>wwod-spell-ui</code>, P1-P11) changed public names and signatures, and fixed every
+              caller in the repo (<code>app</code>, <code>docs</code>, <code>brand</code>, <code>cli</code>).
+            </li>
+          </ul>
+          <ui-message state="positive" header="In one line">
+            <ul>
+              <li>
+                Write <code>ui</code> code as WWOD says; where this page names an exception, follow the exception.
+              </li>
+            </ul>
+          </ui-message>
+        </ui-section>
+
+        <ui-section id="2-the-exceptions" header="2. The exceptions" sticky collapsible dividing collapsed>
+          <p>
+            Each row: what WWOD says, what <code>ui</code> does instead, and why. The letter after it is the plan doc's
+            question that settled it.
+          </p>
+
+          <ui-section id="the-table" header="All of them, at a glance" sticky collapsible dividing collapsed>
+            <ui-table celled compact striped>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>WWOD</th>
+                    <th><code>ui</code> does</th>
+                    <th>Why</th>
+                  </tr>
+                  <tr>
+                    <td>§12: a constant one class uses is a <code>private static</code></td>
+                    <td>a module <code>const</code> below the class, not exported (Q18)</td>
+                    <td>a module const minifies to one letter; <code>t.LIST_SEPARATOR</code> doesn't</td>
+                  </tr>
+                  <tr>
+                    <td>§12: statics after the main methods</td>
+                    <td><code>@proto static</code> defaults stay at the top (Q11)</td>
+                    <td>they're the class's declared config, read first</td>
+                  </tr>
+                  <tr>
+                    <td>§19: log through a <code>Logger</code></td>
+                    <td><code>Warnings.warn()</code> / <code>devWarn()</code> from <code>$/ui/util</code> (Q5)</td>
+                    <td><code>$/util</code>'s Logger and its colours would land in every component bundle</td>
+                  </tr>
+                  <tr>
+                    <td>§4: one namespace per sub-system</td>
+                    <td>
+                      yes, as <code>E</code> / <code>F</code> / <code>UI</code> / <code>UIT</code>; but load-time uses
+                      (<code>extends</code>, <code>@proto</code>, static initializers) are direct imports (Q4)
+                    </td>
+                    <td>the element core imports itself: a namespace read while a module evaluates hits the cycle</td>
+                  </tr>
+                  <tr>
+                    <td>§4: import a package through its entry</td>
+                    <td>
+                      code BELOW <code>core</code> (runtime, vocabulary, icons, util, types files) never imports the
+                      <code>$/ui/core</code> entry (I16)
+                    </td>
+                    <td>
+                      <code>core</code> re-exports the runtime's loader; the lazy runtime chunk importing it split a
+                      chunk every page loaded
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>§4: one alias</td>
+                    <td>
+                      vocabularies and types files value-import <code>UIT</code> from its file, not through
+                      <code>$/ui/core</code>
+                    </td>
+                    <td>
+                      node imports them (<code>yarn site:data</code>, <code>gen:root</code>); <code>core</code> loads
+                      Solid's DOM layer, which node can't
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>§9: a set of values is a const array + type</td>
+                    <td>yes; a single vocabulary word stays a named ALL-CAPS constant (Q2)</td>
+                    <td>a class word or part name is one value, not a set</td>
+                  </tr>
+                  <tr>
+                    <td>§6: every member has a docstring</td>
+                    <td>
+                      an override that only fills a documented hook (<code>render()</code>, a fallback's
+                      <code>build()</code>) has none (Q3)
+                    </td>
+                    <td>the base class documents each hook once</td>
+                  </tr>
+                  <tr>
+                    <td>§9: <code>undefined</code>, never <code>null</code></td>
+                    <td>
+                      <code>null</code> only at platform boundaries: <code>getAttribute()</code>,
+                      <code>setFormValue()</code>, the fork's <code>toAttribute</code>, <code>useContext</code> (Q9)
+                    </td>
+                    <td>those APIs speak <code>null</code></td>
+                  </tr>
+                  <tr>
+                    <td>§17: render pieces are inner functions</td>
+                    <td>private methods on the controller, named for what they draw: <code>thumb()</code> (Q12)</td>
+                    <td>an element is a controller class, not a function component</td>
+                  </tr>
+                  <tr>
+                    <td>§18: PascalCase root classes, nested parts</td>
+                    <td>shadow sheets keep Fomantic's class grammar, <code>.ui.small.button</code></td>
+                    <td>a mechanical port of the <code>.less</code>; the override vocabulary people know</td>
+                  </tr>
+                  <tr>
+                    <td>§18: private tokens</td>
+                    <td>
+                      two shapes: <code>--_ui-&lt;tag&gt;-*</code> aliases a public token,
+                      <code>--_&lt;tag&gt;-*</code> is variation plumbing (Q13)
+                    </td>
+                    <td>the name says whether a page can set it</td>
+                  </tr>
+                  <tr>
+                    <td>§20: describes name the call path</td>
+                    <td>an element's is <code>"&lt;ui-button&gt; keyboard"</code> (Q8)</td>
+                    <td>the tag is the element's call path</td>
+                  </tr>
+                  <tr>
+                    <td>§10: server code is <code>.server.ts</code></td>
+                    <td>all of <code>src/static/</code> is, except its barrel (Q20)</td>
+                    <td>the static render is node only</td>
+                  </tr>
+                  <tr>
+                    <td>all of WWOD</td>
+                    <td>
+                      <a href="../../../spell-app/packages/solid-element/" target="src-packages-solid-element"
+                        ><code>packages/solid-element</code></a
+                      >
+                      and generated files are out of scope
+                    </td>
+                    <td>the fork maps 1:1 to upstream PRs; generated files are only regenerated</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+          </ui-section>
+
+          <ui-section id="bundle-size" header="Bundle size first" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Namespaces cost a family nothing: Rolldown turns <code>E.Cell</code> back into a plain import, so family
+                chunks came out byte-for-byte the same in P1's spike. <code>core</code> pays about 0.8 kB gzipped for
+                the <code>E</code> object.
+              </li>
+              <li>
+                Constants as <code>private static</code>s cost <code>forms.js</code> about 1.0 kB minified (0.27 kB
+                gzipped) when P3 first tried them: a static keeps its name when minified. That measurement is why Q18
+                moved them below the class.
+              </li>
+              <li>
+                <code>yarn measure</code>'s <code>runtimeChunks</code> and <code>coreOutsideCore</code> checks catch a
+                shared module split into a third chunk: I12 and I16 were both that, and both are fixed.
+              </li>
+              <li>
+                <code>core.js</code> is 113,020 B (33,299 gzipped) in ONE chunk now; at the start it was 90,953 B
+                (26,385) plus 4 split-off chunks every page also loaded, so the two aren't directly comparable.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="the-code" header="What a component file looks like" sticky collapsible dividing collapsed>
+            <p>
+              <a
+                href="../../../spell-app/packages/ui/src/components/ui-divider/UIDivider.tsx"
+                target="src-packages-ui-src-components-ui-divider-uidivider-tsx"
+                ><code>packages/ui/src/components/ui-divider/UIDivider.tsx</code></a
+              >, the top of it: shared code through <code>E</code> / <code>UIT</code>, peers direct, the sheet last,
+              <code>@E.proto</code> defaults first.
+            </p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>UIDivider.tsx · 25 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-ts">import { Show } from "solid-js"
+import type { JSX } from "@solidjs/web"
+
+import { E, UIT } from "$/ui/core"
+import { dividerVocabulary } from "./ui-divider.vocabulary.en"
+import { DividerFallback } from "./ui-divider.fallback"
+import { SEPARATOR } from "./ui-divider.types"
+
+import dividerCSS from "./ui-divider.css?inline"
+
+export class UIDivider extends E.UIElement&lt;typeof dividerVocabulary&gt; {
+  @E.proto static vocabulary = dividerVocabulary
+  @E.proto static styles = { divider: dividerCSS }
+  @E.proto static Fallback = DividerFallback
+
+  /** Glyph of the `icon` shorthand. */
+  readonly glyph = new E.IconGlyph(this, () =&gt; this.attrs.icon)
+
+  render(): JSX.Element {
+    return (
+      &lt;div
+        class={this.classes()}
+        role={this.attrs.hidden ? UIT.NONE : SEPARATOR}
+        ...</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ui-message state="warning" header="Heads up">
+              <ul>
+                <li>
+                  Never import an element-core leaf by path (<code>$/ui/elements/UIElement</code>): entering the import
+                  cycle there breaks it. <code>src/elements/barrel.test.ts</code> checks every export is live.
+                </li>
+                <li>
+                  A family's only constant goes BELOW its class; above it only when a static initializer or decorator
+                  reads it while the class loads, with a one-line comment saying so.
+                </li>
+              </ul>
+            </ui-message>
+          </ui-section>
+
+          <ui-section id="limits" header="Limits: what's still open" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>yarn test:hmr</code> prints 85 Solid <code>STRICT_READ_UNTRACKED</code> warnings, as it did before
+                the epic (I15).
+              </li>
+              <li>
+                WWOD §20's <code>{ ...instance }</code> compare is an error under oxlint's
+                <code>no-misused-spread</code>; one of the two needs to change (I22).
+              </li>
+              <li>
+                Two visual baselines are stale from <code>main</code> (<code>ui-menu/appearance</code>,
+                <code>ui-step/equal</code>), and 17 Firefox / WebKit tests failed before the epic too (I23, I24).
+              </li>
+              <li>
+                Behaviour that changed on purpose: flag emoji follow one rule (J47), progress reads
+                <code>indeterminate</code> as a boolean (J63), <code>&lt;ui-tabs&gt;</code> reads its host's document
+                (J65), toast <code>display-time="auto"</code> no longer counts button labels (J71).
+              </li>
+              <li>Loose ends are the plan doc's open todos (T3, T8, T14, T16-T21, T23).</li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="3-history" header="3. History" sticky collapsible dividing collapsed>
+          <p class="meta">What changed in the decision, newest first.</p>
+          <ui-feed class="spell-history" size="small">
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built: P3-P11, overnight; repo green, visual tests 609 / 615
+                  <ui-date>2026-10-06</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided: module consts below the class over private statics (Q18), for bundle size
+                  <ui-date>2026-10-05</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided: <code>Warnings</code>, not <code>$/util</code>'s Logger: "we don't want to increase the
+                  bundle size for components" (Q5) <ui-date>2026-10-05</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided: full WWOD namespaces after P1's spike measured them free for families (Q4)
+                  <ui-date>2026-10-05</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+          </ui-feed>
+        </ui-section>
+
+        <ui-section id="4-sources" header="4. Sources" sticky collapsible dividing collapsed>
+          <ui-items class="spell-sources" divided>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../../../spell-app/packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+                    ><code>packages/ui/AGENTS.md</code></a
+                  ></ui-header
+                >
+                <ui-meta>the rules</ui-meta>
+                <ui-description>Every exception above, as the rule an agent follows.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><code>yarn measure</code> (in
+                  <a href="../../../spell-app/packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
+                  >)</ui-header
+                >
+                <ui-meta
+                  >measurement ·
+                  <a href="../../../spell-app/packages/ui/tools/results/" target="src-packages-ui-tools-results"
+                    ><code>tools/results/</code></a
+                  ></ui-meta
+                >
+                <ui-description>Chunk sizes and the chunking checks behind "Bundle size first".</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../../epics/wwod-spell-ui/wwod-spell-ui.plan.html" target="wwod-spell-ui"
+                    >The plan doc</a
+                  ></ui-header
+                >
+                <ui-meta>record · Q1-Q20, J1-J107</ui-meta>
+                <ui-description
+                  >The questions and judgement calls each exception cites, with the options weighed.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+          </ui-items>
+        </ui-section>
+
+        <footer class="spell-doc-footer">
+          <ui-divider></ui-divider>
+          <p class="meta">Last checked 2026-10-06 against branch <code>wwod-spell-ui</code>.</p>
+        </footer>
+      </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="../../packages/docs/tools/_assets/spell-ui.js"></script>
+  </body>
+</html>
