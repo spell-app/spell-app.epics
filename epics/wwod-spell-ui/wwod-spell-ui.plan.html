@@ -1136,9 +1136,10 @@
                 ><b>To review:</b> <a href="#j74">J74</a>, <a href="#j75">J75</a>, <a href="#j76">J76</a>,
                 <a href="#j77">J77</a>, <a href="#j78">J78</a>, <a href="#j79">J79</a>, <a href="#j80">J80</a>,
                 <a href="#j81">J81</a>, <a href="#j82">J82</a>, <a href="#j83">J83</a>, <a href="#j84">J84</a>,
-                <a href="#j85">J85</a>, <a href="#c12">C12</a>, <a href="#c13">C13</a>, <a href="#c14">C14</a>,
+                <a href="#j85">J85</a>, <a href="#j86">J86</a>, <a href="#j87">J87</a>, <a href="#j88">J88</a>,
+                <a href="#j89">J89</a>, <a href="#c12">C12</a>, <a href="#c13">C13</a>, <a href="#c14">C14</a>,
                 <a href="#t17">T17</a>, <a href="#t18">T18</a>, <a href="#t19">T19</a>, <a href="#t20">T20</a>,
-                <a href="#i19">I19</a></ui-item
+                <a href="#t21">T21</a>, <a href="#i19">I19</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -8085,6 +8086,313 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:55:51-04:00"
+              id="j86"
+              data-status="open"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j86">J86</a>
+                  <span class="plan-title"
+                    >P7 Docs 2: site files fail through E.SourceError, via SiteData.request(), not UI.sources</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The site's three hand-rolled fetches (<a
+                      href="../../packages/ui/src/docs-components/SiteData.ts"
+                      target="src-packages-ui-src-docs-components-sitedata-ts"
+                      ><code>SiteData.ts</code></a
+                    >, <code>ui-docs-search/SearchData.ts</code>,
+                    <a href="../../packages/ui/site/_src/SiteShell.ts" target="src-packages-ui-site-src-siteshell-ts"
+                      ><code>site/_src/SiteShell.ts</code></a
+                    >) checked <code>response.ok</code> and threw a plain <code>Error</code>. They now share ONE helper,
+                    <code>SiteData.request(url, { method, fix })</code>, which throws a <code>load</code>
+                    <code>E.SourceError</code> (P3's shape: <code>cause: { kind, status }</code>, or the network error
+                    as <code>cause.error</code>) with a house message, e.g.
+                    <code
+                      >SiteData.load(): …/components.json answered 404 Not Found; run `yarn site:data` in packages/ui,
+                      or check `SiteData.url`</code
+                    >.
+                  </p>
+                  <ul>
+                    <li>
+                      Chosen over <code>UI.sources.load()</code>, which (1) refuses <code>data:</code> URLs as
+                      cross-origin, and the docs tests point <code>SiteData.url</code> at one; (2) needs the runtime
+                      chunk, which the layout fetch (<code>SiteShell.mount()</code>, before
+                      <code>&lt;ui-root&gt;</code>) must not wait for; (3) caches the 780 KB text beside the parsed
+                      JSON.
+                    </li>
+                    <li>
+                      <code>$fetch</code> / <code>ResponseError</code> live in <code>$/util/spell</code>, which
+                      <code>ui</code> must not import.
+                    </li>
+                    <li>
+                      <a
+                        href="../../packages/ui/src/docs-components/SiteData.ts"
+                        target="src-packages-ui-src-docs-components-sitedata-ts"
+                        ><code>SiteData.ts</code></a
+                      >
+                      now imports <code>E</code> from <code>$/ui/core</code>: every bundle that loads it (the site
+                      entry, <code>brand-docs.js</code>) already had the core through <code>ExampleSource</code>.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      same failures, typed and worded the house way; a layout that has no <code>.site-content</code> is
+                      a <code>render</code> <code>SourceError</code>; <code>SiteRouter</code>'s swap failures (no
+                      <code>main#main</code>, an include <code>ui-error</code>, the 10 s timeout) are
+                      <code>SourceError</code>s too
+                    </li>
+                    <li>
+                      every site warning goes through <code>E.Warnings.warn("Spell UI site", …)</code> (was 3 bare
+                      <code>console.warn</code>s: <code>SiteShell</code>, <code>SiteRouter</code>,
+                      <code>site.ts</code>); <code>UIDocsSearch</code>'s was already <code>Warnings</code> (P2)
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:56:00-04:00"
+              id="j87"
+              data-status="open"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j87">J87</a>
+                  <span class="plan-title"
+                    >P7 Docs 2: SiteData.reset() / SearchData.reset() agree: no URL means back to the default</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The twin loaders disagreed (I10): <code>SiteData.reset()</code> kept its URL,
+                    <code>SearchData.reset()</code> cleared it, so tests wrote
+                    <code>SiteData.reset(); SiteData.url = undefined</code>. Both now take SearchData's rule:
+                    <code>reset(url?)</code> forgets the fetch and SETS <code>url</code>, so <code>reset()</code> is
+                    back to the page's own default (the <code>&lt;meta&gt;</code> / <code>SITE_DATA_PATH</code>; beside
+                    the data file).
+                  </p>
+                  <ul>
+                    <li>
+                      Chosen because <code>reset()</code> reads as "back to the start", and no shipped code calls it
+                      (only tests, which always want a clean slate).
+                    </li>
+                    <li>
+                      One shape, not one class: both keep the same static surface (<code>url</code>,
+                      <code>load()</code>, <code>reset(url?)</code>) and fetch through the same
+                      <code>SiteData.request()</code>.
+                    </li>
+                    <li>
+                      Rejected: a shared <code>SiteFile&lt;T&gt;</code> base. Statics on a base are shared by its
+                      subclasses (one <code>loading</code> for both files) unless each redeclares them, and instance
+                      singletons (<code>SiteData.file.url</code>) would change <code>SiteData.url</code> for
+                      <code>site.ts</code>,
+                      <a href="../../packages/brand/src/brand-docs.ts" target="src-packages-brand-src-brand-docs-ts"
+                        ><code>brand-docs.ts</code></a
+                      >
+                      and ~40 test lines, for two 30-line classes.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      the tests' <code>SiteData.url = undefined</code> after <code>reset()</code> is now redundant (left
+                      for P8, which restyles tests)
+                    </li>
+                    <li>
+                      a caller that wanted reset-but-keep-the-URL passes it:
+                      <code>SiteData.reset(SiteData.url)</code> (none does)
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:56:07-04:00"
+              id="j88"
+              data-status="open"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j88">J88</a>
+                  <span class="plan-title"
+                    >P7 Docs 2: FOLDS_KEY lives in a new site/_src/site.types.ts, not in SiteSections</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The folds key, <code>"spell-ui-site:folds:"</code>, was written twice:
+                    <a
+                      href="../../packages/ui/site/_src/SiteSections.ts"
+                      target="src-packages-ui-site-src-sitesections-ts"
+                      ><code>site/_src/SiteSections.ts</code></a
+                    >
+                    and
+                    <a href="../../packages/ui/tools/SiteCheck.ts" target="src-packages-ui-tools-sitecheck-ts"
+                      ><code>tools/SiteCheck.ts</code></a
+                    >. The ask was SiteSections as the one source, if node can load it. It can't:
+                    <code>SiteSections</code> imports <code>SiteData</code>, which now imports
+                    <code>$/ui/core</code> (the element layer, Solid), and node can't load that.
+                  </p>
+                  <ul>
+                    <li>
+                      So the site glue got its own pure-data types file,
+                      <a
+                        href="../../packages/ui/site/_src/site.types.ts"
+                        target="src-packages-ui-site-src-site-types-ts"
+                        ><code>site/_src/site.types.ts</code></a
+                      >
+                      (no imports at all): <code>FOLDS_KEY</code>, and <code>PAGE_MAIN = "main#main"</code> (written 5
+                      times across <code>SiteShell</code> / <code>SiteRouter</code>).
+                    </li>
+                    <li>
+                      <code>SiteSections</code> reads it;
+                      <a href="../../packages/ui/tools/SiteCheck.ts" target="src-packages-ui-tools-sitecheck-ts"
+                        ><code>tools/SiteCheck.ts</code></a
+                      >
+                      imports it by path (<code>../site/_src/site.types.ts</code>) -- the P9 tools agent wired that in
+                      the same night.
+                    </li>
+                    <li>
+                      Rejected:
+                      <a
+                        href="../../packages/ui/src/docs-components/docs-components.types.ts"
+                        target="src-packages-ui-src-docs-components-docs-components-types-ts"
+                        ><code>docs-components.types.ts</code></a
+                      >
+                      as its home: the key is the site glue's, not the docs elements'.
+                    </li>
+                  </ul>
+                  <p>
+                    <b>Net effect:</b> one copy; a new file in
+                    <a href="../../packages/ui/site/_src/" target="src-packages-ui-site-src"><code>site/_src/</code></a
+                    >.
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-bedtime
+              data-changed="2026-10-06T00:56:27-04:00"
+              id="j89"
+              data-status="open"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j89">J89</a>
+                  <span class="plan-title">P7 Docs 2: nav / search / toc / site glue renames and shapes</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    What the recipe changed in <code>ui-docs-nav</code>, <code>ui-docs-search</code>,
+                    <code>ui-docs-toc</code> and
+                    <a href="../../packages/ui/site/_src/" target="src-packages-ui-site-src"><code>site/_src/</code></a
+                    >, beyond imports (<code>E</code> / <code>UI</code> / <code>UIT</code>) and docstrings. Every caller
+                    is in <a href="../../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
+                    >, all fixed.
+                  </p>
+                  <ul>
+                    <li>
+                      Sets as const arrays: <code>DocsSchemes</code> (was <code>DOCS_SCHEMES</code> + an inline union;
+                      <code>DocsShownScheme</code> is <code>Exclude&lt;DocsScheme, "system"&gt;</code>),
+                      <code>SearchKinds</code> (was <code>SearchKind</code> + <code>KIND_ORDER</code> listing the same
+                      strings), <code>NavViews</code>, <code>NavGroups</code>
+                    </li>
+                    <li>
+                      Constructors take one props object: <code>new SearchIndex({ data, search })</code> (was
+                      <code>(data, search?)</code>; 2 test calls), <code>new SiteRouter({ siteRoot, content })</code>
+                    </li>
+                    <li>
+                      Positional booleans gone: <code>SiteRouter.land(url, { scrollY, isFirst })</code> and
+                      <code>SiteSections.show(main, { isFirst })</code> (were <code>land(url, undefined, true)</code> /
+                      <code>show(main, first)</code>); <code>restoreFolds(main, { isInstant })</code>;
+                      <code>UIDocsToc.schedule("rescan" | "follow")</code> and
+                      <code>reveal("page load" | "hash change")</code>;
+                      <code>UIDocsSearch.clear(event, true)</code> became <code>onClearClick()</code>;
+                      <code>showCard(shown)</code> became <code>openCard()</code> / <code>closeCard()</code>;
+                      <code>UIDocsNav.flip(set, item, present)</code> became
+                      <code>copyWith(set, item, "add" | "delete")</code>
+                    </li>
+                    <li>
+                      4+ params: <code>UIDocsNav.group({ group, title, body, extra })</code>,
+                      <code>SearchIndex.match({ entry, key, query, words, bonus })</code>;
+                      <code>toggleFavorite({ tag, star, event })</code>
+                    </li>
+                    <li>
+                      Render pieces as bare nouns: <code>renderOption</code> -&gt; <code>option</code> (its lookup -&gt;
+                      <code>optionFor</code>), <code>renderSection</code> / <code>renderEntries</code> -&gt;
+                      <code>section</code> / <code>entries</code>; lookups <code>xFor</code>: <code>optionIdFor</code>,
+                      <code>indexFor</code>, <code>dataTargetFor</code>, <code>scrollerFor</code> (now on
+                      <code>E.flatParentFor()</code>: the same climb, so the private <code>flatParent()</code> and its
+                      <code>null</code> went), <code>reservedIdsFor</code>
+                    </li>
+                    <li>
+                      Booleans <code>is</code> / <code>has</code>: public controller fields <code>searching</code> /
+                      <code>autoClosed</code> / <code>settled</code> (nav), <code>open</code> / <code>preparing</code> /
+                      <code>searching</code> / <code>shown</code> / <code>loading</code> (search) -&gt;
+                      <code>isX</code>; nothing outside the class read them. The host STATES keep their names.
+                      <code>UIDocsSearch.segments()</code> pieces: <code>mark</code> -&gt;
+                      <code>isMarked</code> (<code>TitleSegment</code>, in the types file)
+                    </li>
+                    <li>
+                      One-class constants -&gt; module consts below the class (Q18):
+                      <code>PageOutline.SECTIONS / NOT_PAGE / PANES</code>,
+                      <code>SearchIndex.PAGE_BOOST / HERE_BOOST / LENGTH_COST</code>,
+                      <code>UIDocsSearch.EMPTY / LISTBOX</code>, <code>DocsSearchFallback.LIST</code>,
+                      <code>UIDocsNav.SEARCHED</code>, every <code>SiteRouter</code> / <code>SiteShell</code> /
+                      <code>SiteSections</code> static constant; shadow class words -&gt; constants (shared ones in the
+                      types files: nav <code>ROWS / ROW / HEADING / BAND</code>, search <code>FIELD</code>)
+                    </li>
+                    <li>
+                      <code>null</code> -&gt; <code>undefined</code>: <code>PageOutline.read(root?: Element)</code> (the
+                      search passes <code>querySelector() ?? undefined</code>; 1 test), its pane lookup;
+                      <code>SiteSections</code>' climbs (<code>sectionAround()</code>)
+                    </li>
+                    <li>
+                      <code>TocIndex</code>: <code>instanceof Element</code> -&gt; <code>localName</code> (node scripts
+                      run it on linkedom); <code>FollowedContent</code> type;
+                      <code>UIDocsToc.followedContent()</code> replaces three copies of the
+                      <code>TocIndex.followed(…, this.attrs.for || undefined)</code> call
+                    </li>
+                    <li>
+                      The docs fallbacks read their English texts through the other agent's new
+                      <code>VocabularyTexts.english()</code> (nav, search, toc; the toc's label was
+                      <code>texts[0]</code>)
+                    </li>
+                    <li>
+                      <code>ThemePreference</code>, <code>site.ts</code>, <code>SiteRouter</code> import
+                      <code>E</code> / <code>UI</code> from <code>$/ui/core</code> (were <code>$/ui/runtime</code> /
+                      <code>$/ui/icons</code>): the site entry loads the core anyway
+                    </li>
+                  </ul>
+                  <p><b>Behaviour changes, small:</b></p>
+                  <ul>
+                    <li>
+                      <code>NavPreferences.closedGroups()</code> drops names that aren't a <code>NavGroup</code> (it
+                      kept them; the element only asked about its own), and is typed <code>NavGroup[]</code>
+                    </li>
+                    <li>
+                      a click on a <code>data-nav-group</code> / <code>data-nav-view</code> value that isn't one is
+                      ignored (was cast)
+                    </li>
+                  </ul>
+                  <p>
+                    <b>Net effect:</b> no public API outside the site bundle and the doc-only families changed;
+                    <code>site.js</code> +2.2 kB min / +1.2 kB gz, most of it the house messages,
+                    <code>E.Warnings</code> and the other agent's <code>VocabularyTexts</code> /
+                    <code>HeadingLevels</code> landing in the entry (the module <code>ThemePreference</code> also
+                    reads).
+                  </p></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -9305,6 +9613,44 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                   </p></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="recent"
+              data-bedtime
+              data-changed="2026-10-06T00:56:34-04:00"
+              id="t21"
+              data-status="open"
+              data-phase="7"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#t21">T21</a>
+                  <span class="plan-title"
+                    >P9: scripts/site-sections.ts SiteSections.shift(text, extra, true) positional boolean</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="7">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The audit filed <code>SiteSections.shift(…, true)</code> under P7, but that
+                    <code>SiteSections</code> is the SCRIPT's class (<code>scripts/site-sections.ts:145,282</code>,
+                    <code>yarn site:sections</code>), not the site bundle's
+                    <a
+                      href="../../packages/ui/site/_src/SiteSections.ts"
+                      target="src-packages-ui-site-src-sitesections-ts"
+                      ><code>site/_src/SiteSections.ts</code></a
+                    >
+                    (which has no <code>shift()</code>). Scripts are P9's, so P7 left it.
+                  </p>
+                  <ul>
+                    <li>
+                      Fix: a sentinel or named option for its third parameter, e.g.
+                      <code>shift(text, extra, { firstLineToo: true })</code>.
+                    </li>
+                    <li>
+                      Two classes named <code>SiteSections</code> in one package is confusing too: consider renaming the
+                      script's (<code>SectionNester</code>?).
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -9489,10 +9835,10 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
               ></ui-item
             ><ui-item
               data-bedtime
-              data-state="attention"
-              data-changed="2026-10-06T00:43:19-04:00"
+              data-state="recent"
+              data-changed="2026-10-06T01:18:23-04:00"
               id="i10"
-              data-status="open"
+              data-status="done"
               ><ui-accordion class="plan-item"
                 ><ui-title
                   ><a class="plan-id" href="#i10">I10</a>
@@ -9553,7 +9899,112 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                       <li>2 / 3 bullets done; I10 can close once P7 confirms <code>SiteData.reset()</code></li>
                     </ul>
                   </div>
-                </ui-content></ui-accordion
+                  <div class="plan-reply">
+                    <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-06 00:58</time> · re: I10</div>
+                    <p>
+                      Confirmed: the <code>SiteData.reset()</code> bullet is done (P7, Docs 2). Both loaders now follow
+                      <code>SearchData</code>'s rule: <code>reset(url?)</code> forgets the fetch and SETS
+                      <code>url</code>, so a bare <code>reset()</code> goes back to the default. They share one fetch,
+                      <code>SiteData.request()</code>, which throws a <code>load</code> <code>E.SourceError</code>. Why
+                      that rule, and the rejected <code>SiteFile&lt;T&gt;</code> base: J87.
+                    </p>
+                    <p>
+                      <b>Net effect:</b> with P9's two above, all three bullets are done; left OPEN only because P7's
+                      brief said to, for whoever closes the phase.
+                    </p>
+                  </div>
+                  <ui-accordion class="spell-aside plan-original" styled
+                    ><ui-title>Original Discussion</ui-title
+                    ><ui-content
+                      ><div class="plan-version">
+                        <ul>
+                          <li>
+                            <code>tools/screenshots.ts:19,30</code>: Vite on 5198 without <code>strictPort</code>, then
+                            a hard-coded URL; if the port is busy it screenshots the wrong server
+                          </li>
+                          <li>
+                            <code>SiteData.reset()</code> keeps its URL, <code>SearchData.reset()</code> clears it
+                          </li>
+                          <li>
+                            <a href="../../vitest.config.ts" target="src-vitest-config-ts"
+                              ><code>vitest.config.ts:64</code></a
+                            >
+                            <code>Boolean(process.env.CI)</code>: <code>CI=false</code> counts as CI
+                          </li>
+                        </ul>
+                        <p>P7 / P9.</p>
+                        <div class="plan-reply">
+                          <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-06 00:43</time> · re: I10</div>
+                          <p>P9 ("Tools 2") fixed two of the three bullets:</p>
+                          <ul>
+                            <li>
+                              <b>Done:</b> the screenshots port.
+                              <a
+                                href="../../packages/ui/tools/screenshots.ts"
+                                target="src-packages-ui-tools-screenshots-ts"
+                                ><code>tools/screenshots.ts</code></a
+                              >
+                              now starts Vite through the new
+                              <a href="../../packages/ui/tools/DevServer.ts" target="src-packages-ui-tools-devserver-ts"
+                                ><code>tools/DevServer.ts</code></a
+                              >, which takes 5198 or the next free port and hands back where Vite REALLY listens
+                              (<code>resolvedUrls</code>), so a busy port can't send it to another server.
+                              <code>yarn test:visual</code> (<code>VisualRunner</code>) and
+                              <code>yarn test:hmr</code> use the same class. Also found and fixed on the way:
+                              <code>yarn screenshots button</code> shot nothing (the demo's <code>?only=</code> compared
+                              <code>button</code> with <code>ui-button</code>); <code>?only=</code> now takes either.
+                            </li>
+                            <li>
+                              <b>Done:</b> <code>CI=false</code>.
+                              <a href="../../vitest.config.ts" target="src-vitest-config-ts"
+                                ><code>vitest.config.ts</code></a
+                              >
+                              reads <code>environment.isCI</code> (<a
+                                href="../../packages/ui/tools/environment.ts"
+                                target="src-packages-ui-tools-environment-ts"
+                                ><code>tools/environment.ts</code></a
+                              >): unset, empty, <code>0</code>, <code>false</code>, <code>no</code> or
+                              <code>off</code> mean not CI; any other value means CI.
+                            </li>
+                            <li>
+                              <b>Not mine:</b> <code>SiteData.reset()</code> is P7's ("Docs 2"). The working tree
+                              already clears its URL like <code>SearchData.reset()</code>, but no reply from that agent
+                              says so yet, so I10 stays open for it to close.
+                            </li>
+                          </ul>
+                          <p><b>Net effect:</b></p>
+                          <ul>
+                            <li>2 / 3 bullets done; I10 can close once P7 confirms <code>SiteData.reset()</code></li>
+                          </ul>
+                        </div>
+                        <div class="plan-reply">
+                          <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-06 01:05</time> · re: I10</div>
+                          <p>
+                            The <code>SiteData.reset()</code> bullet is done (P7, Docs 2): both loaders now follow
+                            <code>SearchData</code>'s rule, <code>reset(url?)</code> forgets the fetch and SETS
+                            <code>url</code>, so a bare <code>reset()</code> goes back to the default. They share one
+                            fetch, <code>SiteData.request()</code>, which throws a <code>load</code>
+                            <code>E.SourceError</code>. Why that rule, and the rejected
+                            <code>SiteFile&lt;T&gt;</code> base: J87. I10 stays open for its other bullets (the
+                            screenshots port, <code>CI=false</code>), which are P9's.
+                          </p>
+                        </div>
+                        <div class="plan-reply">
+                          <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-06 01:05</time> · re: I10</div>
+                          <p>
+                            The <code>SiteData.reset()</code> bullet is done (P7, Docs 2): both loaders now follow
+                            <code>SearchData</code>'s rule, <code>reset(url?)</code> forgets the fetch and SETS
+                            <code>url</code>, so a bare <code>reset()</code> goes back to the default. They share one
+                            fetch, <code>SiteData.request()</code>, which throws a <code>load</code>
+                            <code>E.SourceError</code>. Why that rule, and the rejected
+                            <code>SiteFile&lt;T&gt;</code> base: J87. I10 stays open for its other bullets (the
+                            screenshots port, <code>CI=false</code>), which are P9's.
+                          </p>
+                        </div>
+                      </div></ui-content
+                    ></ui-accordion
+                  ></ui-content
+                ></ui-accordion
               ></ui-item
             ><ui-item
               data-bedtime
@@ -11098,6 +11549,34 @@ UIPopup.addAnchorName(target, name)   UIPopup.removeAnchorName(target, name)   U
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-06T00:55-04:00">2026-10-06 00:55</time></ui-date> I20 closed: P9
                   tools: yarn smoke's declarations step failed on ./x.js imports in dist/*.d.ts</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T00:56-04:00">2026-10-06 00:56</time></ui-date> I10 reply
+                  added</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T00:56-04:00">2026-10-06 00:56</time></ui-date> I10 reply
+                  added</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T00:57-04:00">2026-10-06 00:57</time></ui-date> I10 details
+                  rewritten</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T01:18-04:00">2026-10-06 01:18</time></ui-date> I10 closed: Small
+                  tool bugs: screenshots port, SiteData.reset(), CI=false</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed

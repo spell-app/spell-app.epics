@@ -52,7 +52,8 @@ ui/                     (shared:  this folder)
 packages/ui/site/       (tracked, per branch)
   _src/                 site.ts (the bundle's entry:  what's in it and why), snapshot.ts, SiteShell.ts (mounts the
                         layout), SiteRouter.ts (swaps pages), SiteSections.ts (sticky offsets, folds, landing on a
-                        hash), site.css (layout glue only)
+                        hash), site.types.ts (their shared constants, which `tools/SiteCheck.ts` reads too), site.css
+                        (layout glue only)
   _assets/              GENERATED, committed:  the bundle (`site.js`, `site.css`, a lazy chunk per family);
                         `icon-packs` is a SYMLINK to `../../src/icons/icon-packs`.  NEVER edit
   _data/                components.json, icons.json, custom-elements.json, html-custom-data.json (GENERATED,
