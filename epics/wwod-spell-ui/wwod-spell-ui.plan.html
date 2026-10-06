@@ -767,8 +767,8 @@
                 <a href="#j9">J9</a>, <a href="#j10">J10</a>, <a href="#j11">J11</a>, <a href="#j12">J12</a>,
                 <a href="#j13">J13</a>, <a href="#j14">J14</a>, <a href="#j15">J15</a>, <a href="#j16">J16</a>,
                 <a href="#j17">J17</a>, <a href="#j18">J18</a>, <a href="#j19">J19</a>, <a href="#j20">J20</a>,
-                <a href="#j21">J21</a>, <a href="#c8">C8</a>, <a href="#c9">C9</a>, <a href="#i14">I14</a>,
-                <a href="#i15">I15</a></ui-item
+                <a href="#j21">J21</a>, <a href="#j22">J22</a>, <a href="#j23">J23</a>, <a href="#c8">C8</a>,
+                <a href="#c9">C9</a>, <a href="#c10">C10</a>, <a href="#i14">I14</a>, <a href="#i15">I15</a></ui-item
               ></ui-list
             >
           </ui-section>
@@ -3851,6 +3851,138 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T22:37:24-04:00"
+              id="j22"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j22">J22</a>
+                  <span class="plan-title"
+                    >P3 core namespace: element core imports itself through E / F; load-time uses stay direct</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Every file in
+                    <a href="../../packages/ui/src/elements/" target="src-packages-ui-src-elements"
+                      ><code>src/elements/</code></a
+                    >
+                    now imports the core as <code>import { E, UI, type UIT } from "$/ui/core"</code> (forms files also
+                    <code>import type { F } from "$/ui/forms"</code>) and qualifies at the use site
+                    (<code>E.Cell</code>, <code>E.Warnings</code>, <code>E.flatParentFor()</code>). Only what a module
+                    reads WHILE IT EVALUATES stays a direct import, under
+                    <code>// Import directly to avoid circular import</code>:
+                  </p>
+                  <ul>
+                    <li>
+                      <code>proto</code> from <code>$/ui/util</code> (decorators): ClassBuilder, NativeFallback,
+                      UIElement, ContentPart, SourceElement
+                    </li>
+                    <li>
+                      <code>./UIHost</code> (extends / <code>@proto static Host</code>): UIElement, SourceHost,
+                      SourceBodyHost
+                    </li>
+                    <li><code>./UIElement</code> (extends): ContentPart, SourceElement</li>
+                    <li>
+                      <code>./SourceHost</code> (<code>@proto static Host</code>) and <code>SOURCE_LOADER_TAG</code> /
+                      <code>SOURCE_MESSAGE_TAG</code> from <code>./elements.types</code> (computed keys of
+                      <code>static STATUS_ATTRIBUTES</code>): SourceElement
+                    </li>
+                    <li><code>./Cell</code> (<code>static readonly generation = new Cell(0)</code>): RootSettings</li>
+                    <li>
+                      <code>./FormHost</code>, <code>./Validator</code> (<code>@proto static Host</code>,
+                      <code>static validator = new Validator()</code>): FormElement
+                    </li>
+                  </ul>
+                  <p>
+                    Chose <code>extends E.UIElement</code> / <code>@E.proto</code> / <code>extends E.UIHost</code> in
+                    the forms files (FormElement, FormHost, Validator) over keeping named imports from
+                    <code>$/ui/core</code>: the core never imports <code>forms</code>, so it has always finished loading
+                    before a forms file runs; a direct leaf import there would split a third chunk.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      no named import from <code>./elements.types</code>, <code>./Cell</code>,
+                      <code>$/ui/vocabulary</code>, <code>$/ui/runtime</code>, <code>$/ui/icons</code> left in the
+                      folder;
+                      <a
+                        href="../../packages/ui/src/elements/elements.types.ts"
+                        target="src-packages-ui-src-elements-elements-types-ts"
+                        ><code>elements.types.ts</code></a
+                      >
+                      is <code>import type { E }</code> only
+                    </li>
+                    <li>
+                      bundles byte-for-byte unchanged (<code>yarn measure</code>: core 75127 / 24378, forms 22021 /
+                      7832, every check clean)
+                    </li>
+                    <li>
+                      <code>NativeFallback</code>'s protected <code>decorate&lt;E&gt;()</code> /
+                      <code>listen&lt;E&gt;()</code> generics renamed to <code>T</code> (they shadowed the namespace);
+                      no caller changes
+                    </li>
+                    <li>
+                      new
+                      <a
+                        href="../../packages/ui/src/elements/barrel.test.ts"
+                        target="src-packages-ui-src-elements-barrel-test-ts"
+                        ><code>src/elements/barrel.test.ts</code></a
+                      >
+                      proves every export of both entries is live and <code>E</code> / <code>F</code> hold the same
+                      objects;
+                      <a href="../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+                        ><code>packages/ui/AGENTS.md</code></a
+                      >
+                      "Solid authoring" / "Imports" state the rule
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-05T22:37:35-04:00"
+              id="j23"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j23">J23</a>
+                  <span class="plan-title">P3 core namespace: LabelWatch stays a direct import, outside F</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>ControlLabels</code> imports its helper <code>LabelWatch</code> directly (<code
+                      >import { LabelWatch } from "./LabelWatch"</code
+                    >), not as <code>F.LabelWatch</code>.
+                  </p>
+                  <p>
+                    Chose that over adding <code>LabelWatch</code> to
+                    <a href="../../packages/ui/src/forms.ts" target="src-packages-ui-src-forms-ts"
+                      ><code>forms.ts</code></a
+                    >
+                    because it is <code>ControlLabels</code>' private helper, deliberately in neither the
+                    <code>$/ui/elements</code> barrel nor the <code>forms</code> entry: exporting it would make it
+                    public API of <code>@spell-app/ui/forms</code> (and <code>F</code> in the <code>api</code> entry)
+                    just to satisfy the namespace rule. WWOD only forbids reaching into a leaf for something its barrel
+                    exports.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      the one peer import left in the forms files that is NOT a load-time exception; commented
+                      <code>// Not in the forms entry: ControlLabels' own helper</code>
+                    </li>
+                    <li>
+                      <code>LabelWatch</code> itself uses <code>E</code> and
+                      <code>import type { F }</code> (<code>F.ControlLabels</code>)
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -4093,6 +4225,52 @@ this.normalize(value, options.trim ?? true)  =&gt;  this.normalize(value, option
                       Every P5-P7 family that moves constants into private statics pays the same, a few dozen bytes each
                     </li>
                   </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="open"
+              data-changed="2026-10-05T22:37:35-04:00"
+              id="c10"
+              data-status="open"
+              data-phase="3"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#c10">C10</a>
+                  <span class="plan-title"
+                    >P3 core namespace: an element-core leaf can no longer be the first module loaded</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="3">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Now that the element-core files import <code>$/ui/core</code> back, the folder is one cycle.
+                    Entering it at a leaf that the core reads while it evaluates throws: e.g.
+                    <code>import "$/ui/elements/UIElement"</code> first would load the core, which loads
+                    <code>ContentPart</code>, whose <code>extends UIElement</code> meets a module still mid-load (a TDZ
+                    <code>ReferenceError</code>).
+                  </p>
+                  <ul>
+                    <li>
+                      Nothing does that: only <code>core.ts</code> /
+                      <a href="../../packages/ui/src/forms.ts" target="src-packages-ui-src-forms-ts"
+                        ><code>forms.ts</code></a
+                      >
+                      import the leaves by path; tests and <code>$/ui/static</code> enter through
+                      <code>$/ui/elements</code>, whose first class file (<code>ClassBuilder</code>) nothing reads at
+                      load time. Both routes pass (browser 4695 + 1 todo, ssr 255).
+                    </li>
+                    <li>
+                      Also: the library-neutral pieces (<code>ClassBuilder</code>, <code>Validator</code>,
+                      <code>MenuOptions</code>, <code>Shorthand</code>, <code>StickyWatch</code> ...) now load the whole
+                      core (and Solid) when imported; their CODE still uses no Solid. No node script imports them alone.
+                    </li>
+                  </ul>
+                  <p>
+                    <b>Net effect:</b>
+                    <a href="../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+                      ><code>packages/ui/AGENTS.md</code></a
+                    >
+                    says NEVER import an element-core leaf by path; <code>barrel.test.ts</code> documents why.
+                  </p></ui-content
                 ></ui-accordion
               ></ui-item
             ></ui-list
