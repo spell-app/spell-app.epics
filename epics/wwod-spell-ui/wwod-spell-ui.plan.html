@@ -6582,7 +6582,7 @@ return this.derive(
             ><ui-item
               data-state="attention"
               data-bedtime
-              data-changed="2026-10-05T23:21:54-04:00"
+              data-changed="2026-10-06T10:28:52-04:00"
               id="j33"
               data-status="open"
               data-phase="4"
@@ -6616,8 +6616,394 @@ return this.derive(
                     <b>Net effect:</b> names follow WWOD; the bodies are as before (one comment on
                     <code>syncSoon()</code> says why); <code>AppStylesheetProps.debounce</code> is now
                     <code>syncDelay</code> (nothing passed it).
-                  </p></ui-content
-                ></ui-accordion
+                  </p>
+                  <div class="plan-reply">
+                    <div class="plan-reply-title">
+                      <b>Claude</b> · <time>2026-10-06 10:27</time> · re: "Doesn't lodash have a debounce we can pull in
+                      cheaply? If not, add shared to ui/utils"
+                    </div>
+                    <p>
+                      <b>The short answer:</b> lodash does have one, but it is NOT cheap: about 1.4 kB gzipped, roughly
+                      15 times what a 10-line helper costs. And neither of the two members this item is about
+                      (<code>syncSoon()</code>, <code>checkSoon()</code>) can use a plain debounce, whoever writes it.
+                    </p>
+                    <p>Words used below:</p>
+                    <ul>
+                      <li>
+                        <b>time debounce:</b> "run once things have been quiet for N ms". Each new call restarts the
+                        clock (<code>clearTimeout</code> + <code>setTimeout(fn, ms)</code>).
+                      </li>
+                      <li>
+                        <b>coalescer:</b> "run once, soon, however many times I'm asked". No delay: it waits for the end
+                        of the current task (<code>setTimeout(fn)</code> with a flag) or the next frame
+                        (<code>requestAnimationFrame</code>). This is NOT a time debounce, and lodash's
+                        <code>debounce()</code> doesn't model it.
+                      </li>
+                    </ul>
+
+                    <p>
+                      <b
+                        >1. Every hand-rolled "soon" in
+                        <a href="../../packages/ui/src/" target="src-packages-ui-src"
+                          ><code>packages/ui/src</code></a
+                        ></b
+                      >
+                    </p>
+                    <p>
+                      I searched for <code>Soon(</code>, <code>setTimeout</code>, <code>requestAnimationFrame</code> and
+                      <code>queueMicrotask</code>. These are the ones that defer or coalesce work (paths under
+                      <a href="../../packages/ui/src/" target="src-packages-ui-src"><code>packages/ui/src/</code></a
+                      >):
+                    </p>
+                    <ui-table compact celled
+                      ><table>
+                        <thead>
+                          <tr>
+                            <th>Member</th>
+                            <th>File:line</th>
+                            <th>Kind</th>
+                            <th>What it does</th>
+                            <th>Fits a plain debounce?</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><code>AppStylesheet.syncSoon()</code></td>
+                            <td><code>runtime/AppStylesheet.ts:104</code></td>
+                            <td>time debounce, 30 ms</td>
+                            <td>
+                              Re-reads the page's app stylesheet once DOM changes stop for 30 ms. It also sets
+                              <code>ready</code> to a promise of that coming sync.
+                            </td>
+                            <td>
+                              <b>No.</b> <code>ready</code> needs a promise of the NEXT run; lodash's returns the LAST
+                              run's result
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><code>VisibilityWatch.checkSoon()</code></td>
+                            <td><code>runtime/Visibility.ts:179</code></td>
+                            <td>coalescer, one per task</td>
+                            <td>
+                              Three intersection observers report the same scroll crossing; this makes it ONE check.
+                            </td>
+                            <td><b>No.</b> No delay to wait out</td>
+                          </tr>
+                          <tr>
+                            <td><code>UIForm.checkFieldSoon(id)</code></td>
+                            <td><code>components/ui-form/UIForm.tsx:300</code></td>
+                            <td>coalescer, one per task per field</td>
+                            <td>Validates a field once its control's new value has landed.</td>
+                            <td><b>No.</b> Per field, no delay</td>
+                          </tr>
+                          <tr>
+                            <td><code>UIDocsToc.schedule(update)</code></td>
+                            <td><code>docs-components/ui-docs-toc/UIDocsToc.tsx:219</code></td>
+                            <td>coalescer, one per frame</td>
+                            <td>One table-of-contents update per frame; a rescan beats a follow.</td>
+                            <td><b>No.</b> Frame-based, docs site only</td>
+                          </tr>
+                          <tr>
+                            <td><code>UIDocsNav.closeSoon(topic)</code></td>
+                            <td><code>docs-components/ui-docs-nav/UIDocsNav.tsx:605</code></td>
+                            <td>wait two frames</td>
+                            <td>Ends a fold's <code>closing</code> state when no transition ran.</td>
+                            <td><b>No.</b> A wait, not a coalesce</td>
+                          </tr>
+                          <tr>
+                            <td><code>UIDropdown.typeAhead()</code></td>
+                            <td><code>components/ui-dropdown/UIDropdown.tsx:795</code></td>
+                            <td>time debounce, 500 ms</td>
+                            <td>Clears the type-ahead letters 500 ms after the last key.</td>
+                            <td><b>Yes</b></td>
+                          </tr>
+                          <tr>
+                            <td><code>UICode.onCopy</code></td>
+                            <td><code>components/ui-code/UICode.tsx:166</code></td>
+                            <td>time debounce, <code>COPIED_MS</code></td>
+                            <td>Takes the "Copied" label off a moment after the last copy.</td>
+                            <td><b>Yes</b></td>
+                          </tr>
+                          <tr>
+                            <td><code>UIPopup.schedule(open, delay)</code></td>
+                            <td><code>components/ui-popup/UIPopup.tsx:364</code></td>
+                            <td>timer, delay per call</td>
+                            <td>
+                              Shows after <code>show-delay</code>, hides after <code>hide-delay</code>; the newer call
+                              wins; 0 means now.
+                            </td>
+                            <td>
+                              <b>No.</b> The delay changes per call (lodash fixes it when the debounce is made), and
+                              <code>setOpen()</code> cancels it too
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><code>Api.request()</code> with <code>throttle</code></td>
+                            <td><code>runtime/Api.ts:62</code>, <code>:89</code></td>
+                            <td>async wait per key, abortable</td>
+                            <td>Search-as-you-type: a newer request aborts the older one's wait.</td>
+                            <td><b>No.</b> Async, per key, cancels through an <code>AbortSignal</code></td>
+                          </tr>
+                        </tbody>
+                      </table></ui-table
+                    >
+                    <ul>
+                      <li>
+                        Left out on purpose:
+                        <ul>
+                          <li>
+                            about 30 <code>queueMicrotask()</code> calls, which move a signal write out of a Solid
+                            render (not a debounce)
+                          </li>
+                          <li>
+                            one-shot timers: toast and nag auto-close, transition fail-safes,
+                            <code>&lt;ui-root&gt;</code>'s timeout
+                          </li>
+                        </ul>
+                      </li>
+                      <li>
+                        So only TWO members are real time debounces that a plain <code>debounce()</code> would fit:
+                        <code>typeAhead()</code> and <code>onCopy</code>. Neither is one of this item's two.
+                      </li>
+                    </ul>
+
+                    <ui-accordion class="spell-code" styled
+                      ><ui-title>runtime/AppStylesheet.ts · 10 lines</ui-title
+                      ><ui-content>
+                        <pre><code class="language-ts">  /**
+   * `sync()` once things have been quiet for `syncDelay` ms;  `ready` covers it at once.
+   * - Hand-rolled, not a `debounce()`:  `ready` must be a promise of the sync to come (epic `wwod-spell-ui`).
+   */
+  private syncSoon() {
+    clearTimeout(this.timer)
+    this.latest = new Promise((resolve) =&gt; {
+      this.timer = setTimeout(() =&gt; resolve(this.sync()), this.syncDelay)
+    })
+  }</code></pre>
+                      </ui-content></ui-accordion
+                    >
+                    <ui-accordion class="spell-code" styled
+                      ><ui-title>runtime/Visibility.ts · 9 lines</ui-title
+                      ><ui-content>
+                        <pre><code class="language-ts">  /** Queue ONE check for this task, however many observers report the crossing. */
+  private checkSoon() {
+    if (this.isCheckQueued) return
+    this.isCheckQueued = true
+    setTimeout(() =&gt; {
+      this.isCheckQueued = false
+      if (this.observers.length) this.check()
+    })
+  }</code></pre>
+                      </ui-content></ui-accordion
+                    >
+                    <ui-accordion class="spell-code" styled
+                      ><ui-title
+                        >components/ui-dropdown/UIDropdown.tsx · 3 lines (a time debounce that WOULD fit)</ui-title
+                      ><ui-content>
+                        <pre><code class="language-ts">    clearTimeout(this.typedTimer)
+    this.typed += key
+    this.typedTimer = setTimeout(() =&gt; (this.typed = ""), this.typeAheadDelay)</code></pre>
+                      </ui-content></ui-accordion
+                    >
+
+                    <p>
+                      <b>2. What lodash's <code>debounce</code> costs, measured</b>
+                    </p>
+                    <ul>
+                      <li>
+                        Three one-line entries, bundled with the repo's own tools (the worktree's <code>esbuild</code>,
+                        and Vite's Rolldown lib build as
+                        <a href="../../packages/ui/dist/" target="src-packages-ui-dist"><code>dist/</code></a> uses),
+                        <code>lodash-es</code> 4.18.1, gzip level 9:
+                        <ul>
+                          <li><b>baseline:</b> <code>export const syncSoon = () =&gt; console.log("sync")</code></li>
+                          <li><b>helper:</b> the 10-line helper in option B, plus that line</li>
+                          <li><b>lodash:</b> <code>import { debounce } from "lodash-es"</code>, plus that line</li>
+                        </ul>
+                      </li>
+                    </ul>
+                    <ui-table compact celled
+                      ><table>
+                        <thead>
+                          <tr>
+                            <th>Entry</th>
+                            <th class="num right aligned">esbuild min</th>
+                            <th class="num right aligned">gzip</th>
+                            <th class="num right aligned">Rolldown lib</th>
+                            <th class="num right aligned">gzip</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>baseline</td>
+                            <td class="num right aligned">53</td>
+                            <td class="num right aligned">89</td>
+                            <td class="num right aligned">233</td>
+                            <td class="num right aligned">194</td>
+                          </tr>
+                          <tr>
+                            <td>helper (B)</td>
+                            <td class="num right aligned">189 (+136)</td>
+                            <td class="num right aligned">172 (+83)</td>
+                            <td class="num right aligned">400 (+167)</td>
+                            <td class="num right aligned">287 (+93)</td>
+                          </tr>
+                          <tr>
+                            <td>lodash-es <code>debounce</code> (A)</td>
+                            <td class="num right aligned">2,935 (+2,882)</td>
+                            <td class="num right aligned">1,477 (+1,388)</td>
+                            <td class="num right aligned">3,717 (+3,484)</td>
+                            <td class="num right aligned">1,447 (+1,253)</td>
+                          </tr>
+                        </tbody>
+                      </table></ui-table
+                    >
+                    <ul>
+                      <li>
+                        Why lodash's is so big: it brings its own global sniffing (<code>_root</code>,
+                        <code>_freeGlobal</code>), <code>toNumber</code> (with <code>isSymbol</code>,
+                        <code>baseGetTag</code>, <code>baseTrim</code>), <code>isObject</code> and <code>now</code>,
+                        plus the <code>leading</code> / <code>maxWait</code> options nobody here uses.
+                      </li>
+                      <li>
+                        Is lodash already in a <code>ui</code> chunk, so it would come free? <b>No.</b>
+                        <ul>
+                          <li>
+                            <code>lodash-es</code> is in
+                            <a href="../../packages/ui/package.json" target="src-packages-ui-package-json"
+                              ><code>packages/ui/package.json</code></a
+                            >'s dependencies, but no file in
+                            <a href="../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> imports
+                            it
+                          </li>
+                          <li>
+                            the only lodash code in
+                            <a href="../../packages/ui/dist/" target="src-packages-ui-dist"><code>dist/</code></a> is
+                            inside the two pre-compiled bundles (the markdown engine and spell's highlighter, both
+                            lazy). It is their own private copy, and has no <code>debounce</code> in it
+                          </li>
+                        </ul>
+                      </li>
+                      <li>
+                        Where it would land: <code>typeAhead()</code> is in <code>ui-dropdown.js</code>,
+                        <code>onCopy</code> in the <code>ui-code</code> family chunk. Two families importing it makes
+                        Rolldown split a new shared hashed chunk: one more request, on pages with either.
+                      </li>
+                      <li>
+                        Where B lands: <code>$/ui/util</code> is re-exported by <code>core.ts</code>, so the helper
+                        ships in <code>core.js</code>, on EVERY page (<a
+                          href="../../packages/ui/AGENTS.md"
+                          target="src-packages-ui-agents-md"
+                          ><code>packages/ui/AGENTS.md</code></a
+                        >: "keep it small").
+                      </li>
+                      <li>
+                        One correction to this item: its first bullet says <code>$/util</code>'s
+                        <code>debounce()</code> is on its spell side. There is NO <code>debounce</code> anywhere in
+                        <a href="../../packages/util/" target="src-packages-util"><code>packages/util</code></a> (nor in
+                        <a href="../../packages/core/" target="src-packages-core"><code>packages/core</code></a
+                        >). WWOD's rule (<a
+                          href="../../agents/wwod/classes-state.md"
+                          target="src-agents-wwod-classes-state-md"
+                          ><code>agents/wwod/classes-state.md:109</code></a
+                        >, "Through <code>debounce()</code> from <code>$/util</code>") points at a function that doesn't
+                        exist.
+                      </li>
+                    </ul>
+                    <ui-accordion class="spell-code" styled
+                      ><ui-title>the option B helper (what was measured) · 10 lines</ui-title
+                      ><ui-content>
+                        <pre><code class="language-ts">/** Call `run` once calls have stopped for `ms` ms;  `.cancel()` drops a pending call. */
+export function debounce&lt;A extends unknown[]&gt;(run: (...args: A) =&gt; void, ms: number) {
+  let timer: ReturnType&lt;typeof setTimeout&gt; | undefined
+  const debounced = (...args: A) =&gt; {
+    clearTimeout(timer)
+    timer = setTimeout(() =&gt; run(...args), ms)
+  }
+  debounced.cancel = () =&gt; clearTimeout(timer)
+  return debounced
+}</code></pre>
+                      </ui-content></ui-accordion
+                    >
+
+                    <p><b>3. Options</b></p>
+                    <ui-grid class="spell-pros-cons" columns="3" stackable
+                      ><ui-column
+                        ><ui-segment
+                          ><ui-label attached="top">A · lodash-es <code>debounce</code> where it fits</ui-label>
+                          <ul>
+                            <li>
+                              used by <code>typeAhead()</code> and <code>onCopy</code>, the two real time debounces
+                            </li>
+                            <li><code>syncSoon()</code> / <code>checkSoon()</code> stay hand-rolled anyway</li>
+                            <li>
+                              cost: <b>+1.25 to 1.39 kB gzipped</b>, in a new shared chunk loaded with the dropdown or
+                              the code block
+                            </li>
+                            <li>to save about 4 lines of code</li>
+                          </ul>
+                          <pre><code class="language-ts">clearTypedSoon = debounce(
+  () =&gt; (this.typed = ""), 500)</code></pre>
+                        </ui-segment></ui-column
+                      ><ui-column
+                        ><ui-segment
+                          ><ui-label attached="top">B · a shared helper in <code>$/ui/util</code></ui-label>
+                          <ul>
+                            <li>the 10-line <code>debounce()</code> above, with <code>.cancel()</code></li>
+                            <li>same two callers as A; this item's two still hand-rolled</li>
+                            <li>
+                              cost: <b>+83 to 93 B gzipped</b> in <code>core.js</code>, on every page, even pages with
+                              no dropdown
+                            </li>
+                            <li>WWOD's rule then points at it, for <code>ui</code></li>
+                          </ul>
+                          <pre><code class="language-ts">import { debounce } from
+  "$/ui/util"</code></pre>
+                        </ui-segment></ui-column
+                      ><ui-column
+                        ><ui-segment
+                          ><ui-label attached="top">C · keep hand-rolled (recommended)</ui-label>
+                          <ul>
+                            <li>no code change, no bytes</li>
+                            <li>
+                              why: the two members this item is about can't use ANY plain debounce (one needs a promise,
+                              one has no delay), and the two that could are 2 to 3 lines each
+                            </li>
+                            <li>
+                              fix WWOD's rule instead: it names a <code>$/util</code> <code>debounce()</code> that
+                              doesn't exist
+                            </li>
+                          </ul>
+                          <pre><code class="language-ts">clearTimeout(this.timer)
+this.timer = setTimeout(...)</code></pre>
+                        </ui-segment></ui-column
+                      ></ui-grid
+                    >
+                    <p>
+                      Why C over B: B is cheap, but it puts bytes on every page to tidy two lines in two families, and
+                      changes nothing for <code>syncSoon()</code> or <code>checkSoon()</code>. If a third real time
+                      debounce shows up, B becomes worth it.
+                    </p>
+
+                    <p><b>Net effect</b> (C, recommended):</p>
+                    <ul>
+                      <li>
+                        J33 is closed as it stands: <code>syncSoon()</code> and <code>checkSoon()</code> keep their
+                        timer code
+                      </li>
+                      <li>no bundle changes anywhere</li>
+                      <li>
+                        J33's first bullet is corrected: <code>$/util</code> has no <code>debounce()</code>; lodash's
+                        costs about 1.4 kB gzipped in <code>ui</code>
+                      </li>
+                      <li>
+                        WWOD <code>classes-state.md</code> › "Debounced write-backs are <code>xSoon</code> members"
+                        loses "Through <code>debounce()</code> from <code>$/util</code>", and says to hand-roll the few
+                        lines (never lodash's in <code>ui</code>)
+                      </li>
+                    </ul>
+                  </div>
+                </ui-content></ui-accordion
               ></ui-item
             ><ui-item
               data-reviewed="2026-10-06"
@@ -17238,6 +17624,13 @@ length    := "full" | "very long" | "long" | "medium" | "short" | "very short"</
               ><ui-content
                 ><ui-summary
                   ><ui-date><time datetime="2026-10-06T10:28-04:00">2026-10-06 10:28</time></ui-date> J47 reply
+                  added</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-06T10:28-04:00">2026-10-06 10:28</time></ui-date> J33 reply
                   added</ui-summary
                 ></ui-content
               ></ui-event
