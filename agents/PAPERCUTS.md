@@ -1298,6 +1298,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   and the test reuses a running server ("already running") instead of starting its own. · Fix:  `node
   packages/cli/bin/spell.mjs dev server stop`, then the test passes (59/59);  a long-lived page server goes stale
   after route or layout changes (the 2026-10-05 entry above). · epic-components
+- 2026-10-07 · `spell dev plan-doc add ... --details` and `phase ... --done` write a relative link with one `../` too
+  many into a split doc's part file (`../../../packages/x` becomes `../../../../packages/x`), so `plan-doc check`
+  reports missing links.  The same mechanism as the "one folder too high" entry above:  those strings are taken as
+  relative to the SKELETON (`epics/<name>/`), and moved into `parts/`. · Fixed by hand in the part file;  or write
+  them skeleton-relative (`../../packages/x`), or as plain `<code>` paths (the tool links those itself, correctly). ·
+  skillz
 
 ## claude-code
 

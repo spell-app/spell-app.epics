@@ -1,0 +1,37 @@
+<!-- plan-doc part:  #j3's details in skillz.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  When <code>/bg</code> starts a helper, it first writes the helper into the running-agents list (<code
+    >spell dev agents add</code
+  >), then makes the <code>Agent</code> call, then fills in the task id the call returns (<code
+    >spell dev agents set --task-id</code
+  >). The other order, start first and add after, would need one command fewer.
+</p>
+<p>Why add first:</p>
+<ul>
+  <li>
+    <code>add</code> refuses a name that is already running, so a name clash is caught BEFORE any agent exists: no
+    orphan helper to stop
+  </li>
+  <li>
+    the entry is in the list even if the session is interrupted right after the helper starts, so <code>/bg ?</code> and
+    <code>spell dev agents</code> still show it
+  </li>
+</ul>
+<p>The cost: one more command per start, the <code>set --task-id</code>.</p>
+<p>Example, for <code>/bg "aaa" 2 tidy the docs</code>:</p>
+<ol>
+  <li><code>spell dev agents add aaa "tidy the docs"</code> prints <code>skillz-aaa</code></li>
+  <li>
+    one <code>Agent</code> call, its <code>description</code> starting <code>skillz-aaa:</code>, returns a task id
+  </li>
+  <li><code>spell dev agents set aaa --task-id &lt;id&gt;</code></li>
+</ol>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>the skill’s “Start” steps are add, then <code>Agent</code>, then <code>set --task-id</code></li>
+  <li>
+    a clashing name is caught before anything runs: <code>add</code> exits 1 (“running already”), and
+    <code>/bg</code> takes the name with a number instead (<code>aaa-2</code>)
+  </li>
+  <li>an entry has no task id for a moment, between the <code>Agent</code> call and <code>set --task-id</code></li>
+</ul>
