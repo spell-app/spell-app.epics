@@ -1,0 +1,30 @@
+<!-- plan-doc part:  #j10's details in epic-components.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Two calls about what <code>spell dev pack build</code> writes.</p>
+<ul>
+  <li>
+    <b>define()</b>: the generated entry is
+    <code>registerPack({ name, prefix, catalog, define: () =&gt; Promise.all([import(family) ...]) })</code>. Rolldown
+    inlines the families into the ONE script but wraps each in a lazy init, so nothing is defined until
+    <code>define()</code> runs; the tags are defined a microtask later, and the promise says when. The alternative
+    (static imports, so every tag is defined as the script loads, before <code>registerPack</code>) is simpler but
+    ignores the contract's order
+  </li>
+  <li>
+    <b>check</b>: a sha-256 of every file in <code>components/</code> and
+    <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> (tests and snapshots left
+    out), the pack's name and prefix, recorded in the catalog's 2nd line and the script's banner;
+    <code>check</code> compares it and the catalog's text. Chosen over rebuilding and diffing: a build takes ~1s and
+    pulls in Vite, and every pack's <code>yarn test</code> runs the check
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    a formatter run (<code>yarn format</code> in <code>review</code>) that changes a component file makes the pack
+    stale: <code>yarn pack:build</code>, then review again
+  </li>
+  <li>
+    <code>pack/</code> holds three committed files: <code>&lt;pack&gt;.catalog.ts</code>,
+    <code>&lt;pack&gt;.entry.ts</code>, <code>&lt;pack&gt;.pack.js</code> (minified IIFE)
+  </li>
+</ul>
