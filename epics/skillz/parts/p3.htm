@@ -88,6 +88,133 @@
       </li>
       <li>the page shows a sent redirect as "told" once the session has passed it on</li>
     </ul></ui-item
+  ><ui-item icon="circle check"
+    ><b>Done:</b>
+    <ul>
+      <li>
+        <b>See it:</b> the plan doc now has an "Agents running" panel, above section 1, shown while any agent of the
+        epic runs.
+        <ul>
+          <li>
+            One row per agent: its name, a status label, its age, its task, and its notes, e.g. "You · 12:52 PM ·
+            waiting for the session", then "told" once it has been passed on.
+          </li>
+          <li>
+            Under the rows: a note box that grows with its text, and a Send button (Cmd+Enter or Ctrl+Enter sends too).
+          </li>
+          <li>
+            <b
+              >Your own page server (the main checkout one, port 4747) has to be restarted before the panel shows there:
+              it loads its route modules only at start.</b
+            >
+            From the main checkout: <code>spell dev server stop</code>, then <code>spell dev server ensure</code>.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <b>What a note does:</b>
+        <ul>
+          <li>
+            Send posts it to <code>POST /api/agents/redirect</code> (<a
+              href="../../../packages/docs/tools/agentRoutes.ts"
+              target="src-packages-docs-tools-agentroutes-ts"
+              ><code>packages/docs/tools/agentRoutes.ts</code></a
+            >, guarded the same way as the review routes).
+          </li>
+          <li>
+            The route puts the note in the agent entry in <code>epics/&lt;epic&gt;/agents.json</code>, marked untold.
+          </li>
+          <li>
+            The session keeps one <code>spell dev agents wait</code> running in the background; it exits with the note,
+            printed as <code>skillz-aaa: &lt;note&gt;</code>.
+          </li>
+          <li>
+            The session sends the note to the agent with <code>SendMessage</code>, then runs
+            <code>spell dev agents told &lt;name&gt;</code>.
+          </li>
+          <li>The page then shows "told" on the note.</li>
+          <li>
+            The /bg skill has a new "Redirects" section, and
+            <a href="../../../CLAUDE.md" target="src-claude-md"><code>CLAUDE.md</code></a> says the same: keep one
+            waiter running while agents run.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <b>Tried live, end to end,</b> on the worktree page server:
+        <ul>
+          <li>a stand-in agent, <code>skillz-try-route</code></li>
+          <li>a note typed and sent in a real browser (Playwright)</li>
+          <li>the note landed in the file, the box emptied, and "waiting for the session" showed</li>
+          <li><code>agents wait</code> printed the note, and <code>agents told</code> marked it told</li>
+          <li>no page errors</li>
+        </ul>
+      </li>
+      <li>
+        <b>Code:</b>
+        <ul>
+          <li>
+            <code>AgentList.redirect()</code> (async, under the file lock), the <code>untold</code> flag,
+            <code>told()</code>, and <code>AgentList.forPlanDoc()</code>
+          </li>
+          <li>
+            <a href="../../../packages/docs/tools/agents.ts" target="src-packages-docs-tools-agents-ts"
+              ><code>agents.ts</code></a
+            >: new verbs <code>wait [--every] [--max] [--json]</code> (exit 0: notes; 3: nothing running; 2: timed out)
+            and <code>told</code>
+          </li>
+          <li>
+            <a href="../../../packages/docs/tools/agentRoutes.ts" target="src-packages-docs-tools-agentroutes-ts"
+              ><code>agentRoutes.ts</code></a
+            >: <code>GET /api/agents?page=</code> and <code>POST /api/agents/redirect</code>, listed in the root
+            <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> under
+            <code>pageServer.routes</code>
+          </li>
+          <li>
+            the plan-doc runtime <code>wireAgents()</code>, and the "Running agents" rules in
+            <a
+              href="../../../packages/docs/tools/_assets/plan-doc.css"
+              target="src-packages-docs-tools-assets-plan-doc-css"
+              ><code>plan-doc.css</code></a
+            >
+            (by agent skillz-page; the panel judgement calls J5 and J6)
+          </li>
+          <li>
+            the runtime guarded POST and its token refresh moved out of <code>wireReview()</code> into shared
+            <code>postToServer()</code> and <code>refreshToken()</code>, used by review and agents alike
+          </li>
+        </ul>
+      </li>
+      <li>
+        <b>Gates:</b>
+        <ul>
+          <li>
+            docs review passed: tsc, lint, format, and 241 tests (was 231: +6 route tests, +2 redirect tests, +2
+            <code>--before</code> tests from the P4 work)
+          </li>
+          <li>cli review passed: 198 passed, 1 skipped</li>
+          <li><code>check-review.js skillz</code> passed (<code>"ok": true</code>) after the shared-POST move</li>
+        </ul>
+      </li>
+      <li>
+        <b>Not tried yet: a REAL background agent receiving a note mid-task through <code>SendMessage</code></b> (caveat
+        C4; phase P5, Try It Live, does that).
+      </li>
+      <li>Committed as <code>fad31ad0</code>, and being merged into main by the session.</li>
+    </ul></ui-item
+  ><ui-item icon="code branch" class="plan-commits"
+    ><b>Commits:</b>
+    <ul class="plan-commit-list">
+      <li data-sha="fad31ad016d56a95964128629135684e27f1eadb">
+        <a
+          class="plan-commit"
+          href="https://github.com/spell-app/spell-app/commit/fad31ad016d56a95964128629135684e27f1eadb"
+          target="github"
+          >fad31ad</a
+        >
+        the Agents running panel, its route, agents wait / told, the /bg redirect waiter
+      </li>
+    </ul></ui-item
   ><ui-item icon="folder"
     ><b>Files:</b>
     <a href="../../../packages/docs/tools/agentRoutes.ts" target="src-packages-docs-tools-agentroutes-ts"
