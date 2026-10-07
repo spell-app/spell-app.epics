@@ -1283,6 +1283,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `inspectPage()` counts a `ui-code` as the block's `<pre>`.  Also:  give `check-spell.js` the page through the
   checkout (`guides/x.html`), NOT its real `spell-app-dev` path, where its `_assets` don't resolve and every
   `ui-*` reads as undefined. · outline-spell
+- 2026-10-07 · Plan-doc links pointing one folder too high (`../../details/analysis.html`), twice in one night (the
+  epic-components Overview, then an agent's `--details`):  a link written relative to `parts/` (`../details/...`)
+  into the SKELETON or a `--details` string gets moved into a part by the next command, which adds another `../`. ·
+  Fix:  write links in a skeleton or `--details` relative to the SKELETON (`details/analysis.html`);  only a part
+  file you edit by hand takes `parts/`-relative links.  `plan-doc check` reports the broken ones. · epic-components
 
 ## claude-code
 
