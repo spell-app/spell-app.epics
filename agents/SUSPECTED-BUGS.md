@@ -651,6 +651,12 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- `spell dev plan-doc phase-body` / `updated` (main's JavaScript tool, 2026-10-07, epic `epic-components`):  links in
+  the HTML passed to `phase-body --goal` came out one `../` too deep in the phase's part file, and `updated` wrote a
+  wrong `data-phase` on the Updated lines of P6 and P8 (a reopened done phase).  Fixed by hand in the doc;  the cause
+  not looked for.  Same family as the papercut "links pointing one folder too high" (`agents/PAPERCUTS.md`, docs):
+  the part-file rebase seems to run on text that's already relative to `parts/`.  Check the TypeScript port
+  (`packages/epics/src/tool`) for the same once it's on `main`.
 - A running epic's plan doc shown at its WORKTREE address never updates live:  `spell dev plan-doc open <name>`, run
   in worktree `<name>`, shows `/worktrees/<name>/epics/<name>/<name>.plan.html` (main server, port 4747) in the side
   bar, and no edit to the doc ever reaches that page;  the same doc at `/epics/<name>/<name>.plan.html` (either
