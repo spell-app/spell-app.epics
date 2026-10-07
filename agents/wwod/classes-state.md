@@ -198,6 +198,19 @@ This spoke is house style on top.
     `@proto static importableAs`.
   - Use it for behaviour a subclass or instance overrides, rather than a constructor default or a getter;  a
     developer / debug switch set by hand is ALL-CAPS instead ("ALL-CAPS switches at the top of the class").
+- **Reactive members:  the decorator says how the member works** (`ui`'s controllers, and any class there;  Owen,
+  2026-10-06, epic `wwod-spell-ui` P14:  "having to create decorators will keep us honest ... once learned, the
+  decorator is a signal for how this bit works"):
+  - `@state accessor isOpen = false` -- own state;  `@controlled("open") accessor isOpen` -- the host's property
+    when set, else the starting value;  `@derived get rows()` -- a cached derived value;  `@cssState("open")` --
+    `:state(open)` follows the member;  `@onChange("a", "b") onXChanged(a, b)` -- an effect calling the method.
+  - All over ONE record per instance:  a read right after a write is fresh (no flush), and Solid follows the reads.
+    `@derived` is a self-tracking cache over the record (spell cells' idea), never a Solid memo, so it MUST read
+    only record members;  else a plain getter.
+  - A plain getter for a cheap derived value, as "Derived reads are plain getters" says.
+  - Where they live and the details:  `packages/ui/src/elements/Reactive.ts`, `packages/ui/AGENTS.md` "Solid
+    authoring".  Hand-written spell `Observable`s keep `@prop` / `@derived` from `spellDecorators.ts`:  the same
+    idea on spell cells.
 - **A decorator starts its line:**
   - A decorator MUST be the first thing on its line, or that plugin won't notice the file.
   - The decorator and its field on ONE line is preferred:  `@proto static inlineInitialType = false`.  NOT
@@ -231,7 +244,7 @@ This spoke is house style on top.
   - State:  internal, never persisted, e.g. a `Task`'s `status`:  a getter over `getState("status")`, written with
     `setState()`, cleared with `resetState()`.
     - TODO:  `getPref()` to keep state across page loads.
-    - TODO:  a `@state` decorator?
+    - TODO:  a `@state` decorator for `Observable`s?  (`ui` has one, on its own record:  §12 › "Reactive members".)
   - A plain field (`foo = 1`) is NOT spell state (`solid-2.md` "Spell's decisions" › "Decorators for HAND-WRITTEN
     classes").  Use one only for what no reader needs, and say so (`EditorStore`:  "a plain field
     (`compileAppSoonTimer` ...) is NOT reactive").

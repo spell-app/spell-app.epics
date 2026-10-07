@@ -266,6 +266,11 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
 - `render(() => <App />, el)` returns `dispose`.  A ShadowRoot works as the container.
 - `<Portal>` defaults to `document.body`:  inside a shadow root ALWAYS pass `mount`.
 - JSX types for `<ui-*>`:  augment `"@solidjs/web/types/jsx.js"`, NOT `"@solidjs/web"`.
+- `@spell-app/ui` controllers keep their state in REACTIVE MEMBERS, not bare signals (`packages/ui` `Reactive.ts`,
+  P14):  a record per instance plus a notifier signal per member ("N" in `solid-2.html` §2), and `@derived` as a
+  self-tracking cache over the record (spell cells' idea, "X", without `enableExternalSource`).  So
+  `this.x = v;  this.x` is fresh with no `flush()`;  Solid listeners re-run on the notifier, staged as usual.
+  Rules:  `packages/ui/AGENTS.md` "Solid authoring".
 - `@spell-app/ui` specifics (its events:  SEE `packages/ui/AGENTS.md` "UI rules"):
   - never write a bare string attribute in JSX (`<ui-toast icon>` requests `true.js`):  write `icon=""`
   - glyphs must be emitted by the build
