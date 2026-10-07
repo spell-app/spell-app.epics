@@ -14,3 +14,67 @@
 <ul>
   <li>until then, a part edited while Owen reads the item flickers once</li>
 </ul>
+<div class="plan-reply plan-reply-owen">
+  <div class="plan-reply-title"><b>Owen</b> · <time>2026-10-07 10:44</time> · revisit soon</div>
+  <p>fix it</p>
+</div>
+<div class="plan-reply">
+  <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-07 10:56</time> · re: "fix it"</div>
+  <p>
+    Fixed at the source, <code>SourceBody</code> in Spell UI, so every element that loads a part gets it: items,
+    sections, phases, and <code>&lt;ui-section source&gt;</code> / <code>&lt;ui-accordion source&gt;</code> too.
+  </p>
+  <ul>
+    <li>
+      The cause: a body is held hidden while it's on its way (<code>veiled()</code>), and a re-fetch counted as "on its
+      way" again, so an open item hid its details, note box included, until the new part arrived.
+    </li>
+    <li>
+      Now only the FIRST load is held. Once a body has been shown, a re-fetch keeps the old one on screen and swaps the
+      new one in, in place, in one step: nothing is hidden in between.
+    </li>
+    <li>
+      The note box lives in the item's shadow root, so the swap never touches it: text, focus and caret stay as they
+      were.
+    </li>
+  </ul>
+  <p>Evidence:</p>
+  <ul>
+    <li>
+      <code>packages/epics/demo/check-live-epics.mjs</code> now also watches for a blink, from the moment the note is
+      typed: every change to the item's shadow root (a MutationObserver, so even a sub-frame flash counts) and every
+      animation frame, flagging "details hidden", "note box gone" or "note box unfocused".
+    </li>
+    <li>
+      Before the fix it failed on the part edit: <code>blinked: details hidden (on a change)</code>. After: exit 0, all
+      three edits landed, no blink.
+    </li>
+    <li>
+      A new <code>ui-section</code> test, "<code>reload()</code> keeps the open body shown until the new one replaces
+      it", fails without the fix and passes with it; <code>ui-section</code>, <code>ui-accordion</code> and
+      <code>elements</code> tests all pass (437).
+    </li>
+  </ul>
+  <p><b>Net effect:</b></p>
+  <ul>
+    <li>
+      A part edited while you read the item updates under your eyes, with no flicker; a half-typed note keeps its text,
+      focus and caret.
+    </li>
+    <li>
+      Files:
+      <a href="../../../packages/ui/src/elements/SourceBody.ts" target="src-packages-ui-src-elements-sourcebody-ts"
+        ><code>packages/ui/src/elements/SourceBody.ts</code></a
+      >, its test in
+      <a
+        href="../../../packages/ui/src/components/ui-section/ui-section.test.tsx"
+        target="src-packages-ui-src-components-ui-section-ui-section-test-tsx"
+        ><code>ui-section.test.tsx</code></a
+      >, the check script; the docs bundle (<a
+        href="../../../packages/docs/tools/_assets/spell-ui.js"
+        target="src-packages-docs-tools-assets-spell-ui-js"
+        ><code>spell-ui.js</code></a
+      >) rebuilt so pages get it.
+    </li>
+  </ul>
+</div>
