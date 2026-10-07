@@ -17,3 +17,119 @@
     </li>
   </ul>
 </ui-message>
+<ui-message class="plan-update" state="success" size="tiny" header="DONE · 2026-10-06">
+  <p>Fixed on <code>outline-spell</code>: a phrase with no body is an error on its line, in both styles.</p>
+  <ul>
+    <li>
+      <code>- it "can move"</code> says:
+      <code>"can move" has no body: write "can move" if ..., or end it with ":" and indent the lines below</code>
+    </li>
+    <li><code>a card "can fly"</code> says the same</li>
+    <li>
+      a dangling <code>if</code>, <code>a thing "nerds out" if</code>, is still fine: its body may be the indented lines
+      below
+    </li>
+  </ul>
+</ui-message>
+<h4>Revisit (2026-10-06): should a phrase with no body mean "always true"?</h4>
+<p>
+  Your note: <code>- it "can move"</code> could be read as <code>get can_move() { return true }</code>, "nice magic, but
+  might be surprising". A phrase with nothing after it would then be a fact about every card.
+</p>
+<p>What I found while checking: spell can already say this, out loud, with one word.</p>
+<ui-table celled compact unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Line</th>
+        <th>Today, on this branch</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>- it "can move" always</code></td>
+        <td><code>get can_move() { return true }</code>, no error</td>
+      </tr>
+      <tr>
+        <td><code>- it "can move" never</code></td>
+        <td><code>get can_move() { return false }</code>, no error</td>
+      </tr>
+      <tr>
+        <td><code>- it "can move": yes</code></td>
+        <td><code>get can_move() { return true }</code>, no error</td>
+      </tr>
+      <tr>
+        <td><code>- it "can move"</code></td>
+        <td>an error: <code>"can move" has no body: write "can move" if ..., or end it with ":" and ...</code></td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>
+  <code>always</code> and <code>never</code> are spell's words for yes and no, so they read as the phrase's body. No new
+  grammar is needed.
+</p>
+
+<h4>The ways to go</h4>
+<ui-grid class="spell-pros-cons" columns="2" stackable>
+  <ui-column
+    ><ui-segment
+      ><ui-label attached="top">A · Keep the error, and point to <code>always</code> (recommended)</ui-label>
+      <ul>
+        <li>a phrase with nothing after it stays an error</li>
+        <li>
+          its message offers <code>always</code> first:
+          <code>"can move" has no body: write "can move" always, or "can move" if ...</code>
+        </li>
+        <li>gain: the "always true" fact is one word away, and you can see it on the line</li>
+        <li>gain: a forgotten <code>if ...</code> is still caught, not silently always true</li>
+        <li>cost: a one-line change to the message, plus its tests</li>
+      </ul>
+      <pre><code class="language-spell">a joker is a card where:
+	- it "is wild" always</code></pre>
+    </ui-segment></ui-column
+  >
+  <ui-column
+    ><ui-segment
+      ><ui-label attached="top">B · Nothing after it means always true</ui-label>
+      <ul>
+        <li><code>- it "can move"</code> compiles to <code>get can_move() { return true }</code></li>
+        <li>gain: the shortest way to state a fact about every card</li>
+        <li>
+          cost: a line where you forgot the <code>if ...</code> (or it went onto the next line by mistake) is always
+          true, with no error. That's the kind of silent wrong answer J9 and I6 just removed.
+        </li>
+        <li>cost: the hover's Reads as would have to say "always", so you could spot it</li>
+      </ul>
+      <pre><code class="language-spell">a joker is a card where:
+	- it "is wild"</code></pre>
+    </ui-segment></ui-column
+  >
+</ui-grid>
+
+<p><b>Net effect</b> (A, recommended):</p>
+<ul>
+  <li>
+    <code>- it "can move" always</code> is how to say a phrase is true for every one of the type; it already works
+  </li>
+  <li><code>- it "can move"</code> on its own stays an error, and the error names <code>always</code> first</li>
+  <li>nothing else changes</li>
+</ul>
+<div class="plan-reply plan-reply-owen">
+  <div class="plan-reply-title"><b>Owen</b> · <time>2026-10-06 22:40</time> · revisit now</div>
+  <p>`it can not move` could be `get canMove() { return false }`</p>
+</div>
+<div class="plan-commits">
+  <b>Commits:</b>
+  <ul class="plan-commit-list">
+    <li data-sha="5156e2446f3c19c9cc920c2844f6568817269cc5">
+      <a
+        class="plan-commit"
+        href="https://github.com/spell-app/spell-app/commit/5156e2446f3c19c9cc920c2844f6568817269cc5"
+        target="github"
+        >5156e24</a
+      >
+      a phrase with no body, `- it "can move"`, is an error saying to add `if ...` or `:`, not an empty method
+    </li>
+  </ul>
+</div>
