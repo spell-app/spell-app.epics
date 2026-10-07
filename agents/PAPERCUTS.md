@@ -1085,6 +1085,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## docs
 
+- 2026-10-07 · `node tools/bundle-spell-ui.js --skip-ui-build` in the MAIN checkout reused `packages/ui/dist` from
+  2026-10-03, older than the committed `spell-ui.js`:  the rebuilt bundle lost the `spell-brand` theme, and every
+  page threw "ThemeSheets.apply:  "spell-brand" isn't a theme" (`check-spell.js` caught it). · Rebuilt without
+  `--skip-ui-build` (it builds UI first).  Rule:  `--skip-ui-build` only right after a UI build in the same checkout;
+  compare `grep -c spell-brand` (or any newer UI name) in the old and new bundle. · docs (bundle)
 - 2026-10-06 · `/epic review output-targets`:  Owen picked option A on two JUDGEMENT CALLS (J1, J2:  their option
   cards, A the one already chosen), and `spell dev plan-doc inbox <name> apply` left them:  "not a question:  can't
   pick A".  The page offers Choose on a judgement call's cards, but `apply` only takes picks on questions. · Applied
