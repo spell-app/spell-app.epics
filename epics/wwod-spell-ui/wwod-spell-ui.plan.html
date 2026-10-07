@@ -3405,7 +3405,14 @@ private get hasShortcuts(): boolean {
                 <code>yarn test:visual --os local</code></ui-item
               ><ui-item icon="list check" class="plan-to-review"
                 ><b>To review:</b> <a href="#j120">J120</a>, <a href="#j121">J121</a>, <a href="#j122">J122</a>,
-                <a href="#j123">J123</a>, <a href="#t26">T26</a>, <a href="#i26">I26</a></ui-item
+                <a href="#j123">J123</a>, <a href="#j124">J124</a>, <a href="#j125">J125</a>, <a href="#j126">J126</a>,
+                <a href="#j127">J127</a>, <a href="#j128">J128</a>, <a href="#j129">J129</a>, <a href="#j130">J130</a>,
+                <a href="#j131">J131</a>, <a href="#j132">J132</a>, <a href="#j133">J133</a>, <a href="#j134">J134</a>,
+                <a href="#j135">J135</a>, <a href="#j136">J136</a>, <a href="#j137">J137</a>, <a href="#j138">J138</a>,
+                <a href="#j139">J139</a>, <a href="#j140">J140</a>, <a href="#j141">J141</a>, <a href="#j142">J142</a>,
+                <a href="#j143">J143</a>, <a href="#j144">J144</a>, <a href="#j145">J145</a>, <a href="#j146">J146</a>,
+                <a href="#j147">J147</a>, <a href="#j148">J148</a>, <a href="#j149">J149</a>, <a href="#j150">J150</a>,
+                <a href="#t26">T26</a>, <a href="#i27">I27</a></ui-item
               ></ui-list
             >
           </ui-section></ui-section
@@ -15686,6 +15693,1192 @@ length    := "full" | "very long" | "long" | "medium" | "short" | "very short"</
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:25-04:00"
+              id="j124"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j124">J124</a>
+                  <span class="plan-title"
+                    >P14 core: @onChange runs only when a member's value changed (a memo with equals before the
+                    effect)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Group 6 found it: Solid rc.13 runs an effect's apply on EVERY re-run of its compute (<code
+                      >createEffectNode()</code
+                    >
+                    sets <code>_equals: false</code>), and a getter or <code>@derived</code> member tracks the sources
+                    UNDER it, so an <code>@onChange</code> over one re-ran whenever anything underneath moved
+                    (<code>&lt;ui-tab&gt;</code>'s <code>ui-show</code> fired three times).
+                  </p>
+                  <ul>
+                    <li>
+                      <code>Reactive.startEffects()</code>:
+                      <code>createEffect(createMemo(compute, { equals: isSameList }), apply)</code> -- the members'
+                      values compared one by one (<code>===</code>). Skipping inside the apply was no option: Solid has
+                      run the previous cleanup by then.
+                    </li>
+                    <li>
+                      Workarounds removed: <code>UITab</code>'s <code>wasShownLastTime</code>, <code>UITabs</code>'
+                      <code>swappedForValue</code> and its roving memo (<code>sameRovingKey</code>,
+                      <code>RovingKey</code>: now
+                      <code
+                        >@onChange("isReady", "isConnected", "isVertical", "tabs", "selectedIndex")
+                        onRovingChanged()</code
+                      >), <code>UISearch</code>'s two combined getters (<code>shouldShowPopover</code>,
+                      <code>shownHighlightedResult</code>: back to the rows' two-member <code>@onChange</code>s, which
+                      return early in the same cases).
+                    </li>
+                    <li>
+                      Tests (<a
+                        href="../../packages/ui/src/elements/Reactive.test.tsx"
+                        target="src-packages-ui-src-elements-reactive-test-tsx"
+                        ><code>Reactive.test.tsx</code></a
+                      >): a non-idempotent <code>@onChange</code> over a getter runs once per real change of its value,
+                      and a multi-member one skips a re-run where no value changed; both fail without the fix (checked).
+                    </li>
+                    <li>One memo per <code>@onChange</code> more (a few bytes per element).</li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      every family's <code>@onChange</code> behaves as the old memo chains did: it runs when its value
+                      changes, not when a source under a getter moves
+                    </li>
+                    <li>
+                      <code>UIMenu</code>'s roving <code>@onChange("isMenubar", "orientation")</code> (group 10's
+                      caveat) no longer restarts on a notify without a change
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:26-04:00"
+              id="j125"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j125">J125</a>
+                  <span class="plan-title"
+                    >P14 core: @derived({ equals }) -- list identity kept by the decorator, not by hand</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>@derived</code> took no options, so three groups kept list identity by hand. Now
+                    <code>@derived({ equals })</code>: an equal result keeps the OLD value, and readers (an outer
+                    <code>@derived</code>, an <code>@onChange</code>) see no change. <code>E.isSameList</code> (same
+                    items, same order) is exported for it.
+                  </p>
+                  <ul>
+                    <li>
+                      <code>UIDropdown</code>: the private <code>stableList()</code> (marked <code>REFACTOR:</code>),
+                      its <code>lastLists</code> map, three name constants and <code>isSameList</code> gone;
+                      <code>allOptions</code>, <code>chosenValues</code>, <code>menuRows</code> are
+                      <code>@E.derived({ equals: E.isSameList })</code>.
+                    </li>
+                    <li>
+                      <code>UISelect.chosenValues</code>, <code>UITabs.tabs</code>: the same (as their old memos had).
+                    </li>
+                    <li>
+                      <code>UIMenu.ownItemContext</code>: <code>@E.derived({ equals: isSameContext })</code>;
+                      <code>lastItemContext</code> gone; <code>isSameContext</code> moved above the class (a decorator
+                      argument reads it while the class is defined).
+                    </li>
+                    <li>
+                      Test:
+                      <a
+                        href="../../packages/ui/src/elements/Reactive.test.tsx"
+                        target="src-packages-ui-src-elements-reactive-test-tsx"
+                        ><code>Reactive.test.tsx</code></a
+                      >, "@derived({ equals })".
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>same identities as the step-0 memos; no hand-kept caches left</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:27-04:00"
+              id="j126"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j126">J126</a>
+                  <span class="plan-title"
+                    >P14 core: vocabulary getters have setters (writes go to the host property, translated name
+                    included)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>Reactive.installAttributeGetters()</code> now installs a setter beside each getter:
+                    <code>this.indeterminate = false</code> writes
+                    <code>host[definition.attribute(name).property]</code>, so a translated tag writes its own property,
+                    and the write reflects and converts like any property write. <code>E.AttributeValues</code> is
+                    writable (a controller's members); <code>UIElement.attrs</code> (the fork's props) is
+                    <code>Readonly&lt;&gt;</code>. Generic bases' declarations lost <code>readonly</code> to match
+                    (<code>SourceElement</code>, <code>DialogElement</code>, checkbox / input
+                    <code>CommonAttributes</code>).
+                  </p>
+                  <ul>
+                    <li>
+                      Removed what existed only for the missing setter: <code>UITransition</code>'s
+                      <code>@controlled("visible") private accessor visibleProperty</code> (<code>animateTo()</code>
+                      writes <code>this.visible</code>), <code>UICheckbox.onChosen()</code>'s cast host write (<code
+                        >this.indeterminate = false</code
+                      >). Both write the same host property as before.
+                    </li>
+                    <li>
+                      Tests: the setter reflects and reads back; on a translated stand-in (<code
+                        >&lt;x-reactivo etiqueta&gt;</code
+                      >) it writes <code>etiqueta</code>, never <code>label</code>.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      behaviour unchanged; a controller can now write any of its attributes (it only should for
+                      user-driven changes like these)
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:28-04:00"
+              id="j127"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j127">J127</a>
+                  <span class="plan-title"
+                    >P14 core: this.attributes takes CANONICAL names (a translated tag reads its own)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>UIElement.attributes</code> maps a vocabulary attribute's canonical name to this tag's
+                    (<code>ElementDefinition.localAttribute()</code>, new): <code>this.attributes.value</code> reads
+                    <code>valor</code> on a translated tag. Any other name (<code>aria-label</code>, the aliases
+                    <code>checked</code> / <code>active</code>, an already-localized name) reads as written.
+                  </p>
+                  <ul>
+                    <li>
+                      Simplified: <code>UICalendar.initialValue</code>, <code>UISlider.onFormReset()</code>,
+                      <code>UIRating.onFormReset()</code>, <code>TextControl.onFormReset()</code>,
+                      <code>UISection.isCollapsible</code> -- all were
+                      <code>this.attributes[this.definition.attribute("value").attribute]</code>.
+                    </li>
+                    <li>
+                      Groups 3, 5 and 10 had kept the localized lookup against the rows'
+                      <code>this.attributes.value</code>, for translated tags; the rows' form now works.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      behaviour unchanged (every reader of a vocabulary attribute's raw text already used the localized
+                      name); a test covers a translated tag
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:29-04:00"
+              id="j128"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j128">J128</a>
+                  <span class="plan-title"
+                    >P14 core: UIElement.listen(), not on() -- `on` is an attribute of &lt;ui-dimmer&gt; and
+                    &lt;ui-form&gt;</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Owen's note in
+                    <a
+                      href="../../packages/ui/src/components/ui-button/UIButton.tsx"
+                      target="src-packages-ui-src-components-ui-button-uibutton-tsx"
+                      ><code>UIButton.tsx</code></a
+                    >
+                    asked for <code>this.on("click", this.onHostClick)</code>: a listener removed with the element.
+                    Built as <code>listen(type, listener, { target, ...options })</code>: one
+                    <code>AbortController</code> per element, made by the first call, aborted when the host is released
+                    (not on disconnect: <code>keepAlive</code>).
+                  </p>
+                  <ul>
+                    <li>
+                      Named <code>listen</code>: a method named <code>on</code> on <code>UIElement</code> would hide the
+                      <code>on</code> attribute's getter on <code>&lt;ui-dimmer on="hover"&gt;</code> and
+                      <code>&lt;ui-form on="blur"&gt;</code> (group 7 found it).
+                    </li>
+                    <li>
+                      Converted: <code>UIElement</code>'s own <code>slotchange</code>, <code>DialogElement</code> (2),
+                      <code>UIShape</code> (2), <code>UIToast</code> (6), <code>UIButton</code>, <code>UIDimmer</code>,
+                      <code>UISidebar</code>, <code>UINag</code>, <code>UIPopup</code> (5), <code>UITransition</code>,
+                      <code>UIDropdown</code>. Listeners an EFFECT stops (<code>UIMarkdown</code>'s
+                      <code>hashchange</code>, <code>UITabs</code>' history, <code>UIPopup</code>'s target,
+                      <code>UIDimmer</code>'s parent) keep their own controller, aborted in the cleanup.
+                    </li>
+                    <li>
+                      Two private methods already had the name: <code>UITable.listen()</code> became
+                      <code>watchHost()</code> (it uses <code>listen()</code>),
+                      <code>UIDocsTokens.listen(section)</code> became <code>takeInnerEvents(section)</code>.
+                      <code>NativeFallback</code> keeps its own <code>listen(target, type, fn)</code> (fallbacks aren't
+                      controllers).
+                    </li>
+                    <li>Test: hears the host across a move, stops after <code>dispose()</code>.</li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>same listeners, same lifetimes; ~25 lines of AbortController plumbing gone</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:30-04:00"
+              id="j129"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j129">J129</a>
+                  <span class="plan-title"
+                    >P14 core: ONE rule for member names -- a base class gives way to a vocabulary (closes the base half
+                    of T26)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>A member named like an attribute hides its getter. The rule:</p>
+                  <ul>
+                    <li>
+                      A BASE class (<code>UIElement</code>, <code>FormElement</code>, <code>SourceElement</code> ...)
+                      never takes a name any vocabulary uses; when one does, the base member is renamed. Applied:
+                      <code>UIElement.definition</code> -&gt; <code>elementDefinition</code> (<code
+                        >&lt;ui-table definition&gt;</code
+                      >; ui, the demo, <code>ElementFixture</code>, brand's composer), <code>FormElement</code>'s
+                      <code>rules</code> hook -&gt; <code>validationRules</code> (the <code>rules</code> attribute of
+                      input / textarea / form; matches <code>validationValue</code> / <code>validationLabel</code> /
+                      <code>validationAnchor</code>).
+                    </li>
+                    <li>
+                      So <code>UITable</code>'s <code>Omit&lt;..., "definition"&gt;</code> and
+                      <code>TextControl</code>'s <code>E.Reactive.attributeValue()</code> work-around are gone (<code
+                        >this.rules</code
+                      >
+                      is the attribute again).
+                    </li>
+                    <li>
+                      A concrete class names members for what they are (<code>isOpen</code>); a
+                      <code>@controlled</code> member that IS the attribute keeps its name (<code>value</code>,
+                      <code>view</code>, <code>sortColumn</code>), and where its type is wider the interface line omits
+                      it (<code>UIDropdown</code>, <code>UISelect</code>, <code>UIInput</code> /
+                      <code>UITextarea</code>'s <code>value</code>), with a line saying why.
+                    </li>
+                    <li>
+                      Guarded:
+                      <a
+                        href="../../packages/ui/src/elements/Reactive.test.tsx"
+                        target="src-packages-ui-src-elements-reactive-test-tsx"
+                        ><code>Reactive.test.tsx</code></a
+                      >
+                      checks every vocabulary's attributes against <code>UIElement</code>'s and
+                      <code>FormElement</code>'s members (instance fields too). Written into <code>UIElement</code>'s
+                      doc ("Member names") and
+                      <a href="../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+                        ><code>packages/ui/AGENTS.md</code></a
+                      >.
+                    </li>
+                    <li>
+                      Rejected: an <code>Omit</code> per class -- every future family would need to know the base's
+                      names.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      T26 stays OPEN for brand only: a census of every controller's chain finds no ui collision left but
+                      the intended <code>@controlled</code> ones; brand's controllers (<code>UIBrandCheck</code>
+                      <code>state</code> / <code>font</code>, <code>UIBrandChecklist</code> <code>step</code>,
+                      <code>UIBrandColorPicker</code> / <code>UIBrandComposer</code> <code>value</code>,
+                      <code>UIBrandColorSet</code> <code>columns</code>, <code>UIBrandComposer</code>
+                      <code>rows</code> / <code>hint</code>) still collide, as they're still on the compat layer (see
+                      the brand issue)
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:31-04:00"
+              id="j130"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j130">J130</a>
+                  <span class="plan-title"
+                    >P14 effects: effects that lived in render() also name isReady (the old timing)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    An <code>@onChange</code> starts in <code>onMount()</code>, before a not-yet-ready element renders;
+                    the effects it replaced were created inside <code>render()</code>, i.e. once the runtime and sheets
+                    were in and the box existed. Each such effect names <code>isReady</code> and returns early until
+                    it's true:
+                  </p>
+                  <ul>
+                    <li>
+                      <code>UITransition.onVisibleChanged</code>,
+                      <code>UIVisibility.onWatchSettingsChanged</code> (group 1), <code>UISticky</code>'s watch (3),
+                      <code>UIDropdown.onOpenChanged</code> + its highlight (4), <code>UISidebar</code>'s two (6),
+                      <code>UIDimmer</code>'s two (7), <code>DialogElement.onOpenChanged</code>,
+                      <code>UIPopup.onPopoverModeChanged</code> (<code>isReady</code> + <code>trigger</code>:
+                      <code>popoverMode</code> reads <code>UI.browser</code>, which exists only once loaded),
+                      <code>UIProgress</code>'s ARIA (its <code>ariaValues</code> getter returns
+                      <code>undefined</code> until ready).
+                    </li>
+                    <li>
+                      Step 3 added <code>UIShape</code>'s two (group 8 had flagged a change):
+                      <code>onSidesChanged(isReady, sides)</code> and
+                      <code>onActiveSideIndexChanged(isReady, index)</code>, so an <code>activeIndex</code> change
+                      before the sheets load flips (animated) once the stage is drawn, instead of swapping at once.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>today's timing everywhere; the member lists are one longer than the rows said</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:32-04:00"
+              id="j131"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j131">J131</a>
+                  <span class="plan-title"
+                    >P14 looks: a `disabled` that is only a look is `looksDisabled`, never an isDisabled override</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Rows asked for <code>@cssState("disabled") get isDisabled()</code> on families whose
+                    <code>disabled</code> is only a look; overriding <code>isDisabled</code> makes
+                    <code>UIHost</code> swallow every click on the host, which none of them did. Groups 4, 6, 7, 9, 10
+                    each kept the behaviour under a new name; step 3 made it ONE name:
+                  </p>
+                  <ul>
+                    <li>
+                      <code>@E.cssState("disabled") get looksDisabled()</code>: <code>UIIcon</code>,
+                      <code>UIText</code>, <code>UIForm</code>, <code>UIField</code>, <code>UIFields</code>,
+                      <code>UIEmoji</code>, and <code>UISegment</code> / <code>UILoader</code> /
+                      <code>UIProgress</code> (group 9's <code>isMarkedDisabled</code>, renamed).
+                    </li>
+                    <li>
+                      Documented once, on <code>UIElement.isDisabled</code>, and in
+                      <a href="../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+                        ><code>packages/ui/AGENTS.md</code></a
+                      >.
+                    </li>
+                    <li>
+                      Families that DO disable (<code>UIImage</code>, <code>UIReveal</code>, <code>UIDropdown</code>,
+                      the form controls) keep the <code>isDisabled</code> override with <code>@cssState</code> on it.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      <code>:state(disabled)</code> as before, clicks unchanged; opt one in to swallowing clicks by
+                      renaming its getter to <code>isDisabled</code>
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:33-04:00"
+              id="j132"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j132">J132</a>
+                  <span class="plan-title"
+                    >P14 open: requestOpen() everywhere -- popup lined up with dropdown, search, calendar, sidebar</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      Public renames from the rows: <code>UIDropdown.setOpen()</code>, <code>UISearch.setOpen()</code>,
+                      <code>UICalendar.setOpen()</code> and <code>UISidebar.setVisible()</code> -&gt;
+                      <code>requestOpen()</code>.
+                    </li>
+                    <li>
+                      Step 3: <code>UIPopup.setOpen()</code> -&gt; <code>requestOpen()</code> too (its row had kept the
+                      old name); the overlay's <code>onDismiss</code>, <code>schedule()</code>, the command and click
+                      handlers call it. No caller outside the class (the shared docs pages' <code>setOpen</code> is an
+                      app's own signal setter).
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      <code>controller.setOpen(...)</code> / <code>setVisible(...)</code> are gone on all five; one verb
+                      for a user open request
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:34-04:00"
+              id="j133"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j133">J133</a>
+                  <span class="plan-title"
+                    >P14 hosts: host script getters read the controller UNTRACKED (docs-search query restored)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>UICodeHost.detectedLanguage</code>, <code>UIMarkdownHost.headings</code> (group 8),
+                      <code>FieldHost.errors</code> (7), brand's <code>BrandFieldHost.errors</code> (step 3) wrap their
+                      read in <code>untrack()</code>: the controller members became tracked reactive members.
+                    </li>
+                    <li>
+                      <code>DocsSearchHost.query</code>: group 9 let it become tracked (the
+                      <code>@state query</code> itself). Restored untracked in step 3: a page's Solid effect reading
+                      <code>el.query</code> would otherwise re-run on every keystroke, a behaviour change for callers.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>host APIs read as they did before P14</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:35-04:00"
+              id="j134"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j134">J134</a>
+                  <span class="plan-title"
+                    >P14 bundle: esbuild's decorator helpers shared once (core 29.48 -&gt; 26.30 kB gzip)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    I26: esbuild's transform has no "import helpers" option, so every decorated file carried its own
+                    copy of the decorator runtime (<code>__decorateElement</code>, <code>__runInitializers</code> ...:
+                    ~2.6 kB minified); <code>core</code> had 12 copies, and every family file one more.
+                    <a href="../../vite.decorators.ts" target="src-vite-decorators-ts"
+                      ><code>vite.decorators.ts</code></a
+                    >
+                    now swaps a file's helper preamble for an import of ONE virtual module,
+                    <code>virtual:esbuild-decorator-helpers</code> (built from a probe class using every decorator
+                    kind), when each helper the file declares matches it word for word; else the file keeps its own
+                    (test files importing <code>it</code>, where esbuild renames a local). The swap keeps the line
+                    count, so source maps still line up.
+                  </p>
+                  <ul>
+                    <li>
+                      <code>yarn measure</code>: core 29.27 (step 1) / 29.48 (step 2 + fixes) -&gt; <b>26.30 kB</b>;
+                      forms 8.02 -&gt; 6.39; page with one button 71.93 -&gt; 65.94; all families 590.75 -&gt; 481.63
+                      kB. Every check clean (the helper module lands in <code>core</code>, no new chunk).
+                    </li>
+                    <li>Applies to every package built with the plugin (brand, app, docs bundles).</li>
+                    <li>
+                      Also tried / looked at: <code>Controlled</code> (0.29 kB) and <code>Cell</code> (0.11 kB) can't go
+                      yet: brand's controllers use them, with <code>UIElement.controlled()</code> and
+                      <code>attrs</code>; <code>HostAttribute</code> is gone (step 1).
+                      <a
+                        href="../../packages/ui/src/elements/Reactive.ts"
+                        target="src-packages-ui-src-elements-reactive-ts"
+                        ><code>Reactive.ts</code></a
+                      >
+                      is 2.35 kB gzip on its own.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>core is 1.09 kB over its pre-P14 size (25.21), inside the 1.5 kB budget; I26 can close</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:36-04:00"
+              id="j135"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j135">J135</a>
+                  <span class="plan-title">P14 ui-container: missed by step 2 -- converted in step 3</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    <code>UIContainer</code> read <code>this.attrs.scrolling</code> (no group had the folder). Now
+                    <code>this.scrolling</code>, with its <code>E.AttributeValues</code> interface line. No
+                    <code>this.attrs</code> read is left in
+                    <a href="../../packages/ui/src/" target="src-packages-ui-src"><code>packages/ui/src</code></a
+                    >.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>none; the compat <code>attrs</code> is read only by brand now</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:38-04:00"
+              id="j136"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j136">J136</a>
+                  <span class="plan-title"
+                    >P14 naming: render pieces and fields renamed where an attribute now has the name</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    A method or field with an attribute's name hides its getter (and clashes in the interface line), so
+                    private pieces were renamed (each with a one-line "Not <code>x()</code>: <code>x</code> is the
+                    attribute's" where it helps):
+                  </p>
+                  <ul>
+                    <li>
+                      <code>DialogElement.overlay</code> -&gt; <code>overlayEntry</code>;
+                      <code>UISection.foldIcon()</code> -&gt; <code>foldChevron()</code>;
+                      <code>UIDocsExample.description()</code> -&gt; <code>descriptionWithCode</code> (it had been
+                      hiding the attribute) (group 2)
+                    </li>
+                    <li>
+                      <code>UIPopup.target</code> -&gt; <code>targetElement</code> (4);
+                      <code>UISearch.category()</code> -&gt; <code>resultCategory()</code>,
+                      <code>UIRating.icon(point)</code> -&gt; <code>pointIcon(point)</code> (5)
+                    </li>
+                    <li>
+                      <code>UIButton.content()</code> / <code>icon()</code> -&gt; <code>iconAndText()</code> /
+                      <code>iconBox()</code> (7); <code>UITable</code>'s data <code>columns</code> -&gt;
+                      <code>dataColumns</code> (8); <code>UIProgress.barText(i)</code> -&gt;
+                      <code>barTextFor(i)</code> (9, public); <code>UIEmbed.placeholder()</code> -&gt;
+                      <code>playButton()</code> (10)
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>private names, except <code>UIProgress.barTextFor()</code> (no caller outside the folder)</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:39-04:00"
+              id="j137"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j137">J137</a>
+                  <span class="plan-title">P14 states: always-on :state()s are getters returning true</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Rows said <code>@cssState("pane") readonly isPane = true</code>, but <code>@cssState</code> types
+                    getter / accessor contexts only (a field decorator fails TS1240). Written
+                    <code>@E.cssState("x") get isX() { return true }</code>: <code>UIPlaceholder.isPlaceholder</code>,
+                    <code>UICards.isCards</code>, <code>UITab.isPane</code>, <code>UISteps.isStepGroup</code>,
+                    <code>UIItems.isItemsView</code>, <code>UIPushable</code> / <code>UIPusher</code> /
+                    <code>UISidebar</code>, <code>UIOr</code>, <code>UIDimmer</code>, <code>UIStatistic(s)</code>,
+                    <code>UIForm.isRoot</code>, <code>UIField</code>, <code>UISide</code>.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>same states; ~15 three-line getters a class-level form could replace later</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:40-04:00"
+              id="j138"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j138">J138</a>
+                  <span class="plan-title"
+                    >P14 typing: generic bases declare their vocabulary getters; @controlled members that ARE the
+                    attribute omit it</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      Generic bases can't merge <code>E.AttributeValues&lt;V&gt;</code> (V unknown):
+                      <code>CheckControl&lt;V&gt; extends CommonAttributes</code> (checkbox and radio's shared getters;
+                      <code>CommonAttributes</code> lost <code>type</code>),
+                      <code>TextControl&lt;V&gt; extends CommonAttributes</code> (gains <code>rules: unknown</code> in
+                      step 3), <code>DialogElement</code>'s
+                      <code>declare closable / closedby / header / content</code> with explicit types,
+                      <code>SourceElement</code>'s <code>declare source / load</code>.
+                    </li>
+                    <li>
+                      Concrete interfaces omit what their own member owns: <code>UISelect</code> /
+                      <code>UIDropdown</code> <code>Omit&lt;..., "value"&gt;</code> (a <code>string[]</code> too),
+                      <code>UIInput</code> / <code>UITextarea</code>
+                      <code>Omit&lt;..., keyof CommonAttributes | "value"&gt;</code>. <code>UICalendar.value</code>,
+                      <code>UISlider.value</code> / <code>end</code>, <code>UITabs.value</code>,
+                      <code>UIDocsNav.view</code>, <code>UITable.sortColumn</code> / <code>sortDirection</code> share
+                      the attribute's name with a compatible type.
+                    </li>
+                    <li>
+                      <code>CheckControl.isSelected</code> is a getter / setter over a private
+                      <code>@controlled("selected") accessor selectedProperty</code>: a server host (linkedom) has no
+                      property setter, so a plain <code>@controlled isSelected</code> lost the static
+                      <code>&lt;ui-checkbox checked&gt;</code>; <code>choose()</code> calls
+                      <code>E.Reactive.requestChange()</code> directly (<code>requestChange()</code>'s
+                      <code>keyof this</code> leaves out private members).
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>types only, plus one private accessor</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:41-04:00"
+              id="j139"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j139">J139</a>
+                  <span class="plan-title"
+                    >P14 sections: controllers regrouped by property (big diffs, mostly moves)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Per the brief, each controller's <code>////</code> sections are by property (a member's state,
+                    getter, derived values, handlers and <code>@onChange</code> together), not by runtime phase: e.g.
+                    <code>UICalendar</code> Dates / The value / The popup / Views and pages / Range partners / Form;
+                    <code>UIDropdown</code> Options / Value / The form / Search / The menu rows / Open;
+                    <code>UIDocsNav</code> The list / The current page / Search / Favourites ...;
+                    <code>UITable</code> Rendering / The managed table / Data mode / Sorting. Also one
+                    <code>export interface X extends E.AttributeValues&lt;...&gt; {}</code> line per concrete class.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      reading order only; <code>UIDocsNav</code> (~660 lines) and <code>UITable</code> (~480) diffs are
+                      mostly moves
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:42-04:00"
+              id="j140"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j140">J140</a>
+                  <span class="plan-title"
+                    >P14 aria: the step-1 ariaLabel getters are gone (raw attributes read inline)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    Rows: <code>this.attributes[UIT.ARIA_LABEL]</code> inline where it's read. Gone from
+                    <code>UIReveal</code>, <code>UISidebar</code>, <code>UITabs</code>, <code>UIDimmer</code>,
+                    <code>UIBreadcrumb</code>, <code>UIDocsNav</code>, <code>UITable</code>, <code>UIMenu</code>,
+                    <code>UIRoot</code>, <code>UIItem</code> (also <code>activeAttribute</code> /
+                    <code>ariaExpanded</code>). Kept where JSX needs <code>undefined</code>, not <code>null</code>, in
+                    several places: <code>UIButton</code> (private), <code>UILabel</code>,
+                    <code>DialogElement</code> (<code>onNameChanged</code> watches it, as <code>@onChange</code> can't
+                    name a raw attribute).
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li><code>controller.ariaLabel</code> no longer exists on those; nothing read it</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:43-04:00"
+              id="j141"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j141">J141</a>
+                  <span class="plan-title">P14 defaults: attribute-with-default helpers stay as getters</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    The converter turns an EMPTY or unknown enum value (<code>show=""</code>,
+                    <code>type="weekly"</code>) into <code>undefined</code>: the vocabulary default applies only when
+                    the attribute is absent. So the getters the rows wanted gone stay:
+                    <code>UICalendar.calendarType</code> (<code>this.type ?? DEFAULT_TYPE</code>),
+                    <code>UIDocsThemes.shownControls</code>, <code>UIDocsToc.menuSize</code>.
+                  </p>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>no behaviour change; three small getters</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:44-04:00"
+              id="j142"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j142">J142</a>
+                  <span class="plan-title">P14 checkbox / transition / visibility / feed / select: public renames</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>isSelected()</code> -&gt; <code>isSelected</code> (get / set; <code>setSelected(x)</code> is
+                      <code>isSelected = x</code>), <code>chosenValue()</code> / <code>unchosenValue()</code> -&gt;
+                      getters, <code>@proto static onValue</code> / <code>offValue</code> -&gt;
+                      <code>defaultChosenValue</code> / <code>defaultUnchosenValue</code> (the docs page,
+                      <a href="../../packages/ui/docs/status.md" target="src-packages-ui-docs-status-md"
+                        ><code>status.md</code></a
+                      >,
+                      <a
+                        href="../../packages/ui/src/components/components.types.ts"
+                        target="src-packages-ui-src-components-components-types-ts"
+                        ><code>components.types.ts</code></a
+                      >
+                      and the vocabulary descriptions follow), <code>keyDown()</code> / <code>chosen()</code> -&gt;
+                      <code>onKeyDown()</code> / <code>onChosen()</code>, <code>inputType</code> /
+                      <code>inputTabIndex</code> / <code>inputRole</code> / <code>isIndeterminate</code> /
+                      <code>hasLabelText</code> / <code>staticControl</code> getters; RadioGroup <code>members</code> /
+                      <code>membersInOrder</code> / <code>selectedMember</code> / <code>isRequired</code> /
+                      <code>tabStop</code>.
+                    </li>
+                    <li>
+                      <code>UITransition.setVisible()</code> -&gt; <code>animateTo()</code>,
+                      <code>isVisible</code> -&gt; <code>isShowing</code>; <code>UIVisibility.isVisible</code> -&gt;
+                      <code>isOnScreen</code>; <code>UIFeedEvent.glyph</code> -&gt; <code>iconGlyph</code>;
+                      <code>UISelect.values</code> -&gt; <code>chosenValues</code>,
+                      <code>isShowingPlaceholder</code> -&gt; <code>placeholderIsShowing</code>.
+                    </li>
+                    <li>
+                      <code>UIRadio</code> reads its own members <code>untrack()</code>ed in <code>joinGroup()</code> /
+                      <code>findGroup()</code> (the fork's hooks may run inside someone else's computation).
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>a subclass setting <code>@E.proto static onValue</code> must rename it</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:45-04:00"
+              id="j143"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j143">J143</a>
+                  <span class="plan-title"
+                    >P14 modal / section / accordion / docs-api / docs-example / flag: public renames</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>DialogElement</code>: <code>heading</code> a public <code>@state accessor</code> (was a
+                      readonly Cell), <code>isOpen()</code> -&gt; the
+                      <code>@cssState("open") @controlled("open") accessor isOpen</code> (assigning it writes the host's
+                      <code>open</code>).
+                    </li>
+                    <li>
+                      <code>UISection</code>: <code>collapsedState</code> -&gt;
+                      <code>isCollapsed</code> (<code>@controlled</code>), the old <code>isCollapsed()</code> -&gt;
+                      <code>isFolded</code>, <code>level()</code> -&gt; <code>headingLevel</code>,
+                      <code>scrolls()</code> -&gt; <code>contentScrolls</code>, <code>watch</code> -&gt;
+                      <code>stickyWatch</code>, <code>parent()</code> -&gt; <code>@derived parent</code> (<code
+                        >UIPanel</code
+                      >
+                      follows).
+                    </li>
+                    <li>
+                      <code>UIAccordion</code>: <code>openState</code> -&gt; <code>openText</code>,
+                      <code>isOpen(i)</code> -&gt; <code>panelIsOpen(i)</code>, <code>readPanels()</code> -&gt;
+                      <code>onChildrenChanged()</code>. <code>UIDocsApi</code>: <code>data</code> /
+                      <code>failure</code> -&gt; <code>siteData</code> / <code>loadError</code>.
+                      <code>UIDocsExample</code>: <code>source</code> -&gt; <code>sourceMarkup</code>,
+                      <code>open</code> -&gt; <code>isCodeOpen</code>.
+                    </li>
+                    <li>
+                      <code>UIFlag.accessibleName</code> stays <code>@derived</code> though it reads
+                      <code>UI.i18n</code>: the locale isn't reactive, and the old memo didn't follow it either.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>no caller outside the folders (checked ui, brand, docs, app)</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:46-04:00"
+              id="j144"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j144">J144</a>
+                  <span class="plan-title"
+                    >P14 calendar / slider / docs-tokens / sticky / comment / placeholder: public renames</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>UICalendar</code>: <code>isOpen()</code> -&gt; <code>popupIsOpen</code> (<code>isOpen</code>
+                      is the raw <code>@controlled</code>), <code>value()</code> -&gt; <code>chosenMoment</code> (<code
+                        >value</code
+                      >
+                      is the ISO string), <code>min()</code> / <code>max()</code> -&gt; <code>earliest</code> /
+                      <code>latest</code>, <code>focusMoment()</code> -&gt; <code>focusedMoment</code>, the Cells are
+                      <code>@state</code>s.
+                    </li>
+                    <li>
+                      <code>UISlider</code>: <code>value()</code> / <code>end()</code> -&gt; <code>snappedValue</code> /
+                      <code>snappedEnd</code> (<code>value</code> / <code>end</code> are the raw accessors),
+                      <code>scale</code> <code>@derived</code>, <code>dragging</code> -&gt;
+                      <code>draggedThumb</code> (its <code>dragThumb</code> sync copy gone: the
+                      <code>@state</code> reads fresh, so the glide is right from the first move).
+                    </li>
+                    <li>
+                      <code>UIDocsTokens</code>: <code>data</code> / <code>failure</code> / <code>query</code> /
+                      <code>probed</code> / <code>view()</code> -&gt; <code>siteData</code> / <code>loadError</code> /
+                      <code>filterText</code> / <code>probedColors</code> / <code>tokenView</code>.
+                      <code>UISticky.edge</code> -&gt; <code>stuckEdge</code>. Placeholder
+                      <code>holdsShapes()</code> -&gt; <code>canHoldShapes</code>.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      a page reading <code>calendar.controller.value()</code> or
+                      <code>slider.controller.value()</code> needs the new names; none found
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:47-04:00"
+              id="j145"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j145">J145</a>
+                  <span class="plan-title"
+                    >P14 dropdown / popup / icon / reveal / docs-themes / docs-toc: public renames and kept copies</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>UIDocsThemes.setTheme()</code> -&gt; <code>chooseTheme()</code> (pairs with
+                      <code>chooseScheme()</code>).
+                    </li>
+                    <li>
+                      <code>UIDocsThemes</code> keeps <code>@state</code> copies of <code>look</code> /
+                      <code>osScheme</code>: <code>ThemePreference</code> isn't reactive yet (the rows' own fallback);
+                      they go when it is.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>controller-level names only</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:49-04:00"
+              id="j146"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j146">J146</a>
+                  <span class="plan-title"
+                    >P14 search / rating / item / card / include / grid / flyout: public renames</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>UISearch.initialValue</code> keeps today's <code>undefined</code> when the host set no
+                      <code>value</code> (the row's <code>untrack(() =&gt; this.value)</code> would give
+                      <code>""</code> and make a reset reflect <code>value=""</code>).
+                    </li>
+                    <li>
+                      <code>UIRating</code>: <code>value()</code> -&gt; <code>rating</code> (clamped),
+                      <code>value</code> is the raw <code>@controlled</code>; <code>max()</code> -&gt;
+                      <code>iconCount</code>, <code>isPartial()</code> -&gt; <code>isPartlyFilled()</code>,
+                      <code>hovered</code> -&gt; <code>hoveredPoint</code>.
+                    </li>
+                    <li>
+                      <code>UIItem</code>: <code>tag()</code> -&gt; <code>rootTag</code>, <code>imageSrc()</code> -&gt;
+                      <code>imageUrl</code>, <code>current()</code> -&gt; <code>ariaCurrent</code>. <code>UICard</code>:
+                      <code>isShowing(noun)</code> -&gt; <code>rendersShorthand(noun)</code>, <code>slotted</code> -&gt;
+                      <code>@state slottedNouns</code> (its <code>isSameNouns</code> a module function above the class:
+                      a decorator argument can't read a static of the class being defined).
+                      <code>UIInclude.inserted</code> -&gt; <code>markupIsInserted</code>.
+                    </li>
+                    <li>
+                      <code>UIItem</code>'s <code>@derived itemContext</code> needs owners whose
+                      <code>itemContext()</code> reads reactive members: now written into <code>UIT.ItemOwner</code>'s
+                      doc.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li><code>ratingController.value</code> changes meaning (raw, not clamped)</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:50-04:00"
+              id="j147"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j147">J147</a>
+                  <span class="plan-title">P14 tab / sidebar / step / nag / list / items / text: public renames</span>
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>UITab</code>: <code>ui-show</code> follows one protected getter <code>isShown</code> (ready,
+                      connected, selected) instead of the row's three members; <code>ownSelected()</code> -&gt;
+                      <code>isMarkedSelected</code>, <code>state()</code> -&gt; <code>paneState</code>.
+                    </li>
+                    <li>
+                      <code>UITabs</code>: <code>valueState</code> -&gt; <code>value</code>,
+                      <code>displayed()</code> -&gt; <code>displayedValue</code>, <code>alignment()</code> -&gt;
+                      <code>menuAlignment</code>. <code>UISidebar</code>: <code>isVisible()</code> /
+                      <code>isModal()</code> getters. <code>UIList</code>: <code>outer()</code> -&gt;
+                      <code>outerList</code>, <code>items()</code> -&gt; <code>ownItemContext</code>.
+                      <code>UINag</code>: <code>clear()</code> -&gt; <code>clearDismissal()</code> (the HOST keeps
+                      Fomantic's <code>clear()</code>); <code>DismissalStore.isDismissed</code> a getter.
+                      <code>UIPushable.layouts</code> -&gt; <code>sidebarLayouts</code>.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>no caller outside the folders</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:51-04:00"
+              id="j148"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j148">J148</a>
+                  <span class="plan-title"
+                    >P14 form / button / dimmer / label / statistic / breadcrumb: renames, isValid() kept, Owen's
+                    notes</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>isValid()</code> stays a METHOD on <code>UIForm</code>, <code>UIFormHost</code>,
+                      <code>FormController</code>: a getter would change the element API and validate on every read.
+                    </li>
+                    <li>
+                      The four form states are one getter each (<code>isError</code> / <code>isInfo</code> /
+                      <code>isSuccess</code> / <code>isWarning</code> on form, field, fields);
+                      <code>StateFlags</code> removed.
+                    </li>
+                    <li>
+                      <code>UIForm.rules()</code> -&gt; <code>get formRules()</code> over the <code>rules</code> getter
+                      (read-after-write is fresh now). <code>UIField.shownErrors()</code> gone:
+                      <code>FieldHost</code> reads <code>untrack(() =&gt; controller.errors)</code>; brand's
+                      <code>UIBrandField</code> / <code>BrandFieldHost</code> pair collapsed the same way in step 3
+                      (<code>@state formErrors</code>).
+                    </li>
+                    <li>
+                      Owen's "WTF? shortcut keys?" note: <code>UIButton</code>'s invoker effect is the Invoker Commands
+                      API (<code>commandfor</code> / <code>command</code>), not keys; now
+                      <code>@onChange("commandfor", "hasNativeInvokers") onCommandTargetChanged()</code> with a section
+                      comment.
+                    </li>
+                    <li>
+                      Owen's "horrible, impossible to read"
+                      <a
+                        href="../../packages/ui/src/components/ui-button/ui-button.css"
+                        target="src-packages-ui-src-components-ui-button-ui-button-css"
+                        ><code>ui-button.css</code></a
+                      >
+                      token block: names KEPT (<code>--_ui-button-*</code> is the package-wide alias convention, Q13,
+                      enforced by <code>componentTokens.test.ts</code>), the block grouped under <code>## Box</code> /
+                      <code>## Type</code> / <code>## Colours</code> ... headers with a line on how to read an alias.
+                    </li>
+                    <li>
+                      <code>UIDimmer</code>: <code>isActive()</code> -&gt; <code>isShowing</code>,
+                      <code>activeState</code> -&gt; <code>isActive</code>; <code>UIBreadcrumb</code>
+                      <code>tokens()</code> -&gt; <code>dividerTokens</code>.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>
+                      element APIs unchanged (<code>el.values</code>, <code>el.isValid()</code>,
+                      <code>el.errors</code>); a token rename, if wanted, is its own sweep
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:52-04:00"
+              id="j149"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j149">J149</a>
+                  <span class="plan-title"
+                    >P14 toast / progress / docs-search / parts: renames, displayDuration @derived</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>UIToast</code>: <code>displayTime()</code> -&gt;
+                      <code>displayDuration</code> (<code>@derived</code>: it now computes on first read, so slotted
+                      text added before showing counts), <code>canClickClose()</code> -&gt; <code>anyClickCloses</code>,
+                      <code>isCounting</code> -&gt; <code>countdownHasStarted</code>.
+                    </li>
+                    <li>
+                      <code>UIProgress</code>: <code>state()</code> -&gt; <code>shownState</code>,
+                      <code>barColors()</code> -&gt; <code>barHues</code>; <code>ProgressValues.bars</code> -&gt;
+                      <code>barCount</code>; its ARIA <code>@onChange("ariaValues")</code> with <code>ariaValues</code>
+                      <code>protected</code> (only the decorator reads it, by name).
+                    </li>
+                    <li>
+                      <code>UIDocsSearch</code>: Cells and memos -&gt; <code>query</code>,
+                      <code>highlightedIndex</code>, <code>groupedRows</code> ... members.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>the toast test reads <code>displayDuration</code>; no outside caller</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:51:53-04:00"
+              id="j150"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#j150">J150</a>
+                  <span class="plan-title"
+                    >P14 input / root / menu / embed / emoji / message: renames, effect order kept</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><ul>
+                    <li>
+                      <code>TextControl</code>: <code>value</code> the <code>@controlled</code> accessor,
+                      <code>focusValue</code> -&gt; <code>valueAtFocus</code>, effects <code>onValueChanged</code> /
+                      <code>onConstraintsChanged</code> / <code>onConnectedChanged</code>. <code>UIInput</code>:
+                      <code>isFile</code> -&gt; <code>isFileInput</code>, <code>label()</code> -&gt;
+                      <code>labelBox()</code>.
+                    </li>
+                    <li>
+                      <code>@onChange</code> declaration order is effect order: <code>onValueChanged</code> before
+                      <code>onConstraintsChanged</code> (the control holds the new value before validity is read),
+                      <code>UIRoot</code>'s watch before its settings -- each with a comment.
+                    </li>
+                    <li>
+                      <code>UIMenu</code> reads an item's <code>item.type</code> / <code>item.value</code> getters
+                      (<code>ItemController</code> declares them), not <code>item.attrs</code>.
+                      <code>parent</code> -&gt; <code>parentMenu</code>, <code>top()</code> -&gt; <code>topMenu</code>.
+                    </li>
+                    <li>
+                      <code>UIRoot</code>: <code>isContentReady</code> -&gt; <code>contentIsReady</code>,
+                      <code>display</code> -&gt; <code>displayMode</code>, <code>message()</code> -&gt;
+                      <code>loadingMessage</code>; <code>UIComponents.status</code> -&gt; <code>loadStatus</code>;
+                      <code>UIEmbed</code>: <code>url</code> -&gt; <code>frameUrl</code>, <code>label</code> -&gt;
+                      <code>accessibleName</code>.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>scripts reaching into these controllers need the new names; none found</li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
             ></ui-list
           >
         </ui-section>
@@ -17163,6 +18356,20 @@ length    := "full" | "very long" | "long" | "medium" | "short" | "very short"</
                     <code>isActive</code>, <code>icon()</code> -&gt; <code>iconGlyph</code> ...); merging
                     <code>E.AttributeValues</code> then flags any left. Census by member name, 2026-10-07
                     (<code>SourceElement</code>'s own <code>declare</code>s left out):
+                  </p>
+                  <p>
+                    <b>P14 step 3, 2026-10-07:</b> every <code>ui</code> family is done. A census of each controller's
+                    class chain (members vs its own vocabulary) finds only the INTENDED ones left: a
+                    <code>@controlled</code> member that is the attribute (<code>value</code>, <code>end</code>,
+                    <code>view</code>, <code>sortColumn</code> / <code>sortDirection</code>) and generic bases'
+                    <code>declare</code>s. The base-class collisions (<code>UIElement.definition</code> vs
+                    <code>&lt;ui-table definition&gt;</code>, <code>FormElement</code>'s <code>rules</code> hook vs
+                    input / textarea / form <code>rules</code>) are fixed by J129's rule (renamed
+                    <code>elementDefinition</code> / <code>validationRules</code>; a test guards it). STILL OPEN for
+                    brand only: <code>UIBrandCheck</code> <code>state</code> / <code>font</code>,
+                    <code>UIBrandChecklist</code> <code>step</code>, <code>UIBrandColorPicker</code> <code>value</code>,
+                    <code>UIBrandColorSet</code> <code>columns</code>, <code>UIBrandComposer</code> <code>value</code> /
+                    <code>rows</code> / <code>hint</code> -- brand's controllers are still on the compat layer (I27).
                   </p>
                   <ul>
                     <li><code>&lt;ui-accordion&gt;</code>: <code>open</code> (field, UIAccordion)</li>
@@ -18780,10 +19987,10 @@ length    := "full" | "very long" | "long" | "medium" | "short" | "very short"</
                 ></ui-accordion
               ></ui-item
             ><ui-item
-              data-state="attention"
-              data-changed="2026-10-07T01:58:26-04:00"
+              data-state="recent"
+              data-changed="2026-10-07T02:52:31-04:00"
               id="i26"
-              data-status="open"
+              data-status="done"
               data-phase="14"
               ><ui-accordion class="plan-item"
                 ><ui-title
@@ -18828,6 +20035,77 @@ length    := "full" | "very long" | "long" | "medium" | "short" | "very short"</
                         ><code>vite.decorators.ts</code></a
                       >'s TODO) would cut the lowering.
                     </li>
+                    <li>
+                      <b>P14 step 3 (fix-up), 2026-10-07:</b> "the helpers themselves are shared once" was wrong:
+                      esbuild's transform runs per file, so EVERY decorated file carried its own copy of the decorator
+                      runtime (~2.6 kB minified; 12 copies in <code>core</code>, one per family file).
+                      <a href="../../vite.decorators.ts" target="src-vite-decorators-ts"
+                        ><code>vite.decorators.ts</code></a
+                      >
+                      now swaps each copy for an import of one virtual module
+                      (<code>virtual:esbuild-decorator-helpers</code>) when the helpers match word for word (J134).
+                      <code>yarn measure</code>: core 29.48 (after step 2) -&gt; <b>26.30 kB</b> (+1.09 over pre-P14's
+                      25.21, inside the 1.5 kB budget); forms 8.02 -&gt; 6.39; page with one button 71.93 -&gt; 65.94;
+                      all families 590.75 -&gt; 481.63 kB; every check clean. Also looked at:
+                      <code>Controlled</code> (0.29 kB) and <code>Cell</code> (0.11 kB) can't go while brand's
+                      controllers use them (with <code>UIElement.controlled()</code> / <code>attrs</code>);
+                      <code>HostAttribute</code> went in step 1;
+                      <a
+                        href="../../packages/ui/src/elements/Reactive.ts"
+                        target="src-packages-ui-src-elements-reactive-ts"
+                        ><code>Reactive.ts</code></a
+                      >
+                      is 2.35 kB gzip alone (with step 3's <code>listen()</code>, setters,
+                      <code>@derived({ equals })</code>). Not tried: <code>$</code>'s Proxy (small). Closed: under
+                      budget.
+                    </li>
+                  </ul></ui-content
+                ></ui-accordion
+              ></ui-item
+            ><ui-item
+              data-state="attention"
+              data-changed="2026-10-07T02:52:26-04:00"
+              id="i27"
+              data-status="open"
+              data-phase="14"
+              ><ui-accordion class="plan-item"
+                ><ui-title
+                  ><a class="plan-id" href="#i27">I27</a>
+                  <span class="plan-title"
+                    >P14: brand's 12 controllers still on the compat layer (attrs, controlled(), Cell, createMemo)</span
+                  >
+                  <ui-label class="plan-update" size="mini" color="orange" data-phase="14">UPDATE</ui-label></ui-title
+                ><ui-content
+                  ><p>
+                    P14 converted every <code>ui</code> controller (components and docs elements);
+                    <a href="../../packages/brand/components/" target="src-packages-brand-components"
+                      ><code>packages/brand/components/</code></a
+                    >
+                    was outside its folders (the phase lists brand as CALLERS only). Its 12 controllers still read
+                    <code>this.attrs.x</code> (~120 sites), <code>this.controlled()</code>, <code>new Cell()</code> and
+                    <code>createMemo</code> fields (step 3 converted only <code>UIBrandField</code>'s
+                    <code>formErrors</code>, item 11).
+                  </p>
+                  <ul>
+                    <li>
+                      Keeps alive in <code>core</code>: <code>Controlled</code> (0.29 kB gz), <code>Cell</code> (0.11
+                      kB), <code>UIElement.controlled()</code> and the public <code>attrs</code>;
+                      <code>rootClasses</code> / <code>FormElement.validation</code> stay plain getters (brand's
+                      <code>classValue()</code> overrides read memos, which a <code>@derived</code> can't see).
+                    </li>
+                    <li>
+                      T26's last collisions are brand's (<code>state</code>, <code>font</code>, <code>step</code>,
+                      <code>value</code>, <code>columns</code>, <code>rows</code>, <code>hint</code>).
+                    </li>
+                    <li>
+                      Fix: the same conversion as P14 step 2 (decorators, getters, <code>listen()</code>, interface
+                      lines), then delete <code>Controlled</code>, <code>controlled()</code>, <code>Cell</code> (if
+                      nothing else uses it) and make <code>attrs</code> private.
+                    </li>
+                  </ul>
+                  <p><b>Net effect:</b></p>
+                  <ul>
+                    <li>brand works (its review is green); the compat layer stays until it moves</li>
                   </ul></ui-content
                 ></ui-accordion
               ></ui-item
@@ -20801,6 +22079,13 @@ length    := "full" | "very long" | "long" | "medium" | "short" | "very short"</
                   root yarn ts clean; test:hmr 8/8. Build 1,000 ui-divider 32 -&gt; 33 ms, ui-button 130 -&gt; 100 ms.
                   core +4.06 kB gzip (I26). J122 (plain rootClasses / validation, invalid state), J123 (interface-merged
                   getters), T26 (attribute collisions census).</ui-summary
+                ></ui-content
+              ></ui-event
+            ><ui-event icon="pen to square"
+              ><ui-content
+                ><ui-summary
+                  ><ui-date><time datetime="2026-10-07T02:52-04:00">2026-10-07 02:52</time></ui-date> I26 closed: P14
+                  step 1: core grew 4.06 kB gzipped (25.21 -&gt; 29.27 kB), over the 1.5 kB budget</ui-summary
                 ></ui-content
               ></ui-event
             ></ui-feed
