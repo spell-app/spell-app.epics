@@ -194,6 +194,9 @@ This spoke is house style on top.
     (`Object.assign(this, props)`).
   - The field MUST be one instances declare (`declare highlightAs: string` on the base), so a typo is a compile
     error, not a silent static.
+  - Where it goes:  with its property group, the base's `declare` and its `@proto static` default side by side, in
+    the `////` section of the code that uses it -- not gathered at the top of the class (Owen:  "locate code near
+    its siblings";  epic `wwod-spell-ui`, Q11;  e.g. `UIElement.isFormControl`).
   - A base class hears each one through `static protoDefined(name, value)`, e.g. `P.Rule` registering
     `@proto static importableAs`.
   - Use it for behaviour a subclass or instance overrides, rather than a constructor default or a getter;  a

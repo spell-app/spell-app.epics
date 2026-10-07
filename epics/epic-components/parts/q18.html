@@ -1,0 +1,44 @@
+<!-- plan-doc part:  #q18's details in epic-components.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Owen's pick (2026-10-07, after a merge full of noise): stop committing
+  <a href="../../../packages/brand/_assets/ui/" target="src-packages-brand-assets-ui"
+    ><code>packages/brand/_assets/ui/</code></a
+  >
+  (266 files) and
+  <a href="../../../packages/ui/site/_assets/" target="src-packages-ui-site-assets"
+    ><code>packages/ui/site/_assets/</code></a
+  >
+  (195 files); the page server builds them when it starts, if stale.
+</p>
+<ul>
+  <li>
+    Why: their chunk names carry content hashes (<code>[name]-[hash].js</code>), so any Spell UI change deleted and
+    re-added nearly all of them in every diff and merge. Only the page server serves them (ES modules, never file://),
+    so nothing else needs them committed.
+  </li>
+  <li>
+    How: <code>$/assembler</code> <code>Bundle</code> knows each bundle (its package script, output folder and sources)
+    and records the sources' hash in <code>&lt;output&gt;/.bundle.json</code>;
+    <code>spell dev bundles build [name...] [--stale]</code> / <code>spell dev bundles check</code> run it; the page
+    server's <code>BundleBuild</code> spawns the checkout's own <code>spell dev bundles build --stale</code> at startup,
+    logs it, and a request for a missing bundle file waits for it (up to 2 minutes). Live reload reloads open pages when
+    it ends.
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    Both folders are git-ignored; their
+    <a href="../../../.gitattributes" target="src-gitattributes"><code>.gitattributes</code></a> lines and
+    <code>GENERATORS</code> entries are gone
+  </li>
+  <li>Both builds take about 1.5 s each; a start with nothing changed builds nothing</li>
+  <li>
+    <code>spell dev worktree merge-main</code> untracks any file the merged
+    <a href="../../../.gitignore" target="src-gitignore"><code>.gitignore</code></a> ignores that main still commits
+    (one side's tree lacks it), so merges across the change don't stop on them
+  </li>
+</ul>
+<epic-commit sha="a733e8821388417c9d3caa12d9febbe19146876c">
+  bundles built by the page server, not committed
+</epic-commit>
