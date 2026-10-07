@@ -69,6 +69,16 @@ durable doc's own meta list (`ui-list.spell-meta`) starts with the plan doc, ONE
 <ui-item icon="map"><b>Plan doc:</b>  <a href="epics/unified-server/unified-server.plan.html" target="unified-server">epic unified-server</a></ui-item>
 ```
 
+A FUTURE epic (`/epic future <name>`, epic `epic-future`, 2026-10-07):  an idea written down, not planned yet.
+- `new <name> --future`:  `<body data-future>`;  the step label a violet "FUTURE";  the meta lines say there's no
+  branch or worktree yet;  a `ui-message.plan-future` notice in place of "Plan hung?", linking its analysis page,
+  `details/analysis.html` (its high-level open questions, answered in the Review tab;  the answers land here as
+  decided questions)
+- `list` says `future`, between the epics in progress and the done ones;  the Epics index gives it a seedling
+- PLANNED by `new <name>` again (`/epic <name>`, "Reuse"):  promoted where it is, `data-future` and the notice
+  gone, the meta lines naming the branch and worktree;  its prompt, decisions and analysis page stay.  Its first
+  phase (`add-phase`) clears `data-future` too
+
 Below the meta lines, while planning:  the "Plan hung?" notice, FOLDED (P3 of `windows-and-review`):
 `<ui-accordion class="plan-hung spell-aside" styled><ui-title>Plan hung?</ui-title><ui-content>`.  `new` folds the
 template's `ui-message.plan-hung` (the template keeps it:  it's shared, and older checkouts' scripts only know that
@@ -560,7 +570,7 @@ checkout, a command edits the same doc.  `--here` (this checkout's copy) is no l
 
 | Command | Does |
 |---|---|
-| `new <name> [--title "..."] [--prompt "..." \| --prompt-file <path>]` | copy the template to `epics/<name>/<name>.plan.html`, fill it (the prompt that started the plan goes in the Overview), update the docs index |
+| `new <name> [--title "..."] [--prompt "..." \| --prompt-file <path>] [--future]` | copy the template to `epics/<name>/<name>.plan.html`, fill it (the prompt that started the plan goes in the Overview), update the docs index;  `--future`:  a future epic ("Page header");  on a future epic's doc:  plans it, promoted where it is |
 | `add-phase <name> "Short Name" --symptom <html> --changes <html> [--goal <html>] [--files ...] [--verify ...] [--estimate 1-2h]` | append a phase to the list and to `#phases`:  Symptom (one line), Changes (two or three), then the details (the goal a `<ul>`);  the estimate the title's badge.  Neither `--symptom` nor `--changes`:  the older shape, Goal / Files / Verify |
 | `phase-body <name> <N> [--symptom ...] [--changes ...] [--goal ...] [--files ...] [--verify ...]` | set a phase's body fields, each in its place (`""` removes one) |
 | `updated <name> <N> "<html>"` / `--file <path>` | a change to phase N's plan:  a dated line in its fenced Updated block, under Symptom / Changes;  kept once done;  listed in "Plan changes" atop the phases while N is to do |
