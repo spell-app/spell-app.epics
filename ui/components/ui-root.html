@@ -270,13 +270,56 @@
               </ui-markdown>
             </ui-section>
 
+            <ui-section id="usage-component-packs" header="Component packs" sticky collapsible dividing>
+              <ui-markdown>
+                <script type="text/markdown">
+                  A component pack is another package's elements (any tag prefix: `epic-`, `x-` ...), loaded on demand like
+                  Spell UI's own. Name it with a `<ui-components source>` anywhere inside the root; it draws nothing.
+
+                  - The root loads each distinct `source` once per page, as a classic `<script>` (relative to the page, so it
+                    works from `file://` too), and waits for it before it's ready.
+                  - The pack's script calls `SpellUI.registerPack({ name, prefix, catalog, define })` as it runs: `define()`
+                    defines its tags, and `catalog` describes each one as Spell UI's own catalog does (its skeleton). It shares
+                    the page's Solid and Spell UI through `SpellUI.packModules`, never a copy of its own.
+                  - Then the root treats the pack's tags as its own: ready waits for them, `display="skeleton"` draws their
+                    skeletons, and a tag with the pack's prefix that it doesn't define is reported (`unknown`).
+                  - A pack that can't load, or doesn't register, still lets the root get ready: `ui-error` and `ui-ready`'s
+                    `failed` list it as `{ tag: "ui-components", reason, source }`, and the console shows an error naming its
+                    `source`.
+                  - In an ES module bundle, `import { registerPack } from "@spell-app/ui"` (or `@spell-app/ui/ui-components`).
+                </script>
+              </ui-markdown>
+              <ui-code language="html">
+                <script type="text/plain">
+                  <ui-root>
+                    <ui-components source="../packs/epics.pack.js"></ui-components>
+                    <epic-page epic="seo" title="SEO">...</epic-page>
+                  </ui-root>
+                </script>
+              </ui-code>
+              <ui-code language="js">
+                <script type="text/plain">
+                  // epics.pack.js, as `spell dev pack build` writes it (a classic script)
+                  SpellUI.registerPack({
+                    name: "epics",
+                    prefix: "epic-",
+                    catalog: { "epic-page": { folder: "epic-page", skeleton: { parts: [{ shape: "header" }] } } },
+                    define() {
+                      customElements.define("epic-page", EpicPage)
+                    }
+                  })
+                </script>
+              </ui-code>
+            </ui-section>
+
             <ui-section id="usage-events" header="Events" sticky collapsible dividing>
               <ui-markdown>
                 <script type="text/markdown">
                   - `ui-ready` -- everything inside is ready (or the timeout passed) and the content shows: `{ failed }`, each
                     `{ tag, reason, error }`.
                   - `ui-error` (cancelable) -- a tag inside couldn't load: `{ tag, reason, error }`, `reason` one of `unknown`,
-                    `failed`, `timeout`. Cancel it to skip the console warning.
+                    `failed`, `timeout`; or a component pack didn't: `tag` is `ui-components`, with its `source`. Cancel it
+                    to skip the console warning.
                 </script>
               </ui-markdown>
               <ui-code language="js">
