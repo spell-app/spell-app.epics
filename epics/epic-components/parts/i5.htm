@@ -23,3 +23,128 @@
     type-checked in <code>packages/epics</code>
   </li>
 </ul>
+<div class="plan-reply plan-reply-owen">
+  <div class="plan-reply-title"><b>Owen</b> · <time>2026-10-07 10:44</time> · revisit soon</div>
+  <p>fix 'em</p>
+</div>
+<div class="plan-reply">
+  <div class="plan-reply-title"><b>Claude</b> · <time>2026-10-07 11:08</time> · re: "fix 'em"</div>
+  <p>
+    Two of the three seams are fixed. The third, cli's <code>tsc</code>, still can't follow the tool, for the two
+    reasons below.
+  </p>
+  <ul>
+    <li>
+      <b>EpicParts</b> moved from <code>src/convert/</code> to <code>src/tool/</code>:
+      <code>packages/epics/src/tool/EpicParts.ts</code>, with its test beside it. The converter now imports it from
+      there, along with <code>PlanParts</code> and <code>PlanMarkup</code>, which it already used.
+    </li>
+    <li>
+      <b>domEdits</b> is gone. Its helpers are now <code>PlanMarkup</code> statics in a "Moving children" group:
+      <code>takeChildren()</code>, <code>stripEdges()</code>, <code>titleOf()</code>, <code>joinText()</code>,
+      <code>wrap()</code>, <code>isSignificant()</code>. <code>isElement()</code>, <code>isBlank()</code> and
+      <code>squeeze()</code> were in both files, and now exist only once.
+      <ul>
+        <li>
+          <code>escapeAmpersands()</code> (I2) is now <code>PlanMarkup.escapeAmpersands(document)</code>. It returns a
+          function that puts the original values back. <code>serializePage()</code> uses it, and the two copies of the
+          loop became one.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Chrome</b> and <code>replyTitleParts()</code> moved to the tool's <code>planDoc.types.ts</code>, under "The old
+      markup's chrome". <code>convert.types.ts</code> re-exports them, so the converter's own imports didn't change.
+      <ul>
+        <li>
+          Result: the tool imports nothing from <code>$/epics/convert</code> except the dynamic import its
+          <code>convert</code> command needs. Before, it imported from there in 3 files: <code>PlanDocFiles</code>,
+          <code>PlanDocCommands</code> and <code>IncomingHtml</code>.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Child placement</b> has one home: the new <code>Markup.place(parent, node)</code>. It matches children the way
+      validation does, through two new statics on <code>MarkupCheck</code>, <code>childSpecs()</code> and
+      <code>matches()</code>. <code>checkChildren()</code> uses them too. <code>PlanDoc.place()</code> and its private
+      <code>matches()</code> are gone, and its 12 callers now call <code>Markup.place()</code>.
+      <ul>
+        <li>
+          One behaviour change, at the edges: a node being placed that is itself slotted now goes before the unslotted
+          children. Before, it was treated as prose. No current caller places a slotted node.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>cli's tsc</b>: I tried literal <code>import("$/epics/tool/...")</code> specifiers. cli's
+      <code>yarn tsc --noEmit</code> then fails with 22 errors, from two causes:
+      <ul>
+        <li>
+          ES2023 methods (<code>toSorted()</code>, <code>findLast()</code>) in <code>Markup</code> and the converter.
+          cli inherits spell's ES2022 <code>lib</code>. Switching to ES2023 removes those errors, but it adds one in
+          <a href="../../../packages/spell/src/node/file-utils.ts" target="src-packages-spell-src-node-file-utils-ts"
+            ><code>spell/src/node/file-utils.ts</code></a
+          >.
+        </li>
+        <li>
+          Solid's JSX. The definitions no longer import <code>$/ui/core</code>, but the vocabularies still reach it
+          through this chain: <code>epic-item.vocabulary.en.ts</code> takes its <code>REVIEW_*</code> data from
+          <code>epic-item.types.ts</code>, which goes to <code>epic-page.types.ts</code>, then <code>$/ui/core</code>,
+          then <code>ui</code>'s <code>.tsx</code> files. Those files give 2 errors under cli's React JSX.
+          <code>tsc</code> follows <code>import type</code> too.
+        </li>
+        <li>
+          So the constant specifiers stay. The HACK comment in
+          <a
+            href="../../../packages/cli/src/commands/planDocCommand.ts"
+            target="src-packages-cli-src-commands-plandoccommand-ts"
+            ><code>planDocCommand.ts</code></a
+          >
+          now names this chain, with a REFACTOR line, and todo T19 tracks the fix: move the <code>REVIEW_*</code> /
+          <code>FOLD_*</code> data out of the <code>.types.ts</code> files that import <code>$/ui/core</code>. That's in
+          <code>components/</code>, which another agent is working in tonight.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Checks: epics <code>tsc</code> clean, 194 / 194 node tests (14 files; same count, the EpicParts test moved). cli
+      <code>tsc</code> clean. docs <code>tsc</code> clean, 46 / 46 tests.
+      <code>plan-doc convert --all --out preview-epics</code>: 27 of 27 docs converted cleanly (a 27th doc exists now).
+    </li>
+  </ul>
+  <p><b>Net effect:</b></p>
+  <ul>
+    <li>
+      Each piece has one copy: splitting and assembling (<code>tool/EpicParts</code>), the DOM edits
+      (<code>PlanMarkup</code>), the old markup's chrome (<code>planDoc.types</code>), and child matching
+      (<code>MarkupCheck</code>, used by <code>Markup.place()</code>).
+    </li>
+    <li>
+      Imports go one way, from <code>convert</code> to <code>tool</code>. At the switch (P12), deleting
+      <code>src/convert/</code> takes nothing from the tool.
+    </li>
+    <li>
+      <b>cli still can't type-check the tool</b> until the vocabularies' data no longer pulls in <code>$/ui/core</code>
+      (T19).
+    </li>
+    <li>
+      <code>Markup.ts</code> and <code>MarkupCheck.ts</code> changed, so <code>pack/</code> needs a rebuild (<code
+        >spell dev pack build epics</code
+      >).
+    </li>
+  </ul>
+</div>
+<div class="plan-commits">
+  <b>Commits:</b>
+  <ul class="plan-commit-list">
+    <li data-sha="1f78bfc356e4b870ab69ef3793566f10cd1e9bd1">
+      <a
+        class="plan-commit"
+        href="https://github.com/spell-app/spell-app/commit/1f78bfc356e4b870ab69ef3793566f10cd1e9bd1"
+        target="github"
+        >1f78bfc</a
+      >
+      shared code lives once
+    </li>
+  </ul>
+</div>
