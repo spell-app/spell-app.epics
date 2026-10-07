@@ -457,6 +457,10 @@ A todo may carry Owen's note (Make Todo's box), written into the new todo.  Read
 <name>`;  shape, routes and helpers:  `packages/docs/AGENTS.md`, "Review inbox".  NEVER edit the file by hand:  go
 through `tools/inbox.js` (its lock).
 
+Review Now (the page header's wand, beside Send;  epic `windows-and-review` P4):  sends every mark AND turns each
+revisit waiting (unsent, or sent and still to talk over) into a request for now (`POST send { now: true }`,
+`inbox.js` `reviewNow()`):  the listening session answers them all at once, by background agents, into the items.
+
 How a `/epic review` session takes the marks (nothing outside a session can wake it, except a background command
 it started ending):
 
@@ -500,7 +504,7 @@ it started ending):
    | approve | anything else (open caveat, issue, todo;  closed or answered items) | reviewed |
    | pick | a question | answered with that card's title, the card chosen, reviewed |
    | todo | any item | a new todo "Follow up:  <title>" linking back, the item reviewed |
-   | revisit soon | any item | left:  talk it over in the chat, then `inbox <name> clear <id>` |
+   | revisit soon | any item | left:  answered INTO the item as a reply (`details --append`), the chat only linking it (Q3 of `windows-and-review`), then `inbox <name> clear <id>` |
    | revisit with a pick | a question | left, NOT answered ("to talk over:  picks B · ..., asks:  ..."):  answer the note about that option;  once Owen agrees, `decide <name> <id> "<card title>" --option B`, then `clear` |
 
    Each applied mark logs one line (`J9 approved:  closed (accepted)`);  a mark Owen changed meanwhile stays.
