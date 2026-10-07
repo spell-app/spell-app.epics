@@ -1288,6 +1288,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   into the SKELETON or a `--details` string gets moved into a part by the next command, which adds another `../`. ·
   Fix:  write links in a skeleton or `--details` relative to the SKELETON (`details/analysis.html`);  only a part
   file you edit by hand takes `parts/`-relative links.  `plan-doc check` reports the broken ones. · epic-components
+- 2026-10-07 · `spell dev plan-doc ...` crashed inside the epic-components worktree ("planDoc.types has no FIELD_ORDER
+  export") while an agent rewrote the tool there:  the `spell` link is main's CLI, but `plan-doc` runs the tool of
+  the checkout it's CALLED FROM (`CLI.findCheckout()` from the cwd), so a worktree changing the tool edits every
+  plan doc with its own half-built copy. · Fix:  `cd /Users/owen/www/spell-app/spell-app && spell dev plan-doc ...`
+  while a branch changes the plan-doc tool. · epic-components
 
 ## claude-code
 
