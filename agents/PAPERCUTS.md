@@ -1293,6 +1293,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   the checkout it's CALLED FROM (`CLI.findCheckout()` from the cwd), so a worktree changing the tool edits every
   plan doc with its own half-built copy. · Fix:  `cd /Users/owen/www/spell-app/spell-app && spell dev plan-doc ...`
   while a branch changes the plan-doc tool. · epic-components
+- 2026-10-07 · cli's `spell serve --headless` test failed in a worktree ("expected '' to match /^http:\/\/localhost:
+  \d+\/edit\/.../"):  the worktree's page server had been running since before the branch moved its review routes,
+  and the test reuses a running server ("already running") instead of starting its own. · Fix:  `node
+  packages/cli/bin/spell.mjs dev server stop`, then the test passes (59/59);  a long-lived page server goes stale
+  after route or layout changes (the 2026-10-05 entry above). · epic-components
 
 ## claude-code
 
