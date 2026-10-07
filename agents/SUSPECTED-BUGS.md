@@ -544,6 +544,10 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- `src/runner/element.build.test.ts` "one Solid per page" fails on `main` (2026-10-07, found merging outline-spell;
+  the same in the main checkout):  the built runner's `ui/customElement.js` imports Solid itself, where only
+  `spell-solid.js` should (`expected [ 'spell-solid.js', 'ui/customElement.js' ] to deeply equal [ 'spell-solid.js' ]`).
+  So a page may load two copies of Solid.  Prove:  `yarn vp test run src/runner/element.build.test.ts` in `packages/app`.
 - `/demo/spell-app.html` on the editor's dev server (`spell dev server start --all`, e.g. `localhost:61858`) draws
   nothing:  `<spell-app>` is never defined, because `/element/spell-app.js` comes back as the HTML page (vite's
   fallback).  Only the app's own server (`packages/app/src/server/index.ts`, `{ prefix: "/element", dir:
