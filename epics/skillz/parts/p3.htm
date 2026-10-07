@@ -1,0 +1,90 @@
+<!-- plan-doc part:  #p3's body in skillz.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<ui-list class="plan-phase-body"
+  ><ui-item icon="circle exclamation"
+    ><b>Symptom:</b> What an epic’s helpers are doing shows only in the chat, and steering one means typing into a busy
+    session.</ui-item
+  ><ui-item icon="wand magic sparkles"
+    ><b>Changes:</b> An "Agents" section on every plan doc, live from <code>agents.json</code>, each running agent with
+    a box to redirect it. A page-server route takes the redirect, and the session passes it on to the agent.</ui-item
+  ><ui-item icon="bullseye"
+    ><b>Goal:</b>
+    <ul>
+      <li>
+        the pattern: the review inbox (<a
+          href="../../../packages/docs/tools/reviewRoutes.ts"
+          target="src-packages-docs-tools-reviewroutes-ts"
+          ><code>packages/docs/tools/reviewRoutes.ts</code></a
+        >,
+        <a href="../../../packages/docs/tools/inbox.js" target="src-packages-docs-tools-inbox-js"
+          ><code>inbox.js</code></a
+        >,
+        <a
+          href="../../../packages/docs/tools/_assets/spell-doc-runtime.js"
+          target="src-packages-docs-tools-assets-spell-doc-runtime-js"
+          ><code>spell-doc-runtime.js</code></a
+        >)
+      </li>
+      <li>
+        the page:
+        <ul>
+          <li>
+            <a
+              href="../../../packages/docs/tools/_assets/spell-doc-runtime.js"
+              target="src-packages-docs-tools-assets-spell-doc-runtime-js"
+              ><code>spell-doc-runtime.js</code></a
+            >
+            draws an "Agents" section at the top of every plan doc while its list is not empty: no markup in the doc, so
+            no <code>migrate</code>
+          </li>
+          <li>each agent: name, task, status, age</li>
+          <li>each agent also gets a growing textarea and a Send button</li>
+        </ul>
+      </li>
+      <li>
+        the route, <code>packages/docs/tools/agentRoutes.ts</code> (a <code>RouteModule</code>, listed in the root
+        <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+        >’s <code>pageServer.routes</code>):
+        <ul>
+          <li><code>GET /api/agents?page=</code>: the list; the page polls it</li>
+          <li>
+            <code>POST /api/agents/redirect { page, name, note }</code>: token and origin guarded, a locked write; the
+            note lands in the entry’s <code>redirects</code>
+          </li>
+        </ul>
+      </li>
+      <li>
+        the session hears it:
+        <ul>
+          <li>
+            <code>spell dev agent wait</code> (in the background, as <code>plan-doc inbox wait</code> is) exits when a
+            redirect arrives
+          </li>
+          <li>
+            the session sends it to the agent (<code>SendMessage</code>, "Owen redirects: &lt;note&gt;"), marks it told
+            (<code>spell dev agent told</code>), and waits again
+          </li>
+          <li>
+            armed while the session has listed agents running: the <code>/bg</code> skill and the standing rule say so
+          </li>
+          <li>whether a message reaches a RUNNING agent mid-task is not checked yet (<a href="#c4">C4</a>)</li>
+        </ul>
+      </li>
+      <li>the page shows a sent redirect as "told" once the session has passed it on</li>
+    </ul></ui-item
+  ><ui-item icon="folder"
+    ><b>Files:</b> <code>packages/docs/tools/agentRoutes.ts</code> (new),
+    <a
+      href="../../../packages/docs/tools/_assets/spell-doc-runtime.js"
+      target="src-packages-docs-tools-assets-spell-doc-runtime-js"
+      ><code>spell-doc-runtime.js</code></a
+    >,
+    <a href="../../../packages/docs/tools/_assets/plan-doc.css" target="src-packages-docs-tools-assets-plan-doc-css"
+      ><code>plan-doc.css</code></a
+    >, the root <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+    >, <code>packages/cli/src/dev/agent.ts</code> (<code>wait</code>, <code>told</code>),
+    <code>.claude/skills/bg/SKILL.md</code></ui-item
+  ><ui-item icon="flask"
+    ><b>Verify:</b> Route tests. A fake <code>agents.json</code> shows in the side bar’s plan doc. A redirect typed
+    there wakes a waiting <code>spell dev agent wait</code>.</ui-item
+  ></ui-list
+>

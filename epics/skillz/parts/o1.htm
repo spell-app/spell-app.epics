@@ -3,43 +3,81 @@
   <code>/bg</code> hands a task to a helper agent that works in the background, so the Claude panel is free again at
   once: Owen can keep talking to the session (or send more <code>/bg</code> tasks) while the helper works.
 </p>
+<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+  ><p>
+    The forms changed with the approved plan (2026-10-07): a task may be named (<code>/bg "aaa" ...</code>); the list
+    form is <code>/bg ?</code>, not <code>/bg list</code> (Owen’s plan comment; <a href="#q3">Q3</a>); both read the
+    running-agents list (<a href="#o4">1.4</a>).
+  </p></ui-message
+>
 <ul>
   <li>
-    <code>/bg [n] &lt;task&gt;</code>: start the task.
+    <code>/bg ["name"] [n] &lt;task&gt;</code>: start the task.
     <ul>
+      <li>
+        <code>"name"</code> (optional, a quoted first word) names the helper; the real name gets the epic’s prefix:
+        <code>/bg "aaa" ...</code> here is <code>skillz-aaa</code>. No name: Claude makes one up from the task.
+      </li>
       <li>
         <code>n</code> (optional, default 1) is the most agents the task may use IN ALL, the helper itself included.
         <code>/bg 4 &lt;task&gt;</code>: the helper plus up to 3 of its own.
       </li>
-      <li>A hard cap: unlike the root rule (up to 5 agents, unasked), the helper never goes over <code>n</code>.</li>
+      <li>
+        A hard cap: unlike the root rule (up to 5 agents, unasked), the helper never goes over <code>n</code> (<a
+          href="#c1"
+          >C1</a
+        >).
+      </li>
     </ul>
   </li>
   <li>
-    <code>/bg list</code>: the background tasks this session started that are still running, each with its name and age.
+    <code>/bg ?</code>: the agents still running, from the list (<code>spell dev agent list</code>), each with its name,
+    task, status and age.
   </li>
-  <li><code>/bg stop &lt;name&gt;</code>: stop one.</li>
+  <li>
+    <code>/bg stop &lt;name&gt;</code>: stop one (<code>TaskStop</code> by its task id), and take it off the list.
+  </li>
 </ul>
 <p>What happens, in order:</p>
+<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+  ><p>
+    Each step now names and lists the helper (<a href="#q8">Q8</a>), and the report opens with the agent’s name in bold.
+  </p></ui-message
+>
 <ol>
   <li>
-    The session starts ONE background helper with the task word for word, plus what the helper can't know by itself:
+    The session starts ONE background helper, a fork of itself (<a href="#q1">Q1</a>), with the task word for word, plus
+    what the helper can't know by itself:
     <ul>
+      <li>its full name, and its agent budget, <code>n</code></li>
       <li>which checkout or worktree it's in</li>
       <li>the epic and plan doc, if the session has one</li>
-      <li>its agent budget, <code>n</code></li>
       <li>
         the house rules that matter: WWOD; stage, never commit unless told; shared files edited at their real path;
         judgement calls recorded in the plan doc; plain shell commands in a worktree
       </li>
     </ul>
+    It adds the helper to the list: <code>spell dev agent add</code>.
   </li>
-  <li>The session replies ONE line, <code>started: &lt;short name&gt; (&lt;n&gt; agents)</code>, and ends its turn.</li>
   <li>
-    When the helper finishes, its notice wakes the session, which writes a short report: what changed, where to look,
-    anything that needs Owen, with links as the root rules say (side bar + browser; plan docs in the Review tab).
+    The session replies ONE line, <code>started: &lt;full name&gt; (&lt;n&gt; agents)</code>, e.g.
+    <code>started: skillz-aaa (1 agents)</code>, and ends its turn.
+  </li>
+  <li>
+    When the helper finishes, its notice wakes the session, which takes it off the list (<code
+      >spell dev agent done</code
+    >) and writes a short report:
+    <ul>
+      <li>it opens <b>Agent skillz-aaa came back with:</b>, for every named agent, <code>/bg</code> or not</li>
+      <li>then what changed, where to look, and anything that needs Owen</li>
+      <li>with links as the root rules say (side bar + browser; plan docs in the Review tab)</li>
+    </ul>
   </li>
 </ol>
+<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+  ><p>The second task now waits on the list, marked "blocked on", and starts by itself.</p></ui-message
+>
 <p>
-  Several <code>/bg</code> tasks at once are fine. Two that would touch the same files: the session says so, and starts
-  the second only once the first is done.
+  Several <code>/bg</code> tasks at once are fine. Two that would touch the same files: the second is listed as
+  <code>blocked on &lt;first&gt;</code>, and the session starts it only once the first one’s report arrives.
 </p>

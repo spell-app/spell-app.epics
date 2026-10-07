@@ -23,3 +23,150 @@
     (scripts, devDependencies, spellPack) rather than skipped, so a folder that already has one still becomes a pack
   </li>
 </ul>
+<div class="plan-reply">
+  <div class="plan-reply-title">
+    <b>Claude</b> · <time>2026-10-07 10:50</time> · re: "Hmm, can't we put this in JSON?"
+  </div>
+  <p>
+    We can, but I'd keep the templates as files. Today <code>spell dev pack new</code> / <code>pack element</code>
+    copy 18 small template files (393 lines in all) from
+    <a href="../../../packages/cli/templates/pack/" target="src-packages-cli-templates-pack"
+      ><code>packages/cli/templates/pack/</code></a
+    >, filling in each <code>__token__</code>. Most of them are TypeScript, CSS and markdown, so as JSON strings they'd
+    lose their highlighting and gain escaping.
+  </p>
+  <ul>
+    <li>the files: <code>element/</code> (7, one element family) and <code>package/</code> (11, a new pack)</li>
+    <li>
+      the tokens and how they're filled live in code, in
+      <a href="../../../packages/cli/src/dev/packNew.ts" target="src-packages-cli-src-dev-packnew-ts"
+        ><code>packNew.ts</code></a
+      >
+      (<code>packTokens()</code>, <code>elementTokens()</code>, <code>fillTokens()</code>)
+    </li>
+    <li><code>package.json.tmpl</code> already IS JSON (with tokens), and is merged key by key, not copied</li>
+  </ul>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/cli/templates/pack/element/__Class__.tsx.tmpl · 28 lines (excerpt)</ui-title
+    ><ui-content>
+      <pre><code class="language-tsx">import { __vocab__Vocabulary } from "./__tag__.vocabulary.en"
+import { __Class__Fallback } from "./__tag__.fallback"
+import type { __Class__Vocabulary } from "./__tag__.types"
+
+import __nounCamel__CSS from "./__tag__.css?inline"
+
+export class __Class__ extends UIElement&lt;__Class__Vocabulary&gt; {
+  @proto static vocabulary = __vocab__Vocabulary
+  @proto static styles = { __nounCamel__: __nounCamel__CSS }
+  @proto static Fallback = __Class__Fallback
+
+  render(): JSX.Element {
+    return (
+      &lt;div class={this.classes()} part={this.part("base")}&gt;
+        &lt;slot /&gt;
+      &lt;/div&gt;
+    )
+  }
+}</code></pre>
+    </ui-content></ui-accordion
+  >
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/cli/src/dev/packNew.ts · how a template is filled (excerpts)</ui-title
+    ><ui-content>
+      <pre><code class="language-ts">/** The tokens of element `tag` in pack `pack`. */
+function elementTokens(root: string, pack: PackInfo, tag: string): PackTokens {
+  const noun = tag.slice(pack.prefix.length)
+  return {
+    ...packTokens(root, pack),
+    tag,
+    Class: pascalCase(tag),
+    vocab: camelCase(tag.replace(/^ui-/, "")),
+    noun,
+    nounCamel: camelCase(noun)
+  }
+}
+
+/** `text` with each `__token__` of `tokens` filled in;  any other `__word__` stays. */
+function fillTokens(text: string, tokens: PackTokens): string {
+  const names = Object.keys(tokens).sort((a, b) =&gt; b.length - a.length)
+  return text.replace(new RegExp(`__(${names.join("|")})__`, "g"), (_, name: string) =&gt; tokens[name]!)
+}
+
+function writeTemplates(root: string, from: string, to: string, tokens: PackTokens, report: PackScaffoldReport) {
+  for (const template of templateFiles(from)) {
+    const path = relative(from, template).slice(0, -TEMPLATE_SUFFIX.length)
+    const target = join(to, fillTokens(path, tokens).replace(/(^|\/)gitignore$/, "$1.gitignore"))
+    ...
+    writeFileSync(target, fillTokens(readFileSync(template, "utf8"), tokens))</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>The same template as one JSON entry (option B) would read:</p>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>templates/pack/templates.json · option B (sketch)</ui-title
+    ><ui-content>
+      <pre><code class="language-json">{
+  "element/__Class__.tsx": "import { __vocab__Vocabulary } from \"./__tag__.vocabulary.en\"\nimport { __Class__Fallback } from \"./__tag__.fallback\"\n...\n  render(): JSX.Element {\n    return (\n      &lt;div class={this.classes()} part={this.part(\"base\")}&gt;\n        &lt;slot /&gt;\n      &lt;/div&gt;\n    )\n  }\n}\n",
+  "element/__tag__.css": "/*\n * `&lt;__tag__&gt;`:  DOCME.\n ..."
+}</code></pre>
+    </ui-content></ui-accordion
+  >
+
+  <ui-grid class="spell-pros-cons" columns="2" stackable>
+    <ui-segment>
+      <ui-label attached="top">A · Keep one file per template (recommended)</ui-label>
+      <ul>
+        <li>as today: each template a real file, named like what it writes</li>
+        <li>
+          an editor highlights it, a diff shows a one-line change as one line, and you edit it like the file it becomes
+        </li>
+        <li>cost: none; the token list stays in <code>packNew.ts</code></li>
+      </ul>
+      <p><b>Net effect:</b></p>
+      <ul>
+        <li>no change</li>
+      </ul>
+    </ui-segment>
+    <ui-segment>
+      <ui-label attached="top">B · One JSON file holding every template</ui-label>
+      <ul>
+        <li><code>templates/pack/templates.json</code>: path =&gt; text, 18 entries</li>
+        <li>
+          cost: every quote and newline escaped (the sketch above); no highlighting; a one-line change is a diff of one
+          very long line; a hand edit easily breaks the JSON
+        </li>
+        <li>gain: one file to find</li>
+      </ul>
+      <p><b>Net effect:</b></p>
+      <ul>
+        <li>18 <code>.tmpl</code> files become one <code>templates.json</code>; <code>packNew.ts</code> reads it</li>
+      </ul>
+    </ui-segment>
+    <ui-segment>
+      <ui-label attached="top">C · JSON for the token list and file map; templates stay files</ui-label>
+      <ul>
+        <li>
+          <code>templates/pack/pack.json</code> says what's now in code: each token with what it means and an example
+          (<code>"Class": "EpicPage"</code>), which files are merged rather than copied (<code>NOT_COPIED</code>), the
+          <code>gitignore</code> =&gt;
+          <a href="../../../.gitignore" target="src-gitignore"><code>.gitignore</code></a> rename
+        </li>
+        <li>
+          cost: ~30 min; how a token is COMPUTED (<code>pascalCase(tag)</code>) still has to be code, so the JSON only
+          names and documents them
+        </li>
+        <li>gain: you see every token and file rule in one data file beside the templates</li>
+      </ul>
+      <pre><code class="language-json">{ "tokens": { "Class": "EpicPage", "tag": "epic-page", ... },
+  "merged": ["package/package.json"],
+  "renamed": { "gitignore": ".gitignore" } }</code></pre>
+      <p><b>Net effect:</b></p>
+      <ul>
+        <li>a new <code>templates/pack/pack.json</code>; <code>packNew.ts</code> reads its file rules from it</li>
+      </ul>
+    </ui-segment>
+  </ui-grid>
+  <p><b>Net effect (A, recommended):</b></p>
+  <ul>
+    <li>the templates stay 18 <code>.tmpl</code> files; J8 stands as chosen</li>
+  </ul>
+</div>

@@ -17,3 +17,277 @@
     <code>ui-accordion[source]</code> does today
   </li>
 </ul>
+<div class="plan-reply">
+  <div class="plan-reply-title">
+    <b>Claude</b> · <time>2026-10-07 10:50</time> · re: "Yes. You can use &lt;ui-markdown&gt; in the html pages. BTW:
+    they should be <code>q7.html</code> ... This is not Windows XP."
+  </div>
+  <p>
+    Two answers: (a) yes, prose may use <code>&lt;ui-markdown&gt;</code>, with three catches; (b) why parts are
+    <code>.htm</code> today, and what renaming them to <code>.html</code> takes. (b) needs your pick, below.
+  </p>
+
+  <h4>(a) &lt;ui-markdown&gt; in a plan doc's prose</h4>
+  <p>
+    It already works on every docs page: the docs bundle loads every Spell UI family, and points
+    <code>&lt;ui-markdown&gt;</code>'s engine at its lazy script. Where it helps: a long stretch of plain prose in a
+    part (an Overview sub-section, a long issue write-up), written as markdown instead of <code>&lt;p&gt;</code> /
+    <code>&lt;ul&gt;</code> / <code>&lt;li&gt;</code>.
+  </p>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/docs/tools/_assets/spell-ui.entry.js · lines 4-10</ui-title
+    ><ui-content>
+      <pre><code class="language-js"> * - `@spell-app/ui` ~== UI's built `dist/index.js`:  every family, each `define()`s its tags as it's imported.
+ ...
+ *   - then `spell-ui:lazy`, pointing `&lt;ui-code&gt;` / `&lt;ui-markdown&gt;`'s engine loaders at their lazy scripts</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>The catches, all because it renders into its OWN shadow root:</p>
+  <ol>
+    <li>
+      <b>Links into it:</b> a page link <code>#d7</code> can't reach an id inside it. It handles <code>#id</code> links
+      to its own HEADINGS only (<code>reveal()</code>, and on <code>hashchange</code>). So an answer card, an
+      <code>h4</code> another item links to, or anything listed in a host's <code>part-ids</code> must stay HTML.
+    </li>
+    <li>
+      <b>Relative links in a part:</b> a part's links are written relative to
+      <a href target="src-epics-epic-components-parts"><code>parts/</code></a> and rebased when it loads, but the rebase
+      rewrites ATTRIBUTES only (<code>PlanParts.rebase()</code>). A markdown link is text, so
+      <code>[x](../../../guides/x.html)</code> in a part would be one <code>../</code> off once shown.
+    </li>
+    <li>
+      <b>The tools don't see inside it:</b>
+      <a href="../../../packages/docs/tools/doc-links.js" target="src-packages-docs-tools-doc-links-js"
+        ><code>doc-links.js</code></a
+      >
+      names each source link's tab (<code>target="src-..."</code>), and <code>check</code> checks
+      <code>#id</code> links; both read <code>&lt;a href&gt;</code> markup. A markdown link gets no tab name, so in VS
+      Code's doc preview a link to a <code>.ts</code> file opens IN the preview instead of in the editor (<a
+        href="../../../packages/server/src/liveClient.ts"
+        target="src-packages-server-src-liveclient-ts"
+        ><code>liveClient.ts</code></a
+      >
+      <code>followInFrame()</code> sends only <code>src-</code> targets to the editor).
+    </li>
+  </ol>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/ui/src/components/ui-markdown/UIMarkdown.tsx · lines 42-44</ui-title
+    ><ui-content>
+      <pre><code class="language-ts"> *   - `#id` links scroll to the heading INSIDE the shadow root (the page's own fragment navigation can't see it);
+ *     so does `reveal(id)` from outside, and a `#id` in the address that names one of its headings:  after the
+ *     FIRST render (a page loaded with it), and on each `hashchange` (a link elsewhere on the page)</code></pre>
+    </ui-content></ui-accordion
+  >
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/epics/src/tool/PlanParts.ts · rebase(), lines 101-108</ui-title
+    ><ui-content>
+      <pre><code class="language-ts">static rebase(element: Element, change: (url: string) =&gt; string): void {
+  for (const node of [element, ...element.querySelectorAll("*")])
+    for (const name of URL_ATTRIBUTES) {
+      const value = node.getAttribute(name)
+      if (value === null || !isRelative(value)) continue
+      node.setAttribute(name, change(value))
+    }
+}</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>
+    So: markdown for plain prose with no links to source files and nothing linked INTO it; HTML for the rest.
+    Find-in-page should be fine: Chrome's searches text in open shadow roots (not checked in VS Code's doc preview).
+  </p>
+
+  <h4>(b) Why parts are .htm today</h4>
+  <p>
+    So that nothing that walks the docs for PAGES takes a part (a fragment, no <code>&lt;head&gt;</code>) for one. The
+    rule, as written in the guide and in the code:
+  </p>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/epics/src/tool/PlanParts.ts · lines 20-21, 179</ui-title
+    ><ui-content>
+      <pre><code class="language-ts"> * - why `.htm`, not `.html`:  every page walker (`pages.js` `findPages()`:  the docs index, `docs update`, link
+ *   repairs), in this checkout AND in checkouts on older code, takes `.html` files only:  a part is never a page
+...
+export const PART_EXT = ".htm"</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>
+    But the main walker already skips <a href target="src-epics-epic-components-parts"><code>parts/</code></a> folders
+    by NAME, in <code>main</code> and in every worktree but one:
+  </p>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/docs/tools/pages.js · findPages(), lines 114 and 147-149</ui-title
+    ><ui-content>
+      <pre><code class="language-js">const SKIP_DIRS = new Set(["node_modules", "experiments", "examples", "details", "parts"])
+...
+      if (!SKIP_DIRS.has(entry.name) || epic) found.push(...findPages(path))
+    } else if (entry.name.endsWith(".html")) found.push(path)</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>Every walker that takes <code>.html</code> files, and what a part named <code>.html</code> would do to it:</p>
+  <ui-table>
+    <table>
+      <thead>
+        <tr>
+          <th>Walker</th>
+          <th>Used by</th>
+          <th>With <code>parts/q7.html</code></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <a href="../../../packages/docs/tools/pages.js" target="src-packages-docs-tools-pages-js"
+              ><code>pages.js</code></a
+            >
+            <code>findPages()</code>
+          </td>
+          <td>
+            the docs index (<a href="../../../packages/docs/tools/index.js" target="src-packages-docs-tools-index-js"
+              ><code>index.js:145</code></a
+            >), <code>docs update</code> (<a
+              href="../../../packages/docs/tools/update.js"
+              target="src-packages-docs-tools-update-js"
+              ><code>update.js:36</code></a
+            >)
+          </td>
+          <td>
+            fine: skips <a href target="src-epics-epic-components-parts"><code>parts/</code></a> already
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <a href="../../../packages/docs/tools/relocate.js" target="src-packages-docs-tools-relocate-js"
+              ><code>relocate.js</code></a
+            >
+            <code>rewrite()</code> (lines 332-339)
+          </td>
+          <td><code>spell dev shared commit</code> / <code>repair</code>, after EVERY turn</td>
+          <td>
+            <b>needs a change:</b> an <code>.html</code> under
+            <a href="../../" target="src-epics"><code>epics/</code></a> gets the page repairs
+            (<code>repairLinks()</code>, <code>headerRoot()</code>) meant for whole pages; today only <code>.htm</code>
+            takes the part branch
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <a
+              href="../../../packages/cli/src/commands/staticCommand.ts"
+              target="src-packages-cli-src-commands-staticcommand-ts"
+              ><code>staticCommand.ts</code></a
+            >
+            <code>htmlFiles()</code> (line 174)
+          </td>
+          <td><code>spell static &lt;folder&gt;</code></td>
+          <td>
+            <b>needs a change:</b> <code>spell static epics/x/</code> would write a <code>.static.html</code> per part
+          </td>
+        </tr>
+        <tr>
+          <td><code>details.js</code> <code>listPages()</code></td>
+          <td>details pages</td>
+          <td>
+            fine: only
+            <a href="../details/" target="src-epics-epic-components-details"><code>details/</code></a> folders
+          </td>
+        </tr>
+        <tr>
+          <td>
+            the page server (<a
+              href="../../../packages/server/src/StaticHandler.ts"
+              target="src-packages-server-src-statichandler-ts"
+              ><code>StaticHandler.ts:97</code></a
+            >, <code>PageEditor.PAGE_FILE</code>)
+          </td>
+          <td>serving and saving</td>
+          <td>fine: treats <code>.htm</code> and <code>.html</code> alike already</td>
+        </tr>
+        <tr>
+          <td>the leftover worktree <code>agent-acd2d67492d388b6b</code></td>
+          <td>its own docs index, if anyone ran it there</td>
+          <td>its <code>findPages()</code> predates the <code>parts</code> skip; it's a dead agent worktree</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/docs/tools/relocate.js · rewrite(), lines 332-339</ui-title
+    ><ui-content>
+      <pre><code class="language-js">  if (file.endsWith(".html")) {
+    // a file that moved just now was relocated whole;  one already in place may hold links older code wrote
+    if (before === file &amp;&amp; reorgOldPlace(file)) out = repairLinks(out, file, exists, reorgOldPlace, REORG_MOVE)
+    if (reorgOldPlace(file)) out = headerRoot(out, file)
+    out = reorgOldPlace(file) ? retarget(out, file) : retarget(out, file, /^src-packages-(docs-content|ui-site)-/)
+  }
+  // a plan doc's part (`parts/&lt;id&gt;.htm`):  the tab names of the links the moves changed
+  if (file.endsWith(".htm")) out = retarget(out, file, /^src-packages-(docs-content|ui-site)-/)</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>
+    Plus the places that SPELL the extension (no walking): <code>PlanParts.ts</code> <code>PART_EXT</code> /
+    <code>PART_SOURCE</code>, <code>EpicParts.ts</code> <code>PART_SOURCE</code>,
+    <a href="../../../packages/docs/tools/pages.js" target="src-packages-docs-tools-pages-js"><code>pages.js</code></a
+    >'s log part (<a href="log.htm" target="src-epics-epic-components-parts-log-htm"><code>parts/log.htm</code></a
+    >),
+    <a href="../../../packages/docs/tools/relocate.js" target="src-packages-docs-tools-relocate-js"
+      ><code>relocate.js</code></a
+    >
+    <code>planDocOf()</code>, the old
+    <a href="../../../packages/docs/tools/plan-parts.js" target="src-packages-docs-tools-plan-parts-js"
+      ><code>plan-parts.js</code></a
+    >, the converter's fixtures and tests, and the guide's "Parts".
+  </p>
+
+  <ui-grid class="spell-pros-cons" columns="2" stackable>
+    <ui-segment>
+      <ui-label attached="top">A · Rename to .html, every walker skips parts/ (recommended)</ui-label>
+      <ul>
+        <li>parts become <code>parts/q7.html</code>; the converter renames every part at the switch (Switch Over)</li>
+        <li>
+          change:
+          <a href="../../../packages/docs/tools/relocate.js" target="src-packages-docs-tools-relocate-js"
+            ><code>relocate.js</code></a
+          >
+          and <code>spell static</code> skip <a href target="src-epics-epic-components-parts"><code>parts/</code></a
+          >; the extension constants become <code>.html</code>; reading accepts both (<code>/\.html?$/</code>) for a
+          while, so a doc an older checkout split still loads
+        </li>
+        <li>cost: ~30 min inside the switch; 2 walkers, ~6 constants and their tests</li>
+        <li>
+          why recommended: the list is short, the main walker already skips by folder, and it's your stated preference
+        </li>
+      </ul>
+      <pre><code class="language-html">&lt;epic-item id="q7" source="parts/q7.html"&gt;</code></pre>
+      <p><b>Net effect:</b></p>
+      <ul>
+        <li>every part file is <code>parts/&lt;id&gt;.html</code>; a part is told from a page by its folder</li>
+        <li>the guide's "Parts" and <code>PlanParts.ts</code>'s banner say so</li>
+      </ul>
+    </ui-segment>
+    <ui-segment>
+      <ui-label attached="top">B · Keep .htm</ui-label>
+      <ul>
+        <li>no change; the extension alone keeps every walker, today's and tomorrow's, off the parts</li>
+        <li>
+          cost: nothing to build; a new walker never needs to know about
+          <a href target="src-epics-epic-components-parts"><code>parts/</code></a>
+        </li>
+      </ul>
+      <pre><code class="language-html">&lt;epic-item id="q7" source="parts/q7.htm"&gt;</code></pre>
+      <p><b>Net effect:</b></p>
+      <ul>
+        <li>parts stay <code>parts/&lt;id&gt;.htm</code></li>
+      </ul>
+    </ui-segment>
+  </ui-grid>
+  <p><b>Net effect (A, recommended):</b></p>
+  <ul>
+    <li>
+      (a) the guide's "Prose" gains a line: <code>&lt;ui-markdown&gt;</code> for plain prose, with the three catches
+    </li>
+    <li>
+      (b) Switch Over renames every part of the 26 docs to <code>.html</code>, and the two walkers skip
+      <a href target="src-epics-epic-components-parts"><code>parts/</code></a>
+    </li>
+  </ul>
+</div>

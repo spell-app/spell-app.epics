@@ -28,3 +28,131 @@
     <code>&lt;pack&gt;.entry.ts</code>, <code>&lt;pack&gt;.pack.js</code> (minified IIFE)
   </li>
 </ul>
+<div class="plan-reply plan-reply-owen">
+  <div class="plan-reply-title"><b>Owen</b> · <time>2026-10-07 10:22</time> · revisit soon</div>
+  <p>I assme the sha is part of one of this JS/TS files?</p>
+</div>
+<div class="plan-reply">
+  <div class="plan-reply-title">
+    <b>Claude</b> · <time>2026-10-07 10:50</time> · re: "I assme the sha is part of one of this JS/TS files?"
+  </div>
+  <p>
+    Yes: it's written into TWO of the generated files, as <code>sources: &lt;hash&gt;</code>, and
+    <code>spell dev pack check</code> reads it back from both. No separate hash file.
+  </p>
+  <ul>
+    <li>
+      the catalog's 2nd line,
+      <a href="../../../packages/epics/pack/epics.catalog.ts" target="src-packages-epics-pack-epics-catalog-ts"
+        ><code>packages/epics/pack/epics.catalog.ts</code></a
+      >
+    </li>
+    <li>
+      the script's banner, the first line of
+      <a href="../../../packages/epics/pack/epics.pack.js" target="src-packages-epics-pack-epics-pack-js"
+        ><code>packages/epics/pack/epics.pack.js</code></a
+      >
+      (added after the build: the minifier drops a banner comment)
+    </li>
+    <li>
+      the third file, <code>epics.entry.ts</code>, has no hash: <code>check</code> compares its whole text with what a
+      build would write
+    </li>
+  </ul>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/epics/pack/epics.catalog.ts · lines 1-2</ui-title
+    ><ui-content>
+      <pre><code class="language-ts">/* GENERATED -- do not edit:  `spell dev pack build epics`, from every `&lt;tag&gt;.vocabulary.en.ts` */
+// sources:  aacb611e55247c5c</code></pre>
+    </ui-content></ui-accordion
+  >
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/epics/pack/epics.pack.js · line 1</ui-title
+    ><ui-content>
+      <pre><code class="language-js">/* GENERATED -- do not edit:  `spell dev pack build epics`.  sources:  aacb611e55247c5c */</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>
+    What's hashed: 16 hex digits of a sha-256 over the format version, the pack's name and prefix, then each source
+    file's path and bytes. The sources are every file under <code>components/</code> plus whatever they import from the
+    pack's own <code>components/</code> or
+    <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+    >, transitively; tests and snapshots never count. (Narrower than the item says above: "every file in
+    <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+    >" became "only what the components import", so editing the node-only tool in
+    <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> no longer makes the pack
+    stale.)
+  </p>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/cli/src/dev/packBuild.ts · packHash() and packSources(), lines 108-142</ui-title
+    ><ui-content>
+      <pre><code class="language-ts">/**
+ * The hash of everything a pack's generated files are built from:  `packSources()`, each with its path;  the pack's
+ * name and prefix;  `PACK_FORMAT`.  16 hex digits of sha-256.
+ */
+export function packHash(pack: PackInfo): string {
+  const hash = createHash("sha256").update(`${PACK_FORMAT}\n${pack.name}\n${pack.prefix}\n`)
+  for (const file of packSources(pack)) hash.update(`${relative(pack.dir, file)}\n`).update(readFileSync(file))
+  return hash.digest("hex").slice(0, 16)
+}
+
+/**
+ * The files a pack's script is built from, absolute, sorted:  every file under `components/`, plus every file of the
+ * pack's own `components/` or `src/` they import, transitively.
+ * - Not the rest of `src/`:  node-only code there (a tool, its tests) never reaches the script, so editing it leaves
+ *   the pack current.
+ * ...
+ * - Tests and snapshots never count.
+ */
+export function packSources(pack: PackInfo): string[] {
+  const sources = new Set&lt;string&gt;()
+  const queue = filesUnder(join(pack.dir, COMPONENTS_FOLDER))
+  while (queue.length) {
+    const file = queue.pop()!
+    if (sources.has(file) || NOT_SOURCE.test(file) || !isPackSource(pack, file)) continue
+    sources.add(file)
+    if (!SCRIPT.test(file)) continue
+    for (const [, from, bare, dynamic] of readFileSync(file, "utf8").matchAll(IMPORT)) {
+      const imported = resolveImport(pack, file, from ?? bare ?? dynamic)
+      if (imported) queue.push(imported)
+    }
+  }
+  return [...sources].sort()
+}</code></pre>
+    </ui-content></ui-accordion
+  >
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/cli/src/dev/packBuild.ts · where check reads it back, line 197</ui-title
+    ><ui-content>
+      <pre><code class="language-ts">/** Where a generated file records the sources' hash:  `sources:  &lt;hash&gt;`. */
+const HASH_RECORD = /\bsources: {2}([0-9a-f]{16})\b/</code></pre>
+    </ui-content></ui-accordion
+  >
+  <p>And <code>check</code> run on the branch just now (in the worktree):</p>
+  <ui-accordion class="spell-code" styled
+    ><ui-title>node packages/cli/bin/spell.mjs dev pack check epics · output</ui-title
+    ><ui-content>
+      <pre><code class="language-text">epics:  STALE
+  packages/epics/pack/epics.catalog.ts:  built from older sources
+  packages/epics/pack/epics.pack.js:  built from older sources
+fix:  spell dev pack build epics</code></pre>
+    </ui-content></ui-accordion
+  >
+  <ul>
+    <li>
+      <b>the branch's pack is stale right now:</b> the sources hash to <code>f95fb13e9708cdb7</code>, the files record
+      <code>aacb611e55247c5c</code>. <code>packages/epics/src/definitions/definitions.types.ts</code> changed after the
+      last build (04:42), and the components import it. So the epics package's <code>yarn test</code> (its
+      <code>pack.test.ts</code> runs this check) fails until <code>yarn pack:build</code> runs. Exactly the case the
+      item's Net effect warns about; left for the phase session to rebuild (no code edits from here)
+    </li>
+  </ul>
+  <p><b>Net effect:</b></p>
+  <ul>
+    <li>nothing changes: the hash stays in the catalog's 2nd line and the script's banner</li>
+    <li>
+      to do on the branch: <code>yarn pack:build</code> in <code>packages/epics</code>, then commit the three
+      <code>pack/</code> files
+    </li>
+  </ul>
+</div>
