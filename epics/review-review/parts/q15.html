@@ -1,0 +1,46 @@
+<!-- plan-doc part:  #q15's details in review-review.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-answer id="d14" title="P1 reloads: the docs runtime patches the page, the live client only fetches"
+  ><ul>
+    <li>
+      When the page's own file changes, the live client (<a
+        href="../../../packages/server/src/liveClient.ts"
+        target="src-packages-server-src-liveclient-ts"
+        ><code>packages/server/src/liveClient.ts</code></a
+      >) fetches the new version and fires a cancelable <code>spell-server:change</code> event on
+      <code>window</code> (detail: <code>{ path, html, etag, reload() }</code>). If nothing takes it, the page reloads
+      as before.
+    </li>
+    <li>
+      The docs runtime (<a
+        href="../../../packages/docs/tools/_assets/spell-doc-runtime.js"
+        target="src-packages-docs-tools-assets-spell-doc-runtime-js"
+        ><code>spell-doc-runtime.js</code></a
+      >
+      <code>wireLiveUpdate()</code>) takes it and patches the page. It does the patching because only it knows what it
+      built from the markup (contents, rail, counts, item filters, folds) and how to rebuild those; pages without the
+      runtime (Spell UI's site, proxied pages) keep reloading.
+    </li>
+    <li>
+      The patch compares the source as the page LOADED with the new source, never the live page (which the runtime and
+      the elements have added to). The runtime reads that baseline once at start, and trusts it only when its ETag is
+      the one the page was served with.
+    </li>
+    <li>
+      Only what changed is touched: elements are matched by <code>id</code>, else in order by tag; a changed attribute
+      is set in place, changed text replaces the smallest element that holds it, new elements are added folded as the
+      reader would expect. Scroll, folds, open panels, focus and typed text survive.
+    </li>
+    <li>
+      After the patch the runtime re-wires (counts, item filters, contents and rail only when their entries changed,
+      sticky lines when sections came in, code colors) and fires
+      <code>spell-doc:updated</code> with the changed elements.
+    </li>
+    <li>
+      For agent C (runtime chrome): an element the runtime adds inside <code>main</code> should carry
+      <code>data-spell-added</code> (or join <code>ADDED</code>), and the patch never calls
+      <code>wireFolds()</code> again (that would refold link-opened sections on a plan doc).
+      <code>trackStickyHeights()</code> is called again when sections are added; making it drop its previous
+      ResizeObserver would stop a small leak.
+    </li>
+  </ul></epic-answer
+>

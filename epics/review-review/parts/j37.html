@@ -1,0 +1,36 @@
+<!-- plan-doc part:  #j37's details in review-review.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Whether a listening session is gone is decided in one place,
+  <a href="../../../packages/docs/tools/inbox.js" target="src-packages-docs-tools-inbox-js"><code>inbox.js</code></a
+  >: the routes answer <code>listening: null</code> once its heartbeat is over 90 seconds old, so the page needs no
+  clock rule of its own.
+</p>
+<ul>
+  <li>
+    The two times are named once each: <code>LISTEN_HEARTBEAT_MS</code> (30s) and <code>LISTEN_STALE_MS</code> (90s), in
+    <a href="../../../packages/docs/tools/inbox.js" target="src-packages-docs-tools-inbox-js"
+      ><code>scripts/inbox.js</code></a
+    >; the stale <code>listening</code> stays in the file until the next <code>listen</code> or <code>unlisten</code>.
+  </li>
+  <li>
+    Beyond the ask: besides <code>wait</code> (every 30s) and <code>listen</code>, the session's
+    <code>inbox apply</code>, <code>done</code>, <code>clear</code> and <code>working</code> also stamp the heartbeat,
+    so a session busy between waits still counts.
+  </li>
+  <li>
+    Still a gap: a session talking a revisit over with you for more than 90s, running none of those, shows "nobody is
+    reviewing" until it runs <code>wait</code> again. Marks you make then do wait for that <code>wait</code>, so the
+    warning is roughly true.
+  </li>
+  <li>
+    Example: you close the review tab mid-wait. 90s later the send button's tooltip says "No Claude session is reviewing
+    this doc", "revisit now" shows the notice, and
+    <code>yarn plan-doc inbox review-review</code> prints "listening: nobody (session ... last seen ..., over 90s ago:
+    gone without unlisten)".
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>after a crash the warning comes back within 90 seconds, with no page change needed</li>
+  <li>a long chat with no inbox command can show the warning while the session is still there</li>
+</ul>

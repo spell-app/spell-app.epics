@@ -1,0 +1,29 @@
+<!-- plan-doc part:  #j46's details in review-review.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Only the pass-throughs got fast. <code>spell dev commands</code>, <code>session</code>, <code>worktree</code>,
+  <code>park</code>, <code>stock</code> and <code>shared</code> still take ~0.65s, because the lean entry hands them
+  over to the full one.
+</p>
+<ul>
+  <li>
+    Why: their modules in
+    <a href="../../../packages/cli/src/dev/" target="src-packages-cli-src-dev"><code>packages/cli/src/dev/</code></a>
+    import the <code>$/cli</code> barrel (<code>CLI.findCheckout</code>, <code>CLI.EXIT</code> ...), and the barrel
+    loads spell. Making them lean means moving those imports off the barrel, file by file: a refactor of its own.
+  </li>
+  <li>
+    The hand-over is <code>import("$/cli/main")</code> from
+    <a href="../../../packages/cli/src/devMain.ts" target="src-packages-cli-src-devmain-ts"><code>devMain.ts</code></a
+    >: main parses the same command line again and runs it as before. Measured:
+    <code>spell dev commands check</code> 0.65-0.70s via the hand-over, 0.66-0.68s straight through main. No cost.
+  </li>
+</ul>
+<p>
+  Example: <code>spell dev stock --json</code> prints the same as before, in the same time;
+  <code>spell dev --help</code> lists it in 0.09s.
+</p>
+<p><strong>Net effect</strong></p>
+<ul>
+  <li>Fast: plan-doc, goals, docs, details, server, window, vscode, and <code>spell dev --help</code>.</li>
+  <li>Unchanged: the six commands above. A later move could make them lean too.</li>
+</ul>
