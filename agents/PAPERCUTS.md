@@ -1304,6 +1304,14 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   relative to the SKELETON (`epics/<name>/`), and moved into `parts/`. · Fixed by hand in the part file;  or write
   them skeleton-relative (`../../packages/x`), or as plain `<code>` paths (the tool links those itself, correctly). ·
   skillz
+- 2026-10-07 · The root `yarn review` (and `yarn workspace @spell-app/docs review`) rewrote committed GENERATED
+  files nobody touched:  the 61 emoji chunks (`packages/docs/tools/_assets/emoji/*/*.js`, the 2026-10-06 entry
+  above), and `packages/ui/src/components/ui-markdown/md.bundle.d.ts` and
+  `packages/ui/src/components/ui-root/ui-root.catalog.ts` too.  In the same root run, cli's
+  `element.build.test.ts` failed ("one Solid per page":  `agents/SUSPECTED-BUGS.md`, `## app`), though it passed in
+  `yarn workspace @spell-app/cli review`. · `git checkout --` each generated file after the review;  review per
+  package.  Fix:  the `fmt` ignores in `vite.lint.ts` cover every generated file (the `.gitattributes`
+  `linguist-generated` list is the set), or the generators write oxfmt-clean output. · skillz (I2)
 
 ## claude-code
 
