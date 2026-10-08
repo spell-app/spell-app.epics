@@ -306,8 +306,9 @@ note), pick an option. Picks work wherever option cards are (I8 of `epic-compone
 call's text, a reply, More Details; the mark names WHICH card set by position (`{ pick: "B", choices: 1 }`; none:
 the item's own). An item may carry a pick AND a revisit note together ("pick B, but ..."): the revisit mark holds
 the `pick`. A CLOSED item's cards (an answered question, an accepted call) take Choose pills too, on every option
-but the chosen one (its pill solid), only while Owen revisits it (its Revisit box open, or a revisit or pick mark): "pick B instead, because ..." is a
-revisit carrying the pick, talked over; a plain pick there, once applied, answers it again with that option. The
+but the chosen one (its pill solid), only while Owen revisits it (its Revisit box open, or a revisit or pick mark):
+"pick B instead, because ..." is a revisit carrying the pick, talked over; a plain pick there, once applied, answers
+(or approves) it again with that option. The
 marks wait in `<name>.inbox.json` beside the doc (git-ignored) until "send to Claude"; Add Details and revisit now
 go at once (the inbox's `now` queue), and Owen may call one off ("nevermind": `canceled`, handed to the waiting
 session to stop that item's agent; `plan-doc details` then refuses its write). A todo may carry Owen's note (Make
@@ -452,8 +453,8 @@ decide from WITHOUT asking back: in the item's details, or an Overview sub-secti
   </epic-choices>
   ```
 
-  Only a question's options are picked (Choose, `decide --option`); on another item they're the options its text
-  weighs. (An old option grid, `ui-grid.spell-pros-cons`, is still turned into `<epic-choices>` on the way in,
+  Any item's options are picked (Choose; a question's also `decide --option`): a question is answered with the
+  option, any other item approved with it (I8). (An old option grid, `ui-grid.spell-pros-cons`, is still turned into `<epic-choices>` on the way in,
   wherever it sits.)
 
 - Live: when the doc's bundle has the components, a working example (a resizable box for layout; real buttons
