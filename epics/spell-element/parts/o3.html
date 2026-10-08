@@ -645,6 +645,17 @@
   dividing
   collapsed
 >
+  <ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+    ><p>
+      Owen decided (2026-10-08) that attribute values get ONE store (<a href="#q5">Q5</a>, built in
+      <a href="#p3">P3</a>): <code>DOMElement</code> keeps one CONVERTED value per attribute, from the attribute's text
+      or a property write, and no copy of the raw text, which stays on the attribute itself (<a href="#q18">Q18</a>).
+      <code>ui</code>'s reactive record gives each attribute one change signal; the Solid signals
+      (<code>component.attrs</code>, <code>createProps()</code>) go, and with them the stale read described below. The
+      property rules stay, with tidier definitions: one converter per kind of value, and a property that would hide a
+      DOM member is one clear error when the tag is defined (<a href="#q6">Q6</a>, built in <a href="#p2">P2</a>).
+    </p></ui-message
+  >
   <p>
     Each element holds its attribute values TWICE, on purpose: once in a plain record that is always up to date, and
     once as Solid signals that tell Solid code a value changed.
@@ -752,6 +763,17 @@ track() {
 </ui-section>
 
 <ui-section id="o3-5" header="1.3.5 Forms, errors, context and events" sticky collapsible dividing collapsed>
+  <ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+    ><p>
+      Owen decided (2026-10-08) that form association lives on <code>DOMElement</code>, switched per tag (<a href="#q7"
+        >Q7</a
+      >, built in <a href="#p2">P2</a>): the four form callbacks are <code>DOMElement</code> methods, each calling a
+      component method (<code>onFormReset()</code> ...) whose default on <code>UIComponent</code> does nothing.
+      <code>static formAssociated</code> is still set per tag from <code>elementSetup.isAFormControl</code>, so
+      non-controls like <code>&lt;ui-section&gt;</code> never get them called. No registered functions, and no replay to
+      a late registration: the early call is kept on the DOM element and handed over when the component is made.
+    </p></ui-message
+  >
   <h4 id="o3-forms">Form association</h4>
   <ul>
     <li>
@@ -784,6 +806,13 @@ track() {
       <code>DOMFormControl</code> / <code>FormComponent</code>: solid-element plays no part.
     </li>
   </ul>
+  <ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+    ><p>
+      Owen decided (2026-10-08) to keep each element's safety net, always on, and drop the switch (<a href="#q8">Q8</a>,
+      built in <a href="#p2">P2</a>): <code>UIComponent.ISOLATE_ERRORS</code> and the test that measures drawing without
+      the net go. Why the net can't be optional is his question at the end of this part.
+    </p></ui-message
+  >
   <h4 id="o3-errors">Error catching and the fallback</h4>
   <ul>
     <li>
@@ -817,6 +846,41 @@ track() {
       <code>ui-error</code> itself.
     </li>
   </ul>
+  <p>
+    <b>Owen asked (2026-10-08):</b> "If a component fails inside a container that has <code>&lt;Errored&gt;</code>, do
+    we lose the page? If not, make the net optional."
+  </p>
+  <p>The answer: yes, we would lose the page, so the net stays always on.</p>
+  <ul>
+    <li>Each element draws in a Solid root of its own.</li>
+    <li>
+      Once the owner lookup goes (<a href="#q9">Q9</a>), that root has no parent, so an error can't climb to a
+      container's net.
+    </li>
+    <li>
+      Even today it couldn't for an element written in HTML: the owner is the JSX that CREATED the element, never the
+      element it sits in.
+    </li>
+    <li>
+      So without its own net, one failing element freezes the whole page. <a href="#p2">P2</a> adds a test proving it: a
+      failing element inside a container that has a net still gets <code>:state(errored)</code>, while its siblings keep
+      updating.
+    </li>
+  </ul>
+  <ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+    ><p>
+      Owen decided (2026-10-08) to drop this rule (<a href="#q9">Q9</a>, built in <a href="#p2">P2</a>): an element's
+      Solid root no longer starts under the owner Solid's compiler stamped on it. <code>lookupOwner()</code> and the
+      reliance on the stamp go; app context is found by walking up the page to the nearest <code>&lt;ui-root&gt;</code>,
+      which holds the value. The test tool
+      <a
+        href="../../../packages/ui/tools/frameworks/solid/identity.js"
+        target="src-packages-ui-tools-frameworks-solid-identity-js"
+        ><code>tools/frameworks/solid/identity.js</code></a
+      >, today the only provider, sets it on <code>&lt;ui-root&gt;</code> instead. A Solid app's own providers no longer
+      reach inside <code>ui-*</code> tags.
+    </p></ui-message
+  >
   <h4 id="o3-context">Context across the element boundary (owner adoption)</h4>
   <ul>
     <li>
@@ -1378,6 +1442,13 @@ track() {
       <code>UIComponent</code> itself instead of solid-element.
     </li>
   </ul>
+  <ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+    ><p>
+      Owen decided (2026-10-08): methods on the component (<a href="#q1">Q1</a>, option A, built in
+      <a href="#p2">P2</a>). Each lifecycle event is a component method with an empty default; a component overrides
+      only the ones it needs.
+    </p></ui-message
+  >
   <h4 id="o3-hooks">1. The lifecycle and form hooks</h4>
   <ul>
     <li>
@@ -1413,6 +1484,14 @@ override onFormAssociated() {
   this.joinGroup()
 }</code></pre>
     </ui-content></ui-accordion
+  >
+  <ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
+    ><p>
+      Owen decided (2026-10-08): they become <code>ui</code> components (<a href="#q2">Q2</a>, option B, built in
+      <a href="#p4">P4</a>), each with a vocabulary and a <code>DOMElement</code> subclass, not the small base class in
+      <code>app</code> recommended below. The cost is accepted: <code>&lt;spell-editor&gt;</code> loads
+      <code>ui</code>'s core (about 33 kB gzipped) and waits for its styles (<a href="#c1">C1</a>).
+    </p></ui-message
   >
   <h4 id="o3-app">2. <code>&lt;spell-app&gt;</code> and <code>&lt;spell-editor&gt;</code></h4>
   <ul>

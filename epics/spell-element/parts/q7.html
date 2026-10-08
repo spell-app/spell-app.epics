@@ -1,0 +1,46 @@
+<!-- plan-doc part:  #q7's details in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Owen's answer to <a href="../details/analysis.html#q7" target="spell-element-analysis">analysis Q7</a>, "Form
+  controls: where does form association live?" (2026-10-08): <b>B · All on DOMElement, switched per tag</b>. One class
+  for every element; whether the browser treats a tag as a form control is set per tag, as today.
+</p>
+<ul>
+  <li>
+    controls like <code>&lt;ui-input&gt;</code>, <code>&lt;ui-select&gt;</code> and
+    <code>&lt;ui-checkbox&gt;</code> join a page's <code>&lt;form&gt;</code> through <code>ElementInternals</code>
+  </li>
+  <li>today's flow: <a href="#o3-forms">1.3.5</a></li>
+  <li>not chosen: A (internals for all, the form callbacks only on a <code>DOMFormControl</code> subclass)</li>
+</ul>
+<p>
+  Owen asked: "The extra callbacks are set up on UIComponent, and only things that need them need to override, correct?
+  So for e.g. &lt;ui-section&gt; there would be no change?"
+</p>
+<p>The answer: nearly.</p>
+<ul>
+  <li>
+    the four platform callbacks (<code>formAssociatedCallback</code>, <code>formResetCallback</code>,
+    <code>formDisabledCallback</code>, <code>formStateRestoreCallback</code>) are methods on <code>DOMElement</code>,
+    the custom-element class every <code>ui-*</code> tag gets
+  </li>
+  <li>
+    each forwards to a hook method on its component (<code>onFormReset()</code> ...), whose default on
+    <code>UIComponent</code> does nothing
+  </li>
+  <li>only <code>FormComponent</code>'s controls override them</li>
+  <li>
+    <code>static formAssociated</code> is set per tag from <code>elementSetup.isAFormControl</code>, so for
+    <code>&lt;ui-section&gt;</code> (not a form control) the browser never calls them: its code and behaviour don't
+    change
+  </li>
+  <li>the only cost is those few methods existing on every element's class</li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>no <code>DOMFormControl</code> class: the four form callbacks live on <code>DOMElement</code></li>
+  <li>
+    the early form call (it arrives before the component exists) is kept on the DOM element and handed over when the
+    component is made
+  </li>
+  <li>every element's class carries a few form methods it never uses (a few hundred bytes)</li>
+</ul>
