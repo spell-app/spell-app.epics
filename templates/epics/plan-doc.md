@@ -162,25 +162,83 @@ The markup is in `PLAN-DOC.md` ("Phases", "Items", "Log"). What to write in each
 - Add Details (`details --more`, P3 of `windows-and-review`): the item's text stays on top ("Original Reply"), the
   new text goes under it in a "More Details" card; a second Add Details replaces the card, the old one into the
   Original Discussion.
-- An item's colour (its state), from its status and review marks, rewritten by the tool on every edit:
-
-  | State       | Color  | When                                                                                          |
-  | ----------- | ------ | --------------------------------------------------------------------------------------------- |
-  | `attention` | red    | open and needs Owen: an open question; an open judgement call or issue not reviewed           |
-  | `progress`  | orange | queued (a review's to-do) or being worked on                                                  |
-  | `open`      | blue   | open, not urgent: todos, caveats, tests; reviewed issues and judgement calls                  |
-  | `recent`    | green  | decided, reviewed or closed lately (since the commit before last); or during a `/bedtime` run |
-  | `old`       | grey   | decided, reviewed or closed before that                                                       |
-
+- An item's colour (its state), from its status and review marks, rewritten by the tool on every edit: "Colours",
+  "Item states", below.
 - Review marks (`/epic review`, and any session that talks an item through with Owen; `review`, `defer`, `queue`,
   `unqueue` write them):
   - reviewed: gone through with Owen, that day. Deferred: put off for now; still not reviewed. Queued, with
     its work: work a review decided on, not started yet; the next review offers it first.
-  - the label shows the strongest: "to do" (orange), else "deferred" (grey, its date on hover), else "reviewed
-    10-03" (green while the item is `recent`, then grey)
+  - the label shows the strongest: "to do" (yellow: open, not started), else "deferred" (grey, its date on
+    hover), else "reviewed 10-03" (green while the item is `recent`, then grey)
   - REVIEWED also counts: closed (`done`, `canceled`), `decided`, or linked (`href="#i4"`) from an answered
     question's details
   - the outcome goes in the log (`I4 reviewed:  accepted`), not on the item
+
+## Colours
+
+ONE meaning per colour, on every doc page: plan docs, details pages, goals pages, the Epics index (Q20 of
+`epic-components`, Owen 2026-10-08, settled on its colour-scheme details page). Read a page at a glance by it; a new
+element takes its colour from this table, never a colour that means something else.
+
+| Colour | Means                                       | Examples                                                                                                                                                                                                            |
+| ------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| red    | needs you (Owen)                            | an open question's chip; an unreviewed judgement call or issue; the contents and rail count; a details question with nothing picked; a details page "waiting for your answer"; an open goals question               |
+| yellow | open, still undecided                       | an open todo, caveat or test (a todo a review queued too); a reviewed issue or judgement call; "to do"; an epic still planning; a goals topic "in dialog". DARK text and icons on a yellow fill                     |
+| blue   | do it now, or Claude is working on it       | Do Now, Revisit, Send (everywhere: the page header, the agents panel, details pages); the Underway status card; an item Claude is working on (its chip, the spinner); an epic in progress; a goals topic "building" |
+| green  | decided or done                             | Approve, Make Todo; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card; an item decided or reviewed lately; an epic done; a goals topic "agreed", "shipped"               |
+| orange | ONLY changed since you looked, and warnings | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a stalled epic                                                                                                     |
+| violet | Claude's voice                              | his reply cards                                                                                                                                                                                                     |
+| ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the rail and the contents drawer                                                                                                                     |
+| grey   | older, inactive, not chosen                 | an item decided or reviewed earlier; buttons at rest; a phase to do; "(recommended)", grey TEXT everywhere (no green label); a future epic; a goals topic "draft"                                                   |
+
+- No light blue, no light green: one shade per meaning.
+- Colour-blind readers tell red and green apart least: the chip's id, the icons and the words keep them readable.
+
+### The fill
+
+How far along a button, pill or chip with a lifecycle is (the review buttons, Send, the Choose pill, goals topic
+labels):
+
+| Fill                   | Means                                         |
+| ---------------------- | --------------------------------------------- |
+| grey outline           | available: nothing pressed                    |
+| DASHED, in its colour  | Owen pressed it, not committed (not sent)     |
+| OUTLINE, in its colour | recorded (sent), not done yet, or in progress |
+| SOLID                  | done: applied, answered, filed                |
+
+- It flips the old rule (solid meant "not sent yet", 2026-10-06).
+- Send never goes solid on a details page: the page can't tell when Claude is done with the answer.
+
+### The review buttons
+
+On an item's line, ONE group, in this order:
+
+1. Approve (check), green
+2. Revisit (history), blue
+3. Make Todo (list check), green
+
+Then, APART from the group, Do Now (paper plane), blue: it replaces Add Details Now on the line, and the note box's
+"now". The note box keeps Revisit-later and Make Todo. An item Claude has answered or done keeps the three-button
+group, so Owen can still approve it.
+
+### Item states
+
+An item's chip (and its filter chip) by its `state`, which the tool writes from its status and review marks on every
+edit:
+
+| State       | Colour | When                                                                                                        |
+| ----------- | ------ | ----------------------------------------------------------------------------------------------------------- |
+| `attention` | red    | open and needs Owen: an open question; an open judgement call or issue not reviewed                         |
+| `progress`  | blue   | Claude is working on it: an Underway status card, or the working spinner                                    |
+| `open`      | yellow | open, still undecided: todos (one a review queued too), caveats, tests; reviewed issues and judgement calls |
+| `recent`    | green  | decided, reviewed or closed lately (since the commit before last); or during a `/bedtime` run               |
+| `old`       | grey   | decided, reviewed or closed before that                                                                     |
+
+- The contents and the rail count only `attention` items, in a red pill; none, no pill.
+- In CSS: `<epic-page>`'s `--epic-state-*` (`packages/epics`), `spell-doc.css`'s `--spell-state-*` (the other doc
+  pages): the same values.
+- Goals pages colour their items by the same states (an open question `attention`, any other open item `open`, a
+  closed one `old`): the kind shows only in the id's letter (G, Q, D, R, W, I).
 
 ## Parts
 
@@ -297,14 +355,14 @@ it started ending):
    | revisit with a pick | a question                                                         | left, NOT answered ("to talk over: picks B · ..., asks: ..."): answer the note about that option; once Owen agrees, `decide <name> <id> "<option title>" --option B`, then `clear` |
 
    Each applied mark logs one line (`J9 approved:  closed (accepted)`); a mark Owen changed meanwhile stays. Each
-   pick and todo also gets a violet "Claude • Done" status card saying what was filed (`Chose B · ...`, `Made todo
+   pick and todo also gets a green "Claude • Done" status card saying what was filed (`Chose B · ...`, `Made todo
    T23 ...`: Q19 of `epic-components`); an approval none.
 
-4. Requests for now: FIRST `spell dev plan-doc status <name> <id> underway "<reading>"` (an orange "Claude •
+4. Requests for now: FIRST `spell dev plan-doc status <name> <id> underway "<reading>"` (a blue "Claude •
    Underway" card under Owen's note: what Claude takes the task to be, one or two sentences, no file names; the
    spinner on); then a background agent per item writes into it with `spell dev plan-doc details <name> <id>
    [--more | --append] --file <html>` (Add Details: `--more`, a More Details card under the item's text; revisit
-   now: `--append` a reply), then `status <name> <id> done ["<summary>"]` (the same card turns violet "Claude •
+   now: `--append` a reply), then `status <name> <id> done ["<summary>"]` (the same card turns green "Claude •
    Done"; a summary only when worth saying) and `inbox <name> done <id>`. A revisit talked over (step 3) the same:
    `underway` as it's taken up, `done` once answered. The card's markup: `PLAN-DOC.md` "Status cards".
 5. `wait` again. On leaving: `inbox <name> unlisten`.
@@ -380,7 +438,7 @@ plan-doc` with no command prints the usage.
 | `updated <name> <N> "<html>"` / `--file <path>`                                                                                               | a change to phase N's plan: a dated line in its fenced Updated block, under Symptom / Changes; kept once done; listed in "Plan changes" atop the phases while N is to do                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `phase <name> <N> todo\|active\|done [--done <html>] [--no-open]`                                                                             | set a phase's status; `done` removes its UPDATE markers, and `--done` writes its Done field; brings the doc forward in VS Code                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `estimate <name> <N> "1-2h"`                                                                                                                  | change a phase's estimate (its title's badge); the Overview's total follows                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `add <name> question\|judgement\|caveat\|issue\|todo\|test\|decision "<title>" [--details "<html>"] [--calm]`                                 | append an item, print its id; a `decision` is a question born answered (`Q7`); `--calm` (last): a judgement call or issue that simply follows WWOD, blue (not urgent) rather than red                                                                                                                                                                                                                                                                                                                                                                                             |
+| `add <name> question\|judgement\|caveat\|issue\|todo\|test\|decision "<title>" [--details "<html>"] [--calm]`                                 | append an item, print its id; a `decision` is a question born answered (`Q7`); `--calm` (last): a judgement call or issue that simply follows WWOD, yellow (open) rather than red                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `close <name> <id>` / `reopen <name> <id>`                                                                                                    | close an item (`done`) / open it again                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `cancel <name> <id> ["why"]`                                                                                                                  | an item made moot by another decision: `canceled`, struck through; logs why; `reopen` undoes it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `decide <name> <Q id> "<answer>" [--details "<html>"] [--option B]`                                                                           | answer a question: the answer goes INTO it (`decided`), its details in the order it happened: the question's text, its options as a folded Choices (`--option`: the chosen one), then the answer; answering again replaces the answer in place, the old one into its Original Discussion; prints its id                                                                                                                                                                                                                                                                           |
@@ -409,7 +467,7 @@ plan-doc` with no command prints the usage.
 | `inbox <name> wait [--timeout <s>] [--json]`                                                                                                  | block (polls every 1s, default 3300s) until there's work, print it, exit 0; timeout: exit 2. Work: requests for now (taken off the queue, their items marked working) and a send not yet handed over (its marks by action)                                                                                                                                                                                                                                                                                                                                                        |
 | `inbox <name> apply [ids...]`                                                                                                                 | apply the sent approve / pick / todo marks, and the sent urgency (an id chip clicked: calm or not), to the doc and clear them; prints a line per item and what it left (revisits)                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `inbox <name> working <id> on\|off`                                                                                                           | the page's spinner on an item                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `status <name> <id> underway "<reading>"` / `done ["<summary>"]` / `done --filed "<what>"`                                                    | Claude's status card on an item or Overview sub-section: orange "Claude • Underway" with its reading of the task (spinner on), then the same card violet "Claude • Done", a summary under it when worth saying (spinner off); `--filed`: a card born done                                                                                                                                                                                                                                                                                                                         |
+| `status <name> <id> underway "<reading>"` / `done ["<summary>"]` / `done --filed "<what>"`                                                    | Claude's status card on an item or Overview sub-section: blue "Claude • Underway" with its reading of the task (spinner on), then the same card green "Claude • Done", a summary under it when worth saying (spinner off); `--filed`: a card born done                                                                                                                                                                                                                                                                                                                            |
 | `inbox <name> done <id>...` / `clear <id>...`                                                                                                 | an agent finished the item: its mark and spinner go / drop marks (a revisit talked over); a mark's note is kept in the item first, as Owen's reply                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `details <name> <id> --file <html> [--append \| --more]`                                                                                      | `--more` (Add Details): the item's text stays on top as "Original Reply", the file's HTML in a "More Details" card under it (a second one replaces the card, the old into the Original Discussion); else replace an item's details with the file's HTML, or add it after them (a reply: after the replies); the answer, Original Discussion and commits stay; on an answered question the new text is the question's, laid out again (Choices, then the answer); replacing moves the old text into the item's Original Discussion; logs "I1 details rewritten" / "I1 reply added" |
 | `original <name> <id> --file <html> [--as-of "YYYY-MM-DD HH:MM"]`                                                                             | put an item's earlier text (recovered from git; old markup welcome) into its Original Discussion: as first written, or dated `--as-of` (when it was replaced), in date order; prints `added` / `unchanged` / `empty`; doesn't stamp the item                                                                                                                                                                                                                                                                                                                                      |
