@@ -7,6 +7,7 @@ changed here applies everywhere at once.
 | File | What |
 | --- | --- |
 | `WWOD.md` | the hub, §1-7, and the "Touching → Also read" table |
+| `writing.md` | §6's long before / afters:  docstrings, comments, docs |
 | `architecture.md` | §8 architecture & module layout |
 | `types.md` | §9 functions & types |
 | `server-env.md` | §10-11 server & API, environment |

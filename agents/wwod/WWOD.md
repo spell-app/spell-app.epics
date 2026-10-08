@@ -5,11 +5,13 @@ House style for this repo (spell).  Audience:  AI coding agents -- follow these 
 - Cite rules as `WWOD §N › "rule title"`, e.g. `WWOD §5 › "Sentinel errors as control flow"`.
 - How the rules fit together (root and package `AGENTS.md`, spokes, "As WWOD §N, plus:"):  `agents/wwod/README.md`.
 
-The universal rules are here (§1-7);  topic rules in the spokes beside it (§8-20).  Read the spoke(s) for what
-you're touching BEFORE writing code:
+The universal rules are here (§1-7);  topic rules in the spokes beside it (§8-20).
+§6's long before / afters are a spoke too, `writing.md`.
+Read the spoke(s) for what you're touching BEFORE writing code or text:
 
 | Touching                                                       | Also read                                | §     |
 | -------------------------------------------------------------- | ---------------------------------------- | ----- |
+| docstrings, comments, READMEs, docs pages, plan docs           | `writing.md`                             | 6     |
 | new feature, module layout, file names, barrels, namespaces    | `architecture.md`                        | 8     |
 | types, function signatures, helper functions                   | `types.md`                               | 9     |
 | server routes and APIs, env vars, configuration                | `server-env.md`                          | 10-11 |
@@ -329,6 +331,79 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
 
 ## 6. Comments & docs
 
+The first four rules are for anything people read:
+docstrings, comments, READMEs, `AGENTS.md` files, docs pages, plan docs.
+Their long before / afters are in `agents/wwod/writing.md`.
+
+- **Writing for people:**  for a reader figuring things out, not from inside the builder's head.
+  - The reader:  future-Owen, or anyone new to that part of the code.
+    NOT the agent who built it, with the whole system in mind and the web at hand.
+  - Say what the thing IS, and how to use it, first.
+    Why a squirrely choice was made comes after, if at all.
+  - Keep every fact, number and caveat when you rewrite or condense.
+  - Before / after, a class docstring's first lines (`packages/ui/src/elements/UIComponent.tsx`):
+
+    ```text
+    BEFORE
+    Base CONTROLLER of every component:  one instance per element, created by the render function the fork
+    (`@spell-app/solid-element`) calls, holding the component's signals, memos and handlers as fields and methods.
+
+    AFTER
+    The base class of every Spell UI component.
+    Each `<ui-button>`, etc on a page gets ONE instance of its UIComponent's subclass (`UIButton`)
+    which decides what the element shows and how it behaves.
+    ```
+
+- **Name things by what they are to the reader:**
+  - The name a reader would look for:  "solid-element", never "the fork".
+  - How a thing came to be (a fork, a port, a workaround) is an implementation detail.
+    Leave it out of explanations, or give it one line at the end, if it really matters.
+  - Before / after, now one docstring per member (`packages/ui/src/elements/DOMElement.ts`):
+
+    ```text
+    BEFORE
+    /** The fork's instance API. */
+
+    AFTER
+    /** solid-element's:  call back when the element is released (`dispose()`), newest first. */
+    ```
+
+- **One or two sentences a paragraph, or bullets:**
+  - Never run sentences together:  3+ sentences become a short lead, then bullets, one idea each.
+  - Bullets and numbered lists, not dense prose;  nested for sub-points;  short titles.
+  - Why:  people skim, and dense text gets skipped.
+  - Before / after, shortened (`packages/ui/src/elements/DOMElement.ts`, its class docstring):
+
+    ```text
+    BEFORE
+    - The fork owns the platform plumbing:  shadow root, `ElementInternals`, the lifecycle.  This class keeps
+      what is OURS:  the `ready` promise, custom states, the controller link.
+
+    AFTER
+    - solid-element owns the platform's plumbing:  the shadow root, `ElementInternals`, the lifecycle.
+    - This class adds what is OURS:  the `ready` promise, custom states, the link to the component.
+    ```
+
+- **Break lines at phrases, not at the column:**
+  - Near a line's end, look at the phrase in play:
+    - only 1-4 of its words fit on this line:  start it on the next
+    - the next line would be short:  move the whole phrase down
+  - A phrase starts after `:`, `;`, `--` or a sentence's end, and at words like `which`, `so`, `e.g.`.
+  - Why:  Owen reads the starts of lines, and skips a line whose start isn't what he's after.
+  - For comments, docstrings and Markdown.
+    HTML pages:  the formatter re-wraps their text, so there the other three rules apply.
+  - Before / after, Owen's own (`packages/ui/src/elements/UIComponent.tsx`, `isReady`):
+
+    ```text
+    BEFORE
+    - Not the same as a source element's loading (`SourceElement.loadStatus`):  this is the element itself being
+      styled and drawn.
+
+    AFTER
+    - Not the same as a source element's loading (`SourceElement.loadStatus`):
+      this is the element itself being styled and drawn.
+    ```
+
 - **Docstrings on every declaration:**
   - Create and maintain markdown docstring comments before:
     - types and each property in a type
@@ -342,7 +417,8 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
 - **Docstring format:**
   - informal style, one line and then `-` bullets
   - DO NOT use jsdoc `@param` etc
-  - terse text, e.g. `last server version`, not `the last known server version`
+  - terse text, e.g. `last server version`, not `the last known server version`:
+    drop filler articles (`the`, `a`) that don't earn their place
   - two spaces after a period
   - backticked identifiers/types
   - format lists as bullets rather than inline commas
@@ -359,14 +435,6 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
 - **OK to ship WIP markers:**
   - `// TODO: selection!`, `// DOCME`, empty group headers for planned code.
   - Terse TODOs, not fully-explained prose:  just enough to pick it up later.
-- **Phrases and bullets:**
-  - Wrap comments at English phrase boundaries, not mid-clause.  Avoid single or double widow words,
-    wrap `e.g.` clauses if they don't fit on the original line, etc.,
-    and drop filler articles (`the`, `a`) that don't earn their place
-- **Writing for people** -- docs, pages, READMEs, plan docs, long comments:
-  - Bullets and numbered lists, not dense prose;  short titles.
-  - 3+ sentences => a short lead plus bullets, one idea each, nested for sub-points.
-  - Keep every fact, number and caveat when you condense.
 - **Lower inline density;  minimal meta-commentary about the code:**
   - Inline comments are short and operational:
     `// Save files first:  link still works if index isn't updated`.
@@ -450,6 +518,8 @@ Each is a rule elsewhere;  this is the quick list.
 - Long named-import lists from leaf modules -- SEE:  WWOD §4 › "ONE namespace per sub-system".
 - Long meta-comments narrating the code -- SEE:  WWOD §6 › "Lower inline density;  minimal meta-commentary about the
   code".
+- Text written from inside the builder's head:  "the fork", run-together sentences, lines broken at the column --
+  SEE:  WWOD §6 › "Writing for people".
 - Positional param threading (`update(project, record, existing, svg, slug, baseVersion)`) -- SEE:  WWOD §9 ›
   "Structured objects over long parameter lists".
 - A positional boolean (`forget(true)`) -- SEE:  WWOD §9 › "String sentinels over booleans for modes".
