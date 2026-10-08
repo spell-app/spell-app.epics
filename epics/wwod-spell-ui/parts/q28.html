@@ -1,0 +1,47 @@
+<!-- plan-doc part:  #q28's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Today a component hands solid-element a function (<code>onConnect(join)</code>, <code>onFormStateRestore(fn)</code>):
+  11 calls in 7 files (<code>UIComponent</code>, <code>FormComponent</code>, <code>PartContext</code>, the radio,
+  rating, calendar and slider). Once solid-element is folded into <code>DOMElement</code> / <code>UIComponent</code> (<a
+    href="#p18"
+    >P18</a
+  >), that registry can stay or go. The whole write-up: <a href="#o5-hooks">1.5.9</a>.
+</p>
+<p><b>Net effect</b> (A):</p>
+<ul>
+  <li>
+    the hook registry and the element-as-Solid-context provider (<a
+      href="../../../packages/solid-element/src/current.ts"
+      target="src-packages-solid-element-src-current-ts"
+      ><code>current.ts</code></a
+    >, 83 lines, ~0.7 kB gzipped) go
+  </li>
+  <li>the 11 calls become overridden methods</li>
+  <li><code>PartContext</code> follows its component’s <code>isConnected</code> instead</li>
+</ul>
+<epic-choices
+  ><epic-option letter="A" title="Methods on the component" recommended
+    ><ul>
+      <li>
+        <code>onConnected()</code>, <code>onDisconnected()</code>, <code>onFormAssociated(form)</code>,
+        <code>onFormDisabled(disabled)</code>, <code>onFormStateRestore(state, mode)</code>, beside the existing
+        <code>onFormReset()</code>
+      </li>
+      <li>the DOM element calls them on its component; an override calls <code>super</code></li>
+      <li>reads like the rest of a component: moment callbacks are <code>on...</code> methods</li>
+    </ul></epic-option
+  ><epic-option letter="B" title="Keep the hook functions, moved into ui"
+    ><ul>
+      <li><code>E.onConnect(fn)</code> and the rest: nothing changes but the import</li>
+      <li>
+        keeps the registry, its replay of form state to late hooks, and the element provided as Solid context (~80
+        lines)
+      </li>
+    </ul></epic-option
+  ><epic-option letter="C" title="Callback lists on the DOM element"
+    ><ul>
+      <li><code>this.domElement.addConnectCallback(fn)</code>, like <code>addReleaseCallback()</code> today</li>
+      <li>works for helpers as well as components; longer calls; no Solid context needed</li>
+    </ul></epic-option
+  ></epic-choices
+>
