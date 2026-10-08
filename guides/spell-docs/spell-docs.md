@@ -12,7 +12,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 - Until 2026-09-30 each page was GENERATED:  a hand-written `<name>.html` (styled by `doc.css` / `doc.js`) went
   through `to-spell.mjs` (a Playwright DOM transform) into `<name>.spell.html`, and both were kept to compare.
 - Since then the `ui-*` pages ARE the sources:  `to-spell.mjs`, `doc.css`, `doc.js` and the plain sources are gone,
-  the runtime builds the contents sidebar that `to-spell.mjs` used to write, and pages are plain `<name>.html`
+  the runtime builds the navigation (the rail) itself, and pages are plain `<name>.html`
   (the docs root is `index.html`, so a browser opens it for the folder).
 
 ## Hard constraints
@@ -80,7 +80,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 ```
 
 - `../_assets/` is relative to the page's folder:  `_assets/` at the top level, `../../_assets/` two deep.
-- No contents sidebar and no `.spell-toc-open` button in the markup:  the runtime adds both (the button in the rail).
+- No navigation in the markup:  the runtime adds the rail.
 - EVERY section is `sticky collapsible dividing collapsed`:  a rule under every title, every section folds, and every
   one STARTS folded (code blocks too:  no `open`);  the reader opens what they want.  A sticky page header goes above
   them on every page:  `<ui-sticky class="spell-h1"><header class="spell-page-head">` around the h1.
@@ -99,29 +99,20 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
     else its `icon` attribute.
   - old markup:  h2s are the groups, h3s their entries, h4s under the h3 before them
   - an entry with no `id` gets a slug of its label -- but give entries other pages link to an explicit, stable id
-- Contents sidebar (`buildContents()`), built at load from the outline when the page has no `#spell-toc`:
-  - one accordion pair per group;  runs of leaf entries share a `ui-menu vertical text`;  an entry with children
-    gets a nested one-pair accordion
-  - every link carries `data-target="{id}"` for scroll-follow
-  - an entry's `<ui-icon>`s (a plan phase's status) are copied in front of it;  `ui-label` badges are not
-  - a group with open items gets their count as a small accent pill (`span.spell-toc-count`)
-- Layout:  content column (max ~880px) + ~300px contents column that scrolls on its own.  Under 1100px the contents
-  become a right drawer;  clicking a contents link closes it.
-- Rail (`buildRail()`, `nav.spell-rail`):  a fixed strip at the right edge, shown while the contents column isn't
-  (under 1100px, or `body.spell-toc-hidden`):
+- No contents sidebar any more (removed 2026-10-08, P14 of epic `epic-components`:  Owen, "useless"):  the rail is
+  the one navigation.
+- Layout:  one centred content column (max ~880px);  at narrow widths the content runs to the window's edge.  The rail
+  FLOATS over it:  it takes no column of its own (Owen, 2026-10-08).
+- Rail (`buildRail()`, `nav.spell-rail`):  a fixed strip at the right edge, centred in the height below the site
+  header (so it never sits over the stuck page header or a stuck title's end), opaque, with a soft shadow:
   - plain elements, styled by `spell-doc.css` "Rail":  each entry `label | icon`, the labels showing only while
-    hover or focus widens the strip leftward (36px -> 240px);  the current section filled with the accent
-  - on top, the contents button (`button.spell-toc-open`, plain bars):  narrow, it slides the drawer;  wide, it
-    brings the column back
-  - then one `a.spell-rail-item[data-rail]` per top-level section (h2), its icon (else its number), its open count
-    a pill on the icon's corner;  scroll-follow marks the current section's `selected`
-  - 480px wide and under:  only the bars button, at the top right over the page header's end
-  - `buildContents()` / `buildRail()` / `wireContents()` can run again (a page updated in place):  each replaces
-    what it built, or drops its listeners, first
-  - pages from before 2026-10-01 hand-wrote a "Contents" `.spell-toc-open`:  the runtime removes it
+    hover or focus widens the strip leftward;  the current section filled with the accent
+  - one `a.spell-rail-item[data-rail]` per top-level section, its icon (else its number);  a red pill on the icon's
+    corner counts the items that need Owen (none:  no pill);  scroll-follow marks the current section's `selected`
+  - `buildRail()` can run again (a page updated in place):  it replaces what it built first
 - The site header (`<spell-site-header>`, `$/server/site`):  fixed on top of every page, its height
   `--spell-site-header-height` on `:root` (`siteHeaderHeight()`).  Everything that sticks or lands starts below it:
-  the page header, the filter bar, the titles, the contents column, the rail, the drawer.
+  the page header, the filter bar, the titles, the rail.
 - Sticky titles (`trackStickyHeights()`):  an optional page header (`ui-sticky.spell-h1`) just below the site header,
   and the CHEATSHEET's `.spell-filter` bar;  their height is `--spell-top` on `main`, re-measured on resize.
   - `<ui-section>`:  the runtime sets each TOP-LEVEL section's `offset` to the site header + `--spell-top`;  nested
@@ -160,11 +151,8 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
     unless the reader scrolled (a `#hash` load lets the browser open the fold itself, animated)
   - the target's entry becomes current even when the page can't scroll it to its line (`follow.pin()`)
 - Scroll-follow (`followScroll()`):  the current entry -- the last section / heading whose top has passed its
-  landing line, skipping ones hidden by the filter or inside a folded section -- has its contents link highlighted
-  and its panels open;  panels the scroll opened close again, panels the USER opened stay open;  the active link is
-  kept in view.
-- Buttons:  `expand` / `collapse` every contents panel;  `code` folds / unfolds every `ui-accordion.spell-code`;
-  `hide` drops the contents column for the rail (remembered for every page:  `spell-toc-hidden`).
+  landing line, skipping ones hidden by the filter or inside a folded section -- has its rail entry highlighted, and
+  the address follows it.
 - Cheat sheets:  `ui-input[data-spell-filter]` filters `ui-card`s by text (every word must match), hides sections
   (`section` or `ui-section`, by `hidden`) with no visible card, remembers the filter in `localStorage`.
 - Light / dark:  follows UI's scheme (the OS);  page colors from UI's `--ui-*` tokens.
@@ -173,10 +161,9 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 
 - `spell dev docs update` must pass;  `--skip-ui-build` reuses `../ui/dist`, `--no-check` skips the browser checks.
 - `node scripts/check-spell.js <page> [outDir]` checks one page and writes four screenshots -- look at them.
-  - fails on:  console errors, undefined or unrendered `ui-*`, contents links that don't match the sections /
-    headings 1:1, phone-width overflow, a top-level title that doesn't stick (a `<ui-section>` must also say
-    `:state(stuck)`;  an h2 its short section pushed out, `:state(bound)`, is fine), no active contents link after
-    scrolling, a drawer that won't open
+  - fails on:  console errors, undefined or unrendered `ui-*`, a rail that doesn't list every top-level section or
+    doesn't show at phone width, phone-width overflow, a top-level title that doesn't stick (a `<ui-section>` must
+    also say `:state(stuck)`;  an h2 its short section pushed out, `:state(bound)`, is fine)
   - the FOLD check (in the JSON as `fold`):  clicks a top-level section's toggle as a reader would (the shadow
     `button[part~=toggle]`, or the old chevron `ui-button.spell-fold`), expects it folded with its content hidden,
     still folded after a reload, unfolded by a second click;  then clears the page's saved folds
