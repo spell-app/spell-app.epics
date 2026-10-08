@@ -124,10 +124,9 @@
       team).
     </li>
   </ul>
-  <ui-accordion class="spell-code" styled
-    ><ui-title>methods.ts, classes.ts, expressions.ts · the owner check · 12 lines</ui-title
-    ><ui-content>
-      <pre><code class="language-ts">// MethodPostfixRule.parse() and MethodInfixRule.parse(), methods.ts:  a literal phrase
+  <epic-code title="methods.ts, classes.ts, expressions.ts · the owner check · 12 lines" language="ts">
+    <pre>
+// MethodPostfixRule.parse() and MethodInfixRule.parse(), methods.ts:  a literal phrase
 if (!SuffixLeft.couldBeA(scope, this.thisType)) return undefined
 
 // QuotedPropertyRule.parse(), classes.ts:  a placeholder phrase
@@ -136,9 +135,8 @@ if (!SuffixLeft.couldBeA(scope, this.thisType)) return undefined
 // SuffixLeft, expressions.ts:  set by compound_expression for the FIRST suffix after an operand only
 couldBeA(scope: P.Scope, type: P.Datatype | undefined): boolean {
   return !SuffixLeft.current || scope.couldBeA(SuffixLeft.current.datatype, type)
-}</code></pre>
-    </ui-content></ui-accordion
-  >
+}</pre>
+  </epic-code>
   <p>
     With J8's card and game (a card's <code>"colors" as one of red, black</code> and <code>it "is (color)"</code>; a
     game's <code>"teams" as one of red, blue</code> and <code>it "is (team)"</code>; the card also has
@@ -263,78 +261,72 @@ couldBeA(scope: P.Scope, type: P.Datatype | undefined): boolean {
   </ol>
 
   <h4>The ways to go</h4>
-  <ui-grid class="spell-pros-cons" columns="2" stackable>
-    <ui-column
-      ><ui-segment
-        ><ui-label attached="top">A · Fix 1 and 2 now (recommended)</ui-label>
-        <ul>
-          <li>
-            1: <code>compound_expression</code> also remembers the operand after an infix (<code>the game</code> after
-            <code>and</code>) and how tightly that infix binds. A phrase after a looser operator (<code>and</code>,
-            <code>or</code>) takes that operand as its left side; after a tighter one (<code>+</code>) it stays unknown
-          </li>
-          <li>
-            2: <code>for its suits</code> falls back to the singular property, <code>suit</code>, and its kind's values.
-            A placeholder that finds no values is an error on its own line, never a rule <code>is (a|an)</code>
-          </li>
-          <li>cost: about 1-2h with tests; the saved projects should compile as they do now</li>
-          <li>why recommended: 1 is the same runtime crash J11 was about, in the commonest place it still happens</li>
-        </ul>
-        <pre><code class="language-js">// the card is face up and
+  <epic-choices
+    ><epic-option letter="A" title="Fix 1 and 2 now" recommended
+      ><ul>
+        <li>
+          1: <code>compound_expression</code> also remembers the operand after an infix (<code>the game</code> after
+          <code>and</code>) and how tightly that infix binds. A phrase after a looser operator (<code>and</code>,
+          <code>or</code>) takes that operand as its left side; after a tighter one (<code>+</code>) it stays unknown
+        </li>
+        <li>
+          2: <code>for its suits</code> falls back to the singular property, <code>suit</code>, and its kind's values. A
+          placeholder that finds no values is an error on its own line, never a rule <code>is (a|an)</code>
+        </li>
+        <li>cost: about 1-2h with tests; the saved projects should compile as they do now</li>
+        <li>why recommended: 1 is the same runtime crash J11 was about, in the commonest place it still happens</li>
+      </ul>
+      <pre><code class="language-js">// the card is face up and
 //   the game is red
 card.is_face_up &amp;&amp;
-  game.is_$team('red')</code></pre>
-      </ui-segment></ui-column
-    >
-    <ui-column
-      ><ui-segment
-        ><ui-label attached="top">B · Log them, fix later</ui-label>
-        <ul>
-          <li>
-            1 and 2 go into
-            <a href="../../../agents/SUSPECTED-BUGS.md" target="src-agents-suspected-bugs-md"
-              ><code>agents/SUSPECTED-BUGS.md</code></a
-            >, "Found by epic outline-spell"; J11 is closed as fixed for the first suffix
-          </li>
-          <li>cost: no work now</li>
-          <li>
-            risk: <code>... and the game is red</code> still crashes when it runs; <code>for its suits</code> on a value
-            kind still crashes the compiler
-          </li>
-        </ul>
-        <pre><code class="language-js">// the card is face up and
+  game.is_$team('red')</code></pre></epic-option
+    ><epic-option letter="B" title="Log them, fix later"
+      ><ul>
+        <li>
+          1 and 2 go into
+          <a href="../../../agents/SUSPECTED-BUGS.md" target="src-agents-suspected-bugs-md"
+            ><code>agents/SUSPECTED-BUGS.md</code></a
+          >, "Found by epic outline-spell"; J11 is closed as fixed for the first suffix
+        </li>
+        <li>cost: no work now</li>
+        <li>
+          risk: <code>... and the game is red</code> still crashes when it runs; <code>for its suits</code> on a value
+          kind still crashes the compiler
+        </li>
+      </ul>
+      <pre><code class="language-js">// the card is face up and
 //   the game is red
 card.is_face_up &amp;&amp;
   game.is_$color('red')
 // TypeError</code></pre>
-      </ui-segment></ui-column
-    >
-  </ui-grid>
+    </epic-option></epic-choices
+  >
 
-  <p><b>Net effect</b> (A, recommended):</p>
-  <ul>
-    <li>
-      literal and placeholder phrases both keep refusing a known wrong owner; nothing changes for the first suffix
-    </li>
-    <li>
-      <code>if the card is face up and the game is red</code> compiles to <code>game.is_$team('red')</code>, not the
-      card's method
-    </li>
-    <li><code>if the card is red and the game is face up</code> is an error, not silently false</li>
-    <li>
-      <code>it "is a (suit)" for its suits</code> on a value kind embeds the four suits, as <code>for its suit</code>
-      does
-    </li>
-    <li>a placeholder phrase with no values is an error on its own line, not a compiler crash later</li>
-    <li>
-      still not built: <code>if the game is black</code> stays <code>game == 'black'</code> (J8's "blue isn't a color"
-      check), and an owner of unknown type still takes the first phrase declared
-    </li>
-  </ul></epic-reply
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        literal and placeholder phrases both keep refusing a known wrong owner; nothing changes for the first suffix
+      </li>
+      <li>
+        <code>if the card is face up and the game is red</code> compiles to <code>game.is_$team('red')</code>, not the
+        card's method
+      </li>
+      <li><code>if the card is red and the game is face up</code> is an error, not silently false</li>
+      <li>
+        <code>it "is a (suit)" for its suits</code> on a value kind embeds the four suits, as <code>for its suit</code>
+        does
+      </li>
+      <li>a placeholder phrase with no values is an error on its own line, not a compiler crash later</li>
+      <li>
+        still not built: <code>if the game is black</code> stays <code>game == 'black'</code> (J8's "blue isn't a color"
+        check), and an owner of unknown type still takes the first phrase declared
+      </li>
+    </ul></epic-net-effect
+  ></epic-reply
 ><epic-reply from="Owen" at="2026-10-06 17:30" re="revisit now"
   ><p>"is face up" is literal, "is a (suit)" would embed all suits</p>
-  <ui-message class="plan-update" state="success" size="tiny" header="DONE · option A, 2026-10-06">
-    <p>Done as option A, in two commits on <code>outline-spell</code>:</p>
+  <epic-note state="done" title="option A, 2026-10-06"
+    ><p>Done as option A, in two commits on <code>outline-spell</code>:</p>
     <ul>
       <li>
         1 (<a href="#i7">I7</a>, closed): a phrase after <code>and</code> / <code>or</code> now checks whose it is.
@@ -366,6 +358,6 @@ card.is_face_up &amp;&amp;
       <a href="../../../../agents/SUSPECTED-BUGS.md" target="src-agents-suspected-bugs-md"
         ><code>agents/SUSPECTED-BUGS.md</code></a
       >.
-    </p>
-  </ui-message></epic-reply
+    </p></epic-note
+  ></epic-reply
 >
