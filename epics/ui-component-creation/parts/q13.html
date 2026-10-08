@@ -1,0 +1,53 @@
+<!-- plan-doc part:  #q13's details in ui-component-creation.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  <b>Plain words.</b> An icon pack or emoji name set is a <i>page-wide</i> thing today: <code>UI.icons</code> and
+  <code>EmojiData</code> are ONE per page, so two <code>&lt;ui-icon-set&gt;</code>s add up. A
+  <code>&lt;ui-root&gt;</code> in the middle of a page could set them for just its own subtree (a docs demo that wants
+  Lucide icons beside a page that uses Font Awesome), but every icon would then have to find its nearest root.
+</p>
+<p>The problem case: two roots on one page disagree.</p>
+<pre><code class="language-html">&lt;ui-root icons="fa7-free"&gt;...&lt;/ui-root&gt;
+&lt;ui-root icons="fomantic"&gt;
+  &lt;ui-icon name="home"&gt;&lt;/ui-icon&gt;
+  &lt;!-- which pack? --&gt;
+&lt;/ui-root&gt;</code></pre>
+<p>
+  <code>theme</code>, <code>size</code> and tokens are CSS and inherit, so they are per-subtree for free. Only icons,
+  emoji and <code>lang</code> are in question. (<code>lang</code> chooses a dictionary, which renames TAGS, and
+  <code>customElements</code> is one registry per document: tags cannot be per-subtree.)
+</p>
+<p>
+  Recommend A: one runtime per page, so one set of page settings. Revisit B only if a docs page needs two icon sets side
+  by side.
+</p>
+<epic-choices
+  ><epic-option letter="A" title="Page-wide" recommended
+    ><p>
+      Settings apply to the whole page, merged in order, like
+      <code>&lt;ui-icon-set&gt;</code> today. A second root with a conflicting <code>emoji</code> or
+      <code>lang</code> logs a warning (last wins). Cheapest: no change to <code>UI.icons</code>.
+    </p>
+    <pre><code class="language-html">icons="fa7-free fomantic"
+&lt;!-- adds to UI.icons --&gt;</code></pre></epic-option
+  ><epic-option letter="B" title="Per subtree"
+    ><p>
+      Each icon asks its nearest root for packs. Needs a lookup through shadow roots on every icon, and a cache per
+      root. Isolated demos, but dictionaries still can't be per-subtree.
+    </p>
+    <pre><code class="language-html">&lt;ui-root icons="lucide"&gt;
+  &lt;ui-icon name="home"&gt;
+&lt;!-- nearest root's packs --&gt;</code></pre></epic-option
+  ><epic-option letter="C" title="Split"
+    ><p>
+      Icons / emoji / lang page-wide, theme / size / tokens per subtree (they inherit anyway). In code the same as A:
+      this is A, said out loud in the docs.
+    </p></epic-option
+  ></epic-choices
+><epic-answer id="d51" title="Root: icon packs and emoji names per root"
+  ><p>
+    Owen: a root sets its own icons / emoji for its subtree; outside any root the page-wide set applies; an inner root
+    inherits and adds (Q14). Language stays page-wide for now. Cost: each icon finds its nearest root once when
+    connected (microseconds); an icon moved to another root, or a root whose packs change, redraws. SVG files stay
+    cached once per page.
+  </p></epic-answer
+>

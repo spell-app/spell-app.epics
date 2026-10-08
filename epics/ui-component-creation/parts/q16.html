@@ -1,0 +1,46 @@
+<!-- plan-doc part:  #q16's details in ui-component-creation.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  <b>Plain words.</b> Server-side rendering (SSR) means the server sends finished HTML. <code>ui-*</code> elements can
+  arrive with their shadow root already in the HTML (Declarative Shadow DOM, DSD:
+  <code>&lt;template shadowrootmode="open"&gt;</code>), so they paint before any JavaScript runs.
+  <a href="../../../packages/ui/test/dsd.test.ts" target="src-packages-ui-test-dsd-test-ts"
+    ><code>test/dsd.test.ts</code></a
+  >
+  already covers a button. A root that hides everything until JS is ready would throw that away.
+</p>
+<pre><code class="language-html">&lt;ui-root display="when-ready"&gt;
+  &lt;ui-button&gt;
+    &lt;template
+      shadowrootmode="open"&gt;...&lt;/template&gt;
+    Save
+  &lt;/ui-button&gt;
+&lt;/ui-root&gt;</code></pre>
+<p>
+  An element's ready state is set only after the runtime runs, so in server HTML every element looks "not ready" and the
+  root cannot know the families are present.
+</p>
+<p>Recommend A: one media query, and DSD pages don't regress.</p>
+<epic-choices chosen="A"
+  ><epic-option letter="A" title="Hide only with JS" recommended
+    ><p>
+      Hiding is a CSS rule inside <code>@media (scripting: enabled)</code>: server HTML shows as sent, and with JS on,
+      <code>when-ready</code> hides what is not yet upgraded. The media query works in all current engines.
+    </p>
+    <pre><code class="language-html">@media (scripting: enabled) {
+  ui-root[display=when-ready]
+    :not(:state(ready)) { ... }
+}</code></pre></epic-option
+  ><epic-option letter="B" title="Always hide"
+    ><p>Simple, but with JS off or slow the page is blank: server rendering gains nothing under a root.</p></epic-option
+  ><epic-option letter="C" title="SSR out of scope"
+    ><p>
+      Matches <a href="#t4">T4</a> (SSR hydration is later work): <code>when-ready</code> is JS only, documented.
+      Cheapest, but locks a behaviour in.
+    </p></epic-option
+  ></epic-choices
+><epic-answer id="d54" title="Root: hide only with JS"
+  ><p>
+    Owen: recommended. Hiding rules live in <code>@media (scripting: enabled)</code>, so server-rendered / DSD HTML
+    shows as sent.
+  </p></epic-answer
+>
