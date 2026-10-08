@@ -1,0 +1,35 @@
+<!-- plan-doc part:  #i1's details in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A component’s <code>render()</code> ran again, rebuilding its whole view, whenever its body (outside its JSX) read an
+  attribute. The docs say <code>render()</code> runs once. The new
+  <a
+    href="../../../packages/ui/src/elements/DOMElement.test.tsx"
+    target="src-packages-ui-src-elements-domelement-test-tsx"
+    ><code>DOMElement</code> tests</a
+  >
+  found it; it is older than Fold Into Elements (<a href="#p2">P2</a>).
+</p>
+<ul>
+  <li>
+    why: <code>onMount()</code> passed <code>render()</code> as <code>&lt;Show&gt;</code>’s children, and Solid
+    evaluates those in a tracked computation
+  </li>
+  <li>
+    so a reactive read in the body, like <code>const size = this.attrs.size</code> before the <code>return</code>,
+    subscribed to that attribute, and a change re-ran <code>render()</code>
+  </li>
+  <li>
+    the fix, in
+    <a href="../../../packages/ui/src/elements/UIComponent.tsx" target="src-packages-ui-src-elements-uicomponent-tsx"
+      ><code>UIComponent.tsx</code></a
+    >:
+    <pre><code>&lt;Show when={…}&gt;{untrack(() =&gt; this.render())}&lt;/Show&gt;</code></pre>
+  </li>
+  <li>the test now passes, and all 5,081 browser tests still do</li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li><code>render()</code> runs once per mount, as documented</li>
+    <li>a read in its body no longer updates the view; reads that should update go inside the JSX</li>
+  </ul></epic-net-effect
+>
