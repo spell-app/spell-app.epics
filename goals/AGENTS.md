@@ -82,7 +82,7 @@ A TARGET names a set, a topic, or one place on a page:  `[set/]topic[/anchor]`.
   - a closed decision:  no longer holds (log why, and add the decision that replaced it)
   - a closed work item:  done (or dropped:  log which)
   - a digested thought:  worked in;  its note says what came of it (`→ D2;  Q3 closed`)
-- Markup (written by the tool;  `plan-doc.css` styles item chips, `goals.css` the rest):
+- Markup (written by the tool;  `goals.css` styles all of it, item chips included):
 
 ```html
 <li id="q3" data-status="open">
