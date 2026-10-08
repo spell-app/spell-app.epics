@@ -18,6 +18,9 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
   - A family of helper functions shares ONE capability-named file:  `packages/server/src/ports.ts` (`isFree` +
     `freePort` + `listenPreferred`), `packages/server/src/safePath.ts` (`resolveInside` + `isInside`).
   - Avoid single-concept micro-modules:  a one-function file, a one-constant file.
+    - The one exception to "one exported class per file":  a custom element's small DOM element class (a few
+      members, `DOMBrandColorElement`) lives in its component's file, above the component (Owen, epic
+      `wwod-spell-ui` P15:  "try to avoid one-liner files").
   - Separate a file's functional groups with `////////////////` group headers (WWOD §6).
   - Its test:  SEE:  WWOD §20 › "Tests sit beside their module".
   - NOT:  "fewer, bigger files" holding several classes -- a class is found by its file name, and a barrel lists
@@ -28,8 +31,9 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
   - camelCase capability name when it holds a family:  `ports.ts`, `safePath.ts`, `bodies.ts`.
   - The folder's types:  `<folder>.types.ts` (below).
   - Server code:  `.server.ts` -- SEE:  WWOD §10 › "Server code stays out of the browser bundle".
-  - A custom element's files take its tag:  `ui-button/ui-button.types.ts` ...  SEE:  `packages/ui/AGENTS.md`
-    "Overview".
+  - A custom element's family:  the FOLDER takes the main tag (`ui-button/`), every FILE in it its component's
+    class name (`UIButton.tsx`, `UIButton.types.ts`, `UIButton.css`, `UIButton.vocabulary.en.ts`), as any class
+    file is named for its class.  SEE:  `packages/ui/AGENTS.md` "Overview".
   - A runnable script in a `scripts/` or `tools/` folder is named for its command, kebab-case:
     `packages/ui/scripts/gen-styles.ts`, `packages/docs/tools/check-spell.js`.
   - NEVER any other kebab-case name.  Existing ones (`packages/spell/src/node/disk-fetch.ts`, `file-utils.ts` ...)

@@ -54,7 +54,7 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
       goes.
     - Say so in the review notes, with the test-count delta (WWOD §1).
 - **Bigger fakes are real subclasses:**
-  - Subclass the real base, implementing only what the test needs, e.g. `ItemTestOwner extends UIElement
+  - Subclass the real base, implementing only what the test needs, e.g. `ItemTestOwner extends UIComponent
     implements ItemOwner` (`packages/ui/src/components/ui-item/ui-item.test.tsx`).
   - Shared across files:  in the package's `test/`, e.g. `StubOwner` (`packages/ui/test/StubOwner.tsx`).
   - `vi.fn()` class fields, a declarative reply table, and `_`-prefixed test-only helpers.
