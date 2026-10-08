@@ -44,7 +44,7 @@ yarn site:new getting-started --title "Getting started" --summary "One line."   
 - Fomantic's page:  `packages/ui/reference/Fomantic-UI-Docs/server/documents/<group>/<name>.html.eco` (page map:  plan doc
   1.3).  Take EVERY section and example, in Fomantic's order, with Fomantic's header and description text (MIT;  the
   footer credits it).  Live:  `https://fomantic-ui.com/<group>/<name>.html` (WebFetch, or screenshot it).
-- Our names:  `packages/ui/src/components/ui-<name>/*.vocabulary.en.ts` -- the ONLY attributes and values that exist.
+- Our names:  `packages/ui/src/components/ui-<name>/UI<Name>.en.ts` (the vocabularies) -- the ONLY attributes and values that exist.
   `examples/elements/*.html` beside them:  Fomantic's examples already translated to element markup;  reuse them.
   `examples/*.html`:  the class grammar.
 - What our old Astro page said (Usage, Theming prose, a11y, framework snippets, our own extras):  deleted in P7,
