@@ -1560,3 +1560,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   that was gone.  A `show` sent between the two restarts landed on the middle one. · Fix:  after a merge or
   fast-forward, `spell dev server ensure` once, THEN `details show` / `plan-doc open` again;  `spell dev server
   status` gives the live port. · server
+
+- 2026-10-08 · A details page showed broken in the side bar's Review tab (epic `spell-element`):  `spell dev docs
+  link` was given the shared file's REAL path (`.../spell-app-dev/epics/<name>/details/analysis.html`), and made a
+  link to `/spell-app-dev/epics/...`, which no page server serves (404 JSON in the tab). · Fix:  give `docs link` the
+  path THROUGH the checkout (`<checkout>/epics/<name>/...`, the folder link);  it then picks the main server's
+  `/worktrees/<name>/...` route.  `link.ts` could map a real shared path back itself. · docs
