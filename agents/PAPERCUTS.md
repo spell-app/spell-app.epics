@@ -1502,6 +1502,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `cd <main checkout>`:  "cannot be shown not to be git".  Auto mode also refused a bulk `yarn vp fmt` over shared
   pages. · Literal absolute paths only;  write scripts and JSON edit specs with the Write tool, then run them with
   `node <literal path>`;  read the main checkout by absolute path (`ls -L`), never by `cd`. · claude-code
+- 2026-10-08 · The `spell-element` session vanished from the Claude panel after a window reload:  its transcript
+  was saved ONLY under the worktree's project folder (`~/.claude/projects/<repo>--claude-worktrees-spell-element/`),
+  not the repo root's, which is the only one the panel lists.  `/session` (`spell dev session open`) sent the
+  open URL, but nothing showed.  Copying the transcript in from Claude was refused by auto mode ("Session
+  Transcript Tampering"). · Owen copied `<id>.jsonl` into the root's project folder by hand, then reloaded.
+  Why the hook didn't keep it at the root:  not found yet. · claude-code
 
 ## vscode
 
