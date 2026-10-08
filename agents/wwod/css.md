@@ -38,7 +38,7 @@ From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui
   - `<spell-app>` / `<spell-editor>`:  importing a sheet from its component is enough.  The element build gathers
     every imported sheet into `spell-app.css`, which the element adopts into its shadow root
     (`vite.element.config.ts`, `runner/shadowStyles.ts`).
-  - A `ui-*` element:  its sheet is imported `?inline` and adopted by the element itself (`./ui-button.css?inline`,
+  - A `ui-*` element:  its sheet is imported `?inline` and adopted by the element itself (`./UIButton.css?inline`,
     `packages/ui/AGENTS.md` "Solid authoring").
   - From outside, a page reaches inside only through `::part()` and inherited custom properties (below).
 

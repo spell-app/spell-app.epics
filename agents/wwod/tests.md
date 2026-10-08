@@ -40,7 +40,7 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
     `vi.mock("$/app/runner/shadowStyles", ...)` (`packages/app/src/spellEditor/spellEditor.browser.test.tsx`).
   - UPPERCASE fixture consts at module level:  `BOMB`, `OWNER_VOCABULARY`, `REAL_DATA`.
   - Factory helpers as function declarations, e.g. `owned(items)` in
-    `packages/ui/src/components/ui-item/ui-item.test.tsx`.
+    `packages/ui/src/components/ui-item/UIItem.test.tsx`.
   - `expect.assertions(n)` to pin how many checks a catch path makes.
 - **Tests follow the logic:**
   - When behaviour moves to another class or module, its tests move with it:  the old file's test dies, a new one
@@ -55,7 +55,7 @@ SEE ALSO, per package (runners, helpers, fixtures stay there):
     - Say so in the review notes, with the test-count delta (WWOD §1).
 - **Bigger fakes are real subclasses:**
   - Subclass the real base, implementing only what the test needs, e.g. `ItemTestOwner extends UIComponent
-    implements ItemOwner` (`packages/ui/src/components/ui-item/ui-item.test.tsx`).
+    implements ItemOwner` (`packages/ui/src/components/ui-item/UIItem.test.tsx`).
   - Shared across files:  in the package's `test/`, e.g. `StubOwner` (`packages/ui/test/StubOwner.tsx`).
   - `vi.fn()` class fields, a declarative reply table, and `_`-prefixed test-only helpers.
 - **Control time, never sleep:**
