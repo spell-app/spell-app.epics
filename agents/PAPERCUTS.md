@@ -1312,6 +1312,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `yarn workspace @spell-app/cli review`. · `git checkout --` each generated file after the review;  review per
   package.  Fix:  the `fmt` ignores in `vite.lint.ts` cover every generated file (the `.gitattributes`
   `linguist-generated` list is the set), or the generators write oxfmt-clean output. · skillz (I2)
+- 2026-10-08 · `spell dev plan-doc details` / `phase` rewrote a part file's `../../../packages/...` link to
+  `../../../../packages/...` (one `../` too many), and `check` then reported it missing;  `details` also refused
+  `<epic-net-effect>` ("unknown tag"). · Fix the links back by hand in `parts/<id>.html`;  write a Net effect as
+  `<p><b>Net effect:</b></p><ul>`. · spell-element (P1)
 
 ## claude-code
 
@@ -1577,3 +1581,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (windows-and-review I2) was installed:  the window had not been reloaded since the extension was, so it still ran
   the old one.  A traced round showed every hop working after a reload. · Fix:  after `spell dev vscode`, reload each
   open window (Developer: Reload Window) before judging a side-bar fix. · vscode
+
+## brand
+
+- 2026-10-08 · `yarn vp fmt .` in `packages/brand` reflowed the GENERATED `_data/components.json` (330 lines:
+  arrays put on one line), which `yarn site:data` writes in its own shape. · `git checkout --` it;  format brand's
+  changed files by name, not `.` (epic `spell-element`, P1). · brand
