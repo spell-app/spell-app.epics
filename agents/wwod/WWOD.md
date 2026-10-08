@@ -82,7 +82,8 @@ you're touching BEFORE writing code:
   - Two functions doing generally the same thing:  consolidate into one, with arguments or dependency injection --
     especially long chains of business logic in app code, components or route handlers.
   - NEVER hard-code the same string more than once:  make it a constant (WWOD §9 › "Named string constants +
-    `typeof` types"), or pass a sample message into a helper function which can be overridden.
+    `typeof` types"), or pass a sample message into a helper function which can be overridden.  A platform
+    string (`"aria-label"`, `"click"`, `"div"`) is the exception:  inline, same rule.
   - Where a shared helper lives (the package's util folder, `$/util` once 2+ packages use it), and the small private
     copy when that home would invert the dependency:  SEE:  WWOD §8 › "Promotion path".
 - **Delete a field, option or export nothing reads**, rather than keeping it.
@@ -175,6 +176,8 @@ you're touching BEFORE writing code:
 - **"People", never "users"**, in what people read:  docs, pages, UI text.
 - **Magic strings become named constants:**
   - `const UTM_KEYS = [...]`, `const SEARCH_REFERRERS = /google|bing/i`.
+  - Not a platform string (an attribute name, an event type, a tag name):  that's API, written inline -- SEE:
+    WWOD §9 › "Named string constants + `typeof` types".
   - At module level, declared BEFORE the function that uses them (or from the folder's `.types.ts`);  in a class,
     AFTER the main methods.  SEE:  WWOD §8 › "Class first, its types and helpers below".
   - Prefer a regex with the `i` flag over `.toLowerCase()` comparisons.

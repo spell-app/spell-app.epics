@@ -109,6 +109,13 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
   - `export const CONFIRM = "CONFIRM"`, `export const NONE = "NONE"` (`packages/util/src/spell/constants.ts`), then
     `typeof NONE` where a type needs it.
   - Frozen result singletons:  `export const CANCELLED_RESULT = { ... } as const`.
+  - EXCEPT a platform string (an HTML attribute name or value, an ARIA word, a DOM event type, a tag name) is API,
+    not data:  write it inline;  TypeScript checks many of them.
+    - `setAttribute("aria-label", label)`, `role="list"`, `addEventListener("click", ...)`, `type === "reset"`,
+      `createElement("div")` -- never `ARIA_LABEL`, `LIST_ROLE`, `CLICK`, `RESET`, `DIV`.
+    - A constant only names what is OURS:  a word of our own vocabulary, a class word, a token, a data key.
+      A word that is both (`"vertical"`:  `aria-orientation`, and a toast's class word) is inline where it's the
+      platform's, a constant where it's ours.  (Owen, 2026-10-08, epic `wwod-spell-ui` P17.)
 
 - **Const-array unions:**  a plural const for the list, a singular type for one value:
 
