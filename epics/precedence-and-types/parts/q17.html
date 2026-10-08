@@ -1,41 +1,41 @@
 <!-- plan-doc part:  #q17's details in precedence-and-types.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p><b>The two rules.</b> Both start with <code>draw</code>:</p>
-<ui-accordion class="spell-code" styled open="0"
-  ><ui-title>packages/spell/src/rules/draw.ts</ui-title
-  ><ui-content>
-    <pre><code class="language-text">// draw_thing:  draw ONE thing, reactively
+<epic-question
+  ><p><b>The two rules.</b> Both start with <code>draw</code>:</p>
+  <epic-code title="packages/spell/src/rules/draw.ts" language="text" open>
+    <pre>
+// draw_thing:  draw ONE thing, reactively
 "draw {expression}"                                                   =&gt; spellCore.drawThing(x)
 // draw_items:  draw each item of a list
-"draw (each {variable}|(the|all)? {plural_identifier}) (of|in) {expression}"  =&gt; spellCore.drawItems(list)</code></pre>
-  </ui-content></ui-accordion
+"draw (each {variable}|(the|all)? {plural_identifier}) (of|in) {expression}"  =&gt; spellCore.drawItems(list)</pre>
+  </epic-code>
+  <p><b>The clash.</b> <code>draw the cards of the deck</code> matches BOTH, in the same 6 words:</p>
+  <ul>
+    <li>
+      <code>draw_thing</code> reads <code>the cards of the deck</code> as one thing:
+      <code>drawThing(deck.cards)</code>
+    </li>
+    <li><code>draw_items</code> reads it as "each card of the deck": <code>drawItems(deck)</code> -- what's meant</li>
+  </ul>
+  <p>
+    A <code>Choice</code> picks the highest priority (was <code>precedence</code>), then the longest, then the rule
+    registered FIRST.
+  </p>
+  <ul>
+    <li>
+      Today: <code>draw_thing</code> has priority 100, so it always wins; <code>draw_items</code>' test for this line
+      was skipped because it always failed.
+    </li>
+    <li>
+      <code>draw_thing</code> can't drop to 0: a project's own <code>to draw (a card)</code> makes a call rule (priority
+      0) that also matches <code>draw the stock</code>, and <code>stock.draw()</code> skips the reactive redraw. So it
+      needs 1.
+    </li>
+    <li>
+      Prototype: BOTH at 1, and <code>draw_items</code> moved ABOVE <code>draw_thing</code> in the file so it wins the
+      tie. Works, but only because of file order: move the rule and it silently breaks.
+    </li>
+  </ul></epic-question
 >
-<p><b>The clash.</b> <code>draw the cards of the deck</code> matches BOTH, in the same 6 words:</p>
-<ul>
-  <li>
-    <code>draw_thing</code> reads <code>the cards of the deck</code> as one thing:
-    <code>drawThing(deck.cards)</code>
-  </li>
-  <li><code>draw_items</code> reads it as "each card of the deck": <code>drawItems(deck)</code> -- what's meant</li>
-</ul>
-<p>
-  A <code>Choice</code> picks the highest priority (was <code>precedence</code>), then the longest, then the rule
-  registered FIRST.
-</p>
-<ul>
-  <li>
-    Today: <code>draw_thing</code> has priority 100, so it always wins; <code>draw_items</code>' test for this line was
-    skipped because it always failed.
-  </li>
-  <li>
-    <code>draw_thing</code> can't drop to 0: a project's own <code>to draw (a card)</code> makes a call rule (priority
-    0) that also matches <code>draw the stock</code>, and <code>stock.draw()</code> skips the reactive redraw. So it
-    needs 1.
-  </li>
-  <li>
-    Prototype: BOTH at 1, and <code>draw_items</code> moved ABOVE <code>draw_thing</code> in the file so it wins the
-    tie. Works, but only because of file order: move the rule and it silently breaks.
-  </li>
-</ul>
 <epic-choices chosen="A"
   ><epic-option letter="A" title="draw_items 2, draw_thing 1, file order as today" recommended
     ><p>
