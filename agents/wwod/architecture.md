@@ -32,8 +32,8 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
   - The folder's types:  `<folder>.types.ts` (below).
   - Server code:  `.server.ts` -- SEE:  WWOD §10 › "Server code stays out of the browser bundle".
   - A custom element's family:  the FOLDER takes the main tag (`ui-button/`), every FILE in it its component's
-    class name (`UIButton.tsx`, `UIButton.types.ts`, `UIButton.css`, `UIButton.vocabulary.en.ts`), as any class
-    file is named for its class.  SEE:  `packages/ui/AGENTS.md` "Overview".
+    class name (`UIButton.tsx`, `UIButton.types.ts`, `UIButton.css`;  its vocabulary named for its language too,
+    `UIButton.en.ts`), as any class file is named for its class.  SEE:  `packages/ui/AGENTS.md` "Overview".
   - A runnable script in a `scripts/` or `tools/` folder is named for its command, kebab-case:
     `packages/ui/scripts/gen-styles.ts`, `packages/docs/tools/check-spell.js`.
   - NEVER any other kebab-case name.  Existing ones (`packages/spell/src/node/disk-fetch.ts`, `file-utils.ts` ...)

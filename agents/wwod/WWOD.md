@@ -429,7 +429,7 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
   - files table (unaligned `| --- |`), env-var table
   - numbered "Adding a new X" recipe, "Deferred" section
   - in-flight design notes go in a plan doc (`epics/`), not beside the README
-- **User-facing strings stay inline**, where they're used;  only `ui` localizes (its `*.vocabulary.en.ts` files).
+- **User-facing strings stay inline**, where they're used;  only `ui` localizes (its vocabularies, `UIButton.en.ts`).
   - NOT:  a `MSG.ts` object of every user-facing string per package -- one more file to keep in step, for no
     localization.
 

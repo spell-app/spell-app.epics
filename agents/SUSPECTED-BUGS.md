@@ -533,7 +533,7 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 4. Types / API surface
 
-- `src/components/ui-dropdown/ui-dropdown.vocabulary.en.ts` `parts`:  the root `div.ui.dropdown` has no part name, so tokens
+- `src/components/ui-dropdown/UIDropdown.en.ts` `parts`:  the root `div.ui.dropdown` has no part name, so tokens
   read at its root can't be themed via `::part()` (search got `::part(search)` on 2026-10-01).  (2026-10-01)
 
 - `package.json` `smoke`:  needs `vendor/importmap.json` from `yarn vendor`, but doesn't run it, and throws when it's
