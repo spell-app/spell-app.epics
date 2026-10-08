@@ -21,24 +21,23 @@
           ><header class="spell-page-head"><h1>ui and WWOD</h1></header></ui-sticky
         >
         <p class="lede">
-          <a href="../../../spell-app/packages/ui/README.md" target="src-packages-ui-readme-md"
-            ><code>@spell-app/ui</code></a
-          >
+          <a href="../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a>
           follows the house style (<a href="../wwod.html" target="src-guides-wwod-html">WWOD</a>) everywhere, except in
           the few places this page lists, each with the reason it departs.
         </p>
         <ui-list class="spell-meta">
           <ui-item icon="user"
             >Written for: anyone writing or reviewing code in
-            <a href="../../../spell-app/packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
-            >, who knows WWOD and wants to know where <code>ui</code> differs</ui-item
+            <a href="../../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
+            >, who knows WWOD and wants to know how <code>ui</code> is built and where it differs</ui-item
           >
           <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="green">built</ui-label> (branch, not merged)</ui-item
+            >Status: <ui-label size="mini" color="green">built</ui-label> through P17 (branch, not merged)</ui-item
           >
           <ui-item icon="flask"
-            >Researched on: branch <code>wwod-spell-ui</code>, 2026-10-05 to 10-06; sizes from
-            <code>yarn measure</code>, counts from a grep census (see <a href="#4-sources">Sources</a>)</ui-item
+            >Researched on: branch <code>wwod-spell-ui</code>, 2026-10-05 to 10-08; sizes from
+            <code>yarn measure</code> (2026-10-08, after P17), the rest from the code and the plan doc (see
+            <a href="#7-sources">Sources</a>)</ui-item
           >
           <ui-item icon="map"
             >Plan doc:
@@ -50,29 +49,36 @@
 
         <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
           <ui-statistics class="spell-stats" size="mini">
-            <ui-statistic value="0" label="named imports from core (was 163)"></ui-statistic>
-            <ui-statistic value="186" label="nulls (was 457)"></ui-statistic>
-            <ui-statistic value="5" label="test sleeps (was 24)"></ui-statistic>
+            <ui-statistic value="25.8 kB" label="core.js, gzipped"></ui-statistic>
+            <ui-statistic value="5" label="reactive decorators"></ui-statistic>
+            <ui-statistic value="11" label="form controls with a fallback"></ui-statistic>
           </ui-statistics>
           <ul>
             <li>
               The rules live in
-              <a href="../../../spell-app/packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+              <a href="../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
                 ><code>packages/ui/AGENTS.md</code></a
-              >: every section named like a WWOD rule starts "As WWOD §N, plus:" and lists only what
-              <code>ui</code> adds or changes. This page is the why behind them.
+              >: a section named like a WWOD rule starts "As WWOD §N, plus:" and lists only what <code>ui</code> adds.
+              This page is the why behind them.
             </li>
             <li>
-              Most departures have ONE reason: bundle size. A web component library ships every byte to every page, so
-              where WWOD's shape costs bytes in a family's chunk, <code>ui</code> picks the smaller shape.
+              Most departures have ONE reason: bundle size. A web component library ships every byte to every page.
             </li>
             <li>
-              The rest come from what <code>ui</code> is: a port of Fomantic UI (its class grammar stays), code node
-              must load without a DOM (vocabularies, the static render), and a forked custom-element layer that keeps
-              upstream's shape.
+              The rest come from what <code>ui</code> is: a port of Fomantic UI (its class grammar stays), data node
+              loads without a DOM (vocabularies, the static render), and custom elements built on
+              <code>solid-element</code>.
             </li>
             <li>
-              The restyle (epic <code>wwod-spell-ui</code>, P1-P11) changed public names and signatures, and fixed every
+              Every tag has two objects: its COMPONENT (the class behind it) and its DOM ELEMENT (the tag in the page).
+              See <a href="#2-components">section 2</a>.
+            </li>
+            <li>
+              A component's changing values are fields with a decorator, read fresh right after a write. See
+              <a href="#3-reactive">section 3</a>.
+            </li>
+            <li>
+              The restyle (epic <code>wwod-spell-ui</code>, P1-P17) changed public names and signatures, and fixed every
               caller in the repo (<code>app</code>, <code>docs</code>, <code>brand</code>, <code>cli</code>).
             </li>
           </ul>
@@ -85,10 +91,364 @@
           </ui-message>
         </ui-section>
 
-        <ui-section id="2-the-exceptions" header="2. The exceptions" sticky collapsible dividing collapsed>
+        <ui-section id="2-components" header="2. Components and DOM elements" sticky collapsible dividing collapsed>
+          <ui-section id="two-objects" header="Two objects per tag" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                The COMPONENT: the class behind a tag, <code>UIButton</code>.
+                <ul>
+                  <li>One instance per element.</li>
+                  <li>It holds the state, draws the shadow DOM (<code>render()</code>) and handles events.</li>
+                  <li>Its base class is <code>UIComponent</code>.</li>
+                </ul>
+              </li>
+              <li>
+                The DOM ELEMENT: the <code>&lt;ui-button&gt;</code> in the page, with its attributes, properties and
+                events.
+                <ul>
+                  <li>
+                    An instance of <code>DOMElement</code>, as an <code>&lt;a&gt;</code> is an
+                    <code>HTMLAnchorElement</code>.
+                  </li>
+                  <li>It's what the browser and every framework talk to.</li>
+                </ul>
+              </li>
+              <li>They point at each other: <code>component.domElement</code>, <code>domElement.component</code>.</li>
+              <li>
+                "Host" is only the platform's word now (<code>:host</code>, <code>ShadowRoot.host</code>); "controller"
+                is retired.
+              </li>
+              <li>
+                <code>solid-element</code> (<a
+                  href="../../packages/solid-element/README.md"
+                  target="src-packages-solid-element-readme-md"
+                  ><code>@spell-app/solid-element</code></a
+                >, our copy of Solid's custom-element layer) defines the tag and builds the component on first connect.
+              </li>
+            </ul>
+            <ui-table celled compact striped>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>Component base</th>
+                    <th>DOM element</th>
+                    <th>For</th>
+                  </tr>
+                  <tr>
+                    <td><code>UIComponent</code></td>
+                    <td><code>DOMElement</code></td>
+                    <td>every tag</td>
+                  </tr>
+                  <tr>
+                    <td><code>FormComponent</code></td>
+                    <td><code>DOMFormControl</code></td>
+                    <td>
+                      a control with a form value: <code>value</code>, <code>form</code>, <code>checkValidity()</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>LoadableComponent</code></td>
+                    <td><code>DOMLoadableElement</code></td>
+                    <td>a tag that shows a text file: <code>source</code>, inline text, <code>save()</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>PartComponent</code></td>
+                    <td><code>DOMElement</code></td>
+                    <td>
+                      the generic parts (<code>&lt;ui-header&gt;</code>, <code>&lt;ui-content&gt;</code>), styled by
+                      their owner
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>UINag</code></td>
+                    <td><code>DOMNagElement</code></td>
+                    <td>a family with a script API of its own: <code>nag.close()</code>, <code>nag.dismissed</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+          </ui-section>
+
+          <ui-section
+            id="element-setup"
+            header="elementSetup: what the custom element needs"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ul>
+              <li>ONE class setting holds what the platform reads when the tag is defined.</li>
+              <li>It's merged down the class chain, base first: a subclass states only the keys it changes.</li>
+              <li>
+                Every literal ends <code>satisfies Partial&lt;E.ElementSetup&gt;</code>, so a misspelt key fails
+                TypeScript.
+              </li>
+              <li>Read the merged result through <code>setup</code>, never <code>elementSetup</code> itself.</li>
+            </ul>
+            <ui-table celled compact striped>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>Key</th>
+                    <th>Default</th>
+                    <th>Means</th>
+                  </tr>
+                  <tr>
+                    <td><code>isAFormControl</code></td>
+                    <td><code>false</code></td>
+                    <td>sent with its form, validated, reset (the platform's <code>formAssociated</code>)</td>
+                  </tr>
+                  <tr>
+                    <td><code>delegatesFocus</code></td>
+                    <td><code>true</code></td>
+                    <td>a click focuses the first focusable thing inside</td>
+                  </tr>
+                  <tr>
+                    <td><code>assignSlots</code></td>
+                    <td><code>"byName"</code></td>
+                    <td>children go to the slot they name; <code>"manually"</code>: the component assigns them</td>
+                  </tr>
+                  <tr>
+                    <td><code>isAPart</code></td>
+                    <td><code>false</code></td>
+                    <td>a generic part, which looks up for the element it belongs to</td>
+                  </tr>
+                  <tr>
+                    <td><code>DOMElement</code></td>
+                    <td><code>DOMElement</code></td>
+                    <td>the class the DOM element is made from</td>
+                  </tr>
+                  <tr>
+                    <td><code>Fallback</code></td>
+                    <td>none</td>
+                    <td>the plain-DOM stand-in shown when the render throws (form controls only)</td>
+                  </tr>
+                  <tr>
+                    <td><code>canRenderUnstyled</code></td>
+                    <td><code>false</code></td>
+                    <td>show at once, before the style sheets are in (<code>&lt;ui-root&gt;</code>)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>A family's DOM element class, named in its setup</ui-title>
+              <ui-content>
+                <pre><code class="language-ts">// UINag.tsx:  above the component, since elementSetup reads it while the class is defined
+export class DOMNagElement extends E.DOMElement {
+  close(): boolean { ... }
+  get dismissed(): boolean { ... }
+}
+
+export class UINag extends E.UIComponent&lt;typeof nagVocabulary&gt; {
+  @E.proto static elementSetup = { DOMElement: DOMNagElement } satisfies Partial&lt;E.ElementSetup&gt;
+  ...
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="fallbacks" header="Fallbacks: form controls only" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A FALLBACK is plain DOM, no Solid, shown when an element's render throws
+                (<code>UI&lt;Name&gt;.fallback.ts</code>).
+              </li>
+              <li>
+                Only form controls keep one, so a broken control still submits, validates and resets: button, input,
+                checkbox, dropdown, select, search, calendar, slider, rating; brand's colour picker and composer.
+              </li>
+              <li>Every other element shows its children through a bare <code>&lt;slot&gt;</code>.</li>
+              <li>Owen (P15): "ditch the fallback stuff unless it's necessary for e.g. form functionality".</li>
+              <li>
+                The list and why:
+                <a href="../../packages/ui/docs/fallback.md" target="src-packages-ui-docs-fallback-md"
+                  ><code>packages/ui/docs/fallback.md</code></a
+                >.
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="3-reactive" header="3. Reactive members" sticky collapsible dividing collapsed>
+          <ul>
+            <li>
+              A component's changing values live in ONE RECORD per instance: a plain object behind its decorated
+              members.
+            </li>
+            <li>So <code>this.isOpen = true; this.isOpen</code> is <code>true</code> at once, with no flush.</li>
+            <li>Solid still follows every read, in JSX and effects.</li>
+            <li>
+              The decorators are in
+              <a href="../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+                ><code>src/elements/Reactive.ts</code></a
+              >; WWOD §12 › "Reactive members" has the rule.
+            </li>
+          </ul>
+          <ui-table celled compact striped>
+            <table>
+              <tbody>
+                <tr>
+                  <th>Decorator</th>
+                  <th>What it does</th>
+                  <th>Example</th>
+                </tr>
+                <tr>
+                  <td><code>@state</code></td>
+                  <td>the component's own state</td>
+                  <td><code>@E.state accessor isOpen = false</code></td>
+                </tr>
+                <tr>
+                  <td><code>@controlled</code></td>
+                  <td>
+                    the DOM element's property when the page sets it, else the starting value; a write goes to the
+                    property
+                  </td>
+                  <td><code>@E.controlled("open") accessor isOpen = false</code></td>
+                </tr>
+                <tr>
+                  <td><code>@derived</code></td>
+                  <td>a cached value for real work, recomputed only when something it read changed</td>
+                  <td><code>@E.derived get rows()</code></td>
+                </tr>
+                <tr>
+                  <td><code>@cssState</code></td>
+                  <td>the element's <code>:state()</code> follows the member</td>
+                  <td><code>@E.cssState("active") get isActive()</code></td>
+                </tr>
+                <tr>
+                  <td><code>@onChange</code></td>
+                  <td>
+                    runs the method when a named member's value really changes; a returned function is the cleanup
+                  </td>
+                  <td><code>@E.onChange("isReady", "hasText") onNameChanged(isReady, hasText)</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ul>
+            <li>
+              Attributes: a getter and setter per vocabulary attribute, <code>this.size</code>, already converted.
+              <ul>
+                <li>
+                  One line below the class types them:
+                  <code>export interface UIButton extends E.AttributeValues&lt;typeof buttonVocabulary&gt; {}</code>.
+                </li>
+                <li>
+                  A base class never uses an attribute's name for a member (<code>elementDefinition</code>, not
+                  <code>definition</code>); a test checks it.
+                </li>
+              </ul>
+            </li>
+            <li>Raw attributes: <code>this.attributes["aria-label"]</code>, the DOM's string or <code>null</code>.</li>
+            <li>An accessor for Solid APIs that want one: <code>this.$.isOpen</code>.</li>
+            <li>
+              Events: <code>this.send("ui-change", detail)</code> to dispatch, <code>this.on("command", ...)</code> to
+              listen for the element's whole life.
+            </li>
+            <li>
+              Booleans read as English (<code>isDirty</code>, <code>looksDisabled</code>); the PUBLIC API is bare, like
+              the platform's (<code>nag.dismissed</code>, <code>readOnly</code>).
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="4-files" header="4. File names" sticky collapsible dividing collapsed>
+          <ul>
+            <li>One folder per family, named for its main tag: <code>ui-button/</code>.</li>
+            <li>Every file in it is named for its COMPONENT, as any class file is named for its class.</li>
+            <li>No one-liner files: a family's DOM element class lives in its component's file.</li>
+          </ul>
+          <ui-table celled compact striped>
+            <table>
+              <tbody>
+                <tr>
+                  <th>File</th>
+                  <th>Holds</th>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="../../packages/ui/src/components/ui-button/UIButton.tsx"
+                      target="src-packages-ui-src-components-ui-button-uibutton-tsx"
+                      ><code>UIButton.tsx</code></a
+                    >
+                  </td>
+                  <td>one component (and its <code>DOM&lt;Name&gt;Element</code>, if any)</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="../../packages/ui/src/components/ui-button/UIButton.en.ts"
+                      target="src-packages-ui-src-components-ui-button-uibutton-en-ts"
+                      ><code>UIButton.en.ts</code></a
+                    >
+                  </td>
+                  <td>
+                    the tag's VOCABULARY, named for its language: every name it uses (attributes, events, slots, parts,
+                    texts); a translation is <code>UIButton.es.ts</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="../../packages/ui/src/components/ui-button/UIButton.css"
+                      target="src-packages-ui-src-components-ui-button-uibutton-css"
+                      ><code>UIButton.css</code></a
+                    >
+                  </td>
+                  <td>the shadow sheet, in Fomantic's class grammar</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="../../packages/ui/src/components/ui-button/UIButton.types.ts"
+                      target="src-packages-ui-src-components-ui-button-uibutton-types-ts"
+                      ><code>UIButton.types.ts</code></a
+                    >
+                  </td>
+                  <td>constants and types SEVERAL files of the folder use</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="../../packages/ui/src/components/ui-button/UIButton.fallback.ts"
+                      target="src-packages-ui-src-components-ui-button-uibutton-fallback-ts"
+                      ><code>UIButton.fallback.ts</code></a
+                    >
+                  </td>
+                  <td>the fallback, form controls only</td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="../../packages/ui/src/components/ui-button/UIButton.test.tsx"
+                      target="src-packages-ui-src-components-ui-button-uibutton-test-tsx"
+                      ><code>UIButton.test.tsx</code></a
+                    >, <code>.css.test.ts</code>, <code>.ssr.test.tsx</code>
+                  </td>
+                  <td>its tests</td>
+                </tr>
+                <tr>
+                  <td><code>index.ts</code></td>
+                  <td>the family barrel: defines every tag, re-exports the classes</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ul>
+            <li>
+              A two-letter code before <code>.ts</code> means a vocabulary: the tools find them by it
+              (<code>VocabularyFiles.languageOf()</code>).
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="5-the-exceptions" header="5. The exceptions" sticky collapsible dividing collapsed>
           <p>
             Each row: what WWOD says, what <code>ui</code> does instead, and why. The letter after it is the plan doc's
-            question that settled it.
+            item that settled it.
           </p>
 
           <ui-section id="the-table" header="All of them, at a glance" sticky collapsible dividing collapsed>
@@ -107,8 +467,19 @@
                   </tr>
                   <tr>
                     <td>§12: statics after the main methods</td>
-                    <td><code>@proto static</code> defaults stay at the top (Q11)</td>
-                    <td>they're the class's declared config, read first</td>
+                    <td>
+                      a class setting sits with its property group: its <code>@proto static</code> default beside its
+                      <code>declare</code> (Q11)
+                    </td>
+                    <td>Owen: "locate code near its siblings"</td>
+                  </tr>
+                  <tr>
+                    <td>§3: booleans start is / has / can</td>
+                    <td>
+                      inside, yes (<code>isOpen</code>); the public element API is bare (<code>nag.dismissed</code>,
+                      <code>readOnly</code>) (J13)
+                    </td>
+                    <td>a page reads <code>el.dismissed</code> as it reads <code>input.disabled</code></td>
                   </tr>
                   <tr>
                     <td>§19: log through a <code>Logger</code></td>
@@ -121,7 +492,7 @@
                       yes, as <code>E</code> / <code>F</code> / <code>UI</code> / <code>UIT</code>; but load-time uses
                       (<code>extends</code>, <code>@proto</code>, static initializers) are direct imports (Q4)
                     </td>
-                    <td>the element core imports itself: a namespace read while a module evaluates hits the cycle</td>
+                    <td>the element core imports itself: a namespace read while a module loads hits the cycle</td>
                   </tr>
                   <tr>
                     <td>§4: import a package through its entry</td>
@@ -130,7 +501,7 @@
                       <code>$/ui/core</code> entry (I16)
                     </td>
                     <td>
-                      <code>core</code> re-exports the runtime's loader; the lazy runtime chunk importing it split a
+                      <code>core</code> re-exports the runtime's loader; the lazy runtime chunk importing it split off a
                       chunk every page loaded
                     </td>
                   </tr>
@@ -162,14 +533,15 @@
                     <td>§9: <code>undefined</code>, never <code>null</code></td>
                     <td>
                       <code>null</code> only at platform boundaries: <code>getAttribute()</code>,
-                      <code>setFormValue()</code>, the fork's <code>toAttribute</code>, <code>useContext</code> (Q9)
+                      <code>setFormValue()</code>, solid-element's <code>toAttribute</code>, <code>useContext</code>
+                      (Q9)
                     </td>
                     <td>those APIs speak <code>null</code></td>
                   </tr>
                   <tr>
                     <td>§17: render pieces are inner functions</td>
-                    <td>private methods on the controller, named for what they draw: <code>thumb()</code> (Q12)</td>
-                    <td>an element is a controller class, not a function component</td>
+                    <td>private methods on the component, named for what they draw: <code>thumb()</code> (Q12)</td>
+                    <td>a component is a class, not a function component</td>
                   </tr>
                   <tr>
                     <td>§18: PascalCase root classes, nested parts</td>
@@ -191,22 +563,35 @@
                   </tr>
                   <tr>
                     <td>§10: server code is <code>.server.ts</code></td>
-                    <td>all of <code>src/static/</code> is, except its barrel (Q20)</td>
+                    <td>
+                      all of
+                      <a href="../../packages/ui/src/static/" target="src-packages-ui-src-static"
+                        ><code>src/static/</code></a
+                      >
+                      is <code>.ssr.ts</code>, its short form, except its barrel (Q20, J19)
+                    </td>
                     <td>the static render is node only</td>
                   </tr>
                   <tr>
                     <td>all of WWOD</td>
                     <td>
-                      <a href="../../../spell-app/packages/solid-element/" target="src-packages-solid-element"
+                      <a href="../../packages/solid-element/" target="src-packages-solid-element"
                         ><code>packages/solid-element</code></a
                       >
                       and generated files are out of scope
                     </td>
-                    <td>the fork maps 1:1 to upstream PRs; generated files are only regenerated</td>
+                    <td>solid-element maps 1:1 to upstream PRs; generated files are only regenerated</td>
                   </tr>
                 </tbody>
               </table>
             </ui-table>
+            <ul>
+              <li>
+                No longer an exception: a PLATFORM string (an attribute name or value, an ARIA word, an event type, a
+                tag name) is written inline. WWOD says so itself now (P17): "a platform string is API, not data".
+              </li>
+              <li>Our own names (<code>ui-*</code> attributes, events, parts) stay vocabulary names or constants.</li>
+            </ul>
           </ui-section>
 
           <ui-section id="bundle-size" header="Bundle size first" sticky collapsible dividing collapsed>
@@ -217,71 +602,128 @@
                 the <code>E</code> object.
               </li>
               <li>
-                Constants as <code>private static</code>s cost <code>forms.js</code> about 1.0 kB minified (0.27 kB
-                gzipped) when P3 first tried them: a static keeps its name when minified. That measurement is why Q18
-                moved them below the class.
+                Constants as <code>private static</code>s cost <code>forms.js</code> about 0.27 kB gzipped when P3 tried
+                them: a static keeps its name when minified. That's why Q18 moved them below the class.
+              </li>
+              <li>
+                The decorators (P14) cost <code>core</code> 1.09 kB gzipped, once their helpers were shared; 4.06 kB
+                before (I26).
+              </li>
+              <li>Fallbacks for form controls only (P15): 17.9 kB gzipped less across the families.</li>
+              <li>Platform strings inline (P17): <code>core.js</code> 0.5 kB gzipped less.</li>
+              <li>
+                Now: <code>core.js</code> 70,852 B (25,800 gzipped), ONE chunk; <code>forms.js</code> 6.4 kB gzipped; a
+                page with one button 65.3 kB gzipped.
               </li>
               <li>
                 <code>yarn measure</code>'s <code>runtimeChunks</code> and <code>coreOutsideCore</code> checks catch a
                 shared module split into a third chunk: I12 and I16 were both that, and both are fixed.
               </li>
-              <li>
-                <code>core.js</code> is 113,020 B (33,299 gzipped) in ONE chunk now; at the start it was 90,953 B
-                (26,385) plus 4 split-off chunks every page also loaded, so the two aren't directly comparable.
-              </li>
             </ul>
           </ui-section>
 
           <ui-section id="the-code" header="What a component file looks like" sticky collapsible dividing collapsed>
-            <p>
-              <a
-                href="../../../spell-app/packages/ui/src/components/ui-divider/UIDivider.tsx"
-                target="src-packages-ui-src-components-ui-divider-uidivider-tsx"
-                ><code>packages/ui/src/components/ui-divider/UIDivider.tsx</code></a
-              >, the top of it: shared code through <code>E</code> / <code>UIT</code>, peers direct, the sheet last,
-              <code>@E.proto</code> defaults first.
-            </p>
+            <ul>
+              <li>
+                <a
+                  href="../../packages/ui/src/components/ui-loader/UILoader.tsx"
+                  target="src-packages-ui-src-components-ui-loader-uiloader-tsx"
+                  ><code>packages/ui/src/components/ui-loader/UILoader.tsx</code></a
+                >, cut down.
+              </li>
+              <li>Shared code through <code>E</code>, peers direct, the sheet last.</li>
+              <li>Class settings first, then members grouped by subject, each decorated for how it works.</li>
+            </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>UIDivider.tsx · 55 lines</ui-title>
+              <ui-title>UILoader.tsx · 95 lines</ui-title>
               <ui-content>
-                <pre><code class="language-ts">import { Show } from "solid-js"
-import type { JSX } from "@solidjs/web"
+                <pre><code class="language-ts">import type { JSX } from "@solidjs/web"
 
-import { E, UIT } from "$/ui/core"
-import { dividerVocabulary } from "./UIDivider.en"
+import { E } from "$/ui/core"
+import { loaderVocabulary } from "./UILoader.en"
 
-import dividerCSS from "./UIDivider.css?inline"
+import loaderCSS from "./UILoader.css?inline"
 
 /****************
- * ### `UIDivider`
- * The component behind `&lt;ui-divider&gt;`:  a line that splits content into groups,
- * optionally with text or an icon on it.
+ * ### `UILoader`
+ * The component behind `&lt;ui-loader&gt;`:  a spinner, with optional text, showing that something is loading.
  * ...
  ****************/
-export class UIDivider extends E.UIComponent&lt;typeof dividerVocabulary&gt; {
-  @E.proto static vocabulary = dividerVocabulary
-  @E.proto static styleSheets = { divider: dividerCSS }
+export class UILoader extends E.UIComponent&lt;typeof loaderVocabulary&gt; {
+  @E.proto static vocabulary = loaderVocabulary
+  @E.proto static styleSheets = { loader: loaderCSS }
+  @E.proto static elementSetup = { delegatesFocus: false } satisfies Partial&lt;E.ElementSetup&gt;
 
-  /** The glyph of the `icon` shorthand. */
-  readonly iconGlyph = new E.IconGlyph({ owner: this, name: () =&gt; this.icon })
+  constructor(...args: ConstructorParameters&lt;typeof E.UIComponent&gt;) {
+    super(...args)
+    const { internals } = this.domElement
+    internals.role = "status"
+    internals.ariaLive = "polite"
+  }
+
+  ////////////////
+  // ## The name
+  ////////////////
+
+  /** Which of its slots have content in the light DOM:  slotted text names the status. */
+  readonly slots = new E.SlotContent(this.domElement)
+
+  /** Has slotted text?  Tracked. */
+  get hasText(): boolean {
+    return this.slots.hasContent("")
+  }
+
+  /** The element's accessible name:  the `loading` text while nothing is slotted. ... */
+  @E.onChange("isReady", "hasText", { writesDOMElement: true })
+  protected onNameChanged(isReady: boolean, hasText: boolean) {
+    const label = isReady &amp;&amp; !hasText ? this.translationForKey("loading") : undefined
+    // `null`:  `ariaLabel` is the platform's, and `null` removes it
+    this.domElement.internals.ariaLabel = label ?? null
+  }
+
+  ////////////////
+  // ## States
+  ////////////////
+
+  /** Shown (`active`).  `:state(active)`. */
+  @E.cssState("active")
+  get isActive(): boolean {
+    return !!this.active
+  }
+  ...
 
   render(): JSX.Element {
     return (
-      &lt;div
-        class={this.rootClasses}
-        role={this.hidden ? UIT.NONE : UIT.SEPARATOR}
-        ...</code></pre>
+      &lt;div class={this.rootClasses} part={this.partForName("loader")}&gt;
+        &lt;slot /&gt;
+      &lt;/div&gt;
+    )
+  }
+}
+
+/** The vocabulary's attribute getters, typed (see "Attributes" in `UIComponent`). */
+export interface UILoader extends E.AttributeValues&lt;typeof loaderVocabulary&gt; {}</code></pre>
               </ui-content>
             </ui-accordion>
             <ui-message state="warning" header="Heads up">
               <ul>
                 <li>
-                  Never import an element-core leaf by path (<code>$/ui/elements/UIComponent</code>): entering the import
-                  cycle there breaks it. <code>src/elements/barrel.test.ts</code> checks every export is live.
+                  Never import an element-core file by path (<code>$/ui/elements/UIComponent</code>): entering the
+                  import cycle there breaks it.
+                  <a
+                    href="../../packages/ui/src/elements/barrel.test.ts"
+                    target="src-packages-ui-src-elements-barrel-test-ts"
+                    ><code>src/elements/barrel.test.ts</code></a
+                  >
+                  checks every export is live.
                 </li>
                 <li>
-                  A family's only constant goes BELOW its class; above it only when a static initializer or decorator
-                  reads it while the class loads, with a one-line comment saying so.
+                  A family's only constant goes BELOW its class; above it only when the class reads it while it loads,
+                  with a one-line comment saying so.
+                </li>
+                <li>
+                  Never write state inside <code>render()</code>, a getter or an effect's first function: Solid 2
+                  forbids it. Write in handlers and <code>@onChange</code> methods.
                 </li>
               </ul>
             </ui-message>
@@ -290,30 +732,129 @@ export class UIDivider extends E.UIComponent&lt;typeof dividerVocabulary&gt; {
           <ui-section id="limits" header="Limits: what's still open" sticky collapsible dividing collapsed>
             <ul>
               <li>
+                brand's 12 components still use the old layer (I27): <code>attrs</code>, <code>controlled()</code>,
+                <code>Cell</code>. <code>Controlled</code> and <code>Cell</code> stay in <code>core</code> until they
+                move.
+              </li>
+              <li>
+                Event names are still open (Q27): keep <code>ui-hide</code>, plain <code>hide</code>, or
+                <code>on-hide</code>.
+              </li>
+              <li>
+                A broken element that isn't a form control shows its children, but not those in NAMED slots; not every
+                docs page says so yet (T27).
+              </li>
+              <li>
+                <code>&lt;ui-components&gt;</code> has no docs page or element example, and the static render ignores
+                packs (T24).
+              </li>
+              <li>
+                Folding solid-element into <code>DOMElement</code> / <code>UIComponent</code>, and a custom-elements
+                guide, moved to a future epic:
+                <a href="../../epics/spell-element/spell-element.plan.html" target="spell-element">Spell Element</a>.
+              </li>
+              <li>
                 <code>yarn test:hmr</code> prints 85 Solid <code>STRICT_READ_UNTRACKED</code> warnings, as it did before
-                the epic (I15).
+                the epic (I15); 17 Firefox / WebKit tests failed before the epic too (I24).
               </li>
               <li>
-                WWOD §20's <code>{ ...instance }</code> compare is an error under oxlint's
-                <code>no-misused-spread</code>; one of the two needs to change (I22).
+                Behaviour that changed on purpose:
+                <ul>
+                  <li>
+                    attributes renamed: <code>&lt;ui-form validate-on&gt;</code>,
+                    <code>&lt;ui-dimmer show-on&gt;</code>, <code>&lt;ui-popup open-on&gt;</code> (P14)
+                  </li>
+                  <li>
+                    flags are emoji only (J47); <code>&lt;ui-checkbox off-value&gt;</code> (J44); progress reads
+                    <code>indeterminate</code> as a boolean (J63)
+                  </li>
+                  <li>
+                    <code>&lt;ui-tabs&gt;</code> reads its own document (J65); toast <code>display-time="auto"</code> no
+                    longer counts button labels (J71)
+                  </li>
+                </ul>
               </li>
-              <li>
-                Two visual baselines are stale from <code>main</code> (<code>ui-menu/appearance</code>,
-                <code>ui-step/equal</code>), and 17 Firefox / WebKit tests failed before the epic too (I23, I24).
-              </li>
-              <li>
-                Behaviour that changed on purpose: flag emoji follow one rule (J47), progress reads
-                <code>indeterminate</code> as a boolean (J63), <code>&lt;ui-tabs&gt;</code> reads its host's document
-                (J65), toast <code>display-time="auto"</code> no longer counts button labels (J71).
-              </li>
-              <li>Loose ends are the plan doc's open todos (T3, T8, T14, T16-T21, T23).</li>
+              <li>Loose ends are the plan doc's open todos (T3, T8, T14, T16-T21, T23-T27).</li>
             </ul>
           </ui-section>
         </ui-section>
 
-        <ui-section id="3-history" header="3. History" sticky collapsible dividing collapsed>
+        <ui-section id="6-history" header="6. History" sticky collapsible dividing collapsed>
           <p class="meta">What changed in the decision, newest first.</p>
           <ui-feed class="spell-history" size="small">
+            <ui-event icon="arrow right">
+              <ui-content>
+                <ui-summary
+                  >Moved: P18 (fold solid-element in) and P19 (a custom-elements guide) to future epic
+                  <code>spell-element</code> <ui-date>2026-10-08</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built: P17: <code>DOMFormControl</code>; vocabularies <code>UI&lt;Name&gt;.en.ts</code>; platform
+                  strings inline <ui-date>2026-10-08</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided: a platform string is API, not data: written inline, in WWOD too
+                  <ui-date>2026-10-08</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built: P15 + P16: components and DOM elements; files named for their component; fallbacks for form
+                  controls only; docstrings rewritten <ui-date>2026-10-08</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided: the class behind a tag is a COMPONENT, the tag its DOM ELEMENT; no one-liner files; "ditch
+                  the fallback stuff unless it's necessary for e.g. form functionality" (P15)
+                  <ui-date>2026-10-07</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built: P14: the reactive decorators, one record per component, <code>elementSetup</code>, every
+                  family converted <ui-date>2026-10-07</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided: booleans read as English, handlers are <code>on...</code>, members declared with decorators
+                  (P13, Q22) <ui-date>2026-10-07</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built: P12: component packs and skeleton text; review fixes J5-J47
+                  <ui-date>2026-10-06</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided: public element names copy the platform: bare booleans, camelCase properties (J13)
+                  <ui-date>2026-10-06</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
             <ui-event icon="check">
               <ui-content>
                 <ui-summary
@@ -349,12 +890,12 @@ export class UIDivider extends E.UIComponent&lt;typeof dividerVocabulary&gt; {
           </ui-feed>
         </ui-section>
 
-        <ui-section id="4-sources" header="4. Sources" sticky collapsible dividing collapsed>
+        <ui-section id="7-sources" header="7. Sources" sticky collapsible dividing collapsed>
           <ui-items class="spell-sources" divided>
             <ui-item>
               <ui-content>
                 <ui-header
-                  ><a href="../../../spell-app/packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+                  ><a href="../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
                     ><code>packages/ui/AGENTS.md</code></a
                   ></ui-header
                 >
@@ -365,13 +906,29 @@ export class UIDivider extends E.UIComponent&lt;typeof dividerVocabulary&gt; {
             <ui-item>
               <ui-content>
                 <ui-header
+                  ><a
+                    href="../../packages/ui/src/elements/UIComponent.tsx"
+                    target="src-packages-ui-src-elements-uicomponent-tsx"
+                    ><code>src/elements/UIComponent.tsx</code></a
+                  ></ui-header
+                >
+                <ui-meta>code · the component base</ui-meta>
+                <ui-description
+                  >Its header explains components, DOM elements, vocabulary, state and the lifecycle;
+                  <code>ElementSetup</code> documents each key.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
                   ><code>yarn measure</code> (in
-                  <a href="../../../spell-app/packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
+                  <a href="../../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
                   >)</ui-header
                 >
                 <ui-meta
                   >measurement ·
-                  <a href="../../../spell-app/packages/ui/tools/results/" target="src-packages-ui-tools-results"
+                  <a href="../../packages/ui/tools/results/" target="src-packages-ui-tools-results"
                     ><code>tools/results/</code></a
                   ></ui-meta
                 >
@@ -385,7 +942,7 @@ export class UIDivider extends E.UIComponent&lt;typeof dividerVocabulary&gt; {
                     >The plan doc</a
                   ></ui-header
                 >
-                <ui-meta>record · Q1-Q20, J1-J107</ui-meta>
+                <ui-meta>record · P1-P17, Q1-Q29, J1-J150</ui-meta>
                 <ui-description
                   >The questions and judgement calls each exception cites, with the options weighed.</ui-description
                 >
@@ -396,7 +953,9 @@ export class UIDivider extends E.UIComponent&lt;typeof dividerVocabulary&gt; {
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">Last checked 2026-10-06 against branch <code>wwod-spell-ui</code>.</p>
+          <p class="meta">
+            Last checked 2026-10-08 against branch <code>wwod-spell-ui</code> (P17). Before that, 2026-10-06 (P11).
+          </p>
         </footer>
       </main>
     </div>
