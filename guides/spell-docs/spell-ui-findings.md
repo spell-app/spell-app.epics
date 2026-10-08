@@ -227,7 +227,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
       Chromium applies it only when BOTH axes clip
     - repro:  `<ui-section header="A"><ui-cards><ui-card>...</ui-card></ui-cards></ui-section>`:  no bottom border
     - workaround:  `ui-section::part(content) { overflow: clip; overflow-clip-margin: 6px }` (`spell-doc.css`)
-    - suggest:  the same in `ui-section.css` (clip both axes with a small clip margin, or a
+    - suggest:  the same in `UISection.css` (clip both axes with a small clip margin, or a
       `--ui-section-clip-margin` token)
 
 27. **`ui-steps`:  stacked steps with long text center each step, so their left edges stagger**
