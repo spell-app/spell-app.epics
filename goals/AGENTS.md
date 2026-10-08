@@ -100,18 +100,21 @@ A TARGET names a set, a topic, or one place on a page:  `[set/]topic[/anchor]`.
 ```
 
 - Thoughts on a section sit right under its heading;  on the page as a whole, right under the hero.
+- An item's id chip is coloured by its STATE, as a plan doc's (the colour scheme:  `templates/epics/plan-doc.md`,
+  "Colours"):  an open question red (needs Owen), any other open item yellow, a closed one grey.  The kind shows
+  only in the id's letter (G, Q, D, R, W, I).
 
 ## Topic status
 
-`<body data-status>`, shown in the hero and on the topic's card.
+`<body data-status>`, shown in the hero and on the topic's card, coloured by the same scheme (`page.js` `STATUS`).
 
-| Status | Means |
-|---|---|
-| `draft` | Claude's first pass, from the code and old notes;  not yet talked through |
-| `dialog` | being talked through |
-| `agreed` | direction agreed;  the `.md` is ready to hand to agents |
-| `building` | work under way |
-| `shipped` | done for now |
+| Status | Label | Means |
+|---|---|---|
+| `draft` | grey | Claude's first pass, from the code and old notes;  not yet talked through |
+| `dialog` | yellow | being talked through |
+| `agreed` | green outline | direction agreed;  the `.md` is ready to hand to agents |
+| `building` | blue outline | work under way |
+| `shipped` | green | done for now |
 
 ## Editing
 
