@@ -1,0 +1,24 @@
+<!-- plan-doc part:  #j8's details in design-system.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  <code>&lt;ui-brand-color-picker&gt;</code> keeps the colour being edited as OKLCH (<code>working</code>), apart from
+  <code>value</code> (<code>#RRGGBB</code>), as the original keeps its <code>okEdit</code>. Why: a grey has no hue, so
+  setting or typing one would otherwise make the plane jump to hue 0 (red); and a drag into the hatched (out-of-sRGB)
+  area should follow the pointer. <code>value</code> is always <code>Palette.oklchToHex(working)</code>, gamut-mapped
+  (same L and H, less C); on commit (release, Enter, a key) the marker snaps to that chroma.
+</p>
+<p>
+  The plane's out-of-gamut pixels are left TRANSPARENT and the hatch is the plane's own CSS background (<code
+    >repeating-linear-gradient</code
+  >
+  from <code>--ui-brand-color-picker-hatch-color</code> / <code>-hatch-background</code>, defaults
+  <code>--spell-border-subtle</code> over <code>--spell-surface-tint</code>), instead of the original's hatch drawn into
+  the canvas in fixed greys (236 / 246). Why: it follows the theme (dark mode), stays crisp at any pixel ratio, and
+  costs the canvas nothing. The canvas is drawn at device pixel ratio, capped at 96k pixels (measured ~4-6 ms per draw
+  for 48k), and redrawn only when the whole-degree hue or the size changes, never per L / C move (pinned by a test).
+</p>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>picking a grey keeps the hue the plane shows; End on the plane brings the colour back at that hue</li>
+  <li>the hatch looks right in light and dark; its colours are tokens</li>
+  <li>dragging stays cheap: no redraw while L / C change</li>
+</ul>

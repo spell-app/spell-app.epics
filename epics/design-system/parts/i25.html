@@ -1,0 +1,23 @@
+<!-- plan-doc part:  #i25's details in design-system.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Every page the page server serves opens an <code>EventSource</code> (<code>/_server/live.js</code>,
+  <a href="../../../packages/server/src/liveClient.ts" target="src-packages-server-src-liveclient-ts"
+    ><code>packages/server/src/liveClient.ts</code></a
+  >), and Chrome allows 6 HTTP/1.1 connections per host. <code>Design System</code>'s eleven live thumbnails
+  (<code>&lt;iframe&gt;</code>s of the copies, as the original's) took them all: the page's own lazy chunks never
+  loaded, every <code>&lt;ui-*&gt;</code> stayed undefined. The original has the same problem (its lower thumbnails
+  never load; <code>yarn compare "Design System"</code> times out waiting for <code>networkidle</code> on it).
+</p>
+<p>
+  <b>Fix it needs:</b> <code>liveClient()</code> skips live reload in a frame whose parent is same-origin (<code
+    >window.frameElement</code
+  >
+  non-null: a thumbnail; VS Code's doc view frame is cross-origin, so it keeps it), or shares the parent's connection.
+  Then the page drops its workaround for plain <code>&lt;iframe src loading="lazy"&gt;</code>.
+</p>
+<p>
+  <b>Workaround in the page:</b> the script fetches each copy, strips the server's <code>SPELL_SERVER</code> +
+  <code>live.js</code> tags, and <code>document.write()</code>s it into the frame (same origin, so it follows light /
+  dark; <code>location</code> is the index's, same folder, so pages resolving files against
+  <code>location.href</code> still work, which <code>srcdoc</code> broke). Marked HACK.
+</p>
