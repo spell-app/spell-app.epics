@@ -1,0 +1,41 @@
+<!-- plan-doc part:  #j124's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Group 6 found it: Solid rc.13 runs an effect's apply on EVERY re-run of its compute (<code>createEffectNode()</code>
+  sets <code>_equals: false</code>), and a getter or <code>@derived</code> member tracks the sources UNDER it, so an
+  <code>@onChange</code> over one re-ran whenever anything underneath moved (<code>&lt;ui-tab&gt;</code>'s
+  <code>ui-show</code> fired three times).
+</p>
+<ul>
+  <li>
+    <code>Reactive.startEffects()</code>:
+    <code>createEffect(createMemo(compute, { equals: isSameList }), apply)</code> -- the members' values compared one by
+    one (<code>===</code>). Skipping inside the apply was no option: Solid has run the previous cleanup by then.
+  </li>
+  <li>
+    Workarounds removed: <code>UITab</code>'s <code>wasShownLastTime</code>, <code>UITabs</code>'
+    <code>swappedForValue</code> and its roving memo (<code>sameRovingKey</code>, <code>RovingKey</code>: now
+    <code>@onChange("isReady", "isConnected", "isVertical", "tabs", "selectedIndex") onRovingChanged()</code>),
+    <code>UISearch</code>'s two combined getters (<code>shouldShowPopover</code>, <code>shownHighlightedResult</code>:
+    back to the rows' two-member <code>@onChange</code>s, which return early in the same cases).
+  </li>
+  <li>
+    Tests (<a
+      href="../../../packages/ui/src/elements/Reactive.test.tsx"
+      target="src-packages-ui-src-elements-reactive-test-tsx"
+      ><code>Reactive.test.tsx</code></a
+    >): a non-idempotent <code>@onChange</code> over a getter runs once per real change of its value, and a multi-member
+    one skips a re-run where no value changed; both fail without the fix (checked).
+  </li>
+  <li>One memo per <code>@onChange</code> more (a few bytes per element).</li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    every family's <code>@onChange</code> behaves as the old memo chains did: it runs when its value changes, not when a
+    source under a getter moves
+  </li>
+  <li>
+    <code>UIMenu</code>'s roving <code>@onChange("isMenubar", "orientation")</code> (group 10's caveat) no longer
+    restarts on a notify without a change
+  </li>
+</ul>

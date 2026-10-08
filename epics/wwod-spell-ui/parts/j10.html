@@ -1,0 +1,41 @@
+<!-- plan-doc part:  #j10's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Three methods RETURNED a <code>SourceError</code> for the caller to test (WWOD §5: never return error unions). They
+  now throw it; behaviour is the same, since every caller already turned the returned error into a failure.
+</p>
+<ul>
+  <li>
+    <code>SourceElement.refuseSource(source): SourceError | undefined</code> -&gt; <code>checkSource(source)</code>,
+    which throws; default does nothing. <code>schedule()</code> catches it into <code>loadFailed()</code>. Only
+    override:
+    <code>UIInclude</code>
+  </li>
+  <li>
+    <code>SourceMarkup.refusal(host, source, counts): SourceError | undefined</code> -&gt;
+    <code>SourceMarkup.checkNesting(...)</code>, which throws (callers: <code>UIInclude.checkSource()</code>,
+    <code>SourceBody.fetch()</code>)
+  </li>
+  <li>
+    <code>SourceMarkup.parse(): DocumentFragment | SourceError</code> and <code>UIInclude.parse()</code> -&gt;
+    <code>DocumentFragment</code>, throwing a <code>render</code> error; <code>UIInclude.insert()</code> catches it into
+    <code>loadFailed(error, "render")</code>
+  </li>
+  <li>
+    Named <code>check...</code>: a method named <code>refuse...</code> that usually doesn't refuse wasn't honest (WWOD
+    §3)
+  </li>
+</ul>
+<p>
+  Also <code>SourceError.kindFor(error, otherwise)</code>, replacing four copies of
+  <code>error instanceof SourceError ? error.kind : "load"</code> (<code>SourceElement</code> x2,
+  <code>SourceBody</code>, <code>UICode</code>): <code>kind</code> is now a getter over an optional <code>cause</code>,
+  so each copy would have needed a <code>??</code> too.
+</p>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    one small change: a non-<code>SourceError</code> thrown while <code>&lt;ui-include&gt;</code> parses (DOMParser, URL
+    rewriting) now shows as a <code>render</code> failure instead of escaping the effect
+  </li>
+  <li>no caller outside <code>ui</code></li>
+</ul>

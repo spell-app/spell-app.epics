@@ -1,0 +1,32 @@
+<!-- plan-doc part:  #j134's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  I26: esbuild's transform has no "import helpers" option, so every decorated file carried its own copy of the decorator
+  runtime (<code>__decorateElement</code>, <code>__runInitializers</code> ...: ~2.6 kB minified); <code>core</code> had
+  12 copies, and every family file one more.
+  <a href="../../../vite.decorators.ts" target="src-vite-decorators-ts"><code>vite.decorators.ts</code></a>
+  now swaps a file's helper preamble for an import of ONE virtual module,
+  <code>virtual:esbuild-decorator-helpers</code> (built from a probe class using every decorator kind), when each helper
+  the file declares matches it word for word; else the file keeps its own (test files importing <code>it</code>, where
+  esbuild renames a local). The swap keeps the line count, so source maps still line up.
+</p>
+<ul>
+  <li>
+    <code>yarn measure</code>: core 29.27 (step 1) / 29.48 (step 2 + fixes) -&gt; <b>26.30 kB</b>; forms 8.02 -&gt;
+    6.39; page with one button 71.93 -&gt; 65.94; all families 590.75 -&gt; 481.63 kB. Every check clean (the helper
+    module lands in <code>core</code>, no new chunk).
+  </li>
+  <li>Applies to every package built with the plugin (brand, app, docs bundles).</li>
+  <li>
+    Also tried / looked at: <code>Controlled</code> (0.29 kB) and <code>Cell</code> (0.11 kB) can't go yet: brand's
+    controllers use them, with <code>UIElement.controlled()</code> and <code>attrs</code>; <code>HostAttribute</code> is
+    gone (step 1).
+    <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+      ><code>Reactive.ts</code></a
+    >
+    is 2.35 kB gzip on its own.
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>core is 1.09 kB over its pre-P14 size (25.21), inside the 1.5 kB budget; I26 can close</li>
+</ul>

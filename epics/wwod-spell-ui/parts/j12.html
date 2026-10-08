@@ -1,0 +1,65 @@
+<!-- plan-doc part:  #j12's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Where the recipe would have meant churn across many component files, or a clash, the element core kept its shape.</p>
+<ul>
+  <li>
+    Public booleans without <code>is</code> / <code>has</code> kept, too many callers for P3:
+    <code>UIElement.loaded</code> (28), <code>connected</code> (47), <code>formDisabled</code> (21).
+    <code>PartContextProps.direct</code> kept: a named option in an options object (WWOD §9 allows
+    <code>{ optional: true }</code>); its private field is <code>isDirect</code>
+  </li>
+  <li>
+    Constructors kept as <code>(collaborator, shorthand[, options])</code>, not one props object:
+    <code>new HostAttribute(host, name)</code> (21 callers), <code>new PartContext(host, noun, { barrier })</code> (14),
+    <code>new IconGlyph(owner, name)</code> (37). The host / owner is WWOD §12's <code>context</code>; the second
+    argument the one-property shorthand it allows
+  </li>
+  <li>
+    <code>@proto static</code> config on <code>UIElement</code>: the full docstring (what, and why static) on each
+    <code>declare</code>, in a <code>## Class config</code> group; each default a one-line <code>Default: ...</code>.
+    The banner lists the config and the hooks (<code>render()</code>, <code>hostStates()</code>,
+    <code>classValue()</code>, <code>extraClasses()</code>, <code>sheetNames()</code>, <code>isDisabled()</code>), now
+    one <code>## Hooks</code> group, each docstring saying <code>Hook:</code>
+  </li>
+  <li>
+    Registries -&gt; <code>private static</code> + <code>static reset()</code>: <code>UIElement</code> (sheets, texts,
+    cancelled hosts; <code>reset()</code> leaves the public <code>definitions</code>, which mirrors
+    <code>customElements</code>), <code>PartContext</code> (6), <code>RootSettings</code>. WeakMaps / WeakSets are NOT
+    <code>readonly</code>: they can't be cleared, so <code>reset()</code> replaces them
+  </li>
+  <li>
+    No <code>reset()</code> on <code>StickyWatch</code> (it would sit beside the instance <code>reset()</code>, the
+    clash P3 removes from <code>PartContext</code>; its entries leave as watches unstick) or
+    <code>HotDefinitions</code> (dev-only; a reset would have to unwrap <code>define</code>)
+  </li>
+  <li>
+    <code>/\\s+/</code>, written in <code>ClassBuilder</code> and <code>Shorthand</code>, is now
+    <code>WHITESPACE</code> in
+    <a
+      href="../../../packages/ui/src/elements/elements.types.ts"
+      target="src-packages-ui-src-elements-elements-types-ts"
+      ><code>elements.types.ts</code></a
+    >
+    (so <code>core</code> exports it too)
+  </li>
+  <li>
+    Deleted, nothing but their own tests read them (WWOD §2, §20):
+    <code>OwnerContext.ownersOf()</code> (superseded by <code>PartContext</code>'s registry) and
+    <code>ClassBuilder.numberToWord()</code> (<code>$/ui/util</code>'s <code>numberToWord()</code> and
+    <code>ValueSets.numberToWord()</code> remain): 2 tests gone
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>browser tests 4688 passed (was 4690: -2, the two deleted tests); ssr 241</li>
+</ul>
+<epic-commit sha="b667718b10d46898ba3ad1646dcba97f4617c7fb">
+  J12a: UIElement isLoaded / isConnected / isFormDisabled; new PartContext({ host, noun, barrier }) and new IconGlyph({
+  owner, name }); PartContextProps.isDirect; every caller in ui and brand </epic-commit
+><epic-commit sha="c9b6aaa895118908fdfd1426e8459a4eb5079e9c">
+  J12b: controller words match the public word -- UITransition / UIVisibility isVisible, UISection isCollapsed /
+  isLoading, isVeiled, docs-search isOpen; UISearch isShowing, toast isClosingTracked, nag isHiddenByDismissal left (why
+  in the commit) </epic-commit
+><epic-commit sha="b2bb3287a494e0f540ecfc9758ca0bae054a413e">
+  J12c: UIT maps and vocabulary tables PascalCase (J50's churn-only keep): PusherTokens, TransitionCommands,
+  SourceAttributes ...; TOGGLE_COMMANDS folded into the ToggleCommands class; 169 names in 41 files
+</epic-commit>

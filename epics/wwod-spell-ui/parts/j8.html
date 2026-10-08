@@ -1,0 +1,62 @@
+<!-- plan-doc part:  #j8's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The rest of
+  <a href="../../../packages/ui/src/server/" target="src-packages-ui-src-server"><code>src/server/</code></a
+  >'s recipe, for the choices you might notice.
+</p>
+<ul>
+  <li>
+    Public renames (pure lookups, WWOD §3): <code>ServerHost.state(element)</code> -&gt;
+    <code>ServerHost.stateFor(element)</code> (2 callers, both <code>StaticFlattener</code>);
+    <code>StaticRender.kind(tag)</code> -&gt; <code>StaticRender.kindFor(tag)</code> (1 caller, <code>define()</code>).
+    Private: <code>slotOf</code> -&gt; <code>slotFor</code>, <code>ariaAttribute</code> -&gt;
+    <code>ariaAttributeFor</code>. Grepped
+    <a href="../../../packages/" target="src-packages"><code>packages/</code></a> and spell-app-dev: no other mention
+  </li>
+  <li>
+    Kept: <code>StaticRender.tags()</code> (tag =&gt; kind map, read by
+    <a href="../../../packages/ui/tools/StaticDocument.ts" target="src-packages-ui-tools-staticdocument-ts"
+      ><code>tools/StaticDocument.ts</code></a
+    >; every param it feeds is called <code>tags</code>), and <code>StaticRender.families</code> /
+    <code>lastTags</code> / <code>sheetUsage</code> stay public statics: tools and tests read them
+  </li>
+  <li>
+    Registries: <code>ServerHost</code>'s module <code>WeakMap</code> -&gt; <code>private static states</code> +
+    <code>ServerHost.reset()</code> (NOT <code>readonly</code>: a <code>WeakMap</code> can't be cleared, so
+    <code>reset()</code> replaces it); <code>ServerRuntime</code>'s <code>REGISTERED</code> /
+    <code>SVG_FILES</code> -&gt; <code>private static readonly registered</code> / <code>svgFiles</code> +
+    <code>ServerRuntime.reset()</code> (also clears <code>pageSheets</code>). Nothing calls the resets yet
+  </li>
+  <li>
+    Every other module constant (about 30) is a <code>private static readonly</code> under a
+    <code>// ## Constants</code> group after its class's methods; <code>StaticSelectorOptions</code> /
+    <code>StaticSelectorResult</code> moved to <code>server.types.ts</code> (<code>StaticStylesheet</code>
+    uses them too)
+  </li>
+  <li>
+    Positional booleans: <code>StaticSelectors.anchor(selector, slotted)</code> -&gt;
+    <code>anchor(selector, { slotted })</code>; <code>StaticStylesheet.move(rule, selectors, boxless, into)</code> -&gt;
+    <code>move({ rule, selectors, into, boxless })</code> (both private)
+  </li>
+  <li>
+    Throws: <code>StaticSelectors</code>' unbalanced parentheses is a <code>SyntaxError</code> (WWOD §5: a parse error),
+    not <code>TypeError</code>:
+    <code>"StaticSelectors.rewrite(): unbalanced parentheses in `x`; balance them in the sheet it came from"</code>.
+    <code>ServerRuntime</code>'s missing service stays an <code>Error</code> (a family not server-ready, not caller
+    input):
+    <code
+      >"ServerRuntime: UI.toasts isn't available in a server render; stub it in ServerRuntime.create(), or leave the
+      family that reads it out of StaticRender.define()"</code
+    >
+  </li>
+  <li>
+    Dedupe: <code>StaticStylesheet.rewriteRule()</code>'s keyframes check is
+    <code>StaticPageStyles.inKeyframes()</code>; <code>ServerRuntime</code> imports <code>IconPacks</code> once (it took
+    the type from the barrel AND the class by path)
+  </li>
+</ul>
+<p>
+  <b>Net effect:</b> ssr 241 / 241, browser dsd + static-form 3 / 3, unchanged; no caller outside
+  <a href="../../../packages/ui/src/server/" target="src-packages-ui-src-server"><code>src/server/</code></a>
+  changed.
+</p>

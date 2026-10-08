@@ -1,0 +1,119 @@
+<!-- plan-doc part:  #q18's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  P3 made the shared bundles every page loads a little bigger, and the rule that caused most of it would do the same to
+  every family in P5-P7. You said in P2 you don't want the component bundles to grow (Q5), so this needs your call
+  before P4.
+</p>
+<p>What grew, P2 -&gt; P3 (<code>yarn measure</code>, bytes):</p>
+<ui-table compact celled
+  ><table>
+    <thead>
+      <tr>
+        <th>Chunk</th>
+        <th class="num right aligned">min</th>
+        <th class="num right aligned">gzip</th>
+        <th>Loaded by</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>core.js</code></td>
+        <td class="num right aligned">108,891 -&gt; 111,055 (+2,164)</td>
+        <td class="num right aligned">31,833 -&gt; 32,412 (+579)</td>
+        <td>every page</td>
+      </tr>
+      <tr>
+        <td><code>forms.js</code></td>
+        <td class="num right aligned">20,967 -&gt; 21,983 (+1,016)</td>
+        <td class="num right aligned">7,679 -&gt; 7,949 (+270)</td>
+        <td>pages with a form control</td>
+      </tr>
+      <tr>
+        <td>family chunks</td>
+        <td class="num right aligned">unchanged</td>
+        <td class="num right aligned">unchanged</td>
+        <td>(P3 didn't restyle them)</td>
+      </tr>
+    </tbody>
+  </table></ui-table
+>
+<p>
+  Why: the rule in <code>ui</code>'s
+  <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> "Classes" (decision Q10, from WWOD §12)
+  moves a constant one class uses from a module-level <code>const</code> into a <code>private static</code>. The
+  minifier shrinks a module <code>const</code>'s name to one letter, but a static's name is a property, kept in full:
+</p>
+<ui-accordion class="spell-code" styled
+  ><ui-title>the same constant, minified · 2 shapes</ui-title
+  ><ui-content>
+    <pre><code class="language-ts">// module-level const:  minified to
+const a = /[\s,]+/;  ... x.split(a)
+// private static:  minified to
+static LIST_SEPARATOR = /[\s,]+/;  ... x.split(t.LIST_SEPARATOR)</code></pre>
+  </ui-content></ui-accordion
+>
+<ul>
+  <li>
+    the forms agent measured it per file: <code>Validator</code> +374 B, <code>MenuOptions</code> +399 B,
+    <code>ControlLabels</code> + <code>LabelWatch</code> +679 B, almost all from constants turned into statics
+  </li>
+  <li>
+    <code>core.js</code>'s +2.2 kB mixes three things: statics' names, the longer house-style error messages (WWOD §5:
+    "Method(): problem; fix"), and new <code>reset()</code> methods for tests
+  </li>
+  <li>P5-P7 would do the same to ~60 family chunks, which hold ~700 more constants</li>
+</ul>
+<p><b>Net effect (A):</b></p>
+<ul>
+  <li>
+    P3's one-class constants go back to module <code>const</code>s below their class; <code>core.js</code> /
+    <code>forms.js</code> shrink back toward P2's size (measured before you review P3)
+  </li>
+  <li>
+    <code>ui</code>'s <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> "Classes" changes:
+    "a constant one class uses: a module <code>const</code> below the class (it minifies); never a
+    <code>private static</code>"
+  </li>
+  <li>P5-P7 move nothing into statics</li>
+</ul>
+<epic-choices chosen="A"
+  ><epic-option letter="A" title="One class's constants stay module consts" recommended
+    ><ul>
+      <li>
+        <code>ui</code> exception to WWOD §12: a constant ONE class uses is a module-level <code>const</code> BELOW the
+        class (with its helpers, WWOD §8 › "Class first"), never a
+        <code>private static</code>
+      </li>
+      <li>
+        page-wide registries stay <code>private static</code> + <code>reset()</code> (few, and tests need the reset)
+      </li>
+      <li>
+        P3's constant moves are put back: most of the growth goes; error messages stay house-style (they're worth their
+        bytes)
+      </li>
+    </ul></epic-option
+  ><epic-option letter="B" title="Keep WWOD's statics, accept the growth"
+    ><ul>
+      <li>WWOD to the letter; P3's +0.85 kB gzip stays</li>
+      <li>families grow too in P5-P7 (a guess: 1-3% each), every page pays</li>
+    </ul></epic-option
+  ><epic-option letter="C" title="Let the minifier shorten private statics"
+    ><ul>
+      <li>
+        keep the WWOD shape and get the bytes back: a build option that mangles marked property names (e.g. esbuild /
+        Oxc <code>mangleProps</code> on a name pattern)
+      </li>
+      <li>
+        needs a naming mark for "private, mangle me" (a prefix WWOD doesn't have), and mangling can break HMR, debugging
+        and anything reading names; a spike first
+      </li>
+    </ul></epic-option
+  ></epic-choices
+><epic-answer title="Module consts below the class"
+  ><p>
+    Owen (2026-10-05, at bedtime). A constant ONE class uses stays a module <code>const</code> below the class (it
+    minifies); page-wide registries stay <code>private static</code> + <code>reset()</code>. P3's constant moves are put
+    back before P3 is committed; P5-P7 move nothing into statics; <code>ui</code>'s
+    <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> "Classes" says so.
+  </p></epic-answer
+>

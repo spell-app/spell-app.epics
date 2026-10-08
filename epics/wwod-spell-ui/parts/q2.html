@@ -1,0 +1,80 @@
+<!-- plan-doc part:  #q2's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  <code>ui</code>'s types files hold about 700 loose ALL-CAPS constants, one per word: a class word, a part name, a key
+  name, a mode. WWOD §9 › "Avoid TS enums, and loose constants" says a SET of related values is a const array (plural)
+  plus a type (singular), or a const object, never loose constants.
+</p>
+<ui-accordion class="spell-code" styled
+  ><ui-title>ui-toast.types.ts · today</ui-title
+  ><ui-content>
+    <pre><code class="language-ts">export const TIMEOUT = "timeout"
+export const ESCAPE = "escape"
+export const APPROVE = "approve"
+export const DENY = "deny"
+// ... 11 class words under one comment
+export const POSITIONS = ["top right", "top left", ...]   // not `as const`, no type
+export const DEFAULT_POSITION = "top right"</code></pre>
+  </ui-content></ui-accordion
+><ui-accordion class="spell-code" styled
+  ><ui-title>ui-toast.types.ts · option A</ui-title
+  ><ui-content>
+    <pre><code class="language-ts">////////////////
+// ## Close reasons
+////////////////
+
+/** Why a toast closed, in `ui-hide`'s `detail.reason`. */
+export const ToastCloseReasons = ["timeout", "escape", "approve", "deny", ...] as const
+/** One of `ToastCloseReasons`. */
+export type ToastCloseReason = (typeof ToastCloseReasons)[number]
+
+////////////////
+// ## Class words
+////////////////
+
+/** Class word of the close button. */
+export const CLOSE_CLASS = "close icon"</code></pre>
+  </ui-content></ui-accordion
+>
+<p><b>Net effect (A):</b></p>
+<ul>
+  <li>about 60 sets become const arrays + types</li>
+  <li>
+    their values become English where they're only ours (<code>"file protocol"</code>, not
+    <code>"file-protocol"</code>); values a page or CSS reads (event <code>detail</code>,
+    <code>data-ui-animation</code>) stay as they are
+  </li>
+  <li>single-word constants stay, grouped and deduplicated</li>
+  <li>
+    a line in <code>ui</code>'s <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> says
+    which is which
+  </li>
+</ul>
+<epic-choices chosen="A"
+  ><epic-option letter="A" title="Sets become const arrays; single words stay" recommended
+    ><ul>
+      <li>
+        a SET (close reasons, key names, positions, modes, trigger kinds) becomes
+        <code>Xs</code> + <code>type X</code>, used as plain strings: <code>reason === "timeout"</code> is then
+        type-checked
+      </li>
+      <li>
+        a single vocabulary word (<code>CLOSE_CLASS</code>, <code>TITLE</code>) stays a named constant: it isn't a set,
+        and WWOD §3 › "Magic strings become named constants" asks for exactly that
+      </li>
+      <li>
+        every types file gets group headers; the ~18 family constants that re-declare a
+        <code>UIT</code> one go; shared key names become ONE set in
+        <a
+          href="../../../packages/ui/src/components/components.types.ts"
+          target="src-packages-ui-src-components-components-types-ts"
+          ><code>components.types.ts</code></a
+        >
+      </li>
+    </ul></epic-option
+  ><epic-option letter="B" title="Everything into const objects"
+    ><ul>
+      <li><code>ToastClasses.close</code>, <code>Keys.enter</code>: one object per family per kind</li>
+      <li>about 700 constants and every call site renamed; a much bigger diff, little gained for single words</li>
+    </ul></epic-option
+  ></epic-choices
+><epic-answer title="Sets become const arrays + types; single words stay"></epic-answer>

@@ -1,0 +1,51 @@
+<!-- plan-doc part:  #j20's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Every file of
+  <a href="../../../packages/ui/src/static/" target="src-packages-ui-src-static"><code>src/static/</code></a>
+  now imports its own folder through
+  <code>import { SSR } from "$/ui/static"</code> (<code>SSR.ServerHost.attach()</code>, <code>SSR.ROOT</code>) and the
+  element core through <code>import { E, UIT } from "$/ui/core"</code> (<code>E.ElementDefinition</code>,
+  <code>E.NodeType</code>, <code>E.IconGlyph</code>); no more <code>$/ui/elements</code> / <code>$/ui/util</code> /
+  <code>$/ui/vocabulary</code> / <code>./Peer</code> imports.
+</p>
+<p>Where I drew the WWOD §4 › "Circular imports" line:</p>
+<ul>
+  <li>
+    <code>StaticSelectors</code> and <code>StaticStylesheet</code> build <code>private static readonly</code> selector
+    strings from <code>ROOT</code> / <code>SLOTTED</code> / <code>LIST_ITEM</code> at class evaluation, so those three
+    come from <code>./static.types.server</code> directly, with
+    <code>// Import directly to avoid circular import</code>; the rest of each file uses <code>SSR.</code>. Proven
+    needed: switching one initializer to <code>SSR.ROOT</code> made 13 of the 14 barrel tests fail (<code
+      >Cannot read properties of undefined (reading 'ROOT')</code
+    >).
+  </li>
+  <li>
+    <code>StaticInteractions</code>' command tables read <code>UIT.TOGGLE_COMMANDS</code> at evaluation too, but through
+    <code>$/ui/core</code>: core never imports <code>$/ui/static</code>, so it's fully loaded first. The exception is
+    applied to the folder's OWN cycle only; a comment there says why.
+  </li>
+  <li>
+    <code>Browser</code>, <code>I18n</code>, <code>IconPacks</code> stay <code>$/ui/runtime/&lt;Service&gt;</code> deep
+    imports in <code>ServerRuntime</code>: the runtime barrel (and so <code>$/ui/core</code>) exports service classes as
+    types only, and the server runtime constructs them.
+  </li>
+  <li>
+    <code>$/ui/styles</code> stays its own import (<code>StaticStylesheet</code>): a separate lib entry, not part of
+    core.
+  </li>
+  <li>
+    <code>StaticCatalog</code> keeps importing each family's class file: a family's <code>index.ts</code> calls
+    <code>customElements.define()</code>.
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    new
+    <a href="../../../packages/ui/src/static/barrel.ssr.test.ts" target="src-packages-ui-src-static-barrel-ssr-test-ts"
+      ><code>src/static/barrel.ssr.test.ts</code></a
+    >
+    (WWOD §8 › "Barrels"): enters the barrel by all 12 routes (the barrel, then each file first) and checks every export
+    is defined, flat and under <code>SSR</code>, with the same bindings
+  </li>
+</ul>

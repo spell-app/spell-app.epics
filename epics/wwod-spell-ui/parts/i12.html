@@ -1,0 +1,153 @@
+<!-- plan-doc part:  #i12's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Seen in P1's baseline (2026-10-05), before any change:</p>
+<ul>
+  <li><code>entriesMissingCore</code>: <code>ui-flyout</code>, <code>ui-panel</code></li>
+  <li><code>runtimeChunks</code>: one Rolldown runtime chunk (<code>rolldown-runtime-*.js</code>)</li>
+  <li>
+    <code>coreOutsideCore</code>: 71 modules, e.g. <code>$/util</code>'s <code>decorators.ts</code>,
+    <a href="../../../packages/ui/src/vocabulary/ValueSets.ts" target="src-packages-ui-src-vocabulary-valuesets-ts"
+      ><code>ValueSets.ts</code></a
+    >, every docs-components file
+  </li>
+</ul>
+<p>Looked at in P10 (or earlier if a phase makes it worse).</p>
+<epic-reply from="Claude" at="2026-10-05 21:11" re="I12"
+  ><p>
+    Root cause: four lazy chunks that core's own code can't reach each shared modules with
+    <code>core.js</code>, and Rolldown only folds shared modules (and its <code>__name</code> helpers) into
+    <code>core.js</code> when every lazy chunk using them is reachable from core or already loads it. Each one broke
+    that rule in its own way, in three commits:
+  </p>
+  <ul>
+    <li>
+      <b><code>&lt;ui-docs-*&gt;</code> families</b> (8c2c785d): <code>RootLoader</code>'s second glob,
+      <code>import.meta.glob("../../docs-components/*/index.ts")</code>, made seven lazy chunks of the LIB build that
+      import <code>$/ui/core</code> and other families. So every core module carried them in its "who needs me" set. The
+      ones <code>UIRuntime</code> also uses (<code>ValueSets</code>, <code>Vocabulary</code>, <code>BuiltInPacks</code>,
+      <code>IconName</code>, <code>decorators</code> / <code>dom</code> / <code>string</code>) then had a set Rolldown
+      wouldn't merge into <code>core.js</code>, because <code>ui-root</code> reaches those chunks and core doesn't. So
+      they went to a shared <code>BuiltInPacks-&lt;hash&gt;.js</code>.
+    </li>
+    <li>
+      <b>Themes</b> (8c2c785d): <code>ThemeSheets.pageStyles()</code> did <code>import("$/ui/runtime")</code>. That
+      barrel isn't an entry, so the call made a new lazy chunk out of <code>runtime/index.ts</code> +
+      <a href="../../../packages/ui/src/runtime/load.ts" target="src-packages-ui-src-runtime-load-ts"
+        ><code>load.ts</code></a
+      >
+      +
+      <a href="../../../packages/ui/src/runtime/runtime.types.ts" target="src-packages-ui-src-runtime-runtime-types-ts"
+        ><code>runtime.types.ts</code></a
+      >. The chain is <code>UIRuntime</code> → <code>$/ui/styles</code> →
+      <a href="../../../packages/ui/src/styles/themes/themes.ts" target="src-packages-ui-src-styles-themes-themes-ts"
+        ><code>themes.ts</code></a
+      >
+      → <code>import()</code> →
+      <a href="../../../packages/ui/src/runtime/load.ts" target="src-packages-ui-src-runtime-load-ts"
+        ><code>load.ts</code></a
+      >
+      → <code>import("./UIRuntime")</code>, so <code>load-*.js</code> and <code>runtime.types-*.js</code> split out too.
+    </li>
+    <li>
+      <b><code>MDEngine</code></b> (28e0ebde, after the bisect's first bad commit): its static
+      <code>import "$/ui/components/ui-table"</code> (and five more families) made a lazy chunk that imports the core
+      through those families. It's the same mechanism as the docs families, and it's enough by itself to bring
+      <code>BuiltInPacks-*.js</code> back.
+    </li>
+    <li>
+      <b><code>MarkdownSanitizer</code></b> (364f93a8, I6): DOMPurify alone, no core import. Under
+      <code>keepNames</code> every chunk depends on Rolldown's runtime module, and Rolldown hosts that module only in a
+      chunk every user reaches statically. This chunk reaches nothing, so the helpers went to
+      <code>rolldown-runtime-&lt;hash&gt;.js</code>. <code>CodeEngine</code>, <code>MarkdownEngine</code> and
+      <code>TemporalPolyfill</code> already avoid this with a real <code>SourceError</code> /
+      <code>TEMPORAL_POLYFILL</code> import, and their headers explain it; the sanitizer was written later without one.
+    </li>
+    <li>
+      <code>ui-flyout</code> / <code>ui-panel</code> in <code>entriesMissingCore</code>: a symptom only. Those two use
+      only modules that had moved to <code>BuiltInPacks-*.js</code>, so their chunks stopped importing
+      <code>core.js</code>.
+    </li>
+  </ul>
+  <p>
+    How I checked: in a frozen export of HEAD, I removed each cause on its own. Every one of the four, removed alone,
+    made its own chunk go away, and removing all four brings back 93abde40's layout (<code>core.js</code>,
+    <code>forms.js</code>, families, lazy engines, nothing else).
+  </p>
+  <p><b>Fix</b> (import paths and entry structure only, no Rolldown option):</p>
+  <ul>
+    <li>
+      <code>RootLoader</code> globs only the library's families. It gains <code>RootLoader.add(barrels)</code>, and a
+      new
+      <a
+        href="../../../packages/ui/src/docs-components/DocsFamilies.ts"
+        target="src-packages-ui-src-docs-components-docsfamilies-ts"
+        ><code>src/docs-components/DocsFamilies.ts</code></a
+      >
+      holds the docs glob. The site's <code>site.ts</code> calls <code>DocsFamilies.add()</code> before
+      <code>&lt;ui-root&gt;</code> is defined. So
+      <a href="../../../packages/ui/dist/" target="src-packages-ui-dist"><code>dist/</code></a> no longer carries the
+      doc-only families, and neither does the docs' single-file bundle built from it.
+    </li>
+    <li>
+      <code>ThemeSheets.pageStyles()</code>: <code>import("$/ui/core")</code>, the core ENTRY, which
+      <code>UIRuntime</code>'s chunk loads anyway.
+    </li>
+    <li>
+      <code>MDEngine</code> imports no family. <code>MarkdownRenderer.loadMD()</code> imports the six families beside it
+      (<code>mdFamilies()</code>); an <code>import()</code> of a family is its own lib entry, so it adds no chunk.
+    </li>
+    <li>
+      <code>MarkdownSanitizer</code> imports <code>SourceError</code> from <code>runtime.types</code> and uses it. It
+      now fails closed: where <code>DOMPurify.isSupported</code> is false it throws instead of returning markup it
+      didn't clean.
+    </li>
+    <li>
+      <a href="../../../packages/ui/tools/package.config.ts" target="src-packages-ui-tools-package-config-ts"
+        ><code>tools/package.config.ts</code></a
+      >: <code>docs-components/</code> gets a bucket of its own, <code>docs</code>, no longer <code>core</code>. A new
+      check, <code>docsBundled</code>, fails if one ever shows up in the lib build again.
+    </li>
+  </ul>
+  <p><b>Net effect:</b></p>
+  <ul>
+    <li>
+      <code>yarn measure</code>: every check is empty (it was <code>runtimeChunks</code> 1,
+      <code>coreOutsideCore</code> 71, <code>entriesMissingCore</code> 2).
+    </li>
+    <li>
+      <code>core.js</code> 90.95 → 107.19 kB min (26.39 → 31.25 gz): the 16.6 kB of <code>BuiltInPacks</code> +
+      <code>runtime.types</code> + <code>load</code> + Rolldown's helpers are back where they belong. Reported
+      <code>core</code> 73.11 → 23.00 kB gz, because docs modules no longer count as core.
+    </li>
+    <li>
+      A page with one button: 7 files / 46.49 kB gz → 3 files / 44.23 kB gz (dist files, Solid excluded). Dropdown 10 →
+      6 files, 68.08 → 65.70 kB.
+    </li>
+    <li>
+      Family chunks the same or smaller (<code>ui-root</code> 9.04 → 8.92, <code>ui-modal</code> 9.22 → 9.17 kB gz).
+      <code>ui-markdown.js</code> is +0.12 kB min (gzip the same): the six <code>import()</code>s moved there from
+      <code>MDEngine</code>.
+    </li>
+    <li>
+      <b>The real <code>yarn build</code> still has ONE extra chunk,</b>
+      <code>rolldown-runtime-&lt;hash&gt;.js</code> (1.2 kB), and every family imports it. Before this fix it had four:
+      <code>BuiltInPacks</code>, <code>SiteData</code>, <code>runtime</code>, <code>rolldown-runtime</code>. The cause
+      is the <code>styles</code> entry, which <code>yarn measure</code> doesn't build: <code>ThemeSheets</code>' lazy
+      glob needs Rolldown's helpers, and <code>styles.js</code> doesn't load core. A new issue has the options.
+    </li>
+    <li>
+      Tests:
+      <a
+        href="../../../packages/ui/src/components/ui-root/RootLoader.test.ts"
+        target="src-packages-ui-src-components-ui-root-rootloader-test-ts"
+        ><code>RootLoader.test.ts</code></a
+      >
+      (4) and
+      <a
+        href="../../../packages/ui/src/components/ui-markdown/MarkdownSanitizer.test.ts"
+        target="src-packages-ui-src-components-ui-markdown-markdownsanitizer-test-ts"
+        ><code>MarkdownSanitizer.test.ts</code></a
+      >
+      (2) are new.
+    </li>
+  </ul></epic-reply
+>

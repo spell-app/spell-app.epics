@@ -1,0 +1,126 @@
+<!-- plan-doc part:  #q1's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Several fixes WWOD asks for change names or signatures that code outside <code>ui</code> calls: the app, the docs
+  pages, <code>brand</code>, the CLI. <code>ui</code> is version <code>0.0.1</code> and nothing outside this repo uses
+  it yet, so every caller can be fixed in the same change.
+</p>
+<p>What would change, for example:</p>
+<ui-table compact celled
+  ><table>
+    <thead>
+      <tr>
+        <th>Today</th>
+        <th>After</th>
+        <th>WWOD rule</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <code>new SourceError("file-protocol", message, status)</code>, <code>this.name =</code> in the constructor
+        </td>
+        <td>
+          <code
+            >new SourceError("Sources.load(): ...; serve the page instead", { cause: { kind: "file protocol", status }
+            })</code
+          >, <code>SourceError.prototype.name</code>; <code>error.kind</code> stays, a getter over
+          <code>cause.kind</code>
+        </td>
+        <td>§5 (WWOD already quotes this shape)</td>
+      </tr>
+      <tr>
+        <td>
+          <code>UI.modals.prompt(): Promise&lt;string | null&gt;</code>,
+          <code>UI.focus.activeElementDeep(): Element | null</code>
+        </td>
+        <td><code>... | undefined</code></td>
+        <td>§9 › "Avoid <code>null</code>"</td>
+      </tr>
+      <tr>
+        <td>
+          <code>new NativeFallback(host, root, error?, internals?)</code>, copied by 9 fallbacks to pick a vocabulary by
+          tag
+        </td>
+        <td><code>new NativeFallback({ host, root, error, internals })</code>; the base picks the vocabulary</td>
+        <td>§12 › "Constructor takes ONE <code>props</code> object"</td>
+      </tr>
+      <tr>
+        <td>
+          <code>PartContext.ownerOf(element)</code>, <code>ComponentDefinitions.nameOf()</code>,
+          <code>FormFields.valueOf()</code>
+        </td>
+        <td>
+          <code>ownerFor()</code>, <code>nameFor()</code>, <code>valueFor()</code> (and <code>valueOf</code> no longer
+          shadows <code>Function.prototype.valueOf</code>)
+        </td>
+        <td>§3 › "<code>&lt;result&gt;For&lt;input&gt;()</code>"</td>
+      </tr>
+      <tr>
+        <td>
+          <code>UI.browser.reducedMotion</code>, <code>prefersDark</code>,
+          <code>host.dismissed</code>
+        </td>
+        <td><code>isReducedMotion</code>, <code>isDark</code>, <code>isDismissed</code></td>
+        <td>§3 › "Boolean getters prefixed ..."</td>
+      </tr>
+      <tr>
+        <td>
+          <code>MarkdownSanitizer.sanitize(html, true)</code>,
+          <code>Keyboard.register(scope, chord, handler, options)</code>
+        </td>
+        <td>
+          <code>sanitize(html, { uiTags: true })</code>,
+          <code>register({ scope, chord, handler, ... })</code>
+        </td>
+        <td>§9</td>
+      </tr>
+    </tbody>
+  </table></ui-table
+>
+<p>Kept as it is either way:</p>
+<ul>
+  <li>
+    <code>UIElement</code>'s constructor <code>(host, definition, attrs)</code>, which the forked custom-element layer
+    calls
+  </li>
+  <li>attribute, event, slot and part NAMES: the vocabulary, what pages write</li>
+  <li>the CSS class grammar</li>
+</ul>
+<p><b>Net effect (A):</b></p>
+<ul>
+  <li>about 40 public names and signatures change in <code>ui</code>, every caller fixed in the same phase</li>
+  <li><code>SourceError</code> and <code>ApiError</code> match WWOD §5's example</li>
+  <li>
+    <code>UIElement</code>'s constructor recorded as an exception in <code>ui</code>'s
+    <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a>
+  </li>
+</ul>
+<epic-choices chosen="A"
+  ><epic-option letter="A" title="Yes, fix every caller in the repo" recommended
+    ><ul>
+      <li>the code ends up matching WWOD, not WWOD-plus-exceptions</li>
+      <li>
+        cost: bigger diffs in <code>app</code>, <code>docs</code>, <code>brand</code>; regenerated bundles (<code
+          >spell.*.js</code
+        >
+        and
+        <a
+          href="../../../packages/ui/src/components/ui-markdown/md.bundle.js"
+          target="src-packages-ui-src-components-ui-markdown-md-bundle-js"
+          ><code>md.bundle.js</code></a
+        >
+        build <code>SourceError</code>)
+      </li>
+      <li>why recommended: no outside users yet, so this is the cheapest it will ever be</li>
+    </ul></epic-option
+  ><epic-option letter="B" title="Internals only"
+    ><ul>
+      <li>
+        public names and signatures stay; each one becomes an
+        <a href="../../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a>
+        entry
+      </li>
+      <li>smaller diffs, but the debt grows as more pages use <code>ui</code></li>
+    </ul></epic-option
+  ></epic-choices
+><epic-answer title="Yes, fix every caller in the repo"></epic-answer>

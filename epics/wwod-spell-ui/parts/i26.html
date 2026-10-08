@@ -1,0 +1,50 @@
+<!-- plan-doc part:  #i26's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p><code>yarn measure</code>, before / after P14 step 1 (every check clean both times):</p>
+<ul>
+  <li>
+    core 25.21 -&gt; 29.27 kB (+4.06); forms 7.64 -&gt; 8.02 kB (+0.38); page with one button 67.39 -&gt; 71.49 kB; all
+    families 576.10 -&gt; 581.72 kB
+  </li>
+  <li>
+    Where:
+    <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+      ><code>Reactive.ts</code></a
+    >
+    is ~3.0 kB gzipped on its own (record, notifiers, the <code>@derived</code> cache, attribute sources,
+    <code>$</code> / <code>attributes</code> proxies, the five decorators); the rest is esbuild's lowering of each
+    decorated <code>accessor</code> (a private slot, a getter / setter pair and a <code>__decorateElement</code> call
+    per member; the helpers themselves are shared once).
+  </li>
+  <li>
+    Construction is NOT slower: 1,000 <code>&lt;ui-divider&gt;</code> 32 -&gt; 33 ms, 1,000
+    <code>&lt;ui-button&gt;</code> 130 -&gt; 100 ms (median of 7, chromium).
+  </li>
+  <li>
+    Some comes back in step 2: <code>Controlled</code>, <code>controlled()</code> and most <code>Cell</code> /
+    <code>createMemo</code> fields go; the family chunks lose their per-field signals.
+  </li>
+  <li>
+    Options if it must shrink: drop <code>$</code>'s Proxy for a per-member accessor table; native decorators once oxc
+    lowers them (<a href="../../../vite.decorators.ts" target="src-vite-decorators-ts"
+      ><code>vite.decorators.ts</code></a
+    >'s TODO) would cut the lowering.
+  </li>
+  <li>
+    <b>P14 step 3 (fix-up), 2026-10-07:</b> "the helpers themselves are shared once" was wrong: esbuild's transform runs
+    per file, so EVERY decorated file carried its own copy of the decorator runtime (~2.6 kB minified; 12 copies in
+    <code>core</code>, one per family file).
+    <a href="../../../vite.decorators.ts" target="src-vite-decorators-ts"><code>vite.decorators.ts</code></a>
+    now swaps each copy for an import of one virtual module (<code>virtual:esbuild-decorator-helpers</code>) when the
+    helpers match word for word (J134).
+    <code>yarn measure</code>: core 29.48 (after step 2) -&gt; <b>26.30 kB</b> (+1.09 over pre-P14's 25.21, inside the
+    1.5 kB budget); forms 8.02 -&gt; 6.39; page with one button 71.93 -&gt; 65.94; all families 590.75 -&gt; 481.63 kB;
+    every check clean. Also looked at: <code>Controlled</code> (0.29 kB) and <code>Cell</code> (0.11 kB) can't go while
+    brand's controllers use them (with <code>UIElement.controlled()</code> / <code>attrs</code>);
+    <code>HostAttribute</code> went in step 1;
+    <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+      ><code>Reactive.ts</code></a
+    >
+    is 2.35 kB gzip alone (with step 3's <code>listen()</code>, setters, <code>@derived({ equals })</code>). Not tried:
+    <code>$</code>'s Proxy (small). Closed: under budget.
+  </li>
+</ul>

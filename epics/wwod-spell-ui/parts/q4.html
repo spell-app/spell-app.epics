@@ -1,0 +1,234 @@
+<!-- plan-doc part:  #q4's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  WWOD §4 › "ONE namespace per sub-system" says code imports ONE namespace per package and qualifies at the use site:
+  <code>import { P } from "$/parser"</code>, then <code>P.Match</code>. <code>ui</code> does it differently, partly on
+  purpose:
+</p>
+<ul>
+  <li>
+    component files import named exports from <code>$/ui/core</code> / <code>$/ui/forms</code>, which ARE the lib
+    bundles (<a href="../../../packages/ui/dist/core.js" target="src-packages-ui-dist-core-js"
+      ><code>dist/core.js</code></a
+    >):
+    <code>import { Cell, proto, UIElement, UIT } from "$/ui/core"</code>
+  </li>
+  <li>
+    <code>ui</code> exports <code>E</code>, <code>V</code> and <code>SSR</code> namespaces, but no file in
+    <code>ui</code> uses <code>E</code> or <code>SSR</code>
+  </li>
+  <li>
+    folder peers import their types file by name:
+    <code>import { DEFAULT_TYPE, FORM_ATTRIBUTES, ... } from "./ui-button.types"</code> (up to 12 names)
+  </li>
+  <li>
+    <code>ui</code>'s <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> contradicts itself
+    on <code>UIT</code>: "plain named imports from <code>components.types</code>" in one place,
+    "<code>UIT.&lt;NAME&gt;</code>, never bare" in another; today 26 files use bare names, 24 use <code>UIT.X</code>, 15
+    mix both
+  </li>
+</ul>
+<p><b>Net effect (A):</b></p>
+<ul>
+  <li>imports change only where they're split, bare where they should be <code>UIT.</code>, or out of order</li>
+  <li>
+    <code>E</code> and <code>SSR</code> namespaces removed; <code>V</code> stays (the <code>api</code> entry uses it)
+  </li>
+  <li>
+    one rule in <code>ui</code>'s
+    <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> "Imports" instead of two that
+    disagree
+  </li>
+</ul>
+<epic-choices chosen="B"
+  ><epic-option letter="A" title="Named imports from the entries; UIT.X everywhere" recommended
+    ><ul>
+      <li>
+        <code>ui</code>'s <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> records the
+        exception, with why: the entries are the bundles, and every name is already unique (<code>UIButton</code>,
+        <code>MenuOptions</code>), so WWOD's "one name per type" holds
+      </li>
+      <li>shared constants always <code>UIT.NAME</code>; one import statement per module (fixes the ~25 split ones)</li>
+      <li>
+        delete the unused <code>E</code> and <code>SSR</code> namespaces (WWOD §2 › "Delete a field, option or export
+        nothing reads")
+      </li>
+    </ul></epic-option
+  ><epic-option letter="B" title="Full WWOD: one namespace"
+    ><ul>
+      <li>
+        <code>import { E, UIT } from "$/ui/core"</code>, then <code>E.UIElement</code>, <code>E.Cell</code>,
+        <code>E.proto</code> in ~600 files
+      </li>
+      <li>
+        risk: a namespace through <code>core.ts</code> may pin every export into each family's chunk (<code
+          >yarn measure</code
+        >
+        would show it); the biggest diff of the epic
+      </li>
+    </ul></epic-option
+  ></epic-choices
+><epic-answer title="Full WWOD namespace: E from $/ui/core, F from $/ui/forms"></epic-answer
+><epic-reply from="Claude" at="2026-10-05 20:10" re='"spike to assess actual risk of pinning exports"'
+  ><p>Left open until the numbers are in: P1 starts with a spike.</p>
+  <ul>
+    <li>
+      convert <code>ui-button</code> and <code>ui-dropdown</code> to <code>import { E, UIT } from "$/ui/core"</code> +
+      <code>E.UIElement</code>, <code>E.Cell</code> ...
+    </li>
+    <li>
+      build the lib and run <code>yarn measure</code>, before and after: each family chunk's size, what it pins from
+      <code>core</code>, whether unused <code>E</code> members are shaken out
+    </li>
+    <li>the numbers go into this question as a reply; you pick; the spike is reverted either way</li>
+  </ul>
+  <p><b>Net effect:</b></p>
+  <ul>
+    <li>Q4 stays open until P1's spike; P1's estimate grows to 2-3h</li>
+  </ul></epic-reply
+><epic-reply from="Claude" at="2026-10-05 20:15" re='"spike to assess actual risk of pinning exports"'
+  ><p>
+    The spike's answer: a namespace costs the families NOTHING, and <code>core</code> about 0.8 kB gzipped, once per
+    page.
+  </p>
+  <p>What the spike did (P1, reverted afterwards):</p>
+  <ul>
+    <li>
+      <code>core.ts</code> exported itself as a namespace, WWOD's way: <code>export * as E from "$/ui/core"</code>;
+      <a href="../../../packages/ui/src/forms.ts" target="src-packages-ui-src-forms-ts"><code>forms.ts</code></a>
+      the same as <code>F</code>
+    </li>
+    <li>
+      every file of <code>ui-button</code> and <code>ui-dropdown</code> (8 files) imported only <code>{ E }</code> /
+      <code>{ F }</code> and qualified every use: <code>class UIButton extends E.UIElement</code>,
+      <code>@E.proto static vocabulary</code>, <code>new E.Cell(...)</code>, <code>E.UIT.ARIA_LABEL</code>
+    </li>
+    <li>
+      <code>yarn tsc</code> clean; the two families' 189 tests pass; then <code>yarn measure</code> before and after
+    </li>
+  </ul>
+  <ui-table compact celled
+    ><table>
+      <thead>
+        <tr>
+          <th>Measured</th>
+          <th class="num right aligned">min before</th>
+          <th class="num right aligned">after</th>
+          <th class="num right aligned">gzip before</th>
+          <th class="num right aligned">after</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>core</code> (every page)</td>
+          <td class="num right aligned">260,769</td>
+          <td class="num right aligned">262,260 (+1,491)</td>
+          <td class="num right aligned">73,113</td>
+          <td class="num right aligned">73,900 (+787)</td>
+        </tr>
+        <tr>
+          <td><code>forms</code></td>
+          <td class="num right aligned">20,857</td>
+          <td class="num right aligned">20,976 (+119)</td>
+          <td class="num right aligned">7,514</td>
+          <td class="num right aligned">7,578 (+64)</td>
+        </tr>
+        <tr>
+          <td><code>ui-button</code>'s own chunk</td>
+          <td class="num right aligned">55,011</td>
+          <td class="num right aligned">55,011 (0)</td>
+          <td class="num right aligned">13,961</td>
+          <td class="num right aligned">13,961 (0)</td>
+        </tr>
+        <tr>
+          <td><code>ui-button</code> built alone, Solid included</td>
+          <td class="num right aligned">153,433</td>
+          <td class="num right aligned">153,433 (0)</td>
+          <td class="num right aligned">46,333</td>
+          <td class="num right aligned">46,333 (0)</td>
+        </tr>
+        <tr>
+          <td><code>ui-dropdown</code>'s own chunk</td>
+          <td class="num right aligned">61,814</td>
+          <td class="num right aligned">61,814 (0)</td>
+          <td class="num right aligned">17,050</td>
+          <td class="num right aligned">17,050 (0)</td>
+        </tr>
+        <tr>
+          <td><code>ui-dropdown</code> built alone</td>
+          <td class="num right aligned">227,888</td>
+          <td class="num right aligned">227,888 (0)</td>
+          <td class="num right aligned">66,523</td>
+          <td class="num right aligned">66,523 (0)</td>
+        </tr>
+        <tr>
+          <td>every family built alone, summed</td>
+          <td class="num right aligned">10,730,456</td>
+          <td class="num right aligned">10,730,456 (0)</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tbody></table
+  ></ui-table>
+  <p>What that means:</p>
+  <ul>
+    <li>
+      "pinning exports" doesn't happen: Rolldown turns <code>E.Cell</code> back into a plain import of
+      <code>Cell</code>, so the family chunks are byte-for-byte the same, and a family bundled alone still drops
+      everything it doesn't use
+    </li>
+    <li>
+      the one cost: <code>core</code> is a library entry, so it must BUILD the <code>E</code> object (a list of all ~250
+      exports) for anyone who imports it: +0.8 kB gzipped on every page. <code>UIT</code> is already such an object
+      today
+    </li>
+    <li>
+      what B still costs: ~600 files rewritten (a codemod, as the spike's), and longer names:
+      <code>E.UIT.ARIA_LABEL</code>, <code>@E.proto</code>, <code>E.UI.browser</code>
+    </li>
+  </ul>
+  <ui-grid class="spell-pros-cons" columns="2" stackable>
+    <ui-column
+      ><ui-segment
+        ><ui-label attached="top">A · Named imports, UIT.X always</ui-label>
+        <ul>
+          <li>
+            as first proposed: the exception recorded in <code>ui</code>'s
+            <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a>
+          </li>
+          <li>0 bytes; the smallest diff</li>
+          <li>the spike removes its main reason ("may pin exports"): what's left is taste and diff size</li>
+        </ul></ui-segment
+      ></ui-column
+    >
+    <ui-column
+      ><ui-segment
+        ><ui-label attached="top">B · Full WWOD namespace (recommended)</ui-label>
+        <ul>
+          <li>
+            <code>import { E } from "$/ui/core"</code> (+ <code>F</code> from <code>$/ui/forms</code>) in every
+            component file, qualified at each use; folder peers keep their direct imports
+          </li>
+          <li>+0.8 kB gzipped in <code>core</code>, 0 in families; WWOD with no exception</li>
+          <li>
+            done by codemod per phase (P3-P7), as each slice is touched; one name per type everywhere
+            (<code>E.MenuOption</code>)
+          </li>
+        </ul></ui-segment
+      ></ui-column
+    >
+  </ui-grid>
+  <p><b>Net effect (B):</b></p>
+  <ul>
+    <li>
+      <code>core.ts</code> /
+      <a href="../../../packages/ui/src/forms.ts" target="src-packages-ui-src-forms-ts"><code>forms.ts</code></a>
+      export <code>E</code> / <code>F</code>; the unused <code>SSR</code> namespace goes (or
+      <code>$/ui/server</code> uses it)
+    </li>
+    <li>every component file imports one namespace per entry; <code>core</code> +0.8 kB gzipped</li>
+    <li>
+      <code>ui</code>'s <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> "Imports" says
+      <code>E</code> / <code>F</code> / <code>UIT</code>, with no exception to WWOD §4
+    </li>
+  </ul></epic-reply
+>

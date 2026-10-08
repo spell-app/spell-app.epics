@@ -1,0 +1,34 @@
+<!-- plan-doc part:  #j91's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Chose to await the promise the code itself is waiting on over a timer: three sleeps are gone, none kept.</p>
+<ul>
+  <li>
+    <a
+      href="../../../packages/ui/src/docs-components/ui-docs-api/ui-docs-api.fallback.test.ts"
+      target="src-packages-ui-src-docs-components-ui-docs-api-ui-docs-api-fallback-test-ts"
+      ><code>ui-docs-api.fallback.test.ts</code></a
+    >,
+    <a
+      href="../../../packages/ui/src/docs-components/ui-docs-tokens/ui-docs-tokens.fallback.test.ts"
+      target="src-packages-ui-src-docs-components-ui-docs-tokens-ui-docs-tokens-fallback-test-ts"
+      ><code>ui-docs-tokens.fallback.test.ts</code></a
+    >: <code>setTimeout(resolve)</code> after <code>SiteData.load()</code> dropped. The fallback's own
+    <code>.then</code> on the SAME cached promise was attached first (on connect), so it has filled the section once the
+    test's await resumes (commented in <code>render()</code>).
+  </li>
+  <li>
+    <code>ui-brand-color-picker.test.tsx</code> "a refused clipboard write": the 20 ms sleep is now
+    <code>await write.mock.results[0].value.catch(...)</code>: the picker's own <code>await</code> on that rejected
+    write runs its <code>catch</code> first.
+  </li>
+  <li>
+    <code>ui-brand-color.test.tsx</code> copy: <code>vi.advanceTimersByTime</code> -&gt;
+    <code>advanceTimersByTimeAsync</code>; <code>vi.useRealTimers()</code> added to <code>afterEach</code>, so a failing
+    test can't leak fake timers.
+  </li>
+</ul>
+<p>
+  <b>Net effect:</b> kept, as real browser events, not sleeps: one <code>requestAnimationFrame</code> in
+  <code>ui-docs-toc</code>'s <code>rendered()</code> (the toc scans a frame after connect) and the scroll test's
+  <code>frame()</code> in <code>ui-docs-api</code>; <code>vi.waitFor</code> / <code>expect.poll</code> polls (nav folds,
+  theme sheets, flourish resize) wait on a condition, never a guessed time.
+</p>

@@ -1,0 +1,87 @@
+<!-- plan-doc part:  #i16's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Seen at the end of P4's Styles slice, in the LIVE tree (other P4 agents mid-edit):
+  <code>yarn measure</code> fails three checks, and a real <code>yarn build</code> writes a
+  <code>runtime.types-&lt;hash&gt;.js</code> that holds Rolldown's helpers, which <code>core.js</code> and every lazy
+  chunk import: I13's symptom under another name.
+</p>
+<ul>
+  <li><code>runtimeChunks</code>: <code>runtime.types-FRf7swcM.js</code></li>
+  <li>
+    <code>coreOutsideCore</code>: <code>\0rolldown/runtime.js</code>,
+    <a href="../../../packages/ui/src/runtime/runtime.types.ts" target="src-packages-ui-src-runtime-runtime-types-ts"
+      ><code>src/runtime/runtime.types.ts</code></a
+    >
+  </li>
+  <li>
+    <code>unattributed</code>:
+    <a href="../../../packages/ui/package.json" target="src-packages-ui-package-json"
+      ><code>packages/ui/package.json</code></a
+    >
+  </li>
+  <li>
+    the cause, by the module list: the runtime slice's new
+    <code>import { version } from "../../package.json"</code> in
+    <a href="../../../packages/ui/src/runtime/runtime.types.ts" target="src-packages-ui-src-runtime-runtime-types-ts"
+      ><code>src/runtime/runtime.types.ts</code></a
+    >
+    (for <code>RUNTIME_VERSION</code>)
+  </li>
+  <li>
+    NOT I13's fix: HEAD plus the Styles slice alone builds with no runtime chunk and every check clean (I13's reply)
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    the runtime slice should check <code>yarn measure</code> before it hands back; a <code>define</code>, or a
+    <code>version</code> passed some other way, may avoid the JSON module
+  </li>
+</ul>
+<epic-reply from="Claude" at="2026-10-06 01:30" re="I16"
+  ><p>
+    Found and fixed: not the
+    <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> import (a hand-written
+    <code>"0.0.1"</code> gave the same chunk), but 8 runtime files that P4 moved onto
+    <code>import { E, UIT } from "$/ui/core"</code>.
+  </p>
+  <ul>
+    <li>
+      the runtime sits BELOW <code>core</code>: <code>core.ts</code> re-exports its loader (<a
+        href="../../../packages/ui/src/runtime/load.ts"
+        target="src-packages-ui-src-runtime-load-ts"
+        ><code>load.ts</code></a
+      >,
+      <a href="../../../packages/ui/src/runtime/runtime.types.ts" target="src-packages-ui-src-runtime-runtime-types-ts"
+        ><code>runtime.types.ts</code></a
+      >); once the lazy <code>UIRuntime</code> chunk imported the <code>core</code> entry back, Rolldown moved
+      <code>runtime.types</code> and its helpers into <code>runtime.types-*.js</code>, imported by every page
+    </li>
+    <li>
+      fix: <code>AppStylesheet</code>, <code>Focus</code>, <code>Keyboard</code>, <code>Overlays</code>,
+      <code>RovingTabindex</code>, <code>Transitions</code>, <code>UIRuntime</code>, <code>Visibility</code> import
+      <code>Warnings</code> / <code>Prettify</code> by name from <code>$/ui/util</code> and <code>UIT</code> as
+      <code>import * as UIT from "$/ui/components/components.types"</code> (the vocabularies' shape);
+      <code>Vocabulary</code> from <code>$/ui/vocabulary</code>
+    </li>
+    <li>
+      <a href="../../../packages/ui/tools/package.config.ts" target="src-packages-ui-tools-package-config-ts"
+        ><code>tools/package.config.ts</code></a
+      >
+      buckets
+      <a href="../../../packages/ui/package.json" target="src-packages-ui-package-json"
+        ><code>packages/ui/package.json</code></a
+      >
+      (inlined into <code>runtime.types</code>) as <code>core</code>
+    </li>
+    <li><code>yarn measure</code>: every check clean; <code>core.js</code> 111,029 B min / 32,449 gz</li>
+    <li>
+      <code>ui</code>'s <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> "Imports" now
+      says what sits below <code>core</code> never imports its entry, and why
+    </li>
+  </ul>
+  <p><b>Net effect:</b></p>
+  <ul>
+    <li>no extra chunk on any page; the rule written down so P5-P7 don't repeat it</li>
+  </ul></epic-reply
+>

@@ -1,0 +1,280 @@
+<!-- plan-doc part:  #j17's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p><code>MenuOptions</code> to the recipe:</p>
+<ul>
+  <li>
+    constructor <code>(options, addition, keys)</code> -&gt; ONE props object,
+    <code>new MenuOptions({ options, addition, keys })</code> (<code>MenuOptionsProps</code>, exported with
+    <code>MenuSearchKeys</code>). Callers: <code>UIDropdown</code> (2 lines; its
+    <code>ConstructorParameters&lt;...&gt;[2]</code> cast is now <code>MenuOptionsProps["keys"]</code>),
+    <code>UISearch</code> (no argument, unchanged), 5 in
+    <a
+      href="../../../packages/ui/src/elements/MenuOptions.test.ts"
+      target="src-packages-ui-src-elements-menuoptions-test-ts"
+      ><code>MenuOptions.test.ts</code></a
+    >
+  </li>
+  <li>
+    <code>(…, ignoreCase, ignoreDiacritics)</code> threaded through <code>normalize()</code> / <code>fold()</code> /
+    <code>key()</code> -&gt; one <code>Folding</code> object; type-ahead's <code>(true, true)</code> is
+    <code>private static TYPE_AHEAD</code>
+  </li>
+  <li><code>keysOf()</code> -&gt; <code>keysFor()</code> (private)</li>
+  <li>
+    <code>"text" | "value"</code> -&gt; <code>MenuSearchFields</code> +
+    <code>MenuSearchField</code> (<code>elements.types</code>); <code>filter()</code> now walks the fields (<code
+      >"both"</code
+    >
+    or anything else ~== all of them, as before)
+  </li>
+  <li>
+    KEPT: <code>fullTextSearch: "exact" | boolean</code>, Fomantic's setting; its docstring says so. Likewise
+    <code>additionPosition: "top" | "bottom"</code>
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    a page building its own <code>MenuOptions</code> passes <code>{ options }</code>: no page or doc in the repo does
+  </li>
+</ul>
+<epic-reply from="Owen" at="2026-10-06 08:40" re="revisit soon"><p>add an example</p></epic-reply
+><epic-reply from="Claude" at="2026-10-06 09:32" re='"add an example"'
+  ><p>
+    Below are the four changes to <code>MenuOptions</code>, the class behind the option list of
+    <code>&lt;ui-dropdown&gt;</code>, <code>&lt;ui-select&gt;</code> and <code>&lt;ui-search&gt;</code>. Each one shows
+    the code on <code>main</code> (Before) and on this branch (After). Only the first change affects code outside the
+    class.
+  </p>
+
+  <p><b>1. One props object for the constructor</b></p>
+  <p>
+    A caller now names what it passes, so it no longer fills a skipped position with
+    <code>undefined</code>.
+  </p>
+  <ui-tabs class="spell-tabs" pointing secondary basic aria-label="Before and after"
+    ><ui-tab label="Before"
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>MenuOptions.ts · 5 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">constructor(
+  options: readonly (MenuOption | MenuAddition)[] = [],
+  addition?: MenuAddition,
+  keys = new WeakMap&lt;MenuOption, SearchKeys&gt;()
+) {</code></pre>
+        </ui-content></ui-accordion
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>UIDropdown.tsx · 4 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">private readonly keys = new WeakMap() as NonNullable&lt;ConstructorParameters&lt;typeof MenuOptions&gt;[2]&gt;
+
+// in visible():
+return new MenuOptions(this.all(), undefined, this.keys)</code></pre>
+        </ui-content></ui-accordion
+      ></ui-tab
+    ><ui-tab label="After"
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>MenuOptions.ts · 9 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">constructor({ options = [], addition, keys = new WeakMap() }: MenuOptionsProps = {}) {
+
+/** Constructor props of `MenuOptions`. */
+export type MenuOptionsProps = {
+  options?: readonly (E.MenuOption | E.MenuAddition)[]
+  addition?: E.MenuAddition
+  keys?: WeakMap&lt;E.MenuOption, MenuSearchKeys&gt;
+}</code></pre>
+        </ui-content></ui-accordion
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>UIDropdown.tsx · 4 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">private readonly keys = new WeakMap() as NonNullable&lt;F.MenuOptionsProps["keys"]&gt;
+
+// in visible():
+return new F.MenuOptions({ options: this.all(), keys: this.keys })</code></pre>
+        </ui-content></ui-accordion
+      ></ui-tab
+    ></ui-tabs
+  >
+  <ul>
+    <li>
+      <code>UISearch</code> passes nothing (<code>new F.MenuOptions()</code>), so it reads the same before and after.
+    </li>
+    <li>
+      The test file's lists change the same way:
+      <code>new MenuOptions(OPTIONS)</code> becomes <code>new MenuOptions({ options: OPTIONS })</code>.
+    </li>
+  </ul>
+
+  <p>
+    <b>2. One <code>Folding</code> object instead of two booleans</b>
+  </p>
+  <p>
+    Callers outside the class see no change. Inside it, the two switches travel together as one object, so a bare
+    <code>(true, true)</code> now has a name.
+  </p>
+  <ui-tabs class="spell-tabs" pointing secondary basic aria-label="Before and after"
+    ><ui-tab label="Before"
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>MenuOptions.ts · 7 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">private normalize(query: string, ignoreCase: boolean, ignoreDiacritics: boolean)
+private fold(text: string, ignoreCase: boolean, ignoreDiacritics: boolean)
+private key(option: MenuOption, field: "text" | "value", ignoreCase: boolean, ignoreDiacritics: boolean)
+
+// in selectionForKey() (type-ahead):
+let term = this.normalize(prefix, true, true)
+if (!option.disabled &amp;&amp; this.key(option, "text", true, true).startsWith(term)) return index</code></pre>
+        </ui-content></ui-accordion
+      ></ui-tab
+    ><ui-tab label="After"
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>MenuOptions.ts · 10 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">private normalize(query: string, { ignoreCase, ignoreDiacritics }: Folding)
+private fold(text: string, { ignoreCase, ignoreDiacritics }: Folding)
+private key(option: E.MenuOption, field: E.MenuSearchField, { ignoreCase, ignoreDiacritics }: Folding)
+
+// in selectionForKey() (type-ahead):
+let term = this.normalize(prefix, TYPE_AHEAD)
+if (!option.disabled &amp;&amp; this.key(option, "text", TYPE_AHEAD).startsWith(term)) return index
+
+// below the class:
+const TYPE_AHEAD: Folding = { ignoreCase: true, ignoreDiacritics: true }</code></pre>
+        </ui-content></ui-accordion
+      ></ui-tab
+    ></ui-tabs
+  >
+  <ul>
+    <li>
+      <code>filter()</code> and <code>highlights()</code> build theirs once from their options:
+      <code>const folding = { ignoreCase, ignoreDiacritics }</code>.
+    </li>
+    <li>
+      A correction to the details above: <code>TYPE_AHEAD</code> is a module <code>const</code> below the class, not a
+      <code>private static</code>. That follows ui's rule for constants only one class uses (Q18: a module
+      <code>const</code> minifies to one letter).
+    </li>
+  </ul>
+
+  <p>
+    <b>3. <code>keysOf()</code> renamed to <code>keysFor()</code></b>
+  </p>
+  <p>
+    This is a rename of a private method, so callers see no change. The new name reads as "the search keys for this
+    option".
+  </p>
+  <ui-tabs class="spell-tabs" pointing secondary basic aria-label="Before and after"
+    ><ui-tab label="Before"
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>MenuOptions.ts · 4 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">private keysOf(option: MenuOption): SearchKeys
+
+// in withAdditions():
+const keys = this.keysOf(option)</code></pre>
+        </ui-content></ui-accordion
+      ></ui-tab
+    ><ui-tab label="After"
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>MenuOptions.ts · 4 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">private keysFor(option: E.MenuOption): MenuSearchKeys
+
+// in withAdditions():
+const keys = this.keysFor(option)</code></pre>
+        </ui-content></ui-accordion
+      ></ui-tab
+    ></ui-tabs
+  >
+  <ul>
+    <li>
+      Its return type, the private <code>SearchKeys</code>, is now the exported <code>MenuSearchKeys</code>, because
+      <code>MenuOptionsProps.keys</code> names it.
+    </li>
+  </ul>
+
+  <p>
+    <b>4. <code>"text" | "value"</code> becomes <code>MenuSearchFields</code></b>
+  </p>
+  <p>
+    A caller still writes <code>search: "text"</code>, <code>"value"</code> or <code>"both"</code>. Only the type has a
+    name now, and <code>filter()</code> loops over the fields instead of spelling out each one.
+  </p>
+  <ui-tabs class="spell-tabs" pointing secondary basic aria-label="Before and after"
+    ><ui-tab label="Before"
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>MenuOptions.ts and elements.types.ts · 17 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">// elements.types.ts
+search?: "text" | "value" | "both" | MenuSearchFunction
+
+// MenuOptions.ts, in filter():
+const matchText = search !== "value"
+const matchValue = search !== "text"
+const results: MenuOption[] = []
+for (const option of this.options) {
+  const text = this.key(option, "text", ignoreCase, ignoreDiacritics)
+  const value = this.key(option, "value", ignoreCase, ignoreDiacritics)
+  if (
+    (matchText &amp;&amp; MenuOptions.matches(text, term, fullTextSearch)) ||
+    (matchValue &amp;&amp; MenuOptions.matches(value, term, fullTextSearch))
+  ) {
+    results.push(option)
+  }
+}
+return this.derive(results)</code></pre>
+        </ui-content></ui-accordion
+      ></ui-tab
+    ><ui-tab label="After"
+      ><ui-accordion class="spell-code" styled
+        ><ui-title>MenuOptions.ts and elements.types.ts · 14 lines</ui-title
+        ><ui-content>
+          <pre><code class="language-ts">// elements.types.ts
+export const MenuSearchFields = ["text", "value"] as const
+export type MenuSearchField = (typeof MenuSearchFields)[number]
+search?: MenuSearchField | "both" | MenuSearchFunction
+
+// MenuOptions.ts, in filter():
+// `"both"` (or anything else) matches every field
+const fields: readonly E.MenuSearchField[] = search === "text" || search === "value" ? [search] : E.MenuSearchFields
+return this.derive(
+  this.options.filter((option) =&gt;
+    fields.some((field) =&gt; MenuOptions.matches(this.key(option, field, folding), term, fullTextSearch))
+  )
+)</code></pre>
+        </ui-content></ui-accordion
+      ></ui-tab
+    ></ui-tabs
+  >
+  <ul>
+    <li>
+      The matches are the same as before. <code>"both"</code>, or any other string, still matches the text or the value.
+    </li>
+    <li>
+      One small saving: the old loop computed the value key even when
+      <code>search: "text"</code> would never use it. The new one computes only the keys it compares.
+    </li>
+  </ul>
+
+  <p><b>Net effect:</b></p>
+  <ul>
+    <li>
+      A caller that passes options writes <code>new MenuOptions({ options })</code>, not
+      <code>new MenuOptions(options)</code>. That means 2 lines in <code>UIDropdown</code> and 5 in
+      <a
+        href="../../../packages/ui/src/elements/MenuOptions.test.ts"
+        target="src-packages-ui-src-elements-menuoptions-test-ts"
+        ><code>MenuOptions.test.ts</code></a
+      >. No page or doc in the repo builds its own <code>MenuOptions</code>.
+    </li>
+    <li><code>new MenuOptions()</code> with no argument (<code>UISearch</code>) is unchanged.</li>
+    <li>
+      Three new exports: <code>MenuOptionsProps</code>, <code>MenuSearchKeys</code> (previously the private
+      <code>SearchKeys</code>), and <code>MenuSearchFields</code> + <code>MenuSearchField</code>.
+    </li>
+    <li>
+      Private only, so no caller sees them: <code>Folding</code>, <code>TYPE_AHEAD</code> and <code>keysFor()</code>.
+    </li>
+    <li>Behaviour is unchanged: filtering, type-ahead and highlighting give the same results.</li>
+  </ul></epic-reply
+>

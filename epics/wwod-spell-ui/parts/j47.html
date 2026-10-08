@@ -1,0 +1,509 @@
+<!-- plan-doc part:  #j47's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Chose to put the code =&gt; emoji rule in
+  <a
+    href="../../../packages/ui/src/components/components.types.ts"
+    target="src-packages-ui-src-components-components-types-ts"
+    ><code>components.types.ts</code></a
+  >
+  as <code>UIT.Flags</code> (with <code>UIT.SPECIAL_FLAGS</code>, the 6 ZWJ / subdivision flags), over having the
+  dropdown import <code>FlagCountry</code> from the flag family, because a file two family entries import splits a
+  third, hashed chunk. Closes I6.
+</p>
+<ul>
+  <li>
+    <code>UIT.Flags.emojiFor(code)</code>: any case; two letters =&gt; regional-indicator pair, a
+    <code>SPECIAL_FLAGS</code> key =&gt; its sequence, else <code>""</code>;
+    <code>UIT.Flags.isSpecial(code)</code>
+  </li>
+  <li>
+    used by <code>FlagCountry</code> (after its names), <code>UIDropdown</code> rows, and <code>ui-select</code>'s
+    <code>SelectFlags.emoji()</code> (now a one-line delegate: <code>UIT.Flags.emojiFor(code) || code</code>)
+  </li>
+  <li>
+    options considered: A (taken) UIT in core; B import <code>FlagCountry</code> into the dropdown (shared chunk, plus
+    the ~250-name alias table); C a copy per menu (what I6 was about)
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    <code>core</code> grows by the snippet: ~629 B min / ~370 B gz (esbuild, alone); the dropdown and select chunks each
+    lose their copy
+  </li>
+  <li>a menu option's <code>flag="gb-eng"</code> / <code>"rainbow"</code> now draws the flag; before: the text</li>
+  <li>
+    Fomantic's country NAMES (<code>flag="france"</code>) still only work on
+    <code>&lt;ui-flag&gt;</code>: a name in a menu shows as its text, as before; the alias table stays out of
+    <code>core</code>
+  </li>
+  <li>
+    renames: <code>flagEmoji</code> (<a
+      href="../../../packages/ui/src/components/ui-flag/ui-flag.types.ts"
+      target="src-packages-ui-src-components-ui-flag-ui-flag-types-ts"
+      ><code>ui-flag.types.ts</code></a
+    >) -&gt; <code>UIT.SPECIAL_FLAGS</code>; <code>flagAliases</code> -&gt; <code>FLAG_ALIASES</code>;
+    <code>FlagCountry</code>'s constructor takes <code>string | undefined</code> (no <code>null</code>)
+  </li>
+  <li>
+    drive-by: <code>FlagCountry</code> looked names up with <code>table[name]</code>, so
+    <code>country="constructor"</code> read <code>Object.prototype</code>; now
+    <code>Object.hasOwn()</code>
+  </li>
+</ul>
+<epic-reply
+  from="Claude"
+  at="2026-10-06 10:30"
+  re='"I don&apos;t want to embed icons for flags, take from emojis only."'
+  ><p>
+    Flags are already emoji only, by default and in every menu. J47 adds no images: it moves the one "country code =&gt;
+    emoji" rule into <code>core</code>. The single place a flag IMAGE still lives in
+    <a href="../../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a>
+    is one opt-in theme,
+    <b
+      ><code>famfamfam</code>, Fomantic's sprite theme, which the themes port brought in (commit <code>8c2c785d</code>,
+      2026-10-03, already on <code>main</code>)</b
+    >. A page gets those images only when it picks that theme.
+  </p>
+
+  <h5>How a flag is drawn today, step by step</h5>
+  <ol>
+    <li>
+      A page writes <code>&lt;ui-flag country="france"&gt;</code>, or a menu option carries <code>flag="fr"</code>.
+    </li>
+    <li>
+      <code>&lt;ui-flag&gt;</code> only: <code>FlagCountry</code> turns a Fomantic NAME into its code through
+      <code>FLAG_ALIASES</code> (<code>france</code> =&gt; <code>fr</code>, <code>england</code> =&gt;
+      <code>gb-eng</code>). Menus skip this step: they take codes.
+    </li>
+    <li>
+      <code>UIT.Flags.emojiFor(code)</code> builds the emoji from the code's two letters: each letter becomes its
+      "regional indicator" character (a Unicode letter meant only for flags). <code>f</code> =&gt; <code>U+1F1EB</code>,
+      <code>r</code> =&gt; <code>U+1F1F7</code>; the pair is 🇫🇷. Six flags that aren't a pair (rainbow, transgender,
+      pirate, England, Scotland, Wales) come from a small table, <code>SPECIAL_FLAGS</code>.
+    </li>
+    <li>
+      The element puts that TEXT in a span:
+      <code>&lt;span class="ui flag fr" role="img" aria-label="France"&gt;🇫🇷&lt;/span&gt;</code>. The browser's emoji
+      font draws it. No image, no network fetch, no per-country CSS.
+    </li>
+    <li>
+      Only if the page has applied the <code>famfamfam</code> theme: that sheet selects on the class word
+      <code>fr</code> and paints a 16 x 11 cell of a PNG sprite behind the span, hiding the emoji.
+    </li>
+  </ol>
+
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/ui/src/components/components.types.ts · 22 lines (the rule)</ui-title
+    ><ui-content>
+      <pre><code class="language-ts">export class Flags {
+  /** Emoji of flag `code`, in any case;  `""` when it names no flag. */
+  static emojiFor(code: string): string {
+    const key = code.toLowerCase()
+    if (Flags.isSpecial(key)) return SPECIAL_FLAGS[key]
+    if (!TWO_LETTERS.test(key)) return ""
+    return String.fromCodePoint(...Array.from(key, (letter) =&gt; INDICATOR_A + letter.charCodeAt(0) - LETTER_A))
+  }
+  ...
+}
+
+export const SPECIAL_FLAGS = {
+  rainbow: "\u{1F3F3}\u{FE0F}\u{200D}\u{1F308}",
+  transgender: "\u{1F3F3}\u{FE0F}\u{200D}\u{26A7}\u{FE0F}",
+  pirate: "\u{1F3F4}\u{200D}\u{2620}\u{FE0F}",
+  "gb-eng": "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}",
+  "gb-sct": "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}",
+  "gb-wls": "\u{1F3F4}\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}"
+} as const
+
+/** `U+1F1E6`, REGIONAL INDICATOR SYMBOL LETTER A. */
+const INDICATOR_A = 0x1f1e6</code></pre>
+    </ui-content></ui-accordion
+  >
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/ui/src/components/ui-flag/UIFlag.tsx · 12 lines (the glyph is text)</ui-title
+    ><ui-content>
+      <pre><code class="language-tsx">render(): JSX.Element {
+  return (
+    &lt;span
+      class={this.classes()}
+      part={this.part("flag")}
+      role={this.label() ? UIT.IMG : undefined}
+      aria-label={this.label()}
+    &gt;
+      {this.country().emoji}
+    &lt;/span&gt;
+  )
+}</code></pre>
+    </ui-content></ui-accordion
+  >
+  <ui-accordion class="spell-code" styled
+    ><ui-title>packages/ui/src/components/ui-dropdown/UIDropdown.tsx · 3 lines (same in UISelect.tsx)</ui-title
+    ><ui-content>
+      <pre><code class="language-tsx">&lt;Show when={typeof option.flag === "string"}&gt;
+  &lt;span class={FLAG}&gt;{UIT.Flags.emojiFor(option.flag as string) || (option.flag as string)}&lt;/span&gt;
+&lt;/Show&gt;</code></pre>
+    </ui-content></ui-accordion
+  >
+
+  <h5>Where flag images are today, measured on disk</h5>
+  <ui-table compact celled
+    ><table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>What</th>
+          <th>Bytes</th>
+          <th>Who downloads it</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <b
+              ><a
+                href="../../../packages/ui/src/styles/themes/famfamfam/flags.png"
+                target="src-packages-ui-src-styles-themes-famfamfam-flags-png"
+                ><code>src/styles/themes/famfamfam/flags.png</code></a
+              ></b
+            >
+          </td>
+          <td>the sprite: 16 x 11 cells, 124 x 2014 px (public domain)</td>
+          <td>28,123</td>
+          <td>source only</td>
+        </tr>
+        <tr>
+          <td>
+            <b
+              ><a
+                href="../../../packages/ui/src/styles/themes/famfamfam.css"
+                target="src-packages-ui-src-styles-themes-famfamfam-css"
+                ><code>src/styles/themes/famfamfam.css</code></a
+              ></b
+            >
+          </td>
+          <td>1,019 lines: 244 <code>background-position</code> rules, one per code</td>
+          <td>19,318</td>
+          <td>source only</td>
+        </tr>
+        <tr>
+          <td>
+            <a
+              href="../../../packages/ui/dist/famfamfam-BoFomDKp.js"
+              target="src-packages-ui-dist-famfamfam-bofomdkp-js"
+              ><code>dist/famfamfam-BoFomDKp.js</code></a
+            >
+          </td>
+          <td>the lib's lazy theme chunk; the PNG is INLINED as base64 (37,523 B of it)</td>
+          <td>49,659 (30,828 gz)</td>
+          <td>a page that applies the theme</td>
+        </tr>
+        <tr>
+          <td>
+            <a
+              href="../../../packages/ui/site/_assets/famfamfam-CcOIm2iW.js"
+              target="src-packages-ui-site-assets-famfamfam-ccoim2iw-js"
+              ><code>site/_assets/famfamfam-CcOIm2iW.js</code></a
+            >
+            +
+            <a
+              href="../../../packages/ui/src/styles/themes/famfamfam/flags.png"
+              target="src-packages-ui-src-styles-themes-famfamfam-flags-png"
+              ><code>flags.png</code></a
+            >
+          </td>
+          <td>the docs site's copy: the PNG as its own file</td>
+          <td>12,066 + 28,123</td>
+          <td>a docs page whose theme picker is set to "Famfamfam"</td>
+        </tr>
+        <tr>
+          <td>
+            <a
+              href="../../../packages/brand/_assets/ui/famfamfam-CcOIm2iW.js"
+              target="src-packages-brand-assets-ui-famfamfam-ccoim2iw-js"
+              ><code>brand/_assets/ui/famfamfam-CcOIm2iW.js</code></a
+            >
+            +
+            <a
+              href="../../../packages/ui/src/styles/themes/famfamfam/flags.png"
+              target="src-packages-ui-src-styles-themes-famfamfam-flags-png"
+              ><code>flags.png</code></a
+            >
+          </td>
+          <td>brand's copy of the same pair</td>
+          <td>same pair</td>
+          <td>nobody today (brand applies no such theme)</td>
+        </tr>
+        <tr>
+          <td>
+            <a href="../../../packages/ui/dist/ui-flag.js" target="src-packages-ui-dist-ui-flag-js"
+              ><code>dist/ui-flag.js</code></a
+            >
+          </td>
+          <td>the flag element: names table, vocabulary, the element</td>
+          <td>18,371 (6,564 gz), no images</td>
+          <td>every page using <code>&lt;ui-flag&gt;</code></td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <ul>
+    <li>
+      Icon packs (<a href="../../../packages/ui/src/icons/icon-packs/" target="src-packages-ui-src-icons-icon-packs"
+        ><code>src/icons/icon-packs/</code></a
+      >: <code>fomantic</code>, <code>fa7-free</code>, <code>fa7-brands</code>): no country flags. They have one-colour
+      pictograms of a flag (<code>flag</code>, <code>flag-checkered</code>, <code>flag-usa</code>), drawn by
+      <code>&lt;ui-icon&gt;</code>, not <code>&lt;ui-flag&gt;</code>. Not touched by any option below.
+    </li>
+    <li>
+      Emoji data (<code>ui-emoji/data/cldr/*.json</code>, from <code>gen:emoji</code>): flags are stored as text
+      characters (🇫🇷 in <code>f.json</code>), not images. <code>gen:icons</code> makes no flags.
+    </li>
+    <li>
+      Outside <code>ui</code>:
+      <a href="../../../packages/app/static/semantic-ui-css/" target="src-packages-app-static-semantic-ui-css"
+        ><code>packages/app/static/semantic-ui-css/</code></a
+      >
+      vendors Semantic UI's own
+      <a
+        href="../../../packages/ui/src/styles/themes/famfamfam/flags.png"
+        target="src-packages-ui-src-styles-themes-famfamfam-flags-png"
+        ><code>flags.png</code></a
+      >
+      (28,123 B), but the app loads <code>semantic.min.css</code>, which has no flag rules: the file is never fetched.
+      Not part of this question.
+    </li>
+  </ul>
+
+  <h5>What "emoji only" means on each platform</h5>
+  <p>
+    The emoji are drawn by the operating system's emoji font, so how a flag looks depends on where the reader is. The
+    big caveat is Windows: Microsoft's emoji font, Segoe UI Emoji, has no country flags at all, on Windows 10 or 11.
+  </p>
+  <ui-table compact celled
+    ><table>
+      <thead>
+        <tr>
+          <th>Where</th>
+          <th>Country (🇫🇷, also <code>eu</code>, <code>un</code>, <code>xk</code>, <code>aq</code>)</th>
+          <th>England / Scotland / Wales</th>
+          <th>Rainbow / pirate / transgender</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mac, iPhone, Android, ChromeOS</td>
+          <td>flag</td>
+          <td>flag</td>
+          <td>flag</td>
+        </tr>
+        <tr>
+          <td>Linux (Noto Color Emoji, on most distros)</td>
+          <td>flag</td>
+          <td>flag</td>
+          <td>flag</td>
+        </tr>
+        <tr>
+          <td>Windows, Firefox</td>
+          <td>flag: Firefox ships its own emoji font, "Twemoji Mozilla", already in our font stack</td>
+          <td>flag</td>
+          <td>flag</td>
+        </tr>
+        <tr>
+          <td><b>Windows, Chrome / Edge (any Chromium browser)</b></td>
+          <td><b>the two letters, "FR", as boxed letters</b></td>
+          <td><b>a plain black flag 🏴</b></td>
+          <td>flag (these aren't letter pairs, and Segoe UI Emoji has them)</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <ul>
+    <li>
+      Fomantic's non-country flags all work as emoji: <code>eu</code> (European Union) and <code>un</code> (United
+      Nations) are official two-letter emoji flags; <code>xk</code> (Kosovo) and <code>aq</code> (Antarctica) too.
+      England, Scotland and Wales are "tag sequences" (a black flag, then hidden letters <code>gbeng</code>, then an end
+      mark), already in <code>SPECIAL_FLAGS</code>.
+    </li>
+    <li>
+      Small side caveat, everywhere: the rule turns ANY two letters into a pair, so a code that isn't a country
+      (<code>flag="zz"</code>) shows two boxed letters instead of nothing. Not new; worth a separate item if you care.
+    </li>
+    <li>
+      The way around Windows already exists, unused: the token <code>--ui-flag-font-family</code>. A page that loads a
+      flag font names it first there.
+      <a
+        href="../../../packages/ui/src/components/ui-flag/ui-flag.css"
+        target="src-packages-ui-src-components-ui-flag-ui-flag-css"
+        ><code>ui-flag.css</code></a
+      >'s header says so.
+    </li>
+  </ul>
+
+  <h5>Options</h5>
+  <ui-grid class="spell-pros-cons" columns="3" stackable
+    ><ui-column
+      ><ui-segment
+        ><ui-label attached="top">A · Emoji only: delete the famfamfam theme (recommended)</ui-label>
+        <ul>
+          <li>no flag image anywhere in <code>ui</code>; 23 themes left</li>
+          <li>
+            deletes
+            <a
+              href="../../../packages/ui/src/styles/themes/famfamfam.css"
+              target="src-packages-ui-src-styles-themes-famfamfam-css"
+              ><code>famfamfam.css</code></a
+            >
+            +
+            <a
+              href="../../../packages/ui/src/styles/themes/famfamfam/flags.png"
+              target="src-packages-ui-src-styles-themes-famfamfam-flags-png"
+              ><code>flags.png</code></a
+            >, its 2 tests in
+            <a
+              href="../../../packages/ui/src/styles/themes/themes.test.ts"
+              target="src-packages-ui-src-styles-themes-themes-test-ts"
+              ><code>themes.test.ts</code></a
+            >, one line of <code>SiteDataBuilder.test.ts</code>, the sprite mentions in 4 comments, 3 shared docs pages
+          </li>
+          <li>
+            saves: 28 KB PNG + 12 KB JS twice (site, brand), the 50 KB lazy lib chunk; 0 bytes on a page that never
+            picked the theme
+          </li>
+          <li>Windows Chrome / Edge show "FR": accepted, documented</li>
+          <li>work: ~30 min, plus rebuilding the ui and brand bundles</li>
+          <li>why: exactly your note, smallest change, and the token stays as the escape hatch</li>
+        </ul>
+        <ui-accordion class="spell-code" styled
+          ><ui-title>ui-flag.css · NOTE, after</ui-title
+          ><ui-content>
+            <pre><code class="language-css">/* - NOTE: flags are emoji
+ *   only, by design:  no
+ *   sprite, no SVG pack.
+ *   Windows' Chromium shows
+ *   "FR";  a page wanting
+ *   flags there loads a
+ *   flag font and names it
+ *   in --ui-flag-font-family */</code></pre>
+          </ui-content></ui-accordion
+        ></ui-segment
+      ></ui-column
+    ><ui-column
+      ><ui-segment
+        ><ui-label attached="top">B · A, plus a documented opt-in flag font</ui-label>
+        <ul>
+          <li>everything in A</li>
+          <li>
+            the <code>&lt;ui-flag&gt;</code> docs page gets a recipe: the "Twemoji Country Flags" font (about 77 KB
+            woff2, per its package; not measured here), country flags only, downloaded only by browsers that can't draw
+            flags (Windows Chromium)
+          </li>
+          <li>
+            menu flags (<code>&lt;ui-dropdown&gt;</code>, <code>&lt;ui-select&gt;</code>) read
+            <code>--ui-flag-font-family</code> too: today they use the inherited font, so the recipe would miss them
+          </li>
+          <li><code>ui</code> ships no font: the page fetches it</li>
+          <li>work: ~1-1.5 h</li>
+        </ul>
+        <ui-accordion class="spell-code" styled
+          ><ui-title>a page · 9 lines</ui-title
+          ><ui-content>
+            <pre><code class="language-html">&lt;script type="module"&gt;
+import { polyfillCountryFlagEmojis }
+  from "country-flag-emoji-polyfill"
+polyfillCountryFlagEmojis()
+&lt;/script&gt;
+&lt;style&gt;:root {
+  --ui-flag-font-family:
+    "Twemoji Country Flags",
+    "Segoe UI Emoji" }&lt;/style&gt;</code></pre>
+          </ui-content></ui-accordion
+        ></ui-segment
+      ></ui-column
+    ><ui-column
+      ><ui-segment
+        ><ui-label attached="top">C · Keep the famfamfam theme</ui-label>
+        <ul>
+          <li>emoji by default, as now; the sprite only when a page picks that theme</li>
+          <li>keeps Fomantic's theme list complete (24 themes)</li>
+          <li>0 bytes on default pages; 0 work</li>
+          <li>but: flag images stay embedded in the lib and both site bundles, against your note</li>
+        </ul></ui-segment
+      ></ui-column
+    ></ui-grid
+  >
+
+  <h5>What J47's text misled about</h5>
+  <ul>
+    <li>
+      Nothing in J47 adds images. "a menu option's <code>flag="gb-eng"</code> now draws the flag" means it now draws the
+      EMOJI 🏴󠁧󠁢󠁥󠁮󠁧󠁿, where before it showed the text <code>gb-eng</code>.
+    </li>
+    <li>
+      What it left out: that the famfamfam theme exists, and that
+      <b
+        ><a
+          href="../../../packages/ui/src/components/ui-flag/ui-flag.css"
+          target="src-packages-ui-src-components-ui-flag-ui-flag-css"
+          ><code>ui-flag.css</code></a
+        >'s NOTE still invites "an SVG flag set ... could come back later as an opt-in pack, like icons"</b
+      >. Both are where your note bites.
+    </li>
+  </ul>
+
+  <p><b>Net effect:</b> (A)</p>
+  <ul>
+    <li>J47 itself stays as decided: its rule is already emoji only</li>
+    <li>
+      a new item in this epic removes the <code>famfamfam</code> theme:
+      <a
+        href="../../../packages/ui/src/styles/themes/famfamfam.css"
+        target="src-packages-ui-src-styles-themes-famfamfam-css"
+        ><code>famfamfam.css</code></a
+      >, <code>famfamfam/flags.png</code>, its tests, and the built copies in
+      <a href="../../../packages/ui/dist/" target="src-packages-ui-dist"><code>ui/dist</code></a
+      >,
+      <a href="../../../packages/ui/site/_assets/" target="src-packages-ui-site-assets"><code>ui/site/_assets</code></a
+      >,
+      <a href="../../../packages/brand/_assets/ui/" target="src-packages-brand-assets-ui"
+        ><code>brand/_assets/ui</code></a
+      >
+      (rebuilt)
+    </li>
+    <li>
+      <a
+        href="../../../packages/ui/src/components/ui-flag/ui-flag.css"
+        target="src-packages-ui-src-components-ui-flag-ui-flag-css"
+        ><code>ui-flag.css</code></a
+      >'s NOTE says "emoji only, by design" instead of inviting an SVG pack; the sprite mentions in
+      <a
+        href="../../../packages/ui/src/components/ui-flag/UIFlag.tsx"
+        target="src-packages-ui-src-components-ui-flag-uiflag-tsx"
+        ><code>UIFlag.tsx</code></a
+      >, the vocabulary and the SSR test go
+    </li>
+    <li>
+      shared docs: the "Famfamfam" row of
+      <a href="../../../ui/theming.html" target="src-ui-theming-html"><code>ui/theming.html</code></a
+      >, the info message and theming note in
+      <a href="../../../ui/components/ui-flag.html" target="src-ui-components-ui-flag-html"
+        ><code>ui/components/ui-flag.html</code></a
+      >, the mention in
+      <a href="../../../guides/spell-ui-pages.html" target="src-guides-spell-ui-pages-html"
+        ><code>guides/spell-ui-pages.html</code></a
+      >
+    </li>
+    <li>
+      the class word after the noun (<code>class="ui flag fr"</code>) stays: it's Fomantic's grammar, and a page's own
+      CSS may select on it
+    </li>
+    <li>Windows Chrome / Edge readers see "FR" instead of a flag; documented on the flag page</li>
+  </ul></epic-reply
+><epic-commit sha="70947a04be8ffb13f35dc22ed547a417713caf10">
+  Card B built: famfamfam theme, sprite and tests gone; ui-flag.css's SVG-flag NOTE replaced by emoji only, by design;
+  dropdown / select row flags read --ui-flag-font-family; the flag page's "A flag font" recipe (Twemoji Country Flags
+  polyfill, Windows caveat); new --ui-font-family-emoji token </epic-commit
+><epic-commit sha="7490e34ae2ad32e10486cbb1e42d13f4f7008314">
+  Bundles rebuilt (ui site, brand, docs spell-ui.js): the famfamfam chunk and flags.png gone from site and brand (40,189
+  B each), docs bundle -48,031 B; yarn measure clean
+</epic-commit>

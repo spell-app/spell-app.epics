@@ -1,0 +1,63 @@
+<!-- plan-doc part:  #j104's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Every sleep in ui-r..ui-v is gone but one, which stays a named real wait, as
+  <a href="../../../packages/ui/src/runtime/Visibility.test.ts" target="src-packages-ui-src-runtime-visibility-test-ts"
+    ><code>src/runtime/Visibility.test.ts</code></a
+  >
+  already does.
+</p>
+<ul>
+  <li>
+    <a
+      href="../../../packages/ui/src/components/ui-toast/ui-toast.test.tsx"
+      target="src-packages-ui-src-components-ui-toast-ui-toast-test-tsx"
+      ><code>ui-toast.test.tsx</code></a
+    >: the <code>wait(ms)</code> helper (8 uses) is gone. Timer tests run on a fake clock (<code>fakeClock()</code>:
+    <code>vi.useFakeTimers({ toFake: [setTimeout, clearTimeout, performance] })</code>, animations stay real) and
+    <code>vi.advanceTimersByTimeAsync()</code>; 'nothing happened' checks wait for the box's animation to end
+    (<code>animationsDone()</code>: <code>UI.transitions.whenTransitionEnds()</code>, a frame, a tick)
+  </li>
+  <li>
+    <a
+      href="../../../packages/ui/src/components/ui-sticky/ui-sticky.test.tsx"
+      target="src-packages-ui-src-components-ui-sticky-ui-sticky-test-tsx"
+      ><code>ui-sticky.test.tsx</code></a
+    >
+    (3 x 50ms): <code>observerSettled()</code>, two frames (<code>nextFrame()</code> from <code>$/ui/util</code>): the
+    frame that measures, then one after the observer's report; <code>StickyWatch</code> has no timer
+  </li>
+  <li>
+    <code>ui-sidebar.fallback</code> / <code>ui-transition.fallback</code> (10ms) and <code>ui-table.fallback</code>'s
+    <code>observed()</code> (0ms): <code>await Promise.resolve()</code>: a <code>MutationObserver</code> delivers in a
+    microtask
+  </li>
+  <li>
+    <a
+      href="../../../packages/ui/src/components/ui-table/ui-table.test.tsx"
+      target="src-packages-ui-src-components-ui-table-ui-table-test-tsx"
+      ><code>ui-table.test.tsx</code></a
+    >
+    <code>settle()</code>'s <code>setTimeout(0)</code>: dropped (two ticks); inline
+    <code>requestAnimationFrame</code> promises -&gt; <code>Viewport.frame()</code> /
+    <code>nextFrame()</code>
+  </li>
+  <li>
+    KEPT:
+    <a
+      href="../../../packages/ui/src/components/ui-visibility/ui-visibility.test.tsx"
+      target="src-packages-ui-src-components-ui-visibility-ui-visibility-test-tsx"
+      ><code>ui-visibility.test.tsx</code></a
+    >
+    <code>OBSERVER_SETTLE_MS = 40</code> after a frame (<code>observersSettle()</code>, also replacing the 60ms / 50ms
+    sleeps): <code>IntersectionObserver</code> reports after a rendering update and <code>Visibility</code> coalesces
+    with a <code>setTimeout</code>, so fake timers drive neither and 'nothing fired' can't be polled
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    each replaced negative check was proved SENSITIVE: a copy with the behaviour broken (no dispose, no veto, a display
+    time, <code>pushing</code>, a short / wide sticky) failed every time
+  </li>
+  <li>both full runs green (1118 / 1118 twice)</li>
+</ul>

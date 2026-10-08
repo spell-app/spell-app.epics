@@ -1,0 +1,69 @@
+<!-- plan-doc part:  #j110's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Chose ONE parser, <code>SkeletonText</code> (<a
+    href="../../../packages/ui/src/vocabulary/SkeletonText.ts"
+    target="src-packages-ui-src-vocabulary-skeletontext-ts"
+    ><code>src/vocabulary/SkeletonText.ts</code></a
+  >: <code>parse(text)</code> / <code>format(spec)</code>), with <code>ComponentVocabulary.skeleton</code> typed plain
+  <code>string</code>, and the parser kept OUT of <code>$/ui/vocabulary</code>'s barrel, over a template-literal type or
+  exporting it through <code>core</code>.
+</p>
+<pre><code>skeleton  := "none" | ["inline"] size | ["inline"] [size ":"] parts
+size      := &lt;w&gt; "x" &lt;h&gt; | &lt;h&gt; "tall" | &lt;w&gt; "wide"          (em)
+parts     := part ("," part)*                              (top to bottom)
+part      := "paragraph" | &lt;n&gt; "line paragraph" | "header" | "header with image"
+           | "image" | "square image" | "rectangular image" | "line" | &lt;length&gt; "line"
+length    := "full" | "very long" | "long" | "medium" | "short" | "very short"</code></pre>
+<ul>
+  <li>
+    every <code>skeleton:</code> in the 104 <code>*.vocabulary.en.ts</code> files is text now (<code
+      >"inline 6 x 2.5"</code
+    >, <code>"18 wide: square image, header, 3 line paragraph"</code>, <code>"none"</code> for the old
+    <code>false</code>); converted by a script that checked each round trip
+  </li>
+  <li>
+    <code>yarn gen:root</code> parses them:
+    <a
+      href="../../../packages/ui/src/components/ui-root/ui-root.catalog.ts"
+      target="src-packages-ui-src-components-ui-root-ui-root-catalog-ts"
+      ><code>ui-root.catalog.ts</code></a
+    >
+    came out BYTE-IDENTICAL (checked with <code>git diff</code> before the new tag was added)
+  </li>
+  <li>
+    a bad text throws a <code>TypeError</code> naming it (<code
+      >SkeletonText.parse(): can't read "18 by 15"; write e.g. ...</code
+    >, or <code>"hedaer" in "header, hedaer" isn't a part; write one of: ...</code>);
+    <a href="../../../packages/ui/test/vocabularies.test.ts" target="src-packages-ui-test-vocabularies-test-ts"
+      ><code>test/vocabularies.test.ts</code></a
+    >
+    parses every vocabulary's and also checks the catalog holds what it parses to (else
+    <code>yarn gen:root</code>)
+  </li>
+  <li>a template-literal type can't spell the grammar; <code>string</code> + the test is the guard</li>
+  <li>
+    NOT in the barrel: <code>core</code> re-exports <code>$/ui/vocabulary</code>, and only
+    <code>&lt;ui-components&gt;</code> parses at runtime. Reached by path (<code>$/ui/vocabulary/SkeletonText</code>, a
+    comment at the import);
+    <a href="../../../packages/ui/tools/package.config.ts" target="src-packages-ui-tools-package-config-ts"
+      ><code>tools/package.config.ts</code></a
+    >
+    buckets it as <code>ui-root</code>'s, so <code>yarn measure</code>'s <code>coreOutsideCore</code> stays clean
+  </li>
+</ul>
+<p><b>Net effect:</b></p>
+<ul>
+  <li>
+    vocabularies and packs write skeletons the same way; <code>SkeletonSpec</code> stays the parsed shape the catalog
+    and <code>PlaceholderSkeleton</code> read
+  </li>
+  <li><code>core.js</code> 113,028 B / 33,299 gz (was 113,020 / 33,299)</li>
+  <li>
+    <code>gen-root</code>, <code>SiteDataBuilder</code> and <code>site-bundle</code> read the vocabulary files through
+    one new helper,
+    <a href="../../../packages/ui/tools/VocabularyFiles.ts" target="src-packages-ui-tools-vocabularyfiles-ts"
+      ><code>tools/VocabularyFiles.ts</code></a
+    >
+    (it was a loop copied in two places)
+  </li>
+</ul>
