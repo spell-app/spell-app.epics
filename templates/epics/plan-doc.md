@@ -187,9 +187,9 @@ element takes its colour from this table, never a colour that means something el
 | blue   | do it now, or Claude is working on it       | Do Now, Revisit, Send (everywhere: the page header, the agents panel, details pages); the Underway status card; an item Claude is working on (its chip, the spinner); an epic in progress; a goals topic "building" |
 | green  | decided or done                             | Approve, Make Todo; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card; an item decided or reviewed lately; an epic done; a goals topic "agreed", "shipped"               |
 | orange | ONLY changed since you looked, and warnings | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a stalled epic                                                                                                     |
-| violet | Claude's voice                              | his reply cards                                                                                                                                                                                                     |
+| violet | Claude's voice                              | his reply cards; "recommended" (a thumbs-up, no word)                                                                                                                                                               |
 | ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the rail and the contents drawer                                                                                                                     |
-| grey   | older, inactive, not chosen                 | an item decided or reviewed earlier; buttons at rest; a phase to do; "(recommended)", grey TEXT everywhere (no green label); a future epic; a goals topic "draft"                                                   |
+| grey   | older, inactive, not chosen                 | an item decided or reviewed earlier; buttons at rest; a phase to do; a future epic; a goals topic "draft"                                                                                                           |
 
 - No light blue, no light green: one shade per meaning.
 - Colour-blind readers tell red and green apart least: the chip's id, the icons and the words keep them readable.
@@ -356,12 +356,12 @@ it started ending):
 
    Each applied mark logs one line (`J9 approved:  closed (accepted)`); a mark Owen changed meanwhile stays. Each
    pick and todo also gets a green "Claude • Done" status card saying what was filed (`Chose B · ...`, `Made todo
-   T23 ...`: Q19 of `epic-components`); an approval none.
+T23 ...`: Q19 of `epic-components`); an approval none.
 
 4. Requests for now: FIRST `spell dev plan-doc status <name> <id> underway "<reading>"` (a blue "Claude •
    Underway" card under Owen's note: what Claude takes the task to be, one or two sentences, no file names; the
    spinner on); then a background agent per item writes into it with `spell dev plan-doc details <name> <id>
-   [--more | --append] --file <html>` (Add Details: `--more`, a More Details card under the item's text; revisit
+[--more | --append] --file <html>` (Add Details: `--more`, a More Details card under the item's text; revisit
    now: `--append` a reply), then `status <name> <id> done ["<summary>"]` (the same card turns green "Claude •
    Done"; a summary only when worth saying) and `inbox <name> done <id>`. A revisit talked over (step 3) the same:
    `underway` as it's taken up, `done` once answered. The card's markup: `PLAN-DOC.md` "Status cards".
