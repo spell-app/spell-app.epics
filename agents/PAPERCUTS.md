@@ -1553,3 +1553,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   still expected `/packages/docs/content/epics/...` and refused the new `/epics/...` page paths. · Fix:
   `spell dev server stop`, then `spell dev server start`:  restart a page server after merging anything that
   changes its routes or the content layout. · server
+
+- 2026-10-08 · After a worktree fast-forwarded to `main` (epic `spell-element`), its details page in the side bar
+  went blank:  the worktree's page server restarted twice within two minutes (58949 -> 64204 -> 64764), since
+  `ensure` restarts a server older than its sources (I5 of `skillz`), and the side bar kept the URL of a server
+  that was gone.  A `show` sent between the two restarts landed on the middle one. · Fix:  after a merge or
+  fast-forward, `spell dev server ensure` once, THEN `details show` / `plan-doc open` again;  `spell dev server
+  status` gives the live port. · server
