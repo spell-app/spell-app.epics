@@ -1,14 +1,15 @@
 <!-- plan-doc part:  #o4's body in skillz.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Every agent Claude starts, by <code>/bg</code> or on its own, gets a name, and the epic (or the checkout) keeps a list
-  of the ones still running. So Claude, and Owen through <code>/bg ?</code>, can always tell what is in flight. Owen
-  asked for this in his plan comments (2026-10-07; the names decision, <a href="#q8">Q8</a>).
+  Every agent Claude starts gets a name, whether <code>/bg</code> starts it or Claude does on its own. The epic (or
+  the checkout) keeps a list of the ones still running, so Claude can always tell what is in flight, and so can Owen
+  through <code>/bg ?</code> and the plan doc's panel. Owen asked for this in his plan comments (2026-10-07,
+  <a href="#q8">Q8</a>).
 </p>
 <h4 id="o4-names">Names</h4>
 <ul>
   <li>
     <code>/bg "aaa" &lt;task&gt;</code> names the agent <code>aaa</code>. With no name, Claude makes one up from the
-    task: 2-3 words, kebab-case (<code>docstrings-string-ts</code>).
+    task: 1-3 words, kebab-case (<code>string-docstrings</code>).
   </li>
   <li>
     The REAL name is prefixed with the epic’s name, else the worktree’s, else <code>main</code>:
@@ -16,40 +17,40 @@
       <li><code>/bg "aaa"</code> in this epic is <code>skillz-aaa</code></li>
       <li>the same on <code>main</code> is <code>main-aaa</code></li>
       <li>
-        agents Claude starts on its own are named the same way: this doc was filled by <code>skillz-plan-doc</code>
+        agents Claude starts on its own are named the same way: this doc's Doc Review was done by
+        <code>skillz-plan-doc</code>
       </li>
       <li>an agent’s own helpers add to its name: <code>skillz-aaa-tests</code></li>
+      <li>a name already running is refused (<code>add</code> exits 1), and Claude takes <code>aaa-2</code></li>
     </ul>
   </li>
   <li>
-    Claude Code’s <code>Agent</code> call has no name field (<a href="#c2">C2</a>), so the name goes first in its
+    Claude Code’s <code>Agent</code> call has no name field (<a href="#c2">C2</a>). So the name goes first in its
     <code>description</code> (<code>skillz-aaa: docstrings in string.ts</code>), and in the list.
   </li>
   <li>A reply that relays an agent’s report opens with its name in bold: <b>Agent skillz-aaa came back with:</b></li>
 </ul>
 <h4 id="o4-file">The list, one file per place</h4>
-<p>Git-ignored, never committed: it is what is running NOW.</p>
+<p>Git-ignored, never committed: it is what is running NOW, and the file goes once the list is empty.</p>
 <ul>
   <li>
-    in an epic: <code>epics/&lt;epic&gt;/agents.json</code>, beside the plan doc in the shared repo;
-    <code>epics/*/agents.json</code> goes in spell-app-dev’s
-    <a href="../../../.gitignore" target="src-gitignore"><code>.gitignore</code></a> (and in
-    <code>spell dev shared init</code>’s template)
+    in an epic: <code>epics/&lt;epic&gt;/agents.json</code>, beside the plan doc in the shared repo.
+    <code>epics/*/agents.json</code> is in spell-app-dev’s <code>.gitignore</code> and in
+    <code>spell dev shared init</code>’s template.
   </li>
   <li>
-    no epic: <code>&lt;checkout root&gt;/.spell-agents.json</code>, in spell-app’s
-    <a href="../../../.gitignore" target="src-gitignore"><code>.gitignore</code></a> (the no-epic list decision,
-    <a href="#q5">Q5</a>)
+    no epic: <code>&lt;checkout root&gt;/.spell-agents.json</code>, in spell-app’s <code>.gitignore</code>
+    (<a href="#q5">Q5</a>)
   </li>
 </ul>
 <h4 id="o4-format">Format</h4>
 <p>
-  Owen’s format, plus two fields the command needs: <code>started</code> (for the age <code>/bg ?</code> shows) and
-  <code>taskId</code> (Claude Code’s background task id, for <code>/bg stop</code>). <a href="#p3">P3</a> adds
-  <code>redirects</code>, the notes Owen sends from the plan doc.
+  Owen’s format, plus the fields the command needs: <code>started</code> (for the age), <code>taskId</code> (Claude
+  Code’s background task id, for <code>/bg stop</code> and redirects), and <code>redirects</code> (Owen’s notes from
+  the plan doc, <a href="#o5">1.5</a>).
 </p>
 <ui-accordion class="spell-code" styled
-  ><ui-title>epics/skillz/agents.json · 16 lines</ui-title
+  ><ui-title>epics/skillz/agents.json · 19 lines</ui-title
   ><ui-content>
     <pre><code class="language-json">[
   {
@@ -57,7 +58,10 @@
     "task": "Add a docstring to every export in util/string.ts",
     "status": "active",
     "started": "2026-10-07T14:05:00-04:00",
-    "taskId": "&lt;background task id&gt;"
+    "taskId": "&lt;background task id&gt;",
+    "redirects": [
+      { "note": "only the exported ones", "at": "2026-10-07T14:07:12Z", "told": "2026-10-07T14:07:19Z" }
+    ]
   },
   {
     "name": "skillz-bbb",
@@ -69,51 +73,40 @@
 ]</code></pre>
   </ui-content></ui-accordion
 >
-<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
-  ><p>
-    The command is <code>spell dev agents</code>, not <code>spell dev agent</code> (2026-10-07): the WWOD citation check
-    that had the name moves to <code>spell dev wwod check</code> (<a href="#q12">Q12</a>).
-  </p></ui-message
->
 <ul>
   <li><code>status</code>: <code>active</code>, or <code>blocked on &lt;name&gt;</code> (it waits for that one)</li>
   <li><code>task</code>: one sentence or less</li>
-  <li>an entry goes when its agent finishes (<code>spell dev agents done</code>): the list is only what is running</li>
+  <li>an entry goes when its agent finishes (<code>spell dev agents done</code>)</li>
 </ul>
 <h4 id="o4-who">Who updates it</h4>
-<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
-  ><p>
-    <code>spell dev agents</code>, not <code>spell dev agent</code> (2026-10-07, <a href="#q12">Q12</a>).
-  </p></ui-message
->
 <p>
-  Only the new <code>spell dev agents</code> command, never Claude by hand (<a href="#q6">Q6</a>): several helpers may
-  write at once, so every write is locked.
+  Only <code>spell dev agents</code> (and the page server's redirect route), never Claude by hand
+  (<a href="#q6">Q6</a>). Several helpers may write at once, so every write is locked and atomic
+  (<code>AgentList.ts</code>, on the same file lock as the review inbox).
 </p>
 <ul>
-  <li><code>add &lt;name&gt; "&lt;task&gt;"</code>: when an agent starts; adds the prefix, prints the full name</li>
-  <li><code>set &lt;name&gt; --status ...</code>: blocked, or active again</li>
+  <li><code>add &lt;name&gt; "&lt;task&gt;" [--status ...] [--task-id ...]</code>: adds the prefix, prints the full name</li>
+  <li>
+    <code>set &lt;name&gt; [--status ...] [--task-id ...]</code>: changes only the fields given
+    (<a href="#i4">I4</a>)
+  </li>
   <li><code>done &lt;name&gt;</code>: when its report arrives, or it is stopped</li>
-  <li><code>list [--json]</code>: what <code>/bg ?</code> shows</li>
-  <li><code>wait</code> / <code>told</code>: redirects from the plan doc (<a href="#p3">P3</a>)</li>
+  <li><code>list [--json]</code>: what <code>/bg ?</code> shows; <code>--epic &lt;name&gt;</code> picks the epic by hand</li>
+  <li><code>wait</code> / <code>told</code>: redirects from the plan doc (<a href="#o5">1.5</a>)</li>
 </ul>
 <h4 id="o4-rule">The standing rule</h4>
-<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
-  ><p>
-    <code>spell dev agents add</code>, not <code>spell dev agent add</code> (2026-10-07, <a href="#q12">Q12</a>).
-  </p></ui-message
->
 <p>
-  Claude-only, so it goes in <a href="../../../CLAUDE.md" target="src-claude-md"><code>CLAUDE.md</code></a
-  >, short, pointing at the <code>/bg</code> skill (<a href="#p2">P2</a>):
+  It's Claude-only, so it lives in the root <code>CLAUDE.md</code>, "Delegated work". It is short and points at the
+  <code>/bg</code> skill for the steps (<a href="#j4">J4</a>):
 </p>
 <ul>
   <li>
-    every agent Claude starts is named and listed: <code>spell dev agents add</code> when it starts,
-    <code>done</code> when it ends
+    every agent Claude starts is named and listed: <code>spell dev agents add</code> before it starts,
+    <code>done</code> when it's back; while any runs, a <code>spell dev agents wait</code> waits for redirects
   </li>
+  <li>the reply relaying it opens <b>Agent &lt;full name&gt; came back with:</b></li>
   <li>
-    plan-doc work goes to a background agent, as if Owen typed <code>/bg "plan-doc" ...</code> (<a href="#q9">Q9</a>);
-    <code>/epic</code>’s SKILL.md says so in its plan-doc steps too
+    plan-doc work goes to a background agent, as if Owen had typed <code>/bg "plan-doc" ...</code>
+    (<a href="#q9">Q9</a>). <code>/epic</code>’s SKILL.md says so in its fill, phase-done and Doc Review steps.
   </li>
 </ul>

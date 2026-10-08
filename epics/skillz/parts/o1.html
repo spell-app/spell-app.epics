@@ -1,95 +1,77 @@
 <!-- plan-doc part:  #o1's body in skillz.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
   <code>/bg</code> hands a task to a helper agent that works in the background, so the Claude panel is free again at
-  once: Owen can keep talking to the session (or send more <code>/bg</code> tasks) while the helper works.
+  once. Owen can keep talking to the session, or send more <code>/bg</code> tasks, while the helper works. The skill:
+  <code>.claude/skills/bg/SKILL.md</code>.
 </p>
-<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
-  ><p>
-    The forms changed with the approved plan (2026-10-07): a task may be named (<code>/bg "aaa" ...</code>); the list
-    form is <code>/bg ?</code>, not <code>/bg list</code> (Owen’s plan comment; <a href="#q3">Q3</a>); both read the
-    running-agents list (<a href="#o4">1.4</a>).
-  </p></ui-message
->
-<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
-  ><p>
-    The list command is <code>spell dev agents</code>, not <code>spell dev agent</code> (2026-10-07): the WWOD citation
-    check that had the name moves to <code>spell dev wwod check</code> (<a href="#q12">Q12</a>).
-  </p></ui-message
->
 <ul>
   <li>
     <code>/bg ["name"] [n] &lt;task&gt;</code>: start the task.
     <ul>
       <li>
-        <code>"name"</code> (optional, a quoted first word) names the helper; the real name gets the epic’s prefix:
+        <code>"name"</code> (optional, a quoted first word) names the helper. Its real name gets the epic’s prefix, so
         <code>/bg "aaa" ...</code> here is <code>skillz-aaa</code>. No name: Claude makes one up from the task.
       </li>
       <li>
-        <code>n</code> (optional, default 1) is the most agents the task may use IN ALL, the helper itself included.
-        <code>/bg 4 &lt;task&gt;</code>: the helper plus up to 3 of its own.
+        <code>n</code> (optional, 1-5, default 1) is the most agents the task may use IN ALL, the helper included.
+        <code>/bg 3 &lt;task&gt;</code> means the helper plus up to 2 of its own.
       </li>
       <li>
-        A hard cap: unlike the root rule (up to 5 agents, unasked), the helper never goes over <code>n</code> (<a
-          href="#c1"
-          >C1</a
-        >).
+        It's meant as a hard cap: unlike the root rule (up to 5 agents, unasked), the helper never goes over
+        <code>n</code>. Only the helper's prompt holds it to that (<a href="#c1">C1</a>).
       </li>
     </ul>
   </li>
   <li>
-    <code>/bg ?</code>: the agents still running, from the list (<code>spell dev agents list</code>), each with its
-    name, task, status and age.
+    <code>/bg ?</code>: the agents still running, from the list (<code>spell dev agents list --json</code>), each
+    with its name, status, age and task.
   </li>
   <li>
-    <code>/bg stop &lt;name&gt;</code>: stop one (<code>TaskStop</code> by its task id), and take it off the list.
+    <code>/bg stop &lt;name&gt;</code>: stop one (<code>TaskStop</code> by its task id), and take it off the list. Its
+    staged changes stay.
   </li>
 </ul>
 <p>What happens, in order:</p>
-<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
-  ><p>
-    Each step now names and lists the helper (<a href="#q8">Q8</a>), and the report opens with the agent’s name in bold.
-  </p></ui-message
->
-<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
-  ><p>
-    Steps 1 and 3 call <code>spell dev agents add</code> / <code>done</code>, not
-    <code>spell dev agent</code> (2026-10-07, <a href="#q12">Q12</a>).
-  </p></ui-message
->
 <ol>
   <li>
-    The session starts ONE background helper, a fork of itself (<a href="#q1">Q1</a>), with the task word for word, plus
-    what the helper can't know by itself:
+    The same-files check: does a running agent's task touch the files this one will? If so, the new task is listed
+    as <code>blocked on &lt;other&gt;</code> and doesn't start yet. The reply is one line, <code>waiting: ...</code>.
+  </li>
+  <li><code>spell dev agents add</code> lists the helper and prints its full name (why first: <a href="#j3">J3</a>).</li>
+  <li>
+    ONE background <code>Agent</code> call. It asks for a fork of the session first (<a href="#q1">Q1</a>), and falls
+    back to <code>general-purpose</code> where the session has no fork agent (<a href="#i3">I3</a>,
+    <a href="#o3">1.3</a>). Its prompt is the skill's template:
     <ul>
-      <li>its full name, and its agent budget, <code>n</code></li>
-      <li>which checkout or worktree it's in</li>
-      <li>the epic and plan doc, if the session has one</li>
+      <li>the task, word for word</li>
       <li>
-        the house rules that matter: WWOD; stage, never commit unless told; shared files edited at their real path;
-        judgement calls recorded in the plan doc; plain shell commands in a worktree
+        a Context line: what the conversation said that the task leans on, which a <code>general-purpose</code>
+        helper can't see
+      </li>
+      <li>the checkout, the epic and plan doc, and the budget <code>n</code></li>
+      <li>
+        the house rules: WWOD; stage, never commit unless told; shared files edited at their real path; plain shell
+        commands in a worktree
+      </li>
+      <li>
+        no AskUserQuestion: a choice only Owen should make is taken and recorded as a judgement call
+        (<a href="#q4">Q4</a>)
       </li>
     </ul>
-    It adds the helper to the list: <code>spell dev agents add</code>.
+  </li>
+  <li><code>spell dev agents set --task-id</code>: the id <code>/bg stop</code> and redirects need.</li>
+  <li>A redirect waiter starts, if none runs yet (<a href="#o5">1.5</a>).</li>
+  <li>
+    The session replies ONE line, <code>started: skillz-aaa (1 agent)</code>, and ends its turn: the panel is free.
   </li>
   <li>
-    The session replies ONE line, <code>started: &lt;full name&gt; (&lt;n&gt; agents)</code>, e.g.
-    <code>started: skillz-aaa (1 agents)</code>, and ends its turn.
-  </li>
-  <li>
-    When the helper finishes, its notice wakes the session, which takes it off the list (<code
-      >spell dev agents done</code
-    >) and writes a short report:
-    <ul>
-      <li>it opens <b>Agent skillz-aaa came back with:</b>, for every named agent, <code>/bg</code> or not</li>
-      <li>then what changed, where to look, and anything that needs Owen</li>
-      <li>with links as the root rules say (side bar + browser; plan docs in the Review tab)</li>
-    </ul>
+    When the helper finishes, its notice wakes the session. The session runs <code>spell dev agents done</code> and
+    writes a short report that opens with a bold line, <b>Agent skillz-aaa came back with:</b>. Any task that was
+    <code>blocked on</code> this one starts next.
   </li>
 </ol>
-<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE"
-  ><p>The second task now waits on the list, marked "blocked on", and starts by itself.</p></ui-message
->
 <p>
-  Several <code>/bg</code> tasks at once are fine. Two that would touch the same files: the second is listed as
-  <code>blocked on &lt;first&gt;</code>, and the session starts it only once the first one’s report arrives.
+  Tried for real from the VS Code panel (<a href="#p5">P5</a>): a helper came back in 52s (V1). <code>/bg 3</code>
+  stayed within 3 agents (V2). A second task on the same file waited, then ran (V3). <code>/bg stop</code> left
+  nothing behind (V4).
 </p>
