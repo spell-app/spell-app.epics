@@ -1572,3 +1572,8 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   link to `/spell-app-dev/epics/...`, which no page server serves (404 JSON in the tab). · Fix:  give `docs link` the
   path THROUGH the checkout (`<checkout>/epics/<name>/...`, the folder link);  it then picks the main server's
   `/worktrees/<name>/...` route.  `link.ts` could map a real shared path back itself. · docs
+
+- 2026-10-08 · Cmd-A, copy and paste did nothing in the side bar's pages (epic `spell-element`), though the fix
+  (windows-and-review I2) was installed:  the window had not been reloaded since the extension was, so it still ran
+  the old one.  A traced round showed every hop working after a reload. · Fix:  after `spell dev vscode`, reload each
+  open window (Developer: Reload Window) before judging a side-bar fix. · vscode
