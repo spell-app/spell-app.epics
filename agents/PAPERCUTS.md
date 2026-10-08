@@ -1497,6 +1497,15 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## vscode
 
+- 2026-10-07 · A worktree window's Quick Open lists the MAIN checkout's files beside the worktree's (Owen opened
+  `spell-app/packages/ui/.../UINagHost.ts`, main's copy, from the `wwod-spell-ui` window).  `filesExclude()`'s
+  `"*": { "when": ".spell-main" }` hides them in Explorer only:  a sibling clause matches entries NEXT TO the marker,
+  and Quick Open matches deep file paths.  No workspace-level glob can pick one folder of two sharing relative
+  paths.  Main must stay folder 1:  the Claude panel lists, starts and resumes sessions in folder 1 (its project key
+  is the path with non-alphanumerics as `-`), so an empty or linked stand-in folder breaks resume / handoff. · Check
+  the path in the tab before editing.  Real fix only by putting the worktree first (per-worktree session lists:
+  hooks + `window.mjs`);  Owen declined for now. · vscode
+
 - 2026-10-06 · Nothing in the side bar's Spell Docs view was clickable (the plan doc and a details page, epic
   `outline-spell`'s window, after a `handoff` move).  The page itself was fine:  served 200, no console errors, and
   in Playwright -- inside a cross-origin iframe with `DocView`'s exact `sandbox`, 300px wide -- a click unfolded
