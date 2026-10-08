@@ -185,13 +185,13 @@ element takes its colour from this table, never a colour that means something el
 
 | Colour | Means                                       | Examples                                                                                                                                                                                                            |
 | ------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| red    | needs you (Owen)                            | an open question's chip; an unreviewed judgement call or issue; the contents and rail count; a details question with nothing picked; a details page "waiting for your answer"; an open goals question               |
+| red    | needs you (Owen)                            | an open question's chip; an unreviewed judgement call or issue; the rail's count; a details question with nothing picked; a details page "waiting for your answer"; an open goals question               |
 | yellow | open, still undecided                       | an open todo, caveat or test (a todo a review queued too); a reviewed issue or judgement call; "to do"; an epic still planning; a goals topic "in dialog". DARK text and icons on a yellow fill                     |
 | blue   | do it now, or Claude is working on it       | Do Now, Revisit, Send (everywhere: the page header, the agents panel, details pages); the Underway status card; an item Claude is working on (its chip, the spinner); an epic in progress; a goals topic "building" |
 | green  | decided or done                             | Approve, Make Todo; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card; an item decided or reviewed lately; an epic done; a goals topic "agreed", "shipped"               |
 | orange | ONLY changed since you looked, and warnings | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a stalled epic                                                                                                     |
 | violet | Claude's voice                              | his reply cards; "recommended" (a thumbs-up, no word)                                                                                                                                                               |
-| ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the rail and the contents drawer                                                                                                                     |
+| ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the rail                                                                                                                     |
 | grey   | older, inactive, not chosen                 | an item decided or reviewed earlier; buttons at rest; a phase to do; a future epic; a goals topic "draft"                                                                                                           |
 
 - No light blue, no light green: one shade per meaning.
@@ -211,6 +211,7 @@ labels):
 
 - It flips the old rule (solid meant "not sent yet", 2026-10-06).
 - Send never goes solid on a details page: the page can't tell when Claude is done with the answer.
+- An item's id chip MATCHES its chosen review button while Owen's mark is live (2026-10-08): that button's colour and fill (Approve pressed, not sent: dashed green); no mark, or one Claude handled: its state's colour, solid.
 
 ### The review buttons
 
@@ -239,7 +240,7 @@ edit. The FIRST row that applies wins, top to bottom (`PLAN-DOC.md`, "Items", th
 | `recent`    | green  | open, reviewed lately or touched by a `/bedtime` run                                         |
 | `open`      | yellow | anything else open: still undecided, not urgent (todos, caveats, tests; reviewed issues and judgement calls) |
 
-- The contents and the rail count only `attention` items, in a red pill; none, no pill.
+- The rail counts only `attention` items, in a red pill; none, no pill.
 - In CSS: `<epic-page>`'s `--epic-state-*` (`packages/epics`), `spell-doc.css`'s `--spell-state-*` (the other doc
   pages): the same values.
 - Goals pages colour their items by the same states (an open question `attention`, any other open item `open`, a
@@ -301,9 +302,11 @@ While a phase is active, flag what changed so the user can spot it:
 ## Review inbox
 
 Owen marks items ON the page (served by the page server): approve, todo, Add Details, revisit (soon / now, with a
-note), pick an option. A question may carry a pick AND a revisit note together ("pick B, but ..."): the revisit
-mark holds the `pick`. An ANSWERED question's Choices take Choose pills too, on every option but the chosen one,
-only while Owen revisits it (its Revisit box open, or a revisit or pick mark): "pick B instead, because ..." is a
+note), pick an option. Picks work wherever option cards are (I8 of `epic-components`): a question's, a judgement
+call's text, a reply, More Details; the mark names WHICH card set by position (`{ pick: "B", choices: 1 }`; none:
+the item's own). An item may carry a pick AND a revisit note together ("pick B, but ..."): the revisit mark holds
+the `pick`. A CLOSED item's cards (an answered question, an accepted call) take Choose pills too, on every option
+but the chosen one (its pill solid), only while Owen revisits it (its Revisit box open, or a revisit or pick mark): "pick B instead, because ..." is a
 revisit carrying the pick, talked over; a plain pick there, once applied, answers it again with that option. The
 marks wait in `<name>.inbox.json` beside the doc (git-ignored) until "send to Claude"; Add Details and revisit now
 go at once (the inbox's `now` queue), and Owen may call one off ("nevermind": `canceled`, handed to the waiting
@@ -357,10 +360,11 @@ it started ending):
    | approve             | an open judgement call                                             | closed (accepted), reviewed                                                                                                                                                        |
    | approve             | an open test                                                       | closed (passed), reviewed                                                                                                                                                          |
    | approve             | anything else (open caveat, issue, todo; closed or answered items) | reviewed                                                                                                                                                                           |
-   | pick                | a question                                                         | answered with that option's title, the option chosen, reviewed                                                                                                                     |
+   | pick                | a question                                                         | answered with that option's title, the option chosen (in the card set the mark names), reviewed                                                                                    |
+   | pick                | any other item (judgement call, issue, todo, caveat)               | APPROVED with that option: its card set's `chosen` set, then as approve (an open judgement call closed, accepted; reviewed); the option in the log line                            |
    | todo                | any item                                                           | a new todo "Follow up: <title>" linking back, the item reviewed                                                                                                                    |
    | revisit soon        | any item                                                           | left: answered INTO the item as a reply (`details --append`), the chat only linking it (Q3 of `windows-and-review`), then `inbox <name> clear <id>`                                |
-   | revisit with a pick | a question                                                         | left, NOT answered ("to talk over: picks B · ..., asks: ..."): answer the note about that option; once Owen agrees, `decide <name> <id> "<option title>" --option B`, then `clear` |
+   | revisit with a pick | any item                                                           | left, NOT answered ("to talk over: picks B · ..., asks: ..."): answer the note about that option; once Owen agrees, he picks it plainly (a question: or `decide ... --option B`), then `clear` |
 
    Each applied mark logs one line (`J9 approved:  closed (accepted)`); a mark Owen changed meanwhile stays. Each
    pick and todo also gets a green "Claude • Done" status card saying what was filed (`Chose B · ...`, `Made todo
@@ -398,11 +402,6 @@ that stays plain HTML inside it. Never hand-shape them (`<p><b>Net effect:</b></
 tool turns those old shapes into the elements on the way in (`details --file`, `--details`, `updated`), but prose
 edited by hand in a part file isn't passed through it. All of them, with an example each: `PLAN-DOC.md`, "Prose
 elements".
-
-- UNTIL P14 of `epic-components` is merged into `main`: `main`'s tool (the `spell` link) doesn't know these tags
-  yet and refuses an edit holding one ("unknown tag"). Write the old shapes through the tool until then (they're
-  turned into the elements once it's merged, and by the second conversion pass); check with `spell dev plan-doc
-  check <name>`.
 
 - Code: ALWAYS folded and coloured, an `<epic-code>` holding ONE `<pre>` of the code as text (`&lt;` for a `<`):
 
