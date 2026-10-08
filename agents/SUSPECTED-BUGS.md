@@ -712,6 +712,12 @@ every entry below that date was fixed or disproven;  what's left:
   list and to the shared repo's `.gitignore`.
 - spell-app's `.gitignore` comments still say an epic's details pages and plan docs are "committed" (with the
   branch);  harmless, but stale since `shared-content`.
+- `packages/epics/src/convert/ConvertRun.test.ts` "the real windows-and-review doc":  fails since P12 of
+  `epic-components` (`8a9ede10`) converted every shared plan doc:  the converter now skips the already-converted real
+  doc, so `result.conversion` is `undefined` ("Cannot read properties of undefined (reading 'problems')").  Prove:
+  `yarn vp test run --project node src/convert/ConvertRun.test.ts` in `packages/epics`.  Fix:  run it on a copy of
+  the doc from before the switch (git history of `spell-app-dev`), or drop it now the switch is done.  (Found
+  2026-10-08 merging `skillz`.)
 
 ## server
 
