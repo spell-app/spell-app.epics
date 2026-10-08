@@ -1,0 +1,144 @@
+<!-- plan-doc part:  #o3's body in precedence-and-types.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<h4 id="o3-bp">Binding power</h4>
+<ul>
+  <li>
+    Two numbers, two jobs (<a href="#d26">D26</a>): an operator's <code>precedence</code>, from the
+    <code>Precedence</code> table, on suffix rules only -- <code>*</code> 14, <code>+</code> 13, comparisons 11,
+    <code>is</code> 10, <code>and</code> 6, <code>or</code> 5, <code>X if C otherwise Y</code> 4. A rule's
+    <code>priority</code> (was <code>precedence</code>) only breaks a <code>Choice</code>'s tie: highest, then longest,
+    then earliest (<a href="#d15">D15</a>).
+  </li>
+  <li>
+    <code>compound_expression</code> is THE <code>expression</code> rule: an <code>operand</code>, then each suffix
+    binding tighter than its <code>bound</code>. Parsed once per level, not twice. A postfix pops like an infix:
+    <code>x + y is empty</code> =&gt; <code>isEmpty(x + y)</code>.
+  </li>
+  <li>
+    <code>operand</code> (<a href="#d29">D29</a>): an expression with no operator at its top. A prefix's last slot is
+    <code>{list:operand}</code>, <code>there is a</code> too (<a href="#d23">D23</a>); <code>absolute value</code> /
+    <code>round</code> take <code>{x:arithmetic_expression}</code>, the sum (<a href="#d3">D3</a>); statements and slots
+    closed by a word keep <code>{expression}</code>.
+  </li>
+  <li>
+    Give-back in <code>Sequence</code>, the one change in
+    <a href="../../../packages/parser/" target="src-packages-parser"><code>packages/parser</code></a
+    >: a required word the slot before swallowed re-parses that slot shorter --
+    <code>remove the card of the pile</code>.
+  </li>
+  <li>
+    Calls and <code>wait for</code>: whole arguments as statements; inside an expression their LAST slot is an operand
+    (<a href="#d24">D24</a>, <a href="#d27">D27</a>, <a href="#d33">D33</a>) -- <code>if double x is 4</code> =&gt;
+    <code>double_$n(x) == 4</code>. One flag, <code>operandInExpressions</code>: a statement rule plus an operand twin,
+    derived at registration (<a href="#j17">J17</a>, <a href="#j18">J18</a>).
+  </li>
+  <li>
+    The model:
+    <a href="../../../guides/precedence/parser-model.html" target="src-guides-precedence-parser-model-html"
+      >Parser Model</a
+    >
+    §4.5; the mechanics:
+    <a href="../../../packages/spell/PARSING.md" target="src-packages-spell-parsing-md"><code>PARSING.md</code></a>
+    "Expressions".
+  </li>
+</ul>
+<h4 id="o3-types">A datatype on every match</h4>
+<ul>
+  <li>
+    <code>match.datatype</code> = <code>rule.getDatatype(match)</code>, in spell's words (<code>P.Datatype</code>:
+    <code>text</code>, <code>choice</code>, <code>list of cards</code>, <code>Card</code>; <a href="#d16">D16</a>); ONE
+    normaliser, <code>SP.typeName()</code>, for what a user writes (<a href="#j13">J13</a>). Unknown fits everything.
+  </li>
+  <li>
+    Lookups stay in <code>parse()</code>, into <code>match.data</code>; about 20 rules override
+    <code>getDatatype()</code>.
+  </li>
+  <li>
+    <code>TypeScope</code>: <code>itemType</code>, <code>chain()</code> / <code>isA()</code> /
+    <code>getMember()</code> (moved from the LSP); methods get <code>P.ScopeMethod</code> records -- in the project's
+    own <code>methods</code> when the type is built in or imported (<a href="#j11">J11</a>).
+  </li>
+  <li>
+    Return types inferred once a body parses (<code>mutateScopeFromBody()</code>,
+    <a href="#j20">J20</a>); a getter's type is its property's, so getters change scope (<a href="#d9">D9</a>).
+  </li>
+  <li>
+    <code>is a</code> takes a KNOWN type (<a href="#d32">D32</a>), declared anywhere in the project: a line pre-scan
+    stubs them first (<a href="#j19">J19</a>).
+  </li>
+  <li>
+    Declarations gain <code>params</code> / <code>returns</code> / <code>itemType</code>, no
+    <code>SPELL_VERSION</code> bump (<a href="#d37">D37</a>, <a href="#j14">J14</a>).
+  </li>
+</ul>
+<h4 id="o3-calls">Signatures, calls, members</h4>
+<ul>
+  <li>
+    Paren-free typed parameters (<a href="#d2">D2</a>): <code>to give a card to a pile</code> ~==
+    <code>to give (a card) to (a pile)</code>; <code>to create a card</code> =&gt; <code>Card.create()</code>.
+  </li>
+  <li>
+    A call rejects an argument only when its type is known and UNRELATED to the parameter's (<a href="#d6">D6</a>,
+    <a href="#j16">J16</a>): <code>put the chip on the pot</code> picks Chip's.
+  </li>
+  <li>
+    Members: <code>member_words</code>, 1..N words up to a stop word, blacklist skipped (<a href="#j25">J25</a>).
+    <code>the X of Y</code> is ONE rule, resolved through Y's type, else one loose word (<a href="#d5">D5</a>,
+    <a href="#j23">J23</a>), at priority 1 (<a href="#j24">J24</a>). <code>class_member</code> replaces
+    <code>EnumerationRule</code>; new <code>list_count</code> (<a href="#j26">J26</a>).
+  </li>
+  <li>
+    Auto-declare at the first <code>set the X of Y</code> (<a href="#d10">D10</a>): on types the project declares only
+    (<a href="#j28">J28</a>), at the file's top or after the type's class (<a href="#j29">J29</a>).
+  </li>
+  <li>
+    Built-in member tables, <code>SP.BUILT_IN_TYPE_TABLE</code> (<a href="#d34">D34</a>): thing, list, app, text, date;
+    a member compiles per type, <code>the length of the name</code> =&gt; <code>name.length</code>,
+    <code>of the deck</code> =&gt; <code>spellCore.itemCountOf(deck)</code> (<a href="#j35">J35</a>). The Type Explorer
+    is built from it (<a href="#j34">J34</a>); declaring or setting a built-in member is refused, with a reason (<a
+      href="#j33"
+      >J33</a
+    >).
+  </li>
+</ul>
+<h4 id="o3-excl">Exclusive lists</h4>
+<ul>
+  <li>
+    <code>a pile is an exclusive list of cards</code> (<a href="#d7">D7</a>): a card is in at most one list of the
+    family, Pile and its sub-types; a deck is outside it.
+  </li>
+  <li>
+    <code>the pile of a card</code>: a read-only member of Card, declared by Pile's line, compiled as a getter patched
+    on after Pile's class, <code>Pile.ownerOf(this)</code> (<a href="#j39">J39</a>); <code>set the pile of …</code> is
+    refused.
+  </li>
+  <li>
+    Runtime: one <code>WeakMap</code> per family, every write to a list's items through <code>List.writeItems()</code>;
+    adding a held card moves it (<a href="#j37">J37</a>); scratch results (filter, copy, merge) own nothing (<a
+      href="#d8"
+      >D8</a
+    >, <a href="#j38">J38</a>).
+  </li>
+  <li>Pile.spell's <code>to move a card to a pile</code> is now add + pause (<a href="#d36">D36</a>).</li>
+</ul>
+<h4 id="o3-ts">TypeScript check: its own epic (<a href="#d1">D1</a>)</h4>
+<ul>
+  <li>
+    Not built. Was: emit typed <code>.ts</code> of today's shapes, checked by the editor, errors mapped to spell lines.
+    Now a later epic (<a href="#t1">T1</a>); this one infers return types in the parser (P5).
+  </li>
+</ul>
+<h4 id="o3-simple">Simple first (<a href="#p2">P2</a>)</h4>
+<ul>
+  <li>
+    <a href="../../../guides/precedence/parser-model.html" target="src-guides-precedence-parser-model-html"
+      ><code>parser-model.html</code></a
+    >
+    modelled every change before code; P3 built its smaller design (<a href="#d21">D21</a>) after a prototype Owen
+    reviewed. Its "Built" notes say where P4-P8 went further.
+  </li>
+  <li>
+    Concepts beyond the model, each recorded as it came: the operand twin (<a href="#j17">J17</a>), the type pre-scan
+    (<a href="#j19">J19</a>), <code>mutateScopeFromBody()</code> (<a href="#j20">J20</a>),
+    <code>SpellStatement.refuse()</code> (<a href="#j33">J33</a>).
+  </li>
+</ul>

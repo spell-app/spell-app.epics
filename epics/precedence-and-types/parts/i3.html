@@ -1,0 +1,29 @@
+<!-- plan-doc part:  #i3's details in precedence-and-types.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Everything else in §4.5 is prototyped; <code>if double x is 4</code> still compiles to <code>double_$n(x == 4)</code>.
+</p>
+<p>
+  Why it isn't a one-liner: a call rule is ONE
+  <code>DynamicMethodRule.specialize({ output, alias })</code> registered with ONE <code>syntax</code>, by both
+  <code>MethodDefinition.getRule()</code> and the import loader (<code>SpellDeclarations.loadRule()</code>), each
+  through <code>scope.addRule()</code>. Registering twice from <code>getRule()</code> (a statement rule, plus an
+  expression rule whose last slot is <code>{x:single_expression}</code>) makes one statement declare two different
+  <code>syntax</code>es: <code>SpellDeclarations.declarationFor()</code> throws, and the import path would only rebuild
+  one of them.
+</p>
+<p>Options:</p>
+<ol>
+  <li>
+    <b>Twin on registration</b> (~25 lines, spell-side): <code>SpellParser</code> registers a call rule under
+    <code>single_expression</code> as a memoized, frozen copy whose last <code>{x:expression}</code> slot is
+    <code>{x:single_expression}</code>. Declarations, imports and the journal stay as they are. Cost: a new concept (a
+    rule's 'expression twin'), and the language server's references / go-to-definition from a call INSIDE an expression
+    must map the twin back to its <code>ScopeRule.instances</code> entry.
+  </li>
+  <li>
+    <b>Declarations list both rules</b>: change <code>SPELL: DECLARES</code> to allow a rule list. Touches the saved
+    format, so it belongs with P4's version bump.
+  </li>
+  <li><b>Defer to P5</b>: bound only calls whose return type is known.</li>
+</ol>
+<p>Recommend 1 if D24 stays; it's the only option that leaves saved declarations alone.</p>
