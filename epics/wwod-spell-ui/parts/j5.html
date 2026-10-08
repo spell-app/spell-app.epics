@@ -32,35 +32,31 @@
     <code>defaultText()</code>.
   </li>
 </ul>
-<ui-accordion class="spell-code" styled
-  ><ui-title>NativeFallback.ts · attr(), as committed · 8 lines</ui-title
-  ><ui-content>
-    <pre><code class="language-ts">/**
+<epic-code title="NativeFallback.ts · attr(), as committed · 8 lines" language="ts">
+  <pre>
+/**
  * Host attribute `name`, or `null`.
  * - `null`, not `undefined`:  it IS `getAttribute()`, a platform boundary.  Subclasses test `=== null` for
  *   "absent", and TypeScript wouldn't flag one of those left behind by a switch to `undefined`.
  */
 protected attr(name: E.AttributeNameOf&lt;V&gt;): string | null {
   return this.host.getAttribute(name)
-}</code></pre>
-  </ui-content></ui-accordion
->
+}</pre>
+</epic-code>
 <p>
   The closest thing elsewhere is <code>HostAttribute.get()</code>, which reads a host attribute that isn't in the
   vocabulary. In Q17 Owen answered that it returns <code>undefined</code>, so it turns <code>getAttribute()</code>'s
   <code>null</code> into <code>undefined</code> the moment it reads it.
 </p>
-<ui-accordion class="spell-code" styled
-  ><ui-title>HostAttribute.ts · get() · 6 lines</ui-title
-  ><ui-content>
-    <pre><code class="language-ts">/**
+<epic-code title="HostAttribute.ts · get() · 6 lines" language="ts">
+  <pre>
+/**
  * Current value, `undefined` when absent;  tracked.
  * - `getAttribute()`'s `null` stops here:  `null` only at platform boundaries (epic `wwod-spell-ui`, Q9, Q17).
  */
 readonly get: Accessor&lt;string | undefined&gt;
-// constructor:  const read = () =&gt; host.getAttribute(name) ?? undefined</code></pre>
-  </ui-content></ui-accordion
->
+// constructor:  const read = () =&gt; host.getAttribute(name) ?? undefined</pre>
+</epic-code>
 <p>So the two readers of the same thing, a host attribute, disagree:</p>
 <ul>
   <li><code>HostAttribute.get()</code> answers <code>undefined</code>.</li>
@@ -109,10 +105,9 @@ readonly get: Accessor&lt;string | undefined&gt;
   </li>
   <li>No test pins the <code>null</code>: <code>attr()</code> is <code>protected</code>, and no test reaches it.</li>
 </ul>
-<ui-accordion class="spell-code" styled
-  ><ui-title>three real call sites · 11 lines</ui-title
-  ><ui-content>
-    <pre><code class="language-ts">// ui-button.fallback.ts:  absent href =&gt; a &lt;button&gt;;  href="" is still a link
+<epic-code title="three real call sites · 11 lines" language="ts">
+  <pre>
+// ui-button.fallback.ts:  absent href =&gt; a &lt;button&gt;;  href="" is still a link
 const href = this.attr("href")
 const control =
   href !== null
@@ -123,9 +118,8 @@ const control =
 "data-text": test === null ? undefined : test || this.defaultText()
 
 // ui-docs-tokens.fallback.ts:  the null has to be undone for our own code
-family: this.attr("family") ?? undefined,</code></pre>
-  </ui-content></ui-accordion
->
+family: this.attr("family") ?? undefined,</pre>
+</epic-code>
 <p>Why switching is not a find-and-replace:</p>
 <ul>
   <li>
@@ -154,51 +148,42 @@ family: this.attr("family") ?? undefined,</code></pre>
     <code>null</code> for a disabled link's <code>href</code>.
   </li>
 </ul>
-<ui-grid class="spell-pros-cons" columns="2" stackable>
-  <ui-column
-    ><ui-segment
-      ><ui-label attached="top">A · Keep null (chosen)</ui-label>
-      <ul>
-        <li><code>attr()</code> stays <code>getAttribute()</code>, a platform boundary; its docstring says why</li>
-        <li>no code changes; no risk of a silently flipped test</li>
-        <li>
-          the 16 <code>?? undefined</code> stay, and so does the mismatch with <code>HostAttribute.get()</code> (Q17)
-        </li>
-        <li>
-          each new fallback author has to remember: <code>attr()</code> is <code>null</code>, everything else is
-          <code>undefined</code>
-        </li>
-      </ul>
-      <pre><code class="language-ts">if (href === null) ...
-x: this.attr(x) ?? undefined</code></pre>
-    </ui-segment></ui-column
-  >
-  <ui-column
-    ><ui-segment
-      ><ui-label attached="top">B · undefined, like HostAttribute.get()</ui-label>
-      <ul>
-        <li>
-          <code>attr()</code> ends in <code>?? undefined</code>, as <code>HostAttribute.get()</code> does; Q9 holds with
-          no exception
-        </li>
-        <li>
-          24 null tests in 16 files rewritten BY HAND to <code>=== undefined</code>, each checked for absent versus
-          empty
-        </li>
-        <li>16 <code>?? undefined</code> in 9 files deleted</li>
-        <li>4 signatures lose <code>null</code>; the 2 <code>Number()</code> sites checked</li>
-        <li>about 45 lines in roughly 25 files; the other ~120 calls stay as they are</li>
-        <li>
-          bundle size: a wash. Dropping 16 <code>??void 0</code> saves about 130 bytes, and 24
-          <code>===void 0</code> cost about 50 more than <code>===null</code>: well under 100 bytes, spread over many
-          chunks
-        </li>
-      </ul>
-      <pre><code class="language-ts">if (href === undefined) ...
+<epic-choices chosen="A"
+  ><epic-option letter="A" title="Keep null"
+    ><ul>
+      <li><code>attr()</code> stays <code>getAttribute()</code>, a platform boundary; its docstring says why</li>
+      <li>no code changes; no risk of a silently flipped test</li>
+      <li>
+        the 16 <code>?? undefined</code> stay, and so does the mismatch with <code>HostAttribute.get()</code> (Q17)
+      </li>
+      <li>
+        each new fallback author has to remember: <code>attr()</code> is <code>null</code>, everything else is
+        <code>undefined</code>
+      </li>
+    </ul>
+    <pre><code class="language-ts">if (href === null) ...
+x: this.attr(x) ?? undefined</code></pre></epic-option
+  ><epic-option letter="B" title="undefined, like HostAttribute.get()"
+    ><ul>
+      <li>
+        <code>attr()</code> ends in <code>?? undefined</code>, as <code>HostAttribute.get()</code> does; Q9 holds with
+        no exception
+      </li>
+      <li>
+        24 null tests in 16 files rewritten BY HAND to <code>=== undefined</code>, each checked for absent versus empty
+      </li>
+      <li>16 <code>?? undefined</code> in 9 files deleted</li>
+      <li>4 signatures lose <code>null</code>; the 2 <code>Number()</code> sites checked</li>
+      <li>about 45 lines in roughly 25 files; the other ~120 calls stay as they are</li>
+      <li>
+        bundle size: a wash. Dropping 16 <code>??void 0</code> saves about 130 bytes, and 24 <code>===void 0</code> cost
+        about 50 more than <code>===null</code>: well under 100 bytes, spread over many chunks
+      </li>
+    </ul>
+    <pre><code class="language-ts">if (href === undefined) ...
 x: this.attr(x)</code></pre>
-    </ui-segment></ui-column
-  >
-</ui-grid>
+  </epic-option></epic-choices
+>
 <p>Why A was chosen, honestly:</p>
 <ul>
   <li>
@@ -220,25 +205,26 @@ x: this.attr(x)</code></pre>
     <code>attr()</code> is the exception.
   </li>
 </ul>
-<p><b>Net effect:</b></p>
-<ul>
-  <li>
-    <code>attr()</code> stays <code>string | null</code>, and its docstring says why it's
-    <code>null</code>
-  </li>
-  <li>
-    the 16 callers that write <code>this.attr(x) ?? undefined</code> keep it; P5-P7 could have revisited this per
-    family, auditing each <code>=== null</code> by hand
-  </li>
-  <li>
-    <code>ui</code>'s <code>null</code> rule (Q9) has one unlisted exception, <code>NativeFallback.attr()</code>, that
-    disagrees with <code>HostAttribute.get()</code> (Q17)
-  </li>
-  <li>
-    choosing B later: one hand pass over the 24 null tests in 16 files, the 16
-    <code>?? undefined</code> deleted, 4 signatures narrowed, then the fallback tests; no measurable bundle change
-  </li>
-</ul>
+<epic-net-effect
+  ><ul>
+    <li>
+      <code>attr()</code> stays <code>string | null</code>, and its docstring says why it's
+      <code>null</code>
+    </li>
+    <li>
+      the 16 callers that write <code>this.attr(x) ?? undefined</code> keep it; P5-P7 could have revisited this per
+      family, auditing each <code>=== null</code> by hand
+    </li>
+    <li>
+      <code>ui</code>'s <code>null</code> rule (Q9) has one unlisted exception, <code>NativeFallback.attr()</code>, that
+      disagrees with <code>HostAttribute.get()</code> (Q17)
+    </li>
+    <li>
+      choosing B later: one hand pass over the 24 null tests in 16 files, the 16
+      <code>?? undefined</code> deleted, 4 signatures narrowed, then the fallback tests; no measurable bundle change
+    </li>
+  </ul></epic-net-effect
+>
 <epic-reply from="Claude" at="2026-10-06 08:45" re='"I hate null. attr() should return undefined. Update callers."'
   ><p>Done, uncommitted in the worktree for your look: option B, as you said.</p>
   <ul>
@@ -274,12 +260,13 @@ x: this.attr(x)</code></pre>
     <b>Checks:</b> <code>yarn tsc</code> clean; the 66 fallback test files pass (197 tests);
     <code>yarn review</code> passed after the main switch (browser 4893, ssr 262, fork 145).
   </p>
-  <p><b>Net effect:</b></p>
-  <ul>
-    <li>no <code>null</code> left in what a fallback reads from its host</li>
-    <li>no behaviour change: every "absent" test still means absent, and <code>href=""</code> is still a link</li>
-    <li>26 files changed, uncommitted, waiting for your look</li>
-  </ul></epic-reply
+  <epic-net-effect
+    ><ul>
+      <li>no <code>null</code> left in what a fallback reads from its host</li>
+      <li>no behaviour change: every "absent" test still means absent, and <code>href=""</code> is still a link</li>
+      <li>26 files changed, uncommitted, waiting for your look</li>
+    </ul></epic-net-effect
+  ></epic-reply
 ><epic-original
   ><epic-version
     ><p>
@@ -295,14 +282,15 @@ x: this.attr(x)</code></pre>
       TypeScript doesn't flag a <code>=== null</code> on a <code>string | undefined</code>, so every one of those would
       silently flip.
     </p>
-    <p><b>Net effect:</b></p>
-    <ul>
-      <li><code>attr()</code>'s docstring says why it's <code>null</code></li>
-      <li>
-        The 8 callers that write <code>this.attr(x) ?? undefined</code> keep it; P5-P7 could revisit per family,
-        auditing each <code>=== null</code> by hand
-      </li>
-    </ul></epic-version
+    <epic-net-effect
+      ><ul>
+        <li><code>attr()</code>'s docstring says why it's <code>null</code></li>
+        <li>
+          The 8 callers that write <code>this.attr(x) ?? undefined</code> keep it; P5-P7 could revisit per family,
+          auditing each <code>=== null</code> by hand
+        </li>
+      </ul></epic-net-effect
+    ></epic-version
   ></epic-original
 ><epic-commit sha="98d78532fa3ec4fc19003e1b1d4a8352f485a178">
   NativeFallback.attr() returns undefined; every caller follows

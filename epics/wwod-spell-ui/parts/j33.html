@@ -16,10 +16,12 @@
   </li>
   <li>a helper in <code>$/ui/util</code> would land in the <code>core</code> bundle for two lazy-chunk callers</li>
 </ul>
-<p>
-  <b>Net effect:</b> names follow WWOD; the bodies are as before (one comment on <code>syncSoon()</code> says why);
-  <code>AppStylesheetProps.debounce</code> is now <code>syncDelay</code> (nothing passed it).
-</p>
+<epic-net-effect
+  ><p>
+    names follow WWOD; the bodies are as before (one comment on <code>syncSoon()</code> says why);
+    <code>AppStylesheetProps.debounce</code> is now <code>syncDelay</code> (nothing passed it).
+  </p></epic-net-effect
+>
 <epic-reply
   from="Claude"
   at="2026-10-06 10:27"
@@ -161,10 +163,9 @@
     </li>
   </ul>
 
-  <ui-accordion class="spell-code" styled
-    ><ui-title>runtime/AppStylesheet.ts · 10 lines</ui-title
-    ><ui-content>
-      <pre><code class="language-ts">  /**
+  <epic-code title="runtime/AppStylesheet.ts · 10 lines" language="ts">
+    <pre>
+  /**
    * `sync()` once things have been quiet for `syncDelay` ms;  `ready` covers it at once.
    * - Hand-rolled, not a `debounce()`:  `ready` must be a promise of the sync to come (epic `wwod-spell-ui`).
    */
@@ -173,13 +174,11 @@
     this.latest = new Promise((resolve) =&gt; {
       this.timer = setTimeout(() =&gt; resolve(this.sync()), this.syncDelay)
     })
-  }</code></pre>
-    </ui-content></ui-accordion
-  >
-  <ui-accordion class="spell-code" styled
-    ><ui-title>runtime/Visibility.ts · 9 lines</ui-title
-    ><ui-content>
-      <pre><code class="language-ts">  /** Queue ONE check for this task, however many observers report the crossing. */
+  }</pre>
+  </epic-code>
+  <epic-code title="runtime/Visibility.ts · 9 lines" language="ts">
+    <pre>
+  /** Queue ONE check for this task, however many observers report the crossing. */
   private checkSoon() {
     if (this.isCheckQueued) return
     this.isCheckQueued = true
@@ -187,17 +186,14 @@
       this.isCheckQueued = false
       if (this.observers.length) this.check()
     })
-  }</code></pre>
-    </ui-content></ui-accordion
-  >
-  <ui-accordion class="spell-code" styled
-    ><ui-title>components/ui-dropdown/UIDropdown.tsx · 3 lines (a time debounce that WOULD fit)</ui-title
-    ><ui-content>
-      <pre><code class="language-ts">    clearTimeout(this.typedTimer)
+  }</pre>
+  </epic-code>
+  <epic-code title="components/ui-dropdown/UIDropdown.tsx · 3 lines (a time debounce that WOULD fit)" language="ts">
+    <pre>
+    clearTimeout(this.typedTimer)
     this.typed += key
-    this.typedTimer = setTimeout(() =&gt; (this.typed = ""), this.typeAheadDelay)</code></pre>
-    </ui-content></ui-accordion
-  >
+    this.typedTimer = setTimeout(() =&gt; (this.typed = ""), this.typeAheadDelay)</pre>
+  </epic-code>
 
   <p>
     <b>2. What lodash's <code>debounce</code> costs, measured</b>
@@ -297,10 +293,9 @@
       >, "Through <code>debounce()</code> from <code>$/util</code>") points at a function that doesn't exist.
     </li>
   </ul>
-  <ui-accordion class="spell-code" styled
-    ><ui-title>the option B helper (what was measured) · 10 lines</ui-title
-    ><ui-content>
-      <pre><code class="language-ts">/** Call `run` once calls have stopped for `ms` ms;  `.cancel()` drops a pending call. */
+  <epic-code title="the option B helper (what was measured) · 10 lines" language="ts">
+    <pre>
+/** Call `run` once calls have stopped for `ms` ms;  `.cancel()` drops a pending call. */
 export function debounce&lt;A extends unknown[]&gt;(run: (...args: A) =&gt; void, ms: number) {
   let timer: ReturnType&lt;typeof setTimeout&gt; | undefined
   const debounced = (...args: A) =&gt; {
@@ -309,71 +304,62 @@ export function debounce&lt;A extends unknown[]&gt;(run: (...args: A) =&gt; void
   }
   debounced.cancel = () =&gt; clearTimeout(timer)
   return debounced
-}</code></pre>
-    </ui-content></ui-accordion
-  >
+}</pre>
+  </epic-code>
 
   <p><b>3. Options</b></p>
-  <ui-grid class="spell-pros-cons" columns="3" stackable
-    ><ui-column
-      ><ui-segment
-        ><ui-label attached="top">A · lodash-es <code>debounce</code> where it fits</ui-label>
-        <ul>
-          <li>used by <code>typeAhead()</code> and <code>onCopy</code>, the two real time debounces</li>
-          <li><code>syncSoon()</code> / <code>checkSoon()</code> stay hand-rolled anyway</li>
-          <li>
-            cost: <b>+1.25 to 1.39 kB gzipped</b>, in a new shared chunk loaded with the dropdown or the code block
-          </li>
-          <li>to save about 4 lines of code</li>
-        </ul>
-        <pre><code class="language-ts">clearTypedSoon = debounce(
-  () =&gt; (this.typed = ""), 500)</code></pre>
-      </ui-segment></ui-column
-    ><ui-column
-      ><ui-segment
-        ><ui-label attached="top">B · a shared helper in <code>$/ui/util</code></ui-label>
-        <ul>
-          <li>the 10-line <code>debounce()</code> above, with <code>.cancel()</code></li>
-          <li>same two callers as A; this item's two still hand-rolled</li>
-          <li>cost: <b>+83 to 93 B gzipped</b> in <code>core.js</code>, on every page, even pages with no dropdown</li>
-          <li>WWOD's rule then points at it, for <code>ui</code></li>
-        </ul>
-        <pre><code class="language-ts">import { debounce } from
-  "$/ui/util"</code></pre>
-      </ui-segment></ui-column
-    ><ui-column
-      ><ui-segment
-        ><ui-label attached="top">C · keep hand-rolled (recommended)</ui-label>
-        <ul>
-          <li>no code change, no bytes</li>
-          <li>
-            why: the two members this item is about can't use ANY plain debounce (one needs a promise, one has no
-            delay), and the two that could are 2 to 3 lines each
-          </li>
-          <li>fix WWOD's rule instead: it names a <code>$/util</code> <code>debounce()</code> that doesn't exist</li>
-        </ul>
-        <pre><code class="language-ts">clearTimeout(this.timer)
+  <epic-choices
+    ><epic-option letter="A"
+      ><span slot="title">lodash-es <code>debounce</code> where it fits</span>
+      <ul>
+        <li>used by <code>typeAhead()</code> and <code>onCopy</code>, the two real time debounces</li>
+        <li><code>syncSoon()</code> / <code>checkSoon()</code> stay hand-rolled anyway</li>
+        <li>cost: <b>+1.25 to 1.39 kB gzipped</b>, in a new shared chunk loaded with the dropdown or the code block</li>
+        <li>to save about 4 lines of code</li>
+      </ul>
+      <pre><code class="language-ts">clearTypedSoon = debounce(
+  () =&gt; (this.typed = ""), 500)</code></pre></epic-option
+    ><epic-option letter="B"
+      ><span slot="title">a shared helper in <code>$/ui/util</code></span>
+      <ul>
+        <li>the 10-line <code>debounce()</code> above, with <code>.cancel()</code></li>
+        <li>same two callers as A; this item's two still hand-rolled</li>
+        <li>cost: <b>+83 to 93 B gzipped</b> in <code>core.js</code>, on every page, even pages with no dropdown</li>
+        <li>WWOD's rule then points at it, for <code>ui</code></li>
+      </ul>
+      <pre><code class="language-ts">import { debounce } from
+  "$/ui/util"</code></pre></epic-option
+    ><epic-option letter="C" title="keep hand-rolled" recommended
+      ><ul>
+        <li>no code change, no bytes</li>
+        <li>
+          why: the two members this item is about can't use ANY plain debounce (one needs a promise, one has no delay),
+          and the two that could are 2 to 3 lines each
+        </li>
+        <li>fix WWOD's rule instead: it names a <code>$/util</code> <code>debounce()</code> that doesn't exist</li>
+      </ul>
+      <pre><code class="language-ts">clearTimeout(this.timer)
 this.timer = setTimeout(...)</code></pre>
-      </ui-segment></ui-column
-    ></ui-grid
+    </epic-option></epic-choices
   >
   <p>
     Why C over B: B is cheap, but it puts bytes on every page to tidy two lines in two families, and changes nothing for
     <code>syncSoon()</code> or <code>checkSoon()</code>. If a third real time debounce shows up, B becomes worth it.
   </p>
 
-  <p><b>Net effect</b> (C, recommended):</p>
-  <ul>
-    <li>J33 is closed as it stands: <code>syncSoon()</code> and <code>checkSoon()</code> keep their timer code</li>
-    <li>no bundle changes anywhere</li>
-    <li>
-      J33's first bullet is corrected: <code>$/util</code> has no <code>debounce()</code>; lodash's costs about 1.4 kB
-      gzipped in <code>ui</code>
-    </li>
-    <li>
-      WWOD <code>classes-state.md</code> › "Debounced write-backs are <code>xSoon</code> members" loses "Through
-      <code>debounce()</code> from <code>$/util</code>", and says to hand-roll the few lines (never lodash's in
-      <code>ui</code>)
-    </li>
-  </ul></epic-reply
+  <epic-net-effect option="C" recommended
+    ><ul>
+      <li>J33 is closed as it stands: <code>syncSoon()</code> and <code>checkSoon()</code> keep their timer code</li>
+      <li>no bundle changes anywhere</li>
+      <li>
+        J33's first bullet is corrected: <code>$/util</code> has no <code>debounce()</code>; lodash's costs about 1.4 kB
+        gzipped in <code>ui</code>
+      </li>
+      <li>
+        WWOD <code>classes-state.md</code> › "Debounced write-backs are <code>xSoon</code> members" loses "Through
+        <code>debounce()</code> from <code>$/util</code>", and says to hand-roll the few lines (never lodash's in
+        <code>ui</code>)
+      </li>
+    </ul></epic-net-effect
+  ></epic-reply
 >
