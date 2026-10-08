@@ -32,14 +32,17 @@ How to write and update `epics/<name>/<name>.plan.html`, the live doc behind a `
   changes, one bullet each:
 
   ```html
-  <p><b>Net effect:</b></p>
-  <ul>
-    <li><code>D7 (Q3)</code> becomes <code>Q3</code>, answered</li>
-    <li>rule semantics changed: an answered question is no longer struck</li>
-  </ul>
+  <epic-net-effect>
+    <ul>
+      <li><code>D7 (Q3)</code> becomes <code>Q3</code>, answered</li>
+      <li>rule semantics changed: an answered question is no longer struck</li>
+    </ul>
+  </epic-net-effect>
   ```
 
-  For a question: the recommended option's net effect (each option may carry its own).
+  For a question: the recommended option's net effect, `<epic-net-effect option="A" recommended>` (drawn `Net
+  effect (A, recommended):`); each option may carry its own, inside its `<epic-option>`. Worded otherwise ("once
+  fixed"): a plain `<p><b>Net effect (once fixed):</b></p>` and its list.
 
 - Lists: bulleted, or numbered when order or reference matters.
 - NEVER delete an item: close it (`spell dev plan-doc close`), and it stays, closed (not struck). An item another
@@ -224,15 +227,17 @@ group, so Owen can still approve it.
 ### Item states
 
 An item's chip (and its filter chip) by its `state`, which the tool writes from its status and review marks on every
-edit:
+edit. The FIRST row that applies wins, top to bottom (`PLAN-DOC.md`, "Items", the same table):
 
-| State       | Colour | When                                                                                                        |
-| ----------- | ------ | ----------------------------------------------------------------------------------------------------------- |
-| `attention` | red    | open and needs Owen: an open question; an open judgement call or issue not reviewed                         |
-| `progress`  | blue   | Claude is working on it: an Underway status card, or the working spinner                                    |
-| `open`      | yellow | open, still undecided: todos (one a review queued too), caveats, tests; reviewed issues and judgement calls |
-| `recent`    | green  | decided, reviewed or closed lately (since the commit before last); or during a `/bedtime` run               |
-| `old`       | grey   | decided, reviewed or closed before that                                                                     |
+| State       | Colour | When                                                                                         |
+| ----------- | ------ | -------------------------------------------------------------------------------------------- |
+| `progress`  | blue   | Claude is working on it: an Underway status card, or the working spinner (closed or not)     |
+| `recent`    | green  | closed (decided, done, canceled), and changed lately (since the commit before last) or during a `/bedtime` run |
+| `old`       | grey   | closed earlier                                                                               |
+| `open`      | yellow | work a review queued (a todo mark), not started                                              |
+| `attention` | red    | an open question; an open judgement call or issue not reviewed, unless `calm` (not urgent)   |
+| `recent`    | green  | open, reviewed lately or touched by a `/bedtime` run                                         |
+| `open`      | yellow | anything else open: still undecided, not urgent (todos, caveats, tests; reviewed issues and judgement calls) |
 
 - The contents and the rail count only `attention` items, in a red pill; none, no pill.
 - In CSS: `<epic-page>`'s `--epic-state-*` (`packages/epics`), `spell-doc.css`'s `--spell-state-*` (the other doc
@@ -284,9 +289,12 @@ pages.js` `findPages()`, `relocate.js`, `spell static`): the docs index, `docs u
 While a phase is active, flag what changed so the user can spot it:
 
 - a new or changed item gets an UPDATE marker in its title (the tool adds it: `PLAN-DOC.md`, "Items")
-- a changed prose block gets, just before it:
-  `<ui-message class="plan-update" state="warning" size="tiny" header="UPDATE" data-phase="2"><p>what changed</p></ui-message>`
-- `spell dev plan-doc phase <name> 2 done` removes phase 2's markers
+- a changed prose block gets, just before it, an orange UPDATE note of the active phase:
+  `<epic-update phase="2"><p>what changed</p></epic-update>`
+- `spell dev plan-doc phase <name> 2 done` removes phase 2's markers, notes and all
+- a note that should STAY once the phase is done (an item partly fixed elsewhere, a decision done):
+  `<epic-note state="update" title="partly fixed by J9, 2026-10-06"><p>...</p></epic-note>` (orange `UPDATE`), or
+  `state="done"` (green `DONE`)
 - a change to a PHASE's plan is not a marker: it's that phase's fenced Updated line (`updated <name> <N>`, "What
   phases and items say"), which stays
 
@@ -373,17 +381,45 @@ A reply to Owen's revisit note (`details --append`), dated, quoting the note:
 <epic-reply from="Claude" at="2026-10-04 17:20" re="why not reuse the details route?">
   <p>The answer ...</p>
   <ul>
-    <li>bullets; options if Owen must choose; a Net effect</li>
+    <li>bullets, one idea each</li>
   </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Reuse it" recommended><ul><li>...</li></ul></epic-option>
+    <epic-option letter="B" title="A route of its own"><ul><li>...</li></ul></epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended><ul><li>...</li></ul></epic-net-effect>
 </epic-reply>
 ```
 
 ## Prose
 
-- Code: ALWAYS folded and colored:
-  `<ui-accordion class="spell-code" styled><ui-title>file.ts · N lines</ui-title><ui-content><pre><code class="language-ts">`
-  (never `open`).
-- Digressions: a collapsed `<ui-accordion class="spell-aside" styled>`, title starting "Aside:".
+The blocks below are ELEMENTS (P14 of `epic-components`): each draws its own label, fold and colours around prose
+that stays plain HTML inside it. Never hand-shape them (`<p><b>Net effect:</b></p>`, `ui-accordion.spell-code`): the
+tool turns those old shapes into the elements on the way in (`details --file`, `--details`, `updated`), but prose
+edited by hand in a part file isn't passed through it. All of them, with an example each: `PLAN-DOC.md`, "Prose
+elements".
+
+- UNTIL P14 of `epic-components` is merged into `main`: `main`'s tool (the `spell` link) doesn't know these tags
+  yet and refuses an edit holding one ("unknown tag"). Write the old shapes through the tool until then (they're
+  turned into the elements once it's merged, and by the second conversion pass); check with `spell dev plan-doc
+  check <name>`.
+
+- Code: ALWAYS folded and coloured, an `<epic-code>` holding ONE `<pre>` of the code as text (`&lt;` for a `<`):
+
+  ```html
+  <epic-code title="file.ts · N lines" language="ts"><pre>const a = 1 &lt; 2</pre></epic-code>
+  ```
+
+  Folded to start with (no `open`); `language` as `<ui-code>` takes it (`ts`, `html`, `css`, `json`, `spell`).
+- Digressions: a folded `<epic-aside title="why not now">` (drawn `Aside:  why not now`), the prose inside.
+- The **Net effect**: `<epic-net-effect>` around its list ("Rules").
+- Options, on ANY item (a question's own, a judgement call's, the ones a reply weighs): `<epic-choices>`
+  ("Explaining a question or issue").
+- A labelled block ("Where:", "What should happen:", "Step:"): `<epic-field label="Where"><p>...</p></epic-field>`
+  (no colon: drawn).
+- A note that stays: `<epic-note state="update|done" title>` ("UPDATE markers").
+- A question's text as first asked: the tool wraps it in `<epic-question>` (`add question`, `details --file` on a
+  question); written by hand, it's the first thing in the item.
 - Link caveats, issues, decisions and phases wherever prose mentions them.
 
 ## Explaining a question or issue
@@ -393,13 +429,14 @@ decide from WITHOUT asking back: in the item's details, or an Overview sub-secti
 
 - Plain words first: what goes wrong (or what's being chosen), for whom, and how they'd notice. Define every
   coined or jargon word on first use: "stacking: things side by side go one under another when there's no room".
-- The real thing: the actual code / markup / CSS rule it's about, excerpted from the file (folded `spell-code`),
+- The real thing: the actual code / markup / CSS rule it's about, excerpted from the file (a folded `<epic-code>`),
   never pseudo-code.
 - Concrete cases: name the affected components / examples / tests ("breadcrumb `divider-icon`: the divider stays
   empty in Safari").
 - Many values: a `ui-table` (the 19 renamed emoji: name, today, if changed, other names that reach each).
-- Options: side by side, an `<epic-choices>` of `<epic-option letter="A" title="...">`, after the item's text;
-  each says what changes, the cost, and a short code sample; mark ONE `recommended` and say why:
+- Options: side by side, an `<epic-choices>` of `<epic-option letter="A" title="...">`, after the item's text (a
+  question's) or where the prose weighs them (any item, a reply); each says what changes, the cost, and a short
+  code sample; mark ONE `recommended` and say why:
 
   ```html
   <epic-choices>
@@ -416,7 +453,9 @@ decide from WITHOUT asking back: in the item's details, or an Overview sub-secti
   </epic-choices>
   ```
 
-  (An old option grid, `ui-grid.spell-pros-cons`, is still turned into `<epic-choices>` on the way in.)
+  Only a question's options are picked (Choose, `decide --option`); on another item they're the options its text
+  weighs. (An old option grid, `ui-grid.spell-pros-cons`, is still turned into `<epic-choices>` on the way in,
+  wherever it sits.)
 
 - Live: when the doc's bundle has the components, a working example (a resizable box for layout; real buttons
   for behaviour); click it through in a browser before handing back.
