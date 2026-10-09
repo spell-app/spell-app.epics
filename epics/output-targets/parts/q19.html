@@ -1,0 +1,58 @@
+<!-- plan-doc part:  #q19's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    For the TS Solid for Realz phase (<a href="#p10">P10</a>; the sketch: <a href="#o6">1.6</a>). A spell
+    <code>to draw</code> is statements: a local, an <code>if</code> with an early <code>return</code>, a loop. React
+    copes by running the whole method again on every change and diffing. Solid has no diff: a component runs ONCE, and
+    re-running a drawing makes brand-new DOM nodes (focus, scroll and animations are lost). So how the statements become
+    Solid matters. Card's drawing, in spell:
+  </p></epic-question
+><epic-code title="Card.spell · to draw a card · 6 lines" language="spell">
+  <pre>
+to draw a card:
+	set className to "Card face-" + its direction + " " + its rank + " " + its suit + " ui button compact fluid "
+	if it is face down
+		return &lt;div onClick={fire event card-click with card = it} className={className}&gt;...&lt;/div&gt;
+	return &lt;div onClick={fire event card-click with card = it} className={className + its color}&gt;...&lt;/div&gt;
+</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="Translate the shapes it knows, re-run the rest" recommended
+    ><ul>
+      <li>
+        a computed local becomes an accessor (<code>const className = () =&gt; ...</code>); an
+        <code>if ... return</code> chain becomes <code>&lt;Show&gt;</code> / <code>&lt;Switch&gt;</code>;
+        <code>draw cards in it</code> becomes <code>&lt;For&gt;</code>
+      </li>
+      <li>Card's whole drawing becomes one <code>&lt;Show when={!this.isFaceDown} fallback={...}&gt;</code></li>
+      <li>
+        any other shape (a loop building a list, a local set twice) still works: the drawing re-runs whole, inside its
+        error net
+      </li>
+      <li>cost: the bulk of the writer's new work; each shape needs tests</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="Always re-run the whole drawing"
+    ><ul>
+      <li><code>draw()</code> keeps its statements; whoever draws it re-runs it when anything it read changes</li>
+      <li>simple, and every program works</li>
+      <li>
+        a flipped card rebuilds its DOM; the game's drawing rebuilds the whole board when the score changes. Not what a
+        person writes on Solid
+      </li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="Translate everything, refuse the rest"
+    ><ul>
+      <li>the purest output: every drawing in Solid's shapes</li>
+      <li>a program with a shape the writer can't translate fails to compile for <code>ts/solid</code></li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect option="A" recommended
+  ><ul>
+    <li>
+      <code>TSWriter</code> learns to write accessors, <code>&lt;Show&gt;</code>, <code>&lt;Switch&gt;</code> and
+      <code>&lt;For&gt;</code> from a drawing's statements
+    </li>
+    <li>any other drawing still draws, re-running whole inside its net</li>
+  </ul></epic-net-effect
+>
