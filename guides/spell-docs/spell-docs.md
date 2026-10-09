@@ -36,11 +36,10 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 | `scripts/pages.js` | where the docs are, `findPages()`, `tidy()` (link targets + oxfmt) -- shared by the scripts |
 | `scripts/check-spell.js` | Playwright checks + four screenshots of one page |
 | `scripts/doc-links.js` | links `<code>path</code>` references;  `--check` verifies every link |
-| `scripts/to-ui-section.js` | converts old `section.s2|s3` pages to `<ui-section>`;  `plan-doc.js` `migrate` runs its `convertSections()` |
+| `scripts/to-ui-section.js` | converts old `section.s2|s3` pages to `<ui-section>` |
 | `_assets/spell-ui.entry.js` | the bundle's entry:  icons first, then UI, then the runtime |
 | `_assets/spell-doc-runtime.js` | page behaviour (below) |
 | `_assets/spell-doc.css` | page layout and what UI doesn't cover;  reaches into widgets via UI tokens and `::part()` |
-| `_assets/plan-doc.css` | plan docs only, on top of `spell-doc.css` |
 | `spell-docs/ui-section-test.html` | the runtime's test page:  every piece of the `<ui-section>` page markup |
 
 ## Page skeleton
