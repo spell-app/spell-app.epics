@@ -356,6 +356,8 @@ Their long before / afters are in `agents/wwod/writing.md`.
 
 - **Name things by what they are to the reader:**
   - The name a reader would look for:  "solid-element", never "the fork".
+    (The examples here predate epic `spell-element`, which folded solid-element into `ui`'s `DOMElement` and
+    `UIComponent`, 2026-10-09:  the rule stands.)
   - How a thing came to be (a fork, a port, a workaround) is an implementation detail.
     Leave it out of explanations, or give it one line at the end, if it really matters.
   - Before / after, now one docstring per member (`packages/ui/src/elements/DOMElement.ts`):

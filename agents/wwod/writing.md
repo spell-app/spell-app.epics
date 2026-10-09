@@ -9,6 +9,9 @@ The rules, in short:
 - WWOD §6 › "One or two sentences a paragraph, or bullets":  never run-together sentences
 - WWOD §6 › "Break lines at phrases, not at the column":  so each line's start says what it's about
 
+The examples below quote `ui` as it was:  solid-element (`@spell-app/solid-element`) was a package then.
+Epic `spell-element` folded it into `DOMElement` / `UIComponent` (2026-10-09);  the lessons stand.
+
 ## Why
 
 In Owen's words (2026-10-08, epic `skillz` P7):

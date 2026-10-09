@@ -600,12 +600,16 @@ every entry below that date was fixed or disproven;  what's left:
     epic `wwod-spell-ui` P5) / `resolveInvoker()` (~lines 379-396, read in an effect's APPLY), and an unnamed one from `packages/ui/src/elements/RootSettings.ts`
     `set()` via `UIRoot.applySettings()` (`UIRoot.tsx` ~242-275).  So `ui`'s, not the app's:  those reads belong in
     the effects' compute (or `untrack()`).
+  - 2026-10-09:  `createProps` and `constructor.isLoaded` are gone:  epic `spell-element` folded solid-element into
+    `ui`'s `DOMElement` (one attribute store, P3).  Recheck on the dev server before chasing it.
 - `packages/app/src/solid/ProjectDropdown.tsx` `<ProjectDropdown>`:  the dev server warns `[WIDE_SCOPE_DEPS] memo
   "computed" is subscribed to 30 sources` -- `createProps.get` x ~29 -- at `<ProjectDropdown> › children › computed ›
   computed`, i.e. the `<For>` drawing its `<ui-item>`s.  Our code reads no props there;  probably each `<ui-item>`
   upgrading synchronously as the `<For>` makes it, and the fork's `createProps` reads landing in OUR computation
   (`packages/solid-element`).  `<FileDropdown>` does the same with fewer items, under the warning's threshold.  Prove:
   a `<For>` of 30 `<ui-item>`s in a browser test, then Solid's `attribution` / the memo's sources.
+  - 2026-10-09:  `packages/solid-element` and its `createProps` are gone (epic `spell-element`:  folded into `ui`'s
+    `DOMElement`, one attribute store).  Recheck whether the warning still shows.
 - `packages/util/src/spell/DOM.ts` `getPadding()` (`CSS_TLBR_VALUES`):  reads `NaN` for every side in `app`'s BROWSER
   test project (vitest + chromium), while `getComputedStyle(el)["padding-left"]` there is `"0px"`;  on the dev server
   it reads `0`.  Probably the `#top` ... private fields as the vitest transform lowers them (declared, no
