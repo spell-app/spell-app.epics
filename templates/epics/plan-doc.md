@@ -188,11 +188,11 @@ element takes its colour from this table, never a colour that means something el
 | red    | needs you (Owen)                            | an open question's chip; an unreviewed judgement call or issue; the rail's count; a details question with nothing picked; a details page "waiting for your answer"; an open goals question               |
 | yellow | open, still undecided                       | an open todo, caveat or test (a todo a review queued too); a reviewed issue or judgement call; "to do"; an epic still planning; a goals topic "in dialog". DARK text and icons on a yellow fill                     |
 | blue   | do it now, or Claude is working on it       | Do Now, Revisit, Send (everywhere: the page header, the agents panel, details pages); the Underway status card; an item Claude is working on (its chip, the spinner); an epic in progress; a goals topic "building" |
-| green  | decided or done                             | Approve, Make Todo; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card; an item decided or reviewed lately; an epic done; a goals topic "agreed", "shipped"               |
+| green  | decided or done (however long ago)          | Approve, Make Todo; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card; an item decided, done, or approved as it stands, for good; an epic done; a goals topic "agreed", "shipped" |
 | orange | ONLY changed since you looked, and warnings | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a stalled epic                                                                                                     |
 | violet | Claude's voice                              | his reply cards; "recommended" (a thumbs-up, no word)                                                                                                                                                               |
 | ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the rail                                                                                                                     |
-| grey   | older, inactive, not chosen                 | an item decided or reviewed earlier; buttons at rest; a phase to do; a future epic; a goals topic "draft"                                                                                                           |
+| grey   | no longer relevant, inactive, not chosen    | a canceled item (made moot); buttons at rest, and once Claude has handled them; a phase to do; a future epic; a goals topic "draft"                                                                                 |
 
 - No light blue, no light green: one shade per meaning.
 - Colour-blind readers tell red and green apart least: the chip's id, the icons and the words keep them readable.
@@ -202,13 +202,17 @@ element takes its colour from this table, never a colour that means something el
 How far along a button, pill or chip with a lifecycle is (the review buttons, Send, the Choose pill, goals topic
 labels):
 
-| Fill                   | Means                                         |
-| ---------------------- | --------------------------------------------- |
-| grey outline           | available: nothing pressed                    |
-| DASHED, in its colour  | Owen pressed it, not committed (not sent)     |
-| OUTLINE, in its colour | recorded (sent), not done yet, or in progress |
-| SOLID                  | done: applied, answered, filed                |
+| Fill                   | Means                                                                    |
+| ---------------------- | ------------------------------------------------------------------------ |
+| grey outline           | available: nothing pressed                                               |
+| DASHED, in its colour  | Owen pressed it, not committed (not sent)                                |
+| OUTLINE, in its colour | recorded (sent), or in progress (Claude is on it)                        |
+| CLEARED                | handled: a review button is a grey outline again, the chip has the result |
+| SOLID                  | only on chips, the step label's DONE, and a Choose pill once applied     |
 
+- The review buttons are Owen's INPUT to Claude (Owen, 2026-10-08): dashed pressed, outline sent / in progress,
+  then CLEARED once Claude has handled the mark; the id chip carries the result (green decided, yellow still open,
+  red needs you). `review-as` stays in the doc as the record, never drawn on the buttons.
 - It flips the old rule (solid meant "not sent yet", 2026-10-06).
 - Send never goes solid on a details page: the page can't tell when Claude is done with the answer.
 - An item's id chip MATCHES its chosen review button while Owen's mark is live (2026-10-08): that button's colour and fill (Approve pressed, not sent: dashed green); no mark, or one Claude handled: its state's colour, solid.
@@ -233,18 +237,28 @@ edit. The FIRST row that applies wins, top to bottom (`PLAN-DOC.md`, "Items", th
 | State       | Colour | When                                                                                         |
 | ----------- | ------ | -------------------------------------------------------------------------------------------- |
 | `progress`  | blue   | Claude is working on it: an Underway status card, or the working spinner (closed or not)     |
-| `recent`    | green  | closed (decided, done, canceled), and changed lately (since the commit before last) or during a `/bedtime` run |
-| `old`       | grey   | closed earlier                                                                               |
+| `old`       | grey   | canceled: no longer relevant (made moot, struck through)                                     |
+| `recent`    | green  | decided or done (decided, done), however long ago                                            |
 | `open`      | yellow | work a review queued (a todo mark), not started                                              |
 | `attention` | red    | an open question; an open judgement call or issue not reviewed, unless `calm` (not urgent)   |
-| `recent`    | green  | open, reviewed lately or touched by a `/bedtime` run                                         |
-| `open`      | yellow | anything else open: still undecided, not urgent (todos, caveats, tests; reviewed issues and judgement calls) |
+| `recent`    | green  | open, settled by a review: approved as it stands, or made a todo                             |
+| `open`      | yellow | anything else open: still undecided, not urgent (todos, caveats, tests; reviewed issues and judgement calls; a revisit or Do Now Claude answered) |
 
+- Green across the board for what's decided; grey only for what no longer matters (Owen, 2026-10-08). Neither age
+  nor a `/bedtime` run colours a chip any more.
 - The rail counts only `attention` items, in a red pill; none, no pill.
 - In CSS: `<epic-page>`'s `--epic-state-*` (`packages/epics`), `spell-doc.css`'s `--spell-state-*` (the other doc
   pages): the same values.
 - Goals pages colour their items by the same states (an open question `attention`, any other open item `open`, a
-  closed one `old`): the kind shows only in the id's letter (G, Q, D, R, W, I).
+  decided or done one `recent`, a canceled one `old`): the kind shows only in the id's letter (G, Q, D, R, W, I).
+
+### Folding
+
+EVERYTHING boxed in a section folds (Owen, 2026-10-08): every card with a heading band folds from it, the chevron
+first -- a reply (Owen's and Claude's), the answer, a status card, a note, an UPDATE note, the Updated fence, an open
+question's option card; More Details, Choices, asides, code blocks, Original Discussion, Plan changes and Agents
+running too. They start open (the item around them starts folded); folding is the page's, never written; find-in-page
+reveals folded text.
 
 ## Parts
 
