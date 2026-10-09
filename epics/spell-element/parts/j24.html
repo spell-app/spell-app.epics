@@ -24,3 +24,154 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:05" re="revisit soon"
+  ><p>@aria is fine, I'd like it to be `@E.aria("busy")` and have a lookup map that `busy: "aria-busy"`</p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-09 10:45"
+  re='@aria is fine, I&apos;d like it to be `@E.aria("busy")` and have a lookup map that `busy: "aria-busy"`'
+>
+  <p>
+    Yes: short names everywhere ARIA is named, through one map. One wrinkle: the code doesn't write the
+    <code>aria-busy</code> ATTRIBUTE. It writes the element's hidden ARIA (<code>internals.ariaBusy</code>), which
+    screen readers hear but which never shows as an attribute in the page. So the map's values are those property names,
+    and each entry's comment names the attribute it stands for.
+  </p>
+  <epic-code title="UISegment.tsx and UILoader.tsx · now" language="ts">
+    <pre>
+@E.cssState("loading")
+@E.aria("ariaBusy")
+get isLoading(): boolean { ... }
+
+@E.protoMerged static elementSetup = {
+  aria: { role: "status", ariaLive: "polite" },
+  ...</pre>
+  </epic-code>
+  <epic-code title="the same, with short names" language="ts">
+    <pre>
+@E.cssState("loading")
+@E.aria("busy")
+get isLoading(): boolean { ... }
+
+@E.protoMerged static elementSetup = {
+  aria: { role: "status", live: "polite" },
+  ...</pre>
+  </epic-code>
+  <epic-code title="elements.types.ts · the map (new)" language="ts">
+    <pre>/**
+ * ARIA by short name =&gt; the `ElementInternals` property `@E.aria` and `elementSetup.aria` write.
+ * - Each is the attribute in the comment, set on the element's hidden ARIA (never a visible attribute).
+ * - A name not here fails TypeScript:  add it here (one line).
+ */
+export const AriaNames = {
+  role: "role", //                         role
+  busy: "ariaBusy", //                     aria-busy
+  checked: "ariaChecked", //               aria-checked
+  current: "ariaCurrent", //               aria-current
+  disabled: "ariaDisabled", //             aria-disabled
+  hidden: "ariaHidden", //                 aria-hidden
+  label: "ariaLabel", //                   aria-label
+  level: "ariaLevel", //                   aria-level
+  live: "ariaLive", //                     aria-live
+  roleDescription: "ariaRoleDescription", // aria-roledescription
+  selected: "ariaSelected", //             aria-selected
+  valueMin: "ariaValueMin" //              aria-valuemin
+} as const satisfies Record<string, AriaProperty="">
+
+/** A short ARIA name:  `"busy"`, `"label"`, `"role"` ... */
+export type AriaName = keyof typeof AriaNames</string,></pre>
+  </epic-code>
+  <ul>
+    <li>
+      Where it lives:
+      <a
+        href="../../../packages/ui/src/elements/elements.types.ts"
+        target="src-packages-ui-src-elements-elements-types-ts"
+        ><code>elements.types.ts</code></a
+      >, beside <code>AriaProperty</code> (which stays, as the map's check). Read as <code>E.AriaNames</code> /
+      <code>E.AriaName</code>.
+    </li>
+    <li>
+      The 12 names above are every one used today (ui, brand and the tests). Only the ones we use: the full list of
+      40-odd would add bytes to <code>core</code> for names nobody writes.
+    </li>
+    <li>
+      <code>elementSetup.aria</code> takes the short names too, so ARIA has one spelling wherever it's written.
+      <code>UIComponent</code>'s constructor turns them into properties with a three-line loop instead of
+      <code>Object.assign()</code>.
+    </li>
+    <li>
+      Keys follow the attribute, camelCased after <code>aria-</code>: <code>aria-valuemin</code> is
+      <code>valueMin</code>.
+    </li>
+  </ul>
+  <epic-aside title="the naming story behind J21, J24, J28, J31 and J33">
+    <ul>
+      <li>
+        On a field or getter, the decorator says what the member IS: <code>@E.state</code>, <code>@E.controlled</code>,
+        <code>@E.derived</code>, <code>@E.lazy</code>, <code>@E.cssState("open")</code>, <code>@E.aria("busy")</code>,
+        <code>@E.fromContent(...)</code>.
+      </li>
+      <li>
+        On a method, it says WHEN the method runs, and starts with <code>on</code>: <code>@E.on("command")</code>,
+        <code>@E.onChange("isOpen")</code>, <code>@E.onConnected</code>, <code>@E.onContentChange(...)</code>. Every one
+        of these runs its method untracked.
+      </li>
+      <li>Two say HOW a method runs: <code>@E.once</code>, <code>@E.untracked</code>.</li>
+      <li>A decorator with no arguments has no parentheses: <code>@E.state</code>, <code>@E.onConnected</code>.</li>
+    </ul>
+  </epic-aside>
+  <epic-choices>
+    <epic-option letter="A" title="A map of the names we use, short names in both places" recommended
+      ><ul>
+        <li><code>E.AriaNames</code>, 12 entries, values the <code>internals</code> property</li>
+        <li><code>@E.aria("busy")</code> and <code>elementSetup.aria: { live: "polite" }</code></li>
+        <li>A new name is one line in the map; TypeScript says so</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="No map:  short names worked out by a type"
+      ><ul>
+        <li>
+          Every ARIA name allowed at once, zero bytes: <code>"busy"</code> becomes <code>"ariaBusy"</code> by rule
+        </li>
+        <li>No one place to read the names and their attributes</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Short names for @E.aria only"
+      ><ul>
+        <li><code>elementSetup.aria</code> keeps <code>ariaLive</code>: two spellings of the same thing</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        New: <code>E.AriaNames</code> and <code>E.AriaName</code> in
+        <a
+          href="../../../packages/ui/src/elements/elements.types.ts"
+          target="src-packages-ui-src-elements-elements-types-ts"
+          ><code>elements.types.ts</code></a
+        >
+      </li>
+      <li>
+        <code>@E.aria</code> takes an <code>AriaName</code>: 17 decorators renamed (12 in ui, 5 in brand), plus 5 in the
+        tests
+      </li>
+      <li>
+        <code>elementSetup.aria</code> takes short names: 6 classes (UILoader, UIPlaceholder, UIProgress, UIStep,
+        UIBreadcrumbSection, UIDocsInspector), plus 1 test
+      </li>
+      <li>
+        Docstrings in
+        <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+          ><code>Reactive.ts</code></a
+        >
+        and
+        <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+          ><code>packages/ui/AGENTS.md</code></a
+        >
+        say <code>@E.aria("busy")</code>
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

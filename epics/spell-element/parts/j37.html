@@ -46,3 +46,113 @@
     <li>two ways to load the elements, both tested in a browser (no console errors)</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:17" re="revisit soon"
+  ><p>&lt;ui-page&gt; which subclasses &lt;ui-root&gt;?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 10:40" re="<ui-page> which subclasses <ui-root>?">
+  <p>
+    Yes, a <code>&lt;ui-page&gt;</code> fits. But on its own it doesn't make <code>spell run</code>'s page load the way
+    the demos do: the reason it doesn't is in the pack, not in the root.
+  </p>
+  <ul>
+    <li>
+      Why <code>spell run</code>'s page skipped the pack: the pack's <code>define()</code> loads BOTH elements.
+      <ul>
+        <li>
+          so a page with only a <code>&lt;spell-app&gt;</code> would also download the editor and the parser (236 kB
+          gzipped)
+        </li>
+      </ul>
+    </li>
+    <li>
+      Spell UI itself would cost that page nothing extra: <code>&lt;spell-app&gt;</code> already loads all of Spell UI
+      (<a href="../../../packages/docs/tools/_assets/spell-ui.js" target="src-packages-docs-tools-assets-spell-ui-js"
+        ><code>spell-ui.js</code></a
+      >) on any page it's on.
+    </li>
+    <li>
+      So what makes every page load one way is a pack that loads each tag's code only when the page uses that tag (the
+      third option in this call's text).
+      <ul>
+        <li>Spell UI's own <code>ui-*</code> tags already load tag by tag; packs don't yet</li>
+      </ul>
+    </li>
+  </ul>
+  <p>What <code>&lt;ui-page&gt;</code> would add over <code>&lt;ui-root&gt;</code>, as a small subclass:</p>
+  <ul>
+    <li>
+      it IS the page: the whole window, its background painted, the body's margin gone (each page writes that itself
+      today)
+    </li>
+    <li>
+      a theme with no <code>theme</code> set: it follows the system's light / dark setting (a bare
+      <code>&lt;ui-root&gt;</code> paints nothing)
+    </li>
+    <li>
+      one per page: a second one is reported in the console; <code>&lt;ui-root&gt;</code>s inside it work as today
+    </li>
+    <li>everything else (loading, skeletons, packs, icons, size) stays <code>&lt;ui-root&gt;</code>'s, unchanged</li>
+  </ul>
+  <epic-code title="packages/cli/src/runInBrowser.ts · page() today" language="html">
+    <pre>
+&lt;title&gt;${name} · spell run&lt;/title&gt;
+&lt;script type="module" src="element/spell-app.js"&gt;&lt;/script&gt;
+&lt;style&gt;html, body { margin: 0; min-height: 100%; }&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;spell-app src="app/${name}.compiled.js" toolbar&gt;&lt;/spell-app&gt;
+&lt;/body&gt;</pre>
+  </epic-code>
+  <epic-code title="the same page with <ui-page> (the demos alike, <ui-page> in place of <ui-root>)" language="html">
+    <pre>
+&lt;title&gt;${name} · spell run&lt;/title&gt;
+&lt;script type="module" src="element/spell-ui.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;ui-page&gt;
+  &lt;ui-components source="element/spell.pack.js"&gt;&lt;/ui-components&gt;
+  &lt;spell-app src="app/${name}.compiled.js" toolbar&gt;&lt;/spell-app&gt;
+&lt;/ui-page&gt;
+&lt;/body&gt;</pre>
+  </epic-code>
+  <epic-choices>
+    <epic-option letter="A" title="Tag-by-tag packs, then <ui-page>" recommended=""
+      ><ul>
+        <li>a pack may load one tag's code at a time (a Spell UI change: how packs register)</li>
+        <li><code>spell.pack.js</code> written that way; <code>&lt;ui-page&gt;</code> a new Spell UI family</li>
+        <li><code>spell run</code>'s page and both demos use it: one way to load, no extra download</li>
+        <li>a phase of its own, about 2-3h</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="<ui-page> only"
+      ><ul>
+        <li>tidier page markup, the theme and margins for free</li>
+        <li><code>spell run</code>'s page still loads <code>spell-app.js</code> itself: two ways stay</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Leave it, as a todo"
+      ><ul>
+        <li>two ways to load stay, as this call says; revisit after the epic</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        every page showing a spell element loads it ONE way:
+        <a href="../../../packages/docs/tools/_assets/spell-ui.js" target="src-packages-docs-tools-assets-spell-ui-js"
+          ><code>spell-ui.js</code></a
+        >, a <code>&lt;ui-page&gt;</code>, <code>spell.pack.js</code>
+      </li>
+      <li><code>spell run</code>'s page downloads only <code>&lt;spell-app&gt;</code>'s code, as today</li>
+      <li>
+        new: <code>&lt;ui-page&gt;</code> in <code>packages/ui/src/components/ui-page/</code>; packs may load tag by tag
+      </li>
+      <li>
+        changed:
+        <a href="../../../packages/cli/src/runInBrowser.ts" target="src-packages-cli-src-runinbrowser-ts"
+          ><code>runInBrowser.ts</code></a
+        >'s page and the two demo pages; loading <code>spell-app.js</code> by hand still works
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

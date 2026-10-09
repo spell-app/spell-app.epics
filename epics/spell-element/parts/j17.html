@@ -22,3 +22,112 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 09:52" re="revisit soon"><p>Confusing</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 10:45" re="Confusing">
+  <p>
+    The type exists to say "<code>DOMElement</code>, or any family's subclass of it". The obvious way of saying that,
+    <code>typeof DOMElement</code>, doesn't work, because <code>DOMElement</code> takes a type parameter. The clearer
+    fix is to drop that parameter, so the obvious type works and the extra name goes.
+  </p>
+  <ul>
+    <li>
+      Part of the same story as <a href="#j15">J15</a> and <a href="#j25">J25</a>: this is the type of one key of
+      <code>elementSetup</code>.
+    </li>
+  </ul>
+  <p>Why it exists, in plain words:</p>
+  <ul>
+    <li>
+      every tag's DOM element is made from a class that <code>elementSetup.DOMElement</code> names: usually
+      <code>DOMElement</code>, sometimes a family's own subclass that adds script API (<code>DOMNagElement</code>, for
+      <code>nag.close()</code>)
+    </li>
+    <li>
+      <code>DOMElement</code> is generic: <code>DOMElement&lt;C&gt;</code>, where <code>C</code> is the component class,
+      so <code>DOMNagElement extends E.DOMElement&lt;UINag&gt;</code> knows <code>this.component</code> is a
+      <code>UINag</code>
+    </li>
+    <li>
+      so <code>typeof DOMElement</code> means "a class that can make a DOM element for ANY component class you name";
+      <code>DOMNagElement</code> can only make one for <code>UINag</code>, and TypeScript refuses it
+    </li>
+    <li>
+      <code>DOMElementBaseClass = typeof DOMElement&lt;UIComponent&lt;any&gt;&gt;</code> pins <code>C</code> to "some
+      component", which every family's subclass fits
+    </li>
+  </ul>
+  <epic-code title="TypeScript's error for typeof DOMElement (a scratch copy of the shapes) · 4 lines" language="ts">
+    <pre>
+error TS2322: Type 'typeof DOMNag' is not assignable to type 'typeof DOMEl'.
+  Type 'DOMNag' is not assignable to type 'DOMEl&lt;C&gt;'.
+    Type 'Nag' is not assignable to type 'C'.
+      'Nag' is assignable to the constraint of type 'C', but 'C' could be instantiated with a different subtype of constraint 'Comp&lt;any&gt;'.</pre>
+  </epic-code>
+  <p>
+    The clearer shape: no type parameter. A family's DOM element narrows its component with one
+    <code>declare</code> line, the same way a component already narrows its DOM element (<code
+      >declare readonly domElement: DOMNagElement</code
+    >). Checked in a scratch file: it compiles, and <code>typeof DOMElement</code> then takes
+    <code>DOMNagElement</code>.
+  </p>
+  <epic-code title="packages/ui/src/components/ui-nag/UINag.tsx · today · 3 lines" language="ts">
+    <pre>
+export class DOMNagElement extends E.DOMElement&lt;UINag&gt; {
+  close() { return this.component?.close() ?? false }
+}</pre>
+  </epic-code>
+  <epic-code title="the same, with no type parameter · 5 lines" language="ts">
+    <pre>
+export class DOMNagElement extends E.DOMElement {
+  declare component?: UINag
+
+  close() { return this.component?.close() ?? false }
+}</pre>
+  </epic-code>
+  <epic-code
+    title="packages/ui/src/elements/elements.types.ts · ElementSetup's key, before → after · 2 lines"
+    language="ts"
+  >
+    <pre>
+DOMElement: E.DOMElementBaseClass   // today
+DOMElement: typeof E.DOMElement     // after:  DOMElementBaseClass is gone</pre>
+  </epic-code>
+  <epic-choices>
+    <epic-option letter="A" title="Drop the type parameter;  declare the component" recommended
+      ><ul>
+        <li><code>elementSetup.DOMElement</code> is plain <code>typeof E.DOMElement</code></li>
+        <li><code>DOMElementBaseClass</code> is gone; DOM element and component narrow each other the same way</li>
+        <li>one more line in each family DOM element that names its component</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Keep the type parameter;  rename the type"
+      ><ul>
+        <li>
+          <code>DOMElementBaseClass</code> becomes <code>AnyDOMElementClass</code>, doc: "DOMElement or a family's
+          subclass"
+        </li>
+        <li>no class changes; the <code>any</code> and the reason it's needed stay</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        <code>DOMElement</code>, <code>DOMFormControl</code>, <code>DOMLoadableElement</code> and
+        <code>DOMLoadableBodyElement</code> lose their <code>&lt;C&gt;</code>; each declares its
+        <code>component</code> instead
+      </li>
+      <li>
+        the 20 family DOM elements that name a component (<code>DOMNagElement</code>, <code>DOMCheckElement</code>,
+        <code>DOMCodeElement</code>, brand's five, epics' <code>DOMEpicFoldElement</code> ...):
+        <code>extends E.DOMElement&lt;UINag&gt;</code> becomes <code>extends E.DOMElement</code> plus a
+        <code>declare component?: UINag</code> line
+      </li>
+      <li>
+        <code>DOMElementBaseClass</code> removed; its 5 uses (<code>ElementSetup</code>, <code>subclassForTag()</code>,
+        <code>DOMElementClass</code>, <code>HotDefinitions</code> twice) say <code>typeof E.DOMElement</code>
+      </li>
+      <li>no change at run time</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

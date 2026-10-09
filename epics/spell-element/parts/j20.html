@@ -32,3 +32,139 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 09:59" re="revisit soon"
+  ><p>
+    e.g. in `SiteData`, the `forget` logic belongs in `static url`, not in `reset()`. That way `SiteData.url = xxx` or
+    `= undefined` just work everywhere. so `@resets("load") static url: string | undefined`
+  </p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-09 10:50"
+  re='e.g. in `SiteData`, the `forget` logic belongs in `static url`, not in `reset()`.  That way `SiteData.url = xxx` or `= undefined` just work everywhere.  so `@resets("load") static url: string | undefined`'
+>
+  <p>
+    Agreed: setting <code>url</code> is the reset. One wrinkle: it has to be <code>static accessor url</code>, not a
+    plain field. A decorator on a plain field only sets its starting value; it never sees a later write.
+    <code>accessor</code> gives it a setter to wrap, as <code>@E.state accessor</code>
+    does.
+  </p>
+  <ul>
+    <li>
+      Same story as <a href="#j15">J15</a> / <a href="#j25">J25</a>: a setting that says what it does where it's
+      declared, not in a separate method.
+    </li>
+  </ul>
+  <epic-code title="packages/ui/src/docs-components/SiteData.ts · today · 13 lines" language="ts">
+    <pre>
+/** URL of `components.json`, absolute or against the page;  see the class. */
+static url: string | undefined
+
+/** The data file, fetched once per page (until `reset()`). */
+@E.once static load(): Promise&lt;SiteDataFile&gt; {
+  return SiteData.fetch(SiteData.resolve())
+}
+
+/** Forget the fetch and set `url` (tests, a rebuilt file):  the next `load()` fetches again. */
+static reset(url?: string): void {
+  E.forget(SiteData, "load")
+  SiteData.url = url
+}</pre>
+  </epic-code>
+  <epic-code title="the same, with @resets · 10 lines" language="ts">
+    <pre>
+/**
+ * URL of `components.json`, absolute or against the page;  see the class.
+ * - Setting it (to a new URL, the same one, or `undefined`) makes the next `load()` fetch again.
+ */
+@E.resets("load") static accessor url: string | undefined
+
+/** The data file, fetched once per page (until `url` is set). */
+@E.once static load(): Promise&lt;SiteDataFile&gt; {
+  return SiteData.fetch(SiteData.resolve())
+}</pre>
+  </epic-code>
+  <epic-code title="packages/util/src/decorators.ts · the new decorator, beside @lazy / @once · 15 lines" language="ts">
+    <pre>
+/**
+ * `@resets("load") static accessor url`:  setting the member forgets what `@lazy` / `@once` members `names` kept,
+ * so the next read or call makes it anew.
+ * - Needs `accessor`:  a plain field's decorator never sees a write.
+ * - Every write resets, even of the same value:  `X.url = X.url` fetches again.
+ */
+export function resets&lt;This extends object, Value&gt;(...names: (keyof This)[]) {
+  return function (target: ClassAccessorDecoratorTarget&lt;This, Value&gt;, _context: ClassAccessorDecoratorContext&lt;This, Value&gt;) {
+    return {
+      set(this: This, value: Value) {
+        for (const name of names) forget(this, name)
+        target.set.call(this, value)
+      }
+    }
+  }
+}</pre>
+  </epic-code>
+  <ul>
+    <li>
+      <code>"load"</code> is checked: <code>keyof This</code> is the class's statics here, so a typo is a compile error
+    </li>
+    <li>
+      every write resets, even of the same URL, on purpose: tests set the same URL again to start over after a fetch
+      that failed (<code>beforeEach(() =&gt; SiteData.reset(DATA_URL))</code> today)
+    </li>
+    <li>
+      <code>SiteData.url ??= ...</code> in <code>site.ts</code> and
+      <a href="../../../packages/brand/src/brand-docs.ts" target="src-packages-brand-src-brand-docs-ts"
+        ><code>brand-docs.ts</code></a
+      >
+      keeps working: a set before the first load forgets nothing
+    </li>
+    <li><code>forget()</code> stays: the decorator uses it, and so do <code>@lazy</code>'s own tests</li>
+  </ul>
+  <epic-code title="a test, before → after · 4 lines" language="ts">
+    <pre>
+SiteData.reset(serve(DATA))          // today
+SiteData.url = serve(DATA)           // after
+
+SiteData.reset();  SiteData.url = undefined   // today (UIDocsNav.test, UIDocsSearch.test)
+SiteData.url = undefined                      // after</pre>
+  </epic-code>
+  <epic-choices>
+    <epic-option letter="A" title='@E.resets("load") static accessor url' recommended
+      ><ul>
+        <li>one decorator in <code>$/util</code>, beside <code>@lazy</code> / <code>@once</code></li>
+        <li><code>reset()</code> gone from both classes</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="A hand-written setter in each class"
+      ><ul>
+        <li>
+          no new decorator; each class writes a private field, a getter and a setter calling <code>E.forget()</code>
+        </li>
+        <li>about 6 lines per class instead of 1</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        new <code>resets()</code> in
+        <a href="../../../packages/util/src/decorators.ts" target="src-packages-util-src-decorators-ts"
+          ><code>packages/util/src/decorators.ts</code></a
+        >, reached as <code>E.resets</code>
+      </li>
+      <li>
+        <code>SiteData</code> and <code>SearchData</code>: <code>url</code> becomes
+        <code>@E.resets("load") static accessor url</code>; <code>reset()</code> deleted
+      </li>
+      <li>
+        about 20 <code>SiteData.reset(...)</code> / <code>SearchData.reset(...)</code> calls in 6 test files become
+        <code>X.url = ...</code>
+      </li>
+      <li>
+        docs: both class headers, <code>forget()</code>'s example,
+        <a href="../../../packages/util/AGENTS.md" target="src-packages-util-agents-md"
+          ><code>packages/util/AGENTS.md</code></a
+        >'s list
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

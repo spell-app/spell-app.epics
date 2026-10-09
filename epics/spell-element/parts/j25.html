@@ -24,3 +24,115 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:07" re="revisit soon"
+  ><p>confusing, put back in elementSetup, make them do the spread when defining the setup</p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-09 10:55"
+  re="confusing, put back in elementSetup, make them do the spread when defining the setup"
+>
+  <p>
+    Yes: the list would move into <code>elementSetup</code>, and a subclass that ADDS states spreads its base's list, as
+    <code>styleSheets</code> does. Today no subclass needs the spread: the three that extend a class with states
+    (<code>UIPanel</code>, <code>UIInput</code>, <code>UITextarea</code>) add none, so they inherit the list whole.
+  </p>
+  <ul>
+    <li>
+      Same story as <a href="#j15">J15</a>: the list is one more key that merges down the class chain, and a nested
+      value keeps the spread.
+    </li>
+  </ul>
+  <epic-code title="packages/ui/src/components/ui-dropdown/UIDropdown.tsx · today · 9 lines" language="ts">
+    <pre>
+@E.cssStates("loading", "fluid")
+export class UIDropdown extends F.FormComponent&lt;typeof dropdownVocabulary&gt; {
+  @E.proto static vocabulary = dropdownVocabulary
+  @E.protoMerged static elementSetup = {
+    styleSheets: { button: buttonCSS, dropdown: dropdownCSS },
+    Fallback: DropdownFallback,
+    loading: "its own"
+  } satisfies Partial&lt;E.ElementSetup&gt;</pre>
+  </epic-code>
+  <epic-code title="the same, in elementSetup · 9 lines" language="ts">
+    <pre>
+export class UIDropdown extends F.FormComponent&lt;typeof dropdownVocabulary&gt; {
+  @E.proto static vocabulary = dropdownVocabulary
+  @E.protoMerged static elementSetup = {
+    styleSheets: { button: buttonCSS, dropdown: dropdownCSS },
+    attributeStates: ["loading", "fluid"],
+    Fallback: DropdownFallback,
+    loading: "its own"
+  } satisfies Partial&lt;E.ElementSetup&gt;</pre>
+  </epic-code>
+  <epic-code title="a subclass that adds a state (none does today) · 3 lines" language="ts">
+    <pre>
+@E.protoMerged static elementSetup = {
+  attributeStates: [...TextControl.prototype.elementSetup.attributeStates, "inline"]
+} satisfies Partial&lt;E.ElementSetup&gt;</pre>
+  </epic-code>
+  <ul>
+    <li>
+      what each name means doesn't change: <code>:state(fluid)</code> follows attribute <code>fluid</code>, read through
+      the class's member <code>fluid</code>
+    </li>
+    <li>
+      what's lost: the decorator made a typo a COMPILE error (TypeScript knew the class's members);
+      <code>ElementSetup</code> doesn't know the class, so the check moves to run time: <code>define()</code> throws,
+      naming each listed state the tag has no attribute or member for
+    </li>
+    <li>
+      what goes away: the clash between the decorator <code>E.cssStates</code> and the hook method
+      <code>cssStates()</code>
+    </li>
+    <li>
+      found on the way: <code>"loading"</code> in <code>UIDropdown</code>'s and <code>TextControl</code>'s lists looks
+      redundant now: every element sets <code>:state(loading)</code> itself since the shared states (<a href="#p8">P8</a
+      >); it can be dropped while moving them
+    </li>
+  </ul>
+  <p>The key's name:</p>
+  <epic-choices>
+    <epic-option letter="A" title="attributeStates" recommended
+      ><ul>
+        <li>says what they are: states that mirror their attribute</li>
+        <li>no name shared with the <code>cssStates()</code> hook, which computes a set of its own</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="cssStates"
+      ><ul>
+        <li>the decorator's name today, so it reads familiar</li>
+        <li><code>elementSetup.cssStates</code> and <code>this.cssStates()</code> would mean different things</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        24 classes (23 in <code>ui</code>, epics' <code>EpicPage</code>): the <code>@E.cssStates(...)</code> line goes,
+        an <code>attributeStates</code> key comes; 23 already have an <code>elementSetup</code>,
+        <code>TextControl</code> gets one
+      </li>
+      <li>
+        <code>ElementSetup</code> gains <code>attributeStates: readonly string[]</code>, default <code>[]</code> on
+        <code>UIComponent</code>; <code>onMount()</code> reads it beside the <code>@cssState</code> members
+      </li>
+      <li>
+        the <code>cssStates</code> decorator is deleted from
+        <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+          ><code>Reactive.ts</code></a
+        >
+      </li>
+      <li>
+        docs:
+        <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+          ><code>Reactive.ts</code></a
+        >'s header, <code>UIComponent</code>'s,
+        <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+          ><code>packages/ui/AGENTS.md</code></a
+        >
+        ("Reactive members"), the custom-elements guide
+      </li>
+      <li>no change in what any element shows</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

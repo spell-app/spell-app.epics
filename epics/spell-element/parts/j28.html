@@ -25,3 +25,123 @@
     <li>Stopped when the DOM element is released, as before (NOT on disconnect).</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:10" re="revisit soon"><p>`@fromContent()` =&gt; `@watches()` ?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 10:50" re="`@fromContent()` => `@watches()` ?">
+  <p>
+    The decorator has two jobs, and one name reads well for only one of them. On a GETTER it says what the value is
+    (read from the element's children and text). On a METHOD it says when the method runs (when those change).
+    <code>@E.watches</code> reads fine on the method and vaguely on the getter.
+  </p>
+  <ul>
+    <li>
+      11 getters use it (UICard, UITable, UIReveal, UIProgress, UITreeDiagram, LoadableComponent, brand's color set, 4
+      in epics); 1 method (UIAccordion).
+    </li>
+    <li>
+      <code>@E.watches</code>: watches WHAT? <code>@E.onChange("isOpen")</code> also watches something. And
+      <code>watch()</code> is already a method name in UIRoot, UIDocsToc and ThemePreference.
+    </li>
+    <li>
+      <code>@E.fromChildren</code>: wrong for half the sites. UIProgress, UITreeDiagram and LoadableComponent read the
+      TEXT; UIReveal watches attributes deep inside.
+    </li>
+    <li><code>@E.watchesContent</code>: clear on both, but on a getter it says how, not what.</li>
+  </ul>
+  <epic-code title="now" language="ts">
+    <pre>
+// UIProgress.tsx:  a getter
+@E.fromContent({ childList: true, characterData: true, subtree: true })
+get elementText(): string { ... }
+
+// UIAccordion.tsx:  a method
+@E.fromContent({ childList: true })
+protected onChildrenChanged() { ... }</pre>
+  </epic-code>
+  <epic-code title="option A:  one name per job" language="ts">
+    <pre>
+// a getter:  what the value IS
+@E.fromContent({ childList: true, characterData: true, subtree: true })
+get elementText(): string { ... }
+
+// a method:  WHEN it runs
+@E.onContentChange({ childList: true })
+protected readPanels() { ... }</pre>
+  </epic-code>
+  <epic-code title="option B:  one name for both" language="ts">
+    <pre>
+@E.watchesContent({ childList: true, characterData: true, subtree: true })
+get elementText(): string { ... }
+
+@E.watchesContent({ childList: true })
+protected onChildrenChanged() { ... }</pre>
+  </epic-code>
+  <ul>
+    <li>
+      With A, the method form joins the other "when it runs" decorators (<code>@E.on</code>,
+      <code>@E.onChange</code>, <code>@E.onConnected</code>), so the method is named for what it does
+      (<code>readPanels()</code>), not <code>onChildrenChanged()</code> twice over.
+    </li>
+    <li>Same options, same single observer per element, same timing: only the names change.</li>
+    <li>Parentheses stay: both take the "what to watch" options.</li>
+  </ul>
+  <epic-aside title="the naming story behind J21, J24, J28, J31 and J33">
+    <ul>
+      <li>
+        On a field or getter, the decorator says what the member IS: <code>@E.state</code>, <code>@E.controlled</code>,
+        <code>@E.derived</code>, <code>@E.lazy</code>, <code>@E.cssState("open")</code>, <code>@E.aria("busy")</code>,
+        <code>@E.fromContent(...)</code>.
+      </li>
+      <li>
+        On a method, it says WHEN the method runs, and starts with <code>on</code>: <code>@E.on("command")</code>,
+        <code>@E.onChange("isOpen")</code>, <code>@E.onConnected</code>, <code>@E.onContentChange(...)</code>. Every one
+        of these runs its method untracked.
+      </li>
+      <li>Two say HOW a method runs: <code>@E.once</code>, <code>@E.untracked</code>.</li>
+      <li>A decorator with no arguments has no parentheses: <code>@E.state</code>, <code>@E.onConnected</code>.</li>
+    </ul>
+  </epic-aside>
+  <epic-choices>
+    <epic-option letter="A" title="@E.fromContent on getters, @E.onContentChange on methods" recommended
+      ><ul>
+        <li>Each reads as English where it sits; fits the naming story</li>
+        <li>Two names to learn instead of one</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="@E.watchesContent on both"
+      ><ul>
+        <li>One name; says it watches the content</li>
+        <li>On a getter it says how the value stays fresh, not what it is</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="@E.watches on both, as you suggested"
+      ><ul>
+        <li>Shortest; but doesn't say what is watched, and sits beside <code>watch()</code> methods</li>
+      </ul></epic-option
+    >
+    <epic-option letter="D" title="Keep @E.fromContent on both"
+      ><ul>
+        <li>No change; the method form keeps reading oddly</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        New decorator <code>@E.onContentChange(options)</code> in
+        <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+          ><code>Reactive.ts</code></a
+        >: the method half of today's <code>@fromContent</code>, split out
+      </li>
+      <li><code>@E.fromContent</code> takes getters only (a method fails TypeScript)</li>
+      <li>1 site moves: UIAccordion's method, renamed <code>readPanels()</code>; 1 test method too</li>
+      <li>The 11 getters don't change</li>
+      <li>
+        Docstrings and
+        <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+          ><code>packages/ui/AGENTS.md</code></a
+        >
+        ("Reactive members") updated
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

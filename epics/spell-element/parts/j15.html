@@ -52,3 +52,143 @@
     <li>style sheets inherit as before: replaced unless spread</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 09:48" re="revisit soon"
+  ><p>Can we use protoype reassignment to do @protoMerged</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 10:40" re="Can we use protoype reassignment to do @protoMerged">
+  <p>
+    Yes, for the top level of <code>elementSetup</code>. Each class's own setup object would get its parent's as its
+    prototype, so a key it doesn't state is looked up on the parent's. Nothing is copied. Nested objects
+    (<code>styleSheets</code>, <code>aria</code>) can't use the same trick, because code walks over their keys.
+  </p>
+  <ul>
+    <li>
+      One story with <a href="#j25">J25</a> (the CSS states move back into <code>elementSetup</code>) and
+      <a href="#j17">J17</a> (the type of its <code>DOMElement</code> key): all three are about how this one object is
+      inherited.
+    </li>
+  </ul>
+  <epic-code title="packages/util/src/decorators.ts · protoMerged() today · 8 lines" language="ts">
+    <pre>
+return function (this: This, value: Value): Value {
+  const parentPrototype = Object.getPrototypeOf(this.prototype) as Record&lt;PropertyKey, unknown&gt; | null
+  // a NEW object:  the parent's merged keys, then this class's
+  const merged = { ...(parentPrototype?.[context.name] as object | undefined), ...value }
+  Object.defineProperty(this.prototype, context.name, { value: merged, writable: true, configurable: true })
+  ;(this as ProtoAware).protoDefined?.(context.name, merged)
+  return value
+}</pre>
+  </epic-code>
+  <epic-code title="the same, by prototype · 9 lines" language="ts">
+    <pre>
+return function (this: This, value: Value): Value {
+  const parentPrototype = Object.getPrototypeOf(this.prototype) as Record&lt;PropertyKey, unknown&gt; | null
+  const parentValue = parentPrototype?.[context.name] as object | undefined
+  // a key this class doesn't state is looked up on the parent's object
+  if (parentValue) Object.setPrototypeOf(value, parentValue)
+  Object.defineProperty(this.prototype, context.name, { value, writable: true, configurable: true })
+  ;(this as ProtoAware).protoDefined?.(context.name, value)
+  return value
+}</pre>
+  </epic-code>
+  <p>What it gives:</p>
+  <ul>
+    <li>
+      ONE object per class: <code>UICheckbox.elementSetup</code> and <code>UICheckbox.prototype.elementSetup</code>
+      are the same object
+      <ul>
+        <li>
+          the note "the static keeps only what THIS class stated; read the merged result from the prototype" goes away
+        </li>
+        <li>
+          in the browser's console, its own keys are what that class changed; the rest show under
+          <code>[[Prototype]]</code>, the parent's
+        </li>
+      </ul>
+    </li>
+    <li>
+      live inheritance: a key changed on a parent's object later shows in every subclass
+      <ul>
+        <li>
+          no practical gain today: nothing changes a setup after the class is defined (hot reload makes a new class)
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <p>What it costs:</p>
+  <ul>
+    <li>
+      anything that COPIES the whole setup sees only that class's own keys: a spread, <code>Object.keys()</code>,
+      <code>Object.assign()</code>, <code>JSON.stringify()</code>
+      <ul>
+        <li>
+          today only three test helpers do it, imitating the decorator:
+          <code>{ ...Component.prototype.elementSetup, ...setup }</code> in
+          <a
+            href="../../../packages/ui/src/elements/DOMElement.test.tsx"
+            target="src-packages-ui-src-elements-domelement-test-tsx"
+            ><code>DOMElement.test.tsx</code></a
+          >,
+          <a
+            href="../../../packages/ui/src/elements/HotDefinitions.test.tsx"
+            target="src-packages-ui-src-elements-hotdefinitions-test-tsx"
+            ><code>HotDefinitions.test.tsx</code></a
+          >,
+          <a
+            href="../../../packages/ui/src/components/ui-item/UIItem.test.tsx"
+            target="src-packages-ui-src-components-ui-item-uiitem-test-tsx"
+            ><code>UIItem.test.tsx</code></a
+          >; they'd chain the same way
+        </li>
+        <li>
+          every real reader reads keys by name, which goes through the chain:
+          <code>this.elementSetup.styleSheets</code>, <code>const { canRenderUnstyled } = this.elementSetup</code>,
+          <code>tagSetupFor()</code>'s destructure
+        </li>
+        <li>hot reload, the site data and the static render never copy a whole setup</li>
+      </ul>
+    </li>
+    <li>
+      a read walks up a few objects (<code>UICheckbox</code> → <code>CheckControl</code> → <code>FormComponent</code> →
+      <code>UIComponent</code>): a handful of reads per element built, too small to measure
+    </li>
+  </ul>
+  <p>Why <code>styleSheets</code> and <code>aria</code> keep the spread:</p>
+  <ul>
+    <li>
+      code walks over their keys, and would silently miss the parent's:
+      <code>Object.keys(this.elementSetup.styleSheets)</code> (<code>styleSheetNames</code>, <code>UIItem</code>),
+      <code>Object.entries(...)</code> (<code>UITable</code>, the static render's sheet),
+      <code>Object.assign(internals, this.elementSetup.aria)</code>
+    </li>
+    <li>
+      sheet ORDER matters, and a spread lets each class choose it: <code>UIPanel</code> puts its base's sheets first,
+      <code>UICard</code> its own first; a chain can't say which
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Chain the top level;  nested values keep the spread" recommended
+      ><ul>
+        <li>one object per class, nothing copied</li>
+        <li><code>styleSheets: { ...UISection.prototype.elementSetup.styleSheets, panel: panelCSS }</code> as today</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Keep the copy (today)"
+      ><ul>
+        <li>a spread of a whole setup keeps working; two objects per class, the static only what it stated</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li><code>protoMerged()</code> in <code>decorators.ts</code>: its body (2 lines) and its doc</li>
+      <li>the three test helpers chain instead of spreading</li>
+      <li>
+        the "static keeps only what that class stated" lines go from <code>UIComponent</code>'s doc and
+        <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+          ><code>packages/ui/AGENTS.md</code></a
+        >
+      </li>
+      <li>no component file changes; no change in behaviour</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

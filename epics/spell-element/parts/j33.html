@@ -23,3 +23,85 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:13" re="revisit soon"
+  ><p>Should this be a default, can you can pass `{ tracked }`?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 11:00" re="Should this be a default, can you can pass `{ tracked }`?">
+  <p>
+    It already is the default, and the only way: an <code>@E.onChange</code> method re-runs only when a member it NAMES
+    changes. A <code>{ tracked: true }</code> option couldn't do what its name says, so I'd leave it out.
+  </p>
+  <ul>
+    <li>
+      Each <code>@E.onChange</code> is a Solid effect in two halves: the first READS the named members (and is
+      followed), the second runs the method with their values.
+    </li>
+    <li>
+      Solid 2 never follows reads in the second half, with or without us. This change only stopped our code from saying
+      so by hand (<code>untrack(() =&gt; ...)</code> around each read).
+    </li>
+    <li>
+      To make the method's own reads count, it would have to run in the FIRST half. But Solid forbids writes there, and
+      almost every <code>@E.onChange</code> method writes (a member, the DOM element, a timer).
+    </li>
+    <li>
+      The way to re-run on one more thing is already there: name it. Every <code>on…</code> method decorator works this
+      way (<code>@E.on</code>, <code>@E.onChange</code>, <code>@E.onConnected</code>, <code>@E.onContentChange</code>).
+    </li>
+  </ul>
+  <epic-code title="UIShape.tsx · now" language="ts">
+    <pre>
+@E.onChange("isReady", "activeSideIndex")
+protected onActiveSideIndexChanged(isReady: boolean, index: number) {
+  if (!isReady) return
+  // `sides` and `queuedIndex` are read, but don't re-run it:  only the two names above do
+  const next = this.normalize(index, this.sides.length)
+  if (next !== this.queuedIndex) void this.enqueue(this.defaultFlip, next)
+}</pre>
+  </epic-code>
+  <epic-code title="to re-run when the sides change too:  name them" language="ts">
+    <pre>
+@E.onChange("isReady", "activeSideIndex", "sides")
+protected onActiveSideIndexChanged(isReady: boolean, index: number, sides: E.DOMElement[]) { ... }</pre>
+  </epic-code>
+  <epic-aside title="the naming story behind J21, J24, J28, J31 and J33">
+    <ul>
+      <li>
+        On a field or getter, the decorator says what the member IS: <code>@E.state</code>, <code>@E.controlled</code>,
+        <code>@E.derived</code>, <code>@E.lazy</code>, <code>@E.cssState("open")</code>, <code>@E.aria("busy")</code>,
+        <code>@E.fromContent(...)</code>.
+      </li>
+      <li>
+        On a method, it says WHEN the method runs, and starts with <code>on</code>: <code>@E.on("command")</code>,
+        <code>@E.onChange("isOpen")</code>, <code>@E.onConnected</code>, <code>@E.onContentChange(...)</code>. Every one
+        of these runs its method untracked.
+      </li>
+      <li>Two say HOW a method runs: <code>@E.once</code>, <code>@E.untracked</code>.</li>
+      <li>A decorator with no arguments has no parentheses: <code>@E.state</code>, <code>@E.onConnected</code>.</li>
+    </ul>
+  </epic-aside>
+  <epic-choices>
+    <epic-option letter="A" title="Untracked, always;  no option" recommended
+      ><ul>
+        <li>As built: the named members are the whole list of what re-runs it</li>
+        <li>One rule for every <code>on…</code> decorator</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Add { tracked: true }"
+      ><ul>
+        <li>The method would run in the first half: no writes, no cleanup, so it couldn't do what these methods do</li>
+        <li>
+          No site needs it today; a getter (<code>@E.derived</code>) already covers "recompute from whatever I read"
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>No code change: J33 stands as built</li>
+      <li>
+        <code>@E.onChange</code>'s docstring gains one line: "To re-run on another member, name it; there is no tracked
+        mode"
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

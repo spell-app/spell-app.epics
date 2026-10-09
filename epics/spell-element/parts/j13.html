@@ -53,3 +53,189 @@
     <li>in <code>brand</code>, <code>this.x</code> always means the attribute <code>x</code></li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 09:45" re="revisit soon"><p>Let's dive into this one</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 10:45" re="Let's dive into this one">
+  <p>
+    All eight sit in four brand elements. In each, a member worked something out FROM an attribute and had the
+    attribute's own name. Once <code>this.font</code> became the <code>font</code> attribute (P3), the member and the
+    attribute couldn't share the name, so the member got a new one.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Element</th>
+        <th>Attribute</th>
+        <th>Old member</th>
+        <th>New member</th>
+        <th>What the member is</th>
+        <th>Better name?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>&lt;ui-brand-check&gt;</code></td>
+        <td><code>font</code></td>
+        <td><code>font</code></td>
+        <td><code>shownFont</code></td>
+        <td>the face the text is drawn in: its own <code>font</code>, else its list's, else sans</td>
+        <td>keep</td>
+      </tr>
+      <tr>
+        <td><code>&lt;ui-brand-check&gt;</code></td>
+        <td><code>state</code></td>
+        <td><code>state</code></td>
+        <td><code>shownState</code></td>
+        <td>
+          how the check looks (done, active or pending), worked out from <code>checkable</code>, the list's
+          <code>step</code>, <code>selected</code> and its own <code>state</code>
+        </td>
+        <td>keep: <code>&lt;ui-brand-field&gt;</code> already had a <code>shownState</code></td>
+      </tr>
+      <tr>
+        <td><code>&lt;ui-brand-checklist&gt;</code></td>
+        <td><code>step</code></td>
+        <td><code>step</code></td>
+        <td><code>currentStep</code></td>
+        <td><code>step</code> as a whole number, 0 or more, or nothing when unset</td>
+        <td><code>activeIndex</code>: it is the position of the active check (the ones before it are done)</td>
+      </tr>
+      <tr>
+        <td><code>&lt;ui-brand-color-picker&gt;</code></td>
+        <td><code>value</code></td>
+        <td><code>value()</code></td>
+        <td><code>hex()</code></td>
+        <td>the colour as <code>#RRGGBB</code>, whatever form <code>value</code> was written in</td>
+        <td>keep: <code>&lt;ui-brand-color&gt;</code> already had a <code>hex()</code></td>
+      </tr>
+      <tr>
+        <td><code>&lt;ui-brand-composer&gt;</code></td>
+        <td><code>value</code></td>
+        <td><code>value()</code></td>
+        <td><code>text()</code></td>
+        <td>what's in the box now: the page's <code>value</code>, or what was typed; <code>""</code> when empty</td>
+        <td>keep, or the ui way (option C)</td>
+      </tr>
+      <tr>
+        <td><code>&lt;ui-brand-composer&gt;</code></td>
+        <td><code>rows</code></td>
+        <td><code>rows()</code></td>
+        <td><code>rowCount()</code></td>
+        <td><code>rows</code> rounded, at least 1, else 3</td>
+        <td>keep</td>
+      </tr>
+      <tr>
+        <td><code>&lt;ui-brand-composer&gt;</code></td>
+        <td><code>hint</code></td>
+        <td><code>hint()</code></td>
+        <td><code>shownHint()</code></td>
+        <td>the hint under the box: <code>hint</code>, else the Mac or PC shortcut text</td>
+        <td>keep</td>
+      </tr>
+      <tr>
+        <td><code>&lt;ui-brand-color-set&gt;</code></td>
+        <td><code>columns</code></td>
+        <td><code>columns()</code></td>
+        <td><code>columnCount()</code></td>
+        <td>chips per row, or nothing for one long row</td>
+        <td>keep</td>
+      </tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>
+      The pattern: <code>shown…</code> for "what the element actually shows, after defaults and the parent's say",
+      <code>…Count</code> for a cleaned-up number. Two of them match names brand already used.
+    </li>
+    <li>
+      A small fix the item text needs: it lists <code>ui-brand-color</code> and <code>ui-brand-field</code> among the
+      renamed; neither was. Theirs were already good names.
+    </li>
+  </ul>
+
+  <p>
+    <b>The other way, ui's, on the colour picker.</b> ui hides <code>value</code> from the attribute types, so its own
+    member keeps the name:
+  </p>
+  <epic-code title="UIBrandColorPicker.tsx · now (renamed)" language="ts">
+    <pre>
+/** The colour, `#RRGGBB`:  `value` read as `Palette.parse()` reads it, else `DEFAULT_VALUE`;  tracked. */
+hex(): string {
+  const value = this.valueState.get()
+  return (typeof value === "string" ? Palette.parse(value) : undefined) ?? DEFAULT_VALUE
+}
+...
+export interface UIBrandColorPicker extends AttributeValues&lt;BrandColorPickerVocabulary&gt; {}</pre>
+  </epic-code>
+  <epic-code title="UIBrandColorPicker.tsx · with Omit, as ui does" language="ts">
+    <pre>
+/** The colour, `#RRGGBB`:  `value` read as `Palette.parse()` reads it, else `DEFAULT_VALUE`;  tracked. */
+value(): string {
+  const value = this.valueState.get()
+  return (typeof value === "string" ? Palette.parse(value) : undefined) ?? DEFAULT_VALUE
+}
+...
+// `value` left out of the attribute getters, so the method above wins the name
+export interface UIBrandColorPicker extends Omit&lt;AttributeValues&lt;BrandColorPickerVocabulary&gt;, "value"&gt; {}</pre>
+  </epic-code>
+  <ul>
+    <li>
+      Why it fits ui and not the picker: in <code>&lt;ui-input&gt;</code>, the member IS the value (what the page set,
+      or what was typed). The picker's member is a different thing: with <code>value="oklch(0.7 0.1 250)"</code> on the
+      page, <code>this.value()</code> would hand back the same colour as a <code>#RRGGBB</code> hex. Same name, two
+      meanings.
+    </li>
+    <li>
+      The composer is the one place it would fit: <code>text()</code> is exactly the value. ui's shape there is a
+      decorated member, as in <code>&lt;ui-input&gt;</code>:
+      <epic-code title="UIBrandComposer.tsx · option C" language="ts">
+        <pre>
+/** `value`:  set by the page, or typed in;  `""` until either. */
+@controlled("value") accessor value = ""
+...
+export interface UIBrandComposer extends Omit&lt;AttributeValues&lt;BrandComposerVocabulary&gt;, "value"&gt; {}</pre>
+      </epic-code>
+      It replaces <code>valueState</code> and <code>text()</code>, and so moves the composer off the older
+      <code>this.controlled()</code>, which brand still uses in four places.
+    </li>
+    <li>
+      A loose end either way:
+      <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"><code>packages/ui/AGENTS.md</code></a>
+      points to a "Member names" part of <code>UIComponent</code>'s doc that doesn't exist; the rule is under "Base
+      classes" there.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Keep the eight renames" recommended
+      ><ul>
+        <li>each member already says what it is; two match names brand had</li>
+        <li><code>this.x</code> is always the attribute <code>x</code> in brand</li>
+        <li>nothing to do</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Keep them, but rename currentStep to activeIndex"
+      ><ul>
+        <li>says what the number is used for: which check is active</li>
+        <li>one member, in <code>UIBrandChecklist.tsx</code> (two reads)</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Use Omit for the composer's value, as ui does"
+      ><ul>
+        <li>the composer reads like <code>&lt;ui-input&gt;</code>: <code>this.value</code>, with typing</li>
+        <li>the other seven stay renamed: their members are not the attribute</li>
+        <li>about 6 lines in <code>UIBrandComposer.tsx</code>, its test unchanged</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>no code change; the item text loses <code>ui-brand-color</code> and <code>ui-brand-field</code></li>
+      <li>
+        the dangling "Member names" pointer in
+        <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+          ><code>packages/ui/AGENTS.md</code></a
+        >
+        gets fixed to "Base classes"
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

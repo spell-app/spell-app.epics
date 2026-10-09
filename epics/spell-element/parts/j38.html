@@ -71,3 +71,155 @@
     <li>the families' <code>index.ts</code> are the bundle entries</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:17" re="revisit soon"
+  ><p>I think we'll want more things in the `spellPack`</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 10:40" re="I think we'll want more things in the `spellPack`">
+  <p>
+    Agreed, and the app's pack can take more families today, without the <code>"spellPack"</code> key. The key and the
+    pack are two different things:
+  </p>
+  <ul>
+    <li>
+      <code>"spellPack": { "prefix": "epic-" }</code> in
+      <a href="../../../packages/epics/package.json" target="src-packages-epics-package-json"
+        ><code>packages/epics/package.json</code></a
+      >
+      (the only package with it) tells <code>spell dev pack build</code> to build that package the STOCK way:
+      <ul>
+        <li>
+          ONE classic script, <code>pack/epics.pack.js</code>, committed, sharing only Solid and Spell UI's core with
+          the page
+        </li>
+        <li>that's what can't carry Monaco and the parser (the issue <a href="#i4">I4</a>)</li>
+      </ul>
+    </li>
+    <li>
+      The app's pack, <code>spell.pack.js</code>, is built by Vite instead (<code>componentPack()</code> in
+      <code>vite.element.config.ts</code>):
+      <ul>
+        <li>
+          it lists every family folder in
+          <a href="../../../packages/app/components/" target="src-packages-app-components"
+            ><code>packages/app/components/</code></a
+          >: a new folder there joins the pack, nothing to register
+        </li>
+        <li>the pack script itself is tiny (the list of tags, and an <code>import()</code> per family)</li>
+        <li>each family is its own module beside it, and Monaco and the parser are lazy chunks those modules load</li>
+      </ul>
+    </li>
+    <li>
+      So "light families in the pack, heavy ones as modules" is already how it works. What's missing is
+      <a href="#j37">J37</a>'s point: <code>define()</code> loads every family at once, so each new family makes every
+      page heavier until a pack can load tag by tag.
+    </li>
+  </ul>
+  <p>
+    What else in
+    <a href="../../../packages/app/src/" target="src-packages-app-src"><code>packages/app/src/</code></a> could be a
+    family (all Solid components today, none an element):
+  </p>
+  <ui-table class="compact">
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>What it is</th>
+          <th>Weight</th>
+          <th>As a tag</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>solid/TypeExplorer.tsx</code></td>
+          <td>the Type Explorer, already in <code>&lt;spell-app debug="explorer"&gt;</code></td>
+          <td>light (types only)</td>
+          <td><code>&lt;spell-type-explorer&gt;</code></td>
+        </tr>
+        <tr>
+          <td><code>solid/ThingExplorer.tsx</code></td>
+          <td>the running app's things, beside it</td>
+          <td>light</td>
+          <td><code>&lt;spell-thing-explorer&gt;</code></td>
+        </tr>
+        <tr>
+          <td><code>runner/RunnerConsole.tsx</code></td>
+          <td>a program's console lines</td>
+          <td>light</td>
+          <td><code>&lt;spell-console&gt;</code></td>
+        </tr>
+        <tr>
+          <td>
+            <code>solid/ConsoleViewer.tsx</code>,
+            <a href="../../../packages/app/src/solid/TreeViewer.tsx" target="src-packages-app-src-solid-treeviewer-tsx"
+              ><code>TreeViewer.tsx</code></a
+            >
+          </td>
+          <td>the editor's console and parse tree</td>
+          <td>heavy (the parser), and they read the editor's shared state</td>
+          <td>later, once they take their input as attributes</td>
+        </tr>
+        <tr>
+          <td>
+            <a
+              href="../../../packages/app/src/solid/InputEditor.tsx"
+              target="src-packages-app-src-solid-inputeditor-tsx"
+              ><code>InputEditor.tsx</code></a
+            >,
+            <a
+              href="../../../packages/app/src/solid/OutputEditor.tsx"
+              target="src-packages-app-src-solid-outputeditor-tsx"
+              ><code>OutputEditor.tsx</code></a
+            >
+          </td>
+          <td>the editor's Monaco panes</td>
+          <td>heavy (Monaco)</td>
+          <td>already inside <code>&lt;spell-editor&gt;</code></td>
+        </tr>
+        <tr>
+          <td><code>solid/SplitPanel.tsx</code></td>
+          <td>a resizable split</td>
+          <td>light, nothing spell about it</td>
+          <td>a Spell UI family (<code>ui-*</code>), not a spell one</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <epic-choices>
+    <epic-option letter="A" title="Grow the app's own pack, after tag-by-tag loading" recommended
+      ><ul>
+        <li>
+          a todo now: the three light panels become families in
+          <a href="../../../packages/app/components/" target="src-packages-app-components"
+            ><code>packages/app/components/</code></a
+          >
+        </li>
+        <li>built once packs load tag by tag (J37's option A), so nobody downloads a panel they don't show</li>
+        <li>no <code>"spellPack"</code> key: the stock build stays for packs like <code>epics</code></li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Teach the stock build to build app too"
+      ><ul>
+        <li><code>"spellPack"</code> in app, with a mode for ES modules and lazy chunks, its output not committed</li>
+        <li>
+          one tool for every pack; but a second way of building inside <code>spell dev pack build</code>, for one
+          package
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Just the two elements for now"
+      ><ul>
+        <li>no todo; revisit when a page needs one of the panels by itself</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        a new todo: <code>&lt;spell-type-explorer&gt;</code>, <code>&lt;spell-thing-explorer&gt;</code>,
+        <code>&lt;spell-console&gt;</code> as families
+      </li>
+      <li>it waits on tag-by-tag pack loading (J37)</li>
+      <li>nothing changes in this epic's code now</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

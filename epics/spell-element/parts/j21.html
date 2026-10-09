@@ -33,3 +33,129 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:00" re="revisit soon"
+  ><p>In general, I'd like decorators for `@state` even if they are not doing much -- signals intent.</p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-09 10:40"
+  re="In general, I'd like decorators for `@state` even if they are not doing much -- signals intent."
+>
+  <p>
+    Agreed: a value that CHANGES after it's made gets <code>@E.state</code>, even where nothing reactive reads it yet.
+    So the theme picker's remembered look (<code>ThemePreference</code>'s in-memory copy) gets one too.
+  </p>
+  <ul>
+    <li>
+      Today it's a plain static field with a docstring explaining why it isn't <code>@E.lazy</code>. That docstring is
+      exactly the "intent" a decorator would say for free.
+    </li>
+    <li>
+      <code>@E.state</code> already works on a <code>static accessor</code> outside a component:
+      <code>RootSettings.generation</code> is one.
+    </li>
+    <li>
+      A small bonus: a Solid reader (JSX, an effect) of <code>ThemePreference.look</code> would then re-run when the
+      look changes, without <code>subscribe()</code>. Not used yet; the pickers keep subscribing.
+    </li>
+  </ul>
+  <epic-code title="ThemePreference.ts · now" language="ts">
+    <pre>
+/** The look now:  stored on first read, then kept in memory. */
+static get look(): DocsLook {
+  return (ThemePreference.state ??= ThemePreference.read())
+}
+...
+/**
+ * The look in memory;  `undefined` until first read.
+ * - Not a `@lazy` `look`:  `update()` writes it too, so it's state, not a value made once.
+ */
+private static state: DocsLook | undefined</pre>
+  </epic-code>
+  <epic-code title="ThemePreference.ts · option A" language="ts">
+    <pre>
+/** The look now:  stored on first read, then kept in memory. */
+static get look(): DocsLook {
+  return (ThemePreference.current ??= ThemePreference.read())
+}
+...
+/** The look in memory;  `undefined` until first read. */
+@E.state private static accessor current: DocsLook | undefined = undefined</pre>
+  </epic-code>
+  <p>
+    The rule this adds, for
+    <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"><code>packages/ui/AGENTS.md</code></a>
+    ("Reactive members"):
+  </p>
+  <ul>
+    <li>made once and kept: <code>@E.lazy</code> (getter) or <code>@E.once</code> (method)</li>
+    <li>changes later: <code>@E.state</code>, even when nothing reactive reads it</li>
+    <li>
+      NOT state: handles to things the class started (a timer, an observer, an <code>AbortController</code>), such as
+      <code>UIDocsToc.queuedUpdate</code> or <code>ControlLabels.labelObserver</code>. They stay plain fields: a
+      decorator there would say "watch this", which nobody should.
+    </li>
+    <li>
+      Only where <code>E</code> can be imported: the runtime services (<a
+        href="../../../packages/ui/src/runtime/"
+        target="src-packages-ui-src-runtime"
+        ><code>src/runtime/</code></a
+      >) sit below <code>core</code> and can't use it.
+    </li>
+  </ul>
+  <epic-aside title="the naming story behind J21, J24, J28, J31 and J33">
+    <ul>
+      <li>
+        On a field or getter, the decorator says what the member IS: <code>@E.state</code>, <code>@E.controlled</code>,
+        <code>@E.derived</code>, <code>@E.lazy</code>, <code>@E.cssState("open")</code>, <code>@E.aria("busy")</code>,
+        <code>@E.fromContent(...)</code>.
+      </li>
+      <li>
+        On a method, it says WHEN the method runs, and starts with <code>on</code>: <code>@E.on("command")</code>,
+        <code>@E.onChange("isOpen")</code>, <code>@E.onConnected</code>, <code>@E.onContentChange(...)</code>. Every one
+        of these runs its method untracked.
+      </li>
+      <li>Two say HOW a method runs: <code>@E.once</code>, <code>@E.untracked</code>.</li>
+      <li>A decorator with no arguments has no parentheses: <code>@E.state</code>, <code>@E.onConnected</code>.</li>
+    </ul>
+  </epic-aside>
+  <epic-choices>
+    <epic-option letter="A" title="Decorate the in-memory copy, keep the lazy first read" recommended
+      ><ul>
+        <li><code>@E.state private static accessor current</code>; <code>look</code> stays a read-only getter</li>
+        <li>Storage is still read on first use, not when the module loads</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Make look itself the state"
+      ><ul>
+        <li>
+          <code>@E.state static accessor look: DocsLook = ThemePreference.read()</code>: no getter, no backing field
+        </li>
+        <li>But anyone may then write <code>ThemePreference.look = ...</code>, skipping storage and the listeners</li>
+        <li>Storage is read when the module loads</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        <a
+          href="../../../packages/ui/src/docs-components/ThemePreference.ts"
+          target="src-packages-ui-src-docs-components-themepreference-ts"
+          ><code>ThemePreference.ts</code></a
+        >: its field <code>state</code> becomes <code>@E.state private static accessor current</code>; the "Not a
+        <code>@lazy</code>" docstring goes
+      </li>
+      <li>
+        One rule added to
+        <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+          ><code>packages/ui/AGENTS.md</code></a
+        >: made once is <code>@E.lazy</code> / <code>@E.once</code>, changes later is <code>@E.state</code>, handles
+        stay plain
+      </li>
+      <li>
+        No other site changes: the rest of the "left as is" list above are handles, memo tables or element-core
+        plumbing, and <code>UIDocsSearch.dataWasRequested</code> is already <code>@E.state</code>
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
