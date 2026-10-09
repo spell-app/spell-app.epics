@@ -26,6 +26,18 @@
       >, not <code>ui primary button icon</code>).
     </li>
   </ul></epic-updated
+><epic-updated at="2026-10-08 23:44"
+  ><p>2026-10-08: two more timer helpers join P3, at Owen’s request.</p>
+  <ul>
+    <li>
+      <code>after(seconds, fn)</code>, a cover for <code>setTimeout</code>: it returns a promise of <code>fn</code>’s
+      result, and its <code>cancel()</code> clears the timer.
+    </li>
+    <li>
+      <code>every(seconds, fn)</code>, a cover for <code>setInterval</code>: it returns a function that turns it off.
+    </li>
+    <li>Both take SECONDS, and live in <code>$/ui/util</code> beside the three timing helpers.</li>
+  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
     <li>one record, one notifier; <code>attrs</code> and <code>createProps()</code> go (<a href="#q5">Q5</a>)</li>
@@ -108,6 +120,41 @@
         <li><code>soon(fn)</code>: the next task. It replaces <code>setTimeout(fn, 0)</code>.</li>
         <li>those last two replace about 14 calls between them</li>
         <li>a call that needs to cancel keeps what it has, or the helper returns a cancel function</li>
+      </ul>
+    </li>
+    <li>
+      two timer helpers beside them in <code>$/ui/util</code> (Owen’s request, 2026-10-08), covers for
+      <code>setTimeout</code> and <code>setInterval</code> that take SECONDS, not milliseconds:
+      <ul>
+        <li>
+          <code>after(seconds, fn)</code>: runs <code>fn</code> once, after <code>seconds</code> (<code
+            >after(0.25, ...)</code
+          >
+          is a quarter of a second). It is built on <code>setTimeout</code>.
+          <ul>
+            <li>
+              it returns a promise of <code>fn</code>’s result:
+              <code>after&lt;T = undefined&gt;(seconds: number, fn?: () =&gt; T): CancelablePromise&lt;T&gt;</code>
+            </li>
+            <li><code>fn</code> is optional, so <code>await after(1)</code> waits one second</li>
+            <li>
+              the promise’s <code>cancel()</code> clears the timer. The promise then rejects with an
+              <code>AbortError</code> (a DOM API <code>DOMException</code>, as <code>fetch</code> throws when it is
+              aborted), so an <code>await</code> on it never hangs.
+            </li>
+            <li>16 <code>setTimeout</code> calls in <code>ui</code> move to it</li>
+          </ul>
+        </li>
+        <li>
+          <code>every(seconds, fn)</code>: runs <code>fn</code> every <code>seconds</code>. It is built on
+          <code>setInterval</code>.
+          <ul>
+            <li>
+              it returns a function that stops it: <code>const stop = every(5, poll)</code>, later <code>stop()</code>
+            </li>
+          </ul>
+        </li>
+        <li>each has its own tests, on fake timers</li>
       </ul>
     </li>
     <li>
