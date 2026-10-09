@@ -1,32 +1,57 @@
 <!-- plan-doc part:  #i4's details in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Owen picked "as a component pack" (bedtime page, 2026-10-09). The elements ARE a pack now (vocabularies, `UIComponent`
-  subclasses, DOM element classes, loaded by `&lt;ui-components source&gt;` under a `&lt;ui-root&gt;`), but the stock
-  pack build can't make their script, for real reasons:
+  Owen picked "as a component pack" (bedtime page, 2026-10-09). The elements ARE a pack now, but the stock pack build
+  (<code>spell dev pack build</code>) can't make their script.
 </p>
+<ul>
+  <li>
+    a pack, because they have its parts: vocabularies, <code>UIComponent</code> subclasses, DOM element classes, loaded
+    by <code>&lt;ui-components source&gt;</code> under a <code>&lt;ui-root&gt;</code>
+  </li>
+  <li>why the stock build can't make their script, for real reasons:</li>
+</ul>
 <ol>
   <li>
-    It writes ONE classic script (an IIFE): no code splitting, so Monaco (4.2 MB) and the parser (0.9 MB) would sit in
-    it, and every page with only a `&lt;spell-app&gt;` would download all of it (~1.3 MB gzipped, against 29 kB today).
-    Monaco's worker can't be found from a classic script either.
+    It writes ONE classic script (an IIFE), with no code splitting:
+    <ul>
+      <li>
+        Monaco (4.2 MB) and the parser (0.9 MB) would sit in it, so every page with only a
+        <code>&lt;spell-app&gt;</code> would download all of it: ~1.3 MB gzipped, against 29 kB today
+      </li>
+      <li>Monaco's worker can't be found from a classic script either</li>
+    </ul>
   </li>
   <li>
-    `&lt;spell-app&gt;` loads `spell-runtime.js` afresh per app, by URL, and shares React with it: that is a Vite ES
-    build (`dist-element/`) whatever the pack is.
+    <code>&lt;spell-app&gt;</code> loads <code>spell-runtime.js</code> afresh per app, by URL, and shares React with it:
+    that is a Vite ES build (<code>dist-element/</code>) whatever the pack is.
   </li>
-  <li>A pack's `pack/` is committed: megabytes of minified churn on every app / spell / parser / lsp change.</li>
   <li>
-    Its staleness hash follows only the pack's own `components/` and `src/`: a parser change would never mark it stale.
+    A pack's <code>pack/</code> is committed: megabytes of minified churn on every app / spell / parser / lsp change.
   </li>
-  <li>It shares only Solid and Spell UI's core, from `SpellUI.packModules`, which only the docs bundle sets.</li>
+  <li>
+    Its staleness hash follows only the pack's own <code>&lt;package&gt;/components/</code> and <code>&lt;package&gt;/src/</code>: a parser change would never mark it stale.
+  </li>
+  <li>
+    It shares only Solid and Spell UI's core, from <code>SpellUI.packModules</code>, which only the docs bundle sets.
+  </li>
 </ol>
+<p><b>Built instead:</b> a pack script of their own, built by Vite.</p>
+<ul>
+  <li>
+    <code>vite.element.config.ts</code> (<code>componentPack()</code>) writes <code>dist-element/spell.pack.js</code>
+  </li>
+  <li>
+    a classic script calling <code>SpellUI.registerPack()</code>, with a catalog read by Spell UI's own
+    <code>RootCatalog</code>
+  </li>
+  <li>its <code>define()</code> imports <code>spell-app.js</code> and <code>spell-editor.js</code>, beside it</li>
+  <li>
+    <code>/element/spell-ui.js</code>
+    gives the page <code>SpellUI.registerPack</code>
+  </li>
+  <li>Spell UI's <code>ComponentPacks</code> now waits for a <code>define()</code> that returns a promise</li>
+</ul>
 <p>
-  <b>Built instead:</b> `vite.element.config.ts` (`componentPack()`) writes `dist-element/spell.pack.js`, a classic
-  script calling `SpellUI.registerPack()` with a catalog read by Spell UI's own `RootCatalog`; its `define()` imports
-  `spell-app.js` and `spell-editor.js` beside it. `spell-ui.js` gives the page `SpellUI.registerPack`. Spell UI's
-  `ComponentPacks` now waits for a `define()` that returns a promise.
-</p>
-<p>
-  <b>Limit:</b> it works only where Solid and Spell UI are `dist-element/`'s (the demos, any page loading
-  `spell-ui.js`), never on a docs page, whose bundle brings a second Solid.
+  <b>Limit:</b> it works only where Solid and Spell UI are <code>dist-element/</code>'s (the demos, any page loading
+  <code>/element/spell-ui.js</code>), never on a docs page, whose bundle brings a second Solid.
 </p>
