@@ -1,2 +1,851 @@
 <!-- plan-doc part:  #o6's body in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>Being written: the sketch for the TS Solid for Realz phase.</p>
+<p>
+  What <code>ts/solid</code> would write if it were the code a person writes by hand on Solid, for the phase that builds
+  it (<a href="#p10">P10</a>). Owen asked for it on 2026-10-09: "the output of JSX is straight solid calls, it can use
+  decorators, etc. ... I want the full monty, as if I was writing the class by hand." Below: what today's output does
+  that a person wouldn't, what changes, Card before and after, and what makes it hard.
+</p>
+<p>
+  Assumed, as Owen said: the code runs with Spell UI's shared <code>UI</code> runtime on the page, inside a
+  <code>&lt;ui-root&gt;</code>, and each drawn thing gets its own error net, the way spell-element's elements do.
+</p>
+
+<h4 id="o6-today">Half-way: what today's output does that a person wouldn't</h4>
+<p>
+  <code>ts/solid</code> today (<a href="#p7">P7</a>) is the JavaScript target's output with types added. It runs, and
+  <code>tsc</code> checks it, but nobody would write it. From the real output for Card (<code
+    >spell compile Solitaire --target ts/solid --stdout</code
+  >):
+</p>
+<ul>
+  <li>
+    <b>JSX isn't JSX.</b> Each tag becomes
+    <code>spellCore.element({ tag: "div", props: { className, onClick }, children: [...] })</code>, and core turns that
+    into <code>React.createElement()</code> (<a
+      href="../../../packages/core/src/ui.ts"
+      target="src-packages-core-src-ui-ts"
+      ><code>packages/core/src/ui.ts</code></a
+    >). So the output draws with React, not Solid, and says <code>className</code>.
+  </li>
+  <li>
+    <b>A drawing re-runs whole.</b> React's bridge (<code>view()</code>) redraws all of Card's <code>draw()</code> when
+    anything it read changes; nothing is fine-grained.
+  </li>
+  <li>
+    <b>Four lines per property.</b> <code>static { this.declareProp('rank', ...) }</code>, then a getter and a setter
+    over <code>getProp()</code> / <code>setProp()</code>, with an <code>as</code> cast. A person writes one line,
+    <code>@prop(...) accessor rank!: Rank</code>. Compiled JavaScript can't use decorators (it runs from a
+    <code>blob:</code> URL, with no build step:
+    <a
+      href="../../../packages/util/src/spell/spellDecorators.ts"
+      target="src-packages-util-src-spell-spelldecorators-ts"
+      ><code>spellDecorators.ts</code></a
+    >'s header), but TypeScript is built anyway.
+  </li>
+  <li>
+    <b>Lists lose their values.</b> <code>static Ranks = ['ace', 2, ...]</code> without <code>as const</code>, so a
+    rank's type is <code>string | number</code>, not the 13 ranks.
+  </li>
+  <li>
+    <b>Types spell knows are dropped.</b> <code>is_a_$suit(suit: any /* spell: type unknown */)</code>, though spell
+    wrote <code>for its suits</code>. (The whole untyped gap: <a href="#o7">1.7</a>.)
+  </li>
+  <li>
+    <b>JavaScript's names.</b> <code>is_a_$suit</code>, <code>turn_face_up</code>, <code>short_rank</code>: names made
+    legal JavaScript while parsing (<a href="#o3">1.3</a>), not TypeScript's own <code>isASuit</code>,
+    <code>turnFaceUp</code>.
+  </li>
+  <li>
+    <b>Members patched on from outside.</b> <code>the pile of a card</code> (written in <code>Pile.spell</code>) is
+    <code>export interface Card { readonly pile: any }</code> plus
+    <code>Object.defineProperty(Card.prototype, 'pile', ...)</code>, far below the class. (<code>play()</code>, from
+    <code>Solitaire.spell</code>, is already folded into the class.)
+  </li>
+  <li>
+    <b>Machine tidiness.</b> <code>let</code> for everything, <code>(((("Card face-" + a) + " ") + b)</code>,
+    <code>{ return x }</code> braces, an unused <code>(event: any) =&gt;</code> on every handler, the same handler
+    written twice.
+  </li>
+  <li>
+    <b>No error net.</b> Nothing guards a drawn thing: a card whose <code>draw()</code> throws takes React's whole tree
+    down with it.
+  </li>
+</ul>
+
+<h4 id="o6-monty">The full monty: what changes</h4>
+<p>
+  One bullet per change. Where a choice is open, its question is linked; the recommended option is what the after below
+  shows.
+</p>
+<ul>
+  <li>
+    <b>Real JSX, compiled by Solid.</b> The file becomes <code>Solitaire.compiled.tsx</code>; a spell tag is written as
+    the tag (<code>&lt;div class={...} onClick={click}&gt;</code>). Solid's own compiler turns it into its DOM calls,
+    each <code>{...}</code> its own live binding, as for any hand-written component. Open: <a href="#q18">Q18</a> (real
+    JSX, <code>h()</code> calls, or Solid's compiled calls).
+  </li>
+  <li>
+    <b>A drawing in Solid's shapes.</b> The statements of <code>to draw</code> become Solid's: a local that's computed
+    becomes an accessor (<code>const className = () =&gt; ...</code>), an <code>if ... return</code> chain becomes
+    <code>&lt;Show&gt;</code> / <code>&lt;Switch&gt;</code>, <code>draw cards in it</code> becomes
+    <code>&lt;For&gt;</code>. Any other shape re-runs whole, inside its net. Open: <a href="#q19">Q19</a>.
+  </li>
+  <li>
+    <b>Decorators.</b> <code>@prop({ oneOf: RANKS }) accessor rank!: Rank</code>, from <code>$/util</code>'s
+    <a
+      href="../../../packages/util/src/spell/spellDecorators.ts"
+      target="src-packages-util-src-spell-spelldecorators-ts"
+      ><code>spellDecorators.ts</code></a
+    >, re-exported by <code>@spell/core</code>: the SAME runtime shape as today's <code>declareProp</code> plus accessor
+    pair, so <code>Thing</code> checks and stores it as now. <code>@derived</code> only where a getter loops over a list
+    (<code>Pile.state</code>); <code>@thing</code> only on a class with a <code>to create</code>. Open:
+    <a href="#q20">Q20</a>.
+  </li>
+  <li>
+    <b>Spell cells stay the state.</b> Properties stay spell cells (<code>getProp()</code> /
+    <code>setProp()</code> under <code>@prop</code>), never Solid signals or stores: spell needs a read right after a
+    write to see it, which Solid 2's staged writes can't give (<a
+      href="../../../guides/solid/solid-2.md"
+      target="src-guides-solid-solid-2-md"
+      ><code>guides/solid/solid-2.md</code></a
+    >, "Spell's decisions"). Solid follows them through the cells bridge, as the editor app does.
+  </li>
+  <li>
+    <b>An error net per drawn thing.</b> <code>draw the card</code> becomes <code>&lt;Drawn thing={card} /&gt;</code>, a
+    small core component: Solid's <code>&lt;Errored&gt;</code> around <code>card.draw()</code>. When it throws, it does
+    what spell-element's <code>UIComponent.mount()</code> does for an element: logs once (on the program's console),
+    sends a cancelable <code>ui-error</code>, shows a stand-in; the rest of the board keeps drawing. Open:
+    <a href="#q21">Q21</a> (a component, a decorator on <code>draw()</code>, or one net per app).
+  </li>
+  <li>
+    <b><code>&lt;ui-root&gt;</code> and <code>UI</code>.</b> <code>start the game</code> mounts with Solid's
+    <code>render()</code> into the page's <code>&lt;ui-root&gt;</code>, which loads any <code>&lt;ui-*&gt;</code> tag a
+    drawing uses by itself (<a
+      href="../../../packages/ui/src/components/ui-root/UIRoot.tsx"
+      target="src-packages-ui-src-components-ui-root-uiroot-tsx"
+      ><code>UIRoot.tsx</code></a
+    >'s banner): a spell program could write <code>&lt;ui-button&gt;</code> and it would just work. Spell's
+    <code>notify</code>, <code>alert</code>, <code>confirm</code> and <code>prompt</code>, which compile to
+    <code>spellCore</code> methods nobody wrote yet (the NOTE in
+    <a href="../../../packages/core/src/ui.ts" target="src-packages-core-src-ui-ts"
+      ><code>packages/core/src/ui.ts</code></a
+    >), become <code>UI.toast()</code> and <code>UI.modals.alert()</code> ... (<a
+      href="../../../packages/ui/src/runtime/UIRuntime.ts"
+      target="src-packages-ui-src-runtime-uiruntime-ts"
+      ><code>packages/ui/src/runtime/UIRuntime.ts</code></a
+    >).
+  </li>
+  <li>
+    <b>Types where spell knows them.</b> Lists as <code>const RANKS = [...] as const</code> plus <code>type Rank</code>;
+    parameters spell knows (<code>isASuit(suit: Suit)</code>); a callback's item (<code>(pile: Pile) =&gt;</code>). The
+    rest of the gap: <a href="#o7">1.7</a>.
+  </li>
+  <li>
+    <b>TypeScript's names.</b> Methods, getters and functions in camelCase (<code>isASuit</code>,
+    <code>turnFaceUp</code>, <code>playFromTheStockPile</code>); properties keep spell's names, as they're data a
+    program prints. Open: <a href="#q22">Q22</a>.
+  </li>
+  <li>
+    <b>One class body per type.</b> Every member of Card, wherever in the project spell wrote it, inside
+    <code>class Card</code>: <code>get pile()</code> moves in, its merged <code>interface</code> goes.
+  </li>
+  <li>
+    <b>Tidy as written by hand.</b> <code>const</code> where a variable is never set again, template text
+    (<code>`${this.rank}-of-${this.suit}`</code>), no extra parentheses or braces, no unused parameters, a shared
+    handler written once.
+  </li>
+  <li>
+    <b>Imports.</b> <code>solid-js</code> (<code>Show</code>, <code>For</code>) and
+    <code>@spell/core</code> (<code>spellCore</code>, <code>Thing</code>, <code>prop</code>, <code>Drawn</code>), plus
+    <code>UI</code> from
+    <a href="../../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a> only when
+    the program uses it.
+  </li>
+  <li>
+    <b>JavaScript stays as it is.</b> <code>js/solid</code> keeps drawing with React through
+    <code>spellCore.element()</code> until the Solid move for compiled spell ("Core + JSX",
+    <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"><code>solid-2.md</code></a>
+    "Status"). Open: <a href="#q23">Q23</a>.
+  </li>
+</ul>
+
+<h4 id="o6-card">Card, before and after</h4>
+<p>
+  BEFORE is today's real output (2026-10-09, Card's part of <code>Solitaire</code>, plus the <code>pile</code> patch
+  from further down). AFTER is a hand-written-quality sketch of what <a href="#p10">P10</a> would write, with the
+  recommended option of every open question. Both trim the test's 30 middle lines, which only change names. The third
+  block sketches the core side Card leans on.
+</p>
+<epic-code title="Card.ts · before · 222 lines" language="ts">
+  <pre>
+import { spellCore, Thing, List, App } from "@spell/core"
+
+spellCore.heading("definition of a Card with nice english aliases for working with it")
+/** definition of a Card with nice english aliases for working with it */
+export class Card extends Thing {
+  /////////////////////////
+  // ## properties of cards
+  /////////////////////////
+  /** card ranks */
+  static Ranks = ['ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'jack', 'queen', 'king']
+  static { this.declareProp('rank', { oneOf: Card.Ranks }) }
+  get rank(): (typeof Card.Ranks)[number] { return this.getProp('rank') as (typeof Card.Ranks)[number] }
+  set rank(value: (typeof Card.Ranks)[number]) { this.setProp('rank', value) }
+
+  /** card suits */
+  static Suits = ['clubs', 'diamonds', 'hearts', 'spades']
+  static { this.declareProp('suit', { oneOf: Card.Suits }) }
+  get suit(): (typeof Card.Suits)[number] { return this.getProp('suit') as (typeof Card.Suits)[number] }
+  set suit(value: (typeof Card.Suits)[number]) { this.setProp('suit', value) }
+
+  /** color as derivation of suit */
+  get color() {
+    if (spellCore.includes(['diamonds', 'hearts'], this.suit)) { return 'red' }
+    return 'black'
+  }
+
+  /** value as a derivation of rank */
+  get value() {
+    return spellCore.itemOf(Card.Ranks, this.rank)
+  }
+
+  /** card direction:  up or down */
+  static Directions = ['up', 'down']
+  static { this.declareProp('direction', { oneOf: Card.Directions }) }
+  get direction(): (typeof Card.Directions)[number] { return this.getProp('direction') as (typeof Card.Directions)[number] }
+  set direction(value: (typeof Card.Directions)[number]) { this.setProp('direction', value) }
+
+  /////////////
+  // ## aliases
+  /////////////
+  /** "card is face up/down" */
+  get is_face_up() {
+    return (this.direction == 'up')
+  }
+
+  get is_face_down() {
+    return (this.direction == 'down')
+  }
+
+  /** `card is a face card` */
+  get is_a_face_card() {
+    return spellCore.includes(['jack', 'queen', 'king'], this.rank)
+  }
+
+  /** "card is a spade", "...is a club" etc */
+  is_a_$suit(suit: any /* spell: type unknown */) {
+    return this.suit === suit
+  }
+
+  /** "card is a queen", "...is an ace" etc */
+  is_a_$rank(rank: any /* spell: type unknown */) {
+    return this.rank === rank
+  }
+
+  /** "card is the queen of spades" etc */
+  is_the_$rank_of_$suits(rank: any /* spell: type unknown */, suit: any /* spell: type unknown */) {
+    return this.rank === rank &amp;&amp; this.suit === suit
+  }
+
+  /** name as a derivation of name/suit */
+  get name() {
+    return ((this.rank + "-of-") + this.suit)
+  }
+
+  get short_suit() {
+    if (this.is_a_$suit('clubs')) { return "♣️" }
+    if (this.is_a_$suit('diamonds')) { return "♦️" }
+    if (this.is_a_$suit('hearts')) { return "♥️" }
+    if (this.is_a_$suit('spades')) { return "♠️" }
+    return "?"
+  }
+
+  get short_rank() {
+    if (this.rank == undefined) { return "?" }
+    if (spellCore.isOfType(this.rank, 'number')) { return ("" + this.rank) }
+    return spellCore.upperCase(spellCore.getItemOf(this.rank, 1))
+  }
+
+  get short_direction() {
+    if (this.direction == 'up') { return "+" }
+    return "—"
+    
+  }
+
+  get short_name() {
+    return (this.short_rank + this.short_suit)
+  }
+
+  get state() {
+    return ((this.short_rank + this.short_suit) + this.short_direction)
+  }
+
+  //## actions
+
+  /**
+   * Turn card face up or face down
+   * Note that this will animate if you `wait for turn the card face up`
+   */
+  async turn_face_up() {
+    this.direction = 'up'
+    await spellCore.pauseFor(50, 'msec')
+  }
+
+  async turn_face_down() {
+    this.direction = 'down'
+    await spellCore.pauseFor(50, 'msec')
+  }
+
+  /**
+   * Flip card to opposite direction
+   * Note that this will animate if you `wait for turn the card face up`
+   */
+  async turn_over() {
+    if (this.direction == 'up') { this.turn_face_down() }
+    else { this.turn_face_up() }
+    await spellCore.pauseFor(50, 'msec')
+  }
+
+  draw() {
+    let className = (((((("Card face-" + this.direction) + " ") + this.rank) + " ") + this.suit) + " ui button compact fluid ")
+    if (this.is_face_down) { return spellCore.element({
+      tag: "div",
+      props: {
+        onClick: (event: any /* spell: type unknown */) =&gt; {
+          return spellCore.RUNTIME.trigger('card-click', { card: this })
+        },
+        className: className
+      },
+      children: [
+        spellCore.element({ tag: "i", props: { className: "fitted bicycle icon" } })
+      ]
+    }) }
+    return spellCore.element({
+      tag: "div",
+      props: {
+        onClick: (event: any /* spell: type unknown */) =&gt; {
+          return spellCore.RUNTIME.trigger('card-click', { card: this })
+        },
+        className: (className + this.color)
+      },
+      children: [
+        (this.short_rank + " "),
+        spellCore.element({ tag: "span", props: { className: "suit" }, children: [
+          this.short_suit
+        ] })
+      ]
+    })
+  }
+
+  async play() {
+    let start_pile = this.pile
+    if (!spellCore.canGiveUp(start_pile, this)) { return false }
+    
+    if (start_pile == stock) {
+      play_from_the_stock_pile()
+      return
+    }
+    
+    let end_pile: any /* spell: type unknown */ = spellCore.getItemOf(spellCore.filter(all_piles, (pile: any /* spell: type unknown */) =&gt; {
+      return ((pile.droppable == true) &amp;&amp; spellCore.canTake(pile, this))
+    }), 1)
+    if (!spellCore.isDefined(end_pile)) { return false }
+    
+    let cards_to_move: any /* spell: type unknown */ = spellCore.rangeStartingAt(start_pile, spellCore.itemOf(start_pile, this))
+    cards_to_move.name = start_pile.name
+    spellCore.console.log(((("moving (" + cards_to_move.state) + ") to (") + end_pile.state) + ")")
+    
+    spellCore.map(cards_to_move, (card: any /* spell: type unknown */) =&gt; {
+      spellCore.move(card, end_pile)
+    })
+    
+    if (spellCore.isOfType(start_pile, 'Tableau') &amp;&amp; !spellCore.isEmpty(start_pile)) {
+      await spellCore.pauseFor(200, 'msec')
+      let it: any /* spell: type unknown */ = spellCore.getItemOf(start_pile, -1)
+      spellCore.console.log(((("turning over (" + start_pile.name) + ": ") + it.state) + ")")
+      it.turn_face_up()
+    }
+    
+    if (spellCore.isOfType(end_pile, 'Foundation')) { game.score = (game.score + 10) }
+    else if (start_pile == discards) { game.score = (game.score + 5) }
+    return true
+  }
+}
+
+spellCore.heading("create a card instance with default properties")
+/** create a card instance with default properties */
+export function test_card_setup() {
+  return spellCore.test('test card setup', function test_card_setup() {
+    spellCore.echoTestAction(`the card is a new card whose rank is queen, suit is spades and direction is up`)
+    let card = new Card({
+      rank: 'queen',
+      suit: 'spades',
+      direction: 'up'
+    })
+    spellCore.echo(card)
+    spellCore.expect(card.rank, `the rank of the card`, 'queen', `queen`)
+    // ... 30 more lines of expects (trimmed here)
+    spellCore.echoTestAction(`turn the card over`)
+    card.turn_over()
+    spellCore.expect(card.is_face_up, `the card is face up`, true, `true`)
+  })
+}
+test_card_setup()
+// ... Deck.spell and Pile.spell's class (trimmed here) ...
+/** a card is in one pile at a time:  putting it on another pile takes it off this one */
+export interface Card { readonly pile: any /* spell: type unknown */ }
+Object.defineProperty(Card.prototype, 'pile', {
+  get(this: Card) {
+    return Pile.ownerOf(this)
+  },
+  configurable: true
+})
+</pre>
+</epic-code>
+<epic-code title="Card.tsx · after · 214 lines" language="ts">
+  <pre>
+import { Show } from "solid-js"
+import { spellCore, Thing, prop } from "@spell/core"
+
+spellCore.heading("definition of a Card with nice english aliases for working with it")
+
+/** card ranks */
+const RANKS = ["ace", 2, 3, 4, 5, 6, 7, 8, 9, 10, "jack", "queen", "king"] as const
+/** card suits */
+const SUITS = ["clubs", "diamonds", "hearts", "spades"] as const
+/** card direction:  up or down */
+const DIRECTIONS = ["up", "down"] as const
+
+export type Rank = (typeof RANKS)[number]
+export type Suit = (typeof SUITS)[number]
+export type Direction = (typeof DIRECTIONS)[number]
+
+/** definition of a Card with nice english aliases for working with it */
+export class Card extends Thing {
+  ////////////////
+  // ## properties of cards
+  ////////////////
+
+  static Ranks = RANKS
+  @prop({ oneOf: RANKS }) accessor rank!: Rank
+
+  static Suits = SUITS
+  @prop({ oneOf: SUITS }) accessor suit!: Suit
+
+  /** color as derivation of suit */
+  get color() {
+    if (spellCore.includes(["diamonds", "hearts"], this.suit)) return "red"
+    return "black"
+  }
+
+  /** value as a derivation of rank */
+  get value() {
+    return spellCore.itemOf(Card.Ranks, this.rank)
+  }
+
+  static Directions = DIRECTIONS
+  @prop({ oneOf: DIRECTIONS }) accessor direction!: Direction
+
+  /** a card is in one pile at a time (from `Pile.spell`):  the pile holding it */
+  get pile() {
+    return Pile.ownerOf(this) as Pile | undefined
+  }
+
+  ////////////////
+  // ## aliases
+  ////////////////
+
+  /** "card is face up/down" */
+  get isFaceUp() {
+    return this.direction == "up"
+  }
+
+  get isFaceDown() {
+    return this.direction == "down"
+  }
+
+  /** `card is a face card` */
+  get isAFaceCard() {
+    return spellCore.includes(["jack", "queen", "king"], this.rank)
+  }
+
+  /** "card is a spade", "...is a club" etc */
+  isASuit(suit: Suit) {
+    return this.suit === suit
+  }
+
+  /** "card is a queen", "...is an ace" etc */
+  isARank(rank: Rank) {
+    return this.rank === rank
+  }
+
+  /** "card is the queen of spades" etc */
+  isTheRankOfSuits(rank: Rank, suit: Suit) {
+    return this.rank === rank &amp;&amp; this.suit === suit
+  }
+
+  /** name as a derivation of name/suit */
+  get name() {
+    return `${this.rank}-of-${this.suit}`
+  }
+
+  get shortSuit() {
+    if (this.isASuit("clubs")) return "♣️"
+    if (this.isASuit("diamonds")) return "♦️"
+    if (this.isASuit("hearts")) return "♥️"
+    if (this.isASuit("spades")) return "♠️"
+    return "?"
+  }
+
+  get shortRank() {
+    if (this.rank == undefined) return "?"
+    if (spellCore.isOfType(this.rank, "number")) return `${this.rank}`
+    return spellCore.upperCase(spellCore.getItemOf(this.rank, 1))
+  }
+
+  get shortDirection() {
+    if (this.direction == "up") return "+"
+    return "—"
+  }
+
+  get shortName() {
+    return this.shortRank + this.shortSuit
+  }
+
+  get state() {
+    return this.shortRank + this.shortSuit + this.shortDirection
+  }
+
+  ////////////////
+  // ## actions
+  ////////////////
+
+  /**
+   * Turn card face up or face down
+   * Note that this will animate if you `wait for turn the card face up`
+   */
+  async turnFaceUp() {
+    this.direction = "up"
+    await spellCore.pauseFor(50, "msec")
+  }
+
+  async turnFaceDown() {
+    this.direction = "down"
+    await spellCore.pauseFor(50, "msec")
+  }
+
+  /**
+   * Flip card to opposite direction
+   * Note that this will animate if you `wait for turn the card face up`
+   */
+  async turnOver() {
+    if (this.direction == "up") this.turnFaceDown()
+    else this.turnFaceUp()
+    await spellCore.pauseFor(50, "msec")
+  }
+
+  /** Runs ONCE per card:  whoever draws it (`&lt;Drawn thing={card} /&gt;`) puts it in its own error net. */
+  draw() {
+    const className = () =&gt; `Card face-${this.direction} ${this.rank} ${this.suit} ui button compact fluid `
+    const click = () =&gt; spellCore.RUNTIME.trigger("card-click", { card: this })
+    return (
+      &lt;Show
+        when={!this.isFaceDown}
+        fallback={
+          &lt;div onClick={click} class={className()}&gt;
+            &lt;i class="fitted bicycle icon" /&gt;
+          &lt;/div&gt;
+        }
+      &gt;
+        &lt;div onClick={click} class={className() + this.color}&gt;
+          {this.shortRank + " "}
+          &lt;span class="suit"&gt;{this.shortSuit}&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/Show&gt;
+    )
+  }
+
+  /** from `Solitaire.spell`:  `to play a card` */
+  async play() {
+    const startPile = this.pile
+    if (!spellCore.canGiveUp(startPile, this)) return false
+
+    if (startPile == stock) {
+      playFromTheStockPile()
+      return
+    }
+
+    const endPile = spellCore.getItemOf(
+      spellCore.filter(allPiles, (pile: Pile) =&gt; pile.droppable == true &amp;&amp; spellCore.canTake(pile, this)),
+      1
+    )
+    if (!spellCore.isDefined(endPile)) return false
+
+    const cardsToMove = spellCore.rangeStartingAt(startPile, spellCore.itemOf(startPile, this))
+    cardsToMove.name = startPile.name
+    spellCore.console.log(`moving (${cardsToMove.state}) to (${endPile.state})`)
+
+    spellCore.map(cardsToMove, (card: Card) =&gt; {
+      spellCore.move(card, endPile)
+    })
+
+    if (spellCore.isOfType(startPile, "Tableau") &amp;&amp; !spellCore.isEmpty(startPile)) {
+      await spellCore.pauseFor(200, "msec")
+      const it = spellCore.getItemOf(startPile, -1)!
+      spellCore.console.log(`turning over (${startPile.name}: ${it.state})`)
+      it.turnFaceUp()
+    }
+
+    if (spellCore.isOfType(endPile, "Foundation")) game.score = game.score + 10
+    else if (startPile == discards) game.score = game.score + 5
+    return true
+  }
+}
+
+spellCore.heading("create a card instance with default properties")
+/** create a card instance with default properties */
+export function testCardSetup() {
+  return spellCore.test("test card setup", function testCardSetup() {
+    spellCore.echoTestAction(`the card is a new card whose rank is queen, suit is spades and direction is up`)
+    const card = new Card({ rank: "queen", suit: "spades", direction: "up" })
+    spellCore.echo(card)
+    spellCore.expect(card.rank, `the rank of the card`, "queen", `queen`)
+    spellCore.expect(card.suit, `the suit of the card`, "spades", `spades`)
+    // ... 30 more lines, as before with the new names:  card.isAFaceCard, card.isASuit("spades") ... (trimmed here)
+    spellCore.echoTestAction(`turn the card over`)
+    card.turnOver()
+    spellCore.expect(card.isFaceUp, `the card is face up`, true, `true`)
+  })
+}
+testCardSetup()
+</pre>
+</epic-code>
+<epic-code title="core's Solid side · after, sketched · 41 lines" language="ts">
+  <pre>
+// @spell/core's Solid side, sketched:  each drawn thing in its own error net, as spell-element's
+// `UIComponent.mount()` gives each element one
+import { Errored, runWithOwner } from "solid-js"
+import { render, type JSX } from "@solidjs/web"
+
+/** Draws `thing` inside its own error net:  what `draw the card` compiles to, `&lt;Drawn thing={card} /&gt;`. */
+export function Drawn(props: DrawnProps): JSX.Element {
+  return &lt;Errored fallback={(error) =&gt; drawFailed(props.thing, error())}&gt;{props.thing?.draw()}&lt;/Errored&gt;
+}
+
+/** Props for `&lt;Drawn&gt;`. */
+export type DrawnProps = {
+  /** What to draw;  nothing draws nothing. */
+  thing?: Thing
+}
+
+/**
+ * `thing.draw()` threw:  log it ONCE on the program's console, send a cancelable `ui-error` from the app's
+ * `&lt;ui-root&gt;`, then show a small stand-in, unless the app cancelled the event.  The rest of the page keeps drawing.
+ * - Outside any owner (`runWithOwner(null)`), so it may change state:  as spell-element's `onError()`.
+ */
+function drawFailed(thing: Thing | undefined, error: unknown): JSX.Element {
+  const showsStandIn = runWithOwner(null, () =&gt; {
+    spellCore.console.error(`${thing?.type} failed to draw:`, error)
+    const detail = { error, thing }
+    const event = new CustomEvent("ui-error", { bubbles: true, composed: true, cancelable: true, detail })
+    return spellCore.appElement()?.dispatchEvent(event) ?? true
+  })
+  return showsStandIn ? &lt;ui-label color="red" icon="exclamation triangle"&gt;{thing?.type}&lt;/ui-label&gt; : undefined
+}
+
+// App.start(), in Solid:  into the page's &lt;ui-root&gt;, which loads any &lt;ui-*&gt; tag a drawing uses
+export class App extends Thing {
+  start() {
+    render(() =&gt; &lt;Drawn thing={this} /&gt;, spellCore.appElement() ?? document.querySelector("ui-root")!)
+  }
+}
+
+// Where the other drawings use it, after:
+//   Tableau.draw():  &lt;div class="Pile Tableau staggered"&gt;&lt;For each={this.items}&gt;{(card) =&gt; &lt;Drawn thing={card} /&gt;}&lt;/For&gt;&lt;/div&gt;
+//   Game.draw():     &lt;td&gt;&lt;Drawn thing={stock} /&gt;&lt;/td&gt;
+</pre>
+</epic-code>
+<p>What changed, and why:</p>
+<ui-table celled compact striped>
+  <table>
+    <tbody>
+      <tr>
+        <th>before</th>
+        <th>after</th>
+        <th>why</th>
+      </tr>
+      <tr>
+        <td><code>spellCore.element({ tag: "div", props: { className, onClick }, children: [...] })</code></td>
+        <td><code>&lt;div class={...} onClick={click}&gt;...&lt;/div&gt;</code></td>
+        <td>
+          Solid's compiler makes each <code>{...}</code> its own binding; <code>tsc</code> checks tags and attributes
+        </td>
+      </tr>
+      <tr>
+        <td><code>if (this.is_face_down) { return spellCore.element(...) }</code> then a second <code>return</code></td>
+        <td><code>&lt;Show when={!this.isFaceDown} fallback={...}&gt;</code></td>
+        <td>flipping a card swaps one node; <code>draw()</code> runs once per card</td>
+      </tr>
+      <tr>
+        <td><code>let className = (((("Card face-" + this.direction) + ...</code></td>
+        <td><code>const className = () =&gt; `Card face-${this.direction} ...`</code></td>
+        <td>an accessor: the class follows the card's direction without re-running <code>draw()</code></td>
+      </tr>
+      <tr>
+        <td>
+          <code>static { this.declareProp('rank', { oneOf: Card.Ranks }) }</code> plus a getter and a setter (4 lines)
+        </td>
+        <td><code>@prop({ oneOf: RANKS }) accessor rank!: Rank</code> (1 line)</td>
+        <td>
+          the same runtime shape (<a
+            href="../../../packages/util/src/spell/spellDecorators.ts"
+            target="src-packages-util-src-spell-spelldecorators-ts"
+            ><code>spellDecorators.ts</code></a
+          >); the output is built, so decorators are fine
+        </td>
+      </tr>
+      <tr>
+        <td><code>static Ranks = ['ace', 2, ...]</code>, a rank typed <code>(typeof Card.Ranks)[number]</code></td>
+        <td><code>const RANKS = [...] as const</code>, <code>type Rank</code>, <code>static Ranks = RANKS</code></td>
+        <td>
+          <code>Rank</code> is the 13 ranks, not <code>string | number</code>; a module constant, as a decorator can't
+          read <code>Card.Ranks</code> while <code>Card</code> is still being defined
+        </td>
+      </tr>
+      <tr>
+        <td><code>is_a_$suit(suit: any /* spell: type unknown */)</code></td>
+        <td><code>isASuit(suit: Suit)</code></td>
+        <td>spell said <code>for its suits</code>; TypeScript's own case</td>
+      </tr>
+      <tr>
+        <td>
+          <code>export interface Card { readonly pile: any }</code> and
+          <code>Object.defineProperty(Card.prototype, 'pile', ...)</code>
+        </td>
+        <td><code>get pile()</code> inside <code>class Card</code></td>
+        <td>one class body per type, wherever its members were written (as <code>play()</code> already is)</td>
+      </tr>
+      <tr>
+        <td><code>onClick: (event: any) =&gt; { return spellCore.RUNTIME.trigger(...) }</code>, twice</td>
+        <td><code>const click = () =&gt; spellCore.RUNTIME.trigger(...)</code>, once</td>
+        <td>no unused parameter to type; one handler for both faces</td>
+      </tr>
+      <tr>
+        <td><code>spellCore.drawThing(stock)</code>, <code>spellCore.drawItems(...)</code> (in Game and the piles)</td>
+        <td><code>&lt;Drawn thing={stock} /&gt;</code>, <code>&lt;For each={this.items}&gt;</code></td>
+        <td>each drawn thing in its own error net</td>
+      </tr>
+      <tr>
+        <td><code>let</code>, <code>((a + b) + c)</code>, <code>{ return x }</code></td>
+        <td><code>const</code>, template text, bare <code>return</code></td>
+        <td>what a person writes</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>What stays the same, on purpose:</p>
+<ul>
+  <li>
+    Spell's built-ins stay <code>spellCore</code> calls: <code>getItemOf(rank, 1)</code> counts from 1,
+    <code>includes()</code> and <code>isOfType()</code> take spell's lists and <code>nothing</code>. A person would
+    write <code>this.rank[0]</code>; the contract test (<a href="#p8">P8</a>) needs both targets to print the same.
+  </li>
+  <li>Spell's <code>is</code> stays <code>==</code> (forgiving: <code>"2"</code> is <code>2</code>).</li>
+  <li>
+    <code>turnOver()</code> still calls <code>turnFaceDown()</code> without <code>await</code>: spell waits only when
+    told to (<code>wait for</code>).
+  </li>
+  <li>
+    The headings and the test still run when the file loads (<code>spellCore.heading()</code>,
+    <code>testCardSetup()</code>), as in JavaScript.
+  </li>
+  <li>
+    A class name spell builds as text stays text (<code>class={className()}</code>), not Solid's array form: the writer
+    can't know which words a string holds.
+  </li>
+</ul>
+
+<h4 id="o6-catch">The catch: what makes it hard</h4>
+<ul>
+  <li>
+    <b>Core draws with React.</b> <code>element()</code> builds React elements, <code>Thing.Component</code> is a React
+    class through <code>view()</code>, <code>App.start()</code> uses React's <code>createRoot()</code>. So
+    <code>ts/solid</code> needs a Solid side of core: <code>draw()</code> returning Solid's <code>JSX.Element</code>,
+    <code>&lt;Drawn&gt;</code>, <code>App.start()</code> with Solid's <code>render()</code>. That's the "Core + JSX"
+    move for one target, or for both (<a href="#q23">Q23</a>).
+  </li>
+  <li>
+    <b>It must never reach <code>spell-runtime.js</code>.</b> Compiled JavaScript imports only <code>@spell/core</code>,
+    never Solid, and runs from a <code>blob:</code> URL (<a
+      href="../../../packages/core/AGENTS.md"
+      target="src-packages-core-agents-md"
+      ><code>packages/core/AGENTS.md</code></a
+    >, "Who may value-import it"). <code>ts/solid</code> output imports <code>solid-js</code> itself and needs a build
+    (Solid's compiler, the decorators lowered), so its core side lives in its own entry, e.g.
+    <code>@spell/core/solid</code>, which the runtime bundle never loads.
+  </li>
+  <li>
+    <b>Running it.</b> The contract test runs <code>ts/solid</code> output through <code>tsx</code> as a
+    <code>.mts</code> file (<a
+      href="../../../packages/cli/src/contract.test.ts"
+      target="src-packages-cli-src-contract-test-ts"
+      ><code>packages/cli/src/contract.test.ts</code></a
+    >). A <code>.tsx</code> with Solid JSX and decorators needs a build step first: esbuild for the decorators (<a
+      href="../../../vite.decorators.ts"
+      target="src-vite-decorators-ts"
+      ><code>vite.decorators.ts</code></a
+    >), then Solid's compiler (<code>@solidjs/compiler</code>, rc.13, already installed); and Solid's CLIENT build under
+    node, which resolves the server build by default (<a
+      href="../../../guides/solid/solid-2.md"
+      target="src-guides-solid-solid-2-md"
+      ><code>solid-2.md</code></a
+    >, "Testing"), with the fake page (linkedom).
+  </li>
+  <li>
+    <b>Translating <code>to draw</code>.</b> Spell's drawing is statements: locals, <code>if</code>s, early
+    <code>return</code>s, loops. Turning the common shapes into accessors, <code>&lt;Show&gt;</code>,
+    <code>&lt;Switch&gt;</code> and <code>&lt;For&gt;</code> is the bulk of the writer's new work; every other shape
+    must still be right, re-running whole (<a href="#q19">Q19</a>).
+  </li>
+  <li>
+    <b>Names shared across projects.</b> A library's declarations (<code>Solitaire.declarations.json</code>) name its
+    members as JavaScript does; a <code>ts/solid</code> project importing a library must use the same names its own
+    writer gives (<a href="#q22">Q22</a>).
+  </li>
+  <li>
+    <b><code>as const</code> lists are read-only.</b> <code>spellCore.itemOf(Card.Ranks, ...)</code> and friends must
+    take <code>readonly</code> arrays in core's types.
+  </li>
+  <li>
+    <b><code>tsc</code> and the snapshots.</b> <code>typecheck()</code> (<a
+      href="../../../packages/spell/src/node/typecheck.ts"
+      target="src-packages-spell-src-node-typecheck-ts"
+      ><code>packages/spell/src/node/typecheck.ts</code></a
+    >) gains JSX settings and Solid's and <code>&lt;ui-*&gt;</code>'s JSX types; every fixture's
+    <code>.snapshot.ts</code> becomes <code>.snapshot.tsx</code> and changes whole, once, and the
+    <code>.snapshot.tsc.txt</code> files are blessed again. The JavaScript snapshots must not move.
+  </li>
+</ul>
+<epic-aside title="why not make each Thing a custom element">
+  <p>
+    A Thing could compile to a Spell UI element (<code>&lt;spell-card&gt;</code>, on <code>UIComponent</code>), which
+    would bring spell-element's net for free. Not proposed: a card isn't a widget a page author places, every drawn card
+    would get a shadow root and a DOM element of its own (1,000 <code>&lt;ui-button&gt;</code>s build in about 100 ms),
+    and a person writing Solitaire by hand would write components, not elements.
+  </p>
+</epic-aside>
+<epic-net-effect>
+  <ul>
+    <li>
+      <a href="#p10">P10</a> makes <code>ts/solid</code> write <code>&lt;Project&gt;.compiled.tsx</code> that reads as
+      hand-written Solid: real JSX, <code>@prop</code>, typed lists, TypeScript's names, one class body per type
+    </li>
+    <li>
+      each drawn thing in its own error net, as spell-element's elements are; the app mounts into the page's
+      <code>&lt;ui-root&gt;</code>
+    </li>
+    <li>core gains a Solid side for <code>ts/solid</code>, in its own entry; <code>js/solid</code> doesn't change</li>
+    <li>the contract test builds the <code>.tsx</code> before running it; both targets still print the same</li>
+    <li>six open questions first: <a href="#q18">Q18</a> to <a href="#q23">Q23</a></li>
+  </ul>
+</epic-net-effect>
