@@ -1,0 +1,54 @@
+<!-- plan-doc part:  #j15's details in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  <code>@protoMerged</code> (<a href="#p3">P3</a>) merges each class's <code>elementSetup</code> down the class chain as
+  the class is defined. The agent made four calls in how it landed.
+</p>
+<ol>
+  <li>
+    <code>setup</code> is deleted, not kept as an alias:
+    <ul>
+      <li><code>this.elementSetup</code> IS the merged value, so one name is enough</li>
+      <li>every reader now says <code>this.elementSetup</code>, e.g. <code>this.elementSetup.styleSheets</code></li>
+    </ul>
+  </li>
+  <li>
+    no static <code>setupFor()</code>:
+    <ul>
+      <li>
+        code outside an instance (the server render, the docs tools) reads
+        <code>SomeClass.prototype.elementSetup</code>
+      </li>
+      <li>why: the merged value already sits on the prototype; a helper would only wrap that read</li>
+    </ul>
+  </li>
+  <li>
+    <code>styleSheets</code> comes first in each <code>elementSetup</code> literal, so it reads the same everywhere
+  </li>
+  <li>
+    keys merge one level deep:
+    <ul>
+      <li>a subclass's <code>styleSheets</code> REPLACE its base's whole</li>
+      <li>
+        to add to them, spread the base's: <code>styleSheets: [...Base.prototype.elementSetup.styleSheets, mine]</code>
+      </li>
+      <li>why: the same as the static it replaced, so no component changed behaviour</li>
+    </ul>
+  </li>
+</ol>
+<epic-choices chosen="A"
+  ><epic-option letter="A" title="One name, one-level merge" recommended
+    ><ul>
+      <li><code>setup</code> gone, no <code>setupFor()</code>, shallow merge</li>
+    </ul></epic-option
+  ><epic-option letter="B" title="Keep setup as an alias; merge deep"
+    ><ul>
+      <li>two names for one thing; a deep merge would ADD style sheets where a subclass meant to replace them</li>
+    </ul></epic-option
+  ></epic-choices
+><epic-net-effect
+  ><ul>
+    <li><code>this.setup</code> no longer exists: read <code>this.elementSetup</code></li>
+    <li>outside an instance: <code>Class.prototype.elementSetup</code></li>
+    <li>style sheets inherit as before: replaced unless spread</li>
+  </ul></epic-net-effect
+>
