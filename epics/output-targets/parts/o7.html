@@ -1,0 +1,590 @@
+<!-- plan-doc part:  #o7's body in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  How much of the TypeScript that <code>ts/solid</code> writes is really typed, where each gap comes from, and what
+  closes it. Owen asked for it on 2026-10-09 ("make an analysis of untyped stuff in the TS port and let's see if we
+  can't close the untyped gap"); the fixes are queued to <a href="#p10">P10</a>.
+</p>
+<ul>
+  <li>
+    In one line: about half of what the writer declares is typed (53% across the projects, Solitaire 61%), and
+    <b>half of the <code>any</code>s are types spell already knows</b> but loses on the way to the writer.
+  </li>
+  <li>
+    Words used below:
+    <ul>
+      <li>
+        a <b>marker</b>: the <code>any /* spell: type unknown */</code> (or <code>any /* spell: list */</code>) the
+        writer puts where it has no type, so every gap shows (<a href="#j13">J13</a>). The writer never writes a bare
+        <code>any</code>, <code>as any</code> or <code>as unknown as</code>: none in any project.
+      </li>
+      <li>
+        an <b>implicit any</b>: a value TypeScript itself couldn't type, which strict mode reports as an error
+        (<code>TS7006</code>, "Parameter 'event' implicitly has an 'any' type"). There are none today, only because
+        every parameter the writer can't type gets a marker.
+      </li>
+      <li>
+        a <b>declaration</b>: anything that has a type: a parameter, a local variable, a getter, a method's return, a
+        static, a member merged in from outside the class.
+      </li>
+      <li><b>typed %</b>: the declarations whose type is neither <code>any</code> nor <code>unknown</code>.</li>
+    </ul>
+  </li>
+</ul>
+<epic-aside title="how it was measured"
+  ><ul>
+    <li>
+      Every project that compiles, as <code>spell compile &lt;project&gt; --target ts/solid --stdout</code> prints it,
+      on 2026-10-09 (branch <code>output-targets</code> at <code>main</code>). <code>user/Errors</code> doesn't parse,
+      so it's left out; <code>examples/FizzBuzz</code> and <code>examples/OutlineSolitaire</code> are the fixtures'
+      twins, so they're left out of the totals.
+    </li>
+    <li>
+      Errors: <code>tsc</code> 7 with <code>typecheck()</code>'s settings (<code>core</code>'s <code>strict</code>,
+      which includes <code>noImplicitAny</code>), all projects checked together, Solitaire-import against the example
+      Solitaire it imports.
+    </li>
+    <li>
+      Declarations: TypeScript 6's API (<code>@typescript/typescript6</code>, the same settings) asked the type of every
+      declaration, and of every name, member read and call (an "<code>any</code> value": how far an untyped value
+      spreads).
+    </li>
+    <li>
+      The causes: the writer patched in a scratch copy to log, for each marker, the rule that made it and what spell
+      knew there (the match's <code>datatype</code>, the loop's scope). The what-ifs below come from the same patch
+      writing the fix. No product code changed.
+    </li>
+  </ul></epic-aside
+>
+
+<h4 id="o7-today">Today, per project</h4>
+<ui-table celled compact unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Project</th>
+        <th>Declarations</th>
+        <th>Markers</th>
+        <th>Any TypeScript inferred</th>
+        <th>Typed %</th>
+        <th><code>any</code> values</th>
+        <th>tsc errors</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>FizzBuzz (fixture)</td>
+        <td>2</td>
+        <td>1</td>
+        <td>0</td>
+        <td>50%</td>
+        <td>7</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>Solitaire (fixture)</td>
+        <td>148</td>
+        <td>55</td>
+        <td>3</td>
+        <td>61%</td>
+        <td>146</td>
+        <td>6</td>
+      </tr>
+      <tr>
+        <td>Solitaire (example)</td>
+        <td>143</td>
+        <td>60</td>
+        <td>6</td>
+        <td>54%</td>
+        <td>154</td>
+        <td>4</td>
+      </tr>
+      <tr>
+        <td>OutlineSolitaire</td>
+        <td>146</td>
+        <td>62</td>
+        <td>12</td>
+        <td>49%</td>
+        <td>197</td>
+        <td>19</td>
+      </tr>
+      <tr>
+        <td>Solitaire-import</td>
+        <td>83</td>
+        <td>45</td>
+        <td>6</td>
+        <td>39%</td>
+        <td>137</td>
+        <td>5</td>
+      </tr>
+      <tr>
+        <td>cards (library)</td>
+        <td>73</td>
+        <td>16</td>
+        <td>0</td>
+        <td>78%</td>
+        <td>17</td>
+        <td>3</td>
+      </tr>
+      <tr>
+        <td>Calculator</td>
+        <td>39</td>
+        <td>31</td>
+        <td>0</td>
+        <td>21%</td>
+        <td>69</td>
+        <td>0</td>
+      </tr>
+      <tr>
+        <td>Todos</td>
+        <td>29</td>
+        <td>13</td>
+        <td>1</td>
+        <td>52%</td>
+        <td>16</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>Todos - Form Based</td>
+        <td>29</td>
+        <td>13</td>
+        <td>2</td>
+        <td>48%</td>
+        <td>22</td>
+        <td>3</td>
+      </tr>
+      <tr>
+        <td><b>All 9</b></td>
+        <td>692</td>
+        <td>296</td>
+        <td>30</td>
+        <td>53%</td>
+        <td>765</td>
+        <td>42</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    Implicit anys: 0 everywhere, as above. The 30 that TypeScript inferred all flow from a marker, e.g.
+    <code>let start_pile = card.pile</code> where <code>card</code> is marked.
+  </li>
+  <li>
+    Solitaire's 6 errors are still <a href="#c5">C5</a>'s 6. OutlineSolitaire's 19 are new to this analysis: 13 come
+    from its statics being set after the class (cause 6 below).
+  </li>
+  <li>
+    Besides the markers, every reactive property read is a cast, not a check:
+    <code>this.getProp('rank') as (typeof Card.Ranks)[number]</code> (6 in Solitaire). <a href="#p10">P10</a>'s
+    <code>@prop</code> accessors (<a href="#o6">1.6</a>) make them real types.
+  </li>
+</ul>
+
+<h4 id="o7-causes">Why, by cause</h4>
+<p>
+  The 296 markers are 285 places in spell (a property's getter and setter count once), across the 9 projects. By cause,
+  most first:
+</p>
+<ui-table celled compact unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Cause</th>
+        <th>Places</th>
+        <th>Who knows the type</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>
+          Spell knows the type; the tree drops it (85 loop and <code>where</code> variables, 67 items read from a list)
+        </td>
+        <td>152</td>
+        <td>spell</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>An event handler's unused <code>event</code></td>
+        <td>63</td>
+        <td>Solid's JSX (P10)</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>A loop TypeScript could type by itself (13 counting loops, 14 over a plain array)</td>
+        <td>27</td>
+        <td>TypeScript</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>A formula's slot tied to a property (<code>"is a (suit)" for its suits</code>)</td>
+        <td>16</td>
+        <td>spell</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>A property declared with no type (<code>a calculator has an input</code>)</td>
+        <td>12</td>
+        <td>nobody: <a href="#q24">Q24</a></td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>An event's payload (<code>on card-click with a card</code>)</td>
+        <td>4</td>
+        <td>spell</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>An empty list (<code>set state to []</code>)</td>
+        <td>4</td>
+        <td>nobody: <a href="#q24">Q24</a></td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>A merged member's type (<code>a card belongs to one pile</code>)</td>
+        <td>4</td>
+        <td>spell</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>A method's parameter with no type (<code>to append (digit) to (a calculator)</code>)</td>
+        <td>3</td>
+        <td>nobody: <a href="#q24">Q24</a></td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    So 176 of the 285 (62%) are types spell already has, and 27 more TypeScript would work out for itself (<a href="#t8"
+      >T8</a
+    >). Only 19 are types the program never says.
+  </li>
+  <li>
+    Cause 1 in one sentence: the parser looks a type up while parsing (the loop's scope says <code>card</code> is a
+    <code>Card</code>; <code>the last card of discards</code>'s match says <code>Card</code>), but the tree node made
+    from it (<code>getAST()</code>) doesn't keep it: an <code>ASTNode</code>'s <code>datatype</code> is its own, never
+    its match's. So the writer finds nothing.
+  </li>
+</ul>
+<epic-code title="cause 1 · Solitaire, today · 9 lines" language="ts">
+  <pre>
+// for each card in the deck	move it to the stock
+spellCore.map(deck, (card: any /* spell: type unknown */) =&gt; {
+  card.move_to_$pile(stock)
+})
+
+// set test-card to the last card of discards
+let test_card: any /* spell: type unknown */ = spellCore.getItemOf(discards, -1)
+// spell knew:  card is a Card (the loop's scope);  test-card is a Card (the match's datatype)
+</pre>
+</epic-code>
+<epic-code title="causes 2 to 4 · today · 14 lines" language="ts">
+  <pre>
+// 2 -- onClick={cheat}
+onClick: (event: any /* spell: type unknown */) =&gt; {
+  return cheat()
+},
+
+// 3 -- for each number from 1 to 7:  getRange() returns number[], TypeScript knows
+spellCore.map(spellCore.getRange(1, 7), (number: any /* spell: type unknown */) =&gt; { ... })
+
+// 4 -- a card "is a (suit)" for its suits:  the slot ranges over a card's suits
+is_a_$suit(suit: any /* spell: type unknown */) {
+  return this.suit === suit
+}
+</pre>
+</epic-code>
+
+<h4 id="o7-errors">What the anys hide</h4>
+<p>
+  Taking the markers away shows what they hide. Two what-ifs, run on the real output (Solitaire, the fixture; then all
+  9):
+</p>
+<ui-table celled compact unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Solitaire (fixture)</th>
+        <th>Markers</th>
+        <th>Any inferred</th>
+        <th><code>unknown</code></th>
+        <th>Typed %</th>
+        <th><code>any</code> values</th>
+        <th>tsc errors (implicit)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Today</td>
+        <td>55</td>
+        <td>3</td>
+        <td>0</td>
+        <td>61%</td>
+        <td>146</td>
+        <td>6 (0)</td>
+      </tr>
+      <tr>
+        <td>A. Markers dropped where TypeScript can try (<a href="#t8">T8</a> alone)</td>
+        <td>7</td>
+        <td>9</td>
+        <td>19</td>
+        <td>76%</td>
+        <td>53</td>
+        <td>38 (7)</td>
+      </tr>
+      <tr>
+        <td>B. A, plus the types spell knows (cause 1)</td>
+        <td>7</td>
+        <td>8</td>
+        <td>2</td>
+        <td>89%</td>
+        <td>30</td>
+        <td>16 (7)</td>
+      </tr>
+      <tr>
+        <td><b>All 9, B</b></td>
+        <td>50</td>
+        <td>82</td>
+        <td>12</td>
+        <td>79%</td>
+        <td>293</td>
+        <td>118 (63)</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    <b>T8 alone makes things worse</b>: <code>spellCore.filter()</code>, <code>duplicateCollection()</code>,
+    <code>mergeCollections()</code> and <code>rangeStartingAt()</code> return <code>unknown</code>, so a local set from
+    one becomes <code>unknown</code> and every use of it an error (Solitaire 6 to 38). It has to land with cause 1, or
+    with <code>core</code>'s signatures tightened (fix 9 below).
+  </li>
+  <li>
+    The 63 implicit anys at B are exactly cause 2's event handlers: they need their fix (or P10's JSX) at the same time
+    as the markers go.
+  </li>
+  <li>
+    At B, Solitaire's 16 errors are 7 event handlers, 1 event payload, and 8 that are spell's own, hidden by
+    <code>any</code> today:
+    <ul>
+      <li>
+        5 members used on a type that doesn't declare them: <code>droppable</code> (set by
+        <code>a new stock-pile with name = "stock", droppable = no</code>, never declared), <code>symbol</code> (the
+        same, on a foundation), and <code>can play (a card)</code> / <code>can pick up (a card)</code>, which only the
+        kinds of pile have, called on a <code>Pile</code>
+      </li>
+      <li>
+        3 "may be nothing" (<a href="#c5">C5</a>): <code>card.value + 1</code>, a foundation's
+        <code>this.value + 1</code>, and <code>item column of the tableaus</code> passed where a pile is needed
+      </li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="what B finds · Solitaire · 8 lines" language="ts">
+  <pre>
+// piles in all-piles where its droppable is yes and it can play the card
+let droppable_piles = spellCore.filter(all_piles, (pile: Pile) =&gt; {
+  return ((pile.droppable == true) &amp;&amp; (pile.can_play_$card(this)))
+})
+// TS2339: Property 'droppable' does not exist on type 'Pile'.
+// TS2339: Property 'can_play_$card' does not exist on type 'Pile'.
+//   (only Foundation and Tableau have it;  droppable is only ever set in `a new ... with droppable = yes`)
+</pre>
+</epic-code>
+
+<h4 id="o7-other">Errors with other causes</h4>
+<p>Beyond the markers, the other projects' errors come from five places the writer or <code>core</code> can fix:</p>
+<ul>
+  <li>
+    <b>Statics set after the class</b> (OutlineSolitaire, 13 errors and 5 inferred anys): the outline style (<code
+      >a "deck" is a list of cards with: - "suits" as one of ...</code
+    >) writes <code>Deck.Suits = [...]</code> below <code>class Deck</code>, which TypeScript doesn't see as a static;
+    and <code>static get instanceType()</code> (read when set) leaves <code>Deck</code> as a plain <code>List</code>,
+    not <code>List&lt;Card&gt;</code>.
+  </li>
+  <li>
+    <b>A member patched on from another project</b> (Solitaire-import, 1 error): <a href="#c6">C6</a>, now seen for
+    real: <code>export interface Card { play(): ... }</code> clashes with the imported <code>Card</code> (TS2440).
+  </li>
+  <li>
+    <b>Named arguments typed <code>Object</code></b> (both Todos, 3 errors and 3 inferred anys):
+    <code>to create a new task (with title as text)</code> becomes <code>create_a_new_task(props: Object = {})</code>,
+    so <code>let { title } = props</code> fails, though spell says <code>title</code> is text.
+  </li>
+  <li>
+    <b>Enumerations widened</b> (cards, 2 errors): <code>static Colors = ['red', 'black']</code> is a
+    <code>string[]</code>, so a joker's <code>color</code> can't override a card's, whose getter returns
+    <code>'red' | 'black'</code>. Written <code>as const</code> (as <a href="#o6">1.6</a> plans), every enumerated
+    property becomes the union of its values.
+  </li>
+  <li>
+    <b><code>core</code>'s loose returns</b>: the four helpers above return <code>unknown</code>; and
+    <code>itemOf(this, card)</code> inside a <code>List</code> sub-class is <code>string | number</code>, not a position
+    (<code>KeyOf</code> can't resolve <code>this</code>), 1 error each in the example Solitaires.
+  </li>
+</ul>
+
+<h4 id="o7-fixes">The fixes, cheapest-biggest first</h4>
+<ui-table celled compact unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Fix</th>
+        <th>Size</th>
+        <th>Closes</th>
+        <th>P10 does it anyway?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1 · <a href="#t13">T13</a></td>
+        <td>
+          Keep spell's types on the tree: a node's <code>datatype</code> falls back to its match's; a loop's or
+          <code>where</code>'s variable carries its scope variable
+        </td>
+        <td>S (1-2h)</td>
+        <td>152 markers</td>
+        <td>no: the tree is shared by every writer</td>
+      </tr>
+      <tr>
+        <td>2 · <a href="#t14">T14</a></td>
+        <td>
+          Let TypeScript type what it can: no marker on a callback's parameter, nor on a local read from
+          <code>core</code> (<a href="#t8">T8</a>)
+        </td>
+        <td>XS (30m)</td>
+        <td>27 markers</td>
+        <td>no</td>
+      </tr>
+      <tr>
+        <td>3 · <a href="#t15">T15</a></td>
+        <td>An event handler without its unused <code>event</code>, or typed by its attribute</td>
+        <td>XS</td>
+        <td>63 markers</td>
+        <td><b>yes</b>: Solid's JSX types <code>onClick</code></td>
+      </tr>
+      <tr>
+        <td>4 · <a href="#t16">T16</a></td>
+        <td>Three more types spell has: formula slots (<code>Card["suit"]</code>), event payloads, merged getters</td>
+        <td>S</td>
+        <td>24 markers, 3 errors</td>
+        <td>no</td>
+      </tr>
+      <tr>
+        <td>5 · <a href="#t17">T17</a></td>
+        <td>Statics and a list's item type declared in the class body, however the spell orders them</td>
+        <td>S-M</td>
+        <td>13 errors, 5 anys</td>
+        <td><b>yes</b>, if "one class body per type" covers statics</td>
+      </tr>
+      <tr>
+        <td>6 · <a href="#t18">T18</a></td>
+        <td>Named arguments typed by their fields: <code>props: { title?: string } = {}</code></td>
+        <td>S</td>
+        <td>3 errors, 3 anys</td>
+        <td>no</td>
+      </tr>
+      <tr>
+        <td>7 · <a href="#t19">T19</a></td>
+        <td>Enumerations <code>as const</code></td>
+        <td>S</td>
+        <td>2 errors; exact enumerated types</td>
+        <td><b>yes</b> (<a href="#o6">1.6</a>)</td>
+      </tr>
+      <tr>
+        <td>8 · <a href="#t20">T20</a></td>
+        <td>A member patched on from another project in a <code>declare module</code> block (<a href="#c6">C6</a>)</td>
+        <td>S</td>
+        <td>1 error</td>
+        <td>no</td>
+      </tr>
+      <tr>
+        <td>9 · <a href="#t21">T21</a></td>
+        <td>
+          <code>core</code>: <code>filter()</code> and its kin return their collection's type; <code>KeyOf</code> for
+          <code>this</code>
+        </td>
+        <td>S (types only)</td>
+        <td>3 errors; what fix 2 alone would add</td>
+        <td>no</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>Spell's own decisions: three questions, below</td>
+        <td>-</td>
+        <td>19 markers, 8 errors in Solitaire</td>
+        <td>no</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    Order: fixes 1, 2 and 9 together first (each alone makes things worse, above), then the rest in any order. They
+    change only the TypeScript: <code>js/solid</code>'s output and the JavaScript snapshots don't move.
+  </li>
+  <li>
+    If <a href="#p10">P10</a> writes a method's <code>for each</code> as <code>for (const card of deck)</code>, its loop
+    variables need nothing at all (TypeScript reads <code>List&lt;Card&gt;</code>'s iterator); fix 1 still matters for
+    the 67 items read from lists.
+  </li>
+  <li>
+    P10 also removes, by itself: the 63 event handlers (fix 3), the statics (fix 5), the merged interfaces for members
+    from the same project (written in the class body), and the <code>getProp() as</code> casts.
+  </li>
+</ul>
+
+<h4 id="o7-q">What only Owen can decide</h4>
+<ul>
+  <li>
+    <b>A program that doesn't say a type</b> (<a href="#q24">Q24</a>): <code>a calculator has an input</code>,
+    <code>to append (digit) to (a calculator)</code>, <code>set state to []</code>. Spell could work it out from what
+    the program does with it, require the type, or keep the marker.
+  </li>
+  <li>
+    <b>A member used where it isn't declared</b> (<a href="#q25">Q25</a>): <code>droppable</code>, <code>symbol</code>,
+    <code>can play (a card)</code> on a plain pile.
+  </li>
+  <li>
+    <b>A list read that may find nothing</b> (<a href="#q26">Q26</a>): <code>item column of the tableaus</code>,
+    <code>the position of its rank in card ranks</code>.
+  </li>
+</ul>
+
+<h4 id="o7-target">The target</h4>
+<ul>
+  <li>
+    After P10 with fixes 1-9: every project has <b>0 implicit anys</b>, and a marker only where the program never says a
+    type (19 places in all; Solitaire 2: a pile's <code>name</code> and <code>set state to []</code>). Typed share 95%
+    or more, Calculator's 6 untyped properties aside.
+  </li>
+  <li>
+    tsc errors: <b>0</b> on FizzBuzz, Calculator, both Todos, cards, OutlineSolitaire and Solitaire-import. Solitaire: 8
+    (5 undeclared members, 3 "may be nothing"), to <b>0</b> once Q25 and Q26 are answered as recommended.
+  </li>
+  <li>
+    On the way, Solitaire's error count goes UP before it comes down (6, then 16 at what-if B): those are real, hidden
+    by <code>any</code> today (<a href="#c9">C9</a>).
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>
+      9 todos queued to P10, <a href="#t13">T13</a> to <a href="#t21">T21</a> (fixes 1-9), each with its own example;
+      <a href="#t8">T8</a> is fix 2 (T14)
+    </li>
+    <li>3 questions for Owen: <a href="#q24">Q24</a>, <a href="#q25">Q25</a>, <a href="#q26">Q26</a></li>
+    <li>
+      2 caveats (<a href="#c9">C9</a>: the error counts rise before they fall; <a href="#c10">C10</a>: enumeration kinds
+      as empty classes) and an issue (<a href="#i1">I1</a>: Solitaire-import fails tsc with C6's clash)
+    </li>
+    <li>
+      Solitaire as TypeScript: 61% typed, 55 markers, 6 errors today; about 97% typed, 2 places marked, 0 implicit anys
+      and 0 errors once P10, the fixes and the answers are in
+    </li>
+  </ul></epic-net-effect
+>
