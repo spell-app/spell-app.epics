@@ -3,7 +3,15 @@
   >Each attribute’s value is kept three times, and <code>this.attrs.x</code> can be a microtask stale.</epic-field
 ><epic-field name="changes"
   ><code>DOMElement</code> keeps one CONVERTED value per attribute, and <code>ui</code>’s reactive record one change
-  signal per attribute. <code>attrs</code> and <code>createProps()</code> go.</epic-field
+  signal per attribute. <code>attrs</code> and <code>createProps()</code> go. Plus a decorator sweep:
+  <code>@protoMerged</code> merges each class’s <code>elementSetup</code> down the class chain as it’s defined, and
+  <code>styleSheets</code> move into <code>elementSetup</code>.</epic-field
+><epic-updated at="2026-10-08 23:32"
+  ><p>2026-10-08: P3 grows by Owen’s review notes on P2.</p>
+  <ul>
+    <li><code>@protoMerged</code> and <code>styleSheets</code> move into <code>elementSetup</code>, in one sweep.</li>
+    <li>A look for other places a decorator would clean code up, as a list Owen picks from.</li>
+  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
     <li>one record, one notifier; <code>attrs</code> and <code>createProps()</code> go (<a href="#q5">Q5</a>)</li>
@@ -28,6 +36,48 @@
         ><code>Reactive.ts</code></a
       >
       reads the one record
+    </li>
+    <li>
+      <code>@protoMerged</code>, a new decorator beside <code>@proto</code> in <code>$/util</code>’s
+      <a href="../../../packages/util/src/decorators.ts" target="src-packages-util-src-decorators-ts"
+        ><code>decorators.ts</code></a
+      >:
+      <ul>
+        <li>
+          as each class is defined, it stores <code>{ ...parent’s merged elementSetup, ...this class’s }</code> on the
+          prototype
+        </li>
+        <li><code>setup</code> becomes <code>this.elementSetup</code></li>
+        <li>
+          <code>UIComponent.setupFor()</code> and its <code>setups</code> cache go (Owen: “do
+          <code>@protoMerged</code> in the next phase please and eliminate this”)
+        </li>
+        <li>
+          84 files say <code>@E.protoMerged</code> instead of <code>@E.proto</code> (<code>ui</code>,
+          <code>brand</code>, <code>epics</code>)
+        </li>
+      </ul>
+    </li>
+    <li>
+      <code>styleSheets</code> become a key of <code>elementSetup</code>:
+      <ul>
+        <li>
+          <code>elementSetup</code> merges by key, so a subclass’s <code>styleSheets</code> still replaces its base’s
+          whole, and spreading the base’s still adds to it
+        </li>
+        <li>
+          readers move to <code>this.setup.styleSheets</code>, plus the server render and the docs tools that read the
+          static
+        </li>
+        <li>103 files</li>
+      </ul>
+    </li>
+    <li>
+      before changing anything else, a list of other places a decorator would clean code up (Owen asked):
+      <ul>
+        <li>for example, a <code>@lazy</code> for members made on first use</li>
+        <li>Owen picks from the list</li>
+      </ul>
     </li>
   </ul></epic-field
 ><epic-field name="files"
