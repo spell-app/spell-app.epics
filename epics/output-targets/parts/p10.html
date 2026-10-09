@@ -54,6 +54,21 @@
     <code>@derived</code> move into <code>$/util/reactive</code> before anything draws with Solid. React deletion moved
     to <a href="#p11">P11</a>, per <a href="#i2">I2</a>: the last example moves onto Spell UI first.
   </p></epic-updated
+><epic-updated at="2026-10-09 16:09" phase="10"
+  ><p>Two changes to the plan, found while building (2026-10-09):</p>
+  <ul>
+    <li>
+      Core's React drawing (<code>Thing.Component</code>, <code>List.Component</code>, <code>App</code>'s
+      <code>createRoot()</code>) was deleted here, not left for <a href="#p11">P11</a>: nothing could call it once
+      <code>drawThing()</code> drew with Solid (<a href="#j18">J18</a>). The React kits still stay for P11.
+    </li>
+    <li>
+      A thing's <code>draw()</code> runs again when what it read changes, that thing alone, not "once, untracked" as the
+      goal says: compiled JavaScript has no <code>&lt;Show&gt;</code> until <a href="#p12">P12</a>, so a card could
+      never flip (<a href="#q29">Q29</a>). The net itself is core's <code>drawThing()</code>, with no wrapper in
+      compiled JavaScript (<a href="#q28">Q28</a>).
+    </li>
+  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
     <li>
@@ -211,8 +226,8 @@
             <li>
               core's React drawing (<code>Thing.Component</code>, <code>List.Component</code>,
               <code>drawItems()</code>'s React side,
-              <a href="../../../packages/core/src/classes/App.tsx" target="src-packages-core-src-classes-app-tsx"
-                ><code>App.tsx</code></a
+              <a href="../../../packages/core/src/classes/App.ts" target="src-packages-core-src-classes-app-ts"
+                ><code>App.ts</code></a
               >'s <code>createRoot()</code>), no longer called by compiled spell
             </li>
           </ul>
@@ -223,6 +238,193 @@
           it back. Every other example draws as today.
         </li>
       </ul>
+    </li>
+  </ul></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      <b>Where to see it:</b> run Solitaire in the editor (<code>spell dev server</code>), in VS Code's "Run Project"
+      (the extension was rebuilt and installed, from a branch level with <code>main</code>), or on
+      <code>/demo/spell-app.html</code>. It looks and plays as before, now drawn by Solid: flipping a card changes that
+      card's node, nothing else. The hand checks: <a href="#v9">V9</a> to <a href="#v13">V13</a>.
+    </li>
+    <li>
+      <b>What changed for you:</b>
+      <ul>
+        <li>
+          One broken drawing no longer takes the app down. The thing that failed shows a small stand-in, with one line
+          on the program's console and a cancelable <code>ui-error</code> event; the rest keeps drawing.
+        </li>
+        <li>
+          <code>notify</code>, <code>alert</code>, <code>confirm</code> and <code>prompt</code> work now, as Spell UI's
+          toast and dialogs, and the program waits for each answer. Under <code>spell run</code> they print on the
+          program's console and take a default answer.
+        </li>
+        <li>
+          The JavaScript output changed once, on purpose: every value in a drawing that can change is written as a
+          function, <code>() =&gt; this.short_suit</code>, so it updates its own node. Literals, elements, inline
+          handlers and <code>on*</code> props stay as they were.
+        </li>
+        <li>
+          The contract snapshots changed in two ways:
+          <ul>
+            <li><code>colSpan</code> prints as <code>colspan</code> (what the page really has)</li>
+            <li>
+              Solitaire's dealt board is different: React DOM used to draw two <code>Math.random()</code> numbers as it
+              loaded, so the seeded shuffle now gets the program's own numbers
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Rough, or not tried by hand:</b>
+      <ul>
+        <li>
+          <b>Nobody has played Solitaire by hand on this build yet:</b> the runner's browser tests cover each behaviour,
+          <a href="#v9">V9</a> to <a href="#v13">V13</a> are still to do.
+        </li>
+        <li>
+          <b>Todos - Form Based doesn't draw its form until <a href="#p11">P11</a>:</b> its React kit parts show
+          stand-ins (<a href="#j17">J17</a>, <a href="#i2">I2</a>).
+        </li>
+        <li>
+          Two calls against the plan, made while building: core's React drawing deleted now, not in P11 (<a href="#j18"
+            >J18</a
+          >); a thing's <code>draw()</code> runs again for what it read, not once (<a href="#q29">Q29</a>). The net is
+          core's <code>drawThing()</code>, no wrapper in compiled JavaScript (<a href="#q28">Q28</a>).
+        </li>
+        <li>
+          Limits accepted: Solid rc.13's error net re-reads too much, so <code>drawThing()</code> adds a memo and a
+          <code>try</code> / <code>catch</code> (<a href="#c13">C13</a>); <code>element()</code> builds its DOM at once
+          (<a href="#c14">C14</a>); a plain local is wrapped as a live value too (<a href="#c15">C15</a>).
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>One reactive engine,</b> <code>$/util/reactive</code> (also flattened into <code>$/util</code>), moved from
+      <code>$/util/spell</code>:
+      <ul>
+        <li>
+          the cells (<a
+            href="../../../packages/util/src/reactive/cells.ts"
+            target="src-packages-util-src-reactive-cells-ts"
+            ><code>cells.ts</code></a
+          >, <code>Cell</code>, <code>Derived</code>, <code>Reaction</code>), the records (<a
+            href="../../../packages/util/src/reactive/extend.ts"
+            target="src-packages-util-src-reactive-extend-ts"
+            ><code>extend.ts</code></a
+          >), <code>Schema</code> and
+          <a href="../../../packages/util/src/reactive/bridges.ts" target="src-packages-util-src-reactive-bridges-ts"
+            ><code>bridges.ts</code></a
+          >
+        </li>
+        <li>
+          the decorators, in <code>decorators.ts</code>: <code>@prop</code>; <code>@state</code>, new, whose initializer
+          is the starting value (it warns when <code>create()</code> set it first); <code>@derived</code>; with
+          <code>{ equals }</code> on <code>@state</code> and <code>@derived</code>
+        </li>
+        <li>no lodash (<code>setState</code>'s dotted paths have small helpers now) and no Solid</li>
+        <li>
+          <code>$/util/spell</code> keeps <code>Observable</code>, <code>@thing</code> (<a
+            href="../../../packages/util/src/spell/spellDecorators.ts"
+            target="src-packages-util-src-spell-spelldecorators-ts"
+            ><code>spellDecorators.ts</code></a
+          >) and <code>view()</code>
+        </li>
+        <li>
+          new tests in <code>reactive/decorators.test.ts</code>;
+          <a
+            href="../../../packages/util/src/reactive/cells.test.ts"
+            target="src-packages-util-src-reactive-cells-test-ts"
+            ><code>cells.test.ts</code></a
+          >
+          moved beside its code
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Core draws with Solid,</b> in
+      <a href="../../../packages/core/src/drawing.ts" target="src-packages-core-src-drawing-ts"
+        ><code>packages/core/src/drawing.ts</code></a
+      >:
+      <ul>
+        <li>
+          <code>element()</code> on <code>@solidjs/h</code> (added, pinned at 2.0.0-rc.13, in the root's resolutions
+          too), with React's spellings mapped:
+          <ul>
+            <li><code>className</code> to <code>class</code>, <code>htmlFor</code> to <code>for</code></li>
+            <li>a camelCase attribute on an HTML tag lowercased (<code>colSpan</code> to <code>colspan</code>)</li>
+            <li>a value that isn't text on a dashed tag (<code>&lt;ui-*&gt;</code>) set as a property</li>
+            <li>a React kit tag (<code>UI.Form</code> ...) throws, so its net shows a stand-in</li>
+          </ul>
+        </li>
+        <li>
+          <code>drawThing()</code>: each drawn thing in its own error net (Solid's <code>&lt;Errored&gt;</code>, a memo
+          running <code>draw()</code>, a <code>try</code> / <code>catch</code> for the stand-in)
+        </li>
+        <li><code>drawItems()</code>: a list drawn with <code>&lt;For&gt;</code>, each item keeping its node</li>
+        <li>
+          <code>mountApp()</code>: the app in a Solid root of its own, leaving <code>element.spellRoot</code> (was
+          <code>REACT_ROOT</code>)
+        </li>
+        <li>
+          gone: <code>Thing.Component</code>, <code>List.Component</code>, <code>App</code>'s
+          <code>createRoot()</code> and every React import in core's source (<code>List.tsx</code>,
+          <code>App.tsx</code> are now <code>.ts</code>)
+        </li>
+        <li>
+          <code>notify</code> and friends (<a
+            href="../../../packages/core/src/ui.ts"
+            target="src-packages-core-src-ui-ts"
+            ><code>ui.ts</code></a
+          >) find the page's Spell UI runtime (<code>Symbol.for("@spell-app/ui:runtime")</code>) and wait for it to load
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Parser:</b> a new tree node, <code>ASTJSXLiveValue</code>, for a JSX prop or child that can change;
+      <code>JSWriter</code> writes it as <code>() =&gt; expr</code>. Fixture snapshots changed once, as planned:
+      Solitaire and OutlineSolitaire, JavaScript and TypeScript (the tsc snapshot's error columns moved by 6).
+    </li>
+    <li>
+      <b>App and runners:</b>
+      <ul>
+        <li>the runners unmount <code>spellRoot</code> before running again</li>
+        <li>
+          <code>sharedSolid()</code> hands <code>@solidjs/h</code> to <code>spell-runtime.js</code> from
+          <code>spell-solid.js</code> (which now re-exports <code>h</code>)
+        </li>
+        <li>
+          the build tests pin it: the runtime imports <code>spell-solid.js</code>, bundles no Solid of its own, and
+          never
+          <code>ui</code>
+        </li>
+        <li>
+          new runner browser tests (18 pass): a live value updates its own node; an <code>if</code> in
+          <code>draw()</code> redraws that card alone; a list keeps each item's node; a broken card shows a stand-in and
+          a <code>ui-error</code> while the rest draws; <code>className</code> / <code>colSpan</code>;
+          <code>notify</code> shows a toast
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>CLI:</b> <code>spell run</code> and the contract test load Solid's browser builds under node (<a
+        href="../../../packages/cli/src/runner/hooks.mjs"
+        target="src-packages-cli-src-runner-hooks-mjs"
+        ><code>hooks.mjs</code></a
+      >), bridge cells to Solid on the fake page, and flush before printing; no global React any more (<a href="#c7"
+        >C7</a
+      >'s first half).
+    </li>
+    <li>
+      <b>Gates:</b> <code>yarn review</code> passes in util, core (409 tests), parser (499), spell (1040), app (250) and
+      cli (240; one older react-hooks warning in <code>src/ui/ProjectPrompt.tsx</code>).
+    </li>
+    <li>
+      <b>For the merge:</b> shared docs to bring up to date are listed in <a href="#t22">T22</a> (now also
+      <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"><code>solid-2.md</code></a
+      >'s "planned" Core + JSX lines). Not committed: P10's code is in the worktree for review.
     </li>
   </ul></epic-field
 ><epic-field name="files"
@@ -262,8 +464,8 @@
       <a href="../../../packages/core/" target="src-packages-core"><code>packages/core/</code></a>
       (<code>src/ui.ts</code>'s <code>element()</code> on <code>@solidjs/h</code> and the <code>notify</code> family;
       <code>index.ts</code>'s <code>drawThing()</code>: the net;
-      <a href="../../../packages/core/src/classes/App.tsx" target="src-packages-core-src-classes-app-tsx"
-        ><code>App.tsx</code></a
+      <a href="../../../packages/core/src/classes/App.ts" target="src-packages-core-src-classes-app-ts"
+        ><code>App.ts</code></a
       >: Solid's <code>render()</code>);
       <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
         ><code>packages/parser/src/writers/JSWriter.ts</code></a
@@ -341,4 +543,8 @@
     <li><code>yarn ts</code>, <code>yarn review</code> in util, parser, core, spell, lsp, app and cli</li>
   </ul></epic-field
 >
-<epic-field name="to-review"><a href="#j17">J17</a>, <a href="#t22">T22</a></epic-field>
+<epic-field name="to-review"
+  ><a href="#j17">J17</a>, <a href="#j18">J18</a>, <a href="#c13">C13</a>, <a href="#c14">C14</a>,
+  <a href="#c15">C15</a>, <a href="#t22">T22</a>, <a href="#v9">V9</a>, <a href="#v10">V10</a>, <a href="#v11">V11</a>,
+  <a href="#v12">V12</a>, <a href="#v13">V13</a></epic-field
+>

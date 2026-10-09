@@ -1,0 +1,48 @@
+<!-- plan-doc part:  #q28's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    For P10 (JS Solid Drawing). The error net question (<a href="#q21">Q21</a>) chose B: each drawn thing's net is a
+    decorator on its <code>draw()</code>. Compiled JavaScript writes no decorators yet; <a href="#p12">P12</a> writes
+    <code>@drawn</code> for <code>ts/solid</code>. What does compiled JavaScript write in the meantime?
+  </p></epic-question
+>
+<p>
+  Settled while building: nothing extra. Every way a thing gets drawn already goes through ONE core function,
+  <code>spellCore.drawThing()</code>, in
+  <a href="../../../../packages/core/src/drawing.ts" target="src-packages-core-src-drawing-ts"
+    ><code>packages/core/src/drawing.ts</code></a
+  >, and the net lives there.
+</p>
+<ul>
+  <li>
+    The three ways a thing is drawn, all through <code>drawThing()</code>:
+    <ul>
+      <li><code>draw the card</code> in a drawing</li>
+      <li><code>App.start()</code>, drawing the whole app (through <code>mountApp()</code>)</li>
+      <li><code>draw cards in it</code>: <code>drawItems()</code>, one net per item</li>
+    </ul>
+  </li>
+  <li>So compiled JavaScript needs no wrapper around <code>draw()</code>: it calls core, as it did before P10.</li>
+  <li>P12's <code>@drawn</code> will call the same <code>drawThing()</code>, so both targets share one net.</li>
+</ul>
+<epic-code title="packages/core/src/drawing.ts · drawThing() · 13 lines" language="ts">
+  <pre>
+drawThing(drawable?: unknown): Drawing | null {
+  const thing = drawable as Partial&lt;Drawable&gt; | undefined
+  if (typeof thing?.draw !== "function") return null
+  // through `createComponent()`, as Solid's JSX does:  untracked, so what it reads is its own, not the caller's
+  return createComponent(Errored, {
+    fallback: (error: () =&gt; unknown) =&gt; drawingFailed(thing as Drawable, error()),
+    // `draw()` in a memo, inside the net:  it runs again only for what IT read, never because the net re-reads
+    // its children (it does, whenever anything under it changes:  a list grows, a card flips)
+    get children() {
+      return createMemo(() =&gt; drawOrStandIn(thing as Drawable)) as unknown as Drawing
+    }
+  })
+}</pre></epic-code
+><epic-net-effect
+  ><ul>
+    <li>no decorator, and no new code, in compiled JavaScript for the net</li>
+    <li>P12's <code>@drawn</code> is a thin call to <code>spellCore.drawThing()</code></li>
+  </ul></epic-net-effect
+>

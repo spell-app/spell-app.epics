@@ -1,0 +1,47 @@
+<!-- plan-doc part:  #c13's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Solid's error net, <code>&lt;Errored&gt;</code>, does more work than it needs to in Solid 2 rc.13, so
+  <code>drawThing()</code> doesn't rely on it alone. A reader of
+  <a href="../../../../packages/core/src/drawing.ts" target="src-packages-core-src-drawing-ts"
+    ><code>packages/core/src/drawing.ts</code></a
+  >
+  will see two extra layers, and should know why they're there.
+</p>
+<ul>
+  <li>
+    What <code>&lt;Errored&gt;</code> does in rc.13, measured while building P10:
+    <ul>
+      <li>
+        it re-reads its children whenever ANYTHING under it changes: a pile with one broken card drew three times for
+        that one card
+      </li>
+      <li>it makes its stand-in again each time: a card added to the pile made a new stand-in for the broken one</li>
+    </ul>
+  </li>
+  <li>
+    What <code>drawThing()</code> does about it:
+    <ul>
+      <li>
+        <code>draw()</code> runs in a memo inside the net, so it runs again only when what IT read changes, never
+        because the net re-read its children
+      </li>
+      <li>
+        a <code>try</code> / <code>catch</code> around <code>draw()</code> makes the stand-in once, as the memo's value
+      </li>
+    </ul>
+  </li>
+  <li>
+    What still reaches <code>&lt;Errored&gt;</code>: an error a live value throws LATER (<code>() =&gt; this.x</code>
+    throwing after the first draw). That one may still redraw more than its own node.
+  </li>
+  <li>
+    Worth trying again on each Solid release candidate bump: if <code>&lt;Errored&gt;</code> stops re-reading, the
+    <code>try</code> / <code>catch</code> can go.
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>one broken card shows ONE stand-in, made once, and doesn't redraw its pile</li>
+    <li>two layers in <code>drawThing()</code> where one net should do, until Solid's net settles</li>
+  </ul></epic-net-effect
+>
