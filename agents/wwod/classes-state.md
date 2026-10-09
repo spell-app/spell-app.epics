@@ -117,7 +117,10 @@ This spoke is house style on top.
 - **A lazily made collaborator keeps its identity:  `this.derived(name, getter)`:**
   - `Derivative.derived()`:  made on first read, the SAME object after (not reactive), `clearDerived(name)` resets;
     e.g. `SpellFile.project`.  NOTE:  `derived()` (compute once) is not `derive()` (reactive memo).
-  - TODO:  a `@readonly` (or some such) decorator for it.
+  - Outside a `Derivative`:  `@lazy get x()` (`$/util`), made on first read, the SAME value after;
+    `@once` for a method run once (a loader's promise);  `forget(object, "x")` resets either, e.g. in a
+    `static reset()`.  Replaces a backing field plus `return (this.field ??= make())`
+    (`packages/ui/src/docs-components/SiteData.ts`).
   - A lazy value that is STATE (must be reactive, survive re-derivation) is `getState(name, init)` instead -- §13.
 - **Literal getters say `as const`:**  a getter returning a fixed literal (a type name, an icon) narrows its type, so
   subclasses' literals stay distinct.
@@ -167,8 +170,8 @@ This spoke is house style on top.
 
 - **Standard decorators only:**
   - Use STANDARD (TC39 2023-11) decorators, NEVER `experimentalDecorators` or legacy 3-arg decorators that mutate
-    the property descriptor.  General-purpose ones live in `packages/util/src/decorators.ts` (`@proto`:  import from
-    `$/util`;  `ui` has `$/ui/util`, which re-exports the generic ones).
+    the property descriptor.  General-purpose ones live in `packages/util/src/decorators.ts` (`@proto`, `@lazy`,
+    `@once`:  import from `$/util`;  `ui` has `$/ui/util`, which re-exports the generic ones).
   - Spell's own (`@prop`, `@derived`, `@thing`) live in `packages/util/src/spell/spellDecorators.ts`, for
     HAND-WRITTEN `Observable`s only.  SEE:  `guides/solid/solid-2.md` "Spell's decisions" ›
     "Decorators for HAND-WRITTEN classes".
