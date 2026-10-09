@@ -104,6 +104,184 @@
     </li>
     <li>the moved code carries a one-line MIT notice per file (<a href="#q12">Q12</a>)</li>
   </ul></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      Each <code>ui-*</code> element is now one layer: a plain <code>HTMLElement</code> subclass, with a Solid component
+      drawing inside it. Where to look:
+      <ul>
+        <li>
+          <a
+            href="../../../packages/ui/src/elements/DOMElement.ts"
+            target="src-packages-ui-src-elements-domelement-ts"
+            ><code>DOMElement.ts</code></a
+          >: the browser’s side of every tag: the DOM API callbacks, <code>attributeValues</code>, a property per
+          attribute, reflection, the upgrade step, the shadow root, the form callbacks
+        </li>
+        <li>
+          <a
+            href="../../../packages/ui/src/elements/UIComponent.tsx"
+            target="src-packages-ui-src-elements-uicomponent-tsx"
+            ><code>UIComponent.tsx</code></a
+          >: its sections “Lifecycle”, “Mounting”, “Errors and fallback”, and <code>defineTag()</code> /
+          <code>tagSetupFor()</code>
+        </li>
+        <li>
+          <a
+            href="../../../packages/ui/src/elements/ShadowEvents.ts"
+            target="src-packages-ui-src-elements-shadowevents-ts"
+            ><code>ShadowEvents.ts</code></a
+          >: the fix for events leaving a shadow root, moved as is
+        </li>
+        <li>
+          <a
+            href="../../../packages/ui/src/elements/HotDefinitions.ts"
+            target="src-packages-ui-src-elements-hotdefinitions-ts"
+            ><code>HotDefinitions.ts</code></a
+          >: hot reload, merged in
+        </li>
+        <li>
+          <a
+            href="../../../packages/ui/src/static/ServerDOMElement.ssr.ts"
+            target="src-packages-ui-src-static-serverdomelement-ssr-ts"
+            ><code>static/ServerDOMElement.ssr.ts</code></a
+          >: the stand-in used when pages are drawn on the server, merged in
+        </li>
+        <li>
+          <a href="../../../packages/ui/tools/HotElements.ts" target="src-packages-ui-tools-hotelements-ts"
+            ><code>tools/HotElements.ts</code></a
+          >: the Vite plugin, with <code>ui</code>’s options fixed in it
+        </li>
+      </ul>
+    </li>
+    <li>
+      What changed for someone writing a component:
+      <ul>
+        <li>
+          lifecycle events are methods: <code>onConnect()</code>, <code>onDisconnect()</code>,
+          <code>onFormAssociated()</code>, <code>onFormDisabled()</code>, <code>onFormReset()</code>,
+          <code>onFormStateRestore()</code>; an override of the first two calls <code>super</code> (<a href="#j6">J6</a
+          >)
+        </li>
+        <li>the error safety net is always on; the <code>ISOLATE_ERRORS</code> switch is gone</li>
+        <li>
+          app context is the <code>appContext</code> property of the nearest <code>&lt;ui-root&gt;</code>, no longer a
+          Solid context (<a href="#j9">J9</a>)
+        </li>
+        <li>
+          a property that would hide a DOM member is caught when the tag is defined: one error listing every clash (<a
+            href="#j7"
+            >J7</a
+          >)
+        </li>
+      </ul>
+    </li>
+    <li>
+      Sizes and speed, before the epic → after P2 (gzipped kB; the 1,000-button speed check):
+      <ui-table compact celled>
+        <table>
+          <thead>
+            <tr>
+              <th>Measure</th>
+              <th>Before</th>
+              <th>After</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>a page with one button</td>
+              <td>65.40</td>
+              <td>63.88</td>
+            </tr>
+            <tr>
+              <td><code>core</code></td>
+              <td>25.86</td>
+              <td>28.11</td>
+            </tr>
+            <tr>
+              <td>library (the Solid peers)</td>
+              <td>28.11</td>
+              <td>24.34</td>
+            </tr>
+            <tr>
+              <td>all families</td>
+              <td>461.28</td>
+              <td>459.72</td>
+            </tr>
+            <tr>
+              <td>1,000 buttons</td>
+              <td>75–78 ms</td>
+              <td>74–75 ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </ui-table>
+    </li>
+    <li>
+      Tests: 62 new, and everything passes:
+      <ul>
+        <li>
+          new:
+          <a
+            href="../../../packages/ui/src/elements/DOMElement.test.tsx"
+            target="src-packages-ui-src-elements-domelement-test-tsx"
+            ><code>DOMElement.test.tsx</code></a
+          >
+          37,
+          <a
+            href="../../../packages/ui/src/elements/ShadowEvents.test.tsx"
+            target="src-packages-ui-src-elements-shadowevents-test-tsx"
+            ><code>ShadowEvents.test.tsx</code></a
+          >
+          12,
+          <a
+            href="../../../packages/ui/src/elements/UIComponent.test.tsx"
+            target="src-packages-ui-src-elements-uicomponent-test-tsx"
+            ><code>UIComponent.test.tsx</code></a
+          >
+          13,
+          <a
+            href="../../../packages/ui/src/elements/HotDefinitions.test.tsx"
+            target="src-packages-ui-src-elements-hotdefinitions-test-tsx"
+            ><code>HotDefinitions.test.tsx</code></a
+          >
+          16 (counting each row of its tables), <code>isolation.test.tsx</code> 3 more, one replaced
+        </li>
+        <li>
+          <code>ui</code>: all 5,081 browser tests and 263 server tests; <code>app</code> 245, <code>brand</code> 134,
+          <code>epics</code> 330
+        </li>
+        <li>
+          <code>yarn test:hmr</code> 8/8; <code>yarn smoke</code> 8/8 (the Solid page’s context check now goes through
+          <code>&lt;ui-root&gt;</code>); <code>yarn site:check --all</code> 83/83;
+          <code>yarn test:visual --os local</code> 621/621
+        </li>
+        <li>the root <code>yarn ts</code> and <code>ui</code>’s lint are clean</li>
+      </ul>
+    </li>
+    <li>
+      Found and fixed on the way: <code>render()</code> ran again whenever its body read an attribute (<a href="#i1"
+        >I1</a
+      >)
+    </li>
+    <li>
+      Rough, or not done yet:
+      <ul>
+        <li>
+          solid-element’s copy stays in <code>ui</code> for the app’s two elements, until <a href="#p4">P4</a> (<a
+            href="#c6"
+            >C6</a
+          >)
+        </li>
+        <li>
+          <code>ui</code>’s <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> still
+          describes the old fork, until <a href="#p5">P5</a> (<a href="#c4">C4</a>)
+        </li>
+        <li><code>dispose()</code> leaves <code>component</code> set (<a href="#c5">C5</a>)</li>
+        <li>not tried by hand in <code>yarn dev</code>, beyond <code>yarn test:hmr</code></li>
+      </ul>
+    </li>
+  </ul></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
