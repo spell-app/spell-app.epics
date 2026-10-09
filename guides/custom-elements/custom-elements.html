@@ -2796,16 +2796,156 @@ get hasIcon(): boolean {
           collapsed
         >
           <ui-icon slot="icon" name="eye"></ui-icon>
-          <ui-message state="info" header="Coming in P8">
+          <p>
+            Every element takes <code>disabled</code>, <code>loading</code> and <code>visible</code>, though its
+            vocabulary never names them, and the platform's own <code>hidden</code> and <code>inert</code> (epic
+            spell-element, P8).
+          </p>
+          <ul>
+            <li>
+              <code>SharedVocabulary</code> adds the three to every tag's definition, docs data and manifests, unless
+              the vocabulary declares its own of that name: then its own spec and meaning win (<code
+                >&lt;ui-sidebar visible&gt;</code
+              >
+              starts hidden).
+            </li>
+            <li>
+              <code>UIComponent</code> reads them ("Shared states"); what <code>disabled</code> and
+              <code>loading</code> mean for a family is a key of its <code>elementSetup</code>.
+            </li>
+            <li>
+              Their look is in
+              <a href="../../packages/ui/src/styles/reset.css" target="src-packages-ui-src-styles-reset-css"
+                ><code>reset.css</code></a
+              >, which every shadow root adopts; the static render maps them to <code>data-state</code> and ARIA.
+            </li>
+          </ul>
+
+          <ui-section id="shared-disabled" header="disabled" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                Epic spell-element's P8 adds <code>disabled</code>, <code>visible</code>, <code>loading</code>,
-                <code>readonly</code> and <code>inert</code> to every element, and fills in this section.
+                <code>:state(disabled)</code> on every element, from <code>isMarkedDisabled</code>: the attribute, or a
+                <code>&lt;fieldset disabled&gt;</code> around a form control.
               </li>
               <li>
-                Today: each family that has <code>disabled</code> declares it in its vocabulary;
-                <code>UIComponent.isDisabled</code> (default <code>false</code>) makes the DOM element swallow clicks
-                while true. A <code>disabled</code> that only changes the LOOK is <code>@E.cssStates("disabled")</code>.
+                <code>elementSetup.disabled = "unusable"</code>, the default, is the base class's way:
+                <ul>
+                  <li><code>isDisabled</code>, so the DOM element swallows clicks</li>
+                  <li>
+                    everything inside is inert (<code>inert</code> on the shadow root's boxes reaches what's slotted
+                    into them too), and dimmed (<code>:state(dimmed)</code>)
+                  </li>
+                  <li>
+                    <code>aria-disabled="true"</code>; if focus was inside, it moves on to the next focusable element
+                    (<code>UI.focus.moveOutOf()</code>)
+                  </li>
+                  <li>
+                    NOTE: inert content also leaves the accessibility tree: a screen reader doesn't read a disabled
+                    card's text
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <code>"its own"</code>: the base class sets only <code>:state(disabled)</code>, and the family says what
+                it means:
+                <ul>
+                  <li>
+                    unusable its own way: a form control disables its native control (and stays announced as a disabled
+                    control), <code>&lt;ui-button&gt;</code> its <code>&lt;button&gt;</code>; each overrides
+                    <code>isDisabled</code>
+                  </li>
+                  <li>
+                    only a look: <code>&lt;ui-icon&gt;</code>, <code>&lt;ui-segment&gt;</code> dim, clicks go through
+                  </li>
+                  <li>
+                    something else: <code>&lt;ui-transition&gt;</code> pauses, <code>&lt;ui-dimmer&gt;</code> never
+                    shows
+                  </li>
+                </ul>
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>A family with a disabled of its own · <code>UIIcon.tsx · 7 lines</code></ui-title>
+              <ui-content>
+                <pre><code class="language-ts">@E.protoMerged static elementSetup = {
+  styleSheets: { icon: iconCSS },
+  // `disabled`:  only a look
+  disabled: "its own",
+  // `loading`:  it spins
+  loading: "its own"
+} satisfies Partial&lt;E.ElementSetup&gt;</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="shared-loading" header="loading" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>:state(loading)</code> on every element (<code>isMarkedLoading</code>, <code>true</code> only).
+              </li>
+              <li>
+                <code>elementSetup.loading = "loader"</code>, the default: <code>aria-busy</code>, everything inside
+                inert and dimmed, and a spinner over it (<code>:state(busy)</code>: a <code>::after</code> placed by
+                anchor positioning on the first box, as most DOM elements have no box of their own).
+              </li>
+              <li>
+                <code>"its own"</code>: the family draws its own (<code>&lt;ui-button&gt;</code>'s spinner,
+                <code>&lt;ui-segment&gt;</code>'s veil), or <code>loading</code> means something else
+                (<code>&lt;ui-root&gt;</code>'s message).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="shared-visible" header="visible and hidden" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>visible="false"</code> animates the element out, then hides it (<code>:state(hidden)</code>);
+                <code>visible</code> (or <code>="true"</code>) animates it back. At once, with no animation, before it
+                first draws.
+              </li>
+              <li>
+                The animation: <code>elementSetup.visibleAnimation</code>, <code>"fade"</code> by default, run by
+                <code>UI.transitions</code> on the shadow root's boxes.
+              </li>
+              <li>
+                <code>el.visible = false</code> writes <code>visible="false"</code>: a boolean whose default is
+                <code>true</code> reflects off that way.
+              </li>
+              <li>
+                The platform's <code>hidden</code> hides at once, before scripts load and in the static render, and wins
+                when both are set. An unlayered <code>:host([hidden])</code> in
+                <a href="../../packages/ui/src/styles/reset.css" target="src-packages-ui-src-styles-reset-css"
+                  ><code>reset.css</code></a
+                >
+                makes it beat a family's own <code>:host { display }</code>;
+                <code>&lt;ui-divider hidden&gt;</code> keeps Fomantic's meaning, the spacing without the line.
+              </li>
+              <li>
+                <code>&lt;ui-popup&gt;</code>, <code>&lt;ui-modal&gt;</code> and <code>&lt;ui-flyout&gt;</code> keep
+                <code>open</code>; <code>visible="false"</code> hides the whole element there too, even while open.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="shared-readonly-inert" header="readonly and inert" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>readonly</code>: every form control's vocabulary declares it (<code>property: "readOnly"</code>);
+                <code>FormComponent.isReadOnly</code> and <code>:state(readonly)</code>; each control refuses changes
+                its own way (a native <code>readonly</code>, a change undone).
+              </li>
+              <li>
+                <code>inert</code>: the platform's, unstyled. Overlays set it on what they cover, which has a look of
+                its own (<code>&lt;ui-pushable&gt;</code>'s pusher, under its dimmer).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-message state="info" header="Still open">
+            <ul>
+              <li>
+                How <code>visible</code>, <code>hidden</code>, <code>open</code>, the animation and the three extra
+                states fit together is Q28 in the plan doc: built on its recommended answers, as judgement calls.
               </li>
             </ul>
           </ui-message>
