@@ -1,0 +1,29 @@
+<!-- plan-doc part:  #i5's details in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Found writing <code>&lt;ui-docs-inspector&gt;</code> (P6): its <code>@E.aria("ariaLabel") get label()</code> called
+  <code>this.translationForKey()</code>, which reads <code>UI.i18n</code>; <code>UI</code> throws until
+  <code>UI.load()</code> resolves.
+</p>
+<ul>
+  <li>
+    What happened: <code>internals.ariaLabel</code> stayed <code>null</code> for good, even after the members the getter
+    read (<code>title</code>) changed; the element drew normally, no <code>:state(errored)</code>, no fallback, nothing
+    in the test's output.
+  </li>
+  <li>
+    Where: <code>Reactive.startAriaEffect()</code> (<a
+      href="../../../packages/ui/src/elements/Reactive.ts"
+      target="src-packages-ui-src-elements-reactive-ts"
+      ><code>packages/ui/src/elements/Reactive.ts</code></a
+    >): <code>createEffect(createMemo(compute, ...), apply)</code>; a throw in <code>compute</code> seems to stop the
+    memo for good, outside the element's error net. <code>@E.onChange</code> members likely share it (same shape).
+  </li>
+  <li>
+    Worked around in the inspector: the getter returns <code>undefined</code> until <code>isReady</code>. The guide's
+    <code>@E.aria</code> section says so.
+  </li>
+  <li>
+    Fix to weigh: route these effects' errors to the error net (as the <code>:state()</code> render effect does), or
+    warn once.
+  </li>
+</ul>
