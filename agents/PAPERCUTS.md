@@ -1587,3 +1587,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-08 · `yarn vp fmt .` in `packages/brand` reflowed the GENERATED `_data/components.json` (330 lines:
   arrays put on one line), which `yarn site:data` writes in its own shape. · `git checkout --` it;  format brand's
   changed files by name, not `.` (epic `spell-element`, P1). · brand
+
+## epics
+
+- 2026-10-09 · `yarn review` (its `yarn format`) in `packages/epics` rewrites the test fixture
+  `src/convert/fixtures/one-file.plan.html` (two spaces become one), a change nobody meant;  it hit twice in epic
+  `airplane` (P2, P4). · `git checkout --` the fixture before staging;  better:  add the convert fixtures to the format
+  ignore list in `vite.lint.ts`. · epics
