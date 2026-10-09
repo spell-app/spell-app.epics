@@ -25,7 +25,7 @@ or reviewing Solid code, JSX, `spellCore` rendering, `$/util` reactivity (spell 
     `CHEATSHEET.md` is identical to rc.11's -- trust it first;  v2.solidjs.com tracks rc.13.
   - rc.13 moved `createErrorBoundary`, `createLoadingBoundary`, `createRevealOrder`, `sharedConfig` and `$DEVCOMP`
     out of `solid-js` into `solid-js/internal`.  NEVER import from `solid-js/internal`:  use `<Errored>` /
-    `<Loading>` / `<Reveal>` (callable as functions, `children` as a getter -- see `solid-element`'s `errors.ts`).
+    `<Loading>` / `<Reveal>` (callable as functions, `children` as a getter -- see `UIComponent.mount()` in `packages/ui`).
   - RC bumps:  run `solid/experiments/*` on old and new (`SOLID_NODE_MODULES=<dir>` picks the Solid) and diff.
 - NEVER model Solid 2 on React OR on Solid 1:  both priors produce wrong code here.
 
