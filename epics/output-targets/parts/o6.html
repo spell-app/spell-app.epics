@@ -5,9 +5,17 @@
   decorators, etc. ... I want the full monty, as if I was writing the class by hand." Below: what today's output does
   that a person wouldn't, what changes, Card before and after, and what makes it hard.
 </p>
+<epic-update phase="10"
+  ><p>
+    Owen's review (2026-10-09): BOTH targets move to Solid drawing in P10, JavaScript first (<a href="#q23">Q23</a>, B),
+    and the error net is a decorator on <code>draw()</code> (<a href="#q21">Q21</a>, B), not a
+    <code>&lt;Drawn&gt;</code> component. The sketch below follows both.
+  </p></epic-update
+>
 <p>
   Assumed, as Owen said: the code runs with Spell UI's shared <code>UI</code> runtime on the page, inside a
   <code>&lt;ui-root&gt;</code>, and each drawn thing gets its own error net, the way spell-element's elements do.
+  <code>js/solid</code> moves to Solid first, on the same Solid side of core; <code>ts/solid</code> then builds on it.
 </p>
 
 <h4 id="o6-today">Half-way: what today's output does that a person wouldn't</h4>
@@ -73,22 +81,31 @@
 </ul>
 
 <h4 id="o6-monty">The full monty: what changes</h4>
+<epic-update phase="10"
+  ><p>
+    The list follows Owen's answers (2026-10-09): Q18, Q19 and Q22 as recommended; the error net a decorator on
+    <code>draw()</code> (Q21, B); JavaScript moves to Solid first (Q23, B); the decorators themselves still open (<a
+      href="#q20"
+      >Q20</a
+    >).
+  </p></epic-update
+>
 <p>
-  One bullet per change. Where a choice is open, its question is linked; the recommended option is what the after below
-  shows.
+  One bullet per change, each with the question that settled it. The after below shows Owen's answers, and the
+  recommended option where a question is still open.
 </p>
 <ul>
   <li>
     <b>Real JSX, compiled by Solid.</b> The file becomes <code>Solitaire.compiled.tsx</code>; a spell tag is written as
     the tag (<code>&lt;div class={...} onClick={click}&gt;</code>). Solid's own compiler turns it into its DOM calls,
-    each <code>{...}</code> its own live binding, as for any hand-written component. Open: <a href="#q18">Q18</a> (real
-    JSX, <code>h()</code> calls, or Solid's compiled calls).
+    each <code>{...}</code> its own live binding, as for any hand-written component. Decided: <a href="#q18">Q18</a>, A
+    (real JSX, not <code>h()</code> calls or Solid's compiled calls).
   </li>
   <li>
     <b>A drawing in Solid's shapes.</b> The statements of <code>to draw</code> become Solid's: a local that's computed
     becomes an accessor (<code>const className = () =&gt; ...</code>), an <code>if ... return</code> chain becomes
     <code>&lt;Show&gt;</code> / <code>&lt;Switch&gt;</code>, <code>draw cards in it</code> becomes
-    <code>&lt;For&gt;</code>. Any other shape re-runs whole, inside its net. Open: <a href="#q19">Q19</a>.
+    <code>&lt;For&gt;</code>. Any other shape re-runs whole, inside its net. Decided: <a href="#q19">Q19</a>, A.
   </li>
   <li>
     <b>Decorators.</b> <code>@prop({ oneOf: RANKS }) accessor rank!: Rank</code>, from <code>$/util</code>'s
@@ -98,8 +115,10 @@
       ><code>spellDecorators.ts</code></a
     >, re-exported by <code>@spell/core</code>: the SAME runtime shape as today's <code>declareProp</code> plus accessor
     pair, so <code>Thing</code> checks and stores it as now. <code>@derived</code> only where a getter loops over a list
-    (<code>Pile.state</code>); <code>@thing</code> only on a class with a <code>to create</code>. Open:
-    <a href="#q20">Q20</a>.
+    (<code>Pile.state</code>); <code>@thing</code> only on a class with a <code>to create</code>. Still open:
+    <a href="#q20">Q20</a>. Owen picked Spell UI's reactive members too, and wants Spell and Spell UI to share ONE set
+    of decorators, ideally with the same reactivity; so which decorators these are, and where they come from, is per
+    Q20. The after below still shows spell's <code>@prop</code>.
   </li>
   <li>
     <b>Spell cells stay the state.</b> Properties stay spell cells (<code>getProp()</code> /
@@ -111,11 +130,14 @@
     >, "Spell's decisions"). Solid follows them through the cells bridge, as the editor app does.
   </li>
   <li>
-    <b>An error net per drawn thing.</b> <code>draw the card</code> becomes <code>&lt;Drawn thing={card} /&gt;</code>, a
-    small core component: Solid's <code>&lt;Errored&gt;</code> around <code>card.draw()</code>. When it throws, it does
-    what spell-element's <code>UIComponent.mount()</code> does for an element: logs once (on the program's console),
-    sends a cancelable <code>ui-error</code>, shows a stand-in; the rest of the board keeps drawing. Open:
-    <a href="#q21">Q21</a> (a component, a decorator on <code>draw()</code>, or one net per app).
+    <b>An error net per drawn thing, from a decorator on <code>draw()</code>.</b> <code>@drawn draw() { ... }</code>:
+    the decorator, from core, runs the drawing ONCE, untracked, inside Solid's <code>&lt;Errored&gt;</code>. So a parent
+    draws a child with a plain call, <code>{card.draw()}</code>, and that call neither re-runs when the card's reads
+    change nor dies with the card's errors. When a drawing throws, the net does what spell-element's
+    <code>UIComponent.mount()</code> does for an element: logs once (on the program's console), sends a cancelable
+    <code>ui-error</code>, shows a stand-in; the rest of the board keeps drawing. Compiled JavaScript has no decorators,
+    so it applies the same function by hand, as it lowers <code>@prop</code> today: ONE net for both targets. Decided:
+    <a href="#q21">Q21</a>, B (not the <code>&lt;Drawn&gt;</code> component this sketch first showed).
   </li>
   <li>
     <b><code>&lt;ui-root&gt;</code> and <code>UI</code>.</b> <code>start the game</code> mounts with Solid's
@@ -143,7 +165,7 @@
   <li>
     <b>TypeScript's names.</b> Methods, getters and functions in camelCase (<code>isASuit</code>,
     <code>turnFaceUp</code>, <code>playFromTheStockPile</code>); properties keep spell's names, as they're data a
-    program prints. Open: <a href="#q22">Q22</a>.
+    program prints. Decided: <a href="#q22">Q22</a>, A.
   </li>
   <li>
     <b>One class body per type.</b> Every member of Card, wherever in the project spell wrote it, inside
@@ -156,25 +178,37 @@
   </li>
   <li>
     <b>Imports.</b> <code>solid-js</code> (<code>Show</code>, <code>For</code>) and
-    <code>@spell/core</code> (<code>spellCore</code>, <code>Thing</code>, <code>prop</code>, <code>Drawn</code>), plus
+    <code>@spell/core</code> (<code>spellCore</code>, <code>Thing</code>, <code>prop</code>, <code>drawn</code>), plus
     <code>UI</code> from
     <a href="../../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a> only when
     the program uses it.
   </li>
   <li>
-    <b>JavaScript stays as it is.</b> <code>js/solid</code> keeps drawing with React through
-    <code>spellCore.element()</code> until the Solid move for compiled spell ("Core + JSX",
-    <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"><code>solid-2.md</code></a>
-    "Status"). Open: <a href="#q23">Q23</a>.
+    <b>JavaScript moves first.</b> <code>js/solid</code> draws with Solid before <code>ts/solid</code> changes: the
+    "Core + JSX" move for compiled spell (<a
+      href="../../../guides/solid/solid-2.md"
+      target="src-guides-solid-solid-2-md"
+      ><code>solid-2.md</code></a
+    >, "Spell's decisions"). <code>spellCore.element()</code> builds on <code>@solidjs/h</code>, as compiled JavaScript
+    still has no build step, with every live prop and child written as a function; <code>App.start()</code> mounts with
+    Solid's <code>render()</code>; React leaves compiled spell, the runners and the app. Decided:
+    <a href="#q23">Q23</a>, B, "Do the js =&gt; solid first".
   </li>
 </ul>
 
 <h4 id="o6-card">Card, before and after</h4>
+<epic-update phase="10"
+  ><p>
+    AFTER now marks <code>draw()</code> with the <code>@drawn</code> decorator (<a href="#q21">Q21</a>, B), and the core
+    side is the decorator, not a <code>&lt;Drawn&gt;</code> component; it serves both targets (<a href="#q23">Q23</a>).
+  </p></epic-update
+>
 <p>
   BEFORE is today's real output (2026-10-09, Card's part of <code>Solitaire</code>, plus the <code>pile</code> patch
-  from further down). AFTER is a hand-written-quality sketch of what <a href="#p10">P10</a> would write, with the
-  recommended option of every open question. Both trim the test's 30 middle lines, which only change names. The third
-  block sketches the core side Card leans on.
+  from further down). AFTER is a hand-written-quality sketch of what <a href="#p10">P10</a> would write, with Owen's
+  answers, and the recommended option of the one question still open (<a href="#q20">Q20</a>, the decorators). Both trim
+  the test's 30 middle lines, which only change names. The third block sketches the core side Card leans on, which
+  compiled JavaScript draws on too.
 </p>
 <epic-code title="Card.ts · before · 222 lines" language="ts">
   <pre>
@@ -405,7 +439,7 @@ Object.defineProperty(Card.prototype, 'pile', {
 <epic-code title="Card.tsx · after · 214 lines" language="ts">
   <pre>
 import { Show } from "solid-js"
-import { spellCore, Thing, prop } from "@spell/core"
+import { spellCore, Thing, prop, drawn } from "@spell/core"
 
 spellCore.heading("definition of a Card with nice english aliases for working with it")
 
@@ -544,7 +578,8 @@ export class Card extends Thing {
     await spellCore.pauseFor(50, "msec")
   }
 
-  /** Runs ONCE per card:  whoever draws it (`&lt;Drawn thing={card} /&gt;`) puts it in its own error net. */
+  /** Runs ONCE per card, in its own error net (`@drawn`):  a parent draws it with `{card.draw()}`. */
+  @drawn
   draw() {
     const className = () =&gt; `Card face-${this.direction} ${this.rank} ${this.suit} ui button compact fluid `
     const click = () =&gt; spellCore.RUNTIME.trigger("card-click", { card: this })
@@ -620,22 +655,31 @@ export function testCardSetup() {
 testCardSetup()
 </pre>
 </epic-code>
-<epic-code title="core's Solid side · after, sketched · 41 lines" language="ts">
+<epic-update phase="10"
+  ><p>
+    The core side is now the <code>@drawn</code> decorator on <code>draw()</code> (<a href="#q21">Q21</a>, B), not a
+    <code>&lt;Drawn&gt;</code> component, and compiled JavaScript draws on it too (<a href="#q23">Q23</a>, B). Its
+    decorator set is per <a href="#q20">Q20</a>.
+  </p></epic-update
+>
+<epic-code title="core's Solid side · after, sketched · 47 lines" language="ts">
   <pre>
 // @spell/core's Solid side, sketched:  each drawn thing in its own error net, as spell-element's
-// `UIComponent.mount()` gives each element one
-import { Errored, runWithOwner } from "solid-js"
+// `UIComponent.mount()` gives each element one.  BOTH targets draw on it.
+import { Errored, runWithOwner, untrack } from "solid-js"
 import { render, type JSX } from "@solidjs/web"
 
-/** Draws `thing` inside its own error net:  what `draw the card` compiles to, `&lt;Drawn thing={card} /&gt;`. */
-export function Drawn(props: DrawnProps): JSX.Element {
-  return &lt;Errored fallback={(error) =&gt; drawFailed(props.thing, error())}&gt;{props.thing?.draw()}&lt;/Errored&gt;
-}
-
-/** Props for `&lt;Drawn&gt;`. */
-export type DrawnProps = {
-  /** What to draw;  nothing draws nothing. */
-  thing?: Thing
+/**
+ * `@drawn draw() { ... }`:  the drawing runs ONCE, untracked, inside its own error net.
+ * - So a parent draws a child with a plain call, `{card.draw()}`:  it neither re-runs when the card's reads change,
+ *   nor dies with the card's errors.  A drawing Solid can't follow in pieces re-runs whole, inside its net.
+ * - Compiled JavaScript has no decorators:  it applies this same function by hand, as it lowers `@prop`
+ *   (its exact lowered form, and the decorator set it belongs to:  per Q20).
+ */
+export function drawn&lt;T extends Thing&gt;(draw: (this: T) =&gt; JSX.Element, _context: ClassMethodDecoratorContext&lt;T&gt;) {
+  return function (this: T): JSX.Element {
+    return untrack(() =&gt; &lt;Errored fallback={(error) =&gt; drawFailed(this, error())}&gt;{draw.call(this)}&lt;/Errored&gt;)
+  }
 }
 
 /**
@@ -643,28 +687,35 @@ export type DrawnProps = {
  * `&lt;ui-root&gt;`, then show a small stand-in, unless the app cancelled the event.  The rest of the page keeps drawing.
  * - Outside any owner (`runWithOwner(null)`), so it may change state:  as spell-element's `onError()`.
  */
-function drawFailed(thing: Thing | undefined, error: unknown): JSX.Element {
+function drawFailed(thing: Thing, error: unknown): JSX.Element {
   const showsStandIn = runWithOwner(null, () =&gt; {
-    spellCore.console.error(`${thing?.type} failed to draw:`, error)
+    spellCore.console.error(`${thing.type} failed to draw:`, error)
     const detail = { error, thing }
     const event = new CustomEvent("ui-error", { bubbles: true, composed: true, cancelable: true, detail })
     return spellCore.appElement()?.dispatchEvent(event) ?? true
   })
-  return showsStandIn ? &lt;ui-label color="red" icon="exclamation triangle"&gt;{thing?.type}&lt;/ui-label&gt; : undefined
+  return showsStandIn ? &lt;ui-label color="red" icon="exclamation triangle"&gt;{thing.type}&lt;/ui-label&gt; : undefined
 }
 
 // App.start(), in Solid:  into the page's &lt;ui-root&gt;, which loads any &lt;ui-*&gt; tag a drawing uses
 export class App extends Thing {
   start() {
-    render(() =&gt; &lt;Drawn thing={this} /&gt;, spellCore.appElement() ?? document.querySelector("ui-root")!)
+    render(() =&gt; this.draw(), spellCore.appElement() ?? document.querySelector("ui-root")!)
   }
 }
 
 // Where the other drawings use it, after:
-//   Tableau.draw():  &lt;div class="Pile Tableau staggered"&gt;&lt;For each={this.items}&gt;{(card) =&gt; &lt;Drawn thing={card} /&gt;}&lt;/For&gt;&lt;/div&gt;
-//   Game.draw():     &lt;td&gt;&lt;Drawn thing={stock} /&gt;&lt;/td&gt;
+//   Tableau.draw():  &lt;div class="Pile Tableau staggered"&gt;&lt;For each={this.items}&gt;{(card) =&gt; card.draw()}&lt;/For&gt;&lt;/div&gt;
+//   Game.draw():     &lt;td&gt;{stock.draw()}&lt;/td&gt;
+// and in compiled JavaScript (spellCore.element() on @solidjs/h, every live child a function):
+//   spellCore.element({ tag: "td", children: [() =&gt; spellCore.drawThing(stock)] })
 </pre>
 </epic-code>
+<epic-update phase="10"
+  ><p>
+    The drawing row: a parent calls <code>draw()</code>, which <code>@drawn</code> nets (<a href="#q21">Q21</a>, B).
+  </p></epic-update
+>
 <p>What changed, and why:</p>
 <ui-table celled compact striped>
   <table>
@@ -732,8 +783,10 @@ export class App extends Thing {
       </tr>
       <tr>
         <td><code>spellCore.drawThing(stock)</code>, <code>spellCore.drawItems(...)</code> (in Game and the piles)</td>
-        <td><code>&lt;Drawn thing={stock} /&gt;</code>, <code>&lt;For each={this.items}&gt;</code></td>
-        <td>each drawn thing in its own error net</td>
+        <td>
+          <code>{stock.draw()}</code>, <code>&lt;For each={this.items}&gt;{(card) =&gt; card.draw()}&lt;/For&gt;</code>
+        </td>
+        <td>each drawn thing in its own error net, from its <code>@drawn draw()</code>; a plain call, read by hand</td>
       </tr>
       <tr>
         <td><code>let</code>, <code>((a + b) + c)</code>, <code>{ return x }</code></td>
@@ -766,23 +819,34 @@ export class App extends Thing {
 </ul>
 
 <h4 id="o6-catch">The catch: what makes it hard</h4>
+<epic-update phase="10"
+  ><p>
+    With JavaScript moving first (<a href="#q23">Q23</a>, B), core's Solid side is core itself, for both targets, and
+    <code>spell-runtime.js</code> runs on the page's shared Solid; the JavaScript snapshots change once, in the
+    JavaScript stage.
+  </p></epic-update
+>
 <ul>
   <li>
     <b>Core draws with React.</b> <code>element()</code> builds React elements, <code>Thing.Component</code> is a React
-    class through <code>view()</code>, <code>App.start()</code> uses React's <code>createRoot()</code>. So
-    <code>ts/solid</code> needs a Solid side of core: <code>draw()</code> returning Solid's <code>JSX.Element</code>,
-    <code>&lt;Drawn&gt;</code>, <code>App.start()</code> with Solid's <code>render()</code>. That's the "Core + JSX"
-    move for one target, or for both (<a href="#q23">Q23</a>).
+    class through <code>view()</code>, <code>App.start()</code> uses React's <code>createRoot()</code>. So core moves to
+    Solid, for both targets, JavaScript first: <code>element()</code> on <code>@solidjs/h</code>,
+    <code>draw()</code> returning Solid's <code>JSX.Element</code>, <code>@drawn</code>, <code>App.start()</code> with
+    Solid's <code>render()</code>. That's the whole "Core + JSX" move, and React leaves compiled spell, the runners and
+    the app with it (<code>view()</code>, the forms kit, <code>semantic-ui-react</code>; <a href="#i2">I2</a>).
   </li>
   <li>
-    <b>It must never reach <code>spell-runtime.js</code>.</b> Compiled JavaScript imports only <code>@spell/core</code>,
-    never Solid, and runs from a <code>blob:</code> URL (<a
+    <b><code>spell-runtime.js</code> and Solid.</b> Compiled JavaScript imports only <code>@spell/core</code>, never
+    Solid, and runs from a <code>blob:</code> URL (<a
       href="../../../packages/core/AGENTS.md"
       target="src-packages-core-agents-md"
       ><code>packages/core/AGENTS.md</code></a
-    >, "Who may value-import it"). <code>ts/solid</code> output imports <code>solid-js</code> itself and needs a build
-    (Solid's compiler, the decorators lowered), so its core side lives in its own entry, e.g.
-    <code>@spell/core/solid</code>, which the runtime bundle never loads.
+    >, "Who may value-import it"). Its core, <code>spell-runtime.js</code>, now draws with Solid, but must use the
+    page's ONE shared Solid (<code>spell-solid.js</code>, through <code>sharedSolid()</code>), never bundle its own: two
+    Solids on a page fail silently (<a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"
+      ><code>solid-2.md</code></a
+    >, "Spell's decisions"). <code>ts/solid</code> output imports <code>solid-js</code> itself and needs a build
+    (Solid's compiler, the decorators lowered).
   </li>
   <li>
     <b>Running it.</b> The contract test runs <code>ts/solid</code> output through <code>tsx</code> as a
@@ -823,7 +887,8 @@ export class App extends Thing {
       ><code>packages/spell/src/node/typecheck.ts</code></a
     >) gains JSX settings and Solid's and <code>&lt;ui-*&gt;</code>'s JSX types; every fixture's
     <code>.snapshot.ts</code> becomes <code>.snapshot.tsx</code> and changes whole, once, and the
-    <code>.snapshot.tsc.txt</code> files are blessed again. The JavaScript snapshots must not move.
+    <code>.snapshot.tsc.txt</code> files are blessed again. The JavaScript snapshots change once, in the JavaScript
+    stage (live values as functions), and must not move after it.
   </li>
 </ul>
 <epic-aside title="why not make each Thing a custom element">

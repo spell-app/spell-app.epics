@@ -66,3 +66,595 @@ set rank(value: (typeof Card.Ranks)[number]) { this.setProp('rank', value) }
     <li>every compiled property is one <code>@prop</code> line</li>
   </ul></epic-net-effect
 >
+<epic-reply
+  from="Claude"
+  at="2026-10-09 01:40"
+  re='"Let&apos;s work toward combining SpellUI and Spell decorators. If we can make the reactivity work exactly the same way, so much the better"'
+  ><blockquote>
+    <p>
+      Let's work toward combining SpellUI and Spell decorators.<br />
+      If we can make the reactivity work exactly the same way, so much the better
+    </p>
+  </blockquote>
+  <p>
+    Yes, it can be one reactivity, and the two are closer than they look. Both already keep each object's values in a
+    plain record that reads back fresh right after a write. They differ in one thing: how a change reaches Solid. Spell
+    uses "spell cells", its own small tracker with a single hook into Solid. Spell UI gives each member its own Solid
+    signal. Making them the same means ONE engine (spell cells) under both, in <code>$/util</code>, with Spell UI's
+    element-only decorators on top. P10 can take the first step. Moving Spell UI over is its own piece of work, after
+    the spell-element epic merges.
+  </p>
+  <ul>
+    <li>
+      <b>For P10's output nothing changes:</b> <code>ts/solid</code> still writes <code>@prop</code>,
+      <code>@derived</code> and <code>@thing</code>, imported from <code>@spell/core</code>.
+      <ul>
+        <li>
+          Spell programs have no internal state and no "when this changes" yet, so Spell UI's <code>@state</code> and
+          <code>@onChange</code> have nothing to compile from
+        </li>
+        <li>
+          Spell UI's members come in by being the SAME decorators later, not as a second set beside spell's (the second
+          set was the cost option C named)
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The catch:</b> Spell UI would run on spell cells, so the cells' hook into Solid would sit on every Spell UI
+      page. That has to be measured, and Spell UI's tests would flush differently (<a href="#c12">C12</a>).
+    </li>
+    <li>
+      <b>Today the two can't see each other</b> inside a derived value: a Spell UI <code>@E.derived</code> reading a
+      spell Thing's prop never recomputes, and the other way round (<a href="#c11">C11</a>). One engine fixes that.
+    </li>
+  </ul>
+
+  <h4>The two today, side by side</h4>
+  <p>Words used below:</p>
+  <ul>
+    <li><b>record:</b> the object holding an instance's values; the only truth, read and written at once</li>
+    <li>
+      <b>spell cell:</b> a small marker per value that remembers who read it and tells them when it changes (<a
+        href="../../../../packages/util/src/spell/cells.ts"
+        target="src-packages-util-src-spell-cells-ts"
+        ><code>cells.ts</code></a
+      >)
+    </li>
+    <li>
+      <b>notifier:</b> Spell UI's Solid signal per member, holding no value, set on each change so Solid re-runs whoever
+      read the member
+    </li>
+    <li>
+      <b>bridge:</b> <code>bridgeSolid()</code>, spell's one hook into Solid (Solid's
+      <code>enableExternalSource</code>): every Solid computation also tracks the cells it reads
+    </li>
+  </ul>
+  <epic-code title="Spell's @prop and its write · spellDecorators.ts + extend.ts · 24 lines" language="ts">
+    <pre>
+// packages/util/src/spell/spellDecorators.ts:30-53 (trimmed)
+export function prop(info: PropInfo = {}) {
+  return function (_target, context) {
+    const name = String(context.name)
+    declareInMetadata(context.metadata!, name, info) // the class's schema:  type, default, oneOf
+    return {
+      get() { return extend.getProp(this, name) },
+      set(value) { this.setProp(name, value) } // a Thing checks the type here
+    }
+  }
+}
+
+// packages/util/src/spell/extend.ts:124-134 -- every write ends here
+export function storeProp(target: any, property: string, value: unknown): boolean {
+  if (value === undefined) return deleteProp(target, property) // nothing:  the key goes
+  const extended = extendedFor(target)
+  const record = extended[PROPS] // a Map:  the truth
+  const added = !record.has(property)
+  if (!added &amp;&amp; record.get(property) === value) return false
+  record.set(property, value)
+  extended[PROP_CELLS]?.get(property)?.changed() // its spell cell marks its readers
+  if (added) extended[KEYS]?.changed()
+  return true
+}
+</pre>
+  </epic-code>
+  <epic-code title="Spell UI's @state and its notifier · Reactive.ts · 30 lines" language="ts">
+    <pre>
+// packages/ui/src/elements/Reactive.ts:586-609 (trimmed)
+function stateAccessor(context, { equals = isSame, ownedWrite = false }: StateOptions) {
+  const name = context.name
+  return {
+    get() {
+      const record = Reactive.recordOf(this)
+      if (collecting || getObserver()) reading(notifierFor(record, name, ownedWrite))
+      return record.values[name] // a plain object:  the truth
+    },
+    set(next) {
+      const record = Reactive.recordOf(this)
+      if (equals(record.values[name], next)) return
+      record.values[name] = next
+      record.sources.get(name)?.changed() // its notifier tells Solid
+    },
+    init(initial) {
+      Reactive.recordOf(this).values[name] = initial // the initializer IS the starting value
+      return initial
+    }
+  }
+}
+
+// Reactive.ts:397-421 (trimmed) -- the notifier
+class Notifier {
+  version = 0
+  private signal?: Signal&lt;undefined&gt;
+  track() {
+    if (!getObserver()) return
+    ;(this.signal ??= createSignal&lt;undefined&gt;(undefined, { equals: false, ownedWrite: this.ownedWrite }))[0]()
+  }
+  changed() {
+    this.version++
+    if (this.signal) notify(() =&gt; this.signal![1]()) // inside a render Solid forbids it:  a microtask later
+  }
+}
+</pre>
+  </epic-code>
+  <epic-code title="Spell's one hook into Solid · bridges.ts:27-42 · 15 lines" language="ts">
+    <pre>
+// Installed ONCE per page by the HOST (the app's cellsBridge.ts):  util and core never import Solid,
+// so spell-runtime.js, which compiled JavaScript loads from a blob: URL, holds none
+export function bridgeSolid(solid: SolidForBridge): void {
+  const context = cellsContext
+  if (context.bridged.has(solid.enableExternalSource)) return
+  context.bridged.add(solid.enableExternalSource)
+  solid.enableExternalSource({
+    factory(compute, trigger) {
+      const reaction = new Reaction(trigger) // every Solid computation also reads cells
+      return { track: (previous) =&gt; reaction.run(() =&gt; compute(previous)), dispose: () =&gt; reaction.dispose() }
+    },
+    untrack: untrackCells
+  })
+  addCellsHostFlush(solid.flush)
+}
+</pre>
+  </epic-code>
+  <epic-code title="Where they can't see each other today (C11) · a sketch · 12 lines" language="ts">
+    <pre>
+// 1. A Spell UI derived value reading a spell Thing:  never recomputes after game.score changes
+class UIScore extends E.UIComponent&lt;typeof scoreVocabulary&gt; {
+  @E.derived get label() { return `${game.score} points` } // game.score is a spell cell, not a record member
+}
+
+// 2. A spell derived value reading a Spell UI member:  recomputes when the cards change,
+//    never when picker.query does
+class Hand extends Thing {
+  @derived get matching() {
+    return this.items.filter((card) =&gt; card.name.includes(picker.query))
+  }
+}
+</pre>
+  </epic-code>
+
+  <h4>Where they differ</h4>
+  <ui-table celled compact striped>
+    <table>
+      <tbody>
+        <tr>
+          <th></th>
+          <th>spell cells (<code>$/util</code>: <code>Observable</code>, <code>Thing</code>, the editor)</th>
+          <th>
+            Spell UI's reactive members (<a
+              href="../../../packages/ui/src/elements/Reactive.ts"
+              target="src-packages-ui-src-elements-reactive-ts"
+              ><code>Reactive.ts</code></a
+            >)
+          </th>
+        </tr>
+        <tr>
+          <td>Where a value lives</td>
+          <td>
+            a <code>Map</code> per object, under symbols (<a
+              href="../../../packages/util/src/spell/extend.ts"
+              target="src-packages-util-src-spell-extend-ts"
+              ><code>extend.ts</code></a
+            >
+            <code>PROPS</code> / <code>STATE</code>)
+          </td>
+          <td>a plain object per object (<code>Reactive.recordOf()</code> <code>values</code>)</td>
+        </tr>
+        <tr>
+          <td>A read right after a write</td>
+          <td>fresh</td>
+          <td>fresh: <b>the same</b></td>
+        </tr>
+        <tr>
+          <td>How Solid hears of a change</td>
+          <td>the bridge: cells mark the Solid computations that read them</td>
+          <td>a notifier per member, made on its first tracked read</td>
+        </tr>
+        <tr>
+          <td>Who connects it to Solid</td>
+          <td>
+            the host page (<a
+              href="../../../packages/app/src/solid/cellsBridge.ts"
+              target="src-packages-app-src-solid-cellsbridge-ts"
+              ><code>packages/app/src/solid/cellsBridge.ts</code></a
+            >); <code>util</code> and <code>core</code> never import Solid
+          </td>
+          <td>Spell UI itself (it imports Solid)</td>
+        </tr>
+        <tr>
+          <td>Readers outside Solid</td>
+          <td>yes: React (<code>view()</code>), plain code (<code>observe()</code>)</td>
+          <td>no: Solid only</td>
+        </tr>
+        <tr>
+          <td>A write while Solid draws</td>
+          <td>
+            fine: cells aren't Solid signals (<a
+              href="../../../packages/app/src/solid/cellsBridge.browser.test.tsx"
+              target="src-packages-app-src-solid-cellsbridge-browser-test-tsx"
+              ><code>cellsBridge.browser.test.tsx</code></a
+            >, line 263)
+          </td>
+          <td>
+            Solid forbids it, so <code>notify()</code> defers the signal a microtask (<code>{ ownedWrite }</code> skips
+            that)
+          </td>
+        </tr>
+        <tr>
+          <td>Derived values (<code>@derived</code>)</td>
+          <td>
+            <code>Derived</code>: push, then pull; a Solid reader re-runs only when the VALUE changed (checked a
+            microtask later)
+          </td>
+          <td>
+            <code>DerivedCache</code>: pull only; a Solid reader follows every member under it, so it re-runs even when
+            the value didn't change (<code>@onChange</code> puts a memo between to stop that)
+          </td>
+        </tr>
+        <tr>
+          <td>Equal writes</td>
+          <td><code>===</code>, fixed</td>
+          <td>
+            <code>===</code>, or <code>{ equals }</code> per member (<code>isSameList</code> keeps a filtered list's
+            identity)
+          </td>
+        </tr>
+        <tr>
+          <td>Identity, lists</td>
+          <td>no proxies, <code>===</code> holds; spell's <code>List</code> copies on write</td>
+          <td>the same</td>
+        </tr>
+        <tr>
+          <td><code>nothing</code> (<code>undefined</code>)</td>
+          <td>
+            a write deletes the key: it leaves <code>keys()</code>, and an <code>init</code> runs again on the next read
+          </td>
+          <td>stored like any value; on <code>@controlled</code>, it hands control back to the starting value</td>
+        </tr>
+        <tr>
+          <td>Public or internal</td>
+          <td>props: listed by <code>keys()</code> and <code>toJSON()</code>, type-checked; state: internal</td>
+          <td>all internal: the public face is the DOM element's attributes and properties</td>
+        </tr>
+        <tr>
+          <td>Type checks</td>
+          <td>the class's schema: declared (<code>type</code>, <code>oneOf</code>), else observed and widened</td>
+          <td>none (attributes are converted by the vocabulary)</td>
+        </tr>
+        <tr>
+          <td>Starting values</td>
+          <td>
+            <code>@prop({ default })</code> or <code>{ init }</code>; an initializer runs AFTER <code>create()</code>,
+            so <code>@prop</code> warns
+          </td>
+          <td><code>@state accessor isOpen = false</code>: the initializer is the starting value</td>
+        </tr>
+        <tr>
+          <td>Members tied to a DOM element</td>
+          <td>none</td>
+          <td>
+            <code>@controlled</code>, attribute getters, <code>this.attributes</code>, <code>@cssState</code>,
+            <code>@onChange</code>, <code>$</code>; spell-element adds <code>@aria</code>, <code>@cssStates</code>,
+            <code>@on</code>, <code>@untracked</code>, <code>@fromContent</code>, <code>@whileConnected</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Declared</td>
+          <td>
+            per class: decorator metadata, or <code>static { this.declareProp() }</code> in compiled JavaScript (no
+            decorators from a <code>blob:</code> URL): the same runtime shape
+          </td>
+          <td>per class: decorator metadata; attribute getters once per prototype</td>
+        </tr>
+        <tr>
+          <td>Decorator kind</td>
+          <td>
+            TC39 standard (2023-11), lowered by esbuild (<a
+              href="../../../vite.decorators.ts"
+              target="src-vite-decorators-ts"
+              ><code>vite.decorators.ts</code></a
+            >)
+          </td>
+          <td><b>the same</b></td>
+        </tr>
+        <tr>
+          <td>Metadata symbol</td>
+          <td>
+            <code>Symbol.metadata</code>, else <code>Symbol.for("Symbol.metadata")</code> (<a
+              href="../../../packages/util/src/spell/Schema.ts"
+              target="src-packages-util-src-spell-schema-ts"
+              ><code>Schema.ts</code></a
+            >, line 21)
+          </td>
+          <td>
+            <b>the same symbol</b> (<a
+              href="../../../packages/ui/src/elements/Reactive.ts"
+              target="src-packages-ui-src-elements-reactive-ts"
+              ><code>Reactive.ts</code></a
+            >, line 792)
+          </td>
+        </tr>
+        <tr>
+          <td>Copies on a page</td>
+          <td>one tracking context on <code>globalThis</code>, shared by every <code>spell-runtime.js</code> copy</td>
+          <td>per module copy (fine: Spell UI is one per page)</td>
+        </tr>
+        <tr>
+          <td>Used today</td>
+          <td>
+            <code>@prop</code> in <code>EditorStore</code>, <code>SpellConsole</code>, <code>FormStore</code>,
+            <code>AST</code>; compiled spell's accessor pairs
+          </td>
+          <td>
+            <code>@E.state</code> 120 times, <code>@E.derived</code> 81, <code>@E.onChange</code> 86,
+            <code>@E.cssState</code> 186, <code>@E.controlled</code> 29
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+
+  <h4>What "exactly the same" takes</h4>
+  <p>One engine has to win, and it can only be spell cells:</p>
+  <ul>
+    <li>
+      <code>core</code> can't run on Spell UI's: compiled JavaScript loads only <code>@spell/core</code> from a
+      <code>blob:</code> URL, which must hold no Solid, and the React drawing and <code>observe()</code> read cells
+      outside Solid
+    </li>
+    <li>
+      it was already measured:
+      <a href="../../../guides/solid/solid-2.html" target="src-guides-solid-solid-2-html"><code>solid-2.html</code></a
+      >,
+      <a href="../../../../guides/solid/solid-2.html#the-candidates" target="src-guides-solid-solid-2-html"
+        >"The candidates"</a
+      >, compared "record + notifiers" (N, Spell UI's design) with spell cells (X) and picked X, the only one that is
+      exact, memoizes, and lets a drawing write freely; it calls N "X without memoization", sharing the record
+    </li>
+  </ul>
+  <p>The steps:</p>
+  <ol>
+    <li>
+      <b>The engine moves to a generic folder of <code>util</code></b
+      >, <code>packages/util/src/reactive/</code>: cells, <code>Cell</code>, <code>Derived</code>,
+      <code>Reaction</code>, <code>bridgeSolid()</code>, the records (<a
+        href="../../../packages/util/src/spell/extend.ts"
+        target="src-packages-util-src-spell-extend-ts"
+        ><code>extend.ts</code></a
+      >) and <code>Schema</code>.
+      <ul>
+        <li>
+          No lodash (only <code>setState()</code>'s dotted paths use it; they stay in <code>$/util/spell</code>), no
+          Solid
+        </li>
+        <li>
+          so Spell UI can import it file by file, as
+          <a href="../../../../packages/ui/src/util/index.ts" target="src-packages-ui-src-util-index-ts"
+            ><code>packages/ui/src/util/index.ts</code></a
+          >
+          imports <code>util</code>'s other generic files today
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>One decorator set there:</b> <code>@prop</code>, <code>@state</code>, <code>@derived</code>.
+      <ul>
+        <li>with Spell UI's options: <code>{ equals }</code> on <code>@state</code> and <code>@derived</code></li>
+        <li>
+          an initializer allowed on <code>@state</code>; warned only where a <code>create()</code> runs first, as
+          <code>@prop</code> warns today
+        </li>
+        <li>
+          <code>@state</code> is the decorator WWOD §13 has as a TODO ("a <code>@state</code> decorator for
+          <code>Observable</code>s?"): hand-written spell's getter / setter pairs over <code>getState()</code> /
+          <code>setState()</code> become one line (<a
+            href="../../../packages/spell/src/SpellFile.ts"
+            target="src-packages-spell-src-spellfile-ts"
+            ><code>SpellFile.ts</code></a
+          >, lines 102-137, has five)
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Spell UI installs the bridge itself</b>, from its core. The tracking context is shared on
+      <code>globalThis</code>, so the editor, a <code>&lt;spell-app&gt;</code> and a Spell UI page share one bridge.
+    </li>
+    <li>
+      <b
+        ><a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+          ><code>Reactive.ts</code></a
+        >
+        keeps only what needs a DOM element:</b
+      >
+      <code>@controlled</code>, the attribute getters, <code>@cssState</code>, <code>@onChange</code>,
+      <code>$</code> and spell-element's additions. Its sources become cells; <code>Notifier</code>,
+      <code>DerivedCache</code> and <code>notify()</code> go. <code>E.state</code> and <code>E.derived</code> are
+      <code>$/util</code>'s.
+    </li>
+    <li>
+      <b><code>@thing</code> stays spell's</b> (<a
+        href="../../../packages/util/src/spell/spellDecorators.ts"
+        target="src-packages-util-src-spell-spelldecorators-ts"
+        ><code>spellDecorators.ts</code></a
+      >): it orders <code>Thing.create()</code>, which Spell UI has no use for.
+    </li>
+  </ol>
+  <p>What changes for a reader afterwards:</p>
+  <ul>
+    <li>
+      one <code>@state</code> and one <code>@derived</code>, which work the same in a component, the editor and a Thing
+    </li>
+    <li>a derived value may read anyone's members (<a href="#c11">C11</a> gone)</li>
+    <li>Spell UI's <code>@derived</code> gets the real cutoff: its Solid readers re-run only when its value changed</li>
+    <li>no write is deferred a microtask inside a render, and <code>{ ownedWrite }</code> goes</li>
+  </ul>
+  <p>The costs, to check before switching (<a href="#c12">C12</a>):</p>
+  <ul>
+    <li>
+      the bridge wraps every Solid computation on every Spell UI page: re-run the 1,000-button check and
+      <code>yarn measure</code>
+    </li>
+    <li>
+      Spell UI's test helpers must call <code>flushCells()</code>, since a derived-only reader hears a microtask later
+    </li>
+    <li>the static server render has never run the bridge</li>
+    <li>
+      spell-element rewrites
+      <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+        ><code>Reactive.ts</code></a
+      >
+      and isn't merged: the switch comes after it
+    </li>
+  </ul>
+
+  <h4>The same set, three places</h4>
+  <epic-code
+    title="One decorator set, a Thing, a hand-written class and a component · a sketch · 34 lines"
+    language="ts"
+  >
+    <pre>
+// a. ts/solid output (P10):  @prop, @derived and @thing from @spell/core, which re-exports $/util's
+import { List, prop, derived } from "@spell/core"
+
+export class Pile extends List&lt;Card&gt; {
+  @prop({ type: "text" }) accessor name!: string
+  @prop({ type: "choice", default: false }) accessor droppable!: boolean
+
+  /** loops over the cards:  worth remembering */
+  @derived get state() {
+    return this.items.map((card) =&gt; card.state).join(" ")
+  }
+}
+
+// b. hand-written spell:  SpellFile's getter / setter pairs over getState() / setState() become
+export class SpellFile extends TextFile {
+  @state accessor scope: Scope | undefined
+  @state accessor AST: AST | undefined
+}
+
+// c. a Spell UI component, once Spell UI is on the shared engine:  the SAME @state and @derived,
+//    the element-only decorators beside them, unchanged
+export class UIPicker extends E.UIComponent&lt;typeof pickerVocabulary&gt; {
+  @E.state accessor query = "" // === $/util's state
+  @E.controlled("open") accessor isOpen = false // element-only:  stays in Reactive.ts
+
+  @E.derived({ equals: E.isSameList }) get matches() { // === $/util's derived
+    return this.choices.filter((choice) =&gt; choice.text.includes(this.query))
+  }
+
+  @E.onChange("query") onQueryChanged(query: string) {
+    this.send("ui-search", { query })
+  }
+}
+</pre>
+  </epic-code>
+
+  <h4>Two choices</h4>
+  <p>
+    <b>Where the shared set lives.</b> The dependency rule allows only one place both can import: <code>core</code> may
+    import <code>util</code>, Spell UI may import <code>util</code>, and Spell UI must never import a spell package.
+  </p>
+  <epic-choices>
+    <epic-option letter="A" title="A generic folder of util:  $/util/reactive" recommended
+      ><ul>
+        <li><code>util</code> already sits below both; no new package</li>
+        <li>Spell UI already imports <code>util</code>'s generic files one by one (no lodash reaches its bundles)</li>
+        <li><code>$/util/spell</code> re-exports it, so today's imports keep working</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="A new leaf package:  @spell-app/reactive"
+      ><ul>
+        <li>a clean boundary and its own tests, like <code>server</code></li>
+        <li>
+          one more workspace, alias, <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> and
+          tsconfig entry, for a few hundred lines
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Two engines, the same names only"
+      ><ul>
+        <li>spell gains <code>@state</code> and <code>{ equals }</code>; Spell UI doesn't change</li>
+        <li>the two still can't see each other (<a href="#c11">C11</a>); "exactly the same" never happens</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <p>
+    <b>How much P10 does.</b> P10 already moves both targets to Solid drawing (<a href="#q23">Q23</a>), and its
+    <code>@spell/core</code> Solid side installs the bridge on pages with no host either way. In A and C below,
+    <code>ts/solid</code>'s output is the same; they differ in where the moving work lands.
+  </p>
+  <epic-choices>
+    <epic-option letter="A" title="One step in P10, the switch later" recommended
+      ><ul>
+        <li>
+          P10 moves the engine and <code>@prop</code> / <code>@state</code> / <code>@derived</code> to the shared home,
+          with Spell UI's options; <code>@spell/core</code> re-exports them; Spell UI isn't touched
+        </li>
+        <li>
+          a later piece of work moves Spell UI onto it, after spell-element merges, with
+          <a href="#c12">C12</a>'s checks as goals
+        </li>
+        <li>P10 gets one more step, mechanical (files move, one decorator and an option added)</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="All of it in P10"
+      ><ul>
+        <li>one reactivity by the end of P10</li>
+        <li>
+          P10 is already the biggest phase; this waits on spell-element and touches all 120 <code>@E.state</code>
+          uses' tests
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="None of it in P10"
+      ><ul>
+        <li><code>ts/solid</code> imports spell's set where it is today; every merging step later</li>
+        <li>the smallest P10; nothing moves toward one reactivity yet</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        Q20 answered "toward one reactivity": <code>ts/solid</code> writes <code>@prop</code>, <code>@derived</code> and
+        <code>@thing</code>, from <code>@spell/core</code>
+      </li>
+      <li>
+        P10 gains a step: <code>packages/util/src/reactive/</code> holds spell cells and <code>@prop</code> /
+        <code>@state</code> / <code>@derived</code> (with <code>{ equals }</code>); <code>$/util/spell</code> and
+        <code>@spell/core</code> re-export them
+      </li>
+      <li>
+        a later piece of work, after spell-element: Spell UI's <code>@E.state</code> / <code>@E.derived</code> become
+        <code>$/util</code>'s,
+        <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+          ><code>Reactive.ts</code></a
+        >
+        keeps the element-only decorators on cells
+      </li>
+      <li>
+        two caveats recorded: <a href="#c11">C11</a> (the two can't see each other yet), <a href="#c12">C12</a> (the
+        switch's costs)
+      </li>
+    </ul></epic-net-effect
+  ></epic-reply
+>

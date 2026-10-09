@@ -1,13 +1,16 @@
 <!-- plan-doc part:  #p10's body in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom"
-  ><code>ts/solid</code> is typed JavaScript, not Solid: its drawings go through <code>spellCore.element()</code> (React
-  underneath), each property is four lines of <code>getProp()</code> / <code>setProp()</code>, and its names are
-  JavaScript's (<code>is_a_$suit</code>).</epic-field
+  >Compiled spell draws with React in both targets (<code>spellCore.element()</code>, <code>Thing.Component</code>,
+  React's <code>createRoot()</code>), one broken drawing takes the whole app down, and <code>ts/solid</code> is typed
+  JavaScript, not Solid: four lines per property, JavaScript's names (<code>is_a_$suit</code>), and about half of what
+  it declares is <code>any</code>.</epic-field
 ><epic-field name="changes"
-  ><code>TSWriter</code> writes what a person would write on Solid: real JSX in a <code>.compiled.tsx</code>,
-  <code>@prop</code> decorators, typed lists and parameters, one class body per type. Core gains a Solid side for it:
-  each drawn thing in its own error net (as spell-element does), the app mounted into the page's
-  <code>&lt;ui-root&gt;</code>. <code>js/solid</code> doesn't change.</epic-field
+  >First <code>js/solid</code>: core gains a Solid side, compiled JavaScript draws with Solid, each drawn thing in its
+  own error net, and React leaves compiled spell. Then <code>ts/solid</code> writes what a person writes on Solid, on
+  that same core: real JSX in a <code>.compiled.tsx</code>, drawing shapes as <code>&lt;Show&gt;</code> /
+  <code>&lt;For&gt;</code>, decorators (per <a href="#q20">Q20</a>), camelCase, an error-net decorator on
+  <code>draw()</code>. Last, the untyped gap closes: spell's types reach the writer, and spell asks for a type where a
+  program never says one.</epic-field
 ><epic-updated at="2026-10-09 01:21"
   ><p>
     Replanned to Owen's review of P10's questions (2026-10-09). The phase was <code>ts/solid</code> only, with a
@@ -50,57 +53,335 @@
     <li>
       Owen's request (2026-10-09): "the output of JSX is straight solid calls, it can use decorators, etc. ... I want
       the full monty, as if I was writing the class by hand." The sketch, with Card before and after:
-      <a href="#o6">1.6</a>
+      <a href="#o6">1.6</a>; the untyped gap: <a href="#o7">1.7</a>. Decided on his review: <a href="#q18">Q18</a>,
+      <a href="#q19">Q19</a>, <a href="#q21">Q21</a> to <a href="#q26">Q26</a>. Still open: <a href="#q20">Q20</a>
+      (which decorators).
     </li>
     <li>
-      <code>spell compile Solitaire --target ts/solid --stdout</code> prints Solid TypeScript that reads like 1.6's
-      after: real JSX, <code>@prop</code> decorators, <code>&lt;Show&gt;</code> and <code>&lt;For&gt;</code>, typed
-      lists, TypeScript's names, one class body per type
+      <b>1. <code>js/solid</code> draws with Solid, first</b> (<a href="#q23">Q23</a>, B: "Do the js =&gt; solid first")
+      <ul>
+        <li>
+          Run Solitaire in the editor, in VS Code's "Run Project", or in a <code>&lt;spell-app&gt;</code>: it looks and
+          plays as today, drawn by Solid. Flipping a card changes that card's node; nothing redraws the board.
+        </li>
+        <li>
+          Core gains its Solid side, the "Core + JSX" plan in
+          <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"
+            ><code>guides/solid/solid-2.md</code></a
+          >
+          ("Spell's decisions"):
+          <ul>
+            <li>
+              <code>spellCore.element()</code> builds on <code>@solidjs/h</code> (added, rc.13, pinned like Solid), as
+              compiled JavaScript still has no build step
+            </li>
+            <li>
+              <code>JSWriter</code> writes every live prop and child as a function (<code>() =&gt; this.short_suit</code
+              >), so a value that changes updates its own node
+            </li>
+            <li>
+              <code>App.start()</code> mounts with Solid's <code>render()</code> into the runner's <code>appRoot</code>,
+              not React's <code>createRoot()</code>
+            </li>
+            <li>
+              <code>notify</code>, <code>alert</code>, <code>confirm</code> and <code>prompt</code> work, through Spell
+              UI's <code>UI</code> (the core methods nobody wrote yet: the NOTE in
+              <a href="../../../packages/core/src/ui.ts" target="src-packages-core-src-ui-ts"
+                ><code>packages/core/src/ui.ts</code></a
+              >)
+            </li>
+          </ul>
+        </li>
+        <li>
+          Each drawn thing in its own error net: <code>draw the card</code> draws it through core, its
+          <code>draw()</code> run once, untracked, inside Solid's <code>&lt;Errored&gt;</code>. When it throws: one line
+          on the program's console, a cancelable <code>ui-error</code>, a small stand-in; the rest of the board keeps
+          drawing, as spell-element's elements do (<a href="#c8">C8</a>). JavaScript writes the
+          <code>draw()</code> decorator's lowered form, as it does for properties, so both targets share ONE net (<a
+            href="#q21"
+            >Q21</a
+          >; per <a href="#q20">Q20</a>).
+        </li>
+        <li>
+          <code>spell-runtime.js</code> is still the program's <code>@spell/core</code>, one copy per runner, but on the
+          page's ONE shared Solid (<code>spell-solid.js</code>, through <code>sharedSolid()</code>), never a Solid of
+          its own, and with no React in it. The places that load compiled spell all move with it:
+          <ul>
+            <li>
+              <code>runCompiled()</code> unmounts a Solid root (today React's <code>root.unmount()</code>), for the web
+              app's editor, VS Code's runner webview (<code>yarn build:runner</code>) and
+              <code>&lt;spell-app&gt;</code> (<code>yarn build:element</code>)
+            </li>
+            <li>
+              <code>spell run</code> and the contract test (<a href="#p8">P8</a>) run Solid's CLIENT build under node,
+              on the fake page (linkedom), with no global React (<a href="#c7">C7</a>)
+            </li>
+            <li>
+              the VS Code extension rebuilt and installed (<code>spell dev vscode</code>), from a branch level with
+              <code>main</code>
+            </li>
+          </ul>
+        </li>
+        <li>
+          React leaves compiled spell, and with it the app: core's <code>Thing.Component</code>,
+          <code>List.Component</code>, <code>drawItems()</code> and
+          <a href="../../../packages/core/src/classes/App.tsx" target="src-packages-core-src-classes-app-tsx"
+            ><code>App.tsx</code></a
+          >'s <code>createRoot()</code>; core's <code>react</code> / <code>react-dom</code>; <code>$/util</code>'s
+          <code>view()</code>; the app's React kit for programs (<code>src/ui/forms/</code>'s <code>F</code>,
+          <code>SUIPassThroughs</code>, <code>semantic-ui-react</code>); <code>@vitejs/plugin-react</code> and
+          <code>reactFiles()</code>. That closes
+          <a href="../../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a
+          >'s "React for spell programs".
+        </li>
+        <li>
+          A program's <code>&lt;UI.Button&gt;</code>, <code>&lt;SUI.Menu&gt;</code> ... draw Spell UI's
+          <code>&lt;ui-*&gt;</code> elements instead; the form kit's binding and <code>UI.FormRepeat</code> have no twin
+          yet (<a href="#i2">I2</a>: Todos - Form Based).
+        </li>
+        <li>
+          The JavaScript snapshots change once, here, on purpose (the functions around live values), and never again in
+          this phase; both targets still print the same, Solitaire's dealt board included
+        </li>
+      </ul>
     </li>
     <li>
-      A card whose drawing breaks shows a small stand-in and logs once; the rest of the board keeps drawing, as
-      spell-element's elements do
+      <b>2. <code>ts/solid</code> for realz</b>, on the same Solid side of core
+      <ul>
+        <li>
+          <code>spell compile Solitaire --target ts/solid --stdout</code> prints Solid TypeScript that reads like 1.6's
+          after, written to <code>Solitaire.compiled.tsx</code>
+        </li>
+        <li>
+          Real JSX: <code>&lt;span class="suit"&gt;{this.shortSuit}&lt;/span&gt;</code> (<a href="#q18">Q18</a>, A)
+        </li>
+        <li>
+          A drawing in Solid's shapes (<a href="#q19">Q19</a>, A): a computed local becomes an accessor, an
+          <code>if ... return</code> chain <code>&lt;Show&gt;</code> / <code>&lt;Switch&gt;</code>,
+          <code>draw cards in it</code> <code>&lt;For&gt;</code>; any other shape re-runs whole, inside its net
+        </li>
+        <li>
+          Decorators instead of four lines per property: <code>@prop({ oneOf: RANKS }) accessor rank!: Rank</code>.
+          Which set, and whether it is one set with Spell UI's, with the same reactivity: per <a href="#q20">Q20</a>
+        </li>
+        <li>
+          The error net as a decorator on <code>draw()</code> (<a href="#q21">Q21</a>, B):
+          <code>@drawn draw() { ... }</code>, the same net stage 1 built
+        </li>
+        <li>
+          TypeScript's names (<a href="#q22">Q22</a>, A): <code>isASuit()</code>, <code>turnFaceUp()</code>,
+          <code>allPiles</code>; properties keep spell's names, so both targets still print the same; a
+          <code>ts/solid</code> project imports libraries compiled for <code>ts/solid</code>
+        </li>
+        <li>
+          One class body per type, tidy as by hand (<code>const</code>, template text, no unused parameters), lists
+          <code>as const</code> with a type (<code>Rank</code>), as 1.6's after shows (<a href="#t19">T19</a>, about the
+          same, is still a draft note)
+        </li>
+        <li>
+          <code>tsc</code>'s check gains JSX settings and Solid's and <code>&lt;ui-*&gt;</code>'s JSX types; the
+          contract test builds the <code>.tsx</code> (decorators, then Solid's compiler) before running it
+        </li>
+      </ul>
     </li>
     <li>
-      A <code>ts/solid</code> app mounts into the page's <code>&lt;ui-root&gt;</code>, so any
-      <code>&lt;ui-*&gt;</code> tag a drawing uses loads by itself; <code>notify</code>, <code>alert</code>,
-      <code>confirm</code> and <code>prompt</code> work, through Spell UI's <code>UI</code>
-    </li>
-    <li>
-      Both targets still print the same, Solitaire's dealt board included (the contract test, <a href="#p8">P8</a>);
-      <code>js/solid</code>'s output doesn't change
-    </li>
-    <li>The untyped gap: see <a href="#o7">1.7</a>; its items are queued to this phase</li>
-    <li>
-      Decided first: the six open calls, <a href="#q18">Q18</a> to <a href="#q23">Q23</a> (JSX, drawings, decorators,
-      the error net, names, JavaScript)
+      <b>3. The untyped gap closes</b> (<a href="#o7">1.7</a>); only the TypeScript changes
+      <ul>
+        <li>
+          First, together, as each alone makes things worse (<a href="#c9">C9</a>): <a href="#t13">T13</a> (spell's
+          types kept on the tree: 152 places), <a href="#t14">T14</a> (TypeScript types a callback's parameter itself)
+          and <a href="#t21">T21</a> (core's <code>filter()</code> and kin return their collection's type)
+        </li>
+        <li>
+          Then, in any order: <a href="#t15">T15</a> (event handlers without their unused <code>event</code>),
+          <a href="#t16">T16</a> (formula slots, event payloads, merged getters), <a href="#t17">T17</a> (statics in the
+          class body), <a href="#t18">T18</a> (named arguments typed by their fields), <a href="#t20">T20</a> (a
+          <code>declare module</code> block for a member patched on from another project: closes
+          <a href="#c6">C6</a> and <a href="#i1">I1</a>)
+        </li>
+        <li>
+          Spell ASKS for a type the program never says (<a href="#q24">Q24</a>, B): a new kind of problem, a WARNING
+          (parse errors are spell's only problems today)
+          <ul>
+            <li>
+              on a property with no type: <code>a calculator has an input</code>, "say what it is, e.g.
+              <code>a calculator has an input as text</code>"
+            </li>
+            <li>
+              on a parameter with no type: <code>to append (digit) to (a calculator)</code>, e.g.
+              <code>(digit as text)</code>
+            </li>
+            <li>
+              on an empty list: <code>set state to []</code>; how a program says an empty list's type is decided while
+              building, if the grammar has no way yet
+            </li>
+            <li>
+              shown under the line in VS Code and the app's editor (<code>SpellLanguageService.diagnostics()</code>),
+              and listed by <code>spell compile</code> with its other problems; the marker stays until the author says
+            </li>
+            <li>
+              the system examples (Calculator, both Todos, Solitaire) get the types it asks for, so they show none
+            </li>
+          </ul>
+        </li>
+        <li>
+          A member used on a type that doesn't declare it is declared for TypeScript only (<a href="#q25">Q25</a>, A):
+          <code>declare droppable: boolean</code> in <code>class Pile</code>; the JavaScript doesn't change
+        </li>
+        <li>
+          A list item read by position is read as found (<a href="#q26">Q26</a>, A):
+          <code>spellCore.getItemOf(tableaus, column)!</code>; closes <a href="#c5">C5</a>
+        </li>
+        <li>
+          The target: 0 implicit <code>any</code>s anywhere; 0 <code>tsc</code> errors on every fixture and example;
+          Solitaire about 97% typed; a marker only where a program still doesn't say a type, each with its warning
+        </li>
+      </ul>
     </li>
   </ul></epic-field
 ><epic-field name="files"
-  ><a href="../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
-    ><code>packages/parser/src/writers/TSWriter.ts</code></a
-  >
-  (and its test);
-  <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
-    ><code>packages/spell/src/targets.ts</code></a
-  >
-  (<code>.compiled.tsx</code>);
-  <a href="../../../packages/core/" target="src-packages-core"><code>packages/core/</code></a
-  >: a Solid entry (<code>&lt;Drawn&gt;</code>, Solid's <code>App.start()</code>), <code>prop</code> /
-  <code>derived</code> / <code>thing</code> re-exported, <code>readonly</code> lists in its types;
-  <a href="../../../packages/spell/src/node/typecheck.ts" target="src-packages-spell-src-node-typecheck-ts"
-    ><code>packages/spell/src/node/typecheck.ts</code></a
-  >
-  (JSX settings);
-  <a href="../../../packages/cli/src/contract.test.ts" target="src-packages-cli-src-contract-test-ts"
-    ><code>packages/cli/src/contract.test.ts</code></a
-  >
-  and <code>CLI.runCode()</code> (build the <code>.tsx</code> first); the fixtures' <code>.snapshot.tsx</code> and
-  <code>.snapshot.tsc.txt</code></epic-field
+  ><ul>
+    <li>
+      Stage 1, <code>js/solid</code>:
+      <a href="../../../../packages/core/" target="src-packages-core"><code>packages/core/</code></a>
+      (<code>src/ui.ts</code>'s <code>element()</code> on <code>@solidjs/h</code> and the <code>notify</code> family;
+      <code>src/classes/Thing.ts</code>,
+      <a href="../../../packages/core/src/classes/List.tsx" target="src-packages-core-src-classes-list-tsx"
+        ><code>List.tsx</code></a
+      >,
+      <a href="../../../packages/core/src/classes/App.tsx" target="src-packages-core-src-classes-app-tsx"
+        ><code>App.tsx</code></a
+      >, <code>index.ts</code>'s <code>drawThing()</code> / <code>drawItems()</code>: the net and Solid's
+      <code>render()</code>; its
+      <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> without React);
+      <a href="../../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
+        ><code>packages/parser/src/writers/JSWriter.ts</code></a
+      >
+      (live values as functions);
+      <a href="../../../packages/spell/src/rules/JSX.ts" target="src-packages-spell-src-rules-jsx-ts"
+        ><code>packages/spell/src/rules/JSX.ts</code></a
+      >
+      and
+      <a href="../../../packages/spell/src/rules/draw.ts" target="src-packages-spell-src-rules-draw-ts"
+        ><code>draw.ts</code></a
+      >;
+      <a href="../../../../packages/app/src/runner/" target="src-packages-app-src-runner"
+        ><code>packages/app/src/runner/</code></a
+      >
+      (<a href="../../../packages/app/src/runner/spellRuntime.ts" target="src-packages-app-src-runner-spellruntime-ts"
+        ><code>spellRuntime.ts</code></a
+      >,
+      <a href="../../../packages/app/src/runner/runCompiled.ts" target="src-packages-app-src-runner-runcompiled-ts"
+        ><code>runCompiled.ts</code></a
+      >, the runners);
+      <a href="../../../packages/app/vite.shared.ts" target="src-packages-app-vite-shared-ts"
+        ><code>packages/app/vite.shared.ts</code></a
+      >
+      and <code>vite.solid.config.ts</code> (<code>spell-runtime.js</code> on the shared Solid,
+      <code>reactFiles()</code> gone);
+      <a href="../../../packages/app/src/ui/forms/" target="src-packages-app-src-ui-forms"
+        ><code>packages/app/src/ui/forms/</code></a
+      >
+      and <code>SUIPassThroughs</code> (deleted);
+      <a href="../../../packages/util/src/spell/view.ts" target="src-packages-util-src-spell-view-ts"
+        ><code>packages/util/src/spell/view.ts</code></a
+      >
+      (deleted);
+      <a href="../../../packages/cli/src/runner/runProject.ts" target="src-packages-cli-src-runner-runproject-ts"
+        ><code>packages/cli/src/runner/runProject.ts</code></a
+      >
+      and
+      <a href="../../../packages/cli/src/contract.test.ts" target="src-packages-cli-src-contract-test-ts"
+        ><code>contract.test.ts</code></a
+      >
+      (Solid under node); <code>Todos - Form Based/todo.spell</code> (<a href="#i2">I2</a>);
+      <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"
+        ><code>guides/solid/solid-2.md</code></a
+      >
+      and
+      <a href="../../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a>
+      brought up to date
+    </li>
+    <li>
+      Stage 2, <code>ts/solid</code>:
+      <a href="../../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
+        ><code>packages/parser/src/writers/TSWriter.ts</code></a
+      >
+      (and its test);
+      <a
+        href="../../../packages/util/src/spell/spellDecorators.ts"
+        target="src-packages-util-src-spell-spelldecorators-ts"
+        ><code>packages/util/src/spell/spellDecorators.ts</code></a
+      >
+      (the <code>draw()</code> decorator; per <a href="#q20">Q20</a>);
+      <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
+        ><code>packages/spell/src/targets.ts</code></a
+      >
+      (<code>.compiled.tsx</code>);
+      <a href="../../../packages/spell/src/node/typecheck.ts" target="src-packages-spell-src-node-typecheck-ts"
+        ><code>packages/spell/src/node/typecheck.ts</code></a
+      >
+      (JSX settings); the fixtures' <code>.snapshot.tsx</code> and
+      <code>.snapshot.tsc.txt</code>
+    </li>
+    <li>
+      Stage 3, the untyped gap:
+      <a href="../../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
+        ><code>packages/parser/src/ast/AST.ts</code></a
+      >
+      and
+      <a href="../../../packages/spell/src/rules/lists.ts" target="src-packages-spell-src-rules-lists-ts"
+        ><code>packages/spell/src/rules/lists.ts</code></a
+      >
+      (<a href="#t13">T13</a>);
+      <a href="../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
+        ><code>TSWriter.ts</code></a
+      >
+      (T14 to T18, T20, <a href="#q25">Q25</a>, <a href="#q26">Q26</a>);
+      <a href="../../../packages/core/src/collection-other.ts" target="src-packages-core-src-collection-other-ts"
+        ><code>packages/core/src/collection-other.ts</code></a
+      >
+      (<a href="#t21">T21</a>);
+      <a href="../../../packages/spell/src/rules/properties.ts" target="src-packages-spell-src-rules-properties-ts"
+        ><code>packages/spell/src/rules/properties.ts</code></a
+      >,
+      <a href="../../../packages/spell/src/rules/methods.ts" target="src-packages-spell-src-rules-methods-ts"
+        ><code>methods.ts</code></a
+      >
+      and
+      <a href="../../../packages/lsp/src/SpellLanguageService.ts" target="src-packages-lsp-src-spelllanguageservice-ts"
+        ><code>packages/lsp/src/SpellLanguageService.ts</code></a
+      >
+      (<a href="#q24">Q24</a>'s warning); the system examples
+    </li>
+  </ul></epic-field
 ><epic-field name="verify"
-  >Solitaire's and FizzBuzz's <code>ts/solid</code> output read against 1.6's after; <code>tsc</code> errors no more
-  than before (<code>.snapshot.tsc.txt</code>); the contract test passes on both targets, the dealt board included; a
-  test where one thing's drawing throws: its stand-in shows, one console line, <code>ui-error</code> sent, its siblings
-  still draw; the JavaScript snapshots unchanged; <code>yarn ts</code>, <code>yarn review</code> in parser, spell, core
-  and cli</epic-field
+  ><ul>
+    <li>
+      Stage 1: Solitaire, FizzBuzz, Calculator and both Todos run and play in the editor, in VS Code's "Run Project" and
+      in <code>/demo/spell-app.html</code>;
+      <a href="../../../packages/app/src/build.test.ts" target="src-packages-app-src-build-test-ts"
+        ><code>build.test.ts</code></a
+      >
+      and
+      <a
+        href="../../../packages/app/src/runner/element.build.test.ts"
+        target="src-packages-app-src-runner-element-build-test-ts"
+        ><code>element.build.test.ts</code></a
+      >
+      pin that no bundle holds React and <code>spell-runtime.js</code> holds no Solid of its own; a test where one
+      thing's drawing throws: its stand-in shows, one console line, <code>ui-error</code> sent, its siblings still draw;
+      the contract test passes on both targets, the dealt board included
+    </li>
+    <li>
+      Stage 2: Solitaire's and FizzBuzz's <code>ts/solid</code> output read against 1.6's after; <code>tsc</code> errors
+      no more than before (<code>.snapshot.tsc.txt</code>); the JavaScript snapshots unchanged from stage 1
+    </li>
+    <li>
+      Stage 3: every project's <code>tsc</code> error count and typed share against 1.7's target; the new warning shows
+      in VS Code on <code>a calculator has an input</code> before its type is written, and in
+      <code>spell compile</code>; the JavaScript snapshots unchanged
+    </li>
+    <li><code>yarn ts</code>, <code>yarn review</code> in util, parser, core, spell, lsp, app and cli</li>
+  </ul></epic-field
 >
