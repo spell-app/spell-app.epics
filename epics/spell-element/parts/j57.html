@@ -37,3 +37,209 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:27" re="revisit soon"
+  ><p>hidden and visible should be perfectly symmetrical</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 10:40" re="hidden and visible should be perfectly symmetrical">
+  <p>
+    Read this way: shown-or-hidden is ONE fact about an element, and <code>hidden</code> and <code>visible</code> are
+    two names for it, opposites. They behave the same (both animate), and writing either one changes what the other
+    says. This reply is the core of one redesign; the rename of <code>open</code> (<a href="#j58">J58</a>) and the
+    shared <code>animation</code> (<a href="#j59">J59</a>) build on it.
+  </p>
+  <p>Today (P8) they are two different things:</p>
+  <epic-code title="packages/ui/src/vocabulary/SharedVocabulary.ts · the shared visible, 8 lines" language="ts">
+    <pre>
+{
+  name: "visible",
+  kind: "boolean",
+  default: true,
+  description:
+    '`visible="false"` hides it with a short animation (a fade);  `visible` (or `="true"`) brings it back.  ' +
+    "Shared by every element.  The platform's `hidden` hides at once, and wins when both are set."
+}</pre>
+  </epic-code>
+  <epic-code title="packages/ui/src/styles/reset.css · the end, 4 lines" language="css">
+    <pre>
+:host([hidden]),
+:host(:state(hidden)) {
+  display: none;
+}</pre>
+  </epic-code>
+  <ul>
+    <li><code>el.hidden = true</code> hides at once; <code>el.visible</code> still says <code>true</code></li>
+    <li><code>el.visible = false</code> fades out; <code>el.hidden</code> still says <code>false</code></li>
+  </ul>
+  <p>The rules I propose:</p>
+  <ol>
+    <li>Every element is shown or hidden. <code>el.hidden</code> is always the opposite of <code>el.visible</code>.</li>
+    <li>
+      The <code>hidden</code> attribute is where the fact is kept, because the browser, CSS and a page before its
+      scripts load all read it.
+    </li>
+    <li>
+      Writing either name, as an attribute or a property, sets the fact. The element then puts
+      <code>hidden</code> right. It puts the <code>visible</code> attribute right too, but only if the page wrote one,
+      so a page that only uses <code>hidden</code> never sees a <code>visible</code> attribute appear.
+    </li>
+    <li>
+      Both animate the same way: the element's animation (<a href="#j59">J59</a>). Both are instant before the element
+      first draws, and with <code>animation="none"</code> or the person's reduced-motion setting.
+    </li>
+    <li>
+      Where neither is written, the family decides (<a href="#j58">J58</a>). Most start shown. A modal, popup, flyout,
+      sidebar, dimmer, loader or transition starts hidden, and writes <code>hidden</code> on itself when it connects.
+    </li>
+    <li>
+      Both written in markup, and disagreeing: <code>hidden</code> wins. The browser already hid the element before
+      scripts loaded, so showing it then would flash it in.
+    </li>
+  </ol>
+  <p>Markup as written, what the element makes of it, and what shows:</p>
+  <ui-table compact celled>
+    <table>
+      <thead>
+        <tr>
+          <th>written</th>
+          <th>after it draws</th>
+          <th>shows</th>
+          <th><code>el.visible</code></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>&lt;ui-message&gt;</code></td>
+          <td>unchanged</td>
+          <td>yes</td>
+          <td><code>true</code></td>
+        </tr>
+        <tr>
+          <td><code>&lt;ui-message hidden&gt;</code></td>
+          <td>unchanged</td>
+          <td>no</td>
+          <td><code>false</code></td>
+        </tr>
+        <tr>
+          <td><code>&lt;ui-message visible="false"&gt;</code></td>
+          <td><code>visible="false" hidden</code></td>
+          <td>no</td>
+          <td><code>false</code></td>
+        </tr>
+        <tr>
+          <td><code>&lt;ui-message hidden visible&gt;</code></td>
+          <td><code>hidden visible="false"</code></td>
+          <td>no (<code>hidden</code> wins)</td>
+          <td><code>false</code></td>
+        </tr>
+        <tr>
+          <td><code>&lt;ui-modal&gt;</code></td>
+          <td><code>hidden</code> (its family's default)</td>
+          <td>no</td>
+          <td><code>false</code></td>
+        </tr>
+        <tr>
+          <td><code>&lt;ui-modal visible&gt;</code></td>
+          <td>unchanged</td>
+          <td>yes, open</td>
+          <td><code>true</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <p>What a script sees, on a <code>&lt;ui-message&gt;</code> that is showing:</p>
+  <ui-table compact celled>
+    <table>
+      <thead>
+        <tr>
+          <th>script writes</th>
+          <th>the element</th>
+          <th>attributes after</th>
+          <th>reads after</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>el.hidden = true</code></td>
+          <td>animates out</td>
+          <td><code>hidden</code></td>
+          <td><code>el.visible === false</code></td>
+        </tr>
+        <tr>
+          <td><code>el.visible = false</code></td>
+          <td>animates out</td>
+          <td><code>hidden</code></td>
+          <td><code>el.hidden === true</code></td>
+        </tr>
+        <tr>
+          <td><code>setAttribute("visible", "false")</code></td>
+          <td>animates out</td>
+          <td><code>visible="false" hidden</code></td>
+          <td><code>el.hidden === true</code></td>
+        </tr>
+        <tr>
+          <td>then <code>removeAttribute("hidden")</code></td>
+          <td>animates in</td>
+          <td><code>visible</code></td>
+          <td><code>el.visible === true</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <p>What this costs:</p>
+  <ul>
+    <li>
+      <code>&lt;ui-divider hidden&gt;</code> means something else today. In Fomantic it is a divider that keeps its
+      spacing but has no line, and it would be hidden instead. It needs a new name (e.g. <code>spacer</code>), and that
+      rename breaks pages that use it.
+    </li>
+    <li>
+      <code>&lt;ui-reveal visible&gt;</code> means "don't clip what overflows". It needs a new name too (e.g.
+      <code>unclipped</code>).
+    </li>
+    <li>
+      While an element animates out, <code>hidden</code> is already set. One CSS rule keeps it on screen until the
+      animation ends: <code>:host([hidden]:not(:state(hiding))) { display: none }</code>.
+    </li>
+    <li>
+      <code>hidden="until-found"</code> stays the browser's (find-in-page shows it). It counts as hidden, and is never
+      animated.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="One fact, two names, kept in step" recommended
+      ><ul>
+        <li>the rules and tables above</li>
+        <li>
+          <code>hidden</code> works everywhere, before scripts load, and with any framework that sets
+          <code>el.hidden</code>
+        </li>
+        <li><code>visible</code> reads naturally on things that start hidden: <code>&lt;ui-modal visible&gt;</code></li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Only `hidden`; no shared `visible` attribute"
+      ><ul>
+        <li><code>hidden</code> animates; <code>el.visible</code> is a read-only opposite of it</li>
+        <li>simplest, and the most like the platform</li>
+        <li>
+          no family default: a <code>&lt;ui-modal&gt;</code> written without <code>hidden</code> opens at once, so every
+          page writes <code>&lt;ui-modal hidden&gt;</code>. <a href="#j58">J58</a>'s rename would be <code>open</code> →
+          no <code>hidden</code>
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        <code>hidden</code> and <code>visible="false"</code> do the same thing: an animated hide, instant before the
+        element first draws
+      </li>
+      <li><code>el.hidden</code> and <code>el.visible</code> always read as opposites</li>
+      <li>P8's "both set, <code>hidden</code> wins" holds only for markup; after that, the latest write wins</li>
+      <li>breaking renames: <code>&lt;ui-divider hidden&gt;</code> and <code>&lt;ui-reveal visible&gt;</code></li>
+      <li>
+        built in a new phase together with <a href="#j58">J58</a> and <a href="#j59">J59</a> (the choice is in J58's
+        reply)
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

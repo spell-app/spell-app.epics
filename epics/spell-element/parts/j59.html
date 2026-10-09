@@ -18,3 +18,128 @@
     <li>a family that wants another animation says so in one line</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:31" re="revisit soon"
+  ><p>
+    `animation` could be another property that every element understands. Having it signaled this way is good for
+    turning off globally with reduced motion.
+  </p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-09 10:40"
+  re="`animation` could be another property that every element understands.  Having it signaled this way is good for turning off globally with reduced motion."
+>
+  <p>
+    Yes. The proposal is a shared <code>animation</code> attribute on every element, the fourth shared one after
+    <code>disabled</code>, <code>loading</code> and <code>visible</code>. It names how the element animates when it
+    shows or hides (<a href="#j57">J57</a>), and <code>animation="none"</code> turns that off for the element and
+    everything inside it.
+  </p>
+  <p>Today the animation is a setting only the family can change:</p>
+  <epic-code title="packages/ui/src/elements/UIComponent.tsx · animateVisible(), 5 lines" language="ts">
+    <pre>
+this.isHiding = !show
+const name = this.elementSetup.visibleAnimation
+const direction = show ? UIT.IN : UIT.OUT
+await Promise.all(
+  boxes.map((element) =&gt; UI.transitions.animate({ element: element as HTMLElement, name, direction }))</pre>
+  </epic-code>
+  <p><code>&lt;ui-transition&gt;</code> already has exactly this attribute, with Fomantic's names:</p>
+  <epic-code title="packages/ui/src/components/ui-transition/UITransition.en.ts · animation, 9 lines" language="ts">
+    <pre>
+{
+  name: "animation",
+  kind: "enum",
+  values: TransitionAnimations,
+  default: DEFAULT_ANIMATION,
+  description:
+    "Animation for showing / hiding (Fomantic's names:  `fade up`, `scale`, `horizontal flip` ...);  an " +
+    "attention one (`shake`, `pulse` ...) shows / hides at once, and runs through `transition()`."
+}</pre>
+  </epic-code>
+  <p>The rules:</p>
+  <ol>
+    <li>
+      <code>animation</code> takes <code>&lt;ui-transition&gt;</code>'s names (<code>fade</code>, <code>fade up</code>,
+      <code>scale</code> ...) or <code>none</code>. So <code>&lt;ui-transition&gt;</code>
+      drops its own spec and uses the shared one.
+    </li>
+    <li>
+      Not written: the family's default, <code>elementSetup.animation</code> (P8's <code>visibleAnimation</code>,
+      renamed). <code>fade</code> for most; the overlays keep the look they have now (a modal scales, a flyout slides in
+      from its side).
+    </li>
+    <li>
+      <code>none</code> spreads down: an element animates only if neither it nor anything around it says
+      <code>none</code>. An element inside can't turn motion back on.
+      <ul>
+        <li>
+          how: <code>animation="none"</code> sets a CSS custom property, <code>--ui-motion: none</code>. Custom
+          properties pass into shadow roots, so every element below sees it
+        </li>
+        <li>
+          the page-wide switch is then <code>&lt;ui-root animation="none"&gt;</code>, or
+          <code>:root { --ui-motion: none }</code> in a page's CSS
+        </li>
+      </ul>
+    </li>
+    <li>
+      Reduced motion is the same switch: <code>prefers-reduced-motion</code> counts as <code>none</code> everywhere.
+      <a href="../../../packages/ui/src/styles/reset.css" target="src-packages-ui-src-styles-reset-css"
+        ><code>reset.css</code></a
+      >
+      and <code>UI.transitions</code> already honour it; they would read the one switch instead.
+    </li>
+    <li>
+      Motion that shows progress is exempt, as now: a loader keeps spinning (WCAG 2.3.3), because
+      <code>animation</code> covers only showing and hiding.
+    </li>
+  </ol>
+  <p>Where it overlaps attributes that exist today:</p>
+  <ul>
+    <li>
+      <code>&lt;ui-sidebar transition="push"&gt;</code> says how the sidebar shares the page: over it, pushing it, or
+      uncovering it. Those aren't animation names, so it keeps its name. <code>animation="none"</code> makes the push
+      happen at once.
+    </li>
+    <li>
+      <code>&lt;ui-visibility type="image" transition="fade"&gt;</code> IS an animation name (how a lazy image appears),
+      so it becomes the shared <code>animation</code>. That rename is breaking.
+    </li>
+    <li><code>&lt;ui-transition duration&gt;</code> stays that element's own, for now.</li>
+  </ul>
+  <epic-code title="after · markup" language="html">
+    <pre>
+&lt;ui-message animation="fade down"&gt;...&lt;/ui-message&gt;
+&lt;ui-modal animation="none" visible&gt;...&lt;/ui-modal&gt;
+&lt;ui-root animation="none"&gt;  &lt;!-- nothing inside animates --&gt;</pre>
+  </epic-code>
+  <epic-choices>
+    <epic-option letter="A" title="Shared `animation`; `none` spreads to everything inside" recommended
+      ><ul>
+        <li>one switch for a part of a page or the whole of it, and reduced motion feeds the same switch</li>
+        <li>every family's own motion has to check it, including the overlays' CSS transitions</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Shared `animation`, per element only; a runtime switch for the page"
+      ><ul>
+        <li><code>animation="none"</code> affects that one element</li>
+        <li>page-wide: <code>UI.motion = "none"</code> in script; it can't be written in markup</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        every element takes <code>animation</code>; <code>elementSetup.visibleAnimation</code> becomes
+        <code>elementSetup.animation</code>
+      </li>
+      <li><code>&lt;ui-transition&gt;</code> loses its own <code>animation</code> spec; the markup is unchanged</li>
+      <li>breaking: <code>&lt;ui-visibility transition&gt;</code> becomes <code>animation</code></li>
+      <li><code>&lt;ui-sidebar transition&gt;</code> unchanged</li>
+      <li>
+        one switch for <code>none</code>, reduced motion and the page; built in the same new phase as
+        <a href="#j57">J57</a> and <a href="#j58">J58</a>
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

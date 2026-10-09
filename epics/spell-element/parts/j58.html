@@ -15,3 +15,220 @@
     <li>no breaking change</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-09 10:29" re="revisit soon"
+  ><p>ditch `open` -- a modal is visible or it is not. You could add a `visible` setting to ElementSetup</p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-09 10:40"
+  re="ditch `open` -- a modal is visible or it is not.  You could add a `visible` setting to ElementSetup"
+>
+  <p>
+    Agreed, and it goes wider than the modal. Today four different words say "this element is on screen", so a reader
+    has to learn which one each element uses:
+  </p>
+  <ul>
+    <li>
+      <code>open</code>: <code>&lt;ui-modal&gt;</code>, <code>&lt;ui-flyout&gt;</code>, <code>&lt;ui-popup&gt;</code>
+    </li>
+    <li>
+      <code>active</code>: <code>&lt;ui-dimmer&gt;</code>, <code>&lt;ui-loader&gt;</code> (Fomantic's word for these)
+    </li>
+    <li>
+      a <code>visible</code> of their own, starting hidden: <code>&lt;ui-sidebar&gt;</code>,
+      <code>&lt;ui-transition&gt;</code>
+    </li>
+    <li>the shared <code>visible</code>, starting shown: every other element (P8)</li>
+  </ul>
+  <p>
+    The proposal is one rule:
+    <b><code>visible</code> / <code>hidden</code> say whether the element itself is on screen</b> (<a href="#j57">J57</a
+    >'s rules). <code>open</code> stays only where a PART of an element that is still on screen unfolds:
+  </p>
+  <ul>
+    <li><code>&lt;ui-dropdown open&gt;</code>: its menu</li>
+    <li><code>&lt;ui-calendar open&gt;</code>: its pop-up grid</li>
+    <li><code>&lt;ui-search open&gt;</code>: its results</li>
+    <li><code>&lt;ui-accordion open="0 2"&gt;</code>: which of its panels</li>
+  </ul>
+  <p>
+    <code>active</code> stays where it means selected or pressed (<code>&lt;ui-button active&gt;</code>,
+    <code>&lt;ui-label active&gt;</code> ...).
+  </p>
+  <p>The modal's <code>open</code> today:</p>
+  <epic-code title="packages/ui/src/components/ui-modal/DialogComponent.tsx · open, 4 lines" language="ts">
+    <pre>
+/** `open`:  shown.  The DOM element's `open` property when set, else kept here. */
+@E.cssState("open")
+@E.controlled("open")
+accessor isOpen = false</pre>
+  </epic-code>
+  <p>
+    It would become your <code>ElementSetup</code> setting: what an element shows when neither <code>visible</code> nor
+    <code>hidden</code> is written. The base class holds the one controlled <code>isVisible</code> for everyone.
+  </p>
+  <epic-code title="DialogComponent.tsx · after" language="ts">
+    <pre>
+@E.protoMerged static elementSetup = {
+  // nothing written:  hidden (`&lt;ui-modal&gt;` gets `hidden`)
+  visible: "hidden"
+} satisfies Partial&lt;E.ElementSetup&gt;
+
+// the base class:  `isVisible`, controlled, `:state(hidden)`
+// this class only acts on it:  showModal() / close()</pre>
+  </epic-code>
+  <epic-code title="elements.types.ts · the new ElementSetup key" language="ts">
+    <pre>
+/**
+ * What the element shows when the page writes neither `visible` nor `hidden`.
+ * - `"shown"` (the default):  a message, a segment, a menu ...
+ * - `"hidden"`:  a modal, flyout, popup, sidebar, dimmer, loader, transition
+ */
+visible: "shown" | "hidden"</pre>
+  </epic-code>
+  <p>What becomes what:</p>
+  <ui-table compact celled>
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>today</th>
+          <th>becomes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>attribute</td>
+          <td><code>open</code> (3 elements), <code>active</code> (2), their own <code>visible</code> (2)</td>
+          <td>the shared <code>visible</code> / <code>hidden</code></td>
+        </tr>
+        <tr>
+          <td>property</td>
+          <td><code>el.open</code>, <code>el.active</code></td>
+          <td><code>el.visible</code>, <code>el.hidden</code></td>
+        </tr>
+        <tr>
+          <td>CSS state</td>
+          <td><code>:state(open)</code>, <code>:state(active)</code>, <code>:state(visible)</code></td>
+          <td><code>:state(hidden)</code>, or <code>:not(:state(hidden))</code></td>
+        </tr>
+        <tr>
+          <td>Fomantic class word</td>
+          <td><code>active</code> on the root box while shown</td>
+          <td>unchanged</td>
+        </tr>
+        <tr>
+          <td>events</td>
+          <td>
+            <code>ui-open</code> / <code>ui-close</code> before (a person's action; can veto), <code>ui-show</code> /
+            <code>ui-hide</code> after the animation
+          </td>
+          <td>the same names. The sidebar already pairs them with <code>visible</code></td>
+        </tr>
+        <tr>
+          <td>event detail</td>
+          <td><code>{ open }</code>, <code>{ active }</code>, <code>{ visible }</code></td>
+          <td><code>{ visible }</code> everywhere</td>
+        </tr>
+        <tr>
+          <td><code>&lt;dialog&gt;</code> and popover</td>
+          <td>
+            inside the shadow root: <code>showModal()</code> / <code>close()</code>, <code>showPopover()</code> /
+            <code>hidePopover()</code>
+          </td>
+          <td>unchanged; now called when <code>visible</code> changes</td>
+        </tr>
+        <tr>
+          <td>button commands</td>
+          <td><code>--show</code>, <code>--close</code>, <code>--toggle</code></td>
+          <td>unchanged</td>
+        </tr>
+        <tr>
+          <td><code>UI.modals</code></td>
+          <td><code>modal.open = true</code></td>
+          <td><code>modal.visible = true</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <p>
+    <b>This is a breaking rename.</b> Every page that writes <code>&lt;ui-modal open&gt;</code>,
+    <code>&lt;ui-popup open&gt;</code>, <code>&lt;ui-flyout open&gt;</code>, <code>&lt;ui-dimmer active&gt;</code> or
+    <code>&lt;ui-loader active&gt;</code> breaks, and so does every script that reads <code>.open</code>,
+    <code>.active</code> or <code>event.detail.open</code> on them. The sites I counted (rough counts of lines that
+    mention the word):
+  </p>
+  <ul>
+    <li>7 vocabularies</li>
+    <li>
+      3 classes hold the logic: <code>DialogComponent</code> (about 40 lines), <code>UIPopup</code> (about 43),
+      <code>UIDimmer</code> (13)
+    </li>
+    <li>
+      3 event-detail types: <code>ModalOpenDetail</code>, <code>PopupOpenDetail</code>, <code>DimmerOpenDetail</code>
+    </li>
+    <li>12 CSS lines in the three overlay families' sheets</li>
+    <li>tests: modal about 86 lines, popup 50, dimmer 43, flyout 33</li>
+    <li>
+      callers: <code>UI.modals</code> (1 line), the app's
+      <a
+        href="../../../packages/app/src/solid/modals/Chooser.tsx"
+        target="src-packages-app-src-solid-modals-chooser-tsx"
+        ><code>Chooser.tsx</code></a
+      >
+      and its modals test, the docs themes picker, 5 example files
+    </li>
+    <li>
+      Spell UI's docs pages: <code>ui-modal</code>, <code>ui-popup</code>, <code>ui-flyout</code>,
+      <code>ui-dimmer</code>, <code>ui-loader</code>, <code>ui-sidebar</code>, <code>ui-menu</code>, the kitchen sink;
+      then the site data is regenerated
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Rename outright, no alias" recommended
+      ><ul>
+        <li>one word, and nothing left over</li>
+        <li>every site above changes in one phase; tests catch what's missed</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Rename, keep `open` / `active` as aliases for a while"
+      ><ul>
+        <li>old pages keep working; the console warns once per tag</li>
+        <li>two more names in <a href="#j57">J57</a>'s tables until they're removed</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <p>Where it gets built:</p>
+  <epic-choices>
+    <epic-option letter="A" title="A new phase in this epic, before it merges" recommended
+      ><ul>
+        <li>
+          P8's shared <code>visible</code> and <code>elementSetup.visibleAnimation</code> haven't reached
+          <code>main</code> yet, so <code>main</code> only ever sees the finished design: one break, not two
+        </li>
+        <li>about 4-6 hours, inserted before Doc Review</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Its own epic, after this one merges"
+      ><ul>
+        <li>this epic merges sooner, with P8 as it stands</li>
+        <li>P8's <code>visible</code> then changes meaning on <code>main</code> a second time</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        <code>&lt;ui-modal visible&gt;</code>, <code>el.visible = true</code>; <code>open</code> stays only on dropdown,
+        calendar, search and accordion
+      </li>
+      <li>
+        new <code>ElementSetup</code> key <code>visible: "shown" | "hidden"</code>, set to <code>"hidden"</code> by 7
+        families
+      </li>
+      <li>breaking: <code>open</code> on modal, popup and flyout; <code>active</code> on dimmer and loader</li>
+      <li>
+        a new phase, "Visible, Hidden And Animation", built with <a href="#j57">J57</a> and <a href="#j59">J59</a>
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
