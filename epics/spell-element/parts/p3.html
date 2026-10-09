@@ -216,6 +216,223 @@
       </ul>
     </li>
   </ul></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      What changed in how you write a component, one bullet per change:
+      <ul>
+        <li>
+          One attribute store. <code>this.attrs</code> and <code>createProps()</code> are gone:
+          <ul>
+            <li>
+              <code>this.x</code> reads the DOM element’s one converted value for that attribute
+              (<code>attributeValues</code>), with one change signal per attribute
+            </li>
+            <li><code>UIComponent</code>’s constructor is now <code>(domElement, definition)</code></li>
+            <li>
+              <code>brand</code>’s 89 <code>this.attrs.x</code> reads became <code>this.x</code> (12 components); 8
+              brand members were renamed where their name clashed with an attribute (<a href="#j13">J13</a>)
+            </li>
+          </ul>
+        </li>
+        <li>
+          <code>@protoMerged</code> (in <code>$/util</code>, used as <code>@E.protoMerged</code>): every
+          <code>static elementSetup</code> is merged down the class chain as each class is defined (<a href="#j15"
+            >J15</a
+          >):
+          <ul>
+            <li>
+              <code>this.elementSetup</code> IS the merged setup; outside an instance, read
+              <code>Class.prototype.elementSetup</code>
+            </li>
+            <li><code>styleSheets</code> is now a key of <code>elementSetup</code>, no longer a static of its own</li>
+            <li>
+              <code>UIComponent</code>’s <code>setup</code> getter, <code>setupFor()</code> and its cache are gone
+            </li>
+          </ul>
+        </li>
+        <li>
+          Timing helpers in <code>$/ui/util</code>, named for WHEN they run (<a href="#j14">J14</a>):
+          <ul>
+            <li><code>afterSolidUpdate(fn)</code>: a microtask, in place of <code>queueMicrotask</code></li>
+            <li><code>beforeNextPaint(fn)</code>: an animation frame, cancelable</li>
+            <li><code>soon(fn)</code>: the next task, cancelable</li>
+            <li>
+              <code>after(seconds, fn)</code>: a promise of <code>fn</code>’s result, with <code>cancel()</code>; it
+              takes SECONDS (<code>after(0.25, ...)</code> is a quarter of a second)
+            </li>
+            <li><code>every(seconds, fn)</code>: returns a function that turns it off</li>
+            <li>
+              72 bare platform calls moved onto them, in <code>ui</code>, <code>brand</code> and <code>epics</code>
+            </li>
+          </ul>
+        </li>
+        <li>
+          Class order: an element’s extra classes now go just BEFORE the noun, as Fomantic writes them (<code
+            >ui primary icon button</code
+          >, not <code>ui primary button icon</code>):
+          <ul>
+            <li>
+              no exceptions, so <code>&lt;ui-tab&gt;</code> and <code>&lt;ui-panel&gt;</code> now differ from Fomantic’s
+              order (<a href="#j16">J16</a>)
+            </li>
+            <li>no screenshot changed (621 local baselines)</li>
+          </ul>
+        </li>
+        <li>
+          <code>@E.on("event")</code> on a method: a listener on the DOM element for its whole life, run untracked (<a
+            href="#q21"
+            >Q21</a
+          >):
+          <ul>
+            <li>36 listeners moved onto it; 11 constructors that only added listeners are gone</li>
+            <li>
+              <code>@E.untracked</code> runs a method (or an arrow-function field) untracked: about 250
+              <code>untrack(() =&gt; ...)</code> wrappers are gone
+            </li>
+            <li>
+              <code>@E.onChange</code> methods now run untracked too (<a href="#j32">J32</a>-<a href="#j36">J36</a>)
+            </li>
+          </ul>
+        </li>
+        <li>
+          <code>@E.fromContent</code> and <code>@E.whileConnected</code> (<a href="#j28">J28</a>-<a href="#j31">J31</a
+          >):
+          <ul>
+            <li>
+              <code>@E.fromContent</code> on a getter: a value read from the element’s light DOM, recomputed when that
+              changes; 11 hand-written watchers moved onto it
+            </li>
+            <li>
+              <code>@E.whileConnected</code> on a method: it runs on each connect, and its returned cleanup on
+              disconnect; 11 sites moved onto it
+            </li>
+          </ul>
+        </li>
+        <li>
+          ARIA and CSS states (<a href="#j24">J24</a>-<a href="#j27">J27</a>):
+          <ul>
+            <li><code>@E.aria("ariaBusy")</code> on a getter writes that ARIA property as it changes</li>
+            <li>
+              <code>elementSetup.aria</code> holds constant ARIA (<code>{ role: "listitem" }</code>): 5 constructors
+              gone
+            </li>
+            <li>
+              <code>@E.cssStates("loading", ...)</code> on the class, for states that only mirror their attribute: 38
+              one-line getters gone
+            </li>
+            <li>a subclass’s state or ARIA property now wins over its base’s</li>
+          </ul>
+        </li>
+        <li>
+          <code>@lazy</code> (a getter made on first read, then kept) and <code>@once</code> (a method run once, its
+          result kept), in <code>$/util</code>, with <code>forget(object, "name")</code> to reset one; 16 members moved
+          onto them (<a href="#j20">J20</a>, <a href="#j21">J21</a>)
+        </li>
+        <li>
+          Typed <code>DOMElement&lt;C&gt;</code>: <code>domElement.component</code> has the component’s own type, so 18
+          casting getters are gone; <code>FormComponent.domFormElement</code> is gone too: read
+          <code>this.domElement</code> (<a href="#j17">J17</a>-<a href="#j19">J19</a>)
+        </li>
+        <li>
+          Form controls’ shared code lives in <code>FormComponent</code> (9 controls in <code>ui</code>, 2 in
+          <code>brand</code>) (<a href="#j41">J41</a>-<a href="#j45">J45</a>):
+          <ul>
+            <li>
+              <code>labels</code>, <code>isTouched</code> (cleared on a form reset), <code>isDisabled</code>,
+              <code>formName</code>, the <code>required</code> rule, and the click on the element itself (a new hook,
+              <code>activateControl()</code>)
+            </li>
+            <li>
+              <code>shouldShowInvalid()</code> became a class setting, <code>static invalidShows</code> (<code
+                >"at once"</code
+              >
+              or <code>"once touched"</code>)
+            </li>
+            <li>
+              <code>&lt;ui-dropdown&gt;</code> without a <code>label</code> attribute is now named by its
+              <code>&lt;label for&gt;</code> or <code>aria-label</code>, with a test
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      Where to see it: <code>ui</code>’s
+      <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> (“Solid authoring”, “Events”,
+      “Running something later”), and the headers of
+      <a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+        ><code>Reactive.ts</code></a
+      >,
+      <a href="../../../packages/ui/src/elements/UIComponent.tsx" target="src-packages-ui-src-elements-uicomponent-tsx"
+        ><code>UIComponent.tsx</code></a
+      >
+      and <code>FormComponent</code>. Every page draws as before: no screenshot changed.
+    </li>
+    <li>
+      What’s rough:
+      <ul>
+        <li>one Firefox visual diff, <code>ui-list</code> dark, 70 px, under load; it passes when run alone</li>
+        <li><code>LoadableComponent</code> keeps its casts (a TypeScript limit, TS2729, noted in the code)</li>
+        <li>
+          <code>UIMenu.itemContext()</code> and <code>UIItem.isOwnerOf()</code> keep their own <code>untrack()</code>:
+          they are half tracked on purpose
+        </li>
+      </ul>
+    </li>
+    <li>
+      Fixed on the way:
+      <ul>
+        <li>
+          13 unhandled errors in <code>UIRoot.test</code>: a bare <code>DOMElement</code> subclass now mounts no
+          component
+        </li>
+        <li>the lint error in <code>HotDefinitions.test</code> (<a href="#i2">I2</a>)</li>
+        <li>the docs bundle rebuilt, so plan docs draw from this branch again (<a href="#i3">I3</a>)</li>
+        <li>the smoke demo’s <code>extraClass</code>, so <code>yarn smoke</code> passes (<a href="#j22">J22</a>)</li>
+      </ul>
+    </li>
+    <li>
+      Checks:
+      <ul>
+        <li>root <code>yarn ts</code></li>
+        <li><code>ui</code>: lint; ssr 263; browser 5116; hot reload 8/8</li>
+        <li><code>brand</code> 134; <code>epics</code> 330; <code>app</code> 250</li>
+        <li>visual, local: 621 (the one Firefox diff above)</li>
+      </ul>
+    </li>
+  </ul></epic-field
+><epic-commit sha="b859daa175aa7bb678f5a2c5cb99250b1fd51874"
+  >attrs and createProps gone: DOMElement's attributeValues is the one converted value per attribute, Reactive's
+  AttributeSource one change signal per attribute (watchAttributeValues); UIComponent's constructor is (domElement,
+  definition); brand's this.attrs.x -&gt; this.x (12 components, 8 members renamed where they clashed with an
+  attribute); a bare DOMElement subclass without a tagSetup mounts no component (UIRoot.test's NeverReady)</epic-commit
+><epic-commit sha="ea4c91c3e174b15837fa25b74308c5969a0c01e2"
+  >@protoMerged: every static elementSetup merges down the class chain as each class is defined; setup / setupFor()
+  gone; styleSheets a key of elementSetup</epic-commit
+><epic-commit sha="fc4d20a8dbdd359b5b122d2ea133780275dab91c"
+  >class order: an element's extra classes go just before the noun, as Fomantic writes them (ui primary icon button); 39
+  ui, 5 brand, 4 epics test files re-pinned; no screenshot changed</epic-commit
+><epic-commit sha="e52d4257b268ed9ea884f8e9775a286c71bec3a8"
+  >timing helpers in $/ui/util: afterSolidUpdate, beforeNextPaint, soon, after(seconds) (cancelable), every(seconds); 72
+  bare platform timing calls moved onto them</epic-commit
+><epic-commit sha="bdee0db69d720a9352501c0633e74f2d8b5a64c9"
+  >typed DOMElement&lt;C&gt;: domElement.component has the component's own type; 18 casting getters gone;
+  FormComponent.domFormElement gone</epic-commit
+><epic-commit sha="440f37c74661ad70d24c8435c79b2691f0ab7d2c"
+  >@lazy / @once in $/util, with forget(object, name) for a reset; 16 members moved onto them, 15 backing fields
+  gone</epic-commit
+><epic-commit sha="1374b261e1d5fea98e3e8028152919c3bec8f84b"
+  >@E.aria and elementSetup.aria (5 constructors gone); @E.cssStates on the class (38 one-line getters gone); a
+  subclass's state or ARIA wins over its base's</epic-commit
+><epic-commit sha="ea1dcd01ab67e915ab574b1fbcf51a7de0ad6b1d"
+  >@E.fromContent (11 light-DOM watchers moved) and @E.whileConnected (11 connected sites moved)</epic-commit
+><epic-commit sha="d49150568b82215d0c559bdbceb949c57e6741d1"
+  >@E.on (36 listeners moved, 11 constructors gone) and @E.untracked (about 250 untrack() wrappers gone); @E.onChange
+  methods run untracked too</epic-commit
+><epic-commit sha="06a60c80bf77f7372853f6ee0c819eb28daee209"
+  >form controls' shared code in FormComponent: labels, isTouched, isDisabled, formName, the required rule, click
+  handling, the invalidShows setting; ui-dropdown named by its label for</epic-commit
 ><epic-field name="files"
   ><ul>
     <li>
