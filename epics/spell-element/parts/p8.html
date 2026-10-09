@@ -100,11 +100,187 @@
   </ul></epic-field
 ><epic-field name="done"
   ><ul>
-    <li>PLACEHOLDER-P8-DONE</li>
+    <li>
+      How a page uses it: every <code>ui-*</code> tag now takes <code>disabled</code>, <code>loading</code> and
+      <code>visible</code>, whether its vocabulary declares them or not.
+      <ul>
+        <li>
+          they come from a new
+          <a
+            href="../../../packages/ui/src/vocabulary/SharedVocabulary.ts"
+            target="src-packages-ui-src-vocabulary-sharedvocabulary-ts"
+            ><code>SharedVocabulary</code></a
+          >, added to each tag's definition, its docs data and its manifest, marked <code>shared: true</code>
+        </li>
+        <li>
+          a vocabulary that declares one of them keeps its own spec, so the 43 that declare <code>disabled</code> keep
+          working as before (<a href="#j53">J53</a>)
+        </li>
+        <li>
+          where to read about it: the guide's section 13,
+          <a
+            href="../../../guides/custom-elements/custom-elements.html#disabled-and-friends"
+            target="src-guides-custom-elements-custom-elements-html"
+            >“Disabled, visible and friends”</a
+          >, now filled in (closes <a href="#t7">T7</a>)
+        </li>
+      </ul>
+    </li>
+    <li>
+      What changed in how a family is written: <code>disabled</code> means what the family's
+      <code>elementSetup.disabled</code> says (<a href="#q25">Q25</a>, <a href="#q26">Q26</a>, <a href="#q27">Q27</a>,
+      <a href="#j54">J54</a>):
+      <ul>
+        <li>
+          <code>"unusable"</code>, the default:
+          <ul>
+            <li>clicks are swallowed</li>
+            <li><code>aria-disabled="true"</code></li>
+            <li>everything inside is inert and dimmed, styled through <code>:state(dimmed)</code></li>
+            <li>if focus was inside, it moves on, through a new <code>UI.focus.moveOutOf()</code></li>
+          </ul>
+        </li>
+        <li>
+          <code>"its own"</code>: the family handles it, and the base class only sets <code>:state(disabled)</code>
+          <ul>
+            <li>29 components use it</li>
+            <li>
+              so does <code>FormComponent</code>, which keeps the native <code>disabled</code> and
+              <code>&lt;fieldset disabled&gt;</code>
+            </li>
+          </ul>
+        </li>
+        <li><code>&lt;ui-card&gt;</code> moved to <code>"unusable"</code></li>
+        <li>
+          <code>:state(disabled)</code> and <code>:state(loading)</code> now come from <code>UIComponent</code>, for
+          every element; P3's <code>@E.cssStates("disabled")</code> lines are gone
+        </li>
+        <li>
+          inert content leaves the accessibility tree, so a screen reader won't read a disabled card's text (<a
+            href="#j55"
+            >J55</a
+          >)
+        </li>
+      </ul>
+    </li>
+    <li>
+      <code>loading</code>: a family setting too, <code>elementSetup.loading</code>:
+      <ul>
+        <li>
+          <code>"loader"</code>, the default: <code>aria-busy</code>, everything inside inert and dimmed, a spinner over
+          it, <code>:state(busy)</code>
+        </li>
+        <li><code>"its own"</code>: 16 components and 3 form controls, which had a <code>loading</code> already</li>
+      </ul>
+    </li>
+    <li>
+      <code>visible="false"</code> (<a href="#q29">Q29</a>):
+      <ul>
+        <li>
+          fades out, then sets <code>:state(hidden)</code>; a family picks another animation in
+          <code>elementSetup.visibleAnimation</code> (default <code>"fade"</code>)
+        </li>
+        <li>before the element's first draw it hides at once, with no animation</li>
+        <li><code>el.visible = false</code> writes <code>visible="false"</code></li>
+      </ul>
+    </li>
+    <li>
+      <code>hidden</code>: the platform's, which now beats a family's own <code>:host { display: ... }</code> (an
+      unlayered rule in
+      <a href="../../../packages/ui/src/styles/reset.css" target="src-packages-ui-src-styles-reset-css"
+        ><code>reset.css</code></a
+      >); <code>&lt;ui-divider hidden&gt;</code> keeps Fomantic's meaning
+    </li>
+    <li>
+      <code>readonly</code> (<a href="#q30">Q30</a>): <code>FormComponent.isReadOnly</code> and
+      <code>:state(readonly)</code>
+      <ul>
+        <li><code>&lt;ui-select&gt;</code> takes it: a change is undone</li>
+        <li><code>&lt;ui-search&gt;</code> takes it: its input is read-only and its results never open</li>
+      </ul>
+    </li>
+    <li>
+      <code>inert</code>: the platform's, left unstyled (<a href="#j56">J56</a>)
+      <ul>
+        <li>NOT dimmed, though the recommended answer to part 4 of <a href="#q28">Q28</a> said it would be</li>
+        <li>why: overlays put <code>inert</code> on what they cover, and a generic dim doubled up with theirs</li>
+      </ul>
+    </li>
+    <li>the static render (<code>$/ui/static</code>) carries the states as ARIA and <code>data-state</code></li>
+    <li>
+      <b>How <code>visible</code> and <code>hidden</code> fit together (<a href="#q28">Q28</a>) was never answered</b>:
+      P8 was built on its four recommended options (<a href="#j56">J56</a>, <a href="#j57">J57</a>,
+      <a href="#j58">J58</a>, <a href="#j59">J59</a>)
+      <ul>
+        <li>
+          the re-ask page,
+          <a href="../details/visible-hidden-2026-10-09.html" target="spell-element-visible-hidden"
+            ><code>details/visible-hidden-2026-10-09.html</code></a
+          >, stays open, and <a href="#q28">Q28</a> stays an open question
+        </li>
+      </ul>
+    </li>
+    <li>
+      What's rough:
+      <ul>
+        <li>
+          <b>any boolean with a <code>true</code> default now reflects off as <code>="false"</code></b
+          >, instead of removing the attribute (<code>closable</code>, <code>exclusive</code> ...)
+        </li>
+        <li>
+          <b
+            >brand's composer and colour picker, and the select and search fallbacks, don't take
+            <code>readonly</code> yet</b
+          >
+          (<a href="#t8">T8</a>)
+        </li>
+        <li>
+          which other <code>"its own"</code> families should be <code>"unusable"</code> is for Owen (<a href="#t9">T9</a
+          >)
+        </li>
+        <li><b>a translated tag can't rename the shared attributes</b> (<a href="#t10">T10</a>)</li>
+        <li>each element pays one extra effect and three tracked reads; <code>yarn measure</code> was not run</li>
+        <li>
+          the inspector showed every tag's <code>visible</code> as set; fixed in <code>0a6c2fb4</code> (it leaves out a
+          boolean at its <code>true</code> default)
+        </li>
+        <li>
+          a drive-by: <code>TocIndex</code> imported <code>$/ui/core</code> in node, which crashed
+          <code>yarn site:check</code>; it now imports <code>$/ui/util</code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      Checks:
+      <ul>
+        <li>root <code>yarn ts</code></li>
+        <li>
+          ui: lint; ssr 264; browser 5072 after merging, 20 of them new shared-state tests (<a
+            href="../../../packages/ui/test/sharedStates.test.tsx"
+            target="src-packages-ui-test-sharedstates-test-tsx"
+            ><code>sharedStates.test.tsx</code></a
+          >); hmr 8/8
+        </li>
+        <li>visual, local: 621/621, no baselines changed</li>
+        <li><code>site:check --all</code>: 83/83</li>
+        <li>brand 134; epics 330; docs 101; app 250</li>
+        <li>
+          the guide's link check: 0 problems;
+          <a href="../../../packages/docs/tools/check-spell.js" target="src-packages-docs-tools-check-spell-js"
+            ><code>check-spell.js</code></a
+          >
+          ok
+        </li>
+      </ul>
+    </li>
   </ul></epic-field
 ><epic-commit sha="342abfb9e562e771c18dca0a71dc68c20fdbbbeb"
   >Disabled And Visible: disabled, loading, visible on every element (SharedVocabulary, elementSetup.disabled / .loading
   / .visibleAnimation), hidden fixed, readonly on every ui form control, static render, tests</epic-commit
+><epic-commit sha="6bca5f4d1d4712acc543284487dd8ca6c3e99f9d"
+  >brand's site data and the docs bundle regenerated for the shared states</epic-commit
+><epic-commit sha="0a6c2fb45f1a49e81645cd939e5f035951ee3f0f"
+  >the inspector leaves out a boolean at its true default, so every tag's new visible doesn't show as set</epic-commit
 ><epic-field name="files"
   ><ul>
     <li>
