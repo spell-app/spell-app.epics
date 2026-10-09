@@ -189,7 +189,7 @@ element takes its colour from this table, never a colour that means something el
 | yellow | open, still undecided                       | an open todo, caveat or test (a todo a review queued too); a reviewed issue or judgement call; "to do"; an epic still planning; a goals topic "in dialog". DARK text and icons on a yellow fill                     |
 | blue   | do it now, or Claude is working on it       | Do Now, Revisit, Send (everywhere: the page header, the agents panel, details pages); the Underway status card; an item Claude is working on (its chip, the spinner); an epic in progress; a goals topic "building" |
 | green  | decided or done (however long ago)          | Approve, Make Todo; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card; an item decided, done, or approved as it stands, for good; an epic done; a goals topic "agreed", "shipped" |
-| orange | ONLY changed since you looked, and warnings | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a stalled epic                                                                                                     |
+| orange | ONLY changed since you looked, and warnings; an item Claude answered with options, waiting for your pick (Owen, 2026-10-09) | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a stalled epic; a `replied` item's chip (DARK text on it)                                         |
 | violet | Claude's voice                              | his reply cards; "recommended" (a thumbs-up, no word)                                                                                                                                                               |
 | ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the rail                                                                                                                     |
 | grey   | no longer relevant, inactive, not chosen    | a canceled item (made moot); buttons at rest, and once Claude has handled them; a phase to do; a future epic; a goals topic "draft"                                                                                 |
@@ -240,13 +240,17 @@ edit. The FIRST row that applies wins, top to bottom (`PLAN-DOC.md`, "Items", th
 | `old`       | grey   | canceled: no longer relevant (made moot, struck through)                                     |
 | `recent`    | green  | decided or done (decided, done), however long ago                                            |
 | `open`      | yellow | work a review queued (a todo mark), not started                                              |
+| `replied`   | orange | open, and Claude's LAST reply holds options nothing is picked in yet: your turn to pick      |
 | `attention` | red    | an open question; an open judgement call or issue not reviewed, unless `calm` (not urgent)   |
 | `recent`    | green  | open, settled by a review: approved as it stands, or made a todo                             |
 | `open`      | yellow | anything else open: still undecided, not urgent (todos, caveats, tests; reviewed issues and judgement calls; a revisit or Do Now Claude answered) |
 
 - Green across the board for what's decided; grey only for what no longer matters (Owen, 2026-10-08). Neither age
   nor a `/bedtime` run colours a chip any more.
-- The rail counts only `attention` items, in a red pill; none, no pill.
+- `replied` (Owen, 2026-10-09; branch `spell-element` until it merges): a pick (`chosen`), a newer reply from you, or
+  closing the item ends it; a reply asking without cards (a yes / no in prose) doesn't make it orange.
+- The rail counts only what needs you, `attention` and `replied` items, in a red pill; none, no pill. The "only what
+  needs you" filter shows both.
 - In CSS: `<epic-page>`'s `--epic-state-*` (`packages/epics`), `spell-doc.css`'s `--spell-state-*` (the other doc
   pages): the same values.
 - Goals pages colour their items by the same states (an open question `attention`, any other open item `open`, a
