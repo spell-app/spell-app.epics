@@ -40,18 +40,23 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
    - suggest:  keep them behind the families that need them, or a documented per-family entry that a bundler can
      tree-shake
 
-4. **The fork's `packages/solid-element/node_modules` carries its own `solid-js` / `@solidjs/*`**
-   - symptom:  bundling UI's dist naively resolves a second Solid from there:  two Solids, `NoOwnerError` everywhere
+4. **RESOLVED 2026-10-09.  solid-element's own `node_modules` carried a second `solid-js` / `@solidjs/*`**
+   - resolved by epic `spell-element` (P5):  solid-element is folded into `ui`'s own `DOMElement` and `UIComponent`,
+     so there is one Solid by construction.  Kept for the record:
+   - symptom:  bundling UI's dist naively resolved a second Solid from `packages/solid-element/node_modules`:
+     two Solids, `NoOwnerError` everywhere
    - repro:  bundle `dist/index.js` with default resolution
    - workaround:  the bundler forces `solid-js`, `@solidjs/*` to UI's top-level `node_modules`, and checks there's
      exactly one copy
-   - suggest:  dedupe the fork's install (peer deps only), or ship `solid-element` with Solid external
+   - suggest:  dedupe solid-element's install (peer deps only), or ship it with Solid external
 
-5. **UI's `yarn build` doesn't rebuild the fork, and resolves `@spell-app/solid-element` to the fork's `dist`**
-   - symptom:  a change in the fork's source never reaches UI's `dist` until the fork is built by hand;  stale dist
+5. **RESOLVED 2026-10-09.  UI's `yarn build` didn't rebuild solid-element, and resolved it to solid-element's `dist`**
+   - resolved by epic `spell-element` (P5):  there is no separate package to build;
+     UI's build compiles its own element core, `src/elements/`.  Kept for the record:
+   - symptom:  a change in solid-element's source never reached UI's `dist` until it was built by hand;  stale dist
    - repro:  edit `packages/solid-element/src`, run UI's `yarn build`, diff
-   - workaround:  `bundle-spell-ui.js` builds the fork before UI
-   - suggest:  make UI's build build the fork first (workspace `build` dependency), or alias to its source
+   - workaround:  `bundle-spell-ui.js` built solid-element before UI
+   - suggest:  make UI's build build solid-element first (workspace `build` dependency), or alias to its source
 
 ## Elements
 
