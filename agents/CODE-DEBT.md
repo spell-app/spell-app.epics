@@ -479,15 +479,16 @@ knowingly kept:
 
 ### Drawing works around Solid rc.13's `<Errored>`
 
-- **Cost**:  each drawn thing's error net is three parts, not one:  `<Errored>`, a memo running `draw()`, and a
-  `try` / `catch` that makes the stand-in.  And `spellCore.element()` builds its DOM nodes at once, so a javascript
-  drawing builds every element it names, even one a later step throws away.
+- **Cost**:  each drawn thing's error boundary is three parts, not one:  `<Errored>`, a memo running `draw()`, and a
+  `try` / `catch` that makes the stand-in.  And the boundary makes `h()`'s thunk at once (`madeOnce()`), so a
+  javascript drawing builds every element it names, even one a later step throws away.
 - **Cause**:  rc.13's `<Errored>` re-reads its children on ANY change under it, and makes its fallback again each time
   (measured:  a card added to a pile made a new stand-in for the pile's broken card).  So the stand-in is made in the
-  memo, once;  and `element()` calls `@solidjs/h`'s thunk at once, as a thunk would be built again on every re-read.
-- **Fix**:  once Solid's `<Errored>` keeps its children and its fallback, the net is `<Errored>` alone, and
-  `element()` can hand Solid its thunk.  Re-measure on every RC bump.
-- **Pinned at**:  `drawInNet()` / `drawOrStandIn()` and `element()` in `packages/core/src/drawing.ts`;  caveats C13,
+  memo, once;  and the boundary calls `@solidjs/h`'s thunk at once, as a thunk would be built again on every re-read.
+  (Before epic `output-targets` P20, `spellCore.element()` did that;  it's gone since P22.)
+- **Fix**:  once Solid's `<Errored>` keeps its children and its fallback, the boundary is `<Errored>` alone, and
+  it can hand Solid the thunk.  Re-measure on every RC bump.
+- **Pinned at**:  `drawInBoundary()` / `drawOrStandIn()` / `madeOnce()` in `packages/core/src/drawing.ts`;  caveats C13,
   C14 of `epics/output-targets/`.
 
 ---
@@ -608,34 +609,6 @@ knowingly kept:
 ---
 
 ## app
-
-### React for spell programs, beside the app's Solid
-
-- **Closed on branch `output-targets`** (epic `output-targets` P10-P11, 2026-10-09), not merged yet:  delete this
-  entry when it merges into `main`.
-  - Compiled spell draws with Solid (`core`'s `drawing.ts`:  `element()` on `@solidjs/h`, `drawThing()`, `@drawn`).
-  - The one example on the React kits, Todos - Form Based, draws with Spell UI's own tags.
-  - Gone:  the forms kit (`F`), `SUIPassThroughs`, `semantic-ui-react`, `view()`, `@vitejs/plugin-react`,
-    `reactFiles()`, and React from `app`, `core` and `util`.  Only the `spell` CLI keeps React, for Ink.
-  - `build.test.ts` and `element.build.test.ts` now pin that no bundle holds React.
-  - What follows is `main`'s state until then.
-- **Cost**: two renderers in `app`'s builds.  The app's own UI is Solid (migration P6-P8, P9 pinned it React-free),
-  but compiled spell still draws with React + `semantic-ui-react` (`core`'s `Thing` / `List` / `App`, the forms
-  `F`, `SUIPassThroughs`):  `spell-runtime.js` ships React, every `vite*.config.ts` runs both JSX plugins, and the
-  React `.tsx` files must say so.  A React file missing its marker compiles as Solid:  `tsc` usually catches it,
-  else it fails at runtime.  `$/util`'s `view()` (the cells-to-React bridge) keeps React a dependency of `util`.
-- **Cause**: moving compiled spell to Solid ("Core + JSX Emit":  `core`'s `element()` on `@solidjs/h`, the parser's
-  JSX emit, spell projects to `<ui-*>`) was split off the migration (`epics/solid-migration/`, D9,
-  todo T2).  Solid is the DEFAULT JSX (`tsconfig.json` `jsxImportSource: "@solidjs/web"`);  React files carry
-  `/** @jsxImportSource react */` on their first line, which both TypeScript and `reactFiles()`
-  (`packages/app/vite.shared.ts`) read.
-- **Fix**: the Core + JSX Emit work;  then delete `@vitejs/plugin-react`, `reactFiles()`, `view()`, the forms /
-  pass-throughs and the React deps.
-- **Pinned at**: `packages/app/vite.shared.ts` (`REACT_DIRS`, `REACT_MARKER`);  the marker in each React `.tsx` of
-  `packages/app/src/ui/forms/`, `packages/core/src`;  `packages/app/src/build.test.ts` (the app's chunks hold no
-  React, `spell-runtime.js`'s do);  `packages/app/src/solid.test.tsx`.
-
----
 
 ### The runners can't run TypeScript output
 
