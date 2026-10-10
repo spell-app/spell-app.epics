@@ -1,0 +1,43 @@
+<!-- plan-doc part:  #j93's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  <code>h()</code> hands back a thunk (a function that makes the element). A <code>draw()</code> returns it as is, and
+  core's error net makes it. The net makes ONLY <code>h()</code>'s own thunks, and tells them apart by the mark
+  <code>h()</code> puts on them.
+</p>
+<ul>
+  <li>
+    The mark is a symbol <code>@solidjs/h</code> keeps to itself. Core reads it off a thunk of its own when it loads,
+    <code>h("i")</code>, which makes nothing and touches no page (<code>H_THUNK</code> in
+    <a href="../../../../packages/core/src/drawing.ts" target="src-packages-core-src-drawing-ts"
+      ><code>drawing.ts</code></a
+    >). It's exact: the same copy of <code>h</code> core exports to compiled javascript.
+  </li>
+  <li>
+    Any other function a <code>draw()</code> returns is a live value, left for Solid to call (and call again when it
+    changes). A test pins both, and pins the mark, so a Solid bump that drops it fails there.
+  </li>
+  <li>
+    Not made by the net: an ARRAY of thunks from a <code>draw()</code>. The writer never returns one: a drawing is one
+    <code>h()</code> at the top.
+  </li>
+  <li>The stand-in a failed drawing shows is made at once too (it was a thunk, left as the memo's value).</li>
+</ul>
+<p>Measured (rc.13), with and without the net making the thunk:</p>
+<ul>
+  <li>
+    A throw while the thunk is made (a part of the drawing that can't be drawn): with it, the stand-in and one console
+    line; without it, an EMPTY spot, no stand-in.
+  </li>
+  <li>
+    Made more than once: neither core's fake page nor the browser runner's 22 tests made a card or pile again when a
+    card was added, either way. The rule's real work is the error net; "once" is kept and pinned by a test anyway.
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>Compiled javascript returns <code>h(...)</code> straight from <code>draw()</code>; nothing wraps it</li>
+    <li>A drawing that throws while it's made shows its stand-in, as a <code>draw()</code> that throws does</li>
+  </ul></epic-net-effect
+><epic-original
+  ><epic-version><p>Details below.</p></epic-version></epic-original
+>
