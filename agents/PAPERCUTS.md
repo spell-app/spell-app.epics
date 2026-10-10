@@ -1553,6 +1553,13 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## vscode
 
+- 2026-10-10 · No syntax colouring in `.spell` files, and no language server running in any window.  The installed
+  extension had been built in the `output-targets` worktree (14:34), so its `REPO_ROOT` pointed there.  That worktree
+  was merged and removed, so `startLanguageServer()` found no server and gave up (one error toast).  The grammar
+  colours only comments, strings, numbers and keywords:  the rest comes from the server's semantic tokens. ·
+  `spell dev vscode` from `main`, then "Developer: Reload Window".  Real fix:  `/isolate done` (or the worktree
+  `remove` hook) rebuilds the extension from `main` when the installed one points into the worktree it removes. ·
+  vscode
 - 2026-10-07 · A worktree window's Quick Open lists the MAIN checkout's files beside the worktree's (Owen opened
   `spell-app/packages/ui/.../UINagHost.ts`, main's copy, from the `wwod-spell-ui` window).  `filesExclude()`'s
   `"*": { "when": ".spell-main" }` hides them in Explorer only:  a sibling clause matches entries NEXT TO the marker,
