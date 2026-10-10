@@ -1,0 +1,57 @@
+<!-- plan-doc part:  #j29's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A warning is spell's second kind of problem, beside parse errors: something the program should say, which doesn't stop
+  it parsing, compiling or running.
+</p>
+<ul>
+  <li>
+    A rule notes one on its OWN match while parsing: <code>SP.SpellWarnings.note(match, message, at?)</code>, into
+    <code>match.data.warnings</code>. <code>at</code> is the match it shows under (default: the noting match).
+  </li>
+  <li>
+    NOT rolled up line by line like parse errors (<code>data.errors</code>):
+    <code>SP.SpellWarnings.in(file.match)</code> walks the file's matches as they are now, <code>matched</code> plus the
+    matches rules keep in <code>data</code>. So incremental parsing needs nothing new: a kept line keeps its warnings, a
+    re-parsed one gets fresh ones. The incremental test now checks warnings too, on every edit (they match a full
+    parse).
+  </li>
+  <li>
+    Only warnings about the file's own tokens are kept: a match parsed from a string (a quoted method signature) sits at
+    the string's offsets, so <code>quoted_method_signature</code> notes its parameters' warnings again, about the quoted
+    text.
+  </li>
+  <li>
+    Editors: <code>SpellLanguageService.diagnostics()</code> returns parse errors, then warnings as
+    <code>DiagnosticSeverity.Warning</code>, so VS Code and the app's Monaco underline them in yellow.
+  </li>
+  <li>
+    <code>spell compile</code> lists them under its errors, as <code>path:line:col warning: message</code>, and counts
+    them in its note (<code>8 warnings</code>), but never as errors: exit code, the project's state and the scope pack
+    are as if they weren't there. <code>spell check</code> prints only errors on stdout, as before; its stderr note
+    counts warnings too. <code>CLI.Problem</code> gained <code>severity?: "warning"</code>.
+  </li>
+</ul>
+<epic-code title="spell compile @examples/Calculator, before its types · 3 lines" language="text">
+  <pre>
+✓ @system:examples:Calculator  8 warnings
+    .../Calculator.spell:10:1  warning:  Say what "input" is, e.g. "a calculator has an input as text"
+    .../Calculator.spell:41:12  warning:  Say what "digit" is, e.g. "(digit as text)"</pre></epic-code
+><epic-net-effect
+  ><ul>
+    <li>
+      One generic shape for later warnings: a rule calls <code>SP.SpellWarnings.note()</code>, and editors and
+      <code>spell compile</code> show it with nothing more.
+    </li>
+    <li>
+      Files:
+      <a href="../../../packages/spell/src/SpellWarnings.ts" target="src-packages-spell-src-spellwarnings-ts"
+        ><code>packages/spell/src/SpellWarnings.ts</code></a
+      >
+      (new), <code>SpellWarning</code> in
+      <a href="../../../packages/spell/src/spell.types.ts" target="src-packages-spell-src-spell-types-ts"
+        ><code>spell.types.ts</code></a
+      >, <code>SpellLanguageService.diagnostics()</code>, <code>CliSession.warnings()</code> / <code>report()</code>;
+      PARSING.md says how.
+    </li>
+  </ul></epic-net-effect
+>
