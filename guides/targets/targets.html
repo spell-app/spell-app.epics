@@ -532,7 +532,7 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                 </tr>
                 <tr>
                   <td><code>&lt;span class="suit"&gt;{...}&lt;/span&gt;</code></td>
-                  <td><code>spellCore.element({ tag, props, children })</code></td>
+                  <td><code>h("span", { class: "suit" }, ...)</code>, Solid's own <code>h()</code></td>
                   <td>real JSX, which Solid's compiler builds</td>
                 </tr>
                 <tr>
@@ -562,8 +562,19 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
           <ui-section id="drawing-js" header="In javascript" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                Compiled spell has no build step, so its JSX is a call: <code>spellCore.element()</code>, built on
-                Solid's <code>@solidjs/h</code>.
+                Compiled spell has no build step, so its JSX is a call to Solid's own <code>h()</code>, as a person
+                writing Solid without JSX would (P20).
+                <ul>
+                  <li><code>h(tag, props, ...children)</code>: an element with no props has no <code>{}</code> at all.</li>
+                  <li>
+                    <code>h</code> comes from <code>@spell/core</code> with the rest, only in a module that draws (<a
+                      href="../../epics/output-targets/output-targets.plan.html#q57"
+                      target="output-targets"
+                      >Q57</a
+                    >).
+                  </li>
+                  <li>It's the page's one copy, already loaded for drawing, so the runners link it as they did.</li>
+                </ul>
               </li>
               <li>
                 Every value in a drawing that can change is written as a function, so Solid calls it again when what it
@@ -574,7 +585,12 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                 </ul>
               </li>
               <li>
-                <code>element()</code> turns the spellings spell programs write into the page's:
+                The writer turns the spellings spell programs write into the page's, when it compiles. It's the same
+                rule the TypeScript writer follows, one function both call (<a
+                  href="../../packages/parser/src/writers/jsShapes.ts"
+                  target="src-packages-parser-src-writers-jsshapes-ts"
+                  ><code title="packages/parser/src/writers/jsShapes.ts">attributeName()</code></a
+                >):
                 <ul>
                   <li><code>className</code> is <code>class</code></li>
                   <li><code>htmlFor</code> is <code>for</code></li>
@@ -582,11 +598,39 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                     a camelCase attribute on an HTML tag is lowercased: <code>colSpan</code> is <code>colspan</code>
                   </li>
                   <li>
-                    on a tag with a dash (<code>&lt;ui-form&gt;</code>), an object or a live value is set as a PROPERTY:
-                    an attribute holds only text
+                    on a tag with a dash (<code>&lt;ui-form&gt;</code>), an object or a live value is set as a PROPERTY,
+                    <code>"prop:value"</code>: an attribute holds only text
                   </li>
+                  <li><code>class</code> comes first, then the rest as the program wrote them</li>
+                </ul>
+              </li>
+              <li>
+                A dotted tag (<code>&lt;UI.Form&gt;</code>) is a parse error, caught when it compiles (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j91"
+                  target="output-targets"
+                  >J91</a
+                >).
+                <ul>
                   <li>
-                    a dotted tag (<code>&lt;UI.Form&gt;</code>) throws: "isn't an element: write Spell UI's own tag"
+                    Why: <code>h()</code> would quietly draw a <code>&lt;UI&gt;</code> with class <code>Form</code>.
+                  </li>
+                  <li>The editor and <code>spell compile</code> show it with the line's other parse errors.</li>
+                  <li>The javascript gets <code>null</code> where the element would be, and the error in a comment.</li>
+                </ul>
+              </li>
+              <li>
+                <code>h()</code> hands back a thunk, a function that makes the element. A <code>draw()</code> returns it
+                as is, and the thing's error net makes it, once (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j93"
+                  target="output-targets"
+                  >J93</a
+                >).
+                <ul>
+                  <li>A part that throws while it's made shows the thing's stand-in, as a throwing <code>draw()</code> does.</li>
+                  <li>Elements inside it need nothing: <code>h()</code> makes them with their parent.</li>
+                  <li>
+                    The net makes ONLY <code>h()</code>'s own thunks, by the mark <code>h()</code> puts on them. Any other
+                    function is a live value, which Solid calls itself.
                   </li>
                 </ul>
               </li>
@@ -601,9 +645,51 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                 A list drawn with <code>drawItems()</code> keeps each item's node, by identity (Solid's
                 <code>&lt;For&gt;</code>).
               </li>
+              <li>
+                Programs compiled before P20 still run: <code>spellCore.element()</code>, what they call, stays as a
+                deprecated name (<a
+                  href="../../epics/output-targets/output-targets.plan.html#j94"
+                  target="output-targets"
+                  >J94</a
+                >).
+                <ul>
+                  <li>
+                    It moved whole into core's
+                    <a href="../../packages/core/src/deprecated.ts" target="src-packages-core-src-deprecated-ts"
+                      ><code title="packages/core/src/deprecated.ts">deprecated.ts</code></a
+                    >, with the helpers only it uses: React's spellings, <code>prop:</code> on a Spell UI tag, the
+                    dotted-tag error.
+                  </li>
+                  <li>It isn't part of the core contract, so another target's core won't need it.</li>
+                  <li>A browser runner test and a <code>spell run</code> test still draw with it.</li>
+                </ul>
+              </li>
             </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>Solitaire.snapshot.js, a card's draw() · 31 lines</ui-title>
+              <ui-title>Cards.snapshot.js, a card's draw(), since P20 · 18 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-js">  draw() {
+    let className = `Card face-${this.direction} ${this.rank} ${this.suit} ui button compact fluid `
+    if (this.isFaceDown) { return h("div", {
+      class: () =&gt; className,
+      onClick: (event) =&gt; {
+        return trigger('card-click', { card: this })
+      }
+    }, h("i", { class: "fitted bicycle icon" })) }
+    return h("div", {
+      class: () =&gt; (className + this.color),
+      onClick: (event) =&gt; {
+        return trigger('card-click', { card: this })
+      }
+    },
+      () =&gt; `${this.shortRank} `,
+      h("span", { class: "suit" }, () =&gt; this.shortSuit)
+    )
+  }</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>The same draw(), before P20 · 31 lines</ui-title>
               <ui-content>
                 <pre><code class="language-js">  draw() {
     let className = `Card face-${this.direction} ${this.rank} ${this.suit} ui button compact fluid `
@@ -637,24 +723,48 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
   }</code></pre>
               </ui-content>
             </ui-accordion>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Todos - Form Based, a form on Spell UI's tags, since P20 · 6 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-js">h("ui-form", { debug: true, "prop:value": () =&gt; app },
+  h("ui-repeat", { "prop:items": () =&gt; app.shownTasks },
+    h("ui-fields",
+      h("ui-field", { width: "1" }, h("ui-checkbox", { name: "completed", "aria-label": "Done" })),
+      h("ui-field", { width: "10" }, h("ui-input", { name: "title", "aria-label": "Task" }))
+    )</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>The same form, before P20 · 6 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-js">spellCore.element({ tag: "ui-form", props: { debug: true, value: () =&gt; app }, children: [
+  spellCore.element({ tag: "ui-repeat", props: { items: () =&gt; app.shownTasks }, children: [
+    spellCore.element({ tag: "ui-fields", children: [
+      spellCore.element({ tag: "ui-field", props: { width: "1" }, children: [
+        spellCore.element({ tag: "ui-checkbox", props: { name: "completed", 'aria-label': "Done" } })
+      ] }),</code></pre>
+              </ui-content>
+            </ui-accordion>
             <ul>
               <li>
-                The excerpt is from after P19: camelCase names, template text, and <code>trigger()</code> imported by
-                name (see <a href="#js-shape">Written as a person would</a>).
+                The excerpts are from after P19 too: camelCase names, template text, and <code>trigger()</code> imported
+                by name (see <a href="#js-shape">Written as a person would</a>).
+              </li>
+              <li>
+                The import line of a module that draws:
+                <code>import { spellCore, Thing, List, App, h, positionOf, trigger } from "@spell/core"</code>.
+              </li>
+              <li>
+                Children go on the call's line when they fit, and at most one of several is an element; else one a line
+                (<a href="../../epics/output-targets/output-targets.plan.html#j90" target="output-targets">J90</a>).
+              </li>
+              <li>
+                Every step, side by side with the TypeScript:
+                <a href="../../pages/details/hyperscript-drawing.html" target="src-pages-details-hyperscript-drawing-html"
+                  >Hyperscript drawing: before and after</a
+                >.
               </li>
             </ul>
-            <!--
-              ======== P20 · Hyperscript Drawing:  FILL IN HERE once built ========
-              Compiled javascript draws with h(), imported from "@spell/core", instead of spellCore.element().
-              - Refresh the excerpt above from Solitaire.snapshot.js, and this section's bullets:
-                - the page's spellings (className => class, htmlFor => for, colSpan => colspan, "prop:" on a ui-* tag)
-                  are written by the writer when it compiles, shared with the TypeScript writer
-                - a dotted tag (<UI.Form>) is a compile error, not a throw while drawing
-                - spellCore.element() stays as a deprecated name, so programs compiled before still run
-              - Also:  the table at the top of "3. Drawing with Solid", the status line, Summary, Why ("Real JSX,
-                in Solid's shapes"), Limits › Drawing (C14 is about element()), History, Sources (drawing.ts), the footer.
-              - The before / after:  pages/details/hyperscript-drawing.html, and the plan doc's P20.
-            -->
           </ui-section>
 
           <ui-section id="drawing-ts" header="In TypeScript" sticky collapsible dividing collapsed>
