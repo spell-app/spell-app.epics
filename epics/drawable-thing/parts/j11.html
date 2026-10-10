@@ -1,0 +1,87 @@
+<!-- plan-doc part:  #j11's details in drawable-thing.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A project's drawable types get their elements from ONE line at the end of its compiled module, not from a static block
+  inside each drawable class, as the Element Bridge phase (<a href="#p3">P3</a>) planned.
+</p>
+<ul>
+  <li>
+    The plan's Files list had the JavaScript writer,
+    <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
+      ><code title="packages/parser/src/writers/JSWriter.ts">JSWriter</code></a
+    >, emit a static block in each drawable class that asked core to define its element.
+  </li>
+  <li>
+    Built instead: the project writes one line after everything else, naming every drawable type it declares.
+    <ul>
+      <li>
+        It's written by
+        <a href="../../../packages/spell/src/SpellProject.ts" target="src-packages-spell-src-spellproject-ts"
+          ><code title="packages/spell/src/SpellProject.ts">SpellProject.elementsFooterFor()</code></a
+        >, which
+        <a href="../../../packages/spell/src/SpellProject.ts" target="src-packages-spell-src-spellproject-ts"
+          ><code title="packages/spell/src/SpellProject.ts">combineCompiled()</code></a
+        >
+        calls.
+      </li>
+      <li>Sub-types of a drawable type count too: a joker that is a card gets its own tag.</li>
+      <li>A project with no drawable types ends exactly as before, so no test fixture changed.</li>
+      <li>Only the project's own types: a library it imports defines its own, as <code>&lt;game-card&gt;</code>.</li>
+    </ul>
+  </li>
+  <li>
+    Why:
+    <ul>
+      <li>
+        The writers stay untouched. Epic <code>output-targets</code> is rewriting them tonight (its P19 and P20), so a
+        change there would collide.
+      </li>
+      <li>The project's name, which starts the tag, is known to the project, not to the writer of one class.</li>
+      <li>
+        Defining last costs nothing: a tag drawn before it's defined is an unknown element until then, and the browser
+        upgrades it the moment it is.
+      </li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="the end of a compiled solitaire project" language="ts">
+  <pre>
+class Card extends Drawable { ... }
+class Joker extends Card { ... }
+class Pile extends DrawableList&lt;Card&gt; { ... }
+class Note extends Thing { ... }
+
+spellCore.defineElements("Solitaire", { Card, Joker, Pile })</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="One line at the module's end, written by the project" recommended
+    ><ul>
+      <li>Chosen and built.</li>
+      <li>No change to any writer; the TypeScript target writes the same line, though nothing runs it yet.</li>
+      <li>The project's name is right there.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="A static block in each drawable class, as planned"
+    ><ul>
+      <li>Each class defines itself as it's declared.</li>
+      <li>Every writer (JavaScript, TypeScript, Solid) changes, in the code output-targets is rewriting.</li>
+      <li>The writer would have to be handed the project's name for the tag.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="Define a tag the first time a thing of that type is drawn"
+    ><ul>
+      <li>No generated line at all.</li>
+      <li>
+        But a class from a library can't tell which project it came from, so its tag can't be named (<code
+          >&lt;game-card&gt;</code
+        >
+        or <code>&lt;solitaire-card&gt;</code>?).
+      </li>
+      <li>And a tag written in markup before any drawing would never be defined.</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect>
+  <ul>
+    <li>P3's Files list is out of date: the writers are untouched, and spell's project file writes the line.</li>
+    <li>Every compiled project with drawable types ends with one <code>spellCore.defineElements(...)</code> line.</li>
+    <li>Projects without them compile exactly as before.</li>
+  </ul>
+</epic-net-effect>
