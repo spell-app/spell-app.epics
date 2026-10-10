@@ -1,0 +1,120 @@
+<!-- plan-doc part:  #o2's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The goal is Python a Python programmer would write by hand and happily edit: Owen's "as idiomatic as Python can
+  possibly be".
+</p>
+<ul>
+  <li>
+    Names follow PEP 8, Python's style guide:
+    <ul>
+      <li>
+        functions, methods, variables and properties in <code>snake_case</code>: <code>play_fizzbuzz</code>,
+        <code>turn_face_up</code>
+      </li>
+      <li>classes in <code>PascalCase</code>: <code>Card</code>, <code>BankAccount</code></li>
+      <li>constants in capitals: <code>Card.RANKS</code></li>
+    </ul>
+  </li>
+  <li>
+    Native loops, not callbacks: <code>for number in range(1, 101):</code>, not <code>core.map(..., each_number)</code>.
+  </li>
+  <li>
+    Native operators where the kinds are known: <code>a == b</code>, <code>f"{rank}-of-{suit}"</code>,
+    <code>x in ("diamonds", "hearts")</code>.
+  </li>
+  <li>
+    Getters are <code>@property</code>; stored properties are declared in the class body, the way dataclasses and Django
+    do it.
+  </li>
+  <li>
+    A spell list is a real Python sequence: <code>deck[0]</code>, <code>len(deck)</code>, <code>for card in deck</code>,
+    <code>if not deck</code>.
+  </li>
+  <li>The core is called only where Python has no word of its own (spell's test lines, a seeded shuffle, a pause).</li>
+</ul>
+<epic-code title="FizzBuzz.compiled.py · the target shape" language="python">
+  <pre>
+"""Compiled from FizzBuzz.spell."""
+from spell_core import core
+
+
+def play_fizzbuzz() -&gt; None:
+    for number in range(1, 101):
+        if (number / 15).is_integer():
+            print(number, "fizzbuzz")
+        elif (number / 3).is_integer():
+            print(number, "fizz")
+        elif (number / 5).is_integer():
+            print(number, "buzz")
+        else:
+            print(number)
+
+
+play_fizzbuzz()</pre>
+</epic-code>
+<epic-code title="Card.spell, in part, and its Python · the target shape" language="python">
+  <pre>
+# a card is a thing
+# cards have a rank as one of ace, 2, 3, ..., jack, queen or king
+# the color of a card is red if its suit is either diamonds or hearts otherwise it is black
+# the value of a card is the position of its rank in card ranks
+# a card "is face up" if its direction is up
+# a card "is a (suit)" for its suits
+# the name of a card is: its rank + "-of-" + its suit
+
+class Card(Thing):
+    """Definition of a card, with nice English aliases for working with it."""
+
+    RANKS = ["ace", 2, 3, 4, 5, 6, 7, 8, 9, 10, "jack", "queen", "king"]
+    SUITS = ["clubs", "diamonds", "hearts", "spades"]
+
+    rank = prop(one_of=RANKS)
+    suit = prop(one_of=SUITS)
+    direction = prop(one_of=["up", "down"])
+
+    @property
+    def color(self) -&gt; str:
+        return "red" if self.suit in ("diamonds", "hearts") else "black"
+
+    @property
+    def value(self) -&gt; int | None:
+        return core.position_of(Card.RANKS, self.rank)
+
+    @property
+    def is_face_up(self) -&gt; bool:
+        return self.direction == "up"
+
+    def is_a_suit(self, suit: str) -&gt; bool:
+        return self.suit == suit
+
+    @property
+    def name(self) -&gt; str:
+        return f"{self.rank}-of-{self.suit}"
+
+    def turn_face_up(self) -&gt; None:
+        self.direction = "up"
+        core.pause_for(50, "msec")</pre>
+</epic-code>
+<epic-aside title="what today's JavaScript says for the same lines">
+  <epic-code title="Cards.snapshot.js · lines 5-58, in part" language="js">
+    <pre>
+export class Card extends Thing {
+  static Ranks = ['ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'jack', 'queen', 'king']
+  static { this.declareProp('rank', { oneOf: Card.Ranks }) }
+  get rank() { return this.getProp('rank') }
+  set rank(value) { this.setProp('rank', value) }
+  get value() {
+    return positionOf(Card.Ranks, this.rank)
+  }
+  isASuit(suit) {
+    return this.suit === suit
+  }
+  get name() {
+    return `${this.rank}-of-${this.suit}`
+  }
+  async turnFaceUp() {
+    this.direction = 'up'
+    await spellCore.pauseFor(50, 'msec')
+  }</pre>
+  </epic-code>
+</epic-aside>
