@@ -1,31 +1,41 @@
 <!-- plan-doc part:  #j75's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  In the <code>classes</code> split, <code>DefinePropertyHas.getLongForm()</code> checks
-  <code>specifier.is(OutlineSpecifierEnum)</code>, but <code>outline_specifier_enum</code> registers AFTER
-  <code>define_property_has</code>.
+  In the classes split, one rule reads a rule registered after it, so it imports it through the folder, not its file.
 </p>
 <ul>
   <li>
-    Importing <code>./OutlineSpecifierEnum</code> would load (and register) it first: the <code>_testable_</code> order
-    in
-    <a
-      href="../../../packages/spell/src/rules/ruleNames.test.ts"
-      target="src-packages-spell-src-rules-rulenames-test-ts"
-      ><code>ruleNames.test.ts</code></a
-    >'s snapshot changes.
+    <code>DefinePropertyHas.getLongForm()</code> checks <code>specifier.is(OutlineSpecifierEnum)</code>.
+  </li>
+  <li>But outline_specifier_enum registers AFTER define_property_has.</li>
+  <li>
+    Importing <code>./OutlineSpecifierEnum</code> would load (and register) it first.
+    <ul>
+      <li>
+        The "_testable_" order in
+        <a
+          href="../../../packages/spell/src/rules/ruleNames.test.ts"
+          target="src-packages-spell-src-rules-rulenames-test-ts"
+          ><code>ruleNames.test.ts</code></a
+        >'s snapshot would change.
+      </li>
+    </ul>
   </li>
   <li>
-    Chose: <code>import { OutlineSpecifierEnum } from "$/spell/rules/classes"</code>, the folder's own
-    <code>index.ts</code>. A cycle, but the class is read only when <code>getLongForm()</code> runs, long after the
-    folder loaded; a comment above the import says why.
+    Chose: <code>import { OutlineSpecifierEnum } from "$/spell/rules/classes"</code>, the folder's own index.
+    <ul>
+      <li>A cycle, but the class is read only when getLongForm() runs, long after the folder loaded.</li>
+      <li>A comment above the import says why.</li>
+    </ul>
   </li>
   <li>
-    Over: swapping the check to <code>is(TypeSpecifierEnum)</code> (registered earlier, so a plain import): the same for
-    every real input, but not for a nonsense one, e.g. <code>its have a x as one of a, b</code>, so a behaviour change
-    in principle.
+    Over: swapping the check to <code>is(TypeSpecifierEnum)</code>, registered earlier, so a plain import.
+    <ul>
+      <li>The same for every real input, but not for a nonsense one, e.g. <code>its have a x as one of a, b</code>.</li>
+      <li>So a behaviour change, in principle.</li>
+    </ul>
   </li>
   <li>
-    Breaks only if something imports <code title="classes/DefinePropertyHas.ts">DefinePropertyHas.ts</code> directly
+    Breaks only if something imports <code title="classes/DefinePropertyHas.ts">DefinePropertyHas.ts</code> directly,
     before the folder: nothing does.
   </li>
 </ul>
