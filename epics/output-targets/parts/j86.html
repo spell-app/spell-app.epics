@@ -1,39 +1,61 @@
 <!-- plan-doc part:  #j86's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>
-  A getter is read by its member name only if the writer knows it IS a getter. A whole project's compile sees every
-  file; code written alone didn't, so the editor's view of one file, a hover's compiled preview and a rule test would
-  read <code>card.short_rank</code> while the getter is <code>get shortRank()</code>.
-</p>
+<p>A getter is read by its member name only if the writer knows it IS a getter.</p>
+<ul>
+  <li>A whole project's compile sees every file; code written alone didn't.</li>
+  <li>
+    So three things read <code>card.short_rank</code>, while the getter is <code>get shortRank()</code>:
+    <ul>
+      <li>the editor's view of one file</li>
+      <li>a hover's compiled preview</li>
+      <li>a rule test</li>
+    </ul>
+  </li>
+</ul>
+<p>The fix:</p>
 <ul>
   <li>
     New <code>JSWriter.writeMatch(match)</code>: writes a file, a statement or a rule test as if it were the whole
-    project, in its scope. The editor's file view (<code>SpellFile.compile()</code>), LSP previews
-    (<code>compileQuietly()</code>), the rule-test harness and the parser speed test all use it.
+    project, in its scope.
+    <ul>
+      <li>The editor's file view uses it (<code>SpellFile.compile()</code>).</li>
+      <li>So do the language server's previews (<code>compileQuietly()</code>).</li>
+      <li>And the rule-test harness, and the parser speed test.</li>
+    </ul>
   </li>
   <li>
-    <code>WriterProject.of()</code> also reads the project's own scope: each type's getters, and a type another file
-    declares is known as an imported one is (its members, its super-type). A whole project's compile already knew all
-    that, so its output is unchanged.
+    <code>WriterProject.of()</code> also reads the project's own scope:
+    <ul>
+      <li>each type's getters</li>
+      <li>a type another file declares is known as an imported one is: its members, its super-type</li>
+      <li>A whole project's compile already knew all that, so its output is unchanged.</li>
+    </ul>
   </li>
   <li>
-    So TypeScript's rule tests changed too, where they read a getter or a list class from their test scope, e.g.
-    <code>the short rank of the card</code> was <code>card.short_rank</code> (wrong: the getter is
-    <code>shortRank</code>), now <code>card.shortRank</code>; <code>a pile can take a card if: it is empty</code> is
-    <code>this.isEmpty</code>; <code>thing is a Bee</code> is <code>thing instanceof Bee</code>.
+    So TypeScript's rule tests changed too, where they read a getter or a list class from their test scope:
+    <ul>
+      <li>
+        <code>the short rank of the card</code> was card.short_rank (wrong: the getter is shortRank), now
+        <code>card.shortRank</code>
+      </li>
+      <li><code>a pile can take a card if: it is empty</code> is <code>this.isEmpty</code></li>
+      <li><code>thing is a Bee</code> is <code>thing instanceof Bee</code></li>
+    </ul>
   </li>
   <li>
-    One test's comparison needed a note: Solitaire compiled against the library's SOURCES vs its DECLARATIONS differ by
-    one more line now, <code>this.name == 'diamonds'</code> vs <code>===</code>, as the sources auto-declare a pile's
-    <code>name</code> (<a
+    One test's comparison needed a note (<a
       href="../../../packages/spell/src/SpellDeclarations.test.ts"
       target="src-packages-spell-src-spelldeclarations-test-ts"
       ><code>SpellDeclarations.test.ts</code></a
     >).
+    <ul>
+      <li>Solitaire compiled against the library's SOURCES vs its DECLARATIONS now differ by one more line.</li>
+      <li>That's <code>this.name == 'diamonds'</code> vs ===, as the sources auto-declare a pile's name.</li>
+    </ul>
   </li>
 </ul>
 <epic-net-effect
-  ><li>The editor's per-file view and hovers show the names the program really uses.</li>
-  <li>
-    Fixture snapshots (both targets) don't move from this; some rule tests' <code>ts</code> do, for the better.
-  </li></epic-net-effect
+  ><ul>
+    <li>The editor's per-file view and hovers show the names the program really uses.</li>
+    <li>Fixture snapshots (both targets) don't move from this; some rule tests' ts do, for the better.</li>
+  </ul></epic-net-effect
 >
