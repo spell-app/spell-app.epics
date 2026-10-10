@@ -17,7 +17,7 @@ declare class List<Item> extends Thing {
   items: Item[]
 }
 declare const spellCore: {
-  getItemOf<Item>(list: List<Item> | Item[], position: number): Item
+  getItemAt<Item>(list: List<Item> | Item[], position: number): Item
   itemCountOf(list: List<unknown> | unknown[]): number
   isEmpty(thing: List<unknown> | unknown[] | string): boolean
   endsWith(thing: string | unknown[], ending: unknown): boolean
@@ -64,13 +64,13 @@ chip.put_on_$pile(pot)
 // P4c  add the card to the deck  (after a user's `to add (a card) to (a pile)`)
 card.add_to_$pile(deck)
 // P1a  the first card of the deck is face up
-spellCore.getItemOf(deck.is_face_up, 1)
+spellCore.getItemAt(deck.is_face_up, 1)
 // P1b  the number of cards in the deck is 52
 spellCore.itemCountOf(deck == 52)
 // P1c  the number of cards in the deck + 1
 spellCore.itemCountOf(deck + 1)
 // P1d  the suit of the first card of the deck is hearts
-spellCore.getItemOf(deck == "hearts", 1).suit
+spellCore.getItemAt(deck == "hearts", 1).suit
 // P3   x + y is empty
 x + spellCore.isEmpty(y)
 // P2b  x ends with y and 1
@@ -84,8 +84,8 @@ card.colour
 
 chip.put_on_$pot(pot)
 spellCore.append(deck, card)
-spellCore.getItemOf(deck, 1).is_face_up
+spellCore.getItemAt(deck, 1).is_face_up
 spellCore.itemCountOf(deck) == 52
 spellCore.itemCountOf(deck) + 1
-spellCore.getItemOf(deck, 1).suit == "hearts"
+spellCore.getItemAt(deck, 1).suit == "hearts"
 card.color
