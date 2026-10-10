@@ -1,29 +1,53 @@
 <!-- plan-doc part:  #o3's body in markdown.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Dogfooding finds spell-isms in <code>$/parser</code>. Fixed in the parser, simplest change that works, each through
-  the review gate (<a href="#d5">D5</a>, <a href="#d7">D7</a>). Known before starting:
+  Using the parser for something other than spell finds the places it assumes spell ("spell-isms"). Each is fixed in the
+  parser, by the simplest change that works, through the review gate (<a href="#d5">D5</a>, <a href="#d7">D7</a>).
 </p>
+<p>Known before starting:</p>
 <ol>
   <li>
-    <code>Tokenizer</code>: <code>tokenize</code>, <code>matchWord</code>, <code>matchText</code>,
-    <code>matchComment</code>, <code>matchJSXElement</code> ... are arrow-function FIELDS, so a subclass method of the
-    same name is silently shadowed. No subclass existed until now.
+    The <code>Tokenizer</code>'s methods are arrow-function FIELDS, so a subclass method of the same name is silently
+    shadowed.
+    <ul>
+      <li>which: <code>tokenize</code> and <code>matchWord</code></li>
+      <li><code>matchText</code> and <code>matchComment</code></li>
+      <li><code>matchJSXElement</code>, and more</li>
+      <li>no subclass existed until now</li>
+    </ul>
   </li>
   <li>
-    Default tokens misfire on markdown: <code>don't ... won't</code> one quoted string; <code>http://x</code> and
-    <code>---</code> start comments; <code>#</code> a comment; <code>&lt;b&gt;</code> JSX (unclosed
-    <code>&lt;br&gt;</code> swallows the rest); <code>1.</code> a number; <code>café</code> splits; <code>¬</code> /
-    <code>∆</code> rewritten.
+    The default tokens misfire on markdown:
+    <ul>
+      <li><code>don't ... won't</code> is read as one quoted string</li>
+      <li><code>http://x</code> and <code>---</code> start comments, and so does <code>#</code></li>
+      <li><code>&lt;b&gt;</code> is read as JSX, so an unclosed <code>&lt;br&gt;</code> swallows the rest</li>
+      <li><code>1.</code> is a number</li>
+      <li><code>café</code> splits in two</li>
+      <li><code>¬</code> and <code>∆</code> are rewritten</li>
+    </ul>
   </li>
   <li>
-    <code>Literals.matchAtStart</code> ignores whitespace: <code>**</code> also matches <code>* *</code>, though
-    <code>Symbols</code>' docs say "no space in-between".
+    <code>Literals.matchAtStart</code> ignores whitespace, so <code>**</code> also matches <code>* *</code>.
+    <ul>
+      <li><code>Symbols</code>' docs say "no space in-between"</li>
+    </ul>
   </li>
-  <li>No HTML-string serializer: <code>P.render.toText</code> strips tags; <code>toHTML</code> ~20 lines.</li>
-  <li><code>Choice</code> tries every alternative, keeps the longest: may be slow on inline text.</li>
   <li>
-    The <code>P</code> barrel loads all of it (2.7k-line JS-codegen
-    <a href="../../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"><code>AST.ts</code></a
-    >, scopes, incremental): matters for the <code>ui</code> bundle (<a href="#o5">1.5</a>).
+    No serializer to an HTML string: <code>P.render.toText</code> strips tags.
+    <ul>
+      <li>a <code>toHTML</code> is about 20 lines</li>
+    </ul>
+  </li>
+  <li><code>Choice</code> tries every alternative and keeps the longest: it may be slow on inline text.</li>
+  <li>
+    The parser's <code>P</code> barrel loads all of it, which matters for Spell UI's bundle (<a href="#o5">1.5</a>):
+    <ul>
+      <li>
+        <a href="../../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
+          ><code title="packages/parser/src/ast/AST.ts">AST.ts</code></a
+        >, 2.7k lines that generate JavaScript
+      </li>
+      <li>scopes, and incremental parsing</li>
+    </ul>
   </li>
 </ol>
