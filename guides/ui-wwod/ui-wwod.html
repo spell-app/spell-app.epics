@@ -74,8 +74,8 @@
                 <li>a port of Fomantic UI, whose class grammar stays</li>
                 <li>data that node loads without a DOM (vocabularies, the static render)</li>
                 <li>
-                  custom elements built on Solid's custom-element layer (Spell UI's own code since epic
-                  <code>spell-element</code>)
+                  custom elements built on its own element core: <code>DOMElement</code> (the tag) and
+                  <code>UIComponent</code> (the class behind it), on Solid 2
                 </li>
               </ul>
             </li>
@@ -129,9 +129,8 @@
                 is retired.
               </li>
               <li>
-                The custom-element layer (Solid's, folded into <code>ui</code>'s <code>DOMElement</code> and
-                <code>UIComponent</code> by epic <code>spell-element</code>) defines the tag and builds the component on
-                first connect.
+                <code>UIButton.define()</code> defines the tag; the DOM element builds its component the first time it's
+                connected.
               </li>
             </ul>
             <ui-table celled compact striped>
@@ -186,13 +185,31 @@
             collapsed
           >
             <ul>
-              <li>ONE class setting holds what the platform reads when the tag is defined.</li>
-              <li>It's merged down the class chain, base first: a subclass states only the keys it changes.</li>
+              <li>
+                ONE class setting, <code>@E.protoMerged static elementSetup</code>, holds what the custom element needs:
+                <ul>
+                  <li>its style sheets and the CSS states that follow its attributes</li>
+                  <li>what the platform reads when the tag is defined (form control, focus, slots)</li>
+                  <li>the ARIA it always has, and what <code>disabled</code> and <code>loading</code> mean for it</li>
+                </ul>
+              </li>
+              <li>
+                It's merged down the class chain: a subclass states only the keys it changes, and reads the rest from
+                its base.
+              </li>
+              <li>
+                A key whose value is a list or an object (<code>styleSheets</code>, <code>cssStates</code>,
+                <code>aria</code>) is replaced whole. A subclass that adds to one spreads its base's:
+                <code>styleSheets: { ...UISection.prototype.elementSetup.styleSheets, panel: panelCSS }</code>.
+              </li>
               <li>
                 Every literal ends <code>satisfies Partial&lt;E.ElementSetup&gt;</code>, so a misspelt key fails
                 TypeScript.
               </li>
-              <li>Read the merged result through <code>setup</code>, never <code>elementSetup</code> itself.</li>
+              <li>
+                Read it as <code>this.elementSetup</code> in the component, or
+                <code>UIButton.prototype.elementSetup</code> from outside.
+              </li>
             </ul>
             <ui-table celled compact striped>
               <table>
