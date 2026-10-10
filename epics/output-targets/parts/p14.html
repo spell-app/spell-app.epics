@@ -1,55 +1,311 @@
 <!-- plan-doc part:  #p14's body in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom"
-  >The durable doc,
-  <a href="../../../guides/targets/targets.html" target="src-guides-targets-targets-html">Targets and Writers</a>, and
-  the changelog describe the epic as of <a href="#p9">P9</a>: React drawing, <code>ts/solid</code> as typed JavaScript,
-  the untyped gap open.</epic-field
+  >The TypeScript still reads as spell's machinery: <code>spellCore.filter(allPiles, ...)</code> where a list could
+  filter itself, <code>spellCore.RUNTIME.trigger(...)</code> for an event, a <code>!</code> on every read that might be
+  nothing, and <code>==</code> everywhere.</epic-field
 ><epic-field name="changes"
-  ><p>Bring the docs and the code's text level with what <a href="#p10">P10</a> to <a href="#p13">P13</a> built:</p>
+  ><p>Spell's TypeScript reads as a person would write it, not as spell's machinery.</p>
   <ul>
-    <li>one reactive engine, in <code>$/util/reactive</code></li>
-    <li>both targets on Solid</li>
-    <li>the examples on Spell UI, and React gone</li>
-    <li><code>ts/solid</code> written the way a person would write it</li>
-    <li>the untyped gap closed, and spell's new "say what it is" warning</li>
-  </ul>
-  <p>Then a last pass over the branch's comments and docs, before merging.</p></epic-field
+    <li>Core's list gains its own methods, and core gains <code>on()</code> / <code>trigger()</code>.</li>
+    <li>
+      The TypeScript writer uses them, compares the way TypeScript does, and writes <code>?.</code> where it wrote
+      <code>!</code>.
+    </li>
+    <li>The JavaScript changes only for events and <code>?.</code>.</li>
+  </ul></epic-field
 ><epic-field name="goal"
   ><ul>
     <li>
-      <code>/fussbudget branch</code>: the comments and docstrings this branch changed, rewritten for a reader new to
-      them
-    </li>
-    <li><code>/fussbudget epic output-targets</code>: this plan doc's prose, the same way</li>
-    <li>
-      The durable doc,
-      <a href="../../../guides/targets/targets.html" target="src-guides-targets-targets-html"
-        ><code>guides/targets/targets.html</code></a
-      >, updated: compiled spell draws with Solid in both targets, each drawn thing's error net (<code>@drawn</code>),
-      <code>ts/solid</code>'s <code>.compiled.tsx</code>, the decorators (as <a href="#q20">Q20</a> settled them), how
-      far the untyped gap closed and the new warning; its Why and Limits from Q18 to Q27 and the caveats still open
+      Where this comes from: Owen's long review of the <code>ts/solid</code> output, sample by sample (2026-10-09), on
+      top of two questions he answered that day, <a href="#q33">Q33</a> (A: list methods, TypeScript only) and
+      <a href="#q34">Q34</a> (B: events from core, in JavaScript too).
     </li>
     <li>
-      <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"
-        ><code>guides/solid/solid-2.md</code></a
-      >
-      and
-      <a href="../../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a> say
-      compiled spell is on Solid (the "React for spell programs" entry closed)
+      <b>Lists have their own methods</b> (<a href="#q33">Q33</a>, A; the TypeScript writer only): Solitaire's
+      TypeScript reads <code>allPiles.filter((pile) =&gt; ...)</code>, not <code>spellCore.filter(allPiles, ...)</code>.
+      <ul>
+        <li>
+          Core's
+          <a href="../../../packages/core/src/classes/List.ts" target="src-packages-core-src-classes-list-ts"
+            ><code title="packages/core/src/classes/List.ts">List</code></a
+          >
+          gains each method below, doing exactly what its <code>spellCore</code> twin does.
+        </li>
+        <li>Every position counts from 1, as in spell.</li>
+        <li>
+          A result that is a list owns nothing (it's scratch): filtering the piles must never take a card out of its
+          pile.
+        </li>
+        <li><code>List</code> is iterable, so <code>for (const card of pile)</code> works.</li>
+        <li>
+          The writer uses them only where spell KNOWS the value is a list (<code>all-piles</code> is a list of piles).
+          Plain arrays and text keep <code>spellCore</code>.
+        </li>
+        <li>A callback loses the type it no longer needs: TypeScript knows <code>pile</code> is a Pile.</li>
+        <li>
+          <code>add x to list before y</code>, when y isn't in the list: added at the START (and <code>after y</code>:
+          at the END). The same rule in spell and in <code>addBefore()</code> / <code>addAfter()</code>.
+        </li>
+        <li>
+          <code>a copy of discards as a pile</code> is <code>discards.clone()</code> when the list already is that class
+          (a Discard_Pile is a Pile); <code>cloneAs(Pile)</code> only when it names another class.
+        </li>
+      </ul>
+      <epic-code title="List · the new members · 14 lines" language="ts">
+        <pre>
+// getters
+firstItem  lastItem  isEmpty  max  min  keys  values  length (exists)
+// methods
+randomItem()  randomItems(n)  includes(x)  includesAny(...xs)  all(f)  any(f)
+forEach(f)  map(f)  filter(f)
+append(...)  prepend(...)  addAt(position, ...)
+addBefore(item, ...)  addAfter(item, ...)      // item not found: at the start / the end
+remove(x)  removeWhere(f)  removeBetween(a, b)  setItems(position, ...)
+reverse()  randomize()
+startingFrom(position)  startingWith(item)  between(start, end)   // inclusive
+startsWith(...)  endsWith(...)
+clone()  cloneAs(Class)  appendAll(...lists)  merged(Class)       // merged:  a list of lists
+// and iterable:  for (const card of pile) { ... }</pre>
+      </epic-code>
+      <epic-code title="Solitaire.compiled.tsx · Card.play() today, and with list methods · 8 lines" language="ts">
+        <pre>
+// today
+const droppablePiles = spellCore.filter(allPiles, (pile: Pile) =&gt; pile.droppable == true &amp;&amp; pile.canPlayCard(this))
+const endPile = spellCore.getItemOf(droppablePiles, 1) as Pile
+const cardsToMove = spellCore.rangeStartingAt(startPile, spellCore.itemOf(startPile, this)!) as Pile
+// with list methods
+const droppablePiles = allPiles.filter((pile) =&gt; pile.droppable &amp;&amp; pile.canPlayCard(this))
+const endPile = droppablePiles.firstItem
+const cardsToMove = startPile.startingWith(this)</pre>
+      </epic-code>
     </li>
-    <li><code>spell dev docs fuss --branch</code> clean: every page the branch touched passes the docs checks</li>
-    <li>The changelog entry under "2. In worktrees" brought up to date, and every hand check listed in To test</li>
+    <li>
+      <b>Events read as events</b> (<a href="#q34">Q34</a>, B; both targets): <code>trigger("card-click", ...)</code>,
+      not <code>spellCore.RUNTIME.trigger(...)</code>.
+      <ul>
+        <li>Core exports <code>on()</code>, <code>off()</code>, <code>once()</code> and <code>trigger()</code>.</li>
+        <li>
+          Each finds the CURRENT runtime when it's called: a new one is made each time a program starts, so none may
+          hold on to the first.
+        </li>
+        <li>TypeScript imports them, as it imports <code>prop</code>.</li>
+        <li>The payload's type is a type argument, and the handler takes it apart in its parameter.</li>
+        <li>
+          JavaScript calls <code>spellCore.on(...)</code> / <code>spellCore.trigger(...)</code>: its snapshots change
+          once.
+        </li>
+      </ul>
+      <epic-code title="Solitaire.compiled.tsx · events today, and after · 9 lines" language="ts">
+        <pre>
+// today
+const click = () =&gt; spellCore.RUNTIME.trigger("card-click", { card: this })
+spellCore.RUNTIME.on("card-click", (event: { card: Card }) =&gt; {
+  const { card } = event
+  card.play()
+})
+// after
+const click = () =&gt; trigger("card-click", { card: this })
+on&lt;{ card: Card }&gt;("card-click", ({ card }) =&gt; card.play())</pre>
+      </epic-code>
+    </li>
+    <li>
+      <b>No <code>!</code></b
+      >, in either target. Owen: "they will lead to runtime errors".
+      <ul>
+        <li><code>?.</code> instead, so spell reads off nothing as nothing and never throws, as spell itself does.</li>
+        <li>A getter that does sums says what nothing means: an empty pile's value is 0.</li>
+        <li>
+          Where <code>spellCore</code> stays, a type argument replaces the cast:
+          <code>spellCore.getItemOf&lt;Pile&gt;(...)</code>, not <code>... as Pile</code>.
+        </li>
+        <li>
+          This reverses part of <a href="#q26">Q26</a> (A: "read as found", with <code>!</code>) and
+          <a href="#j26">J26</a>.
+        </li>
+      </ul>
+      <epic-code title="Solitaire.compiled.tsx · reading off nothing · 8 lines" language="ts">
+        <pre>
+// today
+const it = spellCore.getItemOf(startPile, -1) as Card
+it.turnFaceUp()
+return spellCore.getItemOf(this, -1)!.value
+// after
+const it = startPile.lastItem
+it?.turnFaceUp()
+return this.lastItem?.value ?? 0</pre>
+      </epic-code>
+    </li>
+    <li>
+      <b>Comparisons a person would write.</b>
+      <ul>
+        <li>
+          Spell's <code>is defined</code> tests for undefined only, so it's <code>=== undefined</code> /
+          <code>!== undefined</code>.
+        </li>
+        <li>
+          <code>===</code> / <code>!==</code> wherever both sides' types are known and alike:
+          <code>this.operator === "+"</code>, <code>this.value === card.value + 1</code>.
+        </li>
+        <li>
+          A choice compared to yes is written bare: <code>pile.droppable &amp;&amp; ...</code>, not
+          <code>pile.droppable == true</code>; <code>is no</code> is <code>!x</code>.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Type tests in TypeScript's own words.</b>
+      <ul>
+        <li>
+          A class: <code>startPile instanceof Tableau</code>, not <code>spellCore.isOfType(startPile, "Tableau")</code>.
+        </li>
+        <li>A number: <code>typeof x === "number"</code>.</li>
+        <li>Spell's other built-in kinds: an <code>isOfType()</code> method, on Thing and List.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Text that spell knows is text uses text's own methods.</b>
+      <ul>
+        <li>
+          <code>spellCore.isEmpty(this.right)</code> is <code>!this.right</code> (empty, or never set);
+          <code>=== ""</code> only where it can't be unset.
+        </li>
+        <li><code>spellCore.includes(this.input, ".")</code> is <code>this.input.includes(".")</code>.</li>
+        <li>
+          <code>spellCore.upperCase(x)</code> is <code>x.toLocaleUpperCase()</code> where x is known text, and
+          <code>`${x ?? ""}`</code> first where it might be nothing.
+        </li>
+        <li>A list written out in place: <code>["diamonds", "hearts"].includes(this.suit)</code>.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Loops.</b>
+      <ul>
+        <li>
+          A <code>for each</code> statement is <code>list.forEach(...)</code>, not <code>spellCore.map(...)</code>.
+        </li>
+        <li>
+          One whose body waits is a plain loop, so the waits happen in turn:
+          <code>for (const card of cards) { ... await ... }</code>.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>A helper used often is imported by name</b>: <code>import { positionOf } from "@spell/core"</code> (today's
+      <code>itemOf</code>, renamed in the next phase, <a href="#p15">P15</a>).
+    </li>
+    <li>
+      <b>Small writing changes</b> in the TypeScript:
+      <ul>
+        <li>
+          a list's <code>const</code> and its <code>type</code> grouped together: the docstring, the const, the type
+        </li>
+        <li>
+          the members merged into a class (<code>export interface Pile</code>): ONE block per class, one member per
+          line, not one block per member
+        </li>
+        <li><code>} else {</code> on one line</li>
+        <li>a <code>true</code> boolean attribute written bare: <code>hidden</code></li>
+        <li>a handler that only sets a property, on one line: <code>onClick={() =&gt; (this.operator = "+")}</code></li>
+      </ul>
+      <epic-code title="Solitaire.compiled.tsx · a class's merged members · 6 lines" language="ts">
+        <pre>
+// today
+export interface Pile { canPickUpCard(card: Card): boolean }
+export interface Pile { canPlayCard(card: Card): boolean }
+// after
+export interface Pile {
+  canPickUpCard(card: Card): boolean
+  canPlayCard(card: Card): boolean
+}</pre>
+      </epic-code>
+    </li>
+    <li>
+      <b>Method names keep the receiver's type name</b> where dropping it would leave a dangling little word
+      (<code>of</code>, <code>to</code>, <code>from</code>, <code>in</code> ...).
+      <ul>
+        <li><code>to update the total of (a calculator)</code>: <code>updateTheTotalOfCalculator()</code></li>
+        <li><code>to append (digit as text) to (a calculator)</code>: <code>appendDigitToCalculator(digit)</code></li>
+        <li>
+          <code>to set the operator of (a calculator) to (op as text)</code>:
+          <code>setTheOperatorOfCalculatorToOp(op)</code>
+        </li>
+        <li>unchanged, as nothing dangles: <code>turnFaceUp()</code>, <code>moveToPile(pile)</code></li>
+      </ul>
+    </li>
+    <li>
+      <b>Spell warns on a member READ that its type never declares</b>, as it warns on a missing type (<a href="#q24"
+        >Q24</a
+      >). The case that found it: the cards library reads a pile's name (<a href="#i6">I6</a>).
+      <ul>
+        <li>The message: "A pile never says it has a name: declare it, e.g. 'a pile has a name as text'".</li>
+      </ul>
+    </li>
+    <li><b>NOT in it</b> (Owen said no): renaming the examples' CSS class names.</li>
   </ul></epic-field
 ><epic-field name="files"
-  ><a href="../../../guides/targets/targets.html" target="src-guides-targets-targets-html"
-    ><code>guides/targets/targets.html</code></a
-  >, <a href="../../../guides/changelog.html" target="src-guides-changelog-html"><code>guides/changelog.html</code></a
-  >,
-  <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"
-    ><code>guides/solid/solid-2.md</code></a
-  >, <a href="../../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a
-  >, this plan doc, and the comments in the files P10 to P13 changed</epic-field
+  ><ul>
+    <li>
+      <a href="../../../packages/core/src/classes/List.ts" target="src-packages-core-src-classes-list-ts"
+        ><code title="packages/core/src/classes/List.ts">List.ts</code></a
+      >, and core's collection helpers,
+      <a href="../../../packages/core/src/collection-core.ts" target="src-packages-core-src-collection-core-ts"
+        ><code title="packages/core/src/collection-core.ts">collection-core.ts</code></a
+      >
+      and
+      <a href="../../../packages/core/src/collection-other.ts" target="src-packages-core-src-collection-other-ts"
+        ><code title="packages/core/src/collection-other.ts">collection-other.ts</code></a
+      >: the list methods
+    </li>
+    <li>
+      <a href="../../../packages/core/src/SpellEvent.ts" target="src-packages-core-src-spellevent-ts"
+        ><code title="packages/core/src/SpellEvent.ts">SpellEvent.ts</code></a
+      >
+      and
+      <a href="../../../packages/core/src/runtime.ts" target="src-packages-core-src-runtime-ts"
+        ><code title="packages/core/src/runtime.ts">runtime.ts</code></a
+      >: <code>on()</code>, <code>off()</code>, <code>once()</code>, <code>trigger()</code>
+    </li>
+    <li>
+      <a href="../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
+        ><code title="packages/parser/src/writers/TSWriter.ts">TSWriter.ts</code></a
+      >
+      and
+      <a href="../../../packages/parser/src/writers/TSProject.ts" target="src-packages-parser-src-writers-tsproject-ts"
+        ><code title="packages/parser/src/writers/TSProject.ts">TSProject.ts</code></a
+      >: the TypeScript writer
+    </li>
+    <li>
+      <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
+        ><code title="packages/parser/src/writers/JSWriter.ts">JSWriter.ts</code></a
+      >: events and <code>?.</code>
+    </li>
+    <li>
+      spell's rules:
+      <a href="../../../packages/spell/src/rules/events.ts" target="src-packages-spell-src-rules-events-ts"
+        ><code title="packages/spell/src/rules/events.ts">events.ts</code></a
+      >,
+      <a href="../../../packages/spell/src/rules/lists.ts" target="src-packages-spell-src-rules-lists-ts"
+        ><code title="packages/spell/src/rules/lists.ts">lists.ts</code></a
+      >
+      (add before / after),
+      <a href="../../../packages/spell/src/rules/methods.ts" target="src-packages-spell-src-rules-methods-ts"
+        ><code title="packages/spell/src/rules/methods.ts">methods.ts</code></a
+      >
+      (method names)
+    </li>
+    <li>
+      <a href="../../../packages/spell/src/SpellWarnings.ts" target="src-packages-spell-src-spellwarnings-ts"
+        ><code title="packages/spell/src/SpellWarnings.ts">SpellWarnings.ts</code></a
+      >: the new warning
+    </li>
+  </ul></epic-field
 ><epic-field name="verify"
-  ><code>spell dev docs fuss --branch</code>, <code>spell dev plan-doc check output-targets</code>,
-  <code>yarn review</code> in each package whose comments changed</epic-field
+  ><ul>
+    <li>Solitaire's and the Calculator's TypeScript read as the sketches in the goal</li>
+    <li>0 tsc errors stay 0, on every fixture</li>
+    <li>the core contract test passes on both targets</li>
+    <li>the JavaScript snapshots change only for events and <code>?.</code></li>
+    <li>a test per new list method against its <code>spellCore</code> twin, counting from 1, scratch results</li>
+    <li><code>yarn review</code> in core, parser, spell, lsp and cli</li>
+  </ul></epic-field
 >
