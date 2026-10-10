@@ -1,56 +1,93 @@
 <!-- plan-doc part:  #j12's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>Where the recipe would have meant churn across many component files, or a clash, the element core kept its shape.</p>
+<p>
+  Where the recipe would have meant churn across many component files, or a clash, the element core kept its shape. What
+  was kept, and the shapes picked:
+</p>
 <ul>
   <li>
-    Public booleans without <code>is</code> / <code>has</code> kept, too many callers for P3:
-    <code>UIElement.loaded</code> (28), <code>connected</code> (47), <code>formDisabled</code> (21).
-    <code>PartContextProps.direct</code> kept: a named option in an options object (WWOD §9 allows
-    <code>{ optional: true }</code>); its private field is <code>isDirect</code>
+    Public booleans without <code>is</code> or has were kept: too many callers for P3.
+    <ul>
+      <li><code>UIElement.loaded</code>: 28 callers</li>
+      <li><code>connected</code>: 47</li>
+      <li><code>formDisabled</code>: 21</li>
+      <li>
+        <code>PartContextProps.direct</code> is kept too: a named option in an options object, which WWOD §9 allows
+        (<code>{ optional: true }</code>). Its private field is isDirect.
+      </li>
+    </ul>
   </li>
   <li>
-    Constructors kept as <code>(collaborator, shorthand[, options])</code>, not one props object:
-    <code>new HostAttribute(host, name)</code> (21 callers), <code>new PartContext(host, noun, { barrier })</code> (14),
-    <code>new IconGlyph(owner, name)</code> (37). The host / owner is WWOD §12's <code>context</code>; the second
-    argument the one-property shorthand it allows
+    Constructors keep the shape "collaborator, shorthand, then options", not one props object.
+    <ul>
+      <li><code>new HostAttribute(host, name)</code>: 21 callers</li>
+      <li><code>new PartContext(host, noun, { barrier })</code>: 14</li>
+      <li><code>new IconGlyph(owner, name)</code>: 37</li>
+      <li>The host or owner is WWOD §12's context; the second argument is the one-property shorthand it allows.</li>
+    </ul>
   </li>
   <li>
-    <code>@proto static</code> config on <code>UIElement</code>: the full docstring (what, and why static) on each
-    <code>declare</code>, in a <code>## Class config</code> group; each default a one-line <code>Default: ...</code>.
-    The banner lists the config and the hooks (<code>render()</code>, <code>hostStates()</code>,
-    <code>classValue()</code>, <code>extraClasses()</code>, <code>sheetNames()</code>, <code>isDisabled()</code>), now
-    one <code>## Hooks</code> group, each docstring saying <code>Hook:</code>
+    The <code>@proto static</code> config on <code>UIElement</code>:
+    <ul>
+      <li>Each <code>declare</code> has the full docstring: what it is, and why it's static.</li>
+      <li>They're in a "Class config" group; each default has a one-line "Default: ...".</li>
+      <li>
+        The banner lists the config and the hooks. The hooks are now one "Hooks" group, each docstring saying "Hook:".
+        <epic-code title="the hooks · 1 line" language="text">
+          <pre>render(), hostStates(), classValue(), extraClasses(), sheetNames(), isDisabled()</pre>
+        </epic-code>
+      </li>
+    </ul>
   </li>
   <li>
-    Registries -&gt; <code>private static</code> + <code>static reset()</code>: <code>UIElement</code> (sheets, texts,
-    cancelled hosts; <code>reset()</code> leaves the public <code>definitions</code>, which mirrors
-    <code>customElements</code>), <code>PartContext</code> (6), <code>RootSettings</code>. WeakMaps / WeakSets are NOT
-    <code>readonly</code>: they can't be cleared, so <code>reset()</code> replaces them
+    Registries became private statics, with a static <code>reset()</code>.
+    <ul>
+      <li>
+        On <code>UIElement</code>: sheets, texts, and cancelled hosts. <code>reset()</code> leaves the public
+        definitions, which mirror the browser's custom-element registry.
+      </li>
+      <li>On <code>PartContext</code> (6), and on RootSettings.</li>
+      <li>WeakMaps and WeakSets are NOT read-only: they can't be cleared, so <code>reset()</code> replaces them.</li>
+    </ul>
   </li>
   <li>
-    No <code>reset()</code> on <code>StickyWatch</code> (it would sit beside the instance <code>reset()</code>, the
-    clash P3 removes from <code>PartContext</code>; its entries leave as watches unstick) or
-    <code>HotDefinitions</code> (dev-only; a reset would have to unwrap <code>define</code>)
+    No <code>reset()</code> on two classes:
+    <ul>
+      <li>
+        <code>StickyWatch</code>: it would sit beside the instance's own reset(), the clash P3 removes from PartContext.
+        Its entries leave as watches unstick.
+      </li>
+      <li><code>HotDefinitions</code>: dev-only, and a reset would have to unwrap define.</li>
+    </ul>
   </li>
   <li>
-    <code>/\\s+/</code>, written in <code>ClassBuilder</code> and <code>Shorthand</code>, is now
-    <code>WHITESPACE</code> in
-    <a
-      href="../../../packages/ui/src/elements/elements.types.ts"
-      target="src-packages-ui-src-elements-elements-types-ts"
-      ><code>elements.types.ts</code></a
-    >
-    (so <code>core</code> exports it too)
+    The whitespace pattern <code>/\\s+/</code> was written in ClassBuilder and Shorthand.
+    <ul>
+      <li>
+        It's now <code>WHITESPACE</code>, in
+        <a
+          href="../../../packages/ui/src/elements/elements.types.ts"
+          target="src-packages-ui-src-elements-elements-types-ts"
+          ><code title="packages/ui/src/elements/elements.types.ts">elements.types.ts</code></a
+        >.
+      </li>
+      <li>So the core exports it too.</li>
+    </ul>
   </li>
   <li>
-    Deleted, nothing but their own tests read them (WWOD §2, §20):
-    <code>OwnerContext.ownersOf()</code> (superseded by <code>PartContext</code>'s registry) and
-    <code>ClassBuilder.numberToWord()</code> (<code>$/ui/util</code>'s <code>numberToWord()</code> and
-    <code>ValueSets.numberToWord()</code> remain): 2 tests gone
+    Deleted, since nothing but their own tests read them (WWOD §2, §20):
+    <ul>
+      <li><code>OwnerContext.ownersOf()</code>: PartContext's registry superseded it.</li>
+      <li>
+        <code>ClassBuilder.numberToWord()</code>. util's own <code>numberToWord()</code> and the ValueSets one remain.
+      </li>
+      <li>2 tests are gone.</li>
+    </ul>
   </li>
 </ul>
 <epic-net-effect
   ><ul>
-    <li>browser tests 4688 passed (was 4690: -2, the two deleted tests); ssr 241</li>
+    <li>Browser tests: 4688 passed, down 2 from 4690: the two deleted tests.</li>
+    <li>Server-render tests: 241.</li>
   </ul></epic-net-effect
 >
 <epic-commit sha="b667718b10d46898ba3ad1646dcba97f4617c7fb">
