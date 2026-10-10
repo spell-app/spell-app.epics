@@ -19,3 +19,73 @@
   </li>
   <li>Every fixture's declarations snapshot gained <code>"getter": true</code> on its getters.</li>
 </ul>
+<epic-reply from="Owen" at="2026-10-10 01:29" re="revisit soon"><p>Why do we need this?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-10 04:05" re="Why do we need this?">
+  <p>You asked: <q>Why do we need this?</q></p>
+  <p>
+    Today, only because the TypeScript writer names a getter and a stored property differently. Once P19 names every
+    member the same way, the flag can go.
+  </p>
+  <ul>
+    <li>
+      The TypeScript writer camelCases a getter or method (<code>short_rank</code> becomes <code>shortRank</code>).
+      <ul>
+        <li>
+          A stored property keeps spell's own name (<code>face_up</code> stays <code>face_up</code>), because saved
+          JSON, the Thing Explorer and scopes read it by that name.
+        </li>
+      </ul>
+    </li>
+    <li>
+      So, writing <code>the short rank of the card</code>, the writer must know which <code>short_rank</code> is.
+      <ul>
+        <li>Declared in the same project: it can see the <code>is: ...</code> definition, so it knows.</li>
+        <li>
+          Declared in ANOTHER project (Solitaire's <code>Card</code>, imported): all it has is that project's
+          declarations. Without <code>"getter": true</code> it would write <code>card.short_rank</code>, which is
+          <code>undefined</code> at run time.
+        </li>
+      </ul>
+    </li>
+    <li>
+      That's the only reader: <code>TSProject.getters</code>, used in one place, <code>TSWriter</code>'s member naming
+      (<a href="../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
+        ><code>TSWriter.ts:188</code></a
+      >).
+    </li>
+  </ul>
+  <epic-code title="TSWriter.ts · the one place it matters" language="ts">
+    <pre>const property = this.project.getters.has(name) ? camelCaseOf(name) : name</pre>
+  </epic-code>
+  <p>
+    Your answer to the javascript-names question (Q51) changes this. P19 camelCases methods AND properties, in both
+    writers, and moves saved JSON, the Thing Explorer and scopes over too. After that, every member is written
+    <code>camelCaseOf(name)</code> whether it's a getter or not, so the flag tells the writer nothing.
+  </p>
+  <epic-choices>
+    <epic-option letter="A" title="Keep it until P19, then remove it" recommended>
+      <ul>
+        <li>Imported getters stay right in TypeScript until then.</li>
+        <li>
+          P19 drops <code>"getter": true</code> from declarations and <code>isGetter</code> from the scope's records,
+          once names no longer depend on it.
+        </li>
+        <li>Every fixture's declarations snapshot loses the line again: one diff in P19.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="Remove it now">
+      <ul>
+        <li>
+          Until P19, TypeScript reads an imported getter by the wrong name (<code>card.short_rank</code>), so the
+          Solitaire examples that import <code>Card</code> break in ts/solid.
+        </li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>Nothing changes now.</li>
+      <li>P19's goal gains one line: remove the getter flag once every name is camelCase.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
