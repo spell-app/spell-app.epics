@@ -157,7 +157,7 @@ Read the spoke(s) for what you're touching BEFORE writing code or text:
 - **Boolean getters prefixed `is` / `has` / `can`:**  `isEditing`, `hasChanges`, `canSave`.
   - EXCEPT a custom element's PUBLIC API (attributes, properties, `:state()`, event `detail`), which copies the
     platform:  bare booleans (`el.open`, `el.disabled`, `nag.dismissed`), the platform's camelCase (`readOnly`,
-    `maxLength`, `htmlFor`).  `is` / `has` / `can` are for our own members (a controller's `isOpen`).  (Owen,
+    `maxLength`, `htmlFor`).  `is` / `has` / `can` are for our own members (a component's `isOpen`).  (Owen,
     2026-10-06, epic `wwod-spell-ui` J13.)
 - **Drop the redundant type word once something is a class member** -- the class already said it:
   - In a `Run` class:  `nextRun(run)` → `next()`, `planRun()` → `planSteps()`, `runActionKeys()` → `actionKeys()`.
@@ -331,7 +331,7 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
 
 ## 6. Comments & docs
 
-The first four rules are for anything people read:
+The first five rules are for anything people read:
 docstrings, comments, READMEs, `AGENTS.md` files, docs pages, plan docs.
 Their long before / afters are in `agents/wwod/writing.md`.
 
@@ -384,6 +384,32 @@ Their long before / afters are in `agents/wwod/writing.md`.
     AFTER
     - solid-element owns the platform's plumbing:  the shadow root, `ElementInternals`, the lifecycle.
     - This class adds what is OURS:  the `ready` promise, custom states, the link to the component.
+    ```
+
+- **Plain text, plain paths:**  say what it MEANS;  the exact settings and paths go where a reader can reach them.
+  - Lead with a plain line saying what it adds up to, then one fact per bullet.
+  - At most two code spans in a sentence.
+    The exact settings, flags and values go in a folded code block, or a tooltip.
+  - No file path in running prose:  name the thing (`buildTsx()`), its path its tooltip (the browser's own, `title`),
+    `<code title="packages/spell/src/node/buildTsx.ts">buildTsx()</code>`.
+    The doc-links tool still links it to the file, so a click opens it.
+    Markdown has no tooltips:  a link, `` [`buildTsx()`](packages/spell/src/node/buildTsx.ts) ``.
+  - No insider shorthand:  write `jsx: "preserve"` out as "reads JSX the way app and ui do".
+  - Why (Owen, 2026-10-10, epic `airplane`):  "Text is waaaay to dense to parse quickly ... That is gobbeldygook."
+  - Before / after, a plan doc's "Built / Checked" notes, shortened (`writing.md` has it whole):
+
+    ```text
+    BEFORE
+    Built: buildTsx(), packages/spell/src/node/buildTsx.ts:40.  Checked: tsc with jsx preserve,
+    jsxImportSource solid-js, types ["@spell-app/app/jsx"], paths from tsconfig.base.json, experimentalDecorators off.
+
+    AFTER
+    Built: buildTsx()      <- its path is the tooltip
+    Checked: the type check now understands Spell UI pages.
+    - It reads JSX the way app and ui do.
+    - It adds app's types for <ui-*> tags, because @spell-app/ui doesn't ship any.
+    - It finds solid-js and the other packages in the repo, even though it runs from a temporary folder.
+    - Decorators are checked as standard decorators, not the old experimental kind.
     ```
 
 - **Break lines at phrases, not at the column:**
@@ -469,7 +495,7 @@ Their long before / afters are in `agents/wwod/writing.md`.
   - The description:  one line of what it is, then bullets of its responsibilities.
 - **A module or class docstring states its POSITION IN THE IMPORT GRAPH**, and what it must never import or know
   about:
-  - `packages/app/src/runner/element.ts`:  "NEVER imports `$/core`, even indirectly".
+  - `packages/app/src/runner/main.tsx`:  "NEVER imports `$/core`:  it'd be bundled here, a second copy".
   - `packages/app/src/solid/modals/dialogs.ts`:  "`editor` reaches these through a DYNAMIC `import()`, so
     `editor.ts` stays free of Solid and `$/ui`".
   - What it deliberately does NOT know about, and why that matters -- often what makes it testable, e.g.

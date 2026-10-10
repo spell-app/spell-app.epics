@@ -204,7 +204,7 @@ This spoke is house style on top.
     `@proto static importableAs`.
   - Use it for behaviour a subclass or instance overrides, rather than a constructor default or a getter;  a
     developer / debug switch set by hand is ALL-CAPS instead ("ALL-CAPS switches at the top of the class").
-- **Reactive members:  the decorator says how the member works** (`ui`'s controllers, and any class there;  Owen,
+- **Reactive members:  the decorator says how the member works** (`ui`'s components, and any class there;  Owen,
   2026-10-06, epic `wwod-spell-ui` P14:  "having to create decorators will keep us honest ... once learned, the
   decorator is a signal for how this bit works"):
   - `@state accessor isOpen = false` -- own state;  `@controlled("open") accessor isOpen` -- the host's property

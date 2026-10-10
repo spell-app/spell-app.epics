@@ -7,6 +7,7 @@ The rules, in short:
 - WWOD §6 › "Writing for people":  for a reader figuring things out, not from inside the builder's head
 - WWOD §6 › "Name things by what they are to the reader":  "solid-element", never "the fork"
 - WWOD §6 › "One or two sentences a paragraph, or bullets":  never run-together sentences
+- WWOD §6 › "Plain text, plain paths":  what it means first;  paths in tooltips, exact settings in folded code
 - WWOD §6 › "Break lines at phrases, not at the column":  so each line's start says what it's about
 
 The examples below quote `ui` as it was:  solid-element (`@spell-app/solid-element`) was a package then.
@@ -184,6 +185,47 @@ The after isn't perfect yet:
 further down, its "Custom-element wrapper" bullet still puts three sentences on two lines.
 The checker below flags it.
 
+### A "Built / Checked" line in a plan doc
+
+A plan doc's phase notes, in the shape Owen pasted (2026-10-10, epic `airplane`;  the settings here are a
+reconstruction).  His words:
+"In plan docs and elsewhere, text with file paths is hard to parse ...
+Text is waaaay to dense to parse quickly ... That is gobbeldygook."
+
+BEFORE
+
+```text
+Built: buildTsx(), packages/spell/src/node/buildTsx.ts:40
+
+Checked: tsc --noEmit with jsx: "preserve", jsxImportSource: "solid-js", types: ["@spell-app/app/jsx"],
+paths from tsconfig.base.json resolved against the repo root (cwd is a temp dir), experimentalDecorators: false.
+```
+
+AFTER
+
+```html
+<p>Built:  <code title="packages/spell/src/node/buildTsx.ts">buildTsx()</code></p>
+
+<p>Checked:  the type check now understands Spell UI pages.</p>
+<ul>
+  <li>It reads JSX the way app and ui do.</li>
+  <li>It adds app's types for <code>&lt;ui-*&gt;</code> tags, because <code>@spell-app/ui</code> doesn't ship any.</li>
+  <li>It finds <code>solid-js</code> and the other packages in the repo, even though it runs from a temporary folder.</li>
+  <li>Decorators are checked as standard decorators, not the old experimental kind.</li>
+</ul>
+```
+
+Shows "Plain text, plain paths":
+- the path is the name's browser tooltip (`title`), not a second code span;
+  the doc-links tool still links the name to the file, so a click opens it
+- a plain lead line says what the checks add up to;  then one fact per bullet
+- the exact settings (`jsx: "preserve"` ...) are gone from the prose:
+  when a reader needs them, they go in a folded code block (`<epic-code>`, `ui-accordion.spell-code`)
+- no insider shorthand:  "a temporary folder", not "cwd is a temp dir"
+
+In Markdown, which has no tooltips, the name is a link:
+`` [`buildTsx()`](packages/spell/src/node/buildTsx.ts) ``.
+
 ## How to check your own text
 
 1. Read only the first few words of each line, top to bottom.
@@ -198,13 +240,18 @@ The checker below flags it.
    Would someone new to the folder know what each one names?
 6. Read the first line of each docstring.
    Does it say what the thing IS?  Is any "why" after that, not before?
-7. Compare with the old text:  every fact, number and caveat is still there.
+7. Look for file paths in the prose, and sentences with 3+ code spans.
+   Name the thing, its path in its tooltip;  move the exact settings into a folded code block.
+8. Compare with the old text:  every fact, number and caveat is still there.
 
 ## The tools
 
 - `spell dev docs fuss <paths...>` (or `--branch`):  the checker.
   It lists the misses a tool can find, by file and line:
-  lines ending in a new phrase's first words, bullets of 3+ sentences, words like "the fork".
+  lines ending in a new phrase's first words, bullets of 3+ sentences, words like "the fork",
+  file paths in a page's prose, sentences of 3+ code spans.
+- The plan-doc tool (`spell dev plan-doc`) turns a name and its path, handed to it as HTML,
+  into the name with its path as the tooltip (`packages/epics/src/tool/PLAN-DOC.md`, "The way in").
 - `/fussbudget`:  the skill.
   It reads this file and WWOD §6 whole, runs the checker, then rewrites the text in place, uncommitted:
   the diff is the proposal.  `/fussbudget` alone asks what to cover.

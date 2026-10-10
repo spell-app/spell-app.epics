@@ -8,7 +8,7 @@ From:  original WWOD §18 ("Svelte / UI"), rewritten for Solid 2 (D9).
 - A rule here that leans on a mechanic cites `solid-2.md`.  The few mechanics this house style is built on
   (reading once with `untrack`, `onCleanup`, `<Loading>`, `<Show keyed>`, `useContext`, `ClassBuilder`) are stated
   here, with the rule that uses them (Owen, epic `wwod`).
-- `@spell-app/ui`'s own elements (controller classes, `render()`):  `packages/ui/AGENTS.md` "Solid authoring".
+- `@spell-app/ui`'s own elements (component classes, `render()`):  `packages/ui/AGENTS.md` "Solid authoring".
 - Styling:  WWOD §18 (`css.md`).
 
 ## 17. Solid components
