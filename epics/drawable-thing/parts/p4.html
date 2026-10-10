@@ -1,0 +1,99 @@
+<!-- plan-doc part:  #p4's body in drawable-thing.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"><p>A drawable thing has nowhere to write its own look.</p></epic-field
+><epic-field name="changes"
+  ><p>
+    A <code>&lt;css&gt; ... &lt;/css&gt;</code> block in a type's spell is its element's own style sheet, adopted in its
+    shadow root beside the shared runtime's. The CSS inside is edited AS CSS, in the editor and in VS Code. Where the
+    block sits is open (see the question below).
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>A card with a <code>&lt;css&gt;</code> block draws with those styles, on top of the shared theme.</li>
+    <li>
+      In the spell editor and in VS Code, the block is coloured as CSS, offers CSS completions and underlines CSS
+      mistakes.
+    </li>
+    <li>
+      <b>Is it possible?</b> Yes, in three layers:
+      <ul>
+        <li>
+          parsing (spell): a rule takes the block raw, like a string, so spell never reads the CSS; it compiles to the
+          type's style sheet
+        </li>
+        <li>
+          colouring, in the spell editor: spell's own
+          <a
+            href="../../../packages/app/src/ui/monaco/SpellTokensProvider.ts"
+            target="src-packages-app-src-ui-monaco-spelltokensprovider-ts"
+            ><code title="packages/app/src/ui/monaco/SpellTokensProvider.ts">SpellTokensProvider</code></a
+          >
+          hands the lines inside the block to Monaco's CSS colouring
+        </li>
+        <li>
+          colouring, in VS Code: spell's grammar marks the block as embedded CSS, VS Code's standard way for one
+          language inside another; that also gives CSS comment toggling and brackets
+        </li>
+        <li>
+          completion, hover and errors: the language server runs VS Code's own CSS service on the block, everything
+          outside it blanked to spaces so positions line up (how VS Code's HTML support does <code>&lt;style&gt;</code>)
+        </li>
+        <li>
+          the language server is browser-safe, so that last layer is written ONCE for both editors: both already forward
+          to it
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <epic-code title="the VS Code side, in short" language="json">
+    <pre>
+// spell.tmLanguage.json:  the &lt;css&gt; region
+{ "begin": "&lt;css&gt;", "end": "&lt;/css&gt;", "contentName": "meta.embedded.block.css",
+  "patterns": [{ "include": "source.css" }] }
+
+// package.json, contributes.grammars[0]
+"embeddedLanguages": { "meta.embedded.block.css": "css" }
+</pre>
+  </epic-code></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>a new rule in spell's rules folder for the block</li>
+    <li>
+      <a
+        href="../../../packages/app/src/ui/monaco/SpellMonaco.ts"
+        target="src-packages-app-src-ui-monaco-spellmonaco-ts"
+        ><code title="packages/app/src/ui/monaco/SpellMonaco.ts">SpellMonaco.ts</code></a
+      >
+      and
+      <a
+        href="../../../packages/app/src/ui/monaco/SpellTokensProvider.ts"
+        target="src-packages-app-src-ui-monaco-spelltokensprovider-ts"
+        ><code title="packages/app/src/ui/monaco/SpellTokensProvider.ts">SpellTokensProvider.ts</code></a
+      >: colouring in the spell editor
+    </li>
+    <li>
+      <a
+        href="../../../packages/vscode/syntaxes/spell.tmLanguage.json"
+        target="src-packages-vscode-syntaxes-spell-tmlanguage-json"
+        ><code title="packages/vscode/syntaxes/spell.tmLanguage.json">spell.tmLanguage.json</code></a
+      >
+      and the extension's
+      <a href="../../../packages/vscode/package.json" target="src-packages-vscode-package-json"
+        ><code title="packages/vscode/package.json">package.json</code></a
+      >: colouring in VS Code
+    </li>
+    <li>
+      <a href="../../../packages/lsp/src/SpellLanguageService.ts" target="src-packages-lsp-src-spelllanguageservice-ts"
+        ><code title="packages/lsp/src/SpellLanguageService.ts">SpellLanguageService.ts</code></a
+      >: CSS regions, through <code>vscode-css-languageservice</code>
+    </li>
+    <li>tests</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>a card with a <code>&lt;css&gt;</code> block draws styled</li>
+    <li>
+      in the editor and in VS Code: the block is coloured as CSS, typing <code>col</code> offers <code>color</code>, a
+      typo is underlined
+    </li>
+  </ul></epic-field
+>
