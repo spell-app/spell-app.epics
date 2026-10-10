@@ -192,7 +192,7 @@ element takes its colour from this table, never a colour that means something el
 | orange | ONLY changed since you looked, and warnings; an item Claude answered with options, waiting for your pick (Owen, 2026-10-09) | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a stalled epic; a `replied` item's chip (DARK text on it)                                         |
 | violet | Claude's voice                              | his reply cards; "recommended" (a thumbs-up, no word)                                                                                                                                                               |
 | ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the rail                                                                                                                     |
-| grey   | no longer relevant, inactive, not chosen    | a canceled item (made moot); a todo's "drop it" x; buttons at rest, and once Claude has handled them; a phase to do; a future epic; a goals topic "draft"                                                                                 |
+| grey   | no longer relevant, inactive, not chosen    | a canceled item (made moot); a todo's "drop it" x; the note box's "skip this" x; buttons at rest, and once Claude has handled them; a phase to do; a future epic; a goals topic "draft"                                                                                 |
 
 - No light blue, no light green: one shade per meaning.
 - Colour-blind readers tell red and green apart least: the chip's id, the icons and the words keep them readable.
@@ -226,8 +226,15 @@ On an item's line, ONE group, in this order:
 3. Make Todo (list check), green
 
 Then, APART from the group, Do Now (the magic wand, as the header's Review Now:  Owen, 2026-10-09;  it was a paper
-plane), blue: it replaces Add Details Now on the line, and the note box's "now". The note box keeps Revisit-later and
-Make Todo. An item Claude has answered or done keeps the three-button group, so Owen can still approve it.
+plane), blue: it replaces Add Details Now on the line, and the note box's "now". An item Claude has answered or done
+keeps the three-button group, so Owen can still approve it.
+
+The NOTE BOX (every one but a todo's:  an item's, an Overview sub-section's, a phase's, the summary's) has two
+buttons:  Revisit Later (history), blue, and Skip This (x), grey (Owen, 2026-10-09:  the x replaced the box's Make
+Todo, which he never used there;  the line keeps its Make Todo). The x means "nothing to do here":  a `skip` mark,
+with the note typed (or none);  no line button wears it, the id chip does, grey. `inbox apply`:  the item reviewed and
+nothing else (an open question stays open, no status card), the note kept as Owen's `<epic-reply re="skip">`;  on a
+phase, the summary or an Overview sub-section, logged and the note kept;  on a todo, as `drop`.
 
 A TODO's line is different (Owen, 2026-10-09):  ONE group, no Approve, Make Todo or Do Now:
 
@@ -339,8 +346,9 @@ but the chosen one (its pill solid), only while Owen revisits it (its Revisit bo
 (or approves) it again with that option. The
 marks wait in `<name>.inbox.json` beside the doc (git-ignored) until "send to Claude"; Add Details and revisit now
 go at once (the inbox's `now` queue), and Owen may call one off ("nevermind": `canceled`, handed to the waiting
-session to stop that item's agent; `plan-doc details` then refuses its write). A todo may carry Owen's note (Make
-Todo's box), written into the new todo. Read it with `spell dev plan-doc inbox <name>`; shape, routes and helpers:
+session to stop that item's agent; `plan-doc details` then refuses its write). A todo may carry Owen's note (from
+before 2026-10-09, when the note box had Make Todo), written into the new todo;  a skip (the note box's x) its note,
+kept as his reply. Read it with `spell dev plan-doc inbox <name>`; shape, routes and helpers:
 `packages/docs/AGENTS.md`, "Review inbox". NEVER edit the file by hand: go through `ReviewInbox`
 (`packages/epics/src/tool/ReviewInbox.ts`, its lock).
 
@@ -379,7 +387,7 @@ it started ending):
        - Q3  question, open · Where should the send button sit?
            picks A · In the page header, asks:  "A, but only on plan docs?"
      ...
-   next:  `spell dev plan-doc inbox review-review apply` (approve, pick, todo, a todo's next phase or drop, new, urgency)
+   next:  `spell dev plan-doc inbox review-review apply` (approve, pick, todo, a todo's next phase or drop, skip, new, urgency)
    ```
 
    - `now`: Add Details and revisit now, TAKEN off the queue, each item marked `working` (its spinner); the mark
@@ -403,6 +411,8 @@ it started ending):
    | todo                | a phase, the summary, an Overview sub-section                      | a new todo "Follow up: P3 · <title>" (or "the summary", "<title>") linking back (`#p3`, `#overview`, `#o3`); a Done status card on what was marked                                 |
    | next                | a todo (its plane)                                                 | queued into the first phase still to do (`queued`, work `P10 · <name>`;  none: "the next phase", and the reply says so), a Done status card "Queued for P10 · <name>", reviewed;  a note kept as Owen's reply |
    | drop                | a todo (its x)                                                     | canceled, "dropped by Owen in review" (struck through, grey), reviewed;  a note kept as Owen's reply                                                                               |
+   | skip                | any item but a todo (the note box's x)                             | reviewed, nothing else ("skipped:  nothing to do"):  its status and state as they were, no status card;  a note kept as Owen's reply (`re="skip"`).  On a todo:  as drop               |
+   | skip                | a phase, the summary, an Overview sub-section                      | logged ("skipped:  nothing to do");  a note kept as for any of their marks                                                                                                         |
    | approve             | a phase, the summary, an Overview sub-section                      | logged only (the page has no Approve for them)                                                                                                                                     |
    | new                 | a new todo or question (`new1`)                                    | made as `add` makes it: Owen's note its details (a question's lead), "About P3." linking `near`; a Done status card "Made from the page: Owen's new todo, written <time>."         |
    | revisit soon        | any item                                                           | left: answered INTO the item as a reply (`details --append`), the chat only linking it (Q3 of `windows-and-review`), then `inbox <name> clear <id>`                                |
