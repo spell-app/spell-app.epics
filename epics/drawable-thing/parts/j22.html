@@ -1,0 +1,56 @@
+<!-- plan-doc part:  #j22's details in drawable-thing.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A drawable element passes its attributes and properties ON to its thing, and nothing comes back: the element shows
+  what the page set, while the drawing shows the thing.
+</p>
+<ul>
+  <li>
+    Setting <code>rank="ace"</code>, or <code>card.rank = "jack"</code> from a script, writes the thing's rank, and the
+    card redraws.
+  </li>
+  <li>
+    Reading <code>card.rank</code> gives what was last SET on the element, not the thing's own rank.
+    <ul>
+      <li>If the program changes the thing, the element's attribute and property don't follow.</li>
+      <li>Turning a card over changes its thing's direction; the element's <code>direction</code> still says "up".</li>
+    </ul>
+  </li>
+  <li>What you SEE is always right: the drawing comes from the thing.</li>
+  <li>
+    Where:
+    <a href="../../../packages/app/src/runner/SpellElement.tsx" target="src-packages-app-src-runner-spellelement-tsx"
+      ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.onMount()</code></a
+    >, one effect per property, writing the element's value to the thing whenever either changes.
+  </li>
+</ul>
+<epic-code title="what a page's script sees · 5 lines" language="ts">
+  <pre>
+// &lt;drawable-solitaire-card id="ace" rank="ace" suit="spades" direction="up"&gt;
+const ace = document.getElementById("ace")
+ace.turnOver()                   // the thing's direction is now "down":  the card draws face down
+ace.direction                    // still "up":  what the page set
+ace.getAttribute("direction")    // still "up"</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="One way:  the element writes to its thing" recommended
+    ><ul>
+      <li>Chosen and built.</li>
+      <li>Simple: one effect per property, and no loops.</li>
+      <li>The attributes on the page stay what the page wrote: no churn in the DOM as the game plays.</li>
+      <li>The cost: reading an element's property can be out of date.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="Both ways:  the thing's changes mirrored back into the element"
+    ><ul>
+      <li>A second effect per property, writing the thing's value into the element's attribute.</li>
+      <li>Reading <code>card.direction</code> would always be the thing's.</li>
+      <li>The cost: each write bounces (element to thing, thing back to element), so it needs guards against loops.</li>
+      <li>And every change in the game rewrites attributes on the page, which page CSS and observers would see.</li>
+    </ul></epic-option
+  ></epic-choices
+><epic-net-effect>
+  <ul>
+    <li>A drawable element's attributes and properties are inputs only.</li>
+    <li>To read the live value, a script asks the thing, not the element.</li>
+    <li>Mirroring back (option B) can be added later without changing what the page writes.</li>
+  </ul>
+</epic-net-effect>
