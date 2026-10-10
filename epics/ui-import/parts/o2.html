@@ -1,33 +1,45 @@
 <!-- plan-doc part:  #o2's body in ui-import.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Where an element's text comes from, and what it shows while it waits.</p>
 <ul>
   <li>
-    Content comes from, first match wins:
+    The first of these that's there wins:
     <ol>
       <li>
-        <code>source="url"</code>: <code>UI.sources.load(url)</code> -&gt; <code>{ text, etag, url }</code>, cached per
-        URL (promise map, like <code>IconPacks</code>)
+        a <code>source="url"</code> attribute, fetched by <code>UI.sources.load(url)</code>
+        <ul>
+          <li>it gives back the text, its ETag and its URL</li>
+          <li>cached per URL, as a map of promises, the way <code>IconPacks</code> caches</li>
+        </ul>
       </li>
-      <li>
-        a <code>&lt;template&gt;</code> child (raw <code>&lt;</code> / <code>&amp;</code> safe), or
-        <code>&lt;script type="text/plain|markdown|..."&gt;</code>
-      </li>
-      <li>the host's own <code>textContent</code></li>
+      <li>a <code>&lt;template&gt;</code> child, where a raw less-than sign or ampersand is safe</li>
+      <li>a <code>&lt;script type="text/plain"&gt;</code> child, or <code>text/markdown</code> and the like</li>
+      <li>the element's own <code>textContent</code></li>
     </ol>
-    Inline text is dedented: common leading indent and first / last blank lines dropped.
+  </li>
+  <li>Inline text is dedented: the common leading indent goes, and so do blank first and last lines.</li>
+  <li>
+    Same origin only: a <code>source</code> on another origin is an error, and nothing is fetched.
+    <epic-code title="the check · 1 line" language="ts">
+      <pre>new URL(source, document.baseURI).origin !== location.origin</pre>
+    </epic-code>
+  </li>
+  <li>A page opened from disk gets its own message (<a href="#c3">C3</a>).</li>
+  <li>
+    While it loads, a <code>&lt;ui-loader active inline&gt;</code> shows; if it fails, a
+    <code>&lt;ui-message state="error"&gt;</code>.
   </li>
   <li>
-    Same origin only: <code>new URL(source, document.baseURI).origin !== location.origin</code> -&gt; error, no fetch.
-    <code>file://</code> pages get their own message (<a href="#c3">C3</a>).
+    Two promises:
+    <ul>
+      <li><code>host.ready</code> still means "styled", as on every element</li>
+      <li><code>host.loaded</code> resolves with the content</li>
+    </ul>
   </li>
   <li>
-    While loading: <code>&lt;ui-loader active inline&gt;</code>; on failure:
-    <code>&lt;ui-message state="error"&gt;</code>. <code>host.ready</code> stays styles-ready;
-    <code>host.loaded</code> resolves with content.
-  </li>
-  <li>
-    <code>source</code> changes re-fetch (previous fetch aborted); inline changes tracked by a MutationObserver (<code
-      >UIProgress.hostText</code
-    >
-    pattern).
+    Changes are followed:
+    <ul>
+      <li>a new <code>source</code> fetches again, and the fetch before it is aborted</li>
+      <li>inline text is watched by a MutationObserver, as <code>UIProgress.hostText</code> does</li>
+    </ul>
   </li>
 </ul>

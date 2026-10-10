@@ -1,48 +1,78 @@
 <!-- plan-doc part:  #o7's body in ui-import.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  What it would take to write a markdown parser on spell's own parser, beside the spell language. Worth it only if
+  spell's tools need markdown inside them: a todo (<a href="#t5">T5</a>), not a phase.
+</p>
 <ul>
   <li>
-    Where:
-    <a href="../../../packages/markdown/" target="src-packages-markdown"><code>packages/markdown/</code></a>
-    (<code>@spell-app/markdown</code>, <code>$/markdown</code>, <code>MD</code>), importing <code>$/parser</code> and
-    <code>$/util</code> only; <code>app</code>, <code>docs</code>, <code>spell</code> may import it.
-  </li>
-  <li>
-    Fits:
+    Where it would live: a package of its own,
+    <a href="../../../packages/markdown/" target="src-packages-markdown"><code>packages/markdown/</code></a
+    >.
     <ul>
-      <li>source positions on every match (editor round-trip)</li>
-      <li>re-parse of a sub-range (block pass, then inline)</li>
-      <li>per-rule unit tests</li>
-      <li><code>Match.compile()</code> returning HTML strings (rulex returns <code>Rule</code>s the same way)</li>
+      <li>named <code>@spell-app/markdown</code></li>
+      <li>imported as <code>$/markdown</code>, its namespace <code>MD</code></li>
+      <li>it imports only the parser and the util package</li>
+      <li>app, docs and spell may import it</li>
     </ul>
   </li>
   <li>
-    Hand-written <code>parse()</code> code needed:
+    What the parser already does well for it:
+    <ul>
+      <li>source positions on every match, so an editor can map back to the text</li>
+      <li>parsing a part again (a block pass, then inline)</li>
+      <li>unit tests per rule</li>
+      <li><code>Match.compile()</code> returning HTML strings, the way rulex returns <code>Rule</code>s</li>
+    </ul>
+  </li>
+  <li>
+    What would need hand-written <code>parse()</code> code:
     <ul>
       <li>
-        tokenizer: the default one breaks markdown (<code>//</code> / <code>--</code> start comments,
-        <code>&lt;Tag</code> is JSX, <code>_</code> is a word character, <code>'</code> strings span lines) -&gt; a
-        whitespace-preserving <code>MarkdownTokenizer</code>
+        A tokenizer of its own, which keeps whitespace: the default one breaks markdown.
+        <ul>
+          <li><code>//</code> and <code>--</code> start comments</li>
+          <li><code>&lt;Tag</code> is read as JSX</li>
+          <li><code>_</code> is a word character</li>
+          <li><code>'</code> strings run across lines</li>
+        </ul>
       </li>
       <li>
-        container blocks (lists, quotes, lazy continuation, tab stops of 4): CommonMark's line scan, not
-        <code>breakIntoIndentedBlocks</code> (one level per whitespace character)
+        Container blocks (lists, quotes, lazy continuation, tab stops of 4): CommonMark's line scan.
+        <ul>
+          <li>not <code>breakIntoIndentedBlocks</code>, which makes one level per whitespace character</li>
+        </ul>
       </li>
+      <li>Emphasis: a pass over a stack of delimiter runs.</li>
+      <li>Link reference definitions: two passes.</li>
+      <li>HTML blocks: 7 ways to start one.</li>
+      <li>Tables: the delimiter row decides.</li>
       <li>
-        emphasis (delimiter-run stack pass), link reference definitions (two passes), HTML blocks (7 start conditions),
-        tables (the delimiter row decides)
-      </li>
-      <li>
-        no lookahead / negation; <code>Choice</code> parses every alternative; <code>IncrementalParse</code> assumes
-        indentation
+        Around the parser's limits:
+        <ul>
+          <li>it has no lookahead or negation</li>
+          <li><code>Choice</code> parses every alternative</li>
+          <li><code>IncrementalParse</code> assumes indentation</li>
+        </ul>
       </li>
     </ul>
   </li>
   <li>
-    Effort: a useful GFM subset ~1.5-2 weeks; full CommonMark + GFM (~650 spec examples) 4-8 weeks; incremental +1-2
-    weeks. Speed: marked ~1 ms a doc; spell's parser ~77 ms on 259 lines.
+    Effort:
+    <ul>
+      <li>a useful subset of GitHub markdown: about 1.5-2 weeks</li>
+      <li>all of CommonMark and GitHub's extensions (about 650 spec examples): 4-8 weeks</li>
+      <li>incremental parsing: 1-2 weeks more</li>
+    </ul>
   </li>
+  <li>Speed: marked takes about 1 ms a doc; spell's parser about 77 ms on 259 lines.</li>
   <li>
-    Verdict: worth it if markdown must live inside spell's tooling (LSP, completion, one AST, spell-aware editing); for
-    rendering alone, marked is ~70x faster. A todo (<a href="#t5">T5</a>), not a phase.
+    Verdict:
+    <ul>
+      <li>
+        worth it if markdown must live inside spell's tooling: the language server, completion, one AST, editing that
+        knows spell
+      </li>
+      <li>for rendering alone, marked is about 70 times faster</li>
+    </ul>
   </li>
 </ul>

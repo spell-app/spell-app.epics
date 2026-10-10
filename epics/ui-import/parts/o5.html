@@ -1,45 +1,98 @@
 <!-- plan-doc part:  #o5's body in ui-import.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>An element that shows code, coloured, from a file or written inline.</p>
+<epic-code title="example · 1 line" language="html">
+  <pre>&lt;ui-code language="ts" source="..." line-numbers&gt;&lt;/ui-code&gt;</pre>
+</epic-code>
 <ul>
   <li>
-    <code>&lt;ui-code language="ts" source="..." line-numbers&gt;</code>, or inline. Shadow
+    In its shadow root, it draws the code as highlight.js expects it:
     <code>&lt;pre&gt;&lt;code class="hljs language-x"&gt;</code>.
   </li>
   <li>
-    highlight.js 11.12 in ONE lazy chunk, <code>CodeEngine</code> (54 kB gzipped, <a href="#c15">C15</a>): a detect set
-    of 9 languages (ts, js, html, css, json, bash, markdown, python, yaml) to guess from, 21 more registered by name on
-    first use. One chunk: a chunk per language would split Rolldown's runtime off (<a href="#d27">D27</a>).
-    <code>CodeHighlighter.engineLoader</code> can load it some other way (the docs' classic script,
-    <a href="#d26">D26</a>).
-  </li>
-  <li>
-    Colours: <code>.hljs-*</code> classes -&gt; <code>--ui-code-*</code> tokens, light / dark; the docs'
-    <code>--hl-*</code> palette, so docs pages match.
-  </li>
-  <li><code>UI.code.register(name, hljsGrammar | (code) =&gt; spans)</code> adds a language.</li>
-  <li>
-    <b>spell</b> (<a href="#d4">D4</a>), the one <code>ui</code> -&gt; spell dependency, on a PRE-COMPILED bundle only:
+    The colouring engine is highlight.js 11.12, in ONE lazy chunk, <code>CodeEngine</code>:
     <ul>
+      <li>54 kB gzipped (<a href="#c15">C15</a>)</li>
       <li>
-        <a href="../../../packages/spell/src/highlight/" target="src-packages-spell-src-highlight"
-          ><code>packages/spell/src/highlight/</code></a
-        >: <code>SP.SpellHighlighter.spans(text)</code>: token colours, then a best-effort parse refining them by each
-        rule's <code>highlightAs</code> (<a href="#d19">D19</a>)
+        it guesses a missing language from a "detect set" of 9: ts, js, html, css, json, bash, markdown, python, yaml
+      </li>
+      <li>21 more languages are registered, used only when named</li>
+      <li>
+        one chunk, because a chunk per language would split Rolldown's runtime into a file of its own (<a href="#d27"
+          >D27</a
+        >)
       </li>
       <li>
-        <code>yarn gen:spell</code> (in <code>ui</code>) bundles it with esbuild (<code>keepNames</code>, react-dom
-        stubbed) into COMMITTED files, <code>packages/ui/src/languages/spell.&lt;lang&gt;.bundle.js</code> and the
-        wrapper <code>SpellLanguage</code> loads, <code>spell.&lt;lang&gt;.ts</code> (138 kB gzipped,
-        <a href="#c11">C11</a>) (<a href="#d15">D15</a>, like icon packs): <code>ui</code> builds without building
-        spell; loaded lazily when first asked for
+        <code>CodeHighlighter.engineLoader</code> can load it some other way: the docs pages use a classic script (<a
+          href="#d26"
+          >D26</a
+        >)
       </li>
-      <li>
-        <code>language="spell"</code> ~== <code>spell/en</code>; <code>spell/es</code> loads Spanish. No translation
-        yet: the code stays plain, with a <code>ui-error</code> naming it (<a href="#c7">C7</a>, <a href="#d17">D17</a>)
-      </li>
-      <li>not in the detect set (<a href="#c5">C5</a>)</li>
     </ul>
   </li>
-  <li>Not an editor: editing is a later epic (<a href="#d12">D12</a>); <code>content</code> + save are its seam.</li>
+  <li>
+    Colours: highlight.js's classes map to Spell UI colour tokens, light and dark.
+    <ul>
+      <li>the tokens follow the docs pages' own palette, so docs pages match</li>
+    </ul>
+    <epic-code title="classes to tokens · 2 lines" language="text">
+      <pre>
+.hljs-*     -&gt;  --ui-code-*    (light / dark)
+docs pages: --hl-*  (the same palette)</pre>
+    </epic-code>
+  </li>
+  <li>
+    A page adds a language with <code>UI.code.register(name, grammar)</code>: a highlight.js grammar, or a function from
+    code to coloured spans.
+  </li>
+  <li>
+    <b>Spell</b> (<a href="#d4">D4</a>): the one place Spell UI depends on spell, and only on a PRE-COMPILED bundle.
+    <ul>
+      <li>
+        The colours come from spell's own highlighter,
+        <a href="../../../packages/spell/src/highlight/" target="src-packages-spell-src-highlight"
+          ><code title="packages/spell/src/highlight/">SP.SpellHighlighter.spans(text)</code></a
+        >
+        (<a href="#d19">D19</a>):
+        <ul>
+          <li>first a token pass</li>
+          <li>then a best-effort parse that refines them, by each rule's <code>highlightAs</code></li>
+        </ul>
+      </li>
+      <li>
+        <code>yarn gen:spell</code>, in Spell UI, bundles it into COMMITTED files (<a href="#d15">D15</a>, as icon packs
+        are):
+        <ul>
+          <li>
+            the bundle,
+            <code title="packages/ui/src/languages/spell.<lang>.bundle.js">spell.&lt;lang&gt;.bundle.js</code>: 138 kB
+            gzipped (<a href="#c11">C11</a>)
+          </li>
+          <li>
+            the wrapper <code>SpellLanguage</code> loads,
+            <code title="packages/ui/src/languages/spell.<lang>.ts">spell.&lt;lang&gt;.ts</code>
+          </li>
+          <li>built with esbuild, names kept (<code>keepNames</code>), react-dom stubbed out</li>
+          <li>so Spell UI builds without building spell</li>
+          <li>loaded lazily, the first time a page asks for it</li>
+        </ul>
+      </li>
+      <li>
+        <code>language="spell"</code> means English spell, <code>spell/en</code>.
+        <ul>
+          <li><code>spell/es</code> would load Spanish</li>
+          <li>
+            no such translation yet: the code stays plain, with a <code>ui-error</code> naming it (<a href="#c7">C7</a>,
+            <a href="#d17">D17</a>)
+          </li>
+        </ul>
+      </li>
+      <li>Spell isn't in the detect set (<a href="#c5">C5</a>).</li>
+    </ul>
+  </li>
+  <li>
+    Not an editor: editing is a later epic (<a href="#d12">D12</a>). The <code>content</code> property and saving are
+    where an editor plugs in.
+  </li>
 </ul>
 <ui-table celled compact striped unstackable>
   <table>
