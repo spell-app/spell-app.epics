@@ -1,0 +1,141 @@
+<!-- plan-doc part:  #q18's details in drawable-thing.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    A layout written inside a <code>&lt;spell-app&gt;</code> has spell in it: the curly-bracket holes, the actions, and
+    the <code>&lt;spell&gt;</code> blocks. Something has to turn that spell into JavaScript before it can run. Where
+    should that happen? For P9 · Spell Inside Markup, and Owen's Klondike sketch (<a href="#o6">O6</a>).
+  </p></epic-question
+>
+<p>
+  Here is the spell in question, from the sketch. None of it is JavaScript: it's spell, written in the PAGE, not in the
+  project's <code>.spell</code> files.
+</p>
+<epic-code title="the Klondike sketch:  spell inside the page's markup" language="html">
+  <pre>
+&lt;spell-app name="Solitaire"&gt;
+  &lt;ui-text&gt;Score {score of the game}&lt;/ui-text&gt;          &lt;!-- a hole:  a value, kept up to date --&gt;
+  &lt;ui-button action={autoplay}&gt;AutoPlay&lt;/ui-button&gt;     &lt;!-- an action:  runs on a press --&gt;
+  &lt;solitaire-stock-pile&gt;
+    &lt;spell&gt;                                            &lt;!-- a block:  code for this one tag --&gt;
+      when clicked
+        - deal three cards to the discards
+    &lt;/spell&gt;
+  &lt;/solitaire-stock-pile&gt;
+&lt;/spell-app&gt;
+</pre>
+</epic-code>
+<ul>
+  <li>
+    What spell may go in the holes and actions is already settled: any spell, both places (<a href="#q11">Q11</a>).
+  </li>
+  <li>What a block's code sees is settled too: its tag's thing first, then the program (<a href="#q12">Q12</a>).</li>
+  <li>
+    What's NOT settled: which tool compiles it, and when.
+    <ul>
+      <li>Spell compiles to JavaScript only through spell's parser, the big part of the spell language's code.</li>
+      <li>
+        A <code>&lt;spell-app&gt;</code> today runs only a project's compiled JavaScript: it never downloads the parser.
+      </li>
+      <li>
+        The app's build tests pin what the <code>spell-app.js</code> bundle loads:
+        <a
+          href="../../../packages/app/src/runner/element.build.test.ts"
+          target="src-packages-app-src-runner-element-build-test-ts"
+          ><code title="packages/app/src/runner/element.build.test.ts">element.build.test.ts</code></a
+        >.
+      </li>
+    </ul>
+  </li>
+  <li>
+    The rest of P9 is built already, with no parser: the markup shows as the app's drawing (<a href="#q10">Q10</a>), and
+    each drawable tag finds its thing by its <code>id</code> (<a href="#q9">Q9</a>). Only the spell inside the markup
+    waits on this.
+  </li>
+</ul>
+<epic-choices>
+  <epic-option letter="A" title="The page loads the parser, only when it needs it" recommended>
+    <ul>
+      <li>
+        A <code>&lt;spell-app&gt;</code> whose layout has a hole, an action or a <code>&lt;spell&gt;</code> block loads
+        spell's parser, lazily (a chunk fetched only then).
+      </li>
+      <li>
+        Each piece is parsed against the project's declarations: its <code>.declarations.json</code>, already published
+        beside its compiled code.
+      </li>
+      <li>Then compiled, and run in the program's scope.</li>
+      <li>A page with no spell in its markup loads exactly what it loads today.</li>
+      <li>
+        Cost:
+        <ul>
+          <li>a big chunk, the parser (about 600 kB), on such pages only</li>
+          <li>each page load compiles its layout again</li>
+          <li>the app's build tests change, to allow the parser as a lazy chunk</li>
+        </ul>
+      </li>
+      <li>Why recommended: the layout stays where the sketch writes it, inside the page, with no build step.</li>
+    </ul>
+    <epic-code title="what the page does" language="html">
+      <pre>
+&lt;ui-text&gt;Score {score of the game}&lt;/ui-text&gt;
+  -&gt; import("spell-parser.js")
+  -&gt; compile "score of the game"
+  -&gt; () =&gt; game.score
+</pre>
+    </epic-code>
+  </epic-option>
+  <epic-option letter="B" title="The layout lives in the project">
+    <ul>
+      <li>
+        The layout is a file of the project, e.g. a
+        <a href="../../epic-eject/details/layout.html" target="src-epics-epic-eject-details-layout-html"
+          ><code>layout.html</code></a
+        >
+        named in its <code>project.json</code>.
+      </li>
+      <li>It's compiled with the rest of the project's spell, into the program.</li>
+      <li><code>&lt;spell-app&gt;</code> shows it, as it shows a <code>to draw</code> today.</li>
+      <li>No parser in the page.</li>
+      <li>Cost: the layout isn't written inside the page's <code>&lt;spell-app&gt;</code>, as the sketch writes it.</li>
+    </ul>
+    <epic-code title="the project, not the page" language="json">
+      <pre>
+{
+  "name": "Solitaire",
+  "layout": "layout.html"
+}
+</pre>
+    </epic-code>
+  </epic-option>
+  <epic-option letter="C" title="A build step compiles the page">
+    <ul>
+      <li>
+        A build step, like <code>spell static</code>, compiles each page's <code>&lt;spell-app&gt;</code> layouts ahead
+        of time.
+      </li>
+      <li>No parser in the page; the markup stays in the page's source.</li>
+      <li>
+        Cost:
+        <ul>
+          <li>every such page needs building before it works</li>
+          <li>the dev server has to rebuild it on every save</li>
+        </ul>
+      </li>
+    </ul>
+    <epic-code title="before the page is served" language="html">
+      <pre>
+page.html  -&gt;  build  -&gt;  page.html
+                          + page.layout.js
+</pre>
+    </epic-code>
+  </epic-option> </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>
+      A <code>&lt;spell-app&gt;</code> page with holes, actions or <code>&lt;spell&gt;</code> blocks loads the parser,
+      lazily.
+    </li>
+    <li>Every other <code>&lt;spell-app&gt;</code> page loads what it loads today.</li>
+    <li>The rest of P9 (holes, actions, blocks) is built on that.</li>
+  </ul>
+</epic-net-effect>
