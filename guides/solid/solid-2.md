@@ -11,14 +11,15 @@ or reviewing Solid code, JSX, `spellCore` rendering, `$/util` reactivity (spell 
   `easy-state` is GONE.
   - How it's built now, and why:  `guides/solid-migration.html`.  The record (phases, decisions, log):
     `epics/solid-migration/`.
-  - React and Solid JSX COEXIST in `app` / `core`:  Solid is the default, a React file opts in with a first-line
-    `/** @jsxImportSource react */`, and ONLY what compiled spell draws with stays React.  How it's wired and
-    pinned:  SEE `packages/app/AGENTS.md` "Overview".
-  - Compiled spell still draws with React, through `view()` (the React bridge onto spell cells).  Moving it is the
-    "Core + JSX" thread (plan doc T2):  items marked (planned) below wait on it, or on another open todo -- they
-    are NOT in code.
-- Target `solid-js` / `@solidjs/web` `2.0.0-rc.13` (current, 2026-09-30), pinned EXACTLY;  `@solidjs/h` the same
-  version once the Core + JSX thread adds it (not installed yet).
+  - Compiled spell draws with Solid too, in both targets (epic `output-targets` P10-P12, on its branch until it
+    merges;  `main` still draws compiled spell with React through `view()`):
+    - javascript calls `spellCore.element()` (on `@solidjs/h`) and `spellCore.drawThing()`
+    - TypeScript (`ts/solid`, a `.compiled.tsx`) is real JSX, with `<Show>` / `<For>` and `@drawn draw()`
+    - how, and why:  `guides/targets/targets.html`, "Drawing with Solid"
+  - React is GONE from `app`, `core` and `util` on that branch:  no React kits, no `view()`, no `@vitejs/plugin-react`.
+    Only the `spell` CLI keeps it, for its terminal screens (Ink).
+  - Items still marked (planned) below wait on an open todo:  they are NOT in code.
+- Target `solid-js` / `@solidjs/web` / `@solidjs/h` `2.0.0-rc.13` (current, 2026-09-30), pinned EXACTLY.
   - Every package is on rc.13 (2026-10-02):  ONE copy at the repo root, pinned in the root `resolutions`;  upgrade
     them all together (one Solid per page).
   - Re-verified on rc.13:  every experiment behaves as on rc.11 (`solid-2.html`, "rc.11 vs rc.13").  rc.13's
@@ -55,9 +56,14 @@ count() // 1
 ## Spell's decisions
 
 - Spell state is NOT Solid signals:  spell needs read-after-write, Solid 2 can't give it (measured, `solid-2.html` §2).
-- **Spell cells** -- BUILT (P11), `packages/util/src/spell/` (`cells.ts`, `Cell`, `Derived`, `Reaction`, `Schema`,
-  `extend.ts`, `Observable`);  prototypes kept in `solid/experiments/` (`spell-cells.core.ts`, `spell-cells.ts`,
-  `decorators.ts`), pinned by `util`'s `cells.test.ts` and `app`'s `cellsBridge.browser.test.tsx`:
+- **Spell cells** -- BUILT (P11), ONE reactive engine for spell and (later) Spell UI:  `$/util/reactive`
+  (`packages/util/src/reactive/`:  `cells.ts`, `Cell`, `Derived`, `Reaction`, `Schema`, `extend.ts`, `bridges.ts`,
+  `decorators.ts`;  moved from `packages/util/src/spell/` by `output-targets` P10, Q20).  `Observable` and `@thing`
+  stay in `$/util/spell`.  Prototypes kept in `solid/experiments/` (`spell-cells.core.ts`, `spell-cells.ts`,
+  `decorators.ts`), pinned by `util`'s `reactive/cells.test.ts` and `app`'s `cellsBridge.browser.test.tsx`:
+  - no lodash and no Solid in it (a test pins it), so any package can import it, file by file
+  - Spell UI still keeps its own reactive members (`Reactive.ts`):  moving them onto spell cells has four costs to
+    check first (`output-targets` C12).  Until then a derived value sees only its own side's members (C11)
   - each instance keeps its values in a `Map` record, the ONLY truth, read and written synchronously
   - a small synchronous core tracks deps and memoizes derived values
   - one `enableExternalSource` bridge makes Solid computations re-run when cells change:  `bridgeSolid()` in
@@ -70,8 +76,7 @@ count() // 1
   - compiled output keeps its `getProp` / `setProp` accessor pairs;  derived getters may call `derive()`
   - values are NOT made reactive themselves:  no proxies, `===` holds everywhere.  A list or plain object a prop holds
     changed IN PLACE notifies nobody -- set the prop to a new one (spell's `List` copies on write)
-  - React follows cells through `view()` (`$/util`):  a `Reaction` per instance, `forceUpdate()` on a change.
-    Plain code:  `observe(fn)`
+  - plain code follows cells with `observe(fn)`.  (`view()`, the React bridge, is gone with React.)
 - **Updates only on differences**, at three levels:
   - `setProp` ignores `===` writes:  nobody is notified
   - a memoized derived value bumps its version only when its value really changes (clean / check / dirty push-pull),
@@ -99,15 +104,22 @@ count() // 1
   - its wins (`Object.keys` / JSON see the record, plain `thing.foo = x` for ad-hoc props) are cheap with accessors:
     `keys()`, `toJSON()`, a DevTools formatter, `setProp`
   - revisit only if arbitrary ad-hoc props on Things become first-class spell syntax
-- **Decorators for HAND-WRITTEN classes** (the editor's `EditorStore`, `core`'s `SpellConsole`, the forms'
-  `FormStore`;  open to `SP.*`) -- compiled spell can't use them (`blob:` URL, no transpile), so both spellings MUST
-  build the same runtime shape.  `Thing` / `List` / `App` themselves keep `getProp` / `setProp`:
+- **Decorators for hand-written classes AND compiled TypeScript** (the editor's `EditorStore`, `core`'s
+  `SpellConsole`;  open to `SP.*`;  `ts/solid`'s `.compiled.tsx`, which is built before it runs).  Compiled
+  JAVASCRIPT can't use them (`blob:` URL, no transpile):  it writes the lowered form, `getProp` / `setProp` pairs and
+  `declareProp()`, so both spellings MUST build the same runtime shape.  `Thing` / `List` / `App` themselves keep
+  `getProp` / `setProp`.  All from `$/util/reactive` (`decorators.ts`), re-exported by `@spell/core`:
   - `@prop({ type, default }) accessor x!: T` -- schema from decorator ARGS via `Symbol.metadata` (polyfilled in
     `$/util`'s `Schema.ts`);  an initializer runs AFTER `create()`, so defaults go in the args (`default`, or
-    `{ init: () => [] }` for objects).  BUILT:  `spellDecorators.ts`;  used by the editor (`EditorStore`),
-    `SpellConsole`, forms' `FormStore`.
+    `{ init: () => [] }` for objects).  BUILT;  used by the editor (`EditorStore`), `SpellConsole`, and compiled
+    TypeScript (`@prop({ oneOf: RANKS }) accessor rank!: Rank`).
     SEE WWOD §13 › "State initializes LAZILY, in its getter, never in the constructor"
-  - `@derived get y()` -- memoized with the equality cutoff;  only for pure, worth-it getters.  BUILT
+  - `@state` -- a value that isn't a prop:  its initializer is the starting value, and it warns when `create()` set it
+    first.  BUILT (P10)
+  - `@derived get y()` -- memoized with the equality cutoff;  only for pure, worth-it getters (compiled TypeScript:  a
+    getter that loops).  `@state` and `@derived` take `{ equals }`, as Spell UI's do.  BUILT
+  - `@drawn draw()` -- the drawing in its own error net (`core`'s `drawing.ts`, not `util`'s:  it shares
+    `spellCore.drawThing()`'s net).  BUILT (P12)
   - `@thing` on the class -- runs `create()` after the most-derived class's field initializers.  BUILT:
     `packages/util/src/spell/spellDecorators.ts` (`import { thing } from "$/util"`);  `Thing` / `List` skip their own
     `create()` call when a `@thing` class is in the chain (`runsCreate()`), so it runs exactly once, also for compiled
@@ -126,17 +138,34 @@ count() // 1
 - `tracked(read)` (`app`'s `$/app/solid`) = a Solid memo over a read of spell state (boxed, `equals: false`).  A plain
   read in JSX is reactive too (the bridge);  `tracked()` shares one read among readers.  Re-reads on Solid's schedule:
   never mid-write, so program code is safe to run in it (`deferred` is gone).
-- Compiled spell imports ONLY `@spell/core`, never Solid.  `spellCore.element()` is the adapter (planned, Core + JSX
-  thread, plan doc T2;  today `element()` builds React elements):
-  - builds on `@solidjs/h`
-  - the parser emits THUNKS for every non-literal prop / child
-  - routes non-primitive values on `ui-*` tags to `prop:`
-  - maps spell's custom-event spelling to the exact `ui-*` event name
-  - wraps each thunk in `try/catch`, so a buggy program can't halt the page
+- Compiled JAVASCRIPT imports ONLY `@spell/core`, never Solid.  `spellCore.element()` is the adapter (BUILT,
+  `output-targets` P10, `core`'s `drawing.ts`):
+  - builds on `@solidjs/h`, building the node AT ONCE (a thunk would be built again each time the net re-reads)
+  - the parser emits a FUNCTION for every value that can change (`() => this.short_suit`, an `ASTJSXLiveValue`)
+  - React's spellings become the page's:  `className` => `class`, `htmlFor` => `for`, `colSpan` => `colspan`
+  - on a tag with a dash, a live value or an object goes to `prop:`
+  - a dotted tag (`<UI.Form>`) throws:  Spell UI's elements go by their own tags
+  - each drawn thing in its own ERROR NET, `drawInNet()`:  `<Errored>` + a memo running `draw()` + a `try/catch` for a
+    stand-in made once (rc.13's `<Errored>` makes its fallback again on any change under it).  A throw:  one console
+    line, a cancelable `ui-error`, a stand-in;  the rest keeps drawing.  `drawThing()` for javascript, `@drawn` for
+    TypeScript:  ONE net
+  - `draw()` runs in a memo:  again only for what IT read, redrawing that thing alone
+  - `drawItems()` is `<For>` by identity;  `mountApp()` is `render()` in a root of its own (`runWithOwner(null)`), left
+    on the element as `spellRoot`
+  - (planned) mapping spell's custom-event spelling to the exact `ui-*` event name
+- Compiled TYPESCRIPT (`ts/solid`) imports `solid-js` (`Show`, `For`) and `@spell/core` (`prop`, `derived`, `drawn`,
+  `on`, `trigger` ...) and is real JSX:  `buildTsx()` lowers its decorators (esbuild), then runs Solid's compiler.  It
+  writes only the page's spellings (`class`, `colspan`, `prop:` on a `<ui-*>` tag):  Solid 2's JSX types take no
+  others.  The runners can't run it yet;  the core contract does.
 - One Solid per page, shared with `@spell-app/ui` (whose `UI` runtime is already one per page, on `globalThis`):
   - within a bundle:  Solid + `@spell-app/ui` live in the shared files, NEVER `spell-runtime.js`.  Each `<spell-app>`
     keeps its OWN `spellCore`, all share ONE Solid.  `enableExternalSource` is registered once per Solid, by
     `bridgeSolid()` from the host (`app`'s `cellsBridge.ts`)
+  - `spell-runtime.js` gets Solid, `@solidjs/web` and `@solidjs/h` from `spell-solid.js` (`sharedSolid()`), which
+    also holds Spell UI's element core since `<spell-app>` became a Spell UI component;  it never loads
+    `spell-ui.js` (`app`'s build tests pin both)
+  - `spell run` and the core contract run Solid's BROWSER builds under node, on a linkedom page (`cli`'s
+    `hooks.mjs`), with the cells bridged there too
   - across our bundles:  element / runner / editor builds import ONE shared Solid (and `ui`), not a Solid each:  SEE
     `packages/app/AGENTS.md` "Overview".  Any other Solid / `ui` specifier (`solid-js/store`, `$/ui/runtime`) is a
     build ERROR:  add it to `sharedSolid()`'s list AND to what `vite.solid.config.ts` exports
