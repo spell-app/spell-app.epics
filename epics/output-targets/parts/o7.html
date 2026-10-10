@@ -1,9 +1,38 @@
 <!-- plan-doc part:  #o7's body in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
   How much of the TypeScript that <code>ts/solid</code> writes is really typed, where each gap comes from, and what
-  closes it. Owen asked for it on 2026-10-09 ("make an analysis of untyped stuff in the TS port and let's see if we
-  can't close the untyped gap"); the fixes are queued to <a href="#p13">P13</a>.
+  closes it.
 </p>
+<ul>
+  <li>
+    Owen asked for it on 2026-10-09: "make an analysis of untyped stuff in the TS port and let's see if we can't close
+    the untyped gap".
+  </li>
+  <li>The fixes went into <a href="#p13">P13</a>.</li>
+  <li>Below the note is the analysis as written that day.</li>
+</ul>
+<epic-note state="done" title="As built, P13 and P17"
+  ><ul>
+    <li>
+      Every fixture type-checks with 0 <code>tsc</code> errors (Solitaire was 6, OutlineSolitaire 19 at the time of this
+      analysis).
+    </li>
+    <li>
+      The markers left, after <a href="#p17">P17</a>: Solitaire 0, OutlineSolitaire 2, Klondike 1, Cards and FizzBuzz 0
+      (<a href="#j62">J62</a>).
+    </li>
+    <li>Spell warns where a program never says a type, rather than guessing (<a href="#q24">Q24</a>).</li>
+    <li>
+      A member a class uses but never declares is declared on the class the users share (<a href="#q25">Q25</a>); spell
+      also warns on it since <a href="#p14">P14</a> (<a href="#q45">Q45</a>).
+    </li>
+    <li>
+      A read that may find nothing: first read as found, with <code>!</code> (<a href="#q26">Q26</a>); since P14 it's
+      <code>?.</code> instead (<a href="#q38">Q38</a>).
+    </li>
+    <li>P17 types a value the program never declares from every value it's given (<a href="#q54">Q54</a>).</li>
+  </ul></epic-note
+>
 <ul>
   <li>
     In one line: about half of what the writer declares is typed (53% across the projects, Solitaire 61%), and
@@ -14,8 +43,11 @@
     <ul>
       <li>
         a <b>marker</b>: the <code>any /* spell: type unknown */</code> (or <code>any /* spell: list */</code>) the
-        writer puts where it has no type, so every gap shows (<a href="#j13">J13</a>). The writer never writes a bare
-        <code>any</code>, <code>as any</code> or <code>as unknown as</code>: none in any project.
+        writer puts where it has no type, so every gap shows (<a href="#j13">J13</a>).
+        <ul>
+          <li>The writer never writes a bare <code>any</code>: none in any project.</li>
+          <li>Nor <code>as any</code>, nor <code>as unknown as</code>.</li>
+        </ul>
       </li>
       <li>
         an <b>implicit any</b>: a value TypeScript itself couldn't type, which strict mode reports as an error
@@ -34,14 +66,18 @@
   ><ul>
     <li>
       Every project that compiles, as <code>spell compile &lt;project&gt; --target ts/solid --stdout</code> prints it,
-      on 2026-10-09 (branch <code>output-targets</code> at <code>main</code>). <code>user/Errors</code> doesn't parse,
-      so it's left out; <code>examples/FizzBuzz</code> and <code>examples/OutlineSolitaire</code> are the fixtures'
-      twins, so they're left out of the totals.
+      on 2026-10-09 (the output-targets branch, level with main).
+      <ul>
+        <li>user/Errors doesn't parse, so it's left out.</li>
+        <li>examples/FizzBuzz and examples/OutlineSolitaire are the fixtures' twins, so they're left out of the totals.</li>
+      </ul>
     </li>
     <li>
-      Errors: <code>tsc</code> 7 with <code>typecheck()</code>'s settings (<code>core</code>'s <code>strict</code>,
-      which includes <code>noImplicitAny</code>), all projects checked together, Solitaire-import against the example
-      Solitaire it imports.
+      Errors: TypeScript 7's <code>tsc</code>, with <code>typecheck()</code>'s settings.
+      <ul>
+        <li>Those are core's <code>strict</code> settings, which include <code>noImplicitAny</code>.</li>
+        <li>All projects checked together; Solitaire-import against the example Solitaire it imports.</li>
+      </ul>
     </li>
     <li>
       Declarations: TypeScript 6's API (<code>@typescript/typescript6</code>, the same settings) asked the type of every
@@ -49,9 +85,13 @@
       spreads).
     </li>
     <li>
-      The causes: the writer patched in a scratch copy to log, for each marker, the rule that made it and what spell
-      knew there (the match's <code>datatype</code>, the loop's scope). The what-ifs below come from the same patch
-      writing the fix. No product code changed.
+      The causes: the writer, patched in a scratch copy to log what made each marker.
+      <ul>
+        <li>The rule that made it.</li>
+        <li>What spell knew there: the match's <code>datatype</code>, the loop's scope.</li>
+        <li>The what-ifs below come from the same patch, writing the fix.</li>
+        <li>No product code changed.</li>
+      </ul>
     </li>
   </ul></epic-aside
 >
@@ -262,10 +302,15 @@
     >). Only 19 are types the program never says.
   </li>
   <li>
-    Cause 1 in one sentence: the parser looks a type up while parsing (the loop's scope says <code>card</code> is a
-    <code>Card</code>; <code>the last card of discards</code>'s match says <code>Card</code>), but the tree node made
-    from it (<code>getAST()</code>) doesn't keep it: an <code>ASTNode</code>'s <code>datatype</code> is its own, never
-    its match's. So the writer finds nothing.
+    Cause 1: the parser looks a type up while parsing, but the tree node made from it doesn't keep it.
+    <ul>
+      <li>The loop's scope says <code>card</code> is a <code>Card</code>.</li>
+      <li><code>the last card of discards</code>'s match says <code>Card</code> too.</li>
+      <li>
+        But the node <code>getAST()</code> makes keeps only a datatype of its own, never its match's.
+      </li>
+      <li>So the writer finds nothing.</li>
+    </ul>
   </li>
 </ul>
 <epic-code title="cause 1 · Solitaire, today · 9 lines" language="ts">
@@ -357,10 +402,14 @@ is_a_$suit(suit: any /* spell: type unknown */) {
 </ui-table>
 <ul>
   <li>
-    <b>T8 alone makes things worse</b>: <code>spellCore.filter()</code>, <code>duplicateCollection()</code>,
-    <code>mergeCollections()</code> and <code>rangeStartingAt()</code> return <code>unknown</code>, so a local set from
-    one becomes <code>unknown</code> and every use of it an error (Solitaire 6 to 38). It has to land with cause 1, or
-    with <code>core</code>'s signatures tightened (fix 9 below).
+    <b>T8 alone makes things worse:</b> four of core's helpers return <code>unknown</code>.
+    <ul>
+      <li>They are spellCore's filter(), duplicateCollection(), mergeCollections() and rangeStartingAt().</li>
+      <li>
+        So a local set from one becomes <code>unknown</code>, and every use of it an error: Solitaire goes from 6 to 38.
+      </li>
+      <li>It has to land with cause 1, or with core's signatures tightened (fix 9 below).</li>
+    </ul>
   </li>
   <li>
     The 63 implicit anys at B are exactly cause 2's event handlers: they need their fix (or P12's JSX) at the same time
@@ -371,14 +420,26 @@ is_a_$suit(suit: any /* spell: type unknown */) {
     <code>any</code> today:
     <ul>
       <li>
-        5 members used on a type that doesn't declare them: <code>droppable</code> (set by
-        <code>a new stock-pile with name = "stock", droppable = no</code>, never declared), <code>symbol</code> (the
-        same, on a foundation), and <code>can play (a card)</code> / <code>can pick up (a card)</code>, which only the
-        kinds of pile have, called on a <code>Pile</code>
+        5 members used on a type that doesn't declare them:
+        <ul>
+          <li>
+            <code>droppable</code>, set by <code>a new stock-pile with name = "stock", droppable = no</code>, and never
+            declared
+          </li>
+          <li><code>symbol</code>, the same, on a foundation</li>
+          <li>
+            <code>can play (a card)</code> and <code>can pick up (a card)</code>, which only the kinds of pile have,
+            called on a Pile
+          </li>
+        </ul>
       </li>
       <li>
-        3 "may be nothing" (<a href="#c5">C5</a>): <code>card.value + 1</code>, a foundation's
-        <code>this.value + 1</code>, and <code>item column of the tableaus</code> passed where a pile is needed
+        3 "may be nothing" (<a href="#c5">C5</a>):
+        <ul>
+          <li><code>card.value + 1</code></li>
+          <li>a foundation's <code>this.value + 1</code></li>
+          <li><code>item column of the tableaus</code>, passed where a pile is needed</li>
+        </ul>
       </li>
     </ul>
   </li>
