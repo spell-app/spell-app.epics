@@ -1,0 +1,95 @@
+<!-- plan-doc part:  #j16's details in drawable-thing.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A drawable class now names its own tag the moment it's declared, but the page's definer only learns of the class a
+  little later, once the class is complete.
+</p>
+<ul>
+  <li>
+    Spell writes one extra line in each drawable class: a static field, <code>elementTag</code>, set by
+    <code title="packages/core/src/elements.ts">spellCore.defineElement()</code>.
+    <ul>
+      <li>
+        It's written by
+        <a
+          href="../../../packages/spell/src/rules/classes/TypeDeclaration.ts"
+          target="src-packages-spell-src-rules-classes-typedeclaration-ts"
+          ><code title="packages/spell/src/rules/classes/TypeDeclaration.ts">TypeDeclaration.elementMember()</code></a
+        >, for a drawable type and a drawable list.
+      </li>
+      <li>
+        It returns the tag at once, so the class knows it: <code>&lt;drawable-solitaire-card&gt;</code> for the example
+        below.
+      </li>
+    </ul>
+  </li>
+  <li>
+    The page's definer (what turns the class into a real custom element) hears of the class later:
+    <ul>
+      <li>
+        when one of its things is first drawn (<code title="packages/core/src/elements.ts">spellCore.elementFor()</code
+        >),
+      </li>
+      <li>or else in a microtask: the moment the code that's running now has finished.</li>
+    </ul>
+  </li>
+  <li>
+    Why not at once: a static field runs while the class is still being made.
+    <ul>
+      <li>The class's later statics, its <code>css</code> among them, aren't set yet.</li>
+      <li>
+        Defined then, the element had no styles: the example's runner test caught it, its cards drawn without their CSS.
+      </li>
+    </ul>
+  </li>
+  <li>
+    This replaces the Element Bridge phase's one line at the end of the module (<a href="#j11">J11</a>, now canceled),
+    and goes back to what the plan said: a static member per class.
+    <ul>
+      <li>That last line came too late: a program usually starts drawing before its module's last line runs.</li>
+      <li>So cards drew inline, as plain markup, not as their elements.</li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="the start of Drawable Solitaire's compiled Card · 6 lines" language="ts">
+  <pre>
+export class Card extends Drawable {
+  static elementTag = spellCore.defineElement(this, "Drawable Solitaire")
+  ...
+  static css = `:host {
+    display: block;
+  ...</pre></epic-code
+><epic-code title="before, in the Element Bridge phase (P3): the module's last line" language="ts">
+  <pre>spellCore.defineElements("Solitaire", { Card, Pile })</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="A static field names the tag;  the class is defined once it's whole" recommended
+    ><ul>
+      <li>Chosen and built.</li>
+      <li>Defined before the first card draws, with its CSS in place.</li>
+      <li>The cost: one more line in each drawable class, and a short wait (first draw or a microtask).</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="The static field defines the element at once"
+    ><ul>
+      <li>Simplest: no wait.</li>
+      <li>But the class's <code>css</code> isn't set yet, so the element has no styles.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="Keep the Element Bridge phase's last line"
+    ><ul>
+      <li>No change to the class's code.</li>
+      <li>But it runs too late: the program has already drawn its cards inline.</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect>
+  <ul>
+    <li>Each drawable class compiles with a <code>static elementTag = spellCore.defineElement(...)</code> line.</li>
+    <li>
+      The module's last line, <code>spellCore.defineElements(...)</code>, is gone, with
+      <a href="../../../packages/spell/src/SpellProject.ts" target="src-packages-spell-src-spellproject-ts"
+        ><code title="packages/spell/src/SpellProject.ts">SpellProject.elementsFooterFor()</code></a
+      >.
+    </li>
+    <li>The Element Bridge decision (<a href="#j11">J11</a>) is canceled.</li>
+    <li>Projects without drawable types compile exactly as before.</li>
+  </ul>
+</epic-net-effect>
