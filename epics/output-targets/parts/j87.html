@@ -18,3 +18,294 @@
   </li>
 </ul>
 <epic-net-effect><li>Action labels read as plain words; the parenthesized slot word is lost.</li></epic-net-effect>
+<epic-reply from="Owen" at="2026-10-10 10:51" re="revisit soon"
+  ><p>
+    we should carry the original wording somewhere for reflection, especially into other languages. Write a declarations
+    file as per hand-made components, next to element output?
+  </p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-10 10:57"
+  re="we should carry the original wording somewhere for reflection, especially into other languages.  Write a declarations file as per hand-made components, next to element output?"
+>
+  <p>
+    Yes: a small <b>words file</b> beside the compiled output, the way a Spell UI element keeps its words in its own
+    English vocabulary file. Most of spell's wording is already written down at compile time. Two things are missing:
+  </p>
+  <ul>
+    <li>a record keyed by the names the compiled code ACTUALLY uses (<code>moveToPile</code>, <code>isSetUp</code>)</li>
+    <li>anything that reads the wording while the program runs: the Thing Explorer sees only the class itself</li>
+  </ul>
+
+  <p><b>What carries spell's wording today</b></p>
+  <ul>
+    <li>
+      The project's
+      <a href="../../../packages/spell/src/SpellDeclarations.ts" target="src-packages-spell-src-spelldeclarations-ts"
+        ><code title="packages/spell/src/SpellDeclarations.ts">declarations</code></a
+      >
+      file, beside the compiled output:
+      <ul>
+        <li>for a method, its wording (<code>move (a card) to (a pile)</code>) and spell's own name</li>
+        <li>for a property, its wording only when it differs from the name (<code>is-set-up</code>)</li>
+        <li>keyed by spell's snake_case name (<code>move_to_$pile</code>), NOT the camelCase one the code uses</li>
+        <li>its job: letting another project import this one without re-parsing it</li>
+      </ul>
+    </li>
+    <li>
+      The project's
+      <a href="../../../packages/lsp/src/lsp.types.ts" target="src-packages-lsp-src-lsp-types-ts"
+        ><code title="packages/lsp/src/lsp.types.ts">scope pack</code></a
+      >, beside it too:
+      <ul>
+        <li>each member's entry is named by its wording, so the Type Explorer and the editor's completion show it</li>
+        <li>also keyed by spell's snake_case name</li>
+        <li>written only when the project compiles with no errors</li>
+      </ul>
+    </li>
+    <li>The compiled code carries none of it: the comment above a method is spell's comment, not its wording.</li>
+    <li>
+      The Thing Explorer reads the class's own member names, by reflection, and
+      <a href="../../../packages/core/src/things.ts" target="src-packages-core-src-things-ts"
+        ><code title="packages/core/src/things.ts">actionLabel()</code></a
+      >
+      splits a camelCase name back into words.
+      <ul>
+        <li>So <code>moveToPile</code> shows as "move to pile": the slot is gone.</li>
+        <li>
+          Once your stored-property answer (Q56, every member camelCase) is built, a property shows as
+          <code>isSetUp</code> too, where it shows <code>is_set_up</code> today.
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <epic-code title="test Solitaire · one method, in each place that names it" language="ts">
+    <pre>
+// Pile.spell -- what the author wrote
+to move (a card) to (a pile)
+
+// Solitaire.declarations.json -- wording AND spell's name, no compiled name
+{ "syntax": "move {thisArg:expression} to {callArgs:expression}",
+  "output": "move_to_$pile", "of": "Card", "kind": "method",
+  "name": "move (a card) to (a pile)", "params": [{ "name": "pile", "datatype": "Pile" }] }
+
+// Solitaire.scopes.js -- the wording names the entry
+{ path: "project:Solitaire/file:Card.spell/type:Card/method:move (a card) to (a pile)", line: [15, 19],
+  rules: [{ name: "move_to_$pile", syntax: "move {thisArg:expression} to {callArgs:expression}" }] }
+
+// the compiled javascript (since P19) -- no wording at all
+async moveToPile(pile) { ... }
+
+// what the Thing Explorer shows
+move to pile</pre>
+  </epic-code>
+
+  <p><b>How a hand-made component carries its words</b></p>
+  <ul>
+    <li>
+      Each Spell UI element has a vocabulary file beside it, named for its language:
+      <a
+        href="../../../packages/ui/src/components/ui-form/UIForm.en.ts"
+        target="src-packages-ui-src-components-ui-form-uiform-en-ts"
+        ><code title="packages/ui/src/components/ui-form/UIForm.en.ts">UIForm.en.ts</code></a
+      >.
+      <ul>
+        <li>Pure data: every name the tag uses, with what each means.</li>
+        <li>
+          The class points at it, <code>@proto static vocabulary = formVocabulary</code>, and the
+          <a
+            href="../../../packages/ui/src/vocabulary/Vocabulary.ts"
+            target="src-packages-ui-src-vocabulary-vocabulary-ts"
+            ><code title="packages/ui/src/vocabulary/Vocabulary.ts">Vocabulary</code></a
+          >
+          registry reads it from there.
+        </li>
+        <li>Node tools (the docs site's data) import the same file.</li>
+      </ul>
+    </li>
+    <li>
+      Another language is a <b>dictionary</b>: the English name on the left, that language's on the right.
+      <ul>
+        <li>A name it leaves out stays English.</li>
+        <li>
+          Designed, not built yet: the
+          <a href="../../../packages/ui/docs/translation.md" target="src-packages-ui-docs-translation-md"
+            ><code title="packages/ui/docs/translation.md">translation contract</code></a
+          >
+          says "Designed now, built later".
+        </li>
+      </ul>
+    </li>
+    <li>
+      Its schema has no place for methods: only attributes, events, slots, parts, states and texts. So compiled code can
+      borrow the IDEA (one file per language, beside the code, keyed by the code's own names), not the type.
+    </li>
+  </ul>
+  <epic-code title="Spell UI · an English vocabulary, and a Spanish dictionary" language="ts">
+    <pre>
+// UIForm.en.ts (shortened)
+export const formVocabulary = {
+  tag: "ui-form",
+  noun: "form",
+  attributes: [
+    { name: "size", kind: "size", description: "Size of everything inside, `mini` ... `massive`." },
+    { name: "inverted", kind: "keyOnly", description: "For dark backgrounds:  light labels." },
+    ...
+  ],
+  ...
+}
+
+// UIForm.tsx
+@E.proto static vocabulary = formVocabulary
+
+// test/dictionary.es.ts -- English name =&gt; Spanish name
+export const es = {
+  lang: "es",
+  tags: { "ui-button": "boton", "ui-dropdown": "desplegable" },
+  attributes: { primary: "primario", size: "tamano", placeholder: "marcador" },
+  events: { "ui-change": "cambio" }
+} as const satisfies Dictionary</pre>
+  </epic-code>
+
+  <p><b>"Other languages" reads two ways, and one file serves both</b></p>
+  <ul>
+    <li>
+      Human languages: a Spanish words file beside the English one, as Spell UI's dictionaries are.
+      <ul>
+        <li>The Thing Explorer would show "mover (una carta) a (una pila)".</li>
+        <li>
+          Later, a Spanish program could call an English library's methods in Spanish. There's already a sketch of
+          Spanish spell,
+          <a
+            href="../../../packages/spell/projects/system/examples/Solitaire/Card.spell-es"
+            target="src-packages-spell-projects-system-examples-solitaire-card-spell-es"
+            ><code title="packages/spell/projects/system/examples/Solitaire/Card.spell-es">Card.spell-es</code></a
+          >, but nothing reads it.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Other output targets, like the later Python epic:
+      <ul>
+        <li>Python would write <code>move_to_pile</code>, and lose the slot the same way.</li>
+        <li>Each target's writer writes the file with its own names as the keys; the wording is the same.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <epic-choices>
+    <epic-option letter="A" title="A words file beside the compiled output, like a vocabulary" recommended>
+      <ul>
+        <li>
+          A new file per project, <code>Solitaire.en.js</code>: each type's members, by their compiled name, with
+          spell's wording (the code below).
+        </li>
+        <li>The compiler writes it from the declarations it already gathers, beside the other three files.</li>
+        <li>
+          It records the name the writer actually used, so the reader never has to guess how a name was camelCased.
+        </li>
+        <li>
+          The runner loads it beside the scope pack and hands it to the Thing Explorer.
+          <ul>
+            <li>The compiled code doesn't import it, so it stays as a person would write it.</li>
+            <li>Code the editor pushes in memory still runs: the editor pushes the words with it.</li>
+            <li>
+              The one difference from a hand-made element, whose class imports its own file. A program could do that
+              later, once it's built for use outside the runner.
+            </li>
+          </ul>
+        </li>
+        <li>Another language is another file, <code>Solitaire.es.js</code>, the same shape.</li>
+        <li>Properties get their words back as well: <code>isSetUp</code> shows as "is-set-up".</li>
+        <li>
+          Cost:
+          <ul>
+            <li>a fourth file beside the output, written by the compiler, the language server and the CLI</li>
+            <li>a route on the page server to send it, and one more field in what the runner is given</li>
+            <li>snapshots gain a file</li>
+          </ul>
+        </li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="The Thing Explorer reads the declarations or scope pack, no new file">
+      <ul>
+        <li>The runner already has both, for the Type Explorer.</li>
+        <li>The Thing Explorer would camelCase each of spell's names the way the writer does, and match them up.</li>
+        <li>Cheapest: no new file, nothing new written.</li>
+        <li>
+          Cost:
+          <ul>
+            <li>
+              the reader re-works-out the compiled names; if the writer ever names one differently (a clash, a reserved
+              word), the label silently goes missing
+            </li>
+            <li>
+              the scope pack is missing when the project has errors; the declarations when the project is run from a
+              bare compiled file
+            </li>
+            <li>
+              no home for another language: the declarations are for importing, and translating them makes no sense
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title="A static table on each compiled class">
+      <ul>
+        <li><code>static words = { moveToPile: "move (a card) to (a pile)" }</code> inside <code>class Card</code>.</li>
+        <li>Always there: it travels with the code, even run from a bare compiled file.</li>
+        <li>
+          Cost:
+          <ul>
+            <li>noise in code P19 just made read as a person would write it</li>
+            <li>another language means changing the code, or a second table that overrides it</li>
+            <li>the Thing Explorer still needs a way to swap in another language's words</li>
+          </ul>
+        </li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-code title="A · what Solitaire.en.js would hold (sketch)" language="ts">
+    <pre>
+// Solitaire.en.js -- spell's wording for each member, by the name the compiled code uses
+export const words = {
+  lang: "en",
+  types: {
+    Card: {
+      moveToPile: "move (a card) to (a pile)",
+      turnOver: "turn a card over",
+      isFaceUp: "is face up",
+      shortRank: "short rank"
+    },
+    Deck: {
+      setUp: "set up a deck",
+      isSetUp: "is-set-up"
+    }
+  }
+}
+
+// Solitaire.es.js -- the same shape;  a member it leaves out keeps its English words
+export const words = {
+  lang: "es",
+  types: { Card: { moveToPile: "mover (una carta) a (una pila)" } }
+}</pre>
+  </epic-code>
+  <ul>
+    <li>
+      One small call to make when it's built: the Thing Explorer could show the whole wording, "move (a card) to (a
+      pile)", or drop the card's own slot, "move to (a pile)", since you're already looking at that card. Dropping it
+      reads better in the list.
+    </li>
+  </ul>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>Compiling a project also writes <code>&lt;Project&gt;.en.js</code>, beside its compiled output.</li>
+      <li>The Thing Explorer labels actions and properties with spell's own words again, slots included.</li>
+      <li>A translation is one more file of the same shape; nothing in the compiled code changes for it.</li>
+      <li>
+        It's new work, not part of P19: a follow-up in this epic, or a small phase of its own after Q56's camelCase
+        change lands.
+      </li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
