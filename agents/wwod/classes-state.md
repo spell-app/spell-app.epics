@@ -96,7 +96,7 @@ This spoke is house style on top.
     there:  `static __isX__ = true` + an exported `isX()` guard above the class, with
     `// NOTE: use this rather than instanceof -- <which bundles / HMR / environment>.`
   - Or duck-type the shape, as cells do:  "a source is `{ subs, version, refresh? }`, never checked with
-    `instanceof`" (`packages/util/src/spell/cells.ts`).
+    `instanceof`" (`packages/util/src/reactive/cells.ts`).
 - **Backing field declared immediately AFTER its getter:**  `get record() { ... }` then `private _record`.
 - **Reach the owner's collaborators through one-line delegating getters, not stored copies:**
   - `get ui() { return this.owner.ui }`:  a copied field goes stale when the owner swaps its collaborator.
@@ -172,8 +172,8 @@ This spoke is house style on top.
   - Use STANDARD (TC39 2023-11) decorators, NEVER `experimentalDecorators` or legacy 3-arg decorators that mutate
     the property descriptor.  General-purpose ones live in `packages/util/src/decorators.ts` (`@proto`, `@lazy`,
     `@once`:  import from `$/util`;  `ui` has `$/ui/util`, which re-exports the generic ones).
-  - Spell's own (`@prop`, `@derived`, `@thing`) live in `packages/util/src/spell/spellDecorators.ts`, for
-    HAND-WRITTEN `Observable`s only.  SEE:  `guides/solid/solid-2.md` "Spell's decisions" ›
+  - The reactive ones (`@prop`, `@state`, `@derived`) live in `packages/util/src/reactive/decorators.ts`;  spell's
+    own `@thing` in `packages/util/src/spell/spellDecorators.ts`, for HAND-WRITTEN `Observable`s only.  SEE:  `guides/solid/solid-2.md` "Spell's decisions" ›
     "Decorators for HAND-WRITTEN classes".
 - **Lowered by esbuild:**
   - Lowered by esbuild via the repo root's `vite.decorators.ts` -- vite 8's own transformer (oxc) doesn't do it yet.

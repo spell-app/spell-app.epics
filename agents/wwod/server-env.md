@@ -112,7 +112,7 @@ SEE:  `packages/server/AGENTS.md` for `$/server` itself (`SRV.Router`, `SRV.WebS
     - build and test configs (`vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`), which run before any
       package code
     - forwarding env to a child process (`{ ...process.env, PORT: String(port) }`), which reads nothing
-  - Browser code NEVER reads `process.env`:  vite replaces it with `{}` (`packages/util/src/spell/Schema.ts`).
+  - Browser code NEVER reads `process.env`:  vite replaces it with `{}` (`packages/util/src/reactive/Schema.ts`).
     Browser config comes from the server (`window.SPELL_SERVER`) or a build-time `define` (`__PACKAGE_VERSION__`).
     - TODO:  come up with a scheme for browser config.
 - **Document each variable where it's read:**
