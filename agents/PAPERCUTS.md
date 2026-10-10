@@ -1626,3 +1626,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   hand in the part file;  write links skeleton-relative (`../../packages/x`) or as plain `<code>` paths.  Also:  no
   `--goal-file`, and a worktree session's guard refuses `--goal "$(cat ...)"`, so long fields went through a small
   node script calling `execFileSync("spell", [...])`. · spell-element (P10 added)
+- 2026-10-10 · output-targets' plan doc looked old (no airplane toolbar, chips, send bar) in the side bar:  a
+  worktree session's `spell dev plan-doc open` / `docs link` show it at `/worktrees/<name>/epics/...`, drawn by THAT
+  branch's `epics` pack, and the branch was 96 commits behind `main`.  The doc itself is shared, so it was fine. ·
+  Show it from the main checkout (`cd <main root> && spell dev docs link <main root>/epics/<name>/<name>.plan.html
+  --review --show`:  `/epics/...` on 4747, main's pack), then `spell dev worktree merge-main`.  Better:  the openers
+  could always use the main server's own path for a shared doc. · epics
