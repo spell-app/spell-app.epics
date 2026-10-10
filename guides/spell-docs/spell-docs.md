@@ -98,20 +98,22 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
     else its `icon` attribute.
   - old markup:  h2s are the groups, h3s their entries, h4s under the h3 before them
   - an entry with no `id` gets a slug of its label -- but give entries other pages link to an explicit, stable id
-- No contents sidebar any more (removed 2026-10-08, P14 of epic `epic-components`:  Owen, "useless"):  the rail is
-  the one navigation.
-- Layout:  one centred content column (max ~880px);  at narrow widths the content runs to the window's edge.  The rail
-  FLOATS over it:  it takes no column of its own (Owen, 2026-10-08).
-- Rail (`buildRail()`, `nav.spell-rail`):  a fixed strip at the right edge, centred in the height below the site
-  header (so it never sits over the stuck page header or a stuck title's end), opaque, with a soft shadow:
-  - plain elements, styled by `spell-doc.css` "Rail":  each entry `label | icon`, the labels showing only while
-    hover or focus widens the strip leftward;  the current section filled with the accent
-  - one `a.spell-rail-item[data-rail]` per top-level section, its icon (else its number);  a red pill on the icon's
-    corner counts the items that need Owen (none:  no pill);  scroll-follow marks the current section's `selected`
-  - `buildRail()` can run again (a page updated in place):  it replaces what it built first
+- No contents sidebar any more (removed 2026-10-08, P14 of epic `epic-components`:  Owen, "useless"):  the toolbar
+  is the one navigation.
+- Layout:  one centred content column (max ~880px);  at narrow widths the content runs to the window's edge.
+- Toolbar (`buildPageToolbar()`, `nav.spell-toolbar`;  epic `airplane` P8, in place of the floating right-edge
+  rail):  the last row of the sticky page header (`.spell-page-head`), so it sticks with it:
+  - plain elements, styled by `spell-doc.css` "Toolbar":  one `a.spell-toolbar-item[data-rail]` per top-level
+    section, its icon (else its number) and its title;  a red badge counts the items that need Owen (none:  none);
+    scroll-follow marks the current section's `selected`
+  - titles end in `...` when they don't all fit;  under 50px each, they go (icons only, the title the tooltip:
+    `fitTitles()`);  the row scrolls sideways if even that doesn't fit
+  - a page without a sticky page header:  the last row of its filter bar, else a sticky bar of its own
+  - a plan doc's (`buildToolbar()`):  icons only, in `<epic-page>`'s header
+  - it can run again (a page updated in place):  it replaces what it built first
 - The site header (`<spell-site-header>`, `$/server/site`):  fixed on top of every page, its height
   `--spell-site-header-height` on `:root` (`siteHeaderHeight()`).  Everything that sticks or lands starts below it:
-  the page header, the filter bar, the titles, the rail.
+  the page header and its toolbar, the filter bar, the titles.
 - Sticky titles (`trackStickyHeights()`):  an optional page header (`ui-sticky.spell-h1`) just below the site header,
   and the CHEATSHEET's `.spell-filter` bar;  their height is `--spell-top` on `main`, re-measured on resize.
   - `<ui-section>`:  the runtime sets each TOP-LEVEL section's `offset` to the site header + `--spell-top`;  nested
@@ -150,7 +152,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
     unless the reader scrolled (a `#hash` load lets the browser open the fold itself, animated)
   - the target's entry becomes current even when the page can't scroll it to its line (`follow.pin()`)
 - Scroll-follow (`followScroll()`):  the current entry -- the last section / heading whose top has passed its
-  landing line, skipping ones hidden by the filter or inside a folded section -- has its rail entry highlighted, and
+  landing line, skipping ones hidden by the filter or inside a folded section -- has its toolbar button highlighted, and
   the address follows it.
 - Cheat sheets:  `ui-input[data-spell-filter]` filters `ui-card`s by text (every word must match), hides sections
   (`section` or `ui-section`, by `hidden`) with no visible card, remembers the filter in `localStorage`.
@@ -160,8 +162,8 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 
 - `spell dev docs update` must pass;  `--skip-ui-build` reuses `../ui/dist`, `--no-check` skips the browser checks.
 - `node scripts/check-spell.js <page> [outDir]` checks one page and writes four screenshots -- look at them.
-  - fails on:  console errors, undefined or unrendered `ui-*`, a rail that doesn't list every top-level section or
-    doesn't show at phone width, phone-width overflow, a top-level title that doesn't stick (a `<ui-section>` must
+  - fails on:  console errors, undefined or unrendered `ui-*`, a toolbar that doesn't list every top-level section or
+    isn't stuck at the top at phone width, phone-width overflow, a top-level title that doesn't stick (a `<ui-section>` must
     also say `:state(stuck)`;  an h2 its short section pushed out, `:state(bound)`, is fine)
   - the FOLD check (in the JSON as `fold`):  clicks a top-level section's toggle as a reader would (the shadow
     `button[part~=toggle]`, or the old chevron `ui-button.spell-fold`), expects it folded with its content hidden,
