@@ -1613,6 +1613,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## epics
 
+- 2026-10-10 · `node packages/epics/demo/check-header-epics.mjs --doc airplane` times out on `main` too (waiting 15s for
+  `<epic-page>`'s `.review-line`, line 99), so it checks nothing. · Used `packages/docs/tools/check-spell.js` on the
+  plan doc instead (passes);  the header check needs looking at. · epics (demo checks)
 - 2026-10-09 · `yarn review` (its `yarn format`) in `packages/epics` rewrites the test fixture
   `src/convert/fixtures/one-file.plan.html` (two spaces become one), a change nobody meant;  it hit twice in epic
   `airplane` (P2, P4). · `git checkout --` the fixture before staging;  better:  add the convert fixtures to the format
