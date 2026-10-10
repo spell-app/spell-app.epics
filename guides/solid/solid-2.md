@@ -84,7 +84,9 @@ count() // 1
   - Solid's DOM bindings skip equal text / attribute writes (input `value` / `checked` are always re-applied)
 - Derived properties:  plain getter by default;  `this.derive(name, fn)` ONLY when the parser proves it pure AND
   worth it (loops, list aggregates).  Memoizing a cheap getter is ~2x SLOWER.  `derive()` is BUILT;  the parser's
-  pure / worth-it analysis is (planned, plan doc T6):  today every compiled derived property is a plain getter.
+  pure / worth-it analysis is (planned, plan doc T6):  today every compiled JAVASCRIPT derived property is a plain
+  getter, while compiled TypeScript puts `@derived` on a getter that loops (`output-targets` J22:  a stand-in for
+  "worth it", not proven pure).
 - **Keys in creation order:**  `keys()` lists own props in first-set order.
   - an overwrite keeps the position;  a delete (or setting `undefined`) removes the key;  re-setting appends it
   - the record MUST be a `Map`:  a plain object hoists integer-like keys (`"2"`, `"10"`) to the front
@@ -175,7 +177,7 @@ count() // 1
 - NEVER put Things (class instances) in a Solid store:  stores wrap them in proxies, `===` breaks.
 
 ```ts
-// hand-written:  decorators;  compiled spell emits the lowered equivalent
+// hand-written and compiled TypeScript:  decorators;  compiled javascript emits the lowered equivalent
 @thing
 class Card extends Thing {
   @prop({ type: "text", default: "hearts" }) accessor suit!: string
@@ -202,12 +204,24 @@ card.suit = "diamonds" // overwrite:  same position;  readers of keys() don't re
 card.deleteProp("rank") // ["suit", "nickname"]
 card.setProp("score", "high") // after numbers:  observed type widens to "number | text", dev warning
 
-// compiled JSX:  a function for everything that can change
+// compiled javascript's JSX:  a function for everything that can change
 spellCore.element({
   tag: "div",
-  props: { class: () => "card " + this.color, onClick: (event) => this.play() },
-  children: [() => this.short_rank + " "]
+  props: { className: () => "card " + this.color, onClick: (event) => this.play() },
+  children: [() => this.short_rank + " ", () => spellCore.drawThing(this.pile)]
 })
+```
+
+```tsx
+// compiled TypeScript (ts/solid):  real JSX, Solid's shapes, the net as a decorator
+@drawn
+draw() {
+  return (
+    <Show when={this.isFaceDown} fallback={<div class={"card " + this.color}>{this.shortRank}</div>}>
+      <div class="card back" />
+    </Show>
+  )
+}
 ```
 
 ## Rules when writing Solid code
@@ -326,13 +340,14 @@ const modal = (
 )
 ```
 
-## Hyperscript (`@solidjs/h`, what `spellCore.element()` will use -- planned, not installed)
+## Hyperscript (`@solidjs/h`, what `spellCore.element()` uses)
 
 - Nothing is reactive unless it's a FUNCTION.
 - `h()` returns a thunk:  `render(() => h(App), el)`.  Fragments are arrays.
 - ARITY TRAP:  on a COMPONENT, a zero-arg function prop becomes a getter.  Handlers MUST take a parameter:
   `onPick: e => go()`, never `onPick: () => go()`.  Element `on*` props and `ref` are exempt.
 - It imports `@solidjs/web` by bare specifier:  keep it inside bundled code, never in blob-loaded compiled spell.
+  `spell-runtime.js` gets it from `spell-solid.js` (`sharedSolid()`), which re-exports `h`.
 
 ```ts
 h("div", { id: () => props.id, class: "row" }, () => first() + " " + last(), h(Child, { name: () => name() }))
@@ -351,9 +366,11 @@ h(Picker, { onPick: () => go() }) // WRONG:  becomes a getter, passes go()'s res
     `packages/app/AGENTS.md` "Overview".
   - `app`'s component tests `render()` from `@solidjs/web` into a fixture and `await uiReady` for the `<ui-*>` tags.
     `@solidjs/testing-library@next` (1.0.0-beta.3) exists but isn't installed.
-- Reactive semantics this repo depends on are pinned as vitest cases:  `util`'s `src/spell/cells.test.ts` (cells, no
-  Solid), `app`'s `src/solid/cellsBridge.browser.test.tsx` (Solid's client build:  staging, holds, the bridge) and
-  `src/ui/reactView.browser.test.tsx` (the React bridge).  The `solid/experiments/*` scripts stay, to re-measure.
+- Reactive semantics this repo depends on are pinned as vitest cases:  `util`'s `src/reactive/cells.test.ts` and
+  `decorators.test.ts` (cells, no Solid), `app`'s `src/solid/cellsBridge.browser.test.tsx` (Solid's client build:
+  staging, holds, the bridge), `core`'s `drawing.test.ts` and `app`'s `src/runner/runner.browser.test.tsx` (compiled
+  spell drawing:  live values, the error net, `<For>` keeping nodes).  The `solid/experiments/*` scripts stay, to
+  re-measure.
 
 ```tsx
 fireEvent.click(button)
