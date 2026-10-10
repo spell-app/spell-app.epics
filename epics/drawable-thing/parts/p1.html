@@ -42,26 +42,213 @@
     <li>Only names someone declared match, the longest first: "a big card" stays a card (<a href="#c1">C1</a>).</li>
     <li>Every example program parses exactly as before, and the parser is no slower.</li>
   </ul></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      <b>Try it</b> (uncommitted, waiting for your review): a type's name can be several words, with a short name after
+      "aka".
+      <epic-code title="what to try · 6 lines" language="spell">
+        <pre>
+a bank account aka account is a thing
+set savings to a new account        -- compiled:  new Bank_Account()
+for each account in the accounts ...   -- either name, singular or plural
+an account is a thing               -- error:  "account" is already the short name of bank account
+a card is a thing
+a savings account aka card is a thing  -- error:  "card" already names a type:  card</pre>
+      </epic-code>
+    </li>
+    <li>
+      How spell reads a declaration:
+      <ul>
+        <li>
+          A new rule,
+          <a
+            href="../../../packages/spell/src/rules/types/TypeWords.ts"
+            target="src-packages-spell-src-rules-types-typewords-ts"
+            ><code title="packages/spell/src/rules/types/TypeWords.ts">type_words</code></a
+          >, reads the name: every word up to a reserved word or "aka", at most 4.
+        </li>
+        <li>
+          Both <code>create_type</code> and <code>create_list_type</code> read it, then an optional "aka" and a short
+          name.
+        </li>
+        <li>
+          Both now declare through one shared method,
+          <a
+            href="../../../packages/spell/src/rules/classes/TypeDeclaration.ts"
+            target="src-packages-spell-src-rules-classes-typedeclaration-ts"
+            ><code title="packages/spell/src/rules/classes/TypeDeclaration.ts">TypeDeclaration.declareType()</code></a
+          >: the code they each had a copy of is gone.
+        </li>
+        <li>Both refuse a name another type already goes by (<a href="#j6">J6</a>).</li>
+      </ul>
+    </li>
+    <li>
+      How spell reads a mention:
+      <ul>
+        <li>
+          Every type rule (<code>type</code>, <code>known_type</code>, <code>singular_type</code>,
+          <code>plural_type</code>) first tries the LONGEST run of 2 to 4 words that names a type in scope.
+        </li>
+        <li>Else one word, as before.</li>
+        <li>
+          Only declared names match: "a big card" stays a card unless a "big card" was declared (<a href="#c1">C1</a>).
+        </li>
+      </ul>
+    </li>
+    <li>
+      The short name:
+      <ul>
+        <li>
+          a type's scope record keeps it (<a
+            href="../../../packages/parser/src/scope/TypeScope.ts"
+            target="src-packages-parser-src-scope-typescope-ts"
+            ><code title="packages/parser/src/scope/TypeScope.ts">TypeScope.aka</code></a
+          >)
+        </li>
+        <li>
+          a scope's type list finds a type by it, after every type's own name in that scope: a new, generic option on
+          the parser's scope lists (<a
+            href="../../../packages/parser/src/scope/ScopeList.ts"
+            target="src-packages-parser-src-scope-scopelist-ts"
+            ><code title="packages/parser/src/scope/ScopeList.ts">aliasProp</code></a
+          >)
+        </li>
+        <li>a mention by the short name compiles as the type's own name</li>
+        <li>a project's declarations carry it, so a project that imports it knows the short name too</li>
+      </ul>
+    </li>
+    <li>
+      Docs:
+      <a href="../../../packages/spell/PARSING.md" target="src-packages-spell-parsing-md"
+        ><code title="packages/spell/PARSING.md">PARSING.md</code></a
+      >
+      has a new section, "Type names: a bank account aka account is a thing".
+    </li>
+    <li>
+      Regenerated, because the declaration syntax changed:
+      <ul>
+        <li>Spell UI's spell highlighter bundle (<code>yarn gen:spell</code>)</li>
+        <li>core's built-in scopes file (<code>yarn scopes --builtins</code>)</li>
+      </ul>
+    </li>
+    <li>
+      Checks:
+      <ul>
+        <li>parser review passes: 518 tests, plus 6 expected failures</li>
+        <li>
+          spell review passes: 1097 passed, 2 skipped
+          <ul>
+            <li>18 new tests: type_words 7, known_type 5, create_type 2, multi-word programs 3, declarations 1</li>
+          </ul>
+        </li>
+        <li>every fixture snapshot unchanged</li>
+        <li>language server 127, core 500 and Spell UI's code element 26 tests pass</li>
+        <li>
+          parser speed test against HEAD, run twice: -1% and +3% on average, which is noise; 731 passed on both sides
+          <epic-code title="parser speed test, first run (ms)">
+            <pre>
+             Average   Min   Max
+Previous         101    86   130
+Current          100    87   116
+Change           -1%   +1%  -11%</pre>
+          </epic-code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      What's rough, or differs from the plan:
+      <ul>
+        <li>the class is <code>Bank_Account</code>, not the plan's <code>BankAccount</code> (<a href="#j4">J4</a>)</li>
+        <li>a multi-word type must be declared before it's mentioned (<a href="#j5">J5</a>)</li>
+        <li>a name another type goes by is refused (<a href="#j6">J6</a>)</li>
+        <li>at most 4 words in a name (<a href="#j7">J7</a>)</li>
+        <li>an inner short name can hide an outer type of that name (<a href="#c6">C6</a>)</li>
+      </ul>
+    </li>
+  </ul></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
-      <a href="../../../packages/spell/src/rules/types.ts" target="src-packages-spell-src-rules-types-ts"
-        ><code title="packages/spell/src/rules/types.ts">types.ts</code></a
-      >: a type mention matches the known multi-word names, longest first
+      <a
+        href="../../../packages/spell/src/rules/types/TypeWords.ts"
+        target="src-packages-spell-src-rules-types-typewords-ts"
+        ><code title="packages/spell/src/rules/types/TypeWords.ts">TypeWords.ts</code></a
+      >: the new rule reading a declared name
     </li>
     <li>
-      <a href="../../../packages/spell/src/rules/classes.ts" target="src-packages-spell-src-rules-classes-ts"
-        ><code title="packages/spell/src/rules/classes.ts">classes.ts</code></a
-      >: the type rule takes "aka" and a short name
+      <a
+        href="../../../packages/spell/src/rules/types/SpellType.ts"
+        target="src-packages-spell-src-rules-types-spelltype-ts"
+        ><code title="packages/spell/src/rules/types/SpellType.ts">SpellType.ts</code></a
+      >: a mention tries the longest declared run of words first
     </li>
-    <li>the scope's table of type names, with each short name, and their plurals</li>
     <li>
-      <a href="../../../packages/spell/src/rules/Block.test.ts" target="src-packages-spell-src-rules-block-test-ts"
-        ><code title="packages/spell/src/rules/Block.test.ts">Block.test.ts</code></a
+      <a
+        href="../../../packages/spell/src/rules/classes/TypeDeclaration.ts"
+        target="src-packages-spell-src-rules-classes-typedeclaration-ts"
+        ><code title="packages/spell/src/rules/classes/TypeDeclaration.ts">TypeDeclaration.ts</code></a
+      >: the shared declaring and the refusal
+    </li>
+    <li>
+      <a
+        href="../../../packages/spell/src/rules/classes/CreateType.ts"
+        target="src-packages-spell-src-rules-classes-createtype-ts"
+        ><code>CreateType.ts</code></a
+      >,
+      <a
+        href="../../../packages/spell/src/rules/classes/CreateType.ts"
+        target="src-packages-spell-src-rules-classes-createtype-ts"
+        ><code>packages/spell/src/rules/classes/CreateType.ts</code></a
       >
       and
-      <a href="../../../packages/spell/src/rules/classes.test.ts" target="src-packages-spell-src-rules-classes-test-ts"
-        ><code title="packages/spell/src/rules/classes.test.ts">classes.test.ts</code></a
+      <a
+        href="../../../packages/spell/src/rules/classes/CreateListType.ts"
+        target="src-packages-spell-src-rules-classes-createlisttype-ts"
+        ><code>CreateListType.ts</code></a
+      >,
+      <a
+        href="../../../packages/spell/src/rules/classes/CreateListType.ts"
+        target="src-packages-spell-src-rules-classes-createlisttype-ts"
+        ><code>packages/spell/src/rules/classes/CreateListType.ts</code></a
+      >: the "aka" syntax
+    </li>
+    <li>
+      <a href="../../../packages/parser/src/scope/TypeScope.ts" target="src-packages-parser-src-scope-typescope-ts"
+        ><code>TypeScope.ts</code></a
+      >,
+      <a href="../../../packages/parser/src/scope/TypeScope.ts" target="src-packages-parser-src-scope-typescope-ts"
+        ><code>packages/parser/src/scope/TypeScope.ts</code></a
+      >
+      and
+      <a href="../../../packages/parser/src/scope/ScopeList.ts" target="src-packages-parser-src-scope-scopelist-ts"
+        ><code>ScopeList.ts</code></a
+      >,
+      <a href="../../../packages/parser/src/scope/ScopeList.ts" target="src-packages-parser-src-scope-scopelist-ts"
+        ><code>packages/parser/src/scope/ScopeList.ts</code></a
+      >: the short name, and finding a type by it
+    </li>
+    <li>
+      <a
+        href="../../../packages/spell/src/rules/classes/classes.test.ts"
+        target="src-packages-spell-src-rules-classes-classes-test-ts"
+        ><code>classes.test.ts</code></a
+      >,
+      <a
+        href="../../../packages/spell/src/rules/classes/classes.test.ts"
+        target="src-packages-spell-src-rules-classes-classes-test-ts"
+        ><code>packages/spell/src/rules/classes/classes.test.ts</code></a
+      >
+      and
+      <a
+        href="../../../packages/spell/src/SpellDeclarations.test.ts"
+        target="src-packages-spell-src-spelldeclarations-test-ts"
+        ><code>SpellDeclarations.test.ts</code></a
+      >,
+      <a
+        href="../../../packages/spell/src/SpellDeclarations.test.ts"
+        target="src-packages-spell-src-spelldeclarations-test-ts"
+        ><code>packages/spell/src/SpellDeclarations.test.ts</code></a
       >
     </li>
   </ul></epic-field
