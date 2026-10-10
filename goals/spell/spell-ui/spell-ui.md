@@ -22,7 +22,7 @@ Fomantic UI reborn as ui-* web components on Solid 2:  the parts the app, the do
 
 - **Where:**  `packages/ui`;  status in `packages/ui/docs/status.md`;  plan in `packages/ui/docs/plan.md`
   (phases A-C done, D is site and release).
-- **Built on:**  Solid 2 (rc.11) and our fork of Solid's custom-element layer (`packages/solid-element`).
+- **Built on:**  Solid 2 and its own custom-element core, `DOMElement` and `UIComponent` (`packages/ui/src/elements`).
 - **Branch:**  `worktree-ui-component-creation`:  changelog, publish dry-run (2.5 MB), cross-browser run with
   four WebKit failures waiting on Owen.
 - **Translation:**  a contract is designed (`<ie-tarjeta color="rojo">` ~== `<ui-card color="red">`), not built
