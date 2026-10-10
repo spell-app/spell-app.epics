@@ -120,7 +120,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 - `src/rules/UI.ts` `css`: reads `match.data.file` (was ad hoc `match.file`, documented as "set externally by `SpellCSSFile`") but NOTHING sets it -- `SpellCSSFile.parse()` doesn't.  So compiled output is always `spellCore.installStyles(undefined, ...)`.  Likely fix: `match.data.file = this.file` after parsing, but untested so left alone.
 
-- [V] `src/rules/assignment.ts` `get.getAST`: `variables.replace("it")` unconditionally;
+- [V] `src/rules/assignment.ts` `Get.getAST`: `variables.replace("it")` unconditionally;
   sibling `assignment.getAST()` guards with `if (originalVar?.isAlias)`.  A real `it` variable loses `kind` / `datatype`.
 
 - [V] `src/rules/lists.ts` `list_range_iteration`: only iteration rule that doesn't pass `mapItTo` --
@@ -292,14 +292,14 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 - `rules/methods.ts` `typed_method_arg`: post-construction `arg.datatype = type.value` workaround; `VariableExpressionProps` declares `datatype`.
 
-- `rules/math.ts` `gt_lt.getAST` / `is_gt_lt.getAST`: unreachable (output comes via `compileASTExpression()`).
+- `rules/math.ts` `GtLt.getAST` / `IsGtLt.getAST`: unreachable (output comes via `compileASTExpression()`).
 
 - `parser/rules/Pattern.ts` constructor: `instanceof RegExp` branch unreachable per types; only caller passes object.
 
 - `parser/parser.types.ts` `RuleTestBlock.showAll`: set at several call sites, never read.
 
-- `src/rules/assignment.ts` `get.mutateScope`: sets `match.data.itVar` (the original local
-  `it` `ScopeVariable`, if any), but `get.getAST` never reads it -- only `match.data.isNewVariable`.
+- `src/rules/assignment.ts` `Get.mutateScope`: sets `match.data.itVar` (the original local
+  `it` `ScopeVariable`, if any), but `Get.getAST` never reads it -- only `match.data.isNewVariable`.
   Looks like dead state, found while converting the file to a rule class (2026-09-20).
 
 - `src/rules/core.ts` `eat_whitespace`: never referenced anywhere in `src` (grepped) -- dead.
@@ -341,7 +341,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ### 7. Found by epic `outline-spell` (2026-10-06, probing J8;  also on `main`)
 
-- `assignment_statement` over a constant:  after a list of values holding `red`, `set red to 5` compiles to
+- `AssignmentStatement` over a constant:  after a list of values holding `red`, `set red to 5` compiles to
   `'red' = 5`, broken javascript.  Prove:  `cards have a color as either red or black`, then `set red to 5`.
 - the other way round:  `set red to 5` ABOVE `cards have a color as either red or black` gives
   `Card.Colors = [red, 'black']`, i.e. `[5, 'black']`:  `identifier_list` takes the variable.  Prove:  those two
