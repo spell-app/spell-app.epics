@@ -156,3 +156,177 @@
     </ul></epic-net-effect
   >
 </epic-reply>
+<epic-reply from="Owen" at="2026-10-09 19:40" re="revisit soon"
+  ><p>
+    &lt;spell-app&gt; should be a root like &lt;ui-root&gt; and &lt;ui-page&gt; -- it enables all of the UI widgets and
+    the spell pack
+  </p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-09 21:10"
+  re="<spell-app> should be a root like <ui-root> and <ui-page> -- it enables all of the UI widgets and the spell pack"
+>
+  <p>
+    Yes. "A root" would mean <code>&lt;spell-app&gt;</code> IS a <code>&lt;ui-root&gt;</code>: its class,
+    <code>SpellApp</code>, extends <code>UIRoot</code> instead of <code>UIComponent</code>. A page with only a
+    <code>&lt;spell-app&gt;</code> on it then gets everything a <code>&lt;ui-root&gt;</code> gives, with nothing written
+    around it.
+  </p>
+  <p>What a page would get from it:</p>
+  <ul>
+    <li>
+      Spell UI's widgets, on demand: every <code>ui-*</code> tag inside it loads its family the first time it appears,
+      as inside a <code>&lt;ui-root&gt;</code>
+      <ul>
+        <li>
+          today <code>&lt;spell-app&gt;</code> loads ALL of Spell UI at once instead (<a
+            href="../../../packages/app/src/solid/loadUI.ts"
+            target="src-packages-app-src-solid-loadui-ts"
+            ><code>loadUI.ts</code></a
+          >
+          imports the whole <code>$/ui</code> barrel)
+        </li>
+        <li>a widget a program draws later loads when it's drawn</li>
+      </ul>
+    </li>
+    <li>
+      The spell pack: it knows the spell pack's tags without a <code>&lt;ui-components source&gt;</code>, so a spell tag
+      inside it loads when one appears (today <code>&lt;spell-editor&gt;</code>; later the panels of
+      <a href="#t12">T12</a>, such as <code>&lt;spell-console&gt;</code>)
+    </li>
+    <li>
+      The root's settings for what's inside it: <code>icons</code>, <code>emoji</code>, the theme, the size,
+      <code>appContext</code>
+      <ul>
+        <li>
+          its <code>icons</code> default to <code>fomantic</code>, the names the runner uses; today that's a second
+          <code>&lt;ui-root icons="fomantic"&gt;</code> it draws inside its own shadow root, which goes
+        </li>
+        <li>the host page's own <code>ui-*</code> outside it keep their icons, as now</li>
+      </ul>
+    </li>
+    <li>
+      Inside another <code>&lt;ui-root&gt;</code> (a docs page, the editor demo), it's a nested root, as nested
+      <code>&lt;ui-root&gt;</code>s are today: it takes the outer root's settings it doesn't set, and the outer root
+      waits for it to be ready
+    </li>
+  </ul>
+  <p>
+    What it takes in Spell UI's core: "is this element a root?" is asked by TAG today, so a subclass with another tag
+    isn't found. That becomes a setting, <code>elementSetup.root</code>, which <code>UIRoot</code> sets and
+    <code>SpellApp</code> inherits.
+  </p>
+  <epic-code title="packages/ui/src/elements/UIComponent.tsx · today" language="ts">
+    <pre>
+/** Is `localName` `&lt;ui-root&gt;`, or a translated alias of it? */
+private static isRootTag(localName: string): boolean {
+  return localName === ROOT_TAG || UIComponent.registry.definitions.get(localName)?.vocabulary.tag === ROOT_TAG
+}</pre>
+  </epic-code>
+  <p>How it meets the earlier reply on this item (packs that load one tag at a time):</p>
+  <ul>
+    <li>
+      That reply's problem: the spell pack's <code>define()</code> loads BOTH elements, so a page with only a
+      <code>&lt;spell-app&gt;</code> would also download the editor and the parser (236 kB gzipped)
+    </li>
+    <li>
+      As a root, <code>&lt;spell-app&gt;</code> doesn't need the pack to define itself: <code>spell-app.js</code> has
+      already done that. The pack matters only for the OTHER spell tags
+    </li>
+    <li>
+      so the root loads each of those by itself, the first time it appears: <code>spell-editor</code> →
+      <code>spell-editor.js</code>, beside its own script. A page with no editor never downloads one
+    </li>
+    <li>
+      that's the "tag by tag" loading the earlier reply asked of Spell UI's pack format, but only for spell's own tags,
+      so Spell UI's packs don't change. The general version, for any pack, stays what <a href="#t12">T12</a> waits on
+    </li>
+    <li><code>&lt;ui-page&gt;</code> isn't needed for any of this: it stays an idea, with no item of its own</li>
+  </ul>
+  <p>
+    How it meets the pack issue (<a href="#i4">I4</a>: Monaco and the parser can't go in a stock pack): it doesn't touch
+    it. Nothing here uses the stock pack build; the editor's module, with Monaco and the parser as lazy chunks, still
+    loads only when an editor appears, and each app still gets its own <code>spell-runtime.js</code>.
+  </p>
+  <p>The pages, after:</p>
+  <epic-code title="spell run's page (runInBrowser.ts) · the markup doesn't change" language="html">
+    <pre>
+&lt;script type="module" src="element/spell-app.js"&gt;&lt;/script&gt;
+...
+&lt;spell-app src="app/${name}.compiled.js" toolbar&gt;&lt;/spell-app&gt;</pre>
+  </epic-code>
+  <ul>
+    <li>
+      the same markup as today, but now it's the ONE way: the <code>&lt;spell-app&gt;</code> demo page drops its
+      <code>&lt;ui-root&gt;&lt;ui-components source="/element/spell.pack.js"&gt;</code> wrapper
+    </li>
+    <li>
+      the <code>&lt;spell-editor&gt;</code> demo keeps a <code>&lt;ui-root&gt;</code> around its editors and apps: they
+      sit side by side, and an editor outside a <code>&lt;spell-app&gt;</code> isn't inside any root that would load it
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="<spell-app> is a root, and loads spell's other tags one at a time" recommended=""
+      ><ul>
+        <li>
+          <code>SpellApp</code> extends <code>UIRoot</code>; a root is found by <code>elementSetup.root</code>, not by
+          its tag
+        </li>
+        <li>
+          its vocabulary takes the root's attributes (<code>icons</code>, <code>emoji</code>, <code>display</code>,
+          <code>timeout</code> ...); <code>icons</code> default to <code>fomantic</code>
+        </li>
+        <li>a page with only <code>&lt;spell-app&gt;</code> downloads only its code, as today</li>
+        <li>about 2h, in <a href="#p11">P11</a></li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="<spell-app> is a root, and loads the whole spell pack"
+      ><ul>
+        <li>
+          the same root, but it registers <code>spell.pack.js</code> as a <code>&lt;ui-components&gt;</code> would
+        </li>
+        <li>simpler: no per-tag loading of its own</li>
+        <li>
+          but every page with a <code>&lt;spell-app&gt;</code> downloads the editor and the parser (236 kB gzipped), the
+          cost this item set out to avoid
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="<spell-app> is a <ui-page>"
+      ><ul>
+        <li>
+          a subclass of a new <code>&lt;ui-page&gt;</code> (the earlier reply's): the whole window, its background, the
+          system's light / dark
+        </li>
+        <li>fits spell run's page, where the app IS the page</li>
+        <li>
+          wrong wherever it's embedded: a page has one <code>&lt;ui-page&gt;</code>, and the editor demo has four apps
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        <code>SpellApp</code> extends <code>UIRoot</code>; its own inner
+        <code>&lt;ui-root icons="fomantic"&gt;</code> goes
+      </li>
+      <li>
+        Spell UI's core asks <code>elementSetup.root</code> where it asked for the tag <code>ui-root</code> (the
+        <code>appContext</code> lookup, the root settings)
+      </li>
+      <li>
+        <code>spell-app.js</code> loads Spell UI's widgets on demand, no longer the whole <code>$/ui</code> barrel
+      </li>
+      <li>a spell tag inside a <code>&lt;spell-app&gt;</code> loads the first time it appears</li>
+      <li>
+        spell run's page unchanged; the <code>&lt;spell-app&gt;</code> demo loses its wrapper; the editor demo keeps its
+        <code>&lt;ui-root&gt;</code>
+      </li>
+      <li>
+        built in <a href="#p11">P11 · Review Follow-ups</a>, its biggest piece (about 2h); if it runs over, it splits
+        into a phase of its own before <a href="#p12">P12</a>
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

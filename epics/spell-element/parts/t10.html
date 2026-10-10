@@ -1,0 +1,145 @@
+<!-- plan-doc part:  #t10's details in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-reply from="Owen" at="2026-10-09 20:21" re="revisit soon"><p>suggest a fix</p></epic-reply
+><epic-reply from="Claude" at="2026-10-09 21:15" re="suggest a fix">
+  <p>
+    The fix is one loop in the code that works out a translated tag's names. Today it renames only the attributes the
+    tag's own vocabulary lists; the shared ones (<code>disabled</code>, <code>loading</code>, <code>visible</code>) are
+    added afterwards, under their English names. Let it walk the shared ones too, and a dictionary names them like any
+    other attribute.
+  </p>
+  <p>How a translation names attributes today:</p>
+  <ul>
+    <li>
+      a translation is ONE object per language, a <code>Dictionary</code>, for every tag at once; there's no file per
+      tag (no <code>UIButton.es.ts</code>). The only one so far is the test's,
+      <a href="../../../packages/ui/test/dictionary.es.ts" target="src-packages-ui-test-dictionary-es-ts"
+        ><code>packages/ui/test/dictionary.es.ts</code></a
+      >
+    </li>
+    <li>
+      its <code>attributes</code> map is keyed by the English name, for every tag: <code>{ primary: "primario" }</code>;
+      <code>components["ui-button"]</code> overrides a name for one tag only
+    </li>
+    <li>
+      <code>Vocabulary.resolve()</code> builds a tag's translated names from <code>vocabulary.attributes</code>: the
+      tag's OWN list, which has no shared attributes in it
+    </li>
+    <li>
+      then <code>ElementDefinition</code> adds the shared ones (<code>SharedVocabulary.attributesFor()</code>), looks
+      each up in those names, doesn't find it, and keeps the English
+    </li>
+    <li>
+      so a dictionary that says <code>disabled: "desactivado"</code> has no effect:
+      <code>&lt;ie-boton desactivado&gt;</code> is not disabled, and only <code>&lt;ie-boton disabled&gt;</code> works
+    </li>
+  </ul>
+  <epic-code title="packages/ui/src/vocabulary/Vocabulary.ts · resolve(), today" language="ts">
+    <pre>
+for (const spec of vocabulary.attributes) {
+  const name = component.attributes?.[spec.name] ?? dictionary.attributes?.[spec.name] ?? spec.name
+  Vocabulary.claim({ map: localized.attributes, name, value: spec, what: `${where} attribute` })
+  names.attributes.set(spec.name, name)
+  ...
+}</pre>
+  </epic-code>
+  <epic-code title="packages/ui/src/elements/ElementDefinition.ts · the constructor, today" language="ts">
+    <pre>
+// the vocabulary's own, then the shared ones it doesn't declare (`disabled`, `loading`, `visible`)
+this.attributes = E.SharedVocabulary.attributesFor(vocabulary).map((spec) =&gt; {
+  const attribute = localized.names.attributes.get(spec.name) ?? spec.name   // shared:  never found, so English
+  ...</pre>
+  </epic-code>
+  <p>
+    A test pins it as it is: a tag translated with <code>{ attributes: { label: "etiqueta" } }</code> observes
+    <code>["etiqueta", "disabled", "loading", "visible"]</code> (<a
+      href="../../../packages/ui/src/elements/DOMElement.test.tsx"
+      target="src-packages-ui-src-elements-domelement-test-tsx"
+      ><code>DOMElement.test.tsx</code></a
+    >, "a translated tag renames the attribute and its property").
+  </p>
+  <p>The fix, in that loop: walk the shared attributes too.</p>
+  <epic-code title="packages/ui/src/vocabulary/Vocabulary.ts · resolve(), after" language="ts">
+    <pre>
+// the tag's own attributes, then the shared ones it doesn't declare:  a dictionary names both
+for (const spec of SharedVocabulary.attributesFor(vocabulary)) {
+  const name = component.attributes?.[spec.name] ?? dictionary.attributes?.[spec.name] ?? spec.name
+  ...</pre>
+  </epic-code>
+  <epic-code title="a dictionary, after" language="ts">
+    <pre>
+export const es = {
+  lang: "es",
+  tags: { "ui-button": "boton" },
+  // every tag:  the shared ones are named here like any other attribute
+  attributes: { primary: "primario", disabled: "desactivado", loading: "cargando", visible: "visible" }
+} as const satisfies Dictionary</pre>
+  </epic-code>
+  <ul>
+    <li>
+      one line in the dictionary names a shared attribute on every tag of that language;
+      <code>components[tag]</code> still names it for one tag
+    </li>
+    <li>
+      a clash (a shared name translated to a word one of the tag's own attributes already has) throws, as any clash in a
+      dictionary does today
+    </li>
+    <li>
+      reading by the English name on a translated tag (<code>Vocabulary.canonicalize()</code> / <code>localize()</code>,
+      the docs inspector) finds the shared ones too
+    </li>
+    <li>
+      the CSS states stay English, as every state does: <code>:state(disabled)</code> is a CSS contract, never
+      translated
+    </li>
+    <li>
+      <code>SharedVocabulary</code> is plain data in the same folder as <code>Vocabulary</code>: the import adds no
+      cycle
+    </li>
+    <li>
+      the shared <code>animation</code> of <a href="#p12">P12</a> joins them the same way, with nothing more to do
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="A dictionary names the shared attributes like any other" recommended
+      ><ul>
+        <li>the resolver walks the shared attributes too: about two lines</li>
+        <li>no new file or key; the dictionary's <code>attributes</code> map covers them</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="A shared dictionary per language, SharedVocabulary.es.ts"
+      ><ul>
+        <li>one small file per language naming only the shared attributes, merged into that language's dictionary</li>
+        <li>the resolver needs A's change anyway, and a language then names attributes in two places</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="The shared attributes stay English, on purpose"
+      ><ul>
+        <li>like the states: documented, nothing built</li>
+        <li>a Spanish page mixes languages on one tag: <code>&lt;ie-boton primario disabled&gt;</code></li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        <code>Vocabulary.resolve()</code> walks <code>SharedVocabulary.attributesFor(vocabulary)</code>, not only the
+        tag's own attributes
+      </li>
+      <li>
+        a dictionary's <code>attributes</code> names <code>disabled</code>, <code>loading</code> and
+        <code>visible</code> for every tag; <code>&lt;ie-boton desactivado&gt;</code> is disabled
+      </li>
+      <li>
+        the test dictionary gains the three; the translated-tag test is re-pinned to observe the translated names, and a
+        new test checks <code>&lt;ie-boton desactivado&gt;</code>
+      </li>
+      <li>
+        <a href="../../../packages/ui/docs/translation.md" target="src-packages-ui-docs-translation-md"
+          ><code>packages/ui/docs/translation.md</code></a
+        >
+        and <code>SharedVocabulary</code>'s docstring say a dictionary names them
+      </li>
+      <li>built in <a href="#p11">P11 · Review Follow-ups</a>, once you pick</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
