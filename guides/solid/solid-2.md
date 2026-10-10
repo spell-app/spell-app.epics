@@ -13,7 +13,8 @@ or reviewing Solid code, JSX, `spellCore` rendering, `$/util` reactivity (spell 
     `epics/solid-migration/`.
   - Compiled spell draws with Solid too, in both targets (epic `output-targets` P10-P12, on its branch until it
     merges;  `main` still draws compiled spell with React through `view()`):
-    - javascript calls `spellCore.element()` (on `@solidjs/h`) and `spellCore.drawThing()`
+    - javascript calls Solid's own `h()` (`@solidjs/h`, imported from `@spell/core`;  P20) and
+      `spellCore.drawThing()`.  `spellCore.element()`, what it called before P20, stays deprecated.
     - TypeScript (`ts/solid`, a `.compiled.tsx`) is real JSX, with `<Show>` / `<For>` and `@drawn draw()`
     - how, and why:  `guides/targets/targets.html`, "Drawing with Solid"
   - React is GONE from `app`, `core` and `util` on that branch:  no React kits, no `view()`, no `@vitejs/plugin-react`.
@@ -140,13 +141,16 @@ count() // 1
 - `tracked(read)` (`app`'s `$/app/solid`) = a Solid memo over a read of spell state (boxed, `equals: false`).  A plain
   read in JSX is reactive too (the bridge);  `tracked()` shares one read among readers.  Re-reads on Solid's schedule:
   never mid-write, so program code is safe to run in it (`deferred` is gone).
-- Compiled JAVASCRIPT imports ONLY `@spell/core`, never Solid.  `spellCore.element()` is the adapter (BUILT,
-  `output-targets` P10, `core`'s `drawing.ts`):
-  - builds on `@solidjs/h`, building the node AT ONCE (a thunk would be built again each time the net re-reads)
+- Compiled JAVASCRIPT imports ONLY `@spell/core`, never Solid:  `h` included, which core exports (the page's one
+  `@solidjs/h`).  It draws with `h()` directly (BUILT, `output-targets` P20, `core`'s `drawing.ts`;  before it,
+  `spellCore.element()`, now in `deprecated.ts`):
+  - `h()` returns a THUNK:  `draw()` returns it as is, and the error net makes it (`madeOnce()`), once, inside its
+    `try`, so a throw while it's made shows the stand-in.  Only `h()`'s own thunks:  any other function stays a live
+    value.  Nested `h()` calls are made by their parent.
   - the parser emits a FUNCTION for every value that can change (`() => this.short_suit`, an `ASTJSXLiveValue`)
-  - React's spellings become the page's:  `className` => `class`, `htmlFor` => `for`, `colSpan` => `colspan`
-  - on a tag with a dash, a live value or an object goes to `prop:`
-  - a dotted tag (`<UI.Form>`) throws:  Spell UI's elements go by their own tags
+  - the WRITER writes the page's spellings:  `class`, `for`, `colspan`;  on a tag with a dash, a live value or an
+    object as `"prop:value"`
+  - a dotted tag (`<UI.Form>`) is a compile error:  Spell UI's elements go by their own tags
   - each drawn thing in its own ERROR NET, `drawInNet()`:  `<Errored>` + a memo running `draw()` + a `try/catch` for a
     stand-in made once (rc.13's `<Errored>` makes its fallback again on any change under it).  A throw:  one console
     line, a cancelable `ui-error`, a stand-in;  the rest keeps drawing.  `drawThing()` for javascript, `@drawn` for
@@ -340,7 +344,7 @@ const modal = (
 )
 ```
 
-## Hyperscript (`@solidjs/h`, what `spellCore.element()` uses)
+## Hyperscript (`@solidjs/h`, what compiled javascript draws with)
 
 - Nothing is reactive unless it's a FUNCTION.
 - `h()` returns a thunk:  `render(() => h(App), el)`.  Fragments are arrays.
