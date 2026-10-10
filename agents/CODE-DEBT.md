@@ -648,8 +648,9 @@ knowingly kept:
   imports from `@spell/core`.  Built Solid TypeScript also hears clicks only once its module has loaded (C20).
 - **Fix**:  build the `.tsx` where the runner gets its code (the page server, or esbuild-wasm plus Solid's compiler in
   the browser), and have `spellRuntime.ts` re-export what `@spell/core` exports.
-- **Pinned at**:  `TARGETS` in `packages/spell/src/targets.ts` ("never run as is");  `packages/app/src/runner/spellRuntime.ts`;
-  `packages/cli/src/contract.test.ts`;  epic `output-targets`, P14's Done list.
+- **Pinned at**:  `TARGETS` in `packages/spell/src/targets.ts` ("never run as is");
+  `packages/app/src/runner/spellRuntime.ts`;  `packages/cli/src/contract.test.ts`;  epic `output-targets`, P14's Done
+  list.
 
 ---
 
