@@ -6,7 +6,7 @@
     <title>Targets and Writers</title>
     <meta
       name="description"
-      content="How spell compiles one program for several targets:  js/solid and ts/solid, the writers that walk the spell tree, the declarations file, the tree diagrammer and the core contract."
+      content="How spell compiles one program for several targets:  js/solid and ts/solid, both drawing with Solid;  the writers that walk the spell tree;  TypeScript written as a person would write it, with its typing rules and spell's warnings;  the declarations file, the tree diagrammer and the core contract."
     />
     <link rel="stylesheet" href="../../packages/docs/tools/_assets/spell-doc.css" />
   </head>
@@ -34,20 +34,24 @@
             read a spell tree</ui-item
           >
           <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="green">merged</ui-label> into <code>main</code> 2026-10-07 (PR #27),
-            epic
-            <a href="../../epics/output-targets/output-targets.plan.html" target="output-targets">Output Targets</a>
-            (P1-P9)</ui-item
+            >Status: P1-P9 <ui-label size="mini" color="green">merged</ui-label> into <code>main</code> 2026-10-07 (PR
+            #27), epic
+            <a href="../../epics/output-targets/output-targets.plan.html" target="output-targets">Output Targets</a
+            ></ui-item
           >
           <ui-item icon="code branch"
-            >Not here yet: P10-P13, on branch <code>output-targets</code>, not merged. There, compiled spell draws with
-            Solid, <code>ts/solid</code> writes <code>&lt;Project&gt;.compiled.tsx</code>, and every fixture has 0
-            <code>tsc</code> errors. This page catches up at the epic's Doc Review (P16, T23).</ui-item
+            >On branch <code>output-targets</code>, not merged: P10-P17. Compiled spell draws with Solid,
+            <code>ts/solid</code> writes Solid TypeScript as a person would, and every fixture checks with 0
+            <code>tsc</code> errors. Still to come there: P18 (one rule per file) and P19 (javascript gets
+            TypeScript's tidiness and names).</ui-item
           >
           <ui-item icon="flask"
-            >Checked on: branch <code>output-targets</code>, 2026-10-06, against the code, the fixtures' snapshots, and
-            <code>spell parse --tree</code> run for the examples (see <a href="#12-sources">Sources</a>)</ui-item
+            >Checked on: branch <code>output-targets</code>, 2026-10-10, against the code, the fixtures' snapshots and
+            the plan doc's decisions (see <a href="#12-sources">Sources</a>)</ui-item
           >
+          <!-- P18: one rule per file, rule classes in PascalCase, rule tests as { input, js, ts }:  add to the status line and Sources once built -->
+          <!-- P19: javascript gets the TypeScript output's tidiness and camelCase names, as a feature of each writer:  add to the status line once built -->
+
         </ui-list>
 
         <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
@@ -55,7 +59,7 @@
           <ui-statistics class="spell-stats" size="mini">
             <ui-statistic value="2" label="targets"></ui-statistic>
             <ui-statistic value="14" label="operator meanings"></ui-statistic>
-            <ui-statistic value="6" label="tsc errors left, Solitaire"></ui-statistic>
+            <ui-statistic value="0" label="tsc errors, every fixture"></ui-statistic>
           </ui-statistics>
           <ul>
             <li>
@@ -63,16 +67,43 @@
               plus M targets, never N × M.
             </li>
             <li>
-              Two targets today:
+              Two targets today, both drawing with Solid:
               <ul>
                 <li>
                   <code>js/solid</code>: always compiled, since the editor, the runners and <code>spell run</code> run
                   it
                 </li>
                 <li>
-                  <code>ts/solid</code>: the same code with types, checked by <code>tsc</code>; the app never runs it
+                  <code>ts/solid</code>: Solid TypeScript, written as a person would write it by hand, in
+                  <code>&lt;Project&gt;.compiled.tsx</code>. Checked by <code>tsc</code>, built and run by the core
+                  contract; the app's runners can't run it yet.
                 </li>
               </ul>
+            </li>
+            <li>
+              Compiled spell draws with Solid, on <code>@spell/core</code>'s drawing module (see
+              <a href="#drawing">3. Drawing with Solid</a>).
+              <ul>
+                <li>Each drawn thing sits in its own error net: a broken card shows a stand-in, the rest keeps drawing.</li>
+                <li>Spell and Spell UI share one reactive engine, in <code>$/util/reactive</code>.</li>
+                <li>The examples draw with Spell UI's own tags. React is gone, but for the CLI's terminal screens.</li>
+              </ul>
+            </li>
+            <li>
+              The TypeScript reads like hand-written Solid (see <a href="#tswriter">TSWriter</a>):
+              <ul>
+                <li>real JSX, with <code>&lt;Show&gt;</code> and <code>&lt;For&gt;</code></li>
+                <li>decorators: <code>@prop</code>, <code>@derived</code>, <code>@drawn</code></li>
+                <li>TypeScript's names (<code>turnFaceUp()</code>), a list's own methods, events from core</li>
+              </ul>
+            </li>
+            <li>
+              Spell's types reach the TypeScript, and spell asks for a type where a program never says one (see
+              <a href="#types">5. Types and warnings</a>).
+            </li>
+            <li>
+              Spell objects' JSON says their class, and reads back as them (<code>spellCore.fromJSON()</code>); core
+              says "position" where it means one (see <a href="#core-api">6. Lists, events and JSON</a>).
             </li>
             <li>
               A writer is a class with one method per tree class, found by the class's NAME.
@@ -112,11 +143,13 @@
               </ul>
             </li>
             <li>
-              Solitaire as TypeScript still has 6 <code>tsc</code> errors, each a true "may be nothing" or a gap in
-              spell itself.
+              Every fixture's TypeScript checks with 0 <code>tsc</code> errors.
               <ul>
-                <li>105 before the typed writer.</li>
-                <li>35 before <code>@spell/core</code>'s types were tightened and lists said what they hold.</li>
+                <li>Solitaire had 105 before the typed writer, 35 after it, 6 at the merge of P1-P9.</li>
+                <li>
+                  What spell can't know is still written <code>any /* spell: type unknown */</code>, with a warning
+                  where the program could say it.
+                </li>
               </ul>
             </li>
           </ul>
@@ -248,6 +281,10 @@
                 description="Each match builds its tree node (getAST()).  The node holds what the program means:  the operator `equals`, not `==`;  the text `up`, not the already-quoted `'up'`;  Self, not `this`."
               ></ui-step>
               <ui-step
+                header="Ask for what's missing"
+                description="Once the whole project has parsed:  where a program never says a type (a property, a parameter, an empty list), or reads a member its type never declares, spell warns.  In the editor, VS Code and spell compile;  never failing the compile."
+              ></ui-step>
+              <ui-step
                 header="Pick the targets"
                 description="js/solid first, always;  then project.json's targets, or the one --target names for this run."
               ></ui-step>
@@ -265,11 +302,15 @@
               ></ui-step>
               <ui-step
                 header="Save"
-                description="<Project>.compiled.js, <Project>.declarations.json, and each other target's file, e.g. <Project>.compiled.ts."
+                description="<Project>.compiled.js, <Project>.declarations.json, and each other target's file, e.g. <Project>.compiled.tsx."
+              ></ui-step>
+              <ui-step
+                header="Check"
+                description="spell compile runs tsc on a target that says it's checked by tsc (ts/solid), and lists its errors under the project.  They're shown, not counted."
               ></ui-step>
               <ui-step
                 header="Run"
-                description="js/solid's code imports @spell/core, which papers over the rest:  lists counted from 1, drawing, reactive properties."
+                description="js/solid's code imports @spell/core, which papers over the rest:  lists counted from 1, drawing with Solid, reactive properties, events.  ts/solid's is built first (decorators, then Solid's compiler);  only the core contract runs it today."
               ></ui-step>
             </ui-steps>
           </ui-section>
@@ -303,19 +344,18 @@
                   <tr>
                     <td><code>ts/solid</code></td>
                     <td><code>P.TSWriter</code></td>
-                    <td><code>&lt;Project&gt;.compiled.ts</code></td>
+                    <td><code>&lt;Project&gt;.compiled.tsx</code></td>
                     <td class="yes positive">into the page</td>
                     <td><code>@spell/core</code></td>
                     <td>
-                      checked by <code>tsc</code>; never run by the app (the contract test runs it, through
-                      <code>tsx</code>)
+                      checked by <code>tsc</code>; built and run by the core contract; not by the app's runners yet
                     </td>
                   </tr>
                 </tbody>
               </table>
             </ui-table>
             <ui-accordion class="spell-code" styled>
-              <ui-title>targets.ts (excerpt) · 23 lines</ui-title>
+              <ui-title>targets.ts (excerpt) · 30 lines</ui-title>
               <ui-content>
                 <pre><code class="language-ts">/** A target spell compiles to -- see `TARGETS`. */
 export type Target = {
@@ -327,6 +367,8 @@ export type Target = {
   suffix: string
   /** What its runtime can do. */
   can: TargetAbilities
+  /** What checks its output after `spell compile`, e.g. `tsc` -- see `typecheck()` in `$/spell/node/typecheck`. */
+  checkedBy?: "tsc"
 }
 
 /** What a target's runtime can do -- checked while compiling, so a project asks only what its targets give. */
@@ -338,8 +380,15 @@ export type TargetAbilities = {
 /** Every target, by name. */
 export const TARGETS: Record&lt;string, Target&gt; = {
   "js/solid": { name: "js/solid", writer: P.JSWriter.instance, suffix: ".compiled.js", can: { draw: "dom" } },
-  // the same code and runtime, typed:  checked by `tsc`, never run
-  "ts/solid": { name: "ts/solid", writer: P.TSWriter.instance, suffix: ".compiled.ts", can: { draw: "dom" } }
+  // Solid TypeScript, as a person writes it:  JSX, decorators (`@prop`, `@drawn`), on the same runtime.  Checked by
+  // `tsc`;  never run as is -- it needs a build first (`buildTsx()` in `$/spell/node/buildTsx`)
+  "ts/solid": {
+    name: "ts/solid",
+    writer: P.TSWriter.instance,
+    suffix: ".compiled.tsx",
+    can: { draw: "dom" },
+    checkedBy: "tsc"
+  }
 }</code></pre>
               </ui-content>
             </ui-accordion>
@@ -383,7 +432,7 @@ export const TARGETS: Record&lt;string, Target&gt; = {
             <ui-accordion class="spell-code" styled>
               <ui-title>Compiling one project as TypeScript · 2 lines</ui-title>
               <ui-content>
-                <pre><code class="language-bash">spell compile Solitaire --target ts/solid           # writes Solitaire.compiled.ts too
+                <pre><code class="language-bash">spell compile Solitaire --target ts/solid           # writes Solitaire.compiled.tsx too
 spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing</code></pre>
               </ui-content>
             </ui-accordion>
@@ -410,8 +459,8 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                     <td>always; from <code>js/solid</code>'s output</td>
                   </tr>
                   <tr>
-                    <td><code>&lt;Project&gt;.compiled.ts</code></td>
-                    <td><code>ts/solid</code>'s code</td>
+                    <td><code>&lt;Project&gt;.compiled.tsx</code></td>
+                    <td><code>ts/solid</code>'s code: Solid TypeScript, with JSX</td>
                     <td>when <code>ts/solid</code> is picked</td>
                   </tr>
                 </tbody>
