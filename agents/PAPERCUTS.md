@@ -1108,6 +1108,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   - Same again 2026-10-10 (airplane's plain-text pass), with `--details` too:  HTML handed to any plan-doc command
     must link relative to the doc's folder, not `parts/`, or it lands one level off (details T4, T7;
     outline-spell P7).
+  - Same again 2026-10-10 (output-targets' Doc Review), with `original <name> <id> --file`:  old text copied from a
+    part file (so `../../../` links) came out `../../../../` in 71 Original Discussions, 179 links. · A node script
+    put them back to `../../../`;  before `original`, rewrite a part's links skeleton-relative (one `../` fewer).
 - 2026-10-10 · `spell dev docs fuss` false hits:  an item title holding `<ui-...>` makes it flag
   `source="parts/..."` as a path in prose;  and it counts text inside `<epic-original>` blocks (Original
   Discussion), so a doc's totals include old text nobody edits. · Read its per-line output, not the totals. · docs
@@ -1625,6 +1628,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## epics
 
+- 2026-10-10 · Hand edits to a split plan doc's part files were lost:  another agent's `spell dev plan-doc` command,
+  running at the same time, had read the doc before the edit and wrote its older copy of the part back (output-targets'
+  Doc Review:  J1 and J2's rewrites, found by re-running the checker). · Redid them.  Hand-edit parts only while no
+  other agent runs plan-doc commands on that epic (`spell dev agents list`), or re-check every edited part afterwards. ·
+  epics (plan-doc tool)
 - 2026-10-10 · `node packages/epics/demo/check-header-epics.mjs --doc airplane` times out on `main` too (waiting 15s for
   `<epic-page>`'s `.review-line`, line 99), so it checks nothing. · Used `packages/docs/tools/check-spell.js` on the
   plan doc instead (passes);  the header check needs looking at. · epics (demo checks)
