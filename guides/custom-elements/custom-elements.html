@@ -1037,8 +1037,8 @@ import "$/ui/docs-components/ui-docs-inspector"</code></pre>
           <ui-section id="button-class" header="The class, and its pressed state" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <code>@E.cssStates("loading")</code> on the class: <code>:state(loading)</code> mirrors the attribute,
-                with no getter to write.
+                <code>loading: "its own"</code>: every element gets <code>:state(loading)</code> from its base class;
+                this one draws its own spinner instead of the shared one.
               </li>
               <li>
                 <code>isAFormControl: true</code> makes it form-associated, so <code>type="submit"</code> can reach its
@@ -1050,15 +1050,18 @@ import "$/ui/docs-components/ui-docs-inspector"</code></pre>
               </li>
             </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>The class · <code>UIButton.tsx · 17 lines</code></ui-title>
+              <ui-title>The class · <code>UIButton.tsx · 20 lines</code></ui-title>
               <ui-content>
-                <pre><code class="language-ts">@E.cssStates("loading")
-export class UIButton extends E.UIComponent&lt;typeof buttonVocabulary&gt; {
+                <pre><code class="language-ts">export class UIButton extends E.UIComponent&lt;typeof buttonVocabulary&gt; {
   @E.proto static vocabulary = buttonVocabulary
   @E.protoMerged static elementSetup = {
     styleSheets: { button: buttonCSS },
     Fallback: ButtonFallback,
-    isAFormControl: true
+    isAFormControl: true,
+    // `disabled`:  its `&lt;button&gt;` is disabled
+    disabled: "its own",
+    // `loading`:  its own spinner
+    loading: "its own"
   } satisfies Partial&lt;E.ElementSetup&gt;
 
   ////////////////
@@ -1284,7 +1287,10 @@ export { UIButton, UIButtons, UIOr }</code></pre>
                 </tr>
                 <tr>
                   <td>a <code>:state()</code> CSS can select</td>
-                  <td><code>@E.cssState("open")</code> on it; <code>@E.cssStates("loading")</code> on the class</td>
+                  <td>
+                    <code>@E.cssState("open")</code> on it; one that only mirrors its attribute:
+                    <code>elementSetup.cssStates</code>
+                  </td>
                 </tr>
                 <tr>
                   <td>ARIA that follows a value</td>
@@ -1456,7 +1462,7 @@ get chosenValues(): readonly string[] {
 
           <ui-section
             id="decorator-css-state"
-            header="@E.cssState and @E.cssStates"
+            header="@E.cssState and elementSetup.cssStates"
             sticky
             collapsible
             dividing
@@ -1468,11 +1474,19 @@ get chosenValues(): readonly string[] {
                 truthiness.
               </li>
               <li>
-                <code>@E.cssStates("loading")</code> on the CLASS: for a state that only mirrors its attribute, with no
-                getter to write.
+                A state that only mirrors its attribute needs no getter: its name goes in
+                <code>elementSetup.cssStates</code> (<code>cssStates: ["active"]</code> on
+                <code>&lt;ui-label&gt;</code>).
+                <ul>
+                  <li>A subclass that adds states spreads its base's list, as for <code>styleSheets</code>.</li>
+                  <li><code>define()</code> throws on a name the tag has no attribute or member for (a typo).</li>
+                </ul>
               </li>
               <li>The page styles them from outside: <code>ui-button:state(fluid) { ... }</code>.</li>
-              <li>A set worked out in code: the <code>cssStates()</code> hook.</li>
+              <li>
+                A set worked out in code: the <code>cssStates()</code> hook (same name as the setup key, another
+                thing).
+              </li>
             </ul>
             <ui-accordion class="spell-code" styled>
               <ui-title>&lt;ui-button&gt;'s fluid state · <code>UIButton.tsx · 5 lines</code></ui-title>
@@ -1664,19 +1678,31 @@ private syncSelect() {
               </li>
               <li>
                 <code>@E.protoMerged static elementSetup = { ... }</code>: the same for an OBJECT whose keys add up down
-                the class chain, base class first. A subclass states only the keys it changes.
+                the class chain. A subclass states only the keys it changes.
+                <ul>
+                  <li>
+                    Each class's object gets its base class's object as its prototype: a key it doesn't state is read
+                    from there. Nothing is copied.
+                  </li>
+                  <li>
+                    So read keys by name (<code>this.elementSetup.styleSheets</code>): a spread of the whole object
+                    sees only its own class's keys.
+                  </li>
+                </ul>
               </li>
               <li>
-                <code>elementSetup</code>'s keys: <code>styleSheets</code>, <code>isAFormControl</code>,
+                <code>elementSetup</code>'s keys: <code>styleSheets</code>, <code>cssStates</code>,
+                <code>isAFormControl</code>,
                 <code>delegatesFocus</code>, <code>slotAssignment</code>, <code>isAPart</code>, <code>DOMElement</code>,
                 <code>Fallback</code>, <code>canRenderUnstyled</code>, <code>aria</code>.
               </li>
             </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>UIComponent's defaults · <code>UIComponent.tsx · 11 lines</code></ui-title>
+              <ui-title>UIComponent's defaults · <code>UIComponent.tsx · 15 lines</code></ui-title>
               <ui-content>
                 <pre><code class="language-ts">@protoMerged static elementSetup: Partial&lt;E.ElementSetup&gt; = {
   styleSheets: {},
+  cssStates: [],
   isAFormControl: false,
   delegatesFocus: true,
   slotAssignment: "named",
@@ -1684,7 +1710,10 @@ private syncSelect() {
   DOMElement: DOMElement,
   Fallback: undefined,
   canRenderUnstyled: false,
-  aria: {}
+  aria: {},
+  disabled: "unusable",
+  loading: "loader",
+  visibleAnimation: "fade"
 }</code></pre>
               </ui-content>
             </ui-accordion>
@@ -1942,7 +1971,7 @@ private syncSelect() {
                 <pre><code class="language-ts">onMount(): JSX.Element {
   if (!isServer &amp;&amp; untrack(() =&gt; this.isReady)) this.adoptStyleSheets()
   // a RENDER effect, so a getter that throws shows the element's fallback (a plain effect would only log it)
-  const decorated = E.Reactive.cssStatesOf(this)
+  const decorated = E.Reactive.cssStatesOf(this, this.elementSetup.cssStates)
   createRenderEffect(
     () =&gt; {
       const states: Record&lt;string, boolean | undefined&gt; = { ...this.cssStates() }
