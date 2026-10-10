@@ -355,9 +355,7 @@ Their long before / afters are in `agents/wwod/writing.md`.
     ```
 
 - **Name things by what they are to the reader:**
-  - The name a reader would look for:  "solid-element", never "the fork".
-    (The examples here predate epic `spell-element`, which folded solid-element into `ui`'s `DOMElement` and
-    `UIComponent`, 2026-10-09:  the rule stands.)
+  - The name a reader would look for:  "`UIComponent`" (or "the component"), never "the controller".
   - How a thing came to be (a fork, a port, a workaround) is an implementation detail.
     Leave it out of explanations, or give it one line at the end, if it really matters.
   - Before / after, now one docstring per member (`packages/ui/src/elements/DOMElement.ts`):
@@ -367,7 +365,7 @@ Their long before / afters are in `agents/wwod/writing.md`.
     /** The fork's instance API. */
 
     AFTER
-    /** solid-element's:  call back when the element is released (`dispose()`), newest first. */
+    /** Run `callback` when the element is released (`dispose()`), newest first. */
     ```
 
 - **One or two sentences a paragraph, or bullets:**
@@ -382,8 +380,12 @@ Their long before / afters are in `agents/wwod/writing.md`.
       what is OURS:  the `ready` promise, custom states, the controller link.
 
     AFTER
-    - solid-element owns the platform's plumbing:  the shadow root, `ElementInternals`, the lifecycle.
-    - This class adds what is OURS:  the `ready` promise, custom states, the link to the component.
+    - This class is the browser's side of a custom element.
+      Names marked "DOM API" are the browser's, from `HTMLElement` and the custom-element spec, not ours:
+      - DOM API:  `connectedCallback()` (added to a page)
+      ...
+    - Ours:
+      - the `ready` promise, custom states, the link to the component, swallowing clicks while disabled
     ```
 
 - **Plain text, plain paths:**  say what it MEANS;  the exact settings and paths go where a reader can reach them.

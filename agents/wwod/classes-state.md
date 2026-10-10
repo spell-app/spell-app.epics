@@ -209,7 +209,7 @@ This spoke is house style on top.
   decorator is a signal for how this bit works"):
   - `@state accessor isOpen = false` -- own state;  `@controlled("open") accessor isOpen` -- the host's property
     when set, else the starting value;  `@derived get rows()` -- a cached derived value;  `@cssState("open")` --
-    `:state(open)` follows the member;  `@cssStates("loading")` on the class -- `:state(loading)` follows the
+    `:state(open)` follows the member;  `elementSetup.cssStates: ["fluid"]` -- `:state(fluid)` follows the
     attribute, no getter;  `@aria("busy")` -- `internals.ariaBusy` follows the member;
     `@onChange("a", "b") onXChanged(a, b)` -- an effect calling the method.
   - All over ONE record per instance:  a read right after a write is fresh (no flush), and Solid follows the reads.

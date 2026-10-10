@@ -176,6 +176,8 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   `@spell/solid-element` import from UI's root (`packages/docs/tools/bundle-spell-ui.js` does, and fails the build if a
   Solid package appears twice).  Also:  UI's `yarn build` doesn't rebuild the fork -- run `yarn fork:build` first. ·
   spell/parser
+  - 2026-10-09:  no fork any more, and no `yarn fork:build`:  epic `spell-element` (P5) folded solid-element into
+    `ui`'s own `DOMElement` and `UIComponent`, so UI's build has one Solid by construction.
 - 2026-09-30 · A throwaway `tsx` script outside the repo (or a `.ts` one outside `src/`) died at import with
   `TypeError: Class extends value undefined` in `rulex.ts`:  with no `"type": "module"` above it, tsx compiles it as
   CommonJS, and that load order trips the `~/parser` circular-import trap (`agents/CODE-DEBT.md`). · Name the script `.mts`

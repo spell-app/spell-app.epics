@@ -5,13 +5,10 @@ Read this file whole before you write or rewrite docstrings, comments, READMEs, 
 
 The rules, in short:
 - WWOD §6 › "Writing for people":  for a reader figuring things out, not from inside the builder's head
-- WWOD §6 › "Name things by what they are to the reader":  "solid-element", never "the fork"
+- WWOD §6 › "Name things by what they are to the reader":  "`UIComponent`", never "the controller"
 - WWOD §6 › "One or two sentences a paragraph, or bullets":  never run-together sentences
 - WWOD §6 › "Plain text, plain paths":  what it means first;  paths in tooltips, exact settings in folded code
 - WWOD §6 › "Break lines at phrases, not at the column":  so each line's start says what it's about
-
-The examples below quote `ui` as it was:  solid-element (`@spell-app/solid-element`) was a package then.
-Epic `spell-element` folded it into `DOMElement` / `UIComponent` (2026-10-09);  the lessons stand.
 
 ## Why
 
@@ -76,19 +73,22 @@ declare dispose: SolidElement["dispose"]
 AFTER
 
 ```ts
-/** solid-element's:  call back on every write to a prop, equal or not (`@controlled`). */
-declare addPropertyChangedCallback: SolidElement["addPropertyChangedCallback"]
+/** Call `callback` on every attribute value change, equal or not, until `dispose()`. */
+addPropertyChangedCallback(callback: PropertyChangedCallback) { ... }
 
-/** solid-element's:  call back when the element is released (`dispose()`), newest first. */
-declare addReleaseCallback: SolidElement["addReleaseCallback"]
+/** Run `callback` when the element is released (`dispose()`), newest first. */
+addReleaseCallback(callback: (domElement: DOMElement) => void) { ... }
 
-/** solid-element's:  release the component and everything it holds;  idempotent.  `keepAlive` waits for it. */
-declare dispose: SolidElement["dispose"]
+/**
+ * Release the component and everything it holds (release callbacks, newest first);  idempotent.
+ * - A later connect builds a new component.
+ */
+dispose() { ... }
 ```
 
 Shows "Name things by what they are":
 someone who doesn't know the scheme can't tell what "the fork" is, or what its "instance API" does.
-The after names the package, and gives each member its own docstring saying what it does.
+The after gives each member its own docstring, saying what it does in words the reader already has.
 
 ### A class docstring:  `UIHost`, now `DOMElement`
 
@@ -122,26 +122,29 @@ AFTER
  *
  * - Its COMPONENT (a `UIComponent` subclass, `UIButton`) holds the state and draws the shadow DOM:
  *   `domElement.component` points at it, `component.domElement` back here.
- *   solid-element builds the component the first time the element connects, and with `keepAlive`
- *   it lives until `dispose()`, across moves.
+ *   The component is built the first time the element connects, and lives across moves, until `dispose()`d.
  *
- * - solid-element (`@spell-app/solid-element`) extends this class for every tag (its `BaseElement` option),
- *   and owns the platform's plumbing:  the shadow root (`shadowRootInit`, `delegatesFocus`),
- *   `ElementInternals` (`internals: true`), a property per attribute, upgrading, the lifecycle.
- * - This class adds what is OURS:  the `ready` promise, custom states,
- *   the link to the component, and swallowing clicks while the component is disabled.
+ * - This class is the browser's side of a custom element.
+ *   Names marked "DOM API" are the browser's, from `HTMLElement` and the custom-element spec, not ours:
+ *   - DOM API:  `connectedCallback()` (added to a page)
+ *   ...
+ * - Ours:
+ *   - `attributeValues`:  each attribute's normalized value, from its text or a property write
+ *   - a property per attribute (`button.size = "large"`), and writing it back to the attribute ("reflection")
+ *   - properties a page set before the tag was defined, kept ("the upgrade step")
+ *   - the `ready` promise, custom states, the link to the component, swallowing clicks while disabled
  * ...
- * - NOTE: solid-element refuses a prototype member named like a property it makes for an attribute:
- *   never add one a vocabulary attribute could be called.
+ * - NOTE: a member named like a property an attribute gets is refused when the tag is defined
+ *   (one error naming each clash):  never add one a vocabulary attribute could be called.
  ****************/
 ```
 
 Shows all four rules at once:
 - what it IS comes first, with a comparison the reader already knows (`<a>`, `HTMLAnchorElement`)
-- "solid-element", never "the fork";  "swallowing clicks while the component is disabled",
-  not "the disabled-click guard"
-- the run-together "owns ... keeps" bullet is two bullets now
-- lines break at phrases:  "and owns the platform's plumbing", "the link to the component"
+- plain names, never "the fork" or "HOST";  "swallowing clicks while disabled", not "the disabled-click guard";
+  "the upgrade step" and "reflection" each say what they are
+- the run-together "owns ... keeps" bullet is two lists now:  the browser's names, then ours, one per bullet
+- lines break at phrases:  "Names marked "DOM API" ...", "(one error naming each clash)"
 
 ### A class docstring:  `UIElement`, now `UIComponent`
 
@@ -179,11 +182,7 @@ AFTER
 Shows "Writing for people":
 - the before opens with how it's built (a render function, signals, memos), then why it's a class
 - the after opens with what a component is, and what one does on a page
-- the fork shows up once, where solid-element is introduced, with why it's a fork at the end of that bullet
-
-The after isn't perfect yet:
-further down, its "Custom-element wrapper" bullet still puts three sentences on two lines.
-The checker below flags it.
+- how it came to be (a render function from another package) is gone:  a reader needs what it is, not its past
 
 ### A "Built / Checked" line in a plan doc
 
