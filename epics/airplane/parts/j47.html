@@ -1,0 +1,30 @@
+<!-- plan-doc part:  #j47's details in airplane.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Owen asked for "the normal browser menu" on right-click in the Review / Spell Docs views. Right-click showed NOTHING:
+  VS Code's webview host listens for <code>contextmenu</code> on the view's own page only (<code>pre/index.html</code>,
+  <code>hookupOnLoadHandlers()</code>), and our page is a cross-origin frame inside it, so the click never reached it. A
+  browser-style menu (Back, Reload, Inspect Element ...) can't be had: VS Code is Electron, and "Electron doesn't have a
+  built-in context menu. You're supposed to handle that yourself" (github.com/sindresorhus/electron-context-menu); an
+  extension can't reach Electron to build one. What a webview CAN show: VS Code's <code>webview/context</code> menu
+  (code.visualstudio.com/api/extension-guides/webview, "Context menus").
+</p>
+<p>
+  So the page forwards its right-click to the view's wrapper, which right-clicks again at the same place (the host's
+  listener checks no <code>isTrusted</code>), and VS Code shows the menu there: <b>Cut</b> (in a field, with a
+  selection), <b>Copy</b> (with a selection), <b>Paste</b> (in a field), <b>Select All</b>; <b>Back</b>,
+  <b>Forward</b> (greyed when there's nowhere to go), <b>Reload</b>; <b>Open in Browser</b>;
+  <b>Inspect (Developer Tools)</b>. A right-click the page handles itself (<code>preventDefault()</code>) stays the
+  page's.
+</p>
+<epic-net-effect
+  ><ul>
+    <li>Right-click in either side-bar docs view shows a VS Code menu with those items, at the pointer</li>
+    <li>
+      Inspect toggles the window's developer tools (as the title-bar button): it can't jump to the element clicked
+      (Electron's <code>inspectElement(x, y)</code> isn't open to extensions); Cmd + Shift + C there, then click
+    </li>
+    <li>
+      No Back / Reload of the browser's own, no Look Up, no spelling suggestions: those are Chrome's, not Electron's
+    </li>
+  </ul></epic-net-effect
+>
