@@ -1698,7 +1698,7 @@ private syncSelect() {
               </li>
             </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>UIComponent's defaults · <code>UIComponent.tsx · 15 lines</code></ui-title>
+              <ui-title>UIComponent's defaults · <code>UIComponent.tsx · 16 lines</code></ui-title>
               <ui-content>
                 <pre><code class="language-ts">@protoMerged static elementSetup: Partial&lt;E.ElementSetup&gt; = {
   styleSheets: {},
@@ -1713,7 +1713,8 @@ private syncSelect() {
   aria: {},
   disabled: "unusable",
   loading: "loader",
-  visibleAnimation: "fade"
+  visible: "shown",
+  animation: DEFAULT_ANIMATION
 }</code></pre>
               </ui-content>
             </ui-accordion>
@@ -2850,7 +2851,7 @@ get hasIcon(): boolean {
 
         <ui-section
           id="disabled-and-friends"
-          header="13. Disabled, visible and friends"
+          header="13. Disabled, visible, animation and friends"
           sticky
           collapsible
           dividing
@@ -2858,19 +2859,16 @@ get hasIcon(): boolean {
         >
           <ui-icon slot="icon" name="eye"></ui-icon>
           <p>
-            Every element takes <code>disabled</code>, <code>loading</code> and <code>visible</code>, though its
-            vocabulary never names them, and the platform's own <code>hidden</code> and <code>inert</code> (epic
-            spell-element, P8).
+            Every element takes <code>disabled</code>, <code>loading</code>, <code>visible</code> and
+            <code>animation</code>, though its vocabulary never names them, and the platform's own <code>hidden</code>
+            (<code>visible</code> turned round) and <code>inert</code> (epic spell-element, P8 and P12).
           </p>
           <ul>
             <li>
-              <code>SharedVocabulary</code> adds the three to every tag's definition, docs data and manifests, unless
-              the vocabulary declares its own of that name: then its own spec and meaning win (<code
-                >&lt;ui-sidebar visible&gt;</code
-              >
-              starts hidden).
+              <code>SharedVocabulary</code> adds the four to every tag's definition, docs data and manifests, unless
+              the vocabulary declares its own of that name: then its own spec and meaning win. None declares its own
+              <code>visible</code> or <code>animation</code>.
             </li>
-            <li>
               <code>UIComponent</code> reads them ("Shared states"); what <code>disabled</code> and
               <code>loading</code> mean for a family is a key of its <code>elementSetup</code>.
             </li>
@@ -2958,32 +2956,130 @@ get hasIcon(): boolean {
           </ui-section>
 
           <ui-section id="shared-visible" header="visible and hidden" sticky collapsible dividing collapsed>
+            <p>
+              Shown or hidden is ONE fact about an element, and <code>visible</code> and the platform's
+              <code>hidden</code> are its two names, opposites (epic spell-element, P12).
+            </p>
+            <ul>
+              <li><code>el.visible</code> is always <code>!el.hidden</code>; writing either one sets the fact.</li>
+              <li>
+                The <code>hidden</code> attribute is where it's kept: the browser, CSS and a page before its scripts load
+                all read it.
+              </li>
+              <li>
+                The element writes a <code>visible</code> attribute back only where the page wrote one, so a page that
+                only uses <code>hidden</code> never sees <code>visible</code> appear.
+              </li>
+              <li>
+                Neither written: the family decides, <code>elementSetup.visible</code> (<code>"shown"</code> by
+                default). A modal, popup, flyout, sidebar, dimmer, loader or transition starts hidden, and writes
+                <code>hidden</code> on itself when it first connects.
+              </li>
+              <li>
+                Both written in markup and disagreeing: <code>hidden</code> wins (the browser already hid it). After the
+                first connect, the latest write wins.
+              </li>
+              <li>
+                Both animate the same way (<code>animation</code>, below): at once before the element first draws, and
+                wherever motion is off.
+              </li>
+              <li><code>hidden="until-found"</code> stays the browser's: it counts as hidden, and never animates.</li>
+              <li>
+                Two attributes whose old meaning clashed were renamed: <code>&lt;ui-divider spacer&gt;</code> (Fomantic's
+                hidden divider) and <code>&lt;ui-reveal unclipped&gt;</code> (its visible reveal).
+              </li>
+            </ul>
+            <ui-table compact celled>
+              <table>
+                <thead>
+                  <tr>
+                    <th>written</th>
+                    <th>after it draws</th>
+                    <th>shows</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>&lt;ui-message&gt;</code></td>
+                    <td>unchanged</td>
+                    <td>yes</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;ui-message visible="false"&gt;</code></td>
+                    <td><code>visible="false" hidden</code></td>
+                    <td>no</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;ui-message hidden visible&gt;</code></td>
+                    <td><code>hidden visible="false"</code></td>
+                    <td>no (<code>hidden</code> wins)</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;ui-modal&gt;</code></td>
+                    <td><code>hidden</code> (its family's default)</td>
+                    <td>no</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;ui-modal visible&gt;</code></td>
+                    <td>unchanged</td>
+                    <td>yes</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p>Who does what:</p>
             <ul>
               <li>
-                <code>visible="false"</code> animates the element out, then hides it (<code>:state(hidden)</code>);
-                <code>visible</code> (or <code>="true"</code>) animates it back. At once, with no animation, before it
-                first draws.
+                <code>DOMElement</code> ("Shown or hidden") keeps the two names in step, and the fact in
+                <code>attributeValues.visible</code>.
               </li>
               <li>
-                The animation: <code>elementSetup.visibleAnimation</code>, <code>"fade"</code> by default, run by
-                <code>UI.transitions</code> on the shadow root's boxes.
+                <code>UIComponent</code> holds it as <code>isVisible</code>, controlled: a person's action asks first,
+                <code>requestChange("isVisible", false, () =&gt; this.send("ui-close", { visible: false }))</code>.
               </li>
               <li>
-                <code>el.visible = false</code> writes <code>visible="false"</code>: a boolean whose default is
-                <code>true</code> reflects off that way.
+                Each change runs the hook <code>onVisibleChange(visible, animation)</code>: by default the animation on the
+                shadow root's top-level boxes, through <code>UI.transitions</code>. A family overrides it to show and hide
+                its own way (a dialog's <code>showModal()</code> / <code>close()</code>).
               </li>
               <li>
-                The platform's <code>hidden</code> hides at once, before scripts load and in the static render, and wins
-                when both are set. An unlayered <code>:host([hidden])</code> in
-                <a href="../../packages/ui/src/styles/reset.css" target="src-packages-ui-src-styles-reset-css"
+                While a hide runs, <code>:state(hiding)</code> keeps the element on screen (<a
+                  href="../../packages/ui/src/styles/reset.css"
+                  target="src-packages-ui-src-styles-reset-css"
                   ><code>reset.css</code></a
-                >
-                makes it beat a family's own <code>:host { display }</code>;
-                <code>&lt;ui-divider hidden&gt;</code> keeps Fomantic's meaning, the spacing without the line.
+                >); <code>:state(hidden)</code> once it's done.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="shared-animation" header="animation" sticky collapsible dividing collapsed>
+            <p>
+              Every element takes <code>animation</code>: how it shows and hides, in <code>&lt;ui-transition&gt;</code>'s
+              names (<code>fade</code>, <code>fade up</code>, <code>scale</code> ...), or <code>none</code>.
+            </p>
+            <ol>
+              <li>
+                Motion off wins first: the element's own <code>animation="none"</code>, <code>none</code> from around it,
+                or the person's reduced-motion setting. An element inside can't turn motion back on.
+              </li>
+              <li>Then the element's own <code>animation</code> (<code>&lt;ui-modal animation="fly down"&gt;</code>).</li>
+              <li>Then its family's default, <code>elementSetup.animation</code>.</li>
+              <li>Then <code>fade</code>.</li>
+            </ol>
+            <ul>
+              <li>
+                <code>none</code> spreads down through a custom property, <code>--ui-motion: none</code>, which shadow
+                roots inherit too: <code>&lt;ui-root animation="none"&gt;</code> or <code>:root { --ui-motion: none }</code>
+                turns off a whole page.
               </li>
               <li>
-                <code>&lt;ui-popup&gt;</code>, <code>&lt;ui-modal&gt;</code> and <code>&lt;ui-flyout&gt;</code> keep
-                <code>open</code>; <code>visible="false"</code> hides the whole element there too, even while open.
+                The switch stills a family's own CSS motion too (an overlay's transition), as reduced motion does; a
+                loader keeps spinning.
+              </li>
+              <li>
+                <code>UIComponent.animationToRun</code> works it out. <code>&lt;ui-visibility&gt;</code>'s lazy images
+                use it too; <code>&lt;ui-sidebar transition&gt;</code> (over, push, uncover) is something else and keeps
+                its name.
               </li>
             </ul>
           </ui-section>
@@ -3002,14 +3098,6 @@ get hasIcon(): boolean {
             </ul>
           </ui-section>
 
-          <ui-message state="info" header="Still open">
-            <ul>
-              <li>
-                How <code>visible</code>, <code>hidden</code>, <code>open</code>, the animation and the three extra
-                states fit together is Q28 in the plan doc: built on its recommended answers, as judgement calls.
-              </li>
-            </ul>
-          </ui-message>
         </ui-section>
 
         <ui-section id="errors" header="14. When an element breaks" sticky collapsible dividing collapsed>
