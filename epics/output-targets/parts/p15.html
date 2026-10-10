@@ -1,126 +1,167 @@
 <!-- plan-doc part:  #p15's body in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom"
-  >"Item" means both an element and its position in core's names: <code>itemOf()</code> returns a position, and the
-  <code>item</code> parameter of <code>getItemOf()</code> is a position.</epic-field
+  >A spell object's JSON can't be read back as what it was (a list is only its items, and nothing says its type), and a
+  <code>&lt;ui-repeat&gt;</code> names its list by JavaScript's spelling.</epic-field
 ><epic-field name="changes"
-  ><p>Core says "position" wherever it means a position, and "item" only for an element of a list.</p>
+  ><p>Spell objects round-trip through JSON, and a repeat takes its list from spell.</p>
   <ul>
     <li>
-      The helpers that take or return a position are renamed; each old name stays as a deprecated alias, so a saved
-      compiled program still runs.
+      Every spell object's JSON says its type, in <code>"@type"</code>; a list's holds its own properties plus its
+      <code>items</code>.
     </li>
-    <li>
-      The rules, the TypeScript writer, the tests and the guides follow; the JavaScript changes only by the new names.
-    </li>
+    <li><code>spellCore.fromJSON()</code> rebuilds them, each as its own class.</li>
+    <li><code>&lt;ui-repeat items={...}&gt;</code> takes a spell expression for the list it draws.</li>
   </ul></epic-field
 ><epic-field name="goal"
   ><ul>
     <li>
-      Why: in core's names, "item" means both an element of a list and its position, so the names mislead (<a
-        href="#q47"
-        >Q47</a
-      >).
+      Where this comes from: Owen's review, 2026-10-10, of two issues found in test V14 (Todos - Form Based):
       <ul>
-        <li><code>itemOf(list, card)</code> returns a POSITION (3), not an item.</li>
-        <li>The <code>item</code> parameter of <code>getItemOf(list, item)</code> is a position too.</li>
+        <li>a list's JSON was empty (<a href="#i8">I8</a>); his answer is <a href="#q49">Q49</a></li>
+        <li>
+          the All / Active / Completed filters didn't filter (<a href="#i10">I10</a>); his answer is
+          <a href="#q48">Q48</a>
+        </li>
       </ul>
     </li>
     <li>
-      Every parameter, local and docstring where <code>item</code> means a position says <code>position</code> (or
-      <code>key</code>, for a plain object).
+      <b>Every spell object says its type</b> (<a href="#q49">Q49</a>): a thing's JSON carries <code>"@type"</code>, its
+      class's name, before its properties.
       <ul>
-        <li>The iteration callback's parameters read <code>(value, position, collection)</code>.</li>
+        <li>
+          Why <code>"@type"</code>, JSON-LD's spelling: no spell property can be named <code>@...</code>, so it never
+          collides, where <code>"type"</code> would.
+        </li>
       </ul>
-    </li>
-    <li>
-      The renames (table below). Each OLD name stays on <code>spellCore</code> as a deprecated alias:
-      <ul>
-        <li>saved compiled programs call the old names, and nothing recompiles them</li>
-        <li>a test runs a program compiled with the old names</li>
-      </ul>
-      <epic-code title="core · the renames · 9 lines" language="ts">
-        <pre>
-itemOf              -&gt; positionOf        // spellCore, List, CollectionLike
-removeItemsOf       -&gt; removeItemsAt
-getItemOf           -&gt; getItemAt
-setItemOf           -&gt; setItemAt
-removeItemOf        -&gt; removeItemAt
-duplicateCollection -&gt; duplicateList     // these three take lists only
-mergeCollections    -&gt; mergeLists
-mergeCollectionsInto -&gt; mergeListsInto
-// each old name kept on spellCore, marked @deprecated</pre>
+      <epic-code title="a card, as JSON · 1 line" language="json">
+        <pre>{ "@type": "Card", "rank": "ace", "suit": "clubs", "direction": "down" }</pre>
       </epic-code>
     </li>
     <li>
-      Kept as they are:
+      <b>A list's JSON holds its properties AND its items</b> (Owen, on <a href="#i8">I8</a>: "a list's JSON holds its
+      own properties as well as its items").
       <ul>
         <li>
-          <code>List.getItem()</code> / <code>setItem()</code> / <code>removeItem()</code>: right already, and util's
-          <a href="../../../packages/util/src/spell/paths.ts" target="src-packages-util-src-spell-paths-ts"
-            ><code title="packages/util/src/spell/paths.ts">paths.ts</code></a
-          >
-          finds <code>getItem</code> by name
+          This revises I8's fix, committed in e2cfe02dc, where a list's JSON was its items alone, as an array's is.
+        </li>
+        <li>The items go under <code>"items"</code>, each written by its own JSON.</li>
+      </ul>
+      <epic-code title="a pile, as JSON · 1 line" language="json">
+        <pre>
+{ "@type": "Pile", "name": "stock", "items": [{ "@type": "Card", "rank": "ace", "suit": "clubs", "direction": "down" }] }</pre>
+      </epic-code>
+    </li>
+    <li>
+      <b>JSON reads back as what it was</b>: <code>spellCore.fromJSON()</code> rebuilds each object by its
+      <code>"@type"</code>.
+      <ul>
+        <li>The class is found by name among the program's classes: the ones it declares, and the ones it imports.</li>
+        <li>A list comes back with its own properties and its items, each item rebuilt the same way.</li>
+        <li>
+          An unknown <code>"@type"</code> (no class by that name) comes back as a plain object, its
+          <code>"@type"</code> kept, not an error; a test says so.
         </li>
         <li>
-          <code>getIteratorFor()</code>, the <code>Collection*</code> types and <code>isArrayLike()</code>: they take
-          any collection
-        </li>
-        <li>
-          <code>itemCountOf()</code>, <code>randomItemOf()</code>, <code>randomItemsOf()</code>: they do mean items
+          Whether <code>Thing.fromJSON()</code> is a way in too, beside <code>spellCore.fromJSON()</code>: decided while
+          building, and said in Done.
         </li>
       </ul>
     </li>
     <li>
-      Everything that names them follows:
+      <b>What reads JSON today keeps working</b>:
       <ul>
-        <li>the rules that write them, and the TypeScript writer's list of item reads (<code>ITEM_READS</code>)</li>
         <li>
-          the tests, and the guides (about 31 mentions), and
-          <a href="../../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a>
+          Todos - Form Based's debug view shows each task, now with its <code>"@type"</code>, and follows each tick and
+          title as it does now.
         </li>
-        <li>the snapshots blessed</li>
-        <li>the system examples and the cards library recompiled (<code>spell compile --force</code>)</li>
-        <li>spell's highlighter rebuilt for Spell UI (<code>yarn gen:spell</code> in ui), and the bundles</li>
-        <li>NOT the plan docs: they are the record of what was</li>
+        <li>
+          The Thing Explorer lists a thing's properties by its <code>keys()</code> (moved there by
+          <a href="#i8">I8</a>), so neither <code>"@type"</code> nor <code>"items"</code> shows up there as a property.
+        </li>
+        <li>
+          <code>spellCore.echo()</code>, and the core contract test's printed output, show the new shape.
+          <ul>
+            <li>
+              The contract snapshots may change ONCE, on purpose: review that diff as the new shape, not as a
+              regression.
+            </li>
+          </ul>
+        </li>
       </ul>
+    </li>
+    <li>
+      <b>A repeat takes its list as a spell expression</b> (<a href="#q48">Q48</a>, on <a href="#i10">I10</a>):
+      <code>&lt;ui-repeat items={the shown tasks of the app}&gt;</code>, in place of <code>name="shownTasks"</code>.
+      <ul>
+        <li>
+          The expression compiles to a live value: the repeat redraws when the list changes, or anything it's worked out
+          from.
+        </li>
+        <li>
+          Spell UI's <code>&lt;ui-repeat&gt;</code> takes that list as its <code>items</code> property. Today
+          <code>items</code> only reads the form's object by the repeat's <code>name</code>; <code>name</code> keeps
+          working for plain HTML.
+        </li>
+        <li>
+          Spell-style names never meet JavaScript's spelling: nobody has to know that <code>shown-tasks</code> compiles
+          to <code>shown_tasks</code>.
+        </li>
+      </ul>
+      <epic-code title="todo.spell · the repeat, before and after · 2 lines" language="spell">
+        <pre>
+&lt;ui-repeat name="shownTasks"&gt;
+&lt;ui-repeat items={the shown tasks of the app}&gt;</pre>
+      </epic-code>
+    </li>
+    <li>
+      <b>Todos - Form Based moves to it</b>: its repeat says <code>items={...}</code>, and <code>shownTasks</code> stays
+      the derived list the filter works out (<a href="#i10">I10</a>).
+    </li>
+    <li>
+      <b>Both targets</b>: the JavaScript and the TypeScript writers both compile <code>items={...}</code>; the JSON and
+      <code>fromJSON()</code> are core's, so both targets share them.
     </li>
   </ul></epic-field
 ><epic-field name="files"
-  ><ul>
-    <li>
-      core's collection helpers,
-      <a href="../../../packages/core/src/collection-core.ts" target="src-packages-core-src-collection-core-ts"
-        ><code title="packages/core/src/collection-core.ts">collection-core.ts</code></a
-      >
-      and
-      <a href="../../../packages/core/src/collection-other.ts" target="src-packages-core-src-collection-other-ts"
-        ><code title="packages/core/src/collection-other.ts">collection-other.ts</code></a
-      >, and
-      <a href="../../../packages/core/src/classes/List.ts" target="src-packages-core-src-classes-list-ts"
-        ><code title="packages/core/src/classes/List.ts">List.ts</code></a
-      >
-    </li>
-    <li>
-      spell's rules:
-      <a href="../../../packages/spell/src/rules/lists.ts" target="src-packages-spell-src-rules-lists-ts"
-        ><code title="packages/spell/src/rules/lists.ts">lists.ts</code></a
-      >,
-      <a href="../../../packages/spell/src/rules/properties.ts" target="src-packages-spell-src-rules-properties-ts"
-        ><code title="packages/spell/src/rules/properties.ts">properties.ts</code></a
-      >
-    </li>
-    <li>
-      <a href="../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
-        ><code title="packages/parser/src/writers/TSWriter.ts">TSWriter.ts</code></a
-      >
-    </li>
-    <li>the guides that name the old helpers</li>
-  </ul></epic-field
+  >Core's
+  <a href="../../../packages/core/src/classes/Thing.ts" target="src-packages-core-src-classes-thing-ts"
+    ><code title="packages/core/src/classes/Thing.ts">Thing</code></a
+  >
+  and
+  <a href="../../../packages/core/src/classes/List.ts" target="src-packages-core-src-classes-list-ts"
+    ><code title="packages/core/src/classes/List.ts">List</code></a
+  >; a thing's JSON,
+  <a href="../../../packages/util/src/reactive/extend.ts" target="src-packages-util-src-reactive-extend-ts"
+    ><code title="packages/util/src/reactive/extend.ts">getProps()</code></a
+  >; the new <code>fromJSON()</code> in
+  <a href="../../../packages/core/src/core.ts" target="src-packages-core-src-core-ts"
+    ><code title="packages/core/src/core.ts">spellCore</code></a
+  >; Spell UI's
+  <a
+    href="../../../packages/ui/src/components/ui-form/UIRepeat.tsx"
+    target="src-packages-ui-src-components-ui-form-uirepeat-tsx"
+    ><code title="packages/ui/src/components/ui-form/UIRepeat.tsx">UIRepeat</code></a
+  >; spell's
+  <a href="../../../packages/spell/src/rules/JSX.ts" target="src-packages-spell-src-rules-jsx-ts"
+    ><code title="packages/spell/src/rules/JSX.ts">JSX rules</code></a
+  >, for the attribute's expression, if needed; and Todos - Form Based's
+  <a
+    href="../../../packages/spell/projects/system/examples/Todos - Form Based/todo.spell"
+    target="src-packages-spell-projects-system-examples-todos-form-based-todo-spell"
+    ><code title="packages/spell/projects/system/examples/Todos - Form Based/todo.spell">todo.spell</code></a
+  >
+  with its compiled output</epic-field
 ><epic-field name="verify"
   ><ul>
-    <li>a program compiled with the old names still runs (a test)</li>
-    <li>the JavaScript snapshots change only by the new names</li>
-    <li>no old name left outside its alias, the plan docs and the changelog (a search)</li>
-    <li><code>yarn review</code> in every package touched</li>
+    <li>
+      A Solitaire board's JSON, read back through <code>spellCore.fromJSON()</code>, equals the board it came from: the
+      same classes, properties and cards in each pile.
+    </li>
+    <li>
+      Todos - Form Based, in this worktree's editor: the All / Active / Completed filters filter, and ticking a task
+      shows in its row and in the debug view.
+    </li>
+    <li>The core contract test passes on both targets (its snapshots' one-time change reviewed).</li>
+    <li><code>yarn review</code> in util, core, ui, spell and cli.</li>
   </ul></epic-field
 >
