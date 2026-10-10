@@ -326,7 +326,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 - **Cost**:  a copy the program keeps -- `the spare is a copy of the deck` -- never shows in the Thing Explorer:
   it's made the same way as scratch results, which are deliberately hidden.  And every scratch result is a real
   `new Deck()` / `new Pile()`, running that type's constructor and `create()` -- see `agents/SUSPECTED-BUGS.md`.
-- **Cause**:  `spellCore.map()`, `filter()`, `rangeBetween()`, `duplicateCollection()` ... build their result
+- **Cause**:  `spellCore.map()`, `filter()`, `rangeBetween()`, `duplicateList()` ... build their result
   with `spellCore.newThingLike(collection)`, i.e. `new collection.constructor()`.  So mapping over a pile makes a
   new `Pile`, e.g. in Solitaire's `pile.state` or `reset the game`.  Each one registered as one of the program's
   things, cluttering "All things" with nameless `Pile`s.  `newThingLike()` now makes them
@@ -335,7 +335,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   (`spellCore.newScratch()`, `List.asScratch()`) so it owns nothing -- else filtering a pile would steal its cards.
   Solitaire relies on a scratch result keeping its type:  `the state of cards-to-move` reads a `Pile`'s getter.
 - **Fix**:  helpers that make a throwaway -- `map()`, `filter()`, loops -- build a plain `List` or array, NOT the
-  collection's own type.  Only "a copy of" (`duplicateCollection()`) makes the same type, and registers.  Then
+  collection's own type.  Only "a copy of" (`duplicateList()`) makes the same type, and registers.  Then
   `newThingLike()` needn't be quiet.  Touches what every collection helper returns, and their tests.
   NOTE: a plain `List` loses its type's members, which a program may read off a result -- `the state of
   cards-to-move` above -- so a range or `where` result probably keeps its type, scratch.
