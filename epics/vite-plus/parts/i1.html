@@ -1,11 +1,46 @@
 <!-- plan-doc part:  #i1's details in vite-plus.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Planted <code>const x: number = 'nope'</code> in
-  <a href="../../../packages/parser/src/index.ts" target="src-packages-parser-src-index-ts"
-    ><code>packages/parser/src/index.ts</code></a
-  >; <code>yarn vp run --cache -F @spell-app/parser ts</code> said <code>Cache hit - output replayed</code> and
-  <code>TSC PASSED</code>. Inputs default to auto-tracking which files the process reads; <code>tsc</code> here is TS 7
-  (Go), whose reads it doesn't see. Fix: explicit <code>run.tasks.&lt;name&gt;.cache.input</code> globs, including the
-  packages a package's <code>tsc</code> reads through <code>$/</code> aliases; NEVER <code>--cache</code> on plain
-  scripts.
+  <code>vp run --cache</code> replayed a passing type check for a package that no longer type-checks. Its cache tracks
+  which files a task reads, and it can't see TypeScript 7's reads.
 </p>
+<ul>
+  <li>
+    How it was found: a type error planted in the parser's
+    <a href="../../../packages/parser/src/index.ts" target="src-packages-parser-src-index-ts"
+      ><code title="packages/parser/src/index.ts">index.ts</code></a
+    >, then the parser's <code>ts</code> task run cached.
+    <ul>
+      <li>it said <code>Cache hit - output replayed</code>, and <code>TSC PASSED</code></li>
+    </ul>
+    <epic-code title="the test · 2 lines" language="text">
+      <pre>
+const x: number = 'nope'                          // planted in packages/parser/src/index.ts
+yarn vp run --cache -F @spell-app/parser ts       // Cache hit - output replayed ... TSC PASSED</pre>
+    </epic-code>
+  </li>
+  <li>
+    Why: inputs default to tracking which files the process reads. <code>tsc</code> here is TypeScript 7, written in Go,
+    whose reads it doesn't see.
+  </li>
+  <li>
+    The fix: explicit input globs per task (<code>run.tasks.&lt;name&gt;.cache.input</code>).
+    <ul>
+      <li>including the packages a package's <code>tsc</code> reads through <code>$/</code> aliases</li>
+    </ul>
+  </li>
+  <li>NEVER <code>--cache</code> on plain scripts.</li>
+</ul>
+<epic-original
+  ><epic-version
+    ><p>
+      Planted <code>const x: number = 'nope'</code> in
+      <a href="../../../packages/parser/src/index.ts" target="src-packages-parser-src-index-ts"
+        ><code>packages/parser/src/index.ts</code></a
+      >; <code>yarn vp run --cache -F @spell-app/parser ts</code> said <code>Cache hit - output replayed</code> and
+      <code>TSC PASSED</code>. Inputs default to auto-tracking which files the process reads; <code>tsc</code> here is
+      TS 7 (Go), whose reads it doesn't see. Fix: explicit <code>run.tasks.&lt;name&gt;.cache.input</code> globs,
+      including the packages a package's <code>tsc</code> reads through <code>$/</code> aliases; NEVER
+      <code>--cache</code> on plain scripts.
+    </p></epic-version
+  ></epic-original
+>
