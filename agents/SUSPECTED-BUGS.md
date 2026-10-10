@@ -658,6 +658,10 @@ every entry below that date was fixed or disproven;  what's left:
   from ITSELF.  Prove:  `spell --version` vs `packages/cli/package.json`.  (found by epic `commands`, P2)
   NOTE: `main.ts`'s comment calls this deliberate ("the PARSER's, which `spell --version` prints"), so maybe not a
   bug -- but then the CLI's own `0.8.0` is shown nowhere.
+- `CLI.runCode()` seems to HANG when a program calls a `spellCore` method that doesn't exist (a `TypeError` at run
+  time), until the caller's timeout, instead of exiting with the error.  Seen once (epic `output-targets` P16,
+  2026-10-10):  `contract.test.ts`'s old-names test, with the deprecated aliases removed, timed out at 60s.
+  Prove:  `spell run` a project whose code calls `spellCore.nope()`.
 - `package.json` `spell` script (`node bin/spell.mjs`):  yarn runs it with the cwd at `packages/cli`, so a relative
   target or `@workspace` resolves there, not where you typed it.  Prove:  `yarn workspace @spell-app/cli spell check .`
   from `packages/spell/projects/...`.  Nothing references the script;  drop it or document `INIT_CWD`.
