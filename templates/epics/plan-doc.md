@@ -27,7 +27,17 @@ How to write and update `epics/<name>/<name>.plan.html`, the live doc behind a `
   - a concrete example for anything tricky: the real code, the command and what it prints, a before / after, a
     table of values
   - ids explained: "the inbox file decision (D1)", never a bare `D1`
-  - identifiers, paths and numbers exact
+  - identifiers, paths and numbers exact, but where the reader can reach them, not in the running text (next rule)
+- Plain text, plain paths (Owen, 2026-10-10, epic `airplane`: "Text is waaaay to dense to parse quickly"; WWOD §6
+  › "Plain text, plain paths", whose before / after is in `agents/wwod/writing.md`):
+  - say what it MEANS: a plain lead line saying what it adds up to, then one fact per bullet
+  - at most two code spans in a sentence; the exact settings and values go in a folded `<epic-code>`, or a tooltip
+  - no file path in the prose: the NAME, its path its tooltip (the browser's own, `title`):
+    `<code title="packages/spell/src/node/buildTsx.ts">buildTsx()</code>`. The tool links it to the file, so a
+    click still opens it; and it turns `<code>name</code>, <code>path</code>` or `<code>name</code>
+    (<code>path</code>)`, handed to it, into that ("The way in", `PLAN-DOC.md`)
+  - no insider shorthand: "reads JSX the way app and ui do", not `jsx: "preserve"`
+  - `spell dev docs fuss <page>` finds what's left: `path-in-prose`, `code-dense`, `dense`
 - Questions, issues, judgement calls and decisions end with a **Net effect** (Owen, 2026-10-04): what concretely
   changes, one bullet each:
 
