@@ -38,6 +38,12 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- A `+` whose left side is an `or` gets the `or`'s datatype, a choice:  `(the name of the pile or "pile") + ":"`
+  (Solitaire's `the state of a pile`) has datatype `choice`, though it's text.  Seen in epic `output-targets` P13,
+  2026-10-09:  with every tree node falling back to its match's datatype, the TypeScript writer wrote
+  `let state: boolean = ...` (the fallback was dropped, judgement J25).  Prove:  `match.datatype` of that expression
+  in a parsed Solitaire;  likely the infix rules' `getDatatype()` taking the left operand's.
+
 - `packages/spell/src/rules/classes.ts` (around line 1450, the rule matching an enumeration's values as arguments):
   a string argument that ISN'T one of the enumeration's values compiles as the literal text `'arg.value'` --
   `` output: valueIndex !== -1 ? String(values[valueIndex]) : `'arg.value'` `` is missing its `${}`.  Prove:  a
