@@ -1096,6 +1096,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## docs
 
+- 2026-10-10 · After `main` took a branch that changed `packages/ui` (spell-element), resolving a `spell-ui.js` merge
+  conflict with `bundle-spell-ui.js --skip-ui-build` reused `packages/ui/dist` from before that merge:  every plan
+  doc drew its toolbar icons as letters and lost its styling. · Rebuild WITHOUT `--skip-ui-build` whenever `packages/ui`
+  changed since `ui/dist` was built (compare `dist/index.js`'s time with `git log -1 -- packages/ui/src`). · docs
 - 2026-10-10 · `spell dev plan-doc phase-body <epic> <N> --files "..."` on a SPLIT plan doc wrote the field's links
   one `../` too deep for its part file (it fixed them up as if they sat in the skeleton):  `plan-doc check` then
   listed them missing (epic `output-targets`, P16's Files:  targets.html, changelog.html, solid-2.md, CODE-DEBT.md). ·
