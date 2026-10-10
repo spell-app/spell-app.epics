@@ -1082,6 +1082,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (`packages/server/src/page/cli.ts serve`, pid from `lsof -nP -iTCP -sTCP:LISTEN`) was still up with that evening's
   code, and the test reused it. · Kill the stale server (check its folder with `lsof -a -p <pid> -d cwd`) and
   rerun.  Better:  the test could refuse a page server it didn't start, or one older than the checkout. · cli
+- 2026-10-09 · `spell --all compile @test --stdout` WROTE `Cards.compiled.js` + `Cards.declarations.json` into the
+  frozen fixture `projects/test/Cards/`:  `--stdout` writes nothing of the project it prints, but
+  `CliSession.compileImports()` still compiles (and saves) any import with no compiled file yet -- Klondike imports
+  Cards. · Delete the two untracked files.  Better:  `--stdout` could compile imports in memory, or refuse to write
+  under `projects/test/`. · cli
 
 ## docs
 
