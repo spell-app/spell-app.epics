@@ -75,3 +75,74 @@ on("card-click", ({ card }: { card: Card }) =&gt; card.play())</pre></epic-code
   </ul>
 </epic-net-effect>
 <epic-answer title="B: on() / trigger() from core, in JavaScript too"></epic-answer>
+<epic-original
+  ><epic-version as-of="2026-10-10 11:52"
+    ><epic-question
+      ><p>
+        Owen, 2026-10-09, reading Solitaire's TypeScript: "the <code>spellCore.RUNTIME.trigger</code> /
+        <code>.on</code> is horrible -- how can we slim that down?"
+      </p>
+      <p>
+        Spell's events (<code>fire event card-click with card = it</code>, <code>on card-click with a card</code>)
+        compile to the program's runtime, <code>spellCore.RUNTIME</code>:
+      </p>
+      <ul>
+        <li>
+          a new one each time a program starts (<code>spellCore.resetRuntime()</code>), so a handler from the last run
+          never hears this one
+        </li>
+        <li>
+          so a short form can't just hold on to it (<code>const { on } = spellCore.RUNTIME</code> at the top would keep
+          the first run's): it must look it up on each call
+        </li>
+      </ul></epic-question
+    >
+    <div>
+      <p><b>Choices</b></p>
+      <div>
+        <p><b>A · on() and trigger() from @spell/core, the payload destructured in the parameter (recommended)</b></p>
+        <ul>
+          <li>
+            core exports <code>on()</code>, <code>off()</code>, <code>once()</code> and <code>trigger()</code>: each
+            calls the current <code>spellCore.RUNTIME</code>'s
+          </li>
+          <li>
+            the TypeScript writer imports them as it imports <code>prop</code>, and destructures the payload where the
+            handler takes it: <code>({ card }: { card: Card }) =&gt; card.play()</code>
+          </li>
+          <li>
+            a program of its own called <code>trigger</code> would clash: the writer imports core's under another name
+            then (<code>trigger as triggerEvent</code>)
+          </li>
+          <li>JavaScript unchanged (or B)</li>
+        </ul>
+      </div>
+      <div>
+        <p><b>B · As A, in JavaScript too, chosen</b></p>
+        <ul>
+          <li>
+            <code>spellCore.on(...)</code> / <code>spellCore.trigger(...)</code> in compiled JavaScript, which imports
+            only
+            <code>spellCore</code>
+          </li>
+          <li>the events rules' tests and the JavaScript snapshots change once</li>
+        </ul>
+      </div>
+      <div>
+        <p><b>C · Keep spellCore.RUNTIME (today)</b></p>
+        <ul>
+          <li>nothing to build; reads as machinery</li>
+        </ul>
+      </div>
+    </div>
+    <epic-net-effect option="A" recommended>
+      <ul>
+        <li>
+          <code>trigger("card-click", { card: this })</code> and
+          <code>on("card-click", ({ card }: { card: Card }) =&gt; card.play())</code> in TypeScript
+        </li>
+        <li>small: with Q33, a phase of its own before Doc Review</li>
+      </ul>
+    </epic-net-effect></epic-version
+  ></epic-original
+>
