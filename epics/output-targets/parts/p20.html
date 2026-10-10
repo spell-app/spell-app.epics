@@ -1,73 +1,151 @@
 <!-- plan-doc part:  #p20's body in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom"
-  >The durable doc,
-  <a href="../../../guides/targets/targets.html" target="src-guides-targets-targets-html">Targets and Writers</a>, and
-  the changelog describe the epic as of <a href="#p9">P9</a>: React drawing, <code>ts/solid</code> as typed JavaScript,
-  the untyped gap open.</epic-field
+  >Compiled javascript draws every element through spell's own wrapper,
+  <code>spellCore.element({ tag, props, children })</code>, not through Solid's <code>h()</code> as a person would write
+  it.</epic-field
 ><epic-field name="changes"
-  ><p>Bring the docs and the code's text level with what <a href="#p10">P10</a> to <a href="#p17">P17</a> built:</p>
+  ><p>
+    The javascript writer writes each element as a call to Solid's <code>h()</code>, with the page's own spellings, as
+    the TypeScript writer does.
+  </p>
   <ul>
-    <li>one reactive engine, in <code>$/util/reactive</code></li>
-    <li>both targets on Solid</li>
-    <li>the examples on Spell UI, and React gone</li>
-    <li><code>ts/solid</code> written the way a person would write it</li>
-    <li>the untyped gap closed, and spell's new "say what it is" warning</li>
-    <li>lists with their own methods, and events from core (<a href="#p14">P14</a>)</li>
-    <li>
-      spell objects whose JSON says their type and reads back as them, and a repeat that takes its list as a spell
-      expression (<a href="#p15">P15</a>)
-    </li>
-    <li>core saying "position" where it means one (<a href="#p16">P16</a>)</li>
-    <li>the TypeScript's typing rules, as settled with Owen (<a href="#p17">P17</a>)</li>
-  </ul>
-  <p>Then a last pass over the branch's comments and docs, before merging.</p></epic-field
-><epic-updated at="2026-10-10 00:03"
-  ><p>
-    Doc Review now also covers P14 · Lists and Events and P15 · Position Names, added 2026-10-09 from Owen's sample
-    review.
-  </p></epic-updated
-><epic-updated at="2026-10-10 00:07"
-  ><p>Doc Review now also covers P16 · Types Together, added 2026-10-10 from Owen's review of T8.</p></epic-updated
-><epic-updated at="2026-10-10 00:48"
-  ><p>
-    Doc Review now also covers P15 · Typed JSON and Repeats, added 2026-10-10 from Owen's review of I8 and I10.
-  </p></epic-updated
+    <li>The wrapper's other jobs move into the writer or core's error net.</li>
+    <li>The wrapper stays as a deprecated name, for programs compiled before.</li>
+  </ul></epic-field
 ><epic-field name="goal"
   ><ul>
     <li>
-      <code>/fussbudget branch</code>: the comments and docstrings this branch changed, rewritten for a reader new to
-      them
+      Why: compiled javascript should draw as a person writing Solid without JSX would, calling Solid's own
+      <code>h()</code>.
+      <ul>
+        <li>
+          Today every element goes through spell's own wrapper,
+          <a href="../../../packages/core/src/drawing.ts" target="src-packages-core-src-drawing-ts"
+            ><code title="packages/core/src/drawing.ts">spellCore.element()</code></a
+          >.
+        </li>
+        <li>The TypeScript target already writes real JSX; javascript reads like neither.</li>
+        <li>
+          The before and after, side by side with the TypeScript output:
+          <a href="../../../pages/details/hyperscript-drawing.html" target="src-pages-details-hyperscript-drawing-html"
+            >Hyperscript drawing: before and after</a
+          >.
+        </li>
+      </ul>
     </li>
-    <li><code>/fussbudget epic output-targets</code>: this plan doc's prose, the same way</li>
     <li>
-      The durable doc,
-      <a href="../../../guides/targets/targets.html" target="src-guides-targets-targets-html"
-        ><code>guides/targets/targets.html</code></a
-      >, updated: compiled spell draws with Solid in both targets, each drawn thing's error net (<code>@drawn</code>),
-      <code>ts/solid</code>'s <code>.compiled.tsx</code>, the decorators (as <a href="#q20">Q20</a> settled them), how
-      far the untyped gap closed and the new warning; its Why and Limits from Q18 to Q27 and the caveats still open
+      Compiled javascript calls <code>h()</code> directly: a card's drawing goes from 33 lines to 18.
+      <epic-code title="Cards · a card's face-up drawing · before and after · 10 lines" language="js">
+        <pre>
+// today
+spellCore.element({ tag: "span", props: { className: "suit" }, children: [
+  () =&gt; this.short_suit
+] })
+// after
+h("span", { class: "suit" }, () =&gt; this.short_suit)
+
+// today
+spellCore.element({ tag: "td", children: [() =&gt; spellCore.drawThing(stock)] })
+// after
+h("td", () =&gt; spellCore.drawThing(stock))</pre>
+      </epic-code>
     </li>
     <li>
-      <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"
-        ><code>guides/solid/solid-2.md</code></a
-      >
-      and
-      <a href="../../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a> say
-      compiled spell is on Solid (the "React for spell programs" entry closed)
+      The javascript writer writes the page's spellings itself, as the TypeScript writer does (the caveat about HTML's
+      spellings, <a href="#c19">C19</a>).
+      <ul>
+        <li>
+          <code>className</code> becomes <code>class</code>, <code>htmlFor</code> becomes <code>for</code>,
+          <code>colSpan</code> becomes <code>colspan</code>.
+        </li>
+        <li>
+          A live value or an object on a <code>ui-*</code> tag is written <code>"prop:value"</code>, decided when it
+          compiles.
+        </li>
+        <li>The two writers share that rule, rather than each having a copy.</li>
+      </ul>
     </li>
-    <li><code>spell dev docs fuss --branch</code> clean: every page the branch touched passes the docs checks</li>
-    <li>The changelog entry under "2. In worktrees" brought up to date, and every hand check listed in To test</li>
+    <li>
+      The wrapper's other jobs move or go.
+      <ul>
+        <li>
+          A dotted tag (<code>&lt;UI.Form&gt;</code>) is a compile error: <code>h()</code> would silently draw a
+          <code>&lt;UI&gt;</code> with class <code>Form</code>.
+        </li>
+        <li>
+          Made at once: core's error net makes the element a <code>draw()</code> returns, once, so re-reading its
+          children never makes it again. Elements inside it need nothing: <code>h()</code> makes them with their parent.
+        </li>
+        <li><code>spellCore.element()</code> stays as a deprecated name: programs compiled before still run.</li>
+      </ul>
+    </li>
+    <li>
+      Still no compile step: compiled javascript is a plain module, its imports linked by the runner as today.
+      <ul>
+        <li>
+          Where <code>h</code> is imported from is the page's one question: from Solid itself, as a person would
+          (recommended), or from spell's core.
+        </li>
+      </ul>
+    </li>
+    <li>
+      The TypeScript target doesn't change. The core contract still passes: both targets print the same, drawing
+      included.
+    </li>
+    <li>
+      It comes AFTER "TS Magic in JS" (<a href="#p19">P19</a>), which changes the same javascript writer. Its snapshots
+      are the starting point.
+    </li>
   </ul></epic-field
 ><epic-field name="files"
-  ><a href="../../../guides/targets/targets.html" target="src-guides-targets-targets-html"
-    ><code>guides/targets/targets.html</code></a
-  >, <a href="../../../guides/changelog.html" target="src-guides-changelog-html"><code>guides/changelog.html</code></a
-  >,
-  <a href="../../../guides/solid/solid-2.md" target="src-guides-solid-solid-2-md"
-    ><code>guides/solid/solid-2.md</code></a
-  >, <a href="../../../agents/CODE-DEBT.md" target="src-agents-code-debt-md"><code>agents/CODE-DEBT.md</code></a
-  >, this plan doc, and the comments in the files P10 to P17 changed</epic-field
+  ><ul>
+    <li>
+      the javascript writer,
+      <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
+        ><code title="packages/parser/src/writers/JSWriter.ts">JSWriter.ts</code></a
+      >: writes each element as an <code>h()</code> call
+    </li>
+    <li>
+      the TypeScript writer,
+      <a href="../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
+        ><code title="packages/parser/src/writers/TSWriter.ts">TSWriter.ts</code></a
+      >: its attribute rule (<code>jsxAttribute()</code>) moves to the base both writers share
+    </li>
+    <li>
+      spell's JSX rules,
+      <a href="../../../packages/spell/src/rules/JSX/SpellJSX.ts" target="src-packages-spell-src-rules-jsx-spelljsx-ts"
+        ><code title="packages/spell/src/rules/JSX/SpellJSX.ts">SpellJSX.ts</code></a
+      >
+      and the rest of that folder: their javascript examples and tests
+    </li>
+    <li>
+      core's drawing,
+      <a href="../../../packages/core/src/drawing.ts" target="src-packages-core-src-drawing-ts"
+        ><code title="packages/core/src/drawing.ts">drawing.ts</code></a
+      >: the error net makes what <code>draw()</code> returns; <code>element()</code> moves to
+      <a href="../../../packages/core/src/deprecated.ts" target="src-packages-core-src-deprecated-ts"
+        ><code title="packages/core/src/deprecated.ts">deprecated.ts</code></a
+      >
+    </li>
+    <li>
+      the runner's linker,
+      <a href="../../../packages/app/src/runner/runCompiled.ts" target="src-packages-app-src-runner-runcompiled-ts"
+        ><code title="packages/app/src/runner/runCompiled.ts">runCompiled.ts</code></a
+      >, if <code>h</code> comes from Solid itself
+    </li>
+    <li>core's drawing tests, the fixture snapshots, every committed example's compiled output</li>
+    <li>the docs naming <code>spellCore.element()</code>: core's and spell's docstrings, PARSING.md</li>
+  </ul></epic-field
 ><epic-field name="verify"
-  ><code>spell dev docs fuss --branch</code>, <code>spell dev plan-doc check output-targets</code>,
-  <code>yarn review</code> in each package whose comments changed</epic-field
+  ><ul>
+    <li><code>yarn review</code> at the root.</li>
+    <li>The core contract test: both targets print the same, drawing included.</li>
+    <li>The fixtures' javascript snapshots: Owen reviews them as a diff.</li>
+    <li>The examples recompiled, and run in the editor: cards flip, piles grow, the Todos form edits its tasks.</li>
+    <li>
+      No compile step: a compiled program runs as it is, in the editor, VS Code's runner and
+      <code>&lt;spell-app&gt;</code>.
+    </li>
+    <li>A program compiled before still runs, through the deprecated <code>spellCore.element()</code>.</li>
+  </ul></epic-field
 >
