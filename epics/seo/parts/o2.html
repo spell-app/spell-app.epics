@@ -33,48 +33,64 @@
   </table>
 </ui-table>
 <h4 id="o2-blockers">What the server render must fix</h4>
-
+<p>What stood in the way of rendering Spell UI in node, and how each was fixed.</p>
 <ul>
   <li>
-    today's probe (<a href="../../../packages/ui/test/ssr.ssr.test.tsx" target="src-packages-ui-test-ssr-ssr-test-tsx"
-      ><code>packages/ui/test/ssr.ssr.test.tsx</code></a
-    >) passes only because its stub host has no children, parent or internals; now <code>ServerHost</code> wraps a real
-    linkedom element
+    The old probe passed only because its stand-in element had no children, parent or internals
+    (<code title="packages/ui/test/ssr.ssr.test.tsx">ssr.ssr.test.tsx</code>).
+    <ul>
+      <li>now <code>ServerHost</code> wraps a real linkedom element</li>
+    </ul>
   </li>
   <li>
-    fork (<a href="../../../packages/solid-element/" target="src-packages-solid-element"
-      ><code>packages/solid-element</code></a
-    >): no server path; <code>customElements</code>, <code>attachInternals</code>, <code>attachShadow</code>,
-    <code>insert</code> all browser-only; hooks throw without an element in context; fixed by
-    <code>@spell-app/solid-element/server</code>'s <code>ServerElement</code> (<a href="#d9">D9</a>)
+    The element layer, <code title="packages/solid-element/">solid-element</code>, had no server path.
+    <ul>
+      <li>
+        browser-only: <code>customElements</code>, <code>attachInternals</code>, <code>attachShadow</code> and
+        <code>insert</code>
+      </li>
+      <li>its hooks throw without an element in context</li>
+      <li>
+        fixed by <code>ServerElement</code>, in <code>@spell-app/solid-element/server</code> (<a href="#d9">D9</a>)
+      </li>
+    </ul>
   </li>
   <li>
-    unguarded hooks: <code>PartContext</code> <code>onConnect</code> (34 tags), <code>FormElement</code>
-    <code>onFormReset</code> (8 families); they register and never run under <code>ServerElement.run()</code> (<a
-      href="#d9"
-      >D9</a
-    >)
+    Hooks with no guard: they register, and never run under <code>ServerElement.run()</code> (<a href="#d9">D9</a>).
+    <ul>
+      <li><code>PartContext</code>&#39;s <code>onConnect</code>, in 34 tags</li>
+      <li><code>FormElement</code>&#39;s <code>onFormReset</code>, in 8 families</li>
+    </ul>
   </li>
   <li>
-    <code>SlotContent</code> uses <code>Element</code> / <code>Node</code> globals: crashes on any host with children;
-    now <code>nodeType</code> tests
+    <code>SlotContent</code> used the <code>Element</code> and <code>Node</code> globals, so it crashed on any element
+    with children.
+    <ul>
+      <li>now it tests <code>nodeType</code></li>
+    </ul>
   </li>
   <li>
-    <code>UI</code> runtime won't construct in node (<code>new CSSStyleSheet()</code>); ~25 families call
-    <code>text()</code>, <code>UI.ids</code>, <code>UI.i18n</code> or <code>UI.browser</code> while rendering;
-    <code>ServerRuntime</code> installs those services (<a href="#d11">D11</a>)
+    The <code>UI</code> runtime won&#39;t construct in node: <code>new CSSStyleSheet()</code>.
+    <ul>
+      <li>
+        about 25 families use its services while rendering: <code>text()</code>, <code>UI.ids</code>,
+        <code>UI.i18n</code> or <code>UI.browser</code>
+      </li>
+      <li><code>ServerRuntime</code> installs those services (<a href="#d11">D11</a>)</li>
+    </ul>
   </li>
   <li>
-    <code>isServer</code> short-circuits that EMPTY output today: accordion panels, tab buttons, card slotted parts,
-    table rows; each family got a server branch in <a href="#p3">P3</a>, host ARIA through <code>hostEffect()</code> (<a
-      href="#d10"
-      >D10</a
-    >)
+    <code>isServer</code> checks made the output EMPTY: accordion panels, tab buttons, a card&#39;s slotted parts,
+    table rows.
+    <ul>
+      <li>each family got a server branch in <a href="#p3">P3</a></li>
+      <li>an element&#39;s own ARIA goes through <code>hostEffect()</code> (<a href="#d10">D10</a>)</li>
+    </ul>
   </li>
   <li>
-    icons: async packs + <code>DOMParser</code>; on the server, empty boxes; now SVG read from disk, inline (<a
-      href="#d23"
-      >D23</a
-    >)
+    Icons came from async packs and <code>DOMParser</code>, so on the server they were empty boxes.
+    <ul>
+      <li>now the SVG is read from disk, inline (<a href="#d23">D23</a>)</li>
+    </ul>
   </li>
 </ul>
