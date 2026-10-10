@@ -1339,6 +1339,14 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `../../../../packages/...` (one `../` too many), and `check` then reported it missing;  `details` also refused
   `<epic-net-effect>` ("unknown tag"). · Fix the links back by hand in `parts/<id>.html`;  write a Net effect as
   `<p><b>Net effect:</b></p><ul>`. · spell-element (P1)
+- 2026-10-10 · Editing a shared page at its REAL path (`spell-app-dev/guides/targets/targets.html`) from a worktree
+  session:  something re-linked it right after each edit ("modified by a hook, likely a formatter") and wrote
+  worktree-relative links, `../../../spell-app/.claude/worktrees/output-targets/packages/core/src/drawing.ts`, where
+  `../../packages/...` belongs.  It also linked a bare `spell-ui.js` to the docs bundle, the wrong file. · Replaced
+  the prefix with `../../` by hand, then ran `doc-links.js` / `vp fmt` through the worktree's link path
+  (`../../guides/...` from `packages/docs`, `guides/...` from the root), which writes `../../` links.  Grep a shared
+  page for `.claude/worktrees` after editing it from a worktree.  Not found:  which watcher does it (no PostToolUse
+  hook in the worktree's settings). · output-targets (P20)
 
 ## claude-code
 

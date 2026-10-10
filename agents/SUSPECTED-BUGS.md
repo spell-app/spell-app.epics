@@ -757,6 +757,11 @@ every entry below that date was fixed or disproven;  what's left:
   `workbench.action.closeWindow` from a `setTimeout` after the reply runs too late or is refused;  or the window
   that opened wasn't the one registered.  Prove:  `node scripts/window.mjs open <name> --pkg docs`, wait for its
   `~/.spell/windows/*.json`, then `close <name>`, and watch the window.
+- `package.json` still contributes "Spell: Show Tree for This Line" (`spell.showLineTree`, 2026-10-10, branch
+  `output-targets`), but `src/` has no `TreeView.ts` and nothing registers that command:  epic `epic-components` J8
+  took the Spell Tree view out of the side bar.  Picking it from the palette likely does nothing, or errors "command
+  not found".  Prove:  rebuild the extension, run the command on a `.spell` file.  Fix:  drop the contribution (and its
+  menu entry), or bring the view back.
 
 ## claude-code
 
