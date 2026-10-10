@@ -188,11 +188,11 @@ element takes its colour from this table, never a colour that means something el
 | red    | needs you (Owen)                            | an open question's chip; an unreviewed judgement call or issue; the rail's count; a details question with nothing picked; a details page "waiting for your answer"; an open goals question               |
 | yellow | open, still undecided                       | an open todo, caveat or test (a todo a review queued too); a reviewed issue or judgement call; "to do"; an epic still planning; a goals topic "in dialog". DARK text and icons on a yellow fill                     |
 | blue   | do it now, or Claude is working on it       | Do Now, Revisit, Send (everywhere: the page header, the agents panel, details pages); the Underway status card; an item Claude is working on (its chip, the spinner); an epic in progress; a goals topic "building" |
-| green  | decided or done (however long ago)          | Approve, Make Todo; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card; an item decided, done, or approved as it stands, for good; an epic done; a goals topic "agreed", "shipped" |
+| green  | decided or done (however long ago)          | Approve, Make Todo, a todo's "next phase" plane; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card; an item decided, done, or approved as it stands, for good; an epic done; a goals topic "agreed", "shipped" |
 | orange | ONLY changed since you looked, and warnings; an item Claude answered with options, waiting for your pick (Owen, 2026-10-09) | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a stalled epic; a `replied` item's chip (DARK text on it)                                         |
 | violet | Claude's voice                              | his reply cards; "recommended" (a thumbs-up, no word)                                                                                                                                                               |
 | ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the rail                                                                                                                     |
-| grey   | no longer relevant, inactive, not chosen    | a canceled item (made moot); buttons at rest, and once Claude has handled them; a phase to do; a future epic; a goals topic "draft"                                                                                 |
+| grey   | no longer relevant, inactive, not chosen    | a canceled item (made moot); a todo's "drop it" x; buttons at rest, and once Claude has handled them; a phase to do; a future epic; a goals topic "draft"                                                                                 |
 
 - No light blue, no light green: one shade per meaning.
 - Colour-blind readers tell red and green apart least: the chip's id, the icons and the words keep them readable.
@@ -225,9 +225,19 @@ On an item's line, ONE group, in this order:
 2. Revisit (history), blue
 3. Make Todo (list check), green
 
-Then, APART from the group, Do Now (paper plane), blue: it replaces Add Details Now on the line, and the note box's
-"now". The note box keeps Revisit-later and Make Todo. An item Claude has answered or done keeps the three-button
-group, so Owen can still approve it.
+Then, APART from the group, Do Now (the magic wand, as the header's Review Now:  Owen, 2026-10-09;  it was a paper
+plane), blue: it replaces Add Details Now on the line, and the note box's "now". The note box keeps Revisit-later and
+Make Todo. An item Claude has answered or done keeps the three-button group, so Owen can still approve it.
+
+A TODO's line is different (Owen, 2026-10-09):  ONE group, no Approve, Make Todo or Do Now:
+
+1. Do it in the next phase (paper plane), green:  `inbox apply` queues it into the first phase still to do
+   (`queue <name> <id> "P10 · <name>"`, a Done card "Queued for P10 · ...";  no phase to do:  "the next phase")
+2. Revisit (history), blue:  "I'm adding a note for you"
+3. Drop it (x), grey:  `inbox apply` cancels it ("dropped by Owen in review":  struck through, grey)
+
+Its note box matches:  the plane, Revisit Later, the x;  the plane or the x takes the note along (kept as Owen's
+reply when applied).
 
 ### Item states
 
@@ -369,7 +379,7 @@ it started ending):
        - Q3  question, open · Where should the send button sit?
            picks A · In the page header, asks:  "A, but only on plan docs?"
      ...
-   next:  `spell dev plan-doc inbox review-review apply` (approve, pick, todo, new, urgency)
+   next:  `spell dev plan-doc inbox review-review apply` (approve, pick, todo, a todo's next phase or drop, new, urgency)
    ```
 
    - `now`: Add Details and revisit now, TAKEN off the queue, each item marked `working` (its spinner); the mark
@@ -391,6 +401,8 @@ it started ending):
    | pick                | any other item (judgement call, issue, todo, caveat)               | APPROVED with that option: its card set's `chosen` set, then as approve (an open judgement call closed, accepted; reviewed); the option in the log line                            |
    | todo                | any item                                                           | a new todo "Follow up: <title>" linking back, the item reviewed                                                                                                                    |
    | todo                | a phase, the summary, an Overview sub-section                      | a new todo "Follow up: P3 · <title>" (or "the summary", "<title>") linking back (`#p3`, `#overview`, `#o3`); a Done status card on what was marked                                 |
+   | next                | a todo (its plane)                                                 | queued into the first phase still to do (`queued`, work `P10 · <name>`;  none: "the next phase", and the reply says so), a Done status card "Queued for P10 · <name>", reviewed;  a note kept as Owen's reply |
+   | drop                | a todo (its x)                                                     | canceled, "dropped by Owen in review" (struck through, grey), reviewed;  a note kept as Owen's reply                                                                               |
    | approve             | a phase, the summary, an Overview sub-section                      | logged only (the page has no Approve for them)                                                                                                                                     |
    | new                 | a new todo or question (`new1`)                                    | made as `add` makes it: Owen's note its details (a question's lead), "About P3." linking `near`; a Done status card "Made from the page: Owen's new todo, written <time>."         |
    | revisit soon        | any item                                                           | left: answered INTO the item as a reply (`details --append`), the chat only linking it (Q3 of `windows-and-review`), then `inbox <name> clear <id>`                                |
