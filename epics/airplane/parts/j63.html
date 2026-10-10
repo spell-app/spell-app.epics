@@ -1,0 +1,220 @@
+<!-- plan-doc part:  #j63's details in airplane.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Owen (2026-10-10): "The buttons don't have browser tooltips -- unclear what they do." J42's pills (✓ ⟲ list wand)
+  showed nothing in VS Code's side bar.
+</p>
+<p><b>Why they didn't show.</b></p>
+<ul>
+  <li>
+    VS Code's side bar shows a <code>title</code> only while the element right under the pointer carries it itself, not
+    a child of it. Electron 38 and later, on macOS:
+    <a href="https://github.com/electron/electron/issues/49843" target="ext-github-com-electron-electron-issues-49843"
+      >electron/electron#49843</a
+    >
+    (open; Chrome itself still shows them). VS Code 1.141 runs Electron 43.
+  </li>
+  <li>
+    Nearly every control had its <code>title</code> on the button, and the pointer lands on what's inside: the icon, the
+    chevron, the words. A <code>&lt;ui-button&gt;</code>'s <code>title</code> is on the host, and the pointer lands on
+    its inner <code>&lt;button&gt;</code>.
+  </li>
+  <li>
+    Some had no <code>title</code> at all: each card's empty <code>title=""</code> (which hides the doc's own
+    <code>title</code> data) stopped even Chrome's walk up to an ancestor.
+  </li>
+  <li>
+    And most review pills' titles only repeated their name ("Approve"); what they do was only in the screen-reader
+    label.
+  </li>
+</ul>
+<p><b>The fix, one pattern for all.</b></p>
+<ul>
+  <li>
+    A shared sheet,
+    <a
+      href="../../../packages/epics/components/epic-item/Tooltip.css"
+      target="src-packages-epics-components-epic-item-tooltip-css"
+      ><code title="packages/epics/components/epic-item/Tooltip.css">Tooltip.css</code></a
+    >, adopted by every family: everything inside a titled control lets the pointer through to it (<code
+      >pointer-events: none</code
+    >). A titled <code>&lt;ui-button&gt;</code>'s inner button does too, so the host is the hit; its hover and pressed
+    fill are put back on the host.
+  </li>
+  <li>The section titles' words and icon let the pointer through to <code>&lt;ui-section&gt;</code>'s fold button.</li>
+  <li>Every control's <code>title</code> says what it does, verb first, from its element's vocabulary.</li>
+</ul>
+<p>
+  <b>Measured</b> on a copy of this doc (1138 controls, headless Chromium, the pointer at each control's centre):
+  before, 1053 had no title on the element under the pointer (100 even by Chrome's own walk); after, 0. Left: 36
+  controls Spell UI draws itself (below).
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Element</th>
+      <th>Control</th>
+      <th>Tooltip now</th>
+      <th>Tooltip after</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>&lt;epic-review&gt;</code> (J42's pills)</td>
+      <td>Approve, Revisit, Make Todo, Do Now</td>
+      <td>"Approve" on the host: nothing in VS Code</td>
+      <td>
+        "Approve: Fine as it is", "Revisit: Talk it over: write in the box at its end", "Make Todo: Follow it up later,
+        as a todo", "Do Now: Claude takes it at once ..." (then the review label)
+      </td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-review&gt;</code> on a todo</td>
+      <td>plane, Revisit, x</td>
+      <td>"Do it in the next phase", "Drop it": nothing in VS Code</td>
+      <td>
+        "Do it in the next phase: Queued into the next phase ...", "Drop it: Canceled, struck through, once Claude
+        applies it"
+      </td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-review&gt;</code> note box</td>
+      <td>Later, x (skip, next, drop)</td>
+      <td>its name: nothing in VS Code</td>
+      <td>"Revisit Later: talk it over in the next batch", "Skip this: nothing to do, marked reviewed ..."</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-review&gt;</code> marked note</td>
+      <td>Edit</td>
+      <td>"Edit": nothing in VS Code</td>
+      <td>"Edit: put your note back in the box"</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-item&gt;</code></td>
+      <td>fold chevron, id chip, git, collapse-all</td>
+      <td>
+        "Fold J42", "Needs attention · ... click: not urgent", "Show its commits", "Fold everything in J42": nothing in
+        VS Code
+      </td>
+      <td>the same words, now shown</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-page&gt;</code></td>
+      <td>copy heading, Send, Review Now, review line, state chips, New, collapse-all, git</td>
+      <td>titled, but the icon or words were hit</td>
+      <td>the same words, now shown</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-page&gt;</code></td>
+      <td>Plan hung? fold</td>
+      <td>none</td>
+      <td>"Fold or unfold: how to restart a hung session"</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-new-item&gt;</code></td>
+      <td>New todo / question</td>
+      <td>titled, icon hit</td>
+      <td>the same, now shown</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-new-item&gt;</code> form</td>
+      <td>Todo, Question, Add / Save, Cancel</td>
+      <td>none</td>
+      <td>
+        "Make it a todo", "Make it a question", "Add: Claude puts it in the plan doc", "Save your changes", "Cancel:
+        close it, nothing saved"
+      </td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-agents&gt;</code></td>
+      <td>Agents running heading, Send</td>
+      <td>none</td>
+      <td>
+        "Fold the agents running" / "Unfold ...", "Send your note to &lt;agent&gt;: it changes what the agent does next"
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <code>&lt;epic-answer&gt;</code>, <code>&lt;epic-reply&gt;</code>, <code>&lt;epic-status&gt;</code>,
+        <code>&lt;epic-note&gt;</code>, <code>&lt;epic-update&gt;</code>, <code>&lt;epic-updated&gt;</code>
+      </td>
+      <td>card fold button</td>
+      <td>none (the card's <code>title=""</code>)</td>
+      <td>
+        "Fold the answer", "Fold this reply", "Fold this status card", "Fold this note", "Fold this update", "Fold this
+        plan change" ("Unfold ..." while folded)
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <code>&lt;epic-more&gt;</code>, <code>&lt;epic-original&gt;</code>, <code>&lt;epic-choices&gt;</code>,
+        <code>&lt;epic-aside&gt;</code>, <code>&lt;epic-code&gt;</code>
+      </td>
+      <td>heading fold</td>
+      <td>none</td>
+      <td>
+        "Fold More Details", "Fold the original discussion", "Fold the choices", "Fold this aside", "Fold this code"
+        ("Unfold ...")
+      </td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-option&gt;</code></td>
+      <td>heading fold, Choose</td>
+      <td>the option's own title (from the doc), "Pick A" (words hit)</td>
+      <td>"Fold option A" / "Unfold option A"; "Pick A", now shown</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-section&gt;</code>, <code>&lt;epic-phase&gt;</code>, <code>&lt;epic-overview&gt;</code></td>
+      <td>
+        title fold (Spell UI's button), collapse-all, Files / Verify toggles, state chips, new cards' edit / remove
+      </td>
+      <td>titled, but the words, icon or glyph were hit</td>
+      <td>the same words, now shown</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-section&gt;</code></td>
+      <td>Plan changes fold, "3 hidden · show all"</td>
+      <td>none</td>
+      <td>"Fold the plan changes" / "Unfold ...", "Show everything: clear the filter"</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-prompt&gt;</code>, <code>&lt;epic-overview&gt;</code></td>
+      <td>Kickoff prompt fold</td>
+      <td>none</td>
+      <td>"Fold or unfold the kickoff prompt"</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-section&gt;</code> (Spell UI's <code>&lt;ui-section&gt;</code>)</td>
+      <td>end chevron</td>
+      <td>"Fold" on its span, its svg hit</td>
+      <td><b>not fixed:</b> Spell UI's; the fold button beside it shows it</td>
+    </tr>
+    <tr>
+      <td><code>&lt;epic-code&gt;</code> (Spell UI's <code>&lt;ui-code&gt;</code>)</td>
+      <td>Copy</td>
+      <td>none (it says Copy)</td>
+      <td><b>not fixed:</b> Spell UI's</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <b>Left for later</b> (calm: both are Spell UI's own, and need the docs bundle rebuilt, which another agent is
+  changing right now): <code>&lt;ui-code&gt;</code>'s Copy gets a <code>title</code>, and
+  <code>&lt;ui-section&gt;</code>'s end chevron lets the pointer through its glyph.
+</p>
+<p>
+  <b>Held by a check:</b>
+  <a
+    href="../../../packages/epics/demo/check-tooltips-epics.mjs"
+    target="src-packages-epics-demo-check-tooltips-epics-mjs"
+    ><code title="packages/epics/demo/check-tooltips-epics.mjs">check-tooltips-epics.mjs</code></a
+  >
+  opens a doc with everything unfolded (a note box, the New form, an agents panel), and fails on any control whose
+  centre has no <code>title</code> of its own. Those two Spell UI ones are listed, not failed.
+</p>
+<epic-net-effect
+  ><p>
+    Every button, chip and fold in a plan doc now shows what it does when you rest the pointer on it, in VS Code's side
+    bar too: the review pills say "Approve: Fine as it is", "Do Now: Claude takes it at once ...". Two Spell UI controls
+    (the code box's Copy, a section title's far-right chevron) still don't, until Spell UI is fixed.
+  </p></epic-net-effect
+>
