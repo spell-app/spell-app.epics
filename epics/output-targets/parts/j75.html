@@ -1,0 +1,30 @@
+<!-- plan-doc part:  #j75's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  In the <code>classes</code> split, <code>DefinePropertyHas.getLongForm()</code> checks
+  <code>specifier.is(OutlineSpecifierEnum)</code>, but <code>outline_specifier_enum</code> registers AFTER
+  <code>define_property_has</code>.
+</p>
+<ul>
+  <li>
+    Importing <code>./OutlineSpecifierEnum</code> would load (and register) it first: the <code>_testable_</code> order
+    in
+    <a
+      href="../../../packages/spell/src/rules/ruleNames.test.ts"
+      target="src-packages-spell-src-rules-rulenames-test-ts"
+      ><code>ruleNames.test.ts</code></a
+    >'s snapshot changes.
+  </li>
+  <li>
+    Chose: <code>import { OutlineSpecifierEnum } from "$/spell/rules/classes"</code>, the folder's own
+    <code>index.ts</code>. A cycle, but the class is read only when <code>getLongForm()</code> runs, long after the
+    folder loaded; a comment above the import says why.
+  </li>
+  <li>
+    Over: swapping the check to <code>is(TypeSpecifierEnum)</code> (registered earlier, so a plain import): the same for
+    every real input, but not for a nonsense one, e.g. <code>its have a x as one of a, b</code>, so a behaviour change
+    in principle.
+  </li>
+  <li>
+    Breaks only if something imports <code>classes/DefinePropertyHas.ts</code> directly before the folder: nothing does.
+  </li>
+</ul>
