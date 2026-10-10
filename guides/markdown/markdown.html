@@ -43,7 +43,9 @@
           >
           <ui-item icon="map"
             >Plan doc:
-            <a href="../../epics/markdown/markdown.plan.html" target="markdown">epics/markdown/markdown.plan.html</a>;
+            <a href="../../epics/markdown/markdown.plan.html" target="markdown" title="epics/markdown/markdown.plan.html"
+              >Markdown</a
+            >;
             the rulex changes it drove:
             <a href="../rulex/rulex.html" target="src-guides-rulex-rulex-html">rulex</a></ui-item
           >
@@ -58,27 +60,44 @@
           </ui-statistics>
           <ul>
             <li>
-              Markdown in, <code>P.Markup</code> out, as plain HTML or with <code>ui-*</code> elements (<code
-                >MD.render(text, { ui: true })</code
-              >).
+              Markdown in, the parser's markup (<code>P.Markup</code>) out.
+              <ul>
+                <li>As plain HTML,</li>
+                <li>or with Spell UI's elements: <code>MD.render(text, { ui: true })</code>.</li>
+              </ul>
             </li>
             <li>
               Passes every GFM spec example (670/670), with GitHub's extensions on: tables, task lists, strikethrough,
               autolinks, the tag filter, and alerts (<code>&gt; [!NOTE]</code>).
             </li>
             <li>
-              Line kinds are rulex rules; the container stack and the inline pass (emphasis, links) are hand-written
-              ports of commonmark.js 0.29. Rulex can't say "the open containers" or "pair these delimiters".
+              Part rulex, part hand-written.
+              <ul>
+                <li>Each kind of line is a rulex rule.</li>
+                <li>
+                  The container stack and the inline pass (emphasis, links) are hand-written ports of commonmark.js
+                  0.29.
+                </li>
+                <li>Why: rulex can't say "the open containers" or "pair these delimiters".</li>
+              </ul>
             </li>
             <li>
-              1.8× marked's time over the repo's 172 <code>.md</code> files (101 ms vs 56 ms); 2.2 ms for the biggest
-              (32 kB). Fast enough to re-render on every keystroke.
+              Fast enough to re-render on every keystroke.
+              <ul>
+                <li>1.8× marked's time over the repo's 172 <code>.md</code> files (101 ms vs 56 ms).</li>
+                <li>2.2 ms for the biggest (32 kB).</li>
+              </ul>
             </li>
             <li>
-              Too big to replace marked everywhere yet: the browser bundle is 59 kB gzipped (88 kB before its
-              bundle-time cuts) vs marked's 14 kB, DOMPurify now loading only for <code>sanitized</code>. So plain
-              <code>&lt;ui-markdown&gt;</code> keeps marked, and only <code>&lt;ui-markdown editable&gt;</code> loads
-              <code>MD</code>.
+              Too big to replace marked everywhere yet.
+              <ul>
+                <li>The browser bundle is 59 kB gzipped (88 kB before its bundle-time cuts), vs marked's 14 kB.</li>
+                <li>DOMPurify now loads only for <code>sanitized</code>.</li>
+                <li>
+                  So plain <code>&lt;ui-markdown&gt;</code> keeps marked.
+                  Only <code>&lt;ui-markdown editable&gt;</code> loads this package (<code>MD</code>).
+                </li>
+              </ul>
             </li>
             <li>
               In use: the app's docstrings (<code>&lt;Markdown&gt;</code>), the LSP's colouring of markdown in comments,
@@ -228,9 +247,16 @@ lineRules.addRule(fence_open, { syntax: "(`{3,}|~{3,}) {any}+" })</code></pre>
               <li><code>MD.toHTML(text, options)</code>: plain HTML, as the spec writes it.</li>
               <li><code>MD.toMarkup(text, options)</code>: the <code>P.Markup</code> tree.</li>
               <li>
-                <code>MD.render(text, options)</code>: <code>{ markup, html, headings }</code>, with <code>ui</code>,
-                <code>headingIds</code> (GitHub's slugs), <code>headingOffset</code>, <code>breaks</code>,
-                <code>autolinks</code> and <code>tagfilter</code>.
+                <code>MD.render(text, options)</code>: the markup, the HTML and the headings, together.
+                <ul>
+                  <li>Returns <code>{ markup, html, headings }</code>.</li>
+                  <li>
+                    Its options: <code title="ui, headingIds (GitHub's slugs), headingOffset, breaks, autolinks, tagfilter"
+                      >ui, headingIds, headingOffset, breaks, autolinks, tagfilter</code
+                    >.
+                  </li>
+                  <li><code>headingIds</code> gives headings GitHub's slugs.</li>
+                </ul>
               </li>
               <li>
                 Raw HTML passes through; the caller sanitizes (<code>&lt;ui-markdown&gt;</code> uses DOMPurify only with
@@ -304,14 +330,17 @@ lineRules.addRule(fence_open, { syntax: "(`{3,}|~{3,}) {any}+" })</code></pre>
             <ul>
               <li>
                 <a href="../../packages/app/src/solid/Markdown.tsx" target="src-packages-app-src-solid-markdown-tsx"
-                  ><code>packages/app/src/solid/Markdown.tsx</code></a
+                  ><code title="packages/app/src/solid/Markdown.tsx">Markdown.tsx</code></a
                 >
                 draws docstrings with <code>MD</code> (marked is gone from <code>app</code>).
               </li>
               <li>
-                It imports <code>$/markdown</code> LAZILY (an async memo + <code>&lt;Loading&gt;</code>, plain text
-                meanwhile): the runner and <code>&lt;spell-app&gt;</code> show docstrings too, and a static import would
-                put the parser in every runner bundle.
+                It imports <code>$/markdown</code> LAZILY, showing plain text meanwhile (an async memo and
+                <code>&lt;Loading&gt;</code>).
+                <ul>
+                  <li>Why: the runner and <code>&lt;spell-app&gt;</code> show docstrings too.</li>
+                  <li>A static import would put the parser in every runner bundle.</li>
+                </ul>
               </li>
             </ul>
           </ui-section>
@@ -319,9 +348,14 @@ lineRules.addRule(fence_open, { syntax: "(`{3,}|~{3,}) {any}+" })</code></pre>
           <ui-section id="lsp-colouring" header="LSP colouring" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <code>SpellLanguageService</code>'s semantic tokens colour markdown inside comments: four new modifiers,
-                <code>bold</code>, <code>italic</code>, <code>link</code> and <code>strikethrough</code>, from
-                <code>MD</code>'s inline source positions.
+                The language server (<code>SpellLanguageService</code>) colours markdown inside comments.
+                <ul>
+                  <li>
+                    Its semantic tokens have four new modifiers:
+                    <code title="bold, italic, link, strikethrough">bold, italic, link, strikethrough</code>.
+                  </li>
+                  <li>They come from the inline source positions <code>MD</code> reports.</li>
+                </ul>
               </li>
               <li>
                 Every comment, not only docstrings: telling them apart needs the parse, and spell's comments are
@@ -338,24 +372,33 @@ lineRules.addRule(fence_open, { syntax: "(`{3,}|~{3,}) {any}+" })</code></pre>
           <ui-section id="ui-markdown-editable" header="<ui-markdown editable>" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <code>ui</code> never imports <code>$/markdown</code>'s source: <code>yarn gen:markdown</code> (in
+                Spell UI never imports the markdown package's source.
+                Instead, <code>yarn gen:markdown</code> (in
                 <a href="../../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
                 >) bundles it into
                 <a
                   href="../../packages/ui/src/components/ui-markdown/md.bundle.js"
                   target="src-packages-ui-src-components-ui-markdown-md-bundle-js"
-                  ><code>src/components/ui-markdown/md.bundle.js</code></a
+                  ><code title="src/components/ui-markdown/md.bundle.js">md.bundle.js</code></a
                 >, as <code>gen:spell</code> does spell's highlighter.
               </li>
               <li>
-                <code>editable</code> adds Write / Preview tabs. The preview loads <code>MDEngine</code> (its own lazy
-                chunk) and draws with <code>ui-*</code> elements; with <code>sanitized</code>, DOMPurify keeps the
-                <code>ui-*</code> tags.
+                <code>editable</code> adds Write / Preview tabs.
+                <ul>
+                  <li>The preview loads <code>MDEngine</code>, in its own lazy chunk.</li>
+                  <li>It draws with Spell UI's <code>ui-*</code> elements.</li>
+                  <li>With <code>sanitized</code>, DOMPurify keeps those tags.</li>
+                </ul>
               </li>
               <li>
-                Each preview renders the whole text (~2 ms), then swaps only the top-level blocks whose markup changed,
-                so unchanged code blocks aren't re-highlighted. No incremental parser: it would buy ~2 ms for a lot of
-                complexity (lazy continuation, document-global references).
+                Each preview renders the whole text (~2 ms), then swaps only the top-level blocks whose markup changed.
+                <ul>
+                  <li>So unchanged code blocks aren't re-highlighted.</li>
+                  <li>
+                    No incremental parser: it would buy ~2 ms for a lot of complexity (lazy continuation,
+                    document-global references).
+                  </li>
+                </ul>
               </li>
               <li>Plain <code>&lt;ui-markdown&gt;</code> still uses marked: see the bundle size below.</li>
             </ul>
@@ -369,7 +412,8 @@ lineRules.addRule(fence_open, { syntax: "(`{3,}|~{3,}) {any}+" })</code></pre>
             <ul>
               <li>
                 All 670 examples of cmark-gfm's <code>spec.txt</code> pass, vendored as
-                <code>src/spec/gfm-spec.json</code> (<code>yarn spec:update &lt;spec.txt&gt;</code>).
+                <code title="src/spec/gfm-spec.json">gfm-spec.json</code> (<code>yarn spec:update &lt;spec.txt&gt;</code
+                >).
               </li>
               <li>
                 <a
@@ -427,7 +471,7 @@ lineRules.addRule(fence_open, { syntax: "(`{3,}|~{3,}) {any}+" })</code></pre>
               <li>
                 One file: 2.2 ms for
                 <a href="../../packages/spell/PARSING.md" target="src-packages-spell-parsing-md"
-                  ><code>packages/spell/PARSING.md</code></a
+                  ><code title="packages/spell/PARSING.md">PARSING.md</code></a
                 >
                 (32 kB).
               </li>
@@ -503,7 +547,7 @@ lineRules.addRule(fence_open, { syntax: "(`{3,}|~{3,}) {any}+" })</code></pre>
               <ui-content>
                 <ui-header
                   ><a href="experiments/compare-marked.mts" target="src-guides-markdown-experiments-compare-marked-mts"
-                    ><code>markdown/experiments/compare-marked.mts</code></a
+                    ><code title="markdown/experiments/compare-marked.mts">compare-marked.mts</code></a
                   ></ui-header
                 >
                 <ui-meta
@@ -516,7 +560,7 @@ lineRules.addRule(fence_open, { syntax: "(`{3,}|~{3,}) {any}+" })</code></pre>
               <ui-content>
                 <ui-header
                   ><a href="experiments/profile.mts" target="src-guides-markdown-experiments-profile-mts"
-                    ><code>markdown/experiments/profile.mts</code></a
+                    ><code title="markdown/experiments/profile.mts">profile.mts</code></a
                   ></ui-header
                 >
                 <ui-meta>experiment · <code>yarn tsx markdown/experiments/profile.mts</code></ui-meta>
