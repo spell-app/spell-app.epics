@@ -82,7 +82,8 @@
               <a href="#drawing">3. Drawing with Solid</a>).
               <ul>
                 <li>
-                  Each drawn thing sits in its own error net: a broken card shows a stand-in, the rest keeps drawing.
+                  Each drawn thing sits in its own error boundary: a broken card shows a stand-in, the rest keeps
+                  drawing.
                 </li>
                 <li>Spell and Spell UI share one reactive engine, in <code>$/util/reactive</code>.</li>
                 <li>The examples draw with Spell UI's own tags. React is gone, but for the CLI's terminal screens.</li>
@@ -623,7 +624,7 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
               </li>
               <li>
                 <code>h()</code> hands back a thunk, a function that makes the element. A <code>draw()</code> returns it
-                as is, and the thing's error net makes it, once (<a
+                as is, and the thing's error boundary makes it, once (<a
                   href="../../epics/output-targets/output-targets.plan.html#j93"
                   target="output-targets"
                   >J93</a
@@ -635,8 +636,8 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                   </li>
                   <li>Elements inside it need nothing: <code>h()</code> makes them with their parent.</li>
                   <li>
-                    The net makes ONLY <code>h()</code>'s own thunks, by the mark <code>h()</code> puts on them. Any
-                    other function is a live value, which Solid calls itself.
+                    The boundary makes ONLY <code>h()</code>'s own thunks, by the mark <code>h()</code> puts on them.
+                    Any other function is a live value, which Solid calls itself.
                   </li>
                 </ul>
               </li>
@@ -652,22 +653,14 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                 <code>&lt;For&gt;</code>).
               </li>
               <li>
-                Programs compiled before P20 still run: <code>spellCore.element()</code>, what they call, stays as a
-                deprecated name (<a
-                  href="../../epics/output-targets/output-targets.plan.html#j94"
-                  target="output-targets"
-                  >J94</a
-                >).
+                <code>spellCore.element()</code>, what javascript called before P20, is gone (P22,
+                <a href="../../epics/output-targets/output-targets.plan.html#j94" target="output-targets">J94</a>).
                 <ul>
+                  <li>Every committed example is recompiled, so each one draws with <code>h()</code>.</li>
                   <li>
-                    It moved whole into core's
-                    <a href="../../packages/core/src/deprecated.ts" target="src-packages-core-src-deprecated-ts"
-                      ><code title="packages/core/src/deprecated.ts">deprecated.ts</code></a
-                    >, with the helpers only it uses: React's spellings, <code>prop:</code> on a Spell UI tag, the
-                    dotted-tag error.
+                    A program compiled before P20 no longer draws: its <code>draw()</code> throws, and the thing shows
+                    its stand-in. Compile it again.
                   </li>
-                  <li>It isn't part of the core contract, so another target's core won't need it.</li>
-                  <li>A browser runner test and a <code>spell run</code> test still draw with it.</li>
                 </ul>
               </li>
             </ul>
@@ -784,12 +777,12 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                   <li>a computed local becomes an accessor, <code>const className = () =&gt; ...</code></li>
                   <li>an <code>if ... return</code> chain becomes <code>&lt;Show&gt;</code>, or Solid's Switch</li>
                   <li><code>draw cards in it</code> becomes <code>&lt;For&gt;</code></li>
-                  <li>any other shape re-runs whole, inside its net</li>
+                  <li>any other shape re-runs whole, inside its error boundary</li>
                 </ul>
               </li>
               <li>
-                <code>@drawn draw()</code> puts the drawing in its own error net, so a parent draws a child with a plain
-                call, <code>{card.draw()}</code>.
+                <code>@drawn draw()</code> puts the drawing in its own error boundary, so a parent draws a child with a
+                plain call, <code>{card.draw()}</code>.
               </li>
               <li>
                 Only the page's spellings, as Solid 2's JSX types take no others:
@@ -826,7 +819,14 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
             </ui-accordion>
           </ui-section>
 
-          <ui-section id="error-net" header="Each drawn thing's error net" sticky collapsible dividing collapsed>
+          <ui-section
+            id="error-boundary"
+            header="Each drawn thing's error boundary"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
             <p>One broken drawing no longer takes the app down. When a thing's <code>draw()</code> throws:</p>
             <ul>
               <li>one line goes on the program's console</li>
@@ -835,24 +835,26 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                 same name Spell UI's elements use
               </li>
               <li>the thing shows a small stand-in, unless that event was cancelled</li>
-              <li>the rest of the drawing keeps working, and the net heals when the thing draws again</li>
+              <li>the rest of the drawing keeps working, and the boundary heals when the thing draws again</li>
             </ul>
-            <p>ONE net, for both targets (<code>drawInNet()</code>):</p>
+            <p>ONE boundary, for both targets (<code>drawInBoundary()</code>):</p>
             <ul>
               <li>
                 javascript draws a thing with <code>spellCore.drawThing(card)</code>, which puts its
-                <code>draw()</code> in the net
+                <code>draw()</code> in the boundary
               </li>
               <li>
                 TypeScript, and hand-written code, mark <code>draw()</code> with <code>@drawn</code>, which puts it
                 there itself
               </li>
               <li>
-                <code>drawThing()</code> calls a <code>@drawn</code> method straight: a second net would catch nothing
-                more
+                <code>drawThing()</code> calls a <code>@drawn</code> method straight: a second boundary would catch
+                nothing more
               </li>
             </ul>
-            <p>Inside, the net is three things, as Solid 2's own error boundary isn't enough alone:</p>
+            <p>
+              Inside, the boundary is three things, as Solid 2's own <code>&lt;Errored&gt;</code> isn't enough alone:
+            </p>
             <ul>
               <li>Solid's <code>&lt;Errored&gt;</code>, for what a live value throws later</li>
               <li>a memo running <code>draw()</code>, so it runs again only for what IT read</li>
@@ -942,7 +944,7 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
                 Spell's own layer stays in <code>$/util/spell</code>.
                 <ul>
                   <li><code>Observable</code> and <code>@thing</code> are there.</li>
-                  <li><code>@drawn</code> is core's, beside the net it shares.</li>
+                  <li><code>@drawn</code> is core's, beside the error boundary it shares.</li>
                 </ul>
               </li>
               <li>
@@ -3658,7 +3660,7 @@ the rest     its class name in words:  ASTTryCatchBlock => Try catch block</code
                       <td>drawing</td>
                       <td>Solid, into the page</td>
                       <td>HTML text, or nothing</td>
-                      <td>core (<code>h()</code>, the error net), and the target's <code>can.draw</code></td>
+                      <td>core (<code>h()</code>, the error boundary), and the target's <code>can.draw</code></td>
                     </tr>
                     <tr>
                       <td>reactive properties</td>
@@ -4067,7 +4069,7 @@ play_fizzbuzz()</code></pre>
                 >).
               </li>
               <li>
-                Javascript's net is core's <code>drawThing()</code>, with no wrapper in the compiled code (<a
+                Javascript's error boundary is core's <code>drawThing()</code>, with no wrapper in the compiled code (<a
                   href="../../epics/output-targets/output-targets.plan.html#q28"
                   target="output-targets"
                   >Q28</a
@@ -4116,7 +4118,14 @@ play_fizzbuzz()</code></pre>
             </ul>
           </ui-section>
 
-          <ui-section id="why-net" header="The error net as a decorator" sticky collapsible dividing collapsed>
+          <ui-section
+            id="why-boundary"
+            header="The error boundary as a decorator"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
             <ul>
               <li>
                 A decorator on the method that draws, <code>@drawn</code>, not a <code>&lt;Drawn&gt;</code> component
@@ -4127,8 +4136,8 @@ play_fizzbuzz()</code></pre>
                 >): the class says it once, and a parent draws a child with a plain call.
               </li>
               <li>
-                <code>@drawn</code> lives in core, sharing <code>drawThing()</code>'s one net, so both targets fail the
-                same way (<a href="../../epics/output-targets/output-targets.plan.html#j23" target="output-targets"
+                <code>@drawn</code> lives in core, sharing <code>drawThing()</code>'s one boundary, so both targets fail
+                the same way (<a href="../../epics/output-targets/output-targets.plan.html#j23" target="output-targets"
                   >J23</a
                 >).
               </li>
@@ -4147,7 +4156,7 @@ play_fizzbuzz()</code></pre>
               </li>
               <li>
                 The shapes the writer knows become <code>&lt;Show&gt;</code> / <code>&lt;For&gt;</code>; any other
-                drawing re-runs whole, inside its net (<a
+                drawing re-runs whole, inside its error boundary (<a
                   href="../../epics/output-targets/output-targets.plan.html#q19"
                   target="output-targets"
                   >Q19</a
@@ -4548,7 +4557,7 @@ play_fizzbuzz()</code></pre>
                 Solid 2 rc.13's <code>&lt;Errored&gt;</code> re-reads its children on any change under it, and makes its
                 stand-in again (C13).
                 <ul>
-                  <li>So the net adds a memo, and a <code>try</code> / <code>catch</code>.</li>
+                  <li>So the boundary adds a memo, and a <code>try</code> / <code>catch</code>.</li>
                 </ul>
               </li>
               <li>
@@ -4556,8 +4565,8 @@ play_fizzbuzz()</code></pre>
                 TypeScript's JSX doesn't.
                 <ul>
                   <li>
-                    Since P20 that's the error net, making what a <code>draw()</code> returns, once; before, it was
-                    <code>spellCore.element()</code>.
+                    Since P20 that's the error boundary, making what a <code>draw()</code> returns, once; before, it was
+                    <code>spellCore.element()</code> (gone since P22).
                   </li>
                   <li>
                     It costs nothing today, and matters only if spell ever wants Solid to put off part of a drawing.
@@ -4568,7 +4577,9 @@ play_fizzbuzz()</code></pre>
                 A plain local in a javascript drawing is wrapped as a live value too:
                 <code>class: () =&gt; className</code> (C15).
               </li>
-              <li>The error net mirrors spell-element's: check the two still agree, now that it has merged (C8).</li>
+              <li>
+                The error boundary mirrors spell-element's: check the two still agree, now that it has merged (C8).
+              </li>
               <li>
                 <code>&lt;ui-repeat&gt;</code>'s rows have no wrapper element (C17), and the form binding has rules of
                 its own for radios, numbers, reset, late-defined controls and template copies (C18).
@@ -4917,8 +4928,8 @@ export const words = {
                 <ui-meta>code · <code>output-targets</code>, 2026-10-10</ui-meta>
                 <ui-description
                   >Core's drawing with Solid: drawing a thing and a list's items, the <code>@drawn</code> decorator and
-                  its error net, mounting the app, and the <code>h()</code> compiled javascript draws with. Its old
-                  <code>element()</code> is with core's other deprecated names.</ui-description
+                  its error boundary, mounting the app, and the <code>h()</code> compiled javascript draws
+                  with.</ui-description
                 >
               </ui-content>
             </ui-item>
