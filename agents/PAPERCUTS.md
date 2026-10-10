@@ -1089,6 +1089,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `CliSession.compileImports()` still compiles (and saves) any import with no compiled file yet -- Klondike imports
   Cards. · Delete the two untracked files.  Better:  `--stdout` could compile imports in memory, or refuse to write
   under `projects/test/`. · cli
+- 2026-10-10 · `yarn review` (root) and `yarn vp test run` in `packages/cli` each failed ONE `src/cli.test.ts`
+  test, a different one each time ("Test timed out in 5000ms":  `no project named > in a project's folder`, then
+  `spell run > runs the program`):  each spawns `spell` through `tsx`, ~5s under the load of 26 test files at once.
+  · `yarn vp test run src/cli.test.ts` alone passes (61).  Better:  a longer timeout on the spawning tests. · cli
 
 ## docs
 
