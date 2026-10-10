@@ -1,41 +1,105 @@
 <!-- plan-doc part:  #j45's details in review-review.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Each <code>spell dev</code> pass-through (plan-doc, goals, docs, details, server, window, vscode) starts the tool as a
-  separate <code>node</code> process, the way <code>spell plan-doc</code> already did, rather than loading the tool's
-  script into the <code>spell</code> process itself.
+  Each <code>spell dev</code> pass-through starts its tool as a separate node process, rather than loading the tool into
+  the <code>spell</code> process itself.
 </p>
 <ul>
+  <li>The pass-throughs: plan-doc, goals, docs, details, server, window, vscode.</li>
+  <li>It's the way <code>spell plan-doc</code> already worked.</li>
+</ul>
+<p>Why:</p>
+<ul>
   <li>
-    Measured, <code>window which</code>, 3 warm runs each, two rounds: in the same process 0.12-0.15s, as a child
-    0.14-0.16s. So about 0.02s, inside the noise.
+    It costs almost nothing: about 0.02s, inside the noise.
+    <ul>
+      <li>Measured on <code>window which</code>, 3 warm runs each, two rounds.</li>
+      <li>In the same process: 0.12-0.15s. As a child: 0.14-0.16s.</li>
+    </ul>
   </li>
   <li>
-    Tools that need <code>tsx</code> (plan-doc, <code>docs link</code>, the page server) CAN'T run in-process correctly:
-    <code>spell</code> is linked to the MAIN checkout, and its <code>tsx</code> maps <code>$/server</code> into main's
-    files, while a worktree's tool must get the worktree's. A child gets the tool's own
-    <a href="../../../packages/ui/tsconfig.json" target="src-packages-ui-tsconfig-json"><code>tsconfig.json</code></a
-    >.
+    Tools that need <code>tsx</code> CAN'T run in-process correctly: plan-doc, <code>docs link</code>, the page server.
+    <ul>
+      <li>
+        <code>spell</code> is linked to the MAIN checkout, so its <code>tsx</code> maps <code>$/server</code> to main's
+        files.
+      </li>
+      <li>A worktree's tool must get the worktree's files.</li>
+      <li>
+        A child gets the tool's own
+        <a href="../../../packages/ui/tsconfig.json" target="src-packages-ui-tsconfig-json"
+          ><code title="packages/ui/tsconfig.json">tsconfig.json</code></a
+        >.
+      </li>
+    </ul>
   </li>
   <li>
-    In-process would also mean rewriting <code>process.argv</code>, changing folder, and sharing exit handling with each
-    tool.
+    In-process would also mean rewriting the command line (<code>process.argv</code>), changing folder, and sharing exit
+    handling with each tool.
   </li>
 </ul>
 <p>
-  Example: <code>spell dev plan-doc summary review-review</code> from a worktree runs
-  <code>node --import &lt;main's tsx&gt; &lt;worktree&gt;/packages/docs/tools/plan-doc.js</code> with the worktree's
-  <a href="../../../packages/docs/tsconfig.json" target="src-packages-docs-tsconfig-json"
-    ><code>packages/docs/tsconfig.json</code></a
-  >.
+  An example: <code>spell dev plan-doc summary review-review</code>, run from a worktree, starts the worktree's tool
+  with main's <code>tsx</code> and the worktree's settings (<a
+    href="../../../packages/docs/tsconfig.json"
+    target="src-packages-docs-tsconfig-json"
+    ><code title="packages/docs/tsconfig.json">tsconfig.json</code></a
+  >):
 </p>
-<epic-net-effect
+<epic-code title="what it runs · 1 line" language="text">
+  <pre>node --import &lt;main's tsx&gt; &lt;worktree&gt;/packages/docs/tools/plan-doc.js</pre></epic-code
+><epic-net-effect
   ><ul>
     <li>
-      One way to run every tool (<code>runTool()</code>,
+      One way to run every tool, correct across checkouts:
       <a href="../../../packages/cli/src/dev/passThrough.ts" target="src-packages-cli-src-dev-passthrough-ts"
-        ><code>packages/cli/src/dev/passThrough.ts</code></a
-      >), correct across checkouts.
+        ><code title="packages/cli/src/dev/passThrough.ts">runTool()</code></a
+      >.
     </li>
-    <li>Costs ~0.02-0.04s per call over the fastest possible.</li>
+    <li>It costs about 0.02-0.04s per call, over the fastest possible.</li>
   </ul></epic-net-effect
+><epic-original
+  ><epic-version
+    ><p>
+      Each <code>spell dev</code> pass-through (plan-doc, goals, docs, details, server, window, vscode) starts the tool
+      as a separate <code>node</code> process, the way <code>spell plan-doc</code> already did, rather than loading the
+      tool's script into the <code>spell</code> process itself.
+    </p>
+    <ul>
+      <li>
+        Measured, <code>window which</code>, 3 warm runs each, two rounds: in the same process 0.12-0.15s, as a child
+        0.14-0.16s. So about 0.02s, inside the noise.
+      </li>
+      <li>
+        Tools that need <code>tsx</code> (plan-doc, <code>docs link</code>, the page server) CAN'T run in-process
+        correctly: <code>spell</code> is linked to the MAIN checkout, and its <code>tsx</code> maps
+        <code>$/server</code> into main's files, while a worktree's tool must get the worktree's. A child gets the
+        tool's own
+        <a href="../../../packages/ui/tsconfig.json" target="src-packages-ui-tsconfig-json"
+          ><code>tsconfig.json</code></a
+        >.
+      </li>
+      <li>
+        In-process would also mean rewriting <code>process.argv</code>, changing folder, and sharing exit handling with
+        each tool.
+      </li>
+    </ul>
+    <p>
+      Example: <code>spell dev plan-doc summary review-review</code> from a worktree runs
+      <code>node --import &lt;main's tsx&gt; &lt;worktree&gt;/packages/docs/tools/plan-doc.js</code> with the worktree's
+      <a href="../../../packages/docs/tsconfig.json" target="src-packages-docs-tsconfig-json"
+        ><code>packages/docs/tsconfig.json</code></a
+      >.
+    </p>
+    <epic-net-effect
+      ><ul>
+        <li>
+          One way to run every tool (<code>runTool()</code>,
+          <a href="../../../packages/cli/src/dev/passThrough.ts" target="src-packages-cli-src-dev-passthrough-ts"
+            ><code>packages/cli/src/dev/passThrough.ts</code></a
+          >), correct across checkouts.
+        </li>
+        <li>Costs ~0.02-0.04s per call over the fastest possible.</li>
+      </ul></epic-net-effect
+    ></epic-version
+  ></epic-original
 >
