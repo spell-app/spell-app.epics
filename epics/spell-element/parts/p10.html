@@ -1,0 +1,210 @@
+<!-- plan-doc part:  #p10's body in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  >The plan docs’ <code>&lt;epic-*&gt;</code> elements and the brand pages’ <code>&lt;ui-brand-*&gt;</code> elements
+  don’t follow Spell UI’s pattern: five epics files are plain Solid function components, and about 83 hand-written
+  effects, observers, listeners and timers do what a decorator already does in
+  <a href="../../../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
+  >.</epic-field
+><epic-field name="changes"
+  >Every component outside the app (<a href="../../../packages/epics/" target="src-packages-epics"
+    ><code>packages/epics</code></a
+  >, <a href="../../../packages/brand/" target="src-packages-brand"><code>packages/brand</code></a
+  >, and <a href="../../../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a> itself) is written the
+  way
+  <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"><code>packages/ui/AGENTS.md</code></a>
+  says (“Solid authoring”, “Classes”): one family per tag, reactive members by decorator, render pieces as private
+  methods; a lint rule keeps new code from drifting back.
+  <a href="../../../packages/app/" target="src-packages-app"><code>packages/app</code></a> stays as it is (Owen: “other
+  than app components”). Doc Review (<a href="#p9">P9</a>) is already done, so a second Doc Review follows the new
+  phases.</epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen's ask (2026-10-09, reviewing): "I think that the epic- components are not following the same patterns as
+      spell/ui? If not, add a phase in this epic to make them do it. Everything other than app components should use
+      spell-ui pattern."
+    </li>
+    <li>
+      The Spell UI pattern, for a reader new to it (<a
+        href="../../../packages/ui/AGENTS.md"
+        target="src-packages-ui-agents-md"
+        ><code>packages/ui/AGENTS.md</code></a
+      >, "Solid authoring" and "Classes"):
+      <ul>
+        <li>
+          one FAMILY per tag: <code>&lt;Name&gt;.tsx</code>, its <code>.en.ts</code> vocabulary, its
+          <code>.css</code> and its tests
+        </li>
+        <li>
+          reactive members by decorator: <code>@E.state</code>, <code>@E.controlled</code>, <code>@E.derived</code>,
+          <code>@E.on</code>, <code>@E.untracked</code>, <code>@E.fromContent</code>, <code>@E.whileConnected</code>,
+          <code>@E.aria</code>, <code>@E.cssStates</code>, <code>@E.onChange</code>
+        </li>
+        <li>
+          timing by helper (<code>E.afterSolidUpdate</code>, <code>E.after</code> ...), set-up in
+          <code>@E.protoMerged static elementSetup</code>, events through the vocabulary-checked <code>send()</code>
+        </li>
+        <li>
+          render pieces as private methods of the family (WWOD §17's inner functions are for app function components,
+          not families)
+        </li>
+        <li>
+          a raw <code>createEffect</code> only where
+          <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+            ><code>packages/ui/AGENTS.md</code></a
+          >
+          allows one: a conditional, per-item or object-building effect, created in <code>onMount()</code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      The five epics function components, decided per file:
+      <ul>
+        <li>
+          <a
+            href="../../../packages/epics/components/epic-item/ReviewControls.tsx"
+            target="src-packages-epics-components-epic-item-reviewcontrols-tsx"
+            ><code>ReviewControls.tsx</code></a
+          >
+          (<code>ReviewButtons</code>, <code>NoteBox</code>, <code>SaidNote</code>), drawn by four families
+          (<code>&lt;epic-item&gt;</code>, <code>&lt;epic-phase&gt;</code>, <code>&lt;epic-section&gt;</code>,
+          <code>&lt;epic-summary&gt;</code>): a family of its own, <code>&lt;epic-review&gt;</code> (folder
+          <code>epic-review/</code>); the note box and the said note become its private render methods, and the four
+          families draw <code>&lt;epic-review&gt;</code> and listen for its events
+        </li>
+        <li>
+          <a
+            href="../../../packages/epics/components/epic-item/NewItems.tsx"
+            target="src-packages-epics-components-epic-item-newitems-tsx"
+            ><code>NewItems.tsx</code></a
+          >: <code>NewItemButton</code> and <code>NewItemForm</code>, drawn by <code>&lt;epic-page&gt;</code> and
+          <code>&lt;epic-section&gt;</code>, become one family, <code>&lt;epic-new-item&gt;</code>;
+          <code>NewItemList</code>, drawn only by <code>&lt;epic-section&gt;</code>, becomes a private render method of
+          <code>EpicSection</code>
+        </li>
+        <li>
+          <a
+            href="../../../packages/epics/components/epic-page/AgentsPanel.tsx"
+            target="src-packages-epics-components-epic-page-agentspanel-tsx"
+            ><code>AgentsPanel.tsx</code></a
+          >, drawn only by <code>&lt;epic-page&gt;</code> but with state of its own (its fold, the agents client,
+          keeping the reader's place): a family of its own, <code>&lt;epic-agents&gt;</code>, its client subscription an
+          <code>@E.whileConnected</code>
+        </li>
+        <li>
+          <a
+            href="../../../packages/epics/components/epic-item/FoldButton.tsx"
+            target="src-packages-epics-components-epic-item-foldbutton-tsx"
+            ><code>FoldButton.tsx</code></a
+          >
+          and
+          <a
+            href="../../../packages/epics/components/epic-item/Chevron.tsx"
+            target="src-packages-epics-components-epic-item-chevron-tsx"
+            ><code>Chevron.tsx</code></a
+          >
+          are NOT tags of their own:
+          <ul>
+            <li>
+              the fold button is named by <code>aria-labelledby</code>, and those ids must be in the same shadow root as
+              the card's heading: a tag would put a shadow root between them
+            </li>
+            <li>the chevron must be on screen in the first frame, with no wait for an element to upgrade</li>
+            <li>
+              so both become methods of
+              <a
+                href="../../../packages/epics/components/epic-item/Fold.ts"
+                target="src-packages-epics-components-epic-item-fold-ts"
+                ><code>Fold</code></a
+              >, the open / folded state every card already holds:
+              <code>fold.button({ controls, labelledBy, part })</code> and <code>Fold.chevron()</code>, called from each
+              family's private render methods
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      Every hand-written effect, observer, listener, <code>untrack(</code> and timer moved to its decorator or helper,
+      or kept with a one-line comment saying why no decorator fits:
+      <ul>
+        <li>
+          in
+          <a href="../../../packages/epics/components/" target="src-packages-epics-components"
+            ><code>packages/epics/components/</code></a
+          >: about 53, in 11 families (<code>EpicFold</code> 8, <code>EpicPage</code> 7, <code>ReviewControls</code> 7,
+          <code>EpicItem</code> 6, <code>NewItems</code> 5, <code>AgentsPanel</code> 5, <code>EpicSection</code> 4,
+          <code>EpicChoices</code> 3, <code>EpicOption</code> 3, <code>EpicVersion</code> 3, <code>EpicField</code> 2)
+        </li>
+        <li>
+          in
+          <a href="../../../packages/brand/components/" target="src-packages-brand-components"
+            ><code>packages/brand/components/</code></a
+          >: about 30, in 10 families (<code>UIBrandColorPicker</code> 9, <code>UIBrandChecklist</code> 5,
+          <code>UIBrandCheck</code> 3, <code>UIBrandField</code> 3 ...)
+        </li>
+      </ul>
+    </li>
+    <li>
+      Brand's hand-made <code>Cell</code>s become <code>@E.state</code> members: <code>UIBrandChecklist</code>'s
+      <code>checks</code> and <code>announcement</code>, <code>UIBrandColor</code>'s <code>choice</code> and
+      <code>copied</code>, <code>UIBrandColorPicker</code>'s <code>working</code>, <code>drafts</code>,
+      <code>dragging</code> and <code>copied</code>, <code>UIBrandFlourish</code>'s
+    </li>
+    <li>
+      New code can't drift back: a lint rule in the root
+      <a href="../../../vite.lint.ts" target="src-vite-lint-ts"><code>vite.lint.ts</code></a> for the components of
+      <a href="../../../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
+      >, <a href="../../../packages/epics/" target="src-packages-epics"><code>packages/epics</code></a> and
+      <a href="../../../packages/brand/" target="src-packages-brand"><code>packages/brand</code></a>
+      <ul>
+        <li>
+          it flags a raw <code>createEffect</code>, <code>onSettled</code> or <code>MutationObserver</code>, and an
+          exported function component
+        </li>
+        <li>each use that stays carries an <code>oxlint-disable-next-line</code> with its reason</li>
+        <li>where oxlint can't say it, a test that greps for it</li>
+        <li>
+          anything it finds in <a href="../../../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a> is
+          fixed or justified the same way
+        </li>
+      </ul>
+    </li>
+    <li>The epics pack rebuilt; every plan doc, the Epics index and the brand pages draw and behave as before</li>
+    <li>A second Doc Review follows this phase (<a href="#p9">P9</a>'s was done before it was added)</li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="../../../packages/epics/components/" target="src-packages-epics-components"
+        ><code>packages/epics/components/</code></a
+      >: the five files above, the new folders <code>epic-review/</code>, <code>epic-new-item/</code> and
+      <code>epic-agents/</code>, and the 11 families with hand-written effects
+    </li>
+    <li>
+      <a href="../../../packages/brand/components/" target="src-packages-brand-components"
+        ><code>packages/brand/components/</code></a
+      >: the 10 families with hand-written effects or <code>Cell</code>s
+    </li>
+    <li>
+      <a href="../../../vite.lint.ts" target="src-vite-lint-ts"><code>vite.lint.ts</code></a
+      >: the rule, in <code>rootLint()</code>'s <code>overrides</code> too; a grep test where lint can't say it
+    </li>
+    <li>
+      <a href="../../../packages/ui/AGENTS.md" target="src-packages-ui-agents-md"
+        ><code>packages/ui/AGENTS.md</code></a
+      >
+      and
+      <a href="../../../packages/epics/AGENTS.md" target="src-packages-epics-agents-md"
+        ><code>packages/epics/AGENTS.md</code></a
+      >: the rule named where a reader looks;
+      <a href="../../../packages/epics/src/tool/PLAN-DOC.md" target="src-packages-epics-src-tool-plan-doc-md"
+        ><code>packages/epics/src/tool/PLAN-DOC.md</code></a
+      >, where it names <code>FoldButton</code>
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><code>yarn review</code> (epics), <code>yarn test</code> (brand), ui’s tests,
+  <code>spell dev pack build epics</code>, the plan docs, the Epics index and the brand pages by eye,
+  <code>spell dev plan-doc check spell-element</code></epic-field
+>
