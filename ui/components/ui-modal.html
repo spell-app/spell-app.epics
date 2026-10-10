@@ -59,7 +59,7 @@
             <!--
               EXAMPLES:  Fomantic's modal page, section by section, in its order (Types, Content, Variations, States), then its
               Examples tab (Behaviour).  Every modal opens from a button through an invoker command (`commandfor` +
-              `command="--show"`):  no script.  Never `open` on load:  it would block the page.
+              `command="--show"`):  no script.  Never `visible` on load:  it would block the page.
               `GAP I<n>` comments mark examples a widget can't render yet (plan-doc issues).
             -->
             <ui-section id="examples-types" header="Types" sticky collapsible dividing>
@@ -381,7 +381,7 @@
                     id="modal-states-active"
                     size="tiny"
                     header="Active"
-                    content="Shown while `open` is set."
+                    content="Shown while `visible` is set."
                     closable
                   ></ui-modal>
                 </ui-docs-example>
@@ -591,15 +591,19 @@
               <ui-markdown>
                 <script type="text/markdown">
                   Buttons anywhere inside act by Fomantic's classes: `approve` / `ok` / `positive` (or `<ui-button positive>`)
-                  approve, `deny` / `cancel` / `negative` (or `<ui-button negative>`) deny. The events, in order:
+                  approve, `deny` / `cancel` / `negative` (or `<ui-button negative>`) deny.
+
+                  `visible` is the controlled state, as on every element (`hidden` is its other name): writing either shows
+                  or hides the modal and fires nothing. A modal starts hidden. The events, in order:
 
                   - `ui-open` (cancelable) -- a user asked to open it, through an invoker command; `detail` is
-                    `{ open: true, originalEvent? }`.
+                    `{ visible: true, originalEvent? }`.
                   - `ui-approve` / `ui-deny` (cancelable) -- an approve / deny button was activated; `detail` is
-                    `{ action, originalEvent? }`. `preventDefault()` keeps the modal open, like Fomantic's `onApprove`
+                    `{ action, originalEvent? }`. `preventDefault()` keeps the modal shown, like Fomantic's `onApprove`
                     returning `false`.
-                  - `ui-close` (cancelable) -- about to close; `detail.reason` is `escape`, `outside` (the dimmer), `close` (the
-                    close icon or `--close`), `approve`, `deny` or `close-all`.
+                  - `ui-close` (cancelable) -- about to close; `detail` is `{ visible: false, reason, originalEvent? }`, and
+                    `reason` is `escape`, `outside` (the dimmer), `close` (the close icon or `--close`), `approve`, `deny` or
+                    `close-all`.
                   - `ui-show` / `ui-hide` -- shown or hidden, once the transition has finished (Fomantic's `onVisible` /
                     `onHidden`).
                 </script>
@@ -608,16 +612,16 @@
                 <script type="text/plain">
                   const modal = document.querySelector("#modal-types-standard")
                   modal.addEventListener("ui-approve", (event) => {
-                    if (!form.checkValidity()) event.preventDefault() // stay open
+                    if (!form.checkValidity()) event.preventDefault() // stay shown
                   })
                   modal.addEventListener("ui-close", (event) => console.log(event.detail.reason))
                   modal.addEventListener("ui-hide", () => console.log("gone"))
-                  modal.open = true // open from code:  no ui-open
+                  modal.visible = true // show from code:  no ui-open
                 </script>
               </ui-code>
               <ui-message size="small" class="site-not-ported"
                 >Not ported: Fomantic's behaviors (<code>show</code>, <code>hide</code>, <code>refresh</code>,
-                <code>attach events</code> ...) and its <code>allowMultiple: false</code> -- write <code>open</code>,
+                <code>attach events</code> ...) and its <code>allowMultiple: false</code> -- write <code>visible</code>,
                 use invoker commands, and close the first modal yourself when a second one should replace
                 it.</ui-message
               >
@@ -697,7 +701,7 @@
               <ui-code language="html">
                 <script type="text/plain">
                   <!-- compilerOptions.isCustomElement = (tag) => tag.startsWith("ui-") -->
-                  <ui-modal :open="open" header="Delete?" @ui-close="open = false" @ui-approve="remove">...</ui-modal>
+                  <ui-modal :visible="open" header="Delete?" @ui-close="open = false" @ui-approve="remove">...</ui-modal>
                 </script>
               </ui-code>
               <ui-header level="4" id="framework-solid">Solid 2</ui-header>
@@ -705,7 +709,7 @@
                 <script type="text/plain">
                   // no `on:` namespace:  listen through a ref
                   <ui-modal
-                    prop:open={open()}
+                    prop:visible={open()}
                     header="Delete?"
                     ref={(el) => {
                       el.addEventListener("ui-close", () => setOpen(false))
