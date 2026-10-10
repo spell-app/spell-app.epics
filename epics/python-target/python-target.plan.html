@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Epic: Python Target</title>
+    <meta name="description" content="Plan doc:  Python Target." />
+    <link rel="stylesheet" href="../../packages/docs/tools/_assets/spell-doc.css" />
+  </head>
+  <body data-spell-needs-server class="spell-doc-page plan-doc">
+    <ui-root>
+      <ui-components source="../../packages/epics/pack/epics.pack.js"></ui-components>
+      <spell-site-header root="../.."></spell-site-header>
+      <div class="spell-doc">
+        <main class="spell-doc-main">
+          <epic-page
+            epic="python-target"
+            title="Python Target"
+            branch="python-target"
+            worktree="/Users/owen/www/spell-app/spell-app/.claude/worktrees/python-target"
+            started="2026-10-10"
+            updated="2026-10-10"
+          >
+            <epic-overview id="overview">
+              <epic-summary>Two sentences: what this plan does, and why.</epic-summary>
+              <epic-prompt
+                ><p>
+                  Let's make python work! As idiomatic as python can possibly be. Let's try the "first item is 0" here.
+                  python names should be `snake_case`. What needs doing?
+                </p>
+                <p>---</p>
+                <p>The brief saved for this epic (from output-targets):</p>
+                <p>
+                  Epic `python-target`: a `py` target, so spell compiles to Python -- a third writer (`PyWriter`) on the
+                  same spell tree that `JSWriter` and `TSWriter` already walk.
+                </p>
+                <p>## Goal</p>
+                <p>
+                  - Spell is WRITTEN in several human languages; it should RUN in several programming languages too
+                  (output-targets O1).<br />
+                  `js/solid` and `ts/solid` proved the split. Python is the first target that ISN'T javascript
+                  underneath.<br />- Done means: `spell compile FizzBuzz --target py` writes `FizzBuzz.compiled.py`, it
+                  runs under `python3`,<br />
+                  and the core contract's test programs print the same lines on all three targets.<br />- Python is the
+                  stress test for everything the tree still assumes about javascript:<br />
+                  lambdas, truthiness, names, nothing / `None`, async, lists counted from 1.
+                </p>
+                <p>## What's already decided</p>
+                <p>
+                  - The words (Q1, Q2): `py` is a TARGET, `PyWriter` is its WRITER. Docs say "the Python writer".<br />-
+                  Python is its own epic (Q3, T1), starting from what output-targets left:<br />
+                  the writers, the meaning-only tree, `SP.TARGETS`, and the contract's test programs.<br />- Names are a
+                  feature of the WRITER (Q51): each writer says how it writes spell's names, in `nameOf()`.<br />
+                  JS / TS went camelCase; "a Python writer will want snake_case" -- for every member (Q56, T25).<br />-
+                  Per-target naming table (drawable-thing P11, "Names By Target", still todo):<br />
+                  each target says in ONE place how it writes types, methods, variables, properties, constants.<br />
+                  "A later Python target sets its own table (snake_case members, say) in one line." Build on it, or
+                  build it first.<br />- Declarations live in `&lt;Project&gt;.declarations.json` beside the output, the
+                  same for every target (Q8),<br />
+                  so a Python project could import a JS-built one.<br />- A project lists its targets in `project.json`
+                  (`"targets": ["js/solid", "py"]`); `--target` overrides one run (Q7).<br />
+                  `js/solid` is ALWAYS compiled: the editor, runners and language server run it (J12).<br />- The
+                  targets table is `{ name, writer, suffix, can: { draw } }` (J12). A `core` field and `can.observe`<br />
+                  (NEVER `can.react`) join it when Python needs them.<br />- "Lists Start at 0" is an EARLY phase of
+                  this epic (T1 reply, Owen 2026-10-06; memory note "compile-targets"):<br />
+                  - `project.json` `"listsStartAt": 0` (default 1), applied when COMPILING. Core stays 1-based, the one
+                  canonical form.<br />
+                  - NOT a runtime flag (`spellCore.INDEX_BASE`): one core serves every project in a program, so a
+                  1-based library<br />
+                  imported into a 0-based project would silently read the wrong item.<br />
+                  - Ordinal words don't change: "the first card", "the last card" mean the same either way.<br />
+                  - Not plain arithmetic: `positionOf()` not found is `undefined`, and `undefined - 1` is `NaN`.<br />
+                  Put the base in core (a "start at" argument, or a 0-based twin per helper), so missing stays
+                  missing.<br />
+                  - About 50 rule sites through 7 helpers (now `getItemAt`, `positionOf`, `rangeBetween`,
+                  `rangeStartingAt`,<br />
+                  `removeItemAt`, `removeRangeBetween`, `addAtPosition` -- P16's position names, Q47), plus a loop's
+                  position.<br />
+                  - Works for `js/solid` and `ts/solid` too, not just Python. The Python writer writes native 0-based
+                  indexes;<br />
+                  spell's ranges are inclusive, so it adds 1 to a slice's end.<br />- Deprecated core names (old
+                  position names, `spellCore.element()`) are NOT part of the contract:<br />
+                  Python's core needs only the new names (J55, J94).
+                </p>
+                <p>## What exists to build on</p>
+                <p>
+                  - `packages/parser/src/writers/`: `Writer.ts` (one method per tree class, found by CLASS NAME;
+                  `keepNames`),<br />
+                  `JSWriter.ts` (shared shapes: a List's own methods, `===`, template text, `nameOf()`, `kindOf()`),<br />
+                  `TSWriter.ts` (overrides only what differs: types, decorators, JSX), `WriterProject.ts` (what a writer
+                  knows<br />
+                  about the whole project before writing: getters, reassigned variables, members, item types),
+                  `jsShapes.ts`.<br />
+                  - Decide early: does `PyWriter` extend `P.Writer` directly, and which of `WriterProject` / `kindOf()`
+                  /<br />
+                  `jsShapes` lift out to be shared (they say "javascript" today)?<br />- `nameOf()` today:
+                </p>
+                <p>
+                  ```ts<br />
+                  nameOf(name: string, kind: "property" | "member" = "member"): string {<br />
+                  return kind === "property" ? name : camelCaseOf(name) // Python: return name, always<br />
+                  }<br />
+                  ```
+                </p>
+                <p>
+                  - `packages/spell/src/targets.ts`: `SP.TARGETS`, `targetFor()`, `RUNNING_TARGET`.<br />- The core
+                  contract, `packages/cli/src/contract.test.ts`: `TARGET_FILES` (`.mjs`, `.tsx`; a test fails until
+                  every<br />
+                  target has one), `CLI.runCode()`, snapshots in `__snapshots__/contract/&lt;Project&gt;.out.txt`.<br />
+                  Test programs: `packages/spell/projects/test/` (FizzBuzz, Cards, Solitaire, Klondike,
+                  OutlineSolitaire).<br />- `SC.SpellCore` (`packages/core/src/spellCore.types.ts`) is what a core must
+                  HAVE; the snapshots, what it must DO.<br />- The durable doc's "Adding a target" table
+                  (`guides/targets/targets.html`): write the writer, add it to<br />
+                  `SP.TARGETS`, snapshot it, run it in the contract, give it a core, keep the docs true.<br />- The
+                  sketch (`guides/compile-targets/compile-targets.html`): FizzBuzz in Python, a `PyWriter` sketch, and
+                  the<br />
+                  "Where languages disagree" table (writer, core, or types: who handles each).
+                </p>
+                <p>## The hard parts / open questions</p>
+                <p>
+                  1. Readable or just runs? (carried over from Q3 / T1) Python a person would happily read and edit
+                  leans much harder<br />
+                  on datatypes and the writer. Decide FIRST.<br />2. The runtime: what is `spell_core`? A Python package
+                  porting `@spell/core` (about 4,000 lines in `core/src/`,<br />
+                  tests left out): lists, text, things, JSON, console, tests. Plus a machine-readable list of core
+                  methods,<br />
+                  which output-targets never wrote (J15): so the port can't miss one.<br />3. Drawing: Python has no
+                  DOM. Does `draw` do nothing (`can: { draw: false }`, a project that draws gets an editor<br />
+                  error), or write HTML text for server pages (`py/html`, `draw: "html"`, sketched in O1)?<br />4. Lists
+                  counted from 1 vs Python's 0: the core papers over it (`getItemAt(list, 1)`), or "Lists Start at 0"
+                  writes<br />
+                  native indexes. Open (T1): does `-1` still mean last in a 0-based project? Do hover text and the
+                  Type<br />
+                  Explorer's "counts from 1" follow the setting?<br />5. Events: `on()` / `trigger()` with no page. Does
+                  `on card-click` mean anything in Python?<br />
+                  The contract never clicks anything (C7), so handlers aren't tested on any target yet.<br />6. Async:
+                  `pause for 50 msec` is `async` / `await` in JS; `async def` + `asyncio` in Python, or plain
+                  `time.sleep`?<br />7. Types: type hints (`def deal(self, pile: Pile) -&gt; None`)? Checked by `mypy` /
+                  `pyright` the way `tsc` checks<br />
+                  `ts/solid` (`checkedBy`)?<br />8. Names: snake_case members, PascalCase types. `$` is illegal in
+                  Python, and the tree still holds JAVASCRIPT names<br />
+                  (`is_a_$suit`, `'up'`, `"clubs"`) in scope records (J4, T4). A Python writer sees those as is until T4
+                  makes<br />
+                  them spell names, read by every reader and spelled by each writer. Do T4 in this epic, or before
+                  it?<br />9. The words file (J87): the Thing Explorer labels an action from its compiled name, so
+                  `moveToPile` lost spell's<br />
+                  slot word ("move to (pile)"). The Python target would write `move_to_pile` and lose it the same
+                  way.<br />
+                  Owen: "carry the original wording somewhere for reflection, especially into other languages."<br />
+                  A `&lt;Project&gt;.en.js` words file keyed by the COMPILED names -- does Python get its own, or share
+                  one?<br />10. Where languages disagree (the sketch's table): empty list as a condition (`[]` is false
+                  in Python), text plus a<br />
+                  number (`TypeError`), nothing (`None`), `45 / 15` is `3.0`, multi-line lambdas (lifted into a nested
+                  `def`),<br />
+                  getters (`@property`), class set-up after the class, reserved words (`class`, `None`, `is`).<br />11.
+                  How tests run Python: the contract needs all targets to print the same, line for line.<br />
+                  `CLI.runCode()` runs node today; Python needs a `python3` child process, a pinned version, and a
+                  seeded random<br />
+                  (the deal must match `Math.random()`'s seeded one, or Solitaire's transcript differs). The fake page's
+                  printed<br />
+                  body won't exist in Python: compare only the console part? CI needs Python installed.
+                </p>
+                <p>## Suggested phases (rough)</p>
+                <p>
+                  1. Readable Or Runs: settle question 1, and the shape of `spell_core` (package layout, how it's
+                  imported).<br />2. Lists Start at 0: the `listsStartAt` project setting, the base in core, all JS
+                  targets first (T1 reply).<br />3. Names By Target: per-target naming table (drawable-thing P11, if it
+                  hasn't merged) and spell names in the tree (T4).<br />4. Shared Writer Facts: lift what isn't
+                  javascript out of `JSWriter` / `WriterProject` / `jsShapes`.<br />5. spell_core Basics: console,
+                  numbers, text, lists, ranges; a machine-readable core method list, checked against it.<br />6.
+                  PyWriter For FizzBuzz: `py` in `SP.TARGETS`, statements, lambdas lifted into `def`s, FizzBuzz prints
+                  100 lines.<br />7. Python In The Contract: `TARGET_FILES["py"] = ".py"`, run under `python3`, seeded
+                  random, snapshots.<br />8. Things And Classes: types, properties, getters (`@property`), methods, JSON
+                  (`"@type"`, `"@items"`);<br />
+                  Cards and Solitaire's logic printing the same.<br />9. Async And Events: pauses, `on` / `trigger`,
+                  with or without a page.<br />10. Drawing Or Not: `can: { draw: false }`, or `py/html` server pages.<br />11.
+                  Types And Checking: type hints, and a checker as `checkedBy`, if chosen.<br />12. Words File: spell's
+                  wording beside the compiled output, for reflection (J87).<br />13. Doc Review:
+                  `guides/targets/targets.html` (its targets table, Limits, Python notes), the changelog, commands.
+                </p></epic-prompt
+              ><epic-section id="o1" kind="overview-part" title="Structure" source="parts/o1.html"></epic-section>
+            </epic-overview>
+            <epic-section id="phases" kind="phases"></epic-section>
+            <epic-section id="decisions" kind="questions"></epic-section>
+            <epic-section id="judgements" kind="judgements"></epic-section>
+            <epic-section id="caveats" kind="caveats"></epic-section>
+            <epic-section id="todos" kind="todos"></epic-section>
+            <epic-section id="issues" kind="issues"></epic-section>
+            <epic-section id="tests" kind="tests"></epic-section>
+            <epic-section id="log" kind="log" source="parts/log.html"></epic-section>
+          </epic-page>
+        </main>
+      </div>
+    </ui-root>
+    <script src="../../packages/docs/tools/_assets/highlight.min.js"></script>
+    <script src="../../packages/docs/tools/_assets/spell-ui.js"></script>
+  </body>
+</html>
