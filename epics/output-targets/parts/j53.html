@@ -41,3 +41,69 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-10 03:47" re="revisit soon"><p>Maybe it should be `@items` ?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-10 04:40" re="Maybe it should be `@items` ?">
+  <p>
+    You asked: <q>Maybe it should be <code>@items</code>?</q>
+  </p>
+  <p>
+    Yes. It's the same reason <code>"@type"</code> has its <code>@</code>, and today's <code>"items"</code> can collide.
+  </p>
+  <ul>
+    <li>
+      <code>"@type"</code> is spelled with <code>@</code> because no prop can start with <code>@</code>: spell's names
+      are words. So it can never clash with a prop.
+    </li>
+    <li>
+      A list's <code>"items"</code> key is written right after its props, so a list type with its OWN property named
+      <code>items</code> loses it.
+      <ul>
+        <li>
+          e.g. <code>a shelf is a list of books</code> plus <code>a shelf has items as a number</code>: its JSON keeps
+          only the books, and the number is lost when it's read back.
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <epic-code title="List.ts and core's json.ts · today" language="ts">
+    <pre>
+// writing:  List.toJSON()
+return { ...typedJSON(this), items: this.items }
+// reading:  rebuild()
+const { items, ...props } = fields</pre>
+  </epic-code>
+  <epic-code title="A shelf's JSON · today, and with @items" language="json">
+    <pre>
+{ "@type": "Shelf", "items": [ ... ] }              // its own "items" prop was overwritten
+{ "@type": "Shelf", "items": 3, "@items": [ ... ] } // both kept</pre>
+  </epic-code>
+  <ul>
+    <li>
+      Nothing saved needs to keep loading: typed JSON first shipped in P15, and only reached <code>main</code> today. So
+      no fallback that still reads <code>"items"</code>.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Rename it to @items" recommended>
+      <ul>
+        <li>
+          An <code>ITEMS_KEY = "@items"</code> constant beside <code>TYPE_KEY</code> in util, used by
+          <code>List.toJSON()</code> and core's <code>rebuild()</code>.
+        </li>
+        <li>The JSON tests and the Todos form's debug view follow.</li>
+        <li>About 15 minutes, done at the start of P19.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="Keep items">
+      <ul>
+        <li>A list type can't have its own <code>items</code> property, and its JSON stays a little plainer.</li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>A list's JSON reads <code>{ "@type": "Task_List", "@items": [...] }</code>.</li>
+      <li>Both keys a spell object adds start with <code>@</code>, so neither can clash with a property.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
