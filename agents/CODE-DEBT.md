@@ -164,6 +164,9 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 
 ### Semantic UI popups escape `<spell-app>`'s shadow root
 
+- **Closed on branch `output-targets`** (P11, 2026-10-09), not merged yet:  `SUI.*` is gone, and a dotted tag is an
+  error;  programs draw with Spell UI's elements, which render inside their host.  Delete this entry when it merges
+  into `main`.
 - **Cost**:  in a `<spell-app>`, anything a spell program draws with a Semantic UI PORTAL -- `SUI.Modal`,
   `SUI.Popup`, a `SUI.Dropdown` in some modes -- appears unstyled, outside the app, and page styles apply to it.
   Spell's own `UI` set (`SUIPassThroughs`, the forms) uses none today, so only programs reaching for `SUI.*` see it.
@@ -284,6 +287,8 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 
 ### `<spell-editor>` brings its own React
 
+- **Closed on branch `output-targets`** (P11, 2026-10-09), not merged yet:  `app` has no React at all there, so
+  neither build carries one.  Delete this entry when it merges into `main`.
 - **Cost**:  a page with both elements loads React twice -- `spell-editor.js` has its own, and `spell-app.js` shares
   one with `spell-runtime.js`.  React and React DOM twice, and two copies that can't share context.
 - **Cause**:  it's a separate build, `vite.editor.config.ts`, NOT an entry of `vite.element.config.ts`:  with
@@ -312,7 +317,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   handler, keeps showing the OLD thing under "Top level" until the explorer redraws for another reason --
   a thing made or dropped, or a click.
 - **Cause**:  `ThingRegistry.setTopLevel()` holds the program's module namespace, whose `export let` bindings
-  are live -- but a module namespace isn't observable, so nothing tells a `view()` that one changed.
+  are live -- but a module namespace isn't observable, so nothing tells the explorer that one changed.
   `version` is bumped only as things register, are garbage-collected, or the registry's cleared.
 - **Fix**:  have compiled top-level assignments say so, e.g. a `spellCore.things.changed()` after each write
   to a top-level variable -- or compile top-level state into an observable store instead of bare `let`s.
@@ -371,6 +376,9 @@ knowingly kept:
     state code (spell cells, and React for `view()` -- `easy-state` went in P11) for a handful of helpers each;  a
     published `@spell-app/parser` would drag them in.  They sit in `util`'s `package.json`, beside the generic helpers
     `ui` bundles, and `ui`'s util barrel must import the generic files one by one to keep them out.
+  - Partly done on branch `output-targets` (P10-P11, not merged yet):  the cells, records, `Schema` and decorators
+    moved to `util/src/reactive/`, with no lodash and no Solid;  `view()` and React are gone.  `Observable`, `@thing`
+    and the rest stay in `src/spell/`.
   - **Cause**:  `~/util` mixed generic helpers (`string`, `assert`, `paths`) with reactive state (`Observable`,
     `extend`), browser fetch (`$fetch`, `Loadable`) and app prefs (`AppPrefStore`, `prefs`).  The split moved it
     whole into `util`, which was then merged into `util` as the sub-folder `src/spell/`.
@@ -452,7 +460,85 @@ knowingly kept:
 
 ---
 
+### The examples and fixtures carry warnings, and stale compiled output
+
+- **Cost**:  the Solitaire examples and fixtures show spell's "never says it has" warning (`A pile never says it has
+  a droppable`, `A foundation never says it has a symbol`), and the Cards fixture `A pile never says it has a name`.
+  Most system examples' committed `.compiled.js` / `.declarations.json` / `.scopes.js` hold what the OLD source
+  compiled to;  `Solitaire-import` reads Solitaire's, which doesn't declare a pile's name.
+- **Cause**:  fixtures are frozen on purpose:  their snapshots pin what the writers do with them.  The examples were
+  given their types (epic `output-targets` P13, J32) without recompiling, since no check compares them and the app
+  and VS Code compile from source anyway;  only Todos - Form Based's was recompiled, as a runner test runs it.
+- **Fix**:  add `a pile has a droppable as yes or no` and `a foundation has a symbol as text` to the live examples,
+  then `spell compile @examples/<name>` for each, e.g. at the epic's merge.
+- **Pinned at**:  `epics/output-targets/output-targets.plan.html`, caveats C22 and C25.
+
+---
+
+## core
+
+### Drawing works around Solid rc.13's `<Errored>`
+
+- **Cost**:  each drawn thing's error net is three parts, not one:  `<Errored>`, a memo running `draw()`, and a
+  `try` / `catch` that makes the stand-in.  And `spellCore.element()` builds its DOM nodes at once, so a javascript
+  drawing builds every element it names, even one a later step throws away.
+- **Cause**:  rc.13's `<Errored>` re-reads its children on ANY change under it, and makes its fallback again each time
+  (measured:  a card added to a pile made a new stand-in for the pile's broken card).  So the stand-in is made in the
+  memo, once;  and `element()` calls `@solidjs/h`'s thunk at once, as a thunk would be built again on every re-read.
+- **Fix**:  once Solid's `<Errored>` keeps its children and its fallback, the net is `<Errored>` alone, and
+  `element()` can hand Solid its thunk.  Re-measure on every RC bump.
+- **Pinned at**:  `drawInNet()` / `drawOrStandIn()` and `element()` in `packages/core/src/drawing.ts`;  caveats C13,
+  C14 of `epics/output-targets/`.
+
+---
+
+### Typed JSON keeps no identity, and finds classes only once they're known
+
+- **Cost**:  `spellCore.fromJSON()` makes a separate copy for each place a thing is held:  a board holding its piles
+  in `all_piles` AND in `stock` reads back with two stock piles.  A thing that holds itself can't be written at all
+  (`JSON.stringify()` throws on the cycle).  And under `spell run` and the core contract, or in a program's own
+  top-level code, a class is found only once one of its things has been made.
+- **Cause**:  each object's JSON is written wherever it's held (`typedJSON()`), with no ids.  `fromJSON()` looks a
+  `"@type"` up in `spellCore.things.classNamed()`, which learns a class when one of its things is made, or when a
+  runner hands it the program's modules (`setTopLevel()`, `runCompiled()`):  the CLI's runner never does, and a module
+  still loading hasn't exported yet.
+- **Fix**:  ids and references (JSON-LD's `"@id"`) for saving a whole game;  the CLI's runner hands its modules over
+  as the app's runners do.  Fine as it is for a debug view, or saving one list.
+- **Pinned at**:  `packages/core/src/json.ts`;  caveat C26 and judgement J51 of `epics/output-targets/`.
+
+---
+
+### A list's own methods keep spell's odd rules
+
+- **Cost**:  `pile.startingWith(card)`, when the card isn't in the pile, answers EVERY card in it;  `all()` on an empty
+  list is no, where TypeScript's own `every()` says yes.  And a list type with a property or action named like a list
+  method (`max`, `isEmpty`, `reverse` ...) hides that method:  silently in javascript, an error in TypeScript
+  (TS2425 / TS2426);  the Thing Explorer hides such a property too.
+- **Cause**:  each list method calls its `spellCore` twin, so it does exactly what spell does today (epic
+  `output-targets` P14).  Changing what `starting with` means is a change to spell itself.
+- **Fix**:  decide spell's rule first (an empty list would be safer), then change the twin, and both targets follow.
+  Reserve the list methods' names, or warn on a member named like one.
+- **Pinned at**:  `packages/core/src/classes/List.ts`;  caveat C24 of `epics/output-targets/`.
+
+---
+
 ## ui
+
+### Two reactive engines:  Spell UI's members and spell cells
+
+- **Cost**:  a derived value sees only its own side's members.  A Spell UI `@derived` getter reading a spell thing's
+  prop never recomputes when the prop changes, nor a spell `@derived` reading a Spell UI `@state`.  Nobody hits it
+  yet;  mixed hand-written code (a Spell UI component reading a spell Thing) would.  Plain getters are fine.
+- **Cause**:  spell's engine (`$/util/reactive`, epic `output-targets` P10) and Spell UI's reactive members
+  (`Reactive.ts`) are separate:  Spell UI's cache checks only its own record members, and its writes set only a
+  Solid signal, which spell cells never hear.
+- **Fix**:  move Spell UI's members onto spell cells, as the SAME decorators (Owen, Q20 of `output-targets`), after
+  four checks:  the bridge to Solid on every Spell UI page (re-run the 1,000-button check and `yarn measure`), test
+  helpers that flush the cells, the static server render, and spell-element's rewrite of `Reactive.ts` (merged
+  2026-10-10).  Its own piece of work.
+- **Pinned at**:  `packages/ui/src/elements/Reactive.ts`'s header;  caveats C11, C12 of `epics/output-targets/`.
+
+---
 
 ### `ui-popup.anchored.css` skips the CSS pipeline
 
@@ -525,6 +611,14 @@ knowingly kept:
 
 ### React for spell programs, beside the app's Solid
 
+- **Closed on branch `output-targets`** (epic `output-targets` P10-P11, 2026-10-09), not merged yet:  delete this
+  entry when it merges into `main`.
+  - Compiled spell draws with Solid (`core`'s `drawing.ts`:  `element()` on `@solidjs/h`, `drawThing()`, `@drawn`).
+  - The one example on the React kits, Todos - Form Based, draws with Spell UI's own tags.
+  - Gone:  the forms kit (`F`), `SUIPassThroughs`, `semantic-ui-react`, `view()`, `@vitejs/plugin-react`,
+    `reactFiles()`, and React from `app`, `core` and `util`.  Only the `spell` CLI keeps React, for Ink.
+  - `build.test.ts` and `element.build.test.ts` now pin that no bundle holds React.
+  - What follows is `main`'s state until then.
 - **Cost**: two renderers in `app`'s builds.  The app's own UI is Solid (migration P6-P8, P9 pinned it React-free),
   but compiled spell still draws with React + `semantic-ui-react` (`core`'s `Thing` / `List` / `App`, the forms
   `F`, `SUIPassThroughs`):  `spell-runtime.js` ships React, every `vite*.config.ts` runs both JSX plugins, and the
@@ -540,6 +634,22 @@ knowingly kept:
 - **Pinned at**: `packages/app/vite.shared.ts` (`REACT_DIRS`, `REACT_MARKER`);  the marker in each React `.tsx` of
   `packages/app/src/ui/forms/`, `packages/core/src`;  `packages/app/src/build.test.ts` (the app's chunks hold no
   React, `spell-runtime.js`'s do);  `packages/app/src/solid.test.tsx`.
+
+---
+
+### The runners can't run TypeScript output
+
+- **Cost**:  a `ts/solid` program (`<Project>.compiled.tsx`) runs only in the core contract test, under node.  The
+  editor, VS Code's "Run Project" and `<spell-app>` run the javascript alone, so the TypeScript is checked by `tsc` and
+  compared by the contract, but nobody plays it in a browser.
+- **Cause**:  a `.tsx` must be built before it runs (`buildTsx()`:  esbuild lowers its decorators, then Solid's
+  compiler builds its JSX), and that's node-only.  And `spell-runtime.js` re-exports only `spellCore`, `Thing`,
+  `List` and `App`:  not the decorators (`prop`, `derived`, `drawn` ...) or `on()` / `trigger()` the TypeScript
+  imports from `@spell/core`.  Built Solid TypeScript also hears clicks only once its module has loaded (C20).
+- **Fix**:  build the `.tsx` where the runner gets its code (the page server, or esbuild-wasm plus Solid's compiler in
+  the browser), and have `spellRuntime.ts` re-export what `@spell/core` exports.
+- **Pinned at**:  `TARGETS` in `packages/spell/src/targets.ts` ("never run as is");  `packages/app/src/runner/spellRuntime.ts`;
+  `packages/cli/src/contract.test.ts`;  epic `output-targets`, P14's Done list.
 
 ---
 
