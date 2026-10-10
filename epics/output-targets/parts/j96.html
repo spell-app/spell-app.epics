@@ -1,0 +1,38 @@
+<!-- plan-doc part:  #j96's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Owen asked (J93) to weigh a <code>safeH()</code>: <code>h()</code> wrapped in a minimal error boundary. Weighed, and
+  NOT built:
+</p>
+<ul>
+  <li>
+    Every drawing a spell program makes already sits in an error boundary: the thing's, from
+    <code>spellCore.drawThing(card)</code> (javascript) or <code>@drawn draw()</code> (TypeScript).
+  </li>
+  <li>
+    A <code>safeH()</code> at the top of a <code>draw()</code> would be a second boundary around the same drawing: it
+    catches nothing more.
+  </li>
+  <li>
+    It can't replace the thing's boundary either. The boundary must hold the WHOLE <code>draw()</code>: what it reads
+    before its <code>h()</code> (the <code>is face down</code> an <code>if</code> chose by) must re-run that card alone.
+    Around the <code>h()</code> only, those reads would land on the parent, and the parent would redraw.
+  </li>
+  <li>A finer boundary, around one part of a card, has no spell words to ask for it: nothing would call it.</li>
+  <li>
+    Its code would be small (about ten lines on <code>drawInBoundary()</code>), but an export nobody calls is a promise
+    to keep.
+  </li>
+</ul>
+<pre><code>// what the writer writes today, and keeps writing
+draw() { return h("div", { class: "card" }, () =&gt; this.rank) }   // drawThing(card) wraps it
+
+// safeH(), not built
+draw() { return safeH("div", { class: "card" }, () =&gt; this.rank) } // a second boundary, inside the first</code></pre>
+<epic-net-effect
+  ><ul>
+    <li>Core keeps one error boundary per drawn thing, as now; no new export</li>
+    <li>
+      If spell ever gets words for a boundary around part of a drawing, <code>safeH()</code> is the way to build it
+    </li>
+  </ul></epic-net-effect
+>
