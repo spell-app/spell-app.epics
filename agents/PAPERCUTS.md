@@ -1097,6 +1097,13 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   listed them missing (epic `output-targets`, P16's Files:  targets.html, changelog.html, solid-2.md, CODE-DEBT.md). ·
   Put them back to `../../../` by hand in `parts/p16.html`.  Check after any `phase-body` on a split doc. · docs
   (plan-doc tool)
+  - Same again 2026-10-10 (airplane's plain-text pass), with `--details` too:  HTML handed to any plan-doc command
+    must link relative to the doc's folder, not `parts/`, or it lands one level off (details T4, T7;
+    outline-spell P7).
+- 2026-10-10 · `spell dev docs fuss` false hits:  an item title holding `<ui-...>` makes it flag
+  `source="parts/..."` as a path in prose;  and it counts text inside `<epic-original>` blocks (Original
+  Discussion), so a doc's totals include old text nobody edits. · Read its per-line output, not the totals. · docs
+  (fussbudget checker)
 - 2026-10-07 · `node tools/bundle-spell-ui.js --skip-ui-build` in the MAIN checkout reused `packages/ui/dist` from
   2026-10-03, older than the committed `spell-ui.js`:  the rebuilt bundle lost the `spell-brand` theme, and every
   page threw "ThemeSheets.apply:  "spell-brand" isn't a theme" (`check-spell.js` caught it). · Rebuilt without
