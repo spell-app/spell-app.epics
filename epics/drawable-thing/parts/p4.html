@@ -78,8 +78,143 @@
 "embeddedLanguages": { "meta.embedded.block.css": "css" }
 </pre>
   </epic-code></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      A drawable type can carry its own styles: a <code>&lt;css&gt;</code> block in its outline is that type's style
+      sheet, and its element draws with it.
+      <ul>
+        <li>Try it with the example below: a card whose red text is crimson.</li>
+        <li>The type's line needs its colon, or the block isn't in its outline (<a href="#c8">C8</a>).</li>
+        <li>A block anywhere else is a parse error that says where it goes, both shown below.</li>
+      </ul>
+      <epic-code title="try it · a block, what it compiles to, the two errors" language="spell">
+        <pre>
+a card is a drawable thing:
+	- it has a rank as a number
+	&lt;css&gt;
+		:host { display: inline-block }
+		.red { color: crimson }
+	&lt;/css&gt;
+
+// compiles to:
+// export class Card extends Drawable { ...
+//   static css = `:host { display: inline-block }
+//   .red { color: crimson }` }
+
+// on a type that isn't drawable ("a note is a thing:"):
+//   Only a drawable type has its own &lt;css&gt;:  "Note" isn't drawable:  say "a ... is a drawable thing"
+// outside any type's outline:
+//   Only a drawable type has its own &lt;css&gt;:  put it in a type's outline</pre>
+      </epic-code>
+    </li>
+    <li>
+      The editors treat the block as CSS (built first, in the editor-side commit):
+      <ul>
+        <li>it's coloured as CSS, in VS Code and in the spell editor</li>
+        <li>
+          the language server gives CSS completions, hovers and errors inside it, through VS Code's own CSS service
+          (<code>vscode-css-languageservice</code>)
+        </li>
+        <li>
+          spell's own parse errors inside a block are no longer hidden: a misplaced block shows its error (<a href="#j2"
+            >J2</a
+          >, now moot)
+        </li>
+        <li>the colouring still finds blocks from the text, not the parse (<a href="#j1">J1</a>)</li>
+      </ul>
+    </li>
+    <li>
+      How spell reads it:
+      <ul>
+        <li>
+          a new rule,
+          <a
+            href="../../../packages/spell/src/rules/classes/CSSBlock.ts"
+            target="src-packages-spell-src-rules-classes-cssblock-ts"
+            ><code title="packages/spell/src/rules/classes/CSSBlock.ts">css_block</code></a
+          >, takes the block in a drawable type's outline and compiles it to the class's <code>static css</code>
+        </li>
+        <li>
+          the parser's tokenizer has a new setting for raw-text tags: their contents are one piece of text up to the end
+          tag, as a browser reads <code>&lt;style&gt;</code> (<a href="#j15">J15</a>)
+        </li>
+        <li>
+          spell's parser sets it for <code>css</code>, so the CSS's braces and angle brackets are never read as spell
+        </li>
+        <li>the compiled CSS's later lines gain the class body's indent, which CSS ignores (<a href="#j14">J14</a>)</li>
+      </ul>
+    </li>
+    <li>
+      The element:
+      <ul>
+        <li>
+          each type's element adopts its type's CSS after the page's theme (<a
+            href="../../../packages/app/src/runner/SpellElement.tsx"
+            target="src-packages-app-src-runner-spellelement-tsx"
+            ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.cssOf()</code></a
+          >)
+        </li>
+        <li>super-types' sheets come first: a memo that extends a note gets the note's styles, then its own</li>
+        <li>a new browser test checks the colours the element really draws with</li>
+      </ul>
+    </li>
+    <li>
+      Docs: spell's parsing notes (<a href="../../../packages/spell/PARSING.md" target="src-packages-spell-parsing-md"
+        ><code title="packages/spell/PARSING.md">PARSING.md</code></a
+      >, "Type names" and "Language server") and the language server's CSS helper's docstring (<a
+        href="../../../packages/lsp/src/SpellCSS.ts"
+        target="src-packages-lsp-src-spellcss-ts"
+        ><code title="packages/lsp/src/SpellCSS.ts">SpellCSS</code></a
+      >).
+    </li>
+    <li>
+      Checks: every package's review passes, but for app's one known failure.
+      <ul>
+        <li>parser: 520 pass (2 new tokenizer tests)</li>
+        <li>spell: 1107 pass (3 new)</li>
+        <li>language server: 127 pass</li>
+        <li>
+          app: types, lint and format pass; 261 of 262 tests (the known Todos failure, <a href="#i2">I2</a>); the new
+          element test passes
+        </li>
+        <li>parser speed against the last commit: no change on average (91 both sides, 731 passed both)</li>
+        <li>Spell UI's spell highlighter regenerated; the VS Code extension rebuilt</li>
+      </ul>
+      <epic-code title="parser speed · before and after" language="md">
+        <pre>
+|              | Average | Min | Max |
+|--------------|--------:|----:|----:|
+| **Previous** |      91 |  84 | 104 |
+| **Current**  |      91 |  86 | 122 |
+| **Change**   |      0% | +2% | +17% |</pre>
+      </epic-code>
+    </li>
+    <li>
+      What's rough:
+      <ul>
+        <li>the editors find blocks from the text, not the parse (<a href="#j1">J1</a>)</li>
+        <li><code>&lt;css&gt;</code> and <code>&lt;/css&gt;</code> colour as tags (<a href="#j3">J3</a>)</li>
+        <li>
+          the compiled CSS's indent (<a href="#j14">J14</a>) and the raw-text tokenizer setting (<a href="#j15">J15</a
+          >), both calm
+        </li>
+        <li>
+          in the spell editor, a CSS comment over several lines colours only its first line (<a href="#c4">C4</a>)
+        </li>
+        <li>Spell UI's spell code blocks don't colour <code>&lt;css&gt;</code> blocks (<a href="#c5">C5</a>)</li>
+        <li>an outline needs its colon, and the plan's own examples leave it out (<a href="#c8">C8</a>)</li>
+        <li>
+          still to test by hand: the spell editor (<a href="#v1">V1</a>) and VS Code (<a href="#v2">V2</a>); put the
+          block in a DRAWABLE type's outline, with its colon, or spell now flags it too
+        </li>
+      </ul>
+    </li>
+  </ul></epic-field
 ><epic-commit sha="8bdd255dddf2a33d7257783ffbdbfd5b19558f3a"
   >the editor side: a type's &lt;css&gt; block colours, completes and checks as CSS</epic-commit
+><epic-commit sha="31e3b5a64aeaa0d7c0d29ab1f762f0e82b786c56"
+  >css_block, raw-text &lt;css&gt;, the element adopts it</epic-commit
 ><epic-field name="files"
   ><ul>
     <li>a new rule in spell's rules folder for the block</li>
@@ -124,6 +259,6 @@
   </ul></epic-field
 >
 <epic-field name="to-review"
-  ><a href="#j1">J1</a>, <a href="#j2">J2</a>, <a href="#j3">J3</a>, <a href="#c4">C4</a>, <a href="#c5">C5</a>,
-  <a href="#v1">V1</a>, <a href="#v2">V2</a></epic-field
+  ><a href="#j1">J1</a>, <a href="#j3">J3</a>, <a href="#j14">J14</a>, <a href="#j15">J15</a>, <a href="#c4">C4</a>,
+  <a href="#c5">C5</a>, <a href="#c8">C8</a>, <a href="#v1">V1</a>, <a href="#v2">V2</a></epic-field
 >
