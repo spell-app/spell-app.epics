@@ -1,0 +1,65 @@
+<!-- plan-doc part:  #i10's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Todos - Form Based's All / Active / Completed menu never filtered the list: it only moved its highlight.</p>
+<ul>
+  <li>Owen flagged it in test V14: "filters don't work".</li>
+  <li>
+    Not a regression of this epic. The git history of the example says so:
+    <ul>
+      <li>
+        The first Todo app (2020) filtered: its <code>to draw (a task)</code> drew nothing for a task the filter hid.
+      </li>
+      <li>
+        The form-based rewrite (2020-08-18, "Todo example uses a form (not quite finished)") repeated EVERY task, and
+        never read the filter again.
+      </li>
+      <li>P11 kept that, and its test step said "It never filtered the list, and still doesn't".</li>
+    </ul>
+  </li>
+</ul>
+<p>The fix, in the example's spell only: a derived property, the tasks the filter shows, and the repeat draws those.</p>
+<epic-code title="todo.spell · 4 lines added, 1 changed" language="spell">
+  <pre>
+the shownTasks of a todos-app is:
+	if its filter is "active" return tasks in its tasks where it is active
+	if its filter is "completed" return tasks in its tasks where it is complete
+	return its tasks
+
+&lt;ui-repeat name="shownTasks"&gt;</pre>
+</epic-code>
+<ul>
+  <li>Each row still binds to the task itself, so a tick or a title change writes to the real task.</li>
+  <li>Ticking a task under Active hides its row at once: it isn't active any more.</li>
+  <li>The compiled JavaScript was regenerated (a plain getter, <code>spellCore.filter()</code>), and checks clean.</li>
+  <li>Test: the runner's browser test clicks Active and Completed in the real compiled example and reads the rows.</li>
+</ul>
+<p>Left for later, a design choice: how spell hands <code>&lt;ui-repeat&gt;</code> its list.</p>
+<ul>
+  <li>
+    <code>name</code> is the JavaScript name of a property of the form's object, typed as text.
+    <ul>
+      <li>So the property has to be called <code>shownTasks</code>.</li>
+      <li>
+        A spell-style name, <code>shown-tasks</code>, compiles to <code>shown_tasks</code>, which the person would have
+        to know to type.
+      </li>
+    </ul>
+  </li>
+  <li>
+    Options:
+    <ol>
+      <li>Keep it: a repeat names a property, as every other control in a bound form does.</li>
+      <li>
+        <code>&lt;ui-repeat items={...}&gt;</code>: a spell expression for the list, e.g.
+        <code>items={tasks in the tasks of the app where it is active}</code>, no derived property needed.
+      </li>
+      <li>The compiler turns a <code>name</code> written in spell's words into its JavaScript name.</li>
+    </ol>
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>All shows every task; Active, the tasks not done; Completed, the tasks done.</li>
+    <li>The example gains one derived property, <code>shownTasks</code>.</li>
+    <li>Fixed in the worktree, not committed yet; the repeat's spelling is open.</li>
+  </ul></epic-net-effect
+>

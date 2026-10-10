@@ -1,0 +1,61 @@
+<!-- plan-doc part:  #i9's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A spell object's JSON didn't follow its VALUES: the form's debug view went stale when a task changed from outside the
+  form.
+</p>
+<ul>
+  <li>Found while checking test V14 (Todos - Form Based), once the debug view showed the tasks at all.</li>
+  <li>
+    How to see it: press Change name in the grey Test menu.
+    <ul>
+      <li>The first row's title field turns to "New title".</li>
+      <li>The debug JSON still said "Create todos app".</li>
+    </ul>
+  </li>
+  <li>
+    Changes made IN the form did show: the form redraws its debug view after each change event of its own, which covered
+    for the missing tracking.
+  </li>
+</ul>
+<p>Why:</p>
+<ul>
+  <li>
+    A thing's JSON comes from
+    <a href="../../../packages/util/src/reactive/extend.ts" target="src-packages-util-src-reactive-extend-ts"
+      ><code title="packages/util/src/reactive/extend.ts">getProps()</code></a
+    >, which tracked the SET of keys only, on purpose.
+  </li>
+  <li>So a reader of the JSON re-ran when a prop was added or deleted, but not when one changed.</li>
+  <li>
+    Spell UI's form says the opposite of its debug view: "the JSON reads every property it shows, so a reactive object
+    redraws it as it changes".
+  </li>
+</ul>
+<p>The fix: <code>getProps()</code> reads each value's cell too, while something is tracking.</p>
+<epic-code title="packages/util/src/reactive/extend.ts · 8 lines" language="ts">
+  <pre>
+export function getProps(target: any): Record&lt;string, any&gt; {
+  const extended = extendedFor(target)
+  if (isTrackingCells()) {
+    ;(extended[KEYS] ??= new Cell()).read()
+    for (const property of extended[PROPS].keys()) cellOf(extended, PROP_CELLS, property).read()
+  }
+  return Object.fromEntries(extended[PROPS])
+}</pre>
+</epic-code>
+<ul>
+  <li>Costs nothing when nothing is tracking (a plain <code>JSON.stringify()</code>).</li>
+  <li>
+    Test: "`toJSON()` tracks each value too" in
+    <a href="../../../packages/util/src/reactive/cells.test.ts" target="src-packages-util-src-reactive-cells-test-ts"
+      ><code title="packages/util/src/reactive/cells.test.ts">cells.test.ts</code></a
+    >, failing before; the runner's browser test presses Change name and reads the debug JSON.
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>A form's debug view follows every change to its spell object, wherever the change comes from.</li>
+    <li>Anything reading a spell object's JSON inside a tracked scope re-runs when one of its values changes.</li>
+    <li>Fixed in the worktree, not committed yet.</li>
+  </ul></epic-net-effect
+>
