@@ -1594,3 +1594,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `src/convert/fixtures/one-file.plan.html` (two spaces become one), a change nobody meant;  it hit twice in epic
   `airplane` (P2, P4). · `git checkout --` the fixture before staging;  better:  add the convert fixtures to the format
   ignore list in `vite.lint.ts`. · epics
+- 2026-10-09 · `spell dev plan-doc add-phase --goal / --files` too (the 2026-10-07 and 2026-10-08 entries under
+  `## claude-code` name `add --details`, `phase --done`, `details`):  hand-written `../../../packages/x` links landed
+  as `../../../../packages/x` in `parts/p<n>.html`;  the `<code>` paths it linked itself came out right. · Fixed by
+  hand in the part file;  write links skeleton-relative (`../../packages/x`) or as plain `<code>` paths.  Also:  no
+  `--goal-file`, and a worktree session's guard refuses `--goal "$(cat ...)"`, so long fields went through a small
+  node script calling `execFileSync("spell", [...])`. · spell-element (P10 added)
