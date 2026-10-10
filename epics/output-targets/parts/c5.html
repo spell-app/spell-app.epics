@@ -108,3 +108,105 @@
     <li>6 tsc errors on Solitaire, FizzBuzz clean; none is the writer's or core's to hide</li>
   </ul></epic-net-effect
 >
+<epic-original
+  ><epic-version as-of="2026-10-10 11:52"
+    ><p>
+      Listed in
+      <a
+        href="../../../../packages/spell/projects/test/Solitaire/Solitaire.snapshot.tsc.txt"
+        target="src-packages-spell-projects-test-solitaire-solitaire-snapshot-tsc-txt"
+        ><code>packages/spell/projects/test/Solitaire/Solitaire.snapshot.tsc.txt</code></a
+      >. By cause:
+    </p>
+    <ul>
+      <li>
+        17 x <code>spellCore</code> methods returning <code>unknown</code> used inline, e.g.
+        <code>spellCore.drawThing(spellCore.getItemOf(foundations, 1))</code>,
+        <code>spellCore.getItemOf(deck, -1).name</code> (TS2345, TS2571)
+      </li>
+      <li>
+        4 x <code>new List()</code>/<code>new Deck()</code>: <code>List</code>'s constructor requires its props
+        (TS2554); 2 x <code>typeof Pile</code> not a <code>new () =&gt; unknown</code> for
+        <code>duplicateCollection</code>
+      </li>
+      <li>3 x <code>spellCore.RUNTIME</code> typed <code>| undefined</code></li>
+      <li>
+        <code>card.value + 1</code>: <code>spellCore.itemOf()</code> returns <code>string | number | undefined</code>
+      </li>
+      <li>
+        2 that are spell's, not core's: <code>this.symbol</code> on <code>Foundation</code>, a property nothing
+        declares; and <code>start_pile.can_pick_up_$card(...)</code> on a <code>Pile</code>, a method only its
+        sub-classes have. The second showed once <code>Card.pile</code> was typed <code>Pile</code> (found at the Doc
+        Review: a property's <code>{ type: 'Pile' }</code> check was pre-quoted text, which
+        <code>TSWriter</code> couldn't read; now a text value, JS output unchanged)
+      </li>
+      <li><code>event.card</code> on a <code>SpellEvent</code></li>
+    </ul>
+    <p>
+      The writer can't fix these: it doesn't know what <code>core</code>'s methods return. The fix is in
+      <code>core</code> (a todo).
+    </p>
+    <epic-note state="update"
+      ><p>
+        2026-10-06, after the review: T7 tightened <code>@spell/core</code>'s types, types only. Solitaire's tsc errors
+        went from 35 to 10.
+      </p></epic-note
+    >
+    <p>What's left (<code>Solitaire.snapshot.tsc.txt</code>):</p>
+    <ul>
+      <li>
+        7 x "Object is of type unknown" on a list's item, e.g. <code>spellCore.getItemOf(deck, -1).name</code>: the
+        writer emits <code>class Deck extends List</code>, not <code>List&lt;Card&gt;</code>, so TypeScript can't know a
+        deck holds cards. Core now supports it; the writer change is <a href="#t12">T12</a>.
+      </li>
+      <li>
+        <code>card.value + 1</code>: <code>card.value</code> may be <code>undefined</code> (a rank not in
+        <code>Card.Ranks</code>), which is true.
+      </li>
+      <li>
+        2 that are spell's own: <code>this.symbol</code> on <code>Foundation</code>, and
+        <code>can_pick_up_$card</code> on a <code>Pile</code>.
+      </li>
+    </ul>
+    <p>
+      Gone: <code>new List()</code> with no props, <code>typeof Pile</code> for <code>duplicateCollection</code>,
+      <code>RUNTIME</code> possibly undefined, <code>itemOf()</code>'s key type, <code>drawThing()</code> of a list
+      item, <code>event.card</code>. <code>strictFunctionTypes</code> is back on. Two loosenings to review:
+      <a href="#j16">J16</a>.
+    </p>
+    <epic-net-effect
+      ><ul>
+        <li>10 tsc errors on Solitaire, FizzBuzz clean</li>
+        <li>T12 would take 7 more</li>
+      </ul></epic-net-effect
+    >
+    <epic-note state="update"
+      ><p>
+        2026-10-06, later: T12 (<code>832b3ebf</code>) made the writer say what a list holds (<code
+          >class Deck extends List&lt;Card&gt;</code
+        >, <code>new List&lt;Pile&gt;(...)</code>) and read a <code>spellCore</code> call's result with <code>!</code>.
+        Solitaire: 10 -&gt; 6 tsc errors.
+      </p></epic-note
+    >
+    <p>The 6 left:</p>
+    <ul>
+      <li>
+        3 true "may be nothing": <code>card.value + 1</code>; a foundation's <code>this.value + 1</code>;
+        <code>spellCore.getItemOf(tableaus, column)</code> passed where a pile is needed
+      </li>
+      <li>
+        <code>spellCore.getItemOf(pile, 1)</code> where <code>pile</code> is a callback's untyped parameter (TypeScript
+        types it <code>{}</code>)
+      </li>
+      <li>
+        2 that are spell's own: <code>this.symbol</code> on <code>Foundation</code>; <code>can_pick_up_$card</code> on a
+        <code>Pile</code>
+      </li>
+    </ul>
+    <epic-net-effect
+      ><ul>
+        <li>6 tsc errors on Solitaire, FizzBuzz clean; none is the writer's or core's to hide</li>
+      </ul></epic-net-effect
+    ></epic-version
+  ></epic-original
+>
