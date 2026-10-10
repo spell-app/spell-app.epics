@@ -1,15 +1,27 @@
 <!-- plan-doc part:  #c8's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  With the empty body WWOD §5 asks for, <code>SourceError</code> / <code>ApiError</code> keep <code>Error</code>'s
-  constructor, whose <code>options.cause</code> is <code>unknown</code>. So TypeScript checks the cause when it's READ
-  (<code>declare cause: SourceErrorCause | undefined</code>), not when it's written:
+  TypeScript doesn't check the <code>cause</code> passed to <code>new SourceError()</code>;  it checks it only where
+  it's read.
 </p>
-<pre><code>new SourceError("...", { cause: { kind: "lod" } })   // compiles;  error.kind is "lod" at run time</code></pre>
 <ul>
-  <li>the 20 call sites were checked by hand, and the tests read <code>kind</code> back on each path they cover</li>
   <li>
-    a typed constructor (<code
-      >constructor(message: string, options: { cause: SourceErrorCause }) { super(message, options) }</code
-    >) would catch it, at the cost of a non-empty body: a WWOD §5 question, not taken here
+    Why: WWOD §5 asks for an empty class body, so <code>SourceError</code> and ApiError keep Error's constructor.
+    That constructor's cause is <code>unknown</code>.
+  </li>
+  <li>The cause is typed where it's READ: <code>declare cause: SourceErrorCause | undefined</code>.</li>
+  <li>
+    So this compiles:
+    <pre><code>new SourceError("...", { cause: { kind: "lod" } })   // compiles;  error.kind is "lod" at run time</code></pre>
+  </li>
+  <li>
+    The 20 call sites were checked by hand.
+    The tests read <code>kind</code> back on each path they cover.
+  </li>
+  <li>
+    A typed constructor would catch it, at the cost of a non-empty body.
+    That's a WWOD §5 question, not taken here.
+    <epic-code title="a typed constructor · 1 line" language="text">
+      <pre>constructor(message: string, options: { cause: SourceErrorCause }) { super(message, options) }</pre>
+    </epic-code>
   </li>
 </ul>
