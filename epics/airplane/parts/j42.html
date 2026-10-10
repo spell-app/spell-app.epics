@@ -1,0 +1,34 @@
+<!-- plan-doc part:  #j42's details in airplane.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Why they didn't work: VS Code's webview host listens for keydown only on the view's own page
+  (<code>src/vs/workbench/contrib/webview/browser/pre/index.html</code>,
+  <code>contentWindow.addEventListener('keydown', handleInnerKeydown)</code>, which posts <code>did-keydown</code> to
+  the workbench). Our page is a cross-origin iframe inside that page, so its keys never reached it. A key pressed by a
+  script still counts for an extension's webview: <code>mainThreadWebviews.ts</code>
+  <code>reviveWebviewContentOptions()</code> sets <code>forwardUntrustedKeypressEvents: true</code> ("always enabled for
+  extensions"), whose doc in <code>webview.ts</code> names our case: "when a webview embeds an iframe". Checked in
+  installed VS Code 1.141.0 too.
+</p>
+<p>
+  Which keys go to VS Code (<code>forVsCode()</code> in liveClient.ts): F1-F19, and Cmd/Ctrl + any key except the page's
+  edit keys (A C X V Y F, Z and G with or without Shift), modifiers alone, keys that move or edit in place (arrows,
+  Home/End, Page Up/Down, Backspace, Delete, Enter, Escape, Space), Ctrl-without-Cmd in a field on a Mac (caret keys),
+  and B/I/U in rich text. Sent only after every handler had the key, so one the page took (Cmd+K jump, Cmd+I comment,
+  UI.keyboard shortcuts) stays the page's.
+</p>
+<epic-net-effect
+  ><ul>
+    <li>Cmd+Shift+P, Cmd+P, Cmd+Shift+O, Cmd+B, Cmd+W, F1 ... work from inside a doc in either side-bar tab.</li>
+    <li>
+      editKey() no longer takes Shift with A C X V F: Cmd+Shift+F (search files), Cmd+Shift+X, Cmd+Shift+V reach VS
+      Code; the page's find bar is Cmd+F only.
+    </li>
+    <li>
+      Still the page's: Cmd+K (jump) outside a field, so VS Code's Cmd+K chords (Cmd+K Cmd+S ...) only start from inside
+      a field; Cmd+I with text selected.
+    </li>
+    <li>
+      Keys are forwarded on keydown only (no keyup): VS Code's keyup-only uses (modifier-only bindings) don't fire.
+    </li>
+  </ul></epic-net-effect
+>
