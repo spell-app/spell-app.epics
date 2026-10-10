@@ -11,13 +11,13 @@ or reviewing Solid code, JSX, `spellCore` rendering, `$/util` reactivity (spell 
   `easy-state` is GONE.
   - How it's built now, and why:  `guides/solid-migration.html`.  The record (phases, decisions, log):
     `epics/solid-migration/`.
-  - Compiled spell draws with Solid too, in both targets (epic `output-targets` P10-P12, on its branch until it
-    merges;  `main` still draws compiled spell with React through `view()`):
+  - Compiled spell draws with Solid too, in both targets (epic `output-targets` P10-P12, on `main` since
+    2026-10-10):
     - javascript calls Solid's own `h()` (`@solidjs/h`, imported from `@spell/core`;  P20) and
       `spellCore.drawThing()`.  `spellCore.element()`, what it called before P20, stays deprecated.
     - TypeScript (`ts/solid`, a `.compiled.tsx`) is real JSX, with `<Show>` / `<For>` and `@drawn draw()`
     - how, and why:  `guides/targets/targets.html`, "Drawing with Solid"
-  - React is GONE from `app`, `core` and `util` on that branch:  no React kits, no `view()`, no `@vitejs/plugin-react`.
+  - React is GONE from `app`, `core` and `util`:  no React kits, no `view()`, no `@vitejs/plugin-react`.
     Only the `spell` CLI keeps it, for its terminal screens (Ink).
   - Items still marked (planned) below wait on an open todo:  they are NOT in code.
 - Target `solid-js` / `@solidjs/web` / `@solidjs/h` `2.0.0-rc.13` (current, 2026-09-30), pinned EXACTLY.
