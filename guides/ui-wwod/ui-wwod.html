@@ -220,6 +220,19 @@
                     <th>Means</th>
                   </tr>
                   <tr>
+                    <td><code>styleSheets</code></td>
+                    <td>none</td>
+                    <td>its own sheets, <code>name</code> to CSS text, adopted after the shared ones</td>
+                  </tr>
+                  <tr>
+                    <td><code>cssStates</code></td>
+                    <td>none</td>
+                    <td>
+                      attributes mirrored as <code>:state()</code>s: <code>["loading", "fluid"]</code>; a name the tag
+                      has no attribute or member for makes <code>define()</code> throw
+                    </td>
+                  </tr>
+                  <tr>
                     <td><code>isAFormControl</code></td>
                     <td><code>false</code></td>
                     <td>sent with its form, validated, reset (the platform's <code>formAssociated</code>)</td>
@@ -230,9 +243,9 @@
                     <td>a click focuses the first focusable thing inside</td>
                   </tr>
                   <tr>
-                    <td><code>assignSlots</code></td>
-                    <td><code>"byName"</code></td>
-                    <td>children go to the slot they name; <code>"manually"</code>: the component assigns them</td>
+                    <td><code>slotAssignment</code></td>
+                    <td><code>"named"</code></td>
+                    <td>children go to the slot they name; <code>"manual"</code>: the component assigns them</td>
                   </tr>
                   <tr>
                     <td><code>isAPart</code></td>
@@ -254,6 +267,32 @@
                     <td><code>false</code></td>
                     <td>show at once, before the style sheets are in (<code>&lt;ui-root&gt;</code>)</td>
                   </tr>
+                  <tr>
+                    <td><code>aria</code></td>
+                    <td>none</td>
+                    <td>
+                      ARIA it always has, by short name: <code>{ role: "status", live: "polite" }</code>; ARIA that
+                      follows state is an <code>@E.aria("busy")</code> getter
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>disabled</code></td>
+                    <td><code>"unusable"</code></td>
+                    <td>
+                      dimmed, and everything inside inert; <code>"its own"</code>: the family's code and sheet say what
+                      it means
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>loading</code></td>
+                    <td><code>"loader"</code></td>
+                    <td>a spinner over inert content; <code>"its own"</code>: the family draws its own</td>
+                  </tr>
+                  <tr>
+                    <td><code>visibleAnimation</code></td>
+                    <td><code>"fade"</code></td>
+                    <td>the animation <code>visible="false"</code> hides it with</td>
+                  </tr>
                 </tbody>
               </table>
             </ui-table>
@@ -261,13 +300,17 @@
               <ui-title>A family's DOM element class, named in its setup</ui-title>
               <ui-content>
                 <pre><code class="language-ts">// UINag.tsx:  above the component, since elementSetup reads it while the class is defined
-export class DOMNagElement extends E.DOMElement {
+export class DOMNagElement extends E.DOMElement&lt;UINag&gt; {
   close(): boolean { ... }
   get dismissed(): boolean { ... }
 }
 
 export class UINag extends E.UIComponent&lt;typeof nagVocabulary&gt; {
-  @E.proto static elementSetup = { DOMElement: DOMNagElement } satisfies Partial&lt;E.ElementSetup&gt;
+  @E.proto static vocabulary = nagVocabulary
+  @E.protoMerged static elementSetup = {
+    styleSheets: { nag: nagCSS },
+    DOMElement: DOMNagElement
+  } satisfies Partial&lt;E.ElementSetup&gt;
   ...
 }</code></pre>
               </ui-content>
@@ -658,7 +701,7 @@ export class UINag extends E.UIComponent&lt;typeof nagVocabulary&gt; {
               <li>Class settings first, then members grouped by subject, each decorated for how it works.</li>
             </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>UILoader.tsx · 95 lines</ui-title>
+              <ui-title>UILoader.tsx · 73 lines</ui-title>
               <ui-content>
                 <pre><code class="language-ts">import type { JSX } from "@solidjs/web"
 
@@ -674,15 +717,14 @@ import loaderCSS from "./UILoader.css?inline"
  ****************/
 export class UILoader extends E.UIComponent&lt;typeof loaderVocabulary&gt; {
   @E.proto static vocabulary = loaderVocabulary
-  @E.proto static styleSheets = { loader: loaderCSS }
-  @E.proto static elementSetup = { delegatesFocus: false } satisfies Partial&lt;E.ElementSetup&gt;
-
-  constructor(...args: ConstructorParameters&lt;typeof E.UIComponent&gt;) {
-    super(...args)
-    const { internals } = this.domElement
-    internals.role = "status"
-    internals.ariaLive = "polite"
-  }
+  @E.protoMerged static elementSetup = {
+    styleSheets: { loader: loaderCSS },
+    cssStates: ["active"],
+    delegatesFocus: false,
+    aria: { role: "status", live: "polite" },
+    // `disabled`:  only a look
+    disabled: "its own"
+  } satisfies Partial&lt;E.ElementSetup&gt;
 
   ////////////////
   // ## The name
@@ -697,27 +739,18 @@ export class UILoader extends E.UIComponent&lt;typeof loaderVocabulary&gt; {
   }
 
   /** The element's accessible name:  the `loading` text while nothing is slotted. ... */
-  @E.onChange("isReady", "hasText", { writesDOMElement: true })
-  protected onNameChanged(isReady: boolean, hasText: boolean) {
-    const label = isReady &amp;&amp; !hasText ? this.translationForKey("loading") : undefined
-    // `null`:  `ariaLabel` is the platform's, and `null` removes it
-    this.domElement.internals.ariaLabel = label ?? null
+  @E.aria("label")
+  protected get accessibleName(): string | undefined {
+    return this.isReady &amp;&amp; !this.hasText ? this.translationForKey("loading") : undefined
   }
 
   ////////////////
-  // ## States
+  // ## Rendering
   ////////////////
-
-  /** Shown (`active`).  `:state(active)`. */
-  @E.cssState("active")
-  get isActive(): boolean {
-    return !!this.active
-  }
-  ...
 
   render(): JSX.Element {
     return (
-      &lt;div class={this.rootClasses} part={this.partForName("loader")}&gt;
+      &lt;div class={this.rootClass} part={this.partForName("loader")}&gt;
         &lt;slot /&gt;
       &lt;/div&gt;
     )
@@ -814,6 +847,15 @@ export interface UILoader extends E.AttributeValues&lt;typeof loaderVocabulary&g
         <ui-section id="6-history" header="6. History" sticky collapsible dividing collapsed>
           <p class="meta">What changed in the decision, newest first.</p>
           <ui-feed class="spell-history" size="small">
+            <ui-event icon="pen to square">
+              <ui-content>
+                <ui-summary
+                  >Updated: the element core, <code>elementSetup</code>'s keys and the component file follow epic
+                  <a href="../../epics/spell-element/spell-element.plan.html" target="spell-element">Spell Element</a>
+                  (P3, P11) <ui-date>2026-10-09</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
             <ui-event icon="arrow right">
               <ui-content>
                 <ui-summary
@@ -986,7 +1028,8 @@ export interface UILoader extends E.AttributeValues&lt;typeof loaderVocabulary&g
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
           <p class="meta">
-            Last checked 2026-10-08 against branch <code>wwod-spell-ui</code> (P17). Before that, 2026-10-06 (P11).
+            Last checked 2026-10-09 against branch <code>spell-element</code> (P11). Before that, 2026-10-08
+            (<code>wwod-spell-ui</code> P17) and 2026-10-06 (P11).
           </p>
         </footer>
       </main>
