@@ -5,7 +5,8 @@ Plain, hand-authored `.html` pages in [fomantic-ui.com](https://fomantic-ui.com)
 live with its source a click away, and an "On this page" rail.  Where a widget can't do what a page needs, that's a
 gap in the library, recorded in the plan doc of epic `spell-ui-pages` (`epics/spell-ui-pages/`).
 
-- No build step to VIEW a page:  pages are static files loading ONE committed bundle.
+- No build step to VIEW a page:  pages are static files loading ONE bundle, which the page server builds when it
+  starts, if it's stale (not committed since 2026-10-07).
 - Served at `/ui/` by the repo's page server (`packages/server`, `UI_SITE`), live-reloading.
 
 ## Two halves (since 2026-10-05, epic `claude-design` P6)
@@ -54,7 +55,7 @@ packages/ui/site/       (tracked, per branch)
                         layout), SiteRouter.ts (swaps pages), SiteSections.ts (sticky offsets, folds, landing on a
                         hash), site.types.ts (their shared constants, which `tools/SiteCheck.ts` reads too), site.css
                         (layout glue only)
-  _assets/              GENERATED, committed:  the bundle (`site.js`, `site.css`, a lazy chunk per family);
+  _assets/              GENERATED, NOT committed (git-ignored since 2026-10-07;  the page server builds it):  the bundle (`site.js`, `site.css`, a lazy chunk per family);
                         `icon-packs` is a SYMLINK to `../../src/icons/icon-packs`.  NEVER edit
   _data/                components.json, icons.json, custom-elements.json, html-custom-data.json (GENERATED,
                         committed);  pages.json (hand-kept)
@@ -122,7 +123,7 @@ yarn site:new getting-started --title "Getting started" --summary "One line."   
 From `packages/ui`:
 
 - `yarn site:build` -- after changing a vocabulary, a family sheet, an example or any source the site shows;  commit
-  the output in `packages/ui/site/`.  It runs:
+  `packages/ui/site/_data/` (the bundle, `_assets/`, is git-ignored).  It runs:
   - `yarn site:data` -- `_data/components.json` + `icons.json` from the vocabularies and sheets (seeds `pages.json`
     for a new family), and `ui/_data/search.json` (every page's sections, for the site search) from the pages:
     rerun after renaming or moving a section
@@ -134,7 +135,7 @@ From `packages/ui`:
 - `yarn site:dev` -- while working on the library or `_src/`:  `yarn site:bundle`, then the page server (started if
   needed) serves `/ui/` while a Vite watch build rebuilds `_assets/` on every source edit, and the open pages reload.
   Not watched:  data, index, kitchen sink.  A watch rebuild leaves old hashed chunks behind:  `yarn site:build`
-  before committing.  `Ctrl-C` stops the watch, not the page server.
+  clears them.  `Ctrl-C` stops the watch, not the page server.
 
 ## Checking
 
