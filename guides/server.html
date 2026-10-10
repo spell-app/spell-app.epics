@@ -37,9 +37,9 @@
           <ui-item icon="user"
             >Written for: anyone opening, editing or serving a page, or adding routes to the page server</ui-item
           >
-          <ui-item icon="flag">Status: <ui-label size="mini" color="green">built</ui-label> (P1-P7)</ui-item>
+          <ui-item icon="flag">Status: <ui-label size="mini" color="green">merged</ui-label> into <code>main</code> (P1-P7)</ui-item>
           <ui-item icon="code branch"
-            >Checked on: branch <code>unified-server</code>, 2026-10-02, against the code (not just the plan:
+            >Checked on: <code>main</code>, 2026-10-09, against the code (not just the plan:
             <a href="../epics/unified-server/unified-server.plan.html" target="unified-server">epics/unified-server</a
             >)</ui-item
           >
@@ -643,11 +643,9 @@
           <ui-section id="live-reload" header="Live reload" sticky collapsible dividing>
             <ol>
               <li>
-                <code>fs.watch</code> on the named folders only -- <code>"pageServer".watch</code> (<a
-                  href="../packages/docs/content/"
-                  target="src-packages-docs-content"
-                  ><code>packages/docs</code></a
-                >), plus <a href="../goals/" target="src-goals"><code>goals/</code></a> from goals' route module --
+                <code>fs.watch</code> on the named folders only -- <code>"pageServer".watch</code> (the shared
+                pages' folders, the docs' bundle, the brand pages), plus
+                <a href="../goals/" target="src-goals"><code>goals/</code></a> from goals' route module --
                 never <a href="../packages/docs/tools/" target="src-packages-docs-tools"><code>scripts/</code></a> or
                 <code>experiments/</code>. The whole root would flood it (<code>node_modules</code>,
                 <a href="../.git" target="src-git"><code>.git</code></a
@@ -750,25 +748,23 @@
           <ui-section id="spell-ui-static" header="Spell UI at /ui/" sticky collapsible dividing>
             <ol>
               <li>
-                <code>/ui/</code> is a second static mount:
-                <a href="../packages/ui/site/" target="src-packages-ui-site"><code>packages/ui/site/</code></a
-                >, plain <code>.html</code> pages (<code>UI_SITE</code> in
-                <a href="../packages/server/src/page/page.types.ts" target="src-packages-server-src-page-page-types-ts"
-                  ><code>page.types.ts</code></a
-                >). <code>/ui</code> redirects to <code>/ui/</code>, so the pages' relative links resolve.
+                <code>/ui/</code> serves the shared <code>ui/</code> folder, plain <code>.html</code> pages, with
+                this branch's build laid over it (<code>_assets/</code>, <code>_data/</code>, from
+                <code title="packages/ui/site/">site/</code>;
+                <code title="packages/server/src/page/page.types.ts">UI_SITE</code>). <code>/ui</code> redirects to
+                <code>/ui/</code>, so the pages' relative links resolve.
               </li>
               <li>
-                The pages load ONE committed bundle, <code>_assets/site.js</code> + <code>site.css</code>, built by
-                <code>yarn site:build</code> in
-                <a href="../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a
-                >: no dev server, no build step to view a page.
+                The pages load ONE bundle, <code>_assets/site.js</code> + <code>site.css</code>: not committed (since
+                2026-10-07). The page server builds it when it starts, if it's stale; a page waits for it. No dev
+                server.
               </li>
               <li>
                 Live like the docs: the folder is watched (not <code>_src/</code>, the bundle's entry); a page reloads
                 when it or any CSS / JS changes, so a rebuilt bundle reloads every page. <code>yarn site:dev</code> in
                 <a href="../packages/ui/" target="src-packages-ui"><code>packages/ui</code></a> rebuilds the bundle on
                 every source edit, so a library change shows up live. The section editor works on them too: their
-                <code>SPELL_SERVER.file</code> is <code>/packages/ui/site/...</code>.
+                <code>SPELL_SERVER.file</code> is <code>/ui/...</code>.
               </li>
               <li>
                 Until 2026-10-02 this proxied <code>astro dev</code> (<code>AstroProxy</code>); the Astro site was
@@ -939,23 +935,36 @@
                 <a href="../packages/docs/package.json" target="src-packages-docs-package-json"
                   ><code>package.json</code></a
                 >, <code>"pageServer"</code>: <code>routes</code> (paths from the root) and <code>watch</code> (folders
-                to live-reload, default
-                <a href="../packages/docs/content/" target="src-packages-docs-content"><code>packages/docs</code></a
-                >).
+                to live-reload;  default <code title="packages/server/src/page/PageServer.ts">DEFAULT_WATCH</code>,
+                the shared pages' folders and the docs' bundle).
               </li>
             </ul>
             <ui-accordion class="spell-code" styled open="0">
-              <ui-title>The root package.json's pageServer field · 11 lines</ui-title>
+              <ui-title>The root package.json's pageServer field · 25 lines</ui-title>
               <ui-content>
                 <pre><code class="language-json">{
   "pageServer": {
     "routes": [
       "packages/docs/tools/goals/goalsRoutes.ts",
       "packages/docs/tools/detailsRoutes.ts",
+      "packages/docs/tools/choicesRoutes.ts",
+      "packages/docs/tools/notesRoutes.ts",
+      "packages/epics/src/tool/reviewRoutes.ts",
+      "packages/epics/src/tool/epicRoutes.ts",
+      "packages/docs/tools/agentRoutes.ts",
       "packages/docs/tools/showRoutes.ts",
       "packages/app/src/server/appRoutes.ts"
     ],
-    "watch": ["packages/docs"]
+    "watch": [
+      "epics",
+      "guides",
+      "pages",
+      "templates",
+      "brand",
+      "packages/docs/tools/_assets",
+      "packages/brand",
+      "packages/epics/pack"
+    ]
   }
 }</code></pre>
               </ui-content>
