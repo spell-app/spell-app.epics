@@ -14,7 +14,7 @@ or reviewing Solid code, JSX, `spellCore` rendering, `$/util` reactivity (spell 
   - Compiled spell draws with Solid too, in both targets (epic `output-targets` P10-P12, on `main` since
     2026-10-10):
     - javascript calls Solid's own `h()` (`@solidjs/h`, imported from `@spell/core`;  P20) and
-      `spellCore.drawThing()`.  `spellCore.element()`, what it called before P20, stays deprecated.
+      `spellCore.drawThing()`.  `spellCore.element()`, what it called before P20, is gone (P22).
     - TypeScript (`ts/solid`, a `.compiled.tsx`) is real JSX, with `<Show>` / `<For>` and `@drawn draw()`
     - how, and why:  `guides/targets/targets.html`, "Drawing with Solid"
   - React is GONE from `app`, `core` and `util`:  no React kits, no `view()`, no `@vitejs/plugin-react`.
@@ -121,8 +121,8 @@ count() // 1
     first.  BUILT (P10)
   - `@derived get y()` -- memoized with the equality cutoff;  only for pure, worth-it getters (compiled TypeScript:  a
     getter that loops).  `@state` and `@derived` take `{ equals }`, as Spell UI's do.  BUILT
-  - `@drawn draw()` -- the drawing in its own error net (`core`'s `drawing.ts`, not `util`'s:  it shares
-    `spellCore.drawThing()`'s net).  BUILT (P12)
+  - `@drawn draw()` -- the drawing in its own error boundary (`core`'s `drawing.ts`, not `util`'s:  it shares
+    `spellCore.drawThing()`'s boundary).  BUILT (P12)
   - `@thing` on the class -- runs `create()` after the most-derived class's field initializers.  BUILT:
     `packages/util/src/spell/spellDecorators.ts` (`import { thing } from "$/util"`);  `Thing` / `List` skip their own
     `create()` call when a `@thing` class is in the chain (`runsCreate()`), so it runs exactly once, also for compiled
@@ -143,18 +143,18 @@ count() // 1
   never mid-write, so program code is safe to run in it (`deferred` is gone).
 - Compiled JAVASCRIPT imports ONLY `@spell/core`, never Solid:  `h` included, which core exports (the page's one
   `@solidjs/h`).  It draws with `h()` directly (BUILT, `output-targets` P20, `core`'s `drawing.ts`;  before it,
-  `spellCore.element()`, now in `deprecated.ts`):
-  - `h()` returns a THUNK:  `draw()` returns it as is, and the error net makes it (`madeOnce()`), once, inside its
+  `spellCore.element()`, gone since P22):
+  - `h()` returns a THUNK:  `draw()` returns it as is, and the error boundary makes it (`madeOnce()`), once, inside its
     `try`, so a throw while it's made shows the stand-in.  Only `h()`'s own thunks:  any other function stays a live
     value.  Nested `h()` calls are made by their parent.
-  - the parser emits a FUNCTION for every value that can change (`() => this.short_suit`, an `ASTJSXLiveValue`)
+  - the parser emits a FUNCTION for every value that can change (`() => this.shortSuit`, an `ASTJSXLiveValue`)
   - the WRITER writes the page's spellings:  `class`, `for`, `colspan`;  on a tag with a dash, a live value or an
     object as `"prop:value"`
   - a dotted tag (`<UI.Form>`) is a compile error:  Spell UI's elements go by their own tags
-  - each drawn thing in its own ERROR NET, `drawInNet()`:  `<Errored>` + a memo running `draw()` + a `try/catch` for a
-    stand-in made once (rc.13's `<Errored>` makes its fallback again on any change under it).  A throw:  one console
-    line, a cancelable `ui-error`, a stand-in;  the rest keeps drawing.  `drawThing()` for javascript, `@drawn` for
-    TypeScript:  ONE net
+  - each drawn thing in its own ERROR BOUNDARY, `drawInBoundary()`:  `<Errored>` + a memo running `draw()` + a
+    `try/catch` for a stand-in made once (rc.13's `<Errored>` makes its fallback again on any change under it).
+    A throw:  one console line, a cancelable `ui-error`, a stand-in;  the rest keeps drawing.
+    `drawThing()` for javascript, `@drawn` for TypeScript:  ONE boundary
   - `draw()` runs in a memo:  again only for what IT read, redrawing that thing alone
   - `drawItems()` is `<For>` by identity;  `mountApp()` is `render()` in a root of its own (`runWithOwner(null)`), left
     on the element as `spellRoot`
@@ -208,16 +208,17 @@ card.suit = "diamonds" // overwrite:  same position;  readers of keys() don't re
 card.deleteProp("rank") // ["suit", "nickname"]
 card.setProp("score", "high") // after numbers:  observed type widens to "number | text", dev warning
 
-// compiled javascript's JSX:  a function for everything that can change
-spellCore.element({
-  tag: "div",
-  props: { className: () => "card " + this.color, onClick: (event) => this.play() },
-  children: [() => this.short_rank + " ", () => spellCore.drawThing(this.pile)]
-})
+// compiled javascript's JSX:  Solid's own h(), a function for everything that can change
+h(
+  "div",
+  { class: () => "card " + this.color, onClick: (event) => this.play() },
+  () => this.shortRank + " ",
+  () => spellCore.drawThing(this.pile)
+)
 ```
 
 ```tsx
-// compiled TypeScript (ts/solid):  real JSX, Solid's shapes, the net as a decorator
+// compiled TypeScript (ts/solid):  real JSX, Solid's shapes, the error boundary as a decorator
 @drawn
 draw() {
   return (
@@ -373,7 +374,7 @@ h(Picker, { onPick: () => go() }) // WRONG:  becomes a getter, passes go()'s res
 - Reactive semantics this repo depends on are pinned as vitest cases:  `util`'s `src/reactive/cells.test.ts` and
   `decorators.test.ts` (cells, no Solid), `app`'s `src/solid/cellsBridge.browser.test.tsx` (Solid's client build:
   staging, holds, the bridge), `core`'s `drawing.test.ts` and `app`'s `src/runner/runner.browser.test.tsx` (compiled
-  spell drawing:  live values, the error net, `<For>` keeping nodes).  The `solid/experiments/*` scripts stay, to
+  spell drawing:  live values, the error boundary, `<For>` keeping nodes).  The `solid/experiments/*` scripts stay, to
   re-measure.
 
 ```tsx

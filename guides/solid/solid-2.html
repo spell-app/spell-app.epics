@@ -24,7 +24,8 @@
               href="../solid-migration.html"
               target="src-guides-solid-migration-html"
               >Solid Migration</a
-            >, how it's built now); compiled spell's runtime is next
+            >, how it's built now); compiled spell followed on 2026-10-10 (epic <code>output-targets</code>, P10-P12 and
+            P20)
           </li>
           <li>Also for anyone reasoning about spell reactivity afterwards</li>
         </ul>
@@ -34,7 +35,7 @@
               BUILT (2026-10-02), see <a href="#plan">5. What the migration did with it</a>:
               <ul>
                 <li>spell cells</li>
-                <li>the Solid and React bridges</li>
+                <li>the Solid bridge (the React bridge, <code>view()</code>, went with React in 2026-10)</li>
                 <li>decorators</li>
                 <li>the editor store</li>
                 <li>one Solid per page across builds</li>
@@ -42,10 +43,19 @@
               </ul>
             </li>
             <li>
-              NOT built, moved to the Core + JSX thread:
+              BUILT (2026-10-10, epic <code>output-targets</code>): compiled spell draws with Solid, in both targets
               <ul>
-                <li><code>spellCore.element()</code> on <code>@solidjs/h</code></li>
-                <li>JSX thunks</li>
+                <li>
+                  javascript calls Solid's own <code>h()</code> (<code>@solidjs/h</code>), imported from
+                  <code>@spell/core</code>
+                </li>
+                <li>JSX's live values are functions (thunks)</li>
+                <li>TypeScript is real JSX, with <code>@drawn draw()</code></li>
+              </ul>
+            </li>
+            <li>
+              NOT built:
+              <ul>
                 <li>the parser's <code>derive()</code> analysis</li>
                 <li>the import-map <code>&lt;spell-app&gt;</code></li>
                 <li>a Proxy for class-less data</li>
@@ -98,8 +108,8 @@
             <ui-message state="warning" header="For spell">
               <ul>
                 <li>
-                  Today a spell <code>draw()</code> is re-run by React whenever any property it read changed, and React
-                  diffs the result
+                  Under React (until 2026-10-10), a spell <code>draw()</code> was re-run whenever any property it read
+                  changed, and React diffed the result
                 </li>
                 <li>Solid does neither</li>
                 <li>
@@ -1761,7 +1771,8 @@ class Card extends ThingD {
                 <ul>
                   <li>
                     the <code>Symbol.metadata</code> polyfill lives in
-                    <a href="../../packages/util/src/reactive/" target="src-packages-util-src-reactive"><code>$/util</code></a
+                    <a href="../../packages/util/src/reactive/" target="src-packages-util-src-reactive"
+                      ><code>$/util</code></a
                     >, loaded before any decorated class, in every bundle and in <code>spell-runtime.js</code>
                   </li>
                   <li>esbuild's decorator helpers cost about 1.2 kB per bundle</li>
@@ -2183,7 +2194,7 @@ class ThingD extends ThingA {
                   </li>
                   <li>
                     Each <code>&lt;spell-app&gt;</code> keeps its own <code>spellCore</code> copy but imports Solid from
-                    there, as it imports React today
+                    there
                   </li>
                   <li>
                     Register <code>enableExternalSource</code> once. Built: from the host (<a
@@ -2408,7 +2419,8 @@ class ThingD extends ThingA {
               </li>
               <li>
                 Backing host properties with a plain record plus notifier, or with spell cells if the two projects share
-                <a href="../../packages/util/src/reactive/" target="src-packages-util-src-reactive"><code>$/util</code></a
+                <a href="../../packages/util/src/reactive/" target="src-packages-util-src-reactive"
+                  ><code>$/util</code></a
                 >, makes the DOM contract synchronous again, as native elements are
               </li>
               <li>Test first: <code>el.value = x; expect(el.value).toBe(x)</code> with no flush</li>
@@ -2503,8 +2515,8 @@ class ThingD extends ThingA {
             <ul>
               <li><code>&lt;Errored&gt;</code> recovers by itself when the data underneath does</li>
               <li>
-                The per-element fallback (<code>UIComponent</code>'s error net) could re-render when its inputs change,
-                instead of staying in
+                The per-element fallback (<code>UIComponent</code>'s error boundary) could re-render when its inputs
+                change, instead of staying in
                 <code>:state(errored)</code> until reload
               </li>
             </ul>
@@ -2585,32 +2597,42 @@ class ThingD extends ThingA {
                 analysis and emit <code>this.derive(...)</code> when both hold (plan doc T6)
               </li>
               <li>
-                <ui-label size="mini" color="grey">not built</ui-label> JSX emits thunks; handlers keep their
-                <code>(event)</code> parameter -- the Core + JSX thread (plan doc T2)
+                <ui-label size="mini" color="green">built</ui-label> JSX emits thunks; handlers keep their
+                <code>(event)</code> parameter (epic <code>output-targets</code>)
               </li>
             </ul>
           </ui-section>
           <ui-section id="spellcore-element" sticky collapsible dividing>
-            <span slot="header"><code>spellCore.element()</code></span>
+            <span slot="header">Drawing with <code>h()</code> (was <code>spellCore.element()</code>)</span>
             <p>
-              <ui-label size="mini" color="grey">not built</ui-label> the Core + JSX thread (plan doc T2): compiled
-              spell still draws with React. It will own four things:
+              <ui-label size="mini" color="green">built</ui-label> compiled javascript draws with Solid's own
+              <code>h()</code> (<code>@solidjs/h</code>, installed at rc.13), imported from
+              <code>@spell/core</code> (epic <code>output-targets</code> P20, core's
+              <a href="../../packages/core/src/drawing.ts" target="src-packages-core-src-drawing-ts"
+                ><code title="packages/core/src/drawing.ts">drawing.ts</code></a
+              >). What the planned <code>spellCore.element()</code> was to own went here instead:
             </p>
             <ul>
-              <li><code>prop:</code> routing for non-primitive values on <code>ui-*</code> tags</li>
-              <li>mapping <code>onUiChange</code> to a <code>ui-change</code> listener</li>
-              <li><code>try/catch</code> around every thunk</li>
-              <li>building on <code>@solidjs/h</code>, which exists at rc.11 and rc.13 (not installed yet)</li>
+              <li>
+                <code>prop:</code> for a live value or an object on a <code>ui-*</code> tag: the writer writes it, when
+                it compiles
+              </li>
+              <li><code>try/catch</code> around what <code>draw()</code> returns: core's error boundary</li>
+              <li>
+                <ui-label size="mini" color="grey">not built</ui-label> mapping <code>onUiChange</code> to a
+                <code>ui-change</code> listener
+              </li>
             </ul>
+            <p>
+              <code>spellCore.element()</code> itself, kept deprecated after P20 for programs compiled before, is gone
+              (P22): every committed example is recompiled.
+            </p>
           </ui-section>
           <ui-section id="react-bridge-phase-1" header="React bridge" sticky collapsible dividing>
             <p>
-              <ui-label size="mini" color="green">built</ui-label> <code>view()</code> subscribes through our core (<a
-                href="../../packages/util/src/spell/view.ts"
-                target="src-packages-util-src-spell-view-ts"
-                ><code title="packages/util/src/spell/view.ts">view.ts</code></a
-              >). A React render collects like any other collector, so the bridge doesn't need Solid's
-              <code>createReaction</code>. It stays while compiled spell draws with React.
+              <ui-label size="mini" color="grey">gone</ui-label> <code>view()</code>, the bridge that let a React render
+              follow spell cells, was deleted with React (epic <code>output-targets</code> P11). No spell program or app
+              bundle holds React now; only the <code>spell</code> CLI keeps it, for its terminal screens (Ink).
             </p>
           </ui-section>
           <ui-section id="routing" header="Routing" sticky collapsible dividing>
@@ -2743,7 +2765,7 @@ class ThingD extends ThingA {
                       target="src-packages-util-src-reactive-cells-test-ts"
                       ><code title="packages/util/src/reactive/cells.test.ts">cells.test.ts</code></a
                     >
-                    (cells, no Solid),
+                    (cells, no Solid) and
                     <a
                       href="../../packages/app/src/solid/cellsBridge.browser.test.tsx"
                       target="src-packages-app-src-solid-cellsbridge-browser-test-tsx"
@@ -2751,13 +2773,7 @@ class ThingD extends ThingA {
                         >cellsBridge.browser.test.tsx</code
                       ></a
                     >
-                    (Solid's client build) and
-                    <a
-                      href="../../packages/app/src/ui/reactView.browser.test.tsx"
-                      target="src-packages-app-src-ui-reactview-browser-test-tsx"
-                      ><code title="packages/app/src/ui/reactView.browser.test.tsx">reactView.browser.test.tsx</code></a
-                    >
-                    (the React bridge)
+                    (Solid's client build)
                   </li>
                   <li>the scripts remain the quick way to re-measure, and to compare designs on a new RC</li>
                 </ul>
