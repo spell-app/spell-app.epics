@@ -1,40 +1,62 @@
 <!-- plan-doc part:  #j100's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Chose to control time in ui-grid .. ui-progress rather than keep any real wait: every sleep there was waiting on a
-  timer the element sets, or on an event / lazy load that can be awaited.
+  Every sleep in the tests of ui-grid through ui-progress is gone, and none kept: the tests now control time
+  instead.
 </p>
+<ul>
+  <li>Each sleep was waiting on a timer the element sets, or on an event or lazy load that can be awaited.</li>
+</ul>
 <epic-net-effect
   ><ul>
     <li>
-      <a
-        href="../../../packages/ui/src/components/ui-popup/ui-popup.test.tsx"
-        target="src-packages-ui-src-components-ui-popup-ui-popup-test-tsx"
-        ><code>ui-popup.test.tsx</code></a
-      >: <code>settle(ms)</code>'s <code>setTimeout</code> sleep is gone; the hover / focus tests that waited 20-120 ms
-      call <code>fakeTimers()</code> (<code>vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })</code>, so
-      pointer, focus and popover events still come from the browser) and <code>advance(ms)</code>;
-      <code>settle(10)</code> after <code>hidePopover()</code> now awaits the popover's real <code>toggle</code> event
-      (<code>nextToggle()</code>)
+      The popup's test, <code title="packages/ui/src/components/ui-popup/ui-popup.test.tsx">ui-popup.test.tsx</code>:
+      <ul>
+        <li>The sleep in <code>settle(ms)</code> is gone.</li>
+        <li>
+          The hover and focus tests waited 20-120 ms.
+          Now they call <code>fakeTimers()</code>, then <code>advance(ms)</code>.
+        </li>
+        <li>
+          Only the timeout functions are faked, so pointer, focus and popover events still come from the browser:
+          <epic-code title="the call · 1 line" language="text">
+            <pre>vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })</pre>
+          </epic-code>
+        </li>
+        <li>
+          After <code>hidePopover()</code>, it now awaits the popover's real <code>toggle</code> event
+          (nextToggle()), not 10 ms.
+        </li>
+      </ul>
     </li>
     <li>
-      <a
-        href="../../../packages/ui/src/components/ui-markdown/ui-markdown.test.tsx"
-        target="src-packages-ui-src-components-ui-markdown-ui-markdown-test-tsx"
-        ><code>ui-markdown.test.tsx</code></a
-      >: <code>nextRender()</code>'s 2 s fallback <code>setTimeout</code> is gone (no test ever reached it: the slowest
-      took &lt; 400 ms; a render that never ends now fails at Vitest's timeout); the two 300 ms sleeps before axe are
-      <code>drawn(root)</code>: <code>customElements.whenDefined()</code> for every <code>ui-*</code> tag in the body
-      (the families <code>MarkdownRenderer.loadMD()</code> imports lazily), then
-      <code>ElementFixture.settle()</code>
+      The markdown test,
+      <code title="packages/ui/src/components/ui-markdown/ui-markdown.test.tsx">ui-markdown.test.tsx</code>:
+      <ul>
+        <li>
+          The 2 s fallback timer in <code>nextRender()</code> is gone.
+          <ul>
+            <li>No test ever reached it: the slowest took under 400 ms.</li>
+            <li>A render that never ends now fails at Vitest's own timeout.</li>
+          </ul>
+        </li>
+        <li>
+          The two 300 ms sleeps before the accessibility check became <code>drawn(root)</code>.
+          <ul>
+            <li>It waits for every <code>ui-*</code> tag in the body to be defined.</li>
+            <li>Those are the families the markdown renderer imports lazily.</li>
+            <li>Then it calls <code>ElementFixture.settle()</code>.</li>
+          </ul>
+        </li>
+      </ul>
     </li>
     <li>
-      <a
-        href="../../../packages/ui/src/components/ui-nag/ui-nag.test.tsx"
-        target="src-packages-ui-src-components-ui-nag-ui-nag-test-tsx"
-        ><code>ui-nag.test.tsx</code></a
-      >: <code>display-time="40"</code> ran on the real clock; now fake timers +
-      <code>vi.advanceTimersByTimeAsync(40)</code>
+      The nag's test, <code title="packages/ui/src/components/ui-nag/ui-nag.test.tsx">ui-nag.test.tsx</code>:
+      <code>display-time="40"</code> ran on the real clock.
+      Now it uses fake timers, and advances them by 40 ms.
     </li>
-    <li>flakiness: every changed file ran green twice in full, popup / nag / markdown 4 more times</li>
+    <li>
+      Flakiness: every changed file ran green twice in full.
+      The popup, nag and markdown tests ran green 4 more times.
+    </li>
   </ul></epic-net-effect
 >

@@ -1,36 +1,53 @@
 <!-- plan-doc part:  #j91's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>Chose to await the promise the code itself is waiting on over a timer: three sleeps are gone, none kept.</p>
+<p>
+  Three sleeps in ui's tests are gone, and none kept: each test now awaits the same promise the code itself is
+  waiting on, not a timer.
+</p>
 <ul>
   <li>
-    <a
-      href="../../../packages/ui/src/docs-components/ui-docs-api/ui-docs-api.fallback.test.ts"
-      target="src-packages-ui-src-docs-components-ui-docs-api-ui-docs-api-fallback-test-ts"
-      ><code>ui-docs-api.fallback.test.ts</code></a
-    >,
-    <a
-      href="../../../packages/ui/src/docs-components/ui-docs-tokens/ui-docs-tokens.fallback.test.ts"
-      target="src-packages-ui-src-docs-components-ui-docs-tokens-ui-docs-tokens-fallback-test-ts"
-      ><code>ui-docs-tokens.fallback.test.ts</code></a
-    >: <code>setTimeout(resolve)</code> after <code>SiteData.load()</code> dropped. The fallback's own
-    <code>.then</code> on the SAME cached promise was attached first (on connect), so it has filled the section once the
-    test's await resumes (commented in <code>render()</code>).
+    The api and tokens fallback tests dropped a <code>setTimeout(resolve)</code> after <code>SiteData.load()</code>.
+    <ul>
+      <li>
+        The files:
+        <code title="packages/ui/src/docs-components/ui-docs-api/ui-docs-api.fallback.test.ts">ui-docs-api.fallback.test.ts</code>
+        and
+        <code title="packages/ui/src/docs-components/ui-docs-tokens/ui-docs-tokens.fallback.test.ts">ui-docs-tokens.fallback.test.ts</code>.
+      </li>
+      <li>
+        The fallback attaches its own <code>.then</code> to the SAME cached promise first, when it connects.
+        So it has filled the section by the time the test's await resumes.
+      </li>
+      <li>A comment in <code>render()</code> says so.</li>
+    </ul>
   </li>
   <li>
-    <code>ui-brand-color-picker.test.tsx</code> "a refused clipboard write": the 20 ms sleep is now
-    <code>await write.mock.results[0].value.catch(...)</code>: the picker's own <code>await</code> on that rejected
-    write runs its <code>catch</code> first.
+    The color picker's "a refused clipboard write" test: the 20 ms sleep is now an await on that rejected write.
+    <ul>
+      <li>It's <code>await write.mock.results[0].value.catch(...)</code>.</li>
+      <li>The picker's own <code>await</code> on the write runs its <code>catch</code> first.</li>
+    </ul>
   </li>
   <li>
-    <code>ui-brand-color.test.tsx</code> copy: <code>vi.advanceTimersByTime</code> -&gt;
-    <code>advanceTimersByTimeAsync</code>; <code>vi.useRealTimers()</code> added to <code>afterEach</code>, so a failing
-    test can't leak fake timers.
+    The brand colour's copy test advances fake timers with the async form (<code>advanceTimersByTimeAsync</code>).
+    <ul>
+      <li>
+        <code>vi.useRealTimers()</code> is added to <code>afterEach</code>, so a failing test can't leak fake timers.
+      </li>
+    </ul>
   </li>
 </ul>
 <epic-net-effect
-  ><p>
-    kept, as real browser events, not sleeps: one <code>requestAnimationFrame</code> in <code>ui-docs-toc</code>'s
-    <code>rendered()</code> (the toc scans a frame after connect) and the scroll test's <code>frame()</code> in
-    <code>ui-docs-api</code>; <code>vi.waitFor</code> / <code>expect.poll</code> polls (nav folds, theme sheets,
-    flourish resize) wait on a condition, never a guessed time.
-  </p></epic-net-effect
+  ><ul>
+    <li>
+      Kept, since they're real browser events, not sleeps:
+      <ul>
+        <li>one <code>requestAnimationFrame</code> in the toc's test: the toc scans a frame after it connects</li>
+        <li>the scroll test's <code>frame()</code>, in the api family's test</li>
+      </ul>
+    </li>
+    <li>
+      Also kept: polls (<code>vi.waitFor</code>, <code>expect.poll</code>) for the nav folds, theme sheets and the
+      flourish's resize.  They wait on a condition, never a guessed time.
+    </li>
+  </ul></epic-net-effect
 >
