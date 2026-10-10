@@ -1,0 +1,78 @@
+<!-- plan-doc part:  #j24's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>The plumbing for <code>.compiled.tsx</code>: how it's checked, built and run, and two dev dependencies it needed.</p>
+<ul>
+  <li>
+    <b>Checked</b>: <code>typecheck()</code> adds <code>jsx: "preserve"</code> and
+    <code>jsxImportSource: "@solidjs/web"</code> (as <code>app</code> and <code>ui</code> do), and checks
+    <code>app</code>'s <code>src/solid/solid.types.ts</code> with the files, for <code>&lt;ui-*&gt;</code> tags' JSX
+    types (<a href="../../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a>
+    ships none). Its temp folder links the repo's <code>node_modules</code>, so <code>solid-js</code> resolves from
+    outside the repo. Standard decorators with <code>accessor</code> check as they are: no
+    <code>experimentalDecorators</code>.
+  </li>
+  <li>
+    <b>Built</b>: <code>buildTsx()</code>,
+    <a href="../../../packages/spell/src/node/buildTsx.ts" target="src-packages-spell-src-node-buildtsx-ts"
+      ><code>packages/spell/src/node/buildTsx.ts</code></a
+    >: esbuild first (types stripped, decorators lowered, as
+    <a href="../../../vite.decorators.ts" target="src-vite-decorators-ts"><code>vite.decorators.ts</code></a
+    >), then Solid's compiler (<code>generate: "dom"</code>). The app's own order; Solid's compiler takes TypeScript
+    too, so the other order works as well.
+  </li>
+  <li>
+    <b>Run</b>: <code>runCode()</code> builds a <code>.tsx</code> to a <code>.mjs</code> first; the contract test runs
+    <code>ts/solid</code> as <code>.tsx</code>.
+    <a href="../../../packages/cli/src/runner/hooks.mjs" target="src-packages-cli-src-runner-hooks-mjs"
+      ><code>hooks.mjs</code></a
+    >
+    now finds Solid from <code>@spell/core</code>'s folder, so the built program (in a temp folder) and its runtime
+    share ONE Solid.
+  </li>
+  <li>
+    <b>Dev dependencies</b>: <code>@solidjs/compiler</code> <code>2.0.0-rc.13</code> for <code>spell</code> (already
+    installed, through <code>@solidjs/vite-plugin</code>; now declared); <code>linkedom</code> for <code>core</code>'s
+    tests. Its tests now run Solid's CLIENT build (<a href="../../../vitest.config.ts" target="src-vitest-config-ts"
+      ><code>vitest.config.ts</code></a
+    >), so
+    <a href="../../../packages/core/src/drawing.test.ts" target="src-packages-core-src-drawing-test-ts"
+      ><code>drawing.test.ts</code></a
+    >
+    can draw into a fake page.
+  </li>
+  <li>
+    A spell node tool reading an <code>app</code> file goes against the one-way package order, but it's a declaration
+    file, read by <code>tsc</code> only. The alternative, a second copy of those 5 lines, would drift.
+  </li>
+</ul>
+<epic-code title="packages/spell/src/node/buildTsx.ts · 9 lines" language="ts">
+  <pre>
+const lowered = await transform(code, {
+  loader: "tsx", jsx: "preserve", target: "es2022", format: "esm", keepNames: true, sourcefile: filename
+})
+const drawn = await compileSolidJsx(lowered.code, {
+  filename: filename.replace(/\.tsx$/, ".jsx"),
+  generate: "dom",
+  moduleName: "@solidjs/web"
+})
+return drawn.code</pre>
+</epic-code>
+<p>
+  Proven on a hand-written sample of the target's output,
+  <a href="../../../packages/spell/src/test/Cards.sample.tsx" target="src-packages-spell-src-test-cards-sample-tsx"
+    ><code>packages/spell/src/test/Cards.sample.tsx</code></a
+  >
+  (<code>@prop</code>, <code>@drawn</code>, <code>@thing</code>, <code>&lt;Show&gt;</code>, <code>&lt;For&gt;</code>, a
+  <code>&lt;ui-button&gt;</code>): it checks clean, and under
+  <code>runCode(..., { extension: ".tsx", dom: true })</code> it draws, a click flips a card through
+  <code>&lt;Show&gt;</code> and a <code>&lt;ui-button&gt;</code>'s handler bumps the score.
+</p>
+<epic-net-effect
+  ><ul>
+    <li><code>.compiled.tsx</code> checks, builds and runs with no change to the JavaScript side.</li>
+    <li>
+      Two dev dependencies added, both versions already in
+      <a href="../../../yarn.lock" target="src-yarn-lock"><code>yarn.lock</code></a
+      >.
+    </li>
+  </ul></epic-net-effect
+>

@@ -1,0 +1,51 @@
+<!-- plan-doc part:  #j23's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The <code>@drawn</code> decorator lives in core's
+  <a href="../../../packages/core/src/drawing.ts" target="src-packages-core-src-drawing-ts"><code>drawing.ts</code></a
+  >, beside <code>spellCore.drawThing()</code>, not in <code>$/util/reactive</code> as P12's Files field says.
+</p>
+<ul>
+  <li>
+    Why: the net is Solid's (<code>&lt;Errored&gt;</code>, a memo), and <code>util</code> never imports Solid. In core,
+    <code>drawThing()</code> and <code>@drawn</code> share ONE function, <code>drawInNet()</code>: no copy.
+  </li>
+  <li>
+    <code>@drawn</code> marks the method it returns (a symbol), so <code>drawThing()</code> on a thing whose
+    <code>draw()</code> is already <code>@drawn</code> calls it straight: one net, never two.
+  </li>
+  <li>
+    JavaScript output keeps calling <code>spellCore.drawThing(card)</code>; TypeScript writes
+    <code>@drawn draw()</code> and draws a child with a plain <code>{card.draw()}</code>. <code>mountApp()</code> works
+    for both.
+  </li>
+  <li>
+    Exported by <code>@spell/core</code> with <code>prop</code>, <code>state</code>, <code>derived</code> and
+    <code>thing</code> (from <code>$/util</code>).
+  </li>
+</ul>
+<epic-code title="packages/core/src/drawing.ts · 10 lines" language="ts">
+  <pre>
+export function drawn&lt;This extends object, Draw extends (this: This) =&gt; Drawing&gt;(
+  draw: Draw,
+  _context: ClassMethodDecoratorContext&lt;This, Draw&gt;
+): Draw {
+  const drawInItsNet = function (this: This): Drawing {
+    return drawInNet(this, () =&gt; draw.call(this))
+  }
+  Object.defineProperty(drawInItsNet, DRAWN, { value: true })
+  return drawInItsNet as Draw
+}</pre>
+</epic-code>
+<p>
+  Pinned by core's
+  <a href="../../../packages/core/src/drawing.test.ts" target="src-packages-core-src-drawing-test-ts"
+    ><code>drawing.test.ts</code></a
+  >: a throw shows the stand-in and the pile keeps drawing; <code>drawThing()</code> and <code>mountApp()</code> on a
+  <code>@drawn</code> thing make ONE <code>&lt;Errored&gt;</code> (two, with the marker check removed).
+</p>
+<epic-net-effect
+  ><ul>
+    <li>One error net for both targets, in core, where Solid is.</li>
+    <li>P12's Files field names the wrong folder for <code>@drawn</code>.</li>
+  </ul></epic-net-effect
+>
