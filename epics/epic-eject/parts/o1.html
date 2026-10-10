@@ -1,2 +1,245 @@
 <!-- plan-doc part:  #o1's body in epic-eject.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>What goes where: the part that becomes durable docs in the last phase.</p>
+<p>
+  Both pains in the kickoff prompt, and the third one (<code>/epic</code> can't go to another project), have one
+  cause: the epic system is TOOLING, but it lives inside the PRODUCT repo.
+</p>
+<ul>
+  <li>Git versions it per branch, like the product code.</li>
+  <li>So every worktree carries its own copy of the epic tools, as old as the worktree.</li>
+  <li>And each window runs a MIX of copies: some pieces from main, some from its worktree.</li>
+</ul>
+<h4 id="o1-copies">Which copy a window runs</h4>
+<p>What happens, in order, when Owen types <code>/epic</code> in a worktree window:</p>
+<ol>
+  <li>
+    The session started at the MAIN checkout's root (the root-first trick, <a href="#o1-duplicates">below</a>). So the
+    <code>epic</code> skill's text Claude reads is main's, and so are the hooks that run around it.
+  </li>
+  <li>
+    The skill runs <code>spell dev plan-doc ...</code>. The <code>spell</code> command is a link to main's command-line
+    tool, so main's front end starts.
+  </li>
+  <li>
+    That front end hands most commands on to the checkout it was called FROM: the details pages, the window commands,
+    the page server, the agents list, the doc links. In a worktree, that's the worktree's own copy, as old as the
+    worktree (<code title="packages/cli/src/dev/passThrough.ts:73">findCheckout()</code> picks it).
+  </li>
+  <li>
+    Opening the plan doc builds a link through the worktree's own address on the page server, so the side bar loads
+    the worktree's committed plan-doc script (<code title="packages/epics/pack/epics.pack.js">epics.pack.js</code>).
+    <b>The plan doc LOOKS as old as the branch,</b> even though the doc itself is shared and current.
+  </li>
+  <li>
+    The VS Code extension (the Review tab, the side-bar docs) is whichever checkout last ran
+    <code>spell dev vscode</code>, for the whole machine. Today it was built from <code>output-targets</code>, 54
+    commits behind, at 02:44, then from main at 02:55.
+  </li>
+  <li>
+    Only the shared content (the plan doc itself, the templates, the <code>agents/</code> rules) is the same in every
+    window at once.
+  </li>
+</ol>
+<p>So a feature added from one window reaches another one piece at a time, and some pieces only when its branch merges main.</p>
+<h4 id="o1-behind">How far behind the worktrees are</h4>
+<p>Counted on 2026-10-10:</p>
+<ui-table compact>
+  <table>
+    <thead>
+      <tr>
+        <th>Worktree</th>
+        <th>Commits behind main</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>epic-components</code></td>
+        <td>154</td>
+      </tr>
+      <tr>
+        <td><code>drawable-thing</code></td>
+        <td>83</td>
+      </tr>
+      <tr>
+        <td><code>output-targets</code></td>
+        <td>54</td>
+      </tr>
+      <tr>
+        <td>the others</td>
+        <td>0-5</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>
+  <b>Nothing makes a running worktree catch up.</b> Merging main in (<code>spell dev worktree merge-main</code>) only
+  happens on its own when Owen runs <code>/epic resume</code>.
+</p>
+<h4 id="o1-causes">Root causes, ranked</h4>
+<ol>
+  <li>Nothing makes a running worktree catch up with main.</li>
+  <li>
+    One feature is split across copies that update at different times. Main's skill and front end drive the worktree's
+    tools and plan-doc script, so a new feature lands half-done in an old window.
+  </li>
+  <li>The side bar shows plan docs through the worktree's address, so it gets that worktree's old plan-doc script.</li>
+  <li>Epic work done IN a worktree isn't live anywhere until it merges, not even in its own session.</li>
+  <li>
+    One VS Code extension per machine: the last checkout to build it wins, with no version bump, and every window needs
+    a reload to pick it up.
+  </li>
+</ol>
+<p>Plus three hazards:</p>
+<ul>
+  <li>
+    An old worktree's docs-index script rewrites the SHARED docs index in its old format (the papercuts log,
+    2026-10-05).
+  </li>
+  <li>
+    A tool missing from a worktree silently runs main's instead, because worktrees sit inside main's folder and node
+    finds main's copy by climbing up.
+  </li>
+  <li>36 page servers left running for worktrees that are gone.</li>
+</ul>
+<h4 id="o1-duplicates">The duplicate files</h4>
+<p>
+  Why every worktree window shows main's files too: main's root is the window's FIRST folder, on purpose. Call it the
+  <b>root-first trick</b>:
+</p>
+<ul>
+  <li>The Claude panel lists only the sessions saved under a window's first folder.</li>
+  <li>
+    The worktree hook (<code title=".claude/hooks/worktree.mjs">worktree.mjs</code>) was meant to keep every session
+    saved at main's root, so that every window lists every session.
+  </li>
+  <li>
+    <b>That trick already fails:</b> 18 sessions since 2026-10-02, this one included, were saved under their worktree's
+    folder instead.
+  </li>
+</ul>
+<p>What leaks out of having main in every window:</p>
+<ul>
+  <li>
+    Quick Open and Find in Files show both copies of a file. The setting that hides main's files only hides top-level
+    entries. Owen edited main's <code>UINagHost.ts</code> by mistake (the papercuts log).
+  </li>
+  <li>Source Control shows two repos.</li>
+  <li>The window's VS Code settings are main's (folder 1's), not the worktree's.</li>
+  <li>
+    The window script's header (<code title="scripts/window.mjs:12">window.mjs</code>) claims Quick Open shows each
+    file once: that's wrong.
+  </li>
+  <li>
+    Worktrees nest inside main (<code>.claude/worktrees/</code>), so node and yarn, looking for a package, can climb
+    into main's tree.
+  </li>
+</ul>
+<h4 id="o1-ties">What ties it to spell</h4>
+<p>
+  About 46,000 lines of production code, plus about 13,000 lines of tests, in nine layers. Rough sizes, in thousands of
+  lines:
+</p>
+<ui-table compact>
+  <table>
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>Lines (k)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>the plan-doc elements (<code>&lt;epic-*&gt;</code>)</td>
+        <td>15</td>
+      </tr>
+      <tr>
+        <td>the plan-doc tool and review code (<code title="packages/epics/src">packages/epics</code>)</td>
+        <td>11.4</td>
+      </tr>
+      <tr>
+        <td>the page assets (scripts and styles the docs load)</td>
+        <td>5.6</td>
+      </tr>
+      <tr>
+        <td>the docs tools</td>
+        <td>4.2</td>
+      </tr>
+      <tr>
+        <td>the <code>spell dev</code> commands</td>
+        <td>3.9</td>
+      </tr>
+      <tr>
+        <td>the skills</td>
+        <td>2.7</td>
+      </tr>
+      <tr>
+        <td>the window script (<code title="scripts/window.mjs">window.mjs</code>)</td>
+        <td>1.3</td>
+      </tr>
+      <tr>
+        <td>the VS Code extension's epic parts</td>
+        <td>1.2</td>
+      </tr>
+      <tr>
+        <td>the page server's epic parts</td>
+        <td>0.9</td>
+      </tr>
+      <tr>
+        <td>the hooks</td>
+        <td>0.5</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>
+  The biggest tie: the <code>spell</code> command is the epic system's API. The skills call <code>spell dev</code>
+  hundreds of times, and the hooks run the command-line tool by its path in this repo.
+</p>
+<epic-aside title="every hard tie to spell-app, found 2026-10-10">
+  <ol>
+    <li>
+      The <code>spell</code> command is the API: the skills call <code>spell dev</code> hundreds of times; the hooks run
+      <code title="packages/cli/bin/spell.mjs">spell.mjs</code> by path.
+    </li>
+    <li>
+      A fixed layout: paths under <code>packages/docs/tools/</code> are written into the code (the tool table in
+      <code title="packages/cli/src/dev/passThrough.ts">passThrough.ts</code>, and
+      <code title="packages/cli/src/commands/planDocCommand.ts:52">planDocCommand.ts</code>).
+    </li>
+    <li>
+      Absolute paths: <code>../spell-app-dev</code> and <code>/Users/owen/...</code> in the skills, the hooks and the
+      Claude settings.
+    </li>
+    <li>
+      The plan template loads its scripts and styles by paths inside this repo (the docs assets folder, the plan-doc
+      script).
+    </li>
+    <li>
+      The elements are built on Spell UI (<code>$/ui/core</code>), Solid 2 rc.13 and the 2.3 MB Spell UI bundle. That's
+      fine: spell may be a dependency.
+    </li>
+    <li>
+      Tangles:
+      <ul>
+        <li>
+          epic logic inside the page server (<code title="packages/server/src/site/EpicCards.ts">EpicCards</code>,
+          <code title="packages/server/src/site/EpicState.ts">EpicState</code>)
+        </li>
+        <li>the docs tools import the epics package</li>
+        <li>the hooks import the window script</li>
+        <li>
+          the session, worktree, park, stock and shared commands load the whole spell compiler, through the
+          command-line package's single entry file
+        </li>
+      </ul>
+    </li>
+    <li>
+      The page server's port 4747, its <code>.spell-server.json</code> file, and the page routes in the root
+      <code>package.json</code>.
+    </li>
+    <li>
+      Files outside the repo: <code>~/.spell/...</code>, and the session-title hook in <code>~/.claude/hooks/</code>.
+    </li>
+    <li>The epic views ship inside the spell LANGUAGE extension for VS Code.</li>
+    <li>The base branch <code>main</code> and the <code>yarn install</code> step are written into the code.</li>
+  </ol>
+</epic-aside>
