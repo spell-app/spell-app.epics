@@ -1,38 +1,59 @@
 <!-- plan-doc part:  #j128's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Owen's note in
-  <a
-    href="../../../packages/ui/src/components/ui-button/UIButton.tsx"
-    target="src-packages-ui-src-components-ui-button-uibutton-tsx"
-    ><code>UIButton.tsx</code></a
-  >
-  asked for <code>this.on("click", this.onHostClick)</code>: a listener removed with the element. Built as
-  <code>listen(type, listener, { target, ...options })</code>: one <code>AbortController</code> per element, made by the
-  first call, aborted when the host is released (not on disconnect: <code>keepAlive</code>).
+  Components add host listeners with <code>UIElement.listen()</code>, which removes them with the element.
+  It's not named <code>on()</code>: that's an attribute of <code>&lt;ui-dimmer&gt;</code> and &lt;ui-form&gt;.
 </p>
 <ul>
   <li>
-    Named <code>listen</code>: a method named <code>on</code> on <code>UIElement</code> would hide the
-    <code>on</code> attribute's getter on <code>&lt;ui-dimmer on="hover"&gt;</code> and
-    <code>&lt;ui-form on="blur"&gt;</code> (group 7 found it).
+    Owen's note in <code title="packages/ui/src/components/ui-button/UIButton.tsx">UIButton.tsx</code> asked for
+    <code>this.on("click", this.onHostClick)</code>: a listener removed with the element.
   </li>
   <li>
-    Converted: <code>UIElement</code>'s own <code>slotchange</code>, <code>DialogElement</code> (2),
-    <code>UIShape</code> (2), <code>UIToast</code> (6), <code>UIButton</code>, <code>UIDimmer</code>,
-    <code>UISidebar</code>, <code>UINag</code>, <code>UIPopup</code> (5), <code>UITransition</code>,
-    <code>UIDropdown</code>. Listeners an EFFECT stops (<code>UIMarkdown</code>'s <code>hashchange</code>,
-    <code>UITabs</code>' history, <code>UIPopup</code>'s target, <code>UIDimmer</code>'s parent) keep their own
-    controller, aborted in the cleanup.
+    Built as <code>listen(type, listener, { target, ...options })</code>.
+    <ul>
+      <li>One <code>AbortController</code> per element, made by the first call.</li>
+      <li>It's aborted when the host is released, not on disconnect (<code>keepAlive</code>).</li>
+    </ul>
   </li>
   <li>
-    Two private methods already had the name: <code>UITable.listen()</code> became <code>watchHost()</code> (it uses
-    <code>listen()</code>), <code>UIDocsTokens.listen(section)</code> became <code>takeInnerEvents(section)</code>.
-    <code>NativeFallback</code> keeps its own <code>listen(target, type, fn)</code> (fallbacks aren't controllers).
+    Why "listen": a method named <code>on</code> on <code>UIElement</code> would hide the on attribute's getter.
+    <ul>
+      <li>That attribute is on <code>&lt;ui-dimmer on="hover"&gt;</code> and <code>&lt;ui-form on="blur"&gt;</code>.</li>
+      <li>Group 7 found it.</li>
+    </ul>
   </li>
-  <li>Test: hears the host across a move, stops after <code>dispose()</code>.</li>
+  <li>
+    Converted:
+    <epic-code title="converted (count) · 2 lines" language="text">
+      <pre>
+UIElement's own slotchange, DialogElement (2), UIShape (2), UIToast (6), UIButton, UIDimmer,
+UISidebar, UINag, UIPopup (5), UITransition, UIDropdown</pre>
+    </epic-code>
+  </li>
+  <li>
+    Listeners an EFFECT stops keep their own controller, aborted in the effect's cleanup.
+    <ul>
+      <li>the markdown's <code>hashchange</code></li>
+      <li>the tabs' history</li>
+      <li>the popup's target</li>
+      <li>the dimmer's parent</li>
+    </ul>
+  </li>
+  <li>
+    Two private methods already had the name:
+    <ul>
+      <li><code>UITable.listen()</code> became <code>watchHost()</code>, which calls listen().</li>
+      <li><code>UIDocsTokens.listen(section)</code> became <code>takeInnerEvents(section)</code>.</li>
+      <li>
+        <code>NativeFallback</code> keeps its own <code>listen(target, type, fn)</code>: fallbacks aren't components.
+      </li>
+    </ul>
+  </li>
+  <li>Test: it hears the host across a move, and stops after <code>dispose()</code>.</li>
 </ul>
 <epic-net-effect
   ><ul>
-    <li>same listeners, same lifetimes; ~25 lines of AbortController plumbing gone</li>
+    <li>The same listeners, with the same lifetimes.</li>
+    <li>About 25 lines of AbortController plumbing are gone.</li>
   </ul></epic-net-effect
 >

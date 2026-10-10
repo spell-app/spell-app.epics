@@ -1,42 +1,64 @@
 <!-- plan-doc part:  #j124's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Group 6 found it: Solid rc.13 runs an effect's apply on EVERY re-run of its compute (<code>createEffectNode()</code>
-  sets <code>_equals: false</code>), and a getter or <code>@derived</code> member tracks the sources UNDER it, so an
-  <code>@onChange</code> over one re-ran whenever anything underneath moved (<code>&lt;ui-tab&gt;</code>'s
-  <code>ui-show</code> fired three times).
+  <code>@onChange</code> now runs only when a member's value actually changed.
+  A memo that compares the values sits before the effect.
 </p>
 <ul>
   <li>
-    <code>Reactive.startEffects()</code>:
-    <code>createEffect(createMemo(compute, { equals: isSameList }), apply)</code> -- the members' values compared one by
-    one (<code>===</code>). Skipping inside the apply was no option: Solid has run the previous cleanup by then.
+    Group 6 found the problem: Solid rc.13 runs an effect's apply on EVERY re-run of its compute.
+    <ul>
+      <li><code>createEffectNode()</code> sets <code>_equals: false</code>.</li>
+      <li>A getter, or a <code>@derived</code> member, tracks the sources UNDER it.</li>
+      <li>So an <code>@onChange</code> over one re-ran whenever anything underneath moved.</li>
+      <li>For example, <code>&lt;ui-tab&gt;</code>'s <code>ui-show</code> fired three times.</li>
+    </ul>
   </li>
   <li>
-    Workarounds removed: <code>UITab</code>'s <code>wasShownLastTime</code>, <code>UITabs</code>'
-    <code>swappedForValue</code> and its roving memo (<code>sameRovingKey</code>, <code>RovingKey</code>: now
-    <code>@onChange("isReady", "isConnected", "isVertical", "tabs", "selectedIndex") onRovingChanged()</code>),
-    <code>UISearch</code>'s two combined getters (<code>shouldShowPopover</code>, <code>shownHighlightedResult</code>:
-    back to the rows' two-member <code>@onChange</code>s, which return early in the same cases).
+    The fix, in <code>Reactive.startEffects()</code>: a memo compares the members' values one by one
+    (<code>===</code>), before the effect.
+    <epic-code title="the shape · 1 line" language="text">
+      <pre>createEffect(createMemo(compute, { equals: isSameList }), apply)</pre>
+    </epic-code>
+    <ul>
+      <li>Skipping inside the apply was no option: by then, Solid has run the previous cleanup.</li>
+    </ul>
   </li>
   <li>
-    Tests (<a
-      href="../../../packages/ui/src/elements/Reactive.test.tsx"
-      target="src-packages-ui-src-elements-reactive-test-tsx"
-      ><code>Reactive.test.tsx</code></a
-    >): a non-idempotent <code>@onChange</code> over a getter runs once per real change of its value, and a multi-member
-    one skips a re-run where no value changed; both fail without the fix (checked).
+    Workarounds removed:
+    <ul>
+      <li><code>UITab</code>'s <code>wasShownLastTime</code></li>
+      <li>
+        <code>UITabs</code>' swappedForValue, and its roving memo (sameRovingKey, RovingKey).
+        Now it's one <code>@onChange</code>:
+        <epic-code title="the new member · 1 line" language="text">
+          <pre>@onChange("isReady", "isConnected", "isVertical", "tabs", "selectedIndex") onRovingChanged()</pre>
+        </epic-code>
+      </li>
+      <li>
+        <code>UISearch</code>'s two combined getters (shouldShowPopover, shownHighlightedResult).
+        It's back to the table's two-member <code>@onChange</code>s, which return early in the same cases.
+      </li>
+    </ul>
   </li>
-  <li>One memo per <code>@onChange</code> more (a few bytes per element).</li>
+  <li>
+    Tests, in <code title="packages/ui/src/elements/Reactive.test.tsx">Reactive.test.tsx</code>:
+    <ul>
+      <li>An <code>@onChange</code> over a getter, with a side effect, runs once per real change of its value.</li>
+      <li>One over several members skips a re-run where no value changed.</li>
+      <li>Both fail without the fix (checked).</li>
+    </ul>
+  </li>
+  <li>The cost: one more memo per <code>@onChange</code>, a few bytes per element.</li>
 </ul>
 <epic-net-effect
   ><ul>
     <li>
-      every family's <code>@onChange</code> behaves as the old memo chains did: it runs when its value changes, not when
-      a source under a getter moves
+      Every family's <code>@onChange</code> behaves as the old memo chains did.
+      It runs when its value changes, not when a source under a getter moves.
     </li>
     <li>
-      <code>UIMenu</code>'s roving <code>@onChange("isMenubar", "orientation")</code> (group 10's caveat) no longer
-      restarts on a notify without a change
+      <code>UIMenu</code>'s roving <code>@onChange("isMenubar", "orientation")</code>, group 10's caveat, no longer
+      restarts on a notify without a change.
     </li>
   </ul></epic-net-effect
 >

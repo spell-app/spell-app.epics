@@ -1,39 +1,55 @@
 <!-- plan-doc part:  #j122's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  <code>@derived</code> is a self-tracking cache over the record (coordinator's design correction): it can't see a
-  <code>Cell</code> or a memo change. The family hooks these two read (<code>classValue()</code>,
-  <code>extraClasses</code>, <code>rules</code>, <code>validationValue</code> ...) still read <code>Cell</code>s, so:
+  Two getters stay plain until step 2, though the table says <code>@derived</code>: the root classes, and a form
+  element's <code>validation</code>.
+  And <code>:state(invalid)</code> stays in the validity effect.
 </p>
 <ul>
   <li>
-    <code>UIElement.rootClasses</code> and <code>FormElement.validation</code> are PLAIN getters for now (the rows say
-    <code>@derived</code>); step 2 makes them <code>@derived</code> once every override reads record members.
+    Why: <code>@derived</code> is a cache that tracks reads of the record (the coordinator's design correction).
+    <ul>
+      <li>It can't see a <code>Cell</code> or a memo change.</li>
+      <li>
+        The family hooks these two read still read <code>Cell</code>s: <code>classValue()</code>, extraClasses, rules,
+        validationValue ...
+      </li>
+    </ul>
   </li>
   <li>
-    <code>UIRadio</code> / <code>TextControl</code> keep their own <code>validation</code> memoized
-    (<code>groupValidation</code>, <code>mergedValidation</code>), as before: a plain getter made a radio group's
-    effects read every member's <code>selected</code> and frame a stale membership (<code>EFFECT_RELAY_TEAR</code>,
-    pinned by
-    <a
-      href="../../../packages/ui/src/components/ui-checkbox/ui-checkbox.test.tsx"
-      target="src-packages-ui-src-components-ui-checkbox-ui-checkbox-test-tsx"
-      ><code>ui-checkbox.test.tsx</code></a
-    >).
+    <code>UIElement.rootClasses</code> and <code>FormElement.validation</code> are PLAIN getters for now.
+    Step 2 makes them <code>@derived</code>, once every override reads record members.
   </li>
   <li>
-    <code>:state(invalid)</code> is set by <code>onValidationChanged()</code> (the validity effect), NOT
-    <code>@cssState</code> (the rows' choice): in the one <code>:state()</code> render effect it also reads a radio's
-    own <code>selected</code>, and tears the same way.
+    <code>UIRadio</code> and <code>TextControl</code> keep their own memoized validation, as before
+    (groupValidation, mergedValidation).
+    <ul>
+      <li>
+        With a plain getter, a radio group's effects read every member's <code>selected</code>, and framed a stale
+        membership.
+      </li>
+      <li>
+        That's <code>EFFECT_RELAY_TEAR</code>, pinned by
+        <code title="packages/ui/src/components/ui-checkbox/ui-checkbox.test.tsx">ui-checkbox.test.tsx</code>.
+      </li>
+    </ul>
   </li>
   <li>
-    Only <code>IconGlyph.svg</code> is <code>@derived</code> in the core (it clones; it reads only
-    <code>svgTemplate</code>).
+    <code>:state(invalid)</code> is set by <code>onValidationChanged()</code>, the validity effect.
+    <ul>
+      <li>NOT by <code>@cssState</code>, the table's choice.</li>
+      <li>
+        In the one render effect for <code>:state()</code>, it would also read a radio's own selected, and tear the
+        same way.
+      </li>
+    </ul>
+  </li>
+  <li>
+    Only <code>IconGlyph.svg</code> is <code>@derived</code> in the core: it clones, and reads only its SVG template.
   </li>
 </ul>
 <epic-net-effect
   ><ul>
-    <li>
-      no behaviour change; the class string is rebuilt per read instead of shared (one reader in nearly every family)
-    </li>
+    <li>No behaviour change.</li>
+    <li>The class string is rebuilt on each read, instead of shared;  nearly every family has one reader.</li>
   </ul></epic-net-effect
 >
