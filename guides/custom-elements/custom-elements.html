@@ -110,10 +110,11 @@
             knowledge assumed</ui-item
           >
           <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="green">built</ui-label> (epic spell-element, P6)</ui-item
+            >Status: <ui-label size="mini" color="green">built</ui-label> (epic spell-element, P6; brought up to date
+            in P13)</ui-item
           >
           <ui-item icon="flask"
-            >Checked on: branch <code>spell-element</code>, 2026-10-09; every code block is quoted from the file it
+            >Checked on: branch <code>spell-element</code>, 2026-10-10; every code block is quoted from the file it
             names</ui-item
           >
         </ui-list>
@@ -144,6 +145,10 @@
                 </li>
                 <li><b>hooks</b> it fills in (<code>render()</code>, <code>onConnect()</code> ...)</li>
               </ul>
+            </li>
+            <li>
+              A <b>lint guard</b> keeps component files on the decorators: it flags an effect, listener or timer written
+              by hand (<a href="#decorator-lint">6</a>).
             </li>
             <li>The components draw with Solid 2; this guide only says what's ours, and links Solid's own rules.</li>
           </ul>
@@ -1313,7 +1318,7 @@ export { UIButton, UIButtons, UIOr }</code></pre>
                   <td><code>@E.on("click") protected onClick(event)</code></td>
                 </tr>
                 <tr>
-                  <td>a handler that reads members to decide</td>
+                  <td>a handler or getter that reads members to decide</td>
                   <td><code>@E.untracked</code> on it</td>
                 </tr>
                 <tr>
@@ -1323,6 +1328,10 @@ export { UIButton, UIButtons, UIOr }</code></pre>
                 <tr>
                   <td>a value made once</td>
                   <td><code>@E.lazy get</code>, <code>@E.once</code> method</td>
+                </tr>
+                <tr>
+                  <td>a setting whose change makes it again</td>
+                  <td><code>@E.resets("load") static accessor url</code></td>
                 </tr>
               </tbody>
             </table>
@@ -1475,9 +1484,9 @@ get chosenValues(): readonly string[] {
               </li>
               <li>
                 A state that only mirrors its attribute needs no getter: its name goes in
-                <code>elementSetup.cssStates</code> (<code>cssStates: ["active"]</code> on
-                <code>&lt;ui-label&gt;</code>).
+                <code>elementSetup.cssStates</code>.
                 <ul>
+                  <li>The label's: <code>cssStates: ["active"]</code>.</li>
                   <li>A subclass that adds states spreads its base's list, as for <code>styleSheets</code>.</li>
                   <li><code>define()</code> throws on a name the tag has no attribute or member for (a typo).</li>
                 </ul>
@@ -1502,10 +1511,13 @@ get isFluid(): boolean {
           <ui-section id="decorator-aria" header="@E.aria" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <code>@E.aria("busy")</code> on a getter or accessor: <code>internals.ariaBusy</code> follows it (<code
-                  >true</code
-                >
-                => <code>"true"</code>; <code>false</code> / <code>undefined</code> => removed).
+                <code>@E.aria("busy")</code> on a getter or accessor: the element's busy state, as a screen reader sees
+                it, follows it.
+                <ul>
+                  <li>It's written to <code>internals.ariaBusy</code>, not to an attribute.</li>
+                  <li>true is written as <code>"true"</code></li>
+                  <li>false or undefined removes it</li>
+                </ul>
               </li>
               <li>Stacks with <code>@E.cssState</code>, one decorator a line.</li>
               <li>
@@ -1513,11 +1525,14 @@ get isFluid(): boolean {
                 once.
               </li>
               <li>
-                Short names in both, from <code>E.AriaNames</code> (<code>busy</code> is <code>ariaBusy</code>,
-                <code>aria-busy</code>): a name not there fails TypeScript.
+                Short names in both, from <code>E.AriaNames</code>; a name not there fails TypeScript.
+                <ul>
+                  <li><code>busy</code> stands for <code>ariaBusy</code>, the internals' name for aria-busy.</li>
+                  <li>A new name is one line in that map.</li>
+                </ul>
               </li>
               <li>
-                NOTE: a getter that reads <code>UI</code> (texts, <code>UI.browser</code>) must wait for
+                NOTE: a getter that reads <code>UI</code> (its texts, its browser checks) must wait for
                 <code>isReady</code>: the runtime throws until it has loaded.
               </li>
             </ul>
@@ -1597,8 +1612,13 @@ protected followPreference() {
             <ul>
               <li>
                 On a getter: a value read from the element's light DOM (its children), worked out again when what the
-                options name changes (<code>MutationObserver</code>'s <code>childList</code>, <code>subtree</code>,
-                <code>attributes</code> ...).
+                options name changes.
+                <ul>
+                  <li>
+                    The options are a <code>MutationObserver</code>'s: <code>childList</code>, subtree, attributes ...
+                  </li>
+                  <li>Its old name was <code>@E.fromContent</code>, before P11 of epic spell-element.</li>
+                </ul>
               </li>
               <li>Readers hear of it only when the VALUE moved, so a reader that writes the light DOM can't loop.</li>
               <li>On a method: called with the mutations on each change, for a change that writes other members.</li>
@@ -1653,7 +1673,21 @@ protected onSlotChangeForParts(event: Event) {
                 Also on an arrow-function field handed to JSX:
                 <code>@E.untracked private readonly onKeyDown = (event) =&gt; { ... }</code>.
               </li>
+              <li>
+                And on a getter, for a value read to ACT on, never to follow:
+                <ul>
+                  <li>a setting an animation reads as it starts: <code>@E.untracked private get cssDuration()</code></li>
+                  <li>
+                    a DOM element's script API over its component, so a page's effect reading it doesn't re-run each
+                    time it changes
+                  </li>
+                </ul>
+              </li>
               <li>NEVER on a method a getter, JSX or an effect calls to FOLLOW its reads.</li>
+              <li>
+                Not needed in a constructor or a field's starting value: every component is built inside
+                <code>untrack()</code> already.
+              </li>
             </ul>
             <ui-accordion class="spell-code" styled>
               <ui-title>&lt;ui-select&gt; syncs its native select · <code>UISelect.tsx · 9 lines</code></ui-title>
@@ -1691,15 +1725,48 @@ private syncSelect() {
                   </li>
                 </ul>
               </li>
-              <li>
-                <code>elementSetup</code>'s keys: <code>styleSheets</code>, <code>cssStates</code>,
-                <code>isAFormControl</code>, <code>delegatesFocus</code>, <code>slotAssignment</code>,
-                <code>isAPart</code>, <code>DOMElement</code>, <code>Fallback</code>, <code>canRenderUnstyled</code>,
-                <code>aria</code>.
-              </li>
+              <li><code>elementSetup</code>'s keys, by what they say (each one's default is below the table):</li>
             </ul>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>what it says</th>
+                    <th>keys</th>
+                  </tr>
+                  <tr>
+                    <td>its sheets, and the states that mirror an attribute</td>
+                    <td><code>styleSheets</code>, <code>cssStates</code></td>
+                  </tr>
+                  <tr>
+                    <td>how the browser treats it</td>
+                    <td><code>isAFormControl</code>, <code>delegatesFocus</code>, <code>slotAssignment</code></td>
+                  </tr>
+                  <tr>
+                    <td>a part of another element, or a root, as <code>&lt;ui-root&gt;</code> is</td>
+                    <td><code>isAPart</code>, <code>root</code></td>
+                  </tr>
+                  <tr>
+                    <td>its DOM element class, and the plain stand-in it shows when it breaks</td>
+                    <td><code>DOMElement</code>, <code>Fallback</code></td>
+                  </tr>
+                  <tr>
+                    <td>it looks right before its styles load</td>
+                    <td><code>canRenderUnstyled</code></td>
+                  </tr>
+                  <tr>
+                    <td>fixed ARIA, by short name: <code>{ role: "status", live: "polite" }</code></td>
+                    <td><code>aria</code></td>
+                  </tr>
+                  <tr>
+                    <td>what the shared attributes mean for it (<a href="#disabled-and-friends">13</a>)</td>
+                    <td><code>disabled</code>, <code>loading</code>, <code>visible</code>, <code>animation</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
             <ui-accordion class="spell-code" styled>
-              <ui-title>UIComponent's defaults · <code>UIComponent.tsx · 16 lines</code></ui-title>
+              <ui-title>UIComponent's defaults · <code>UIComponent.tsx · 17 lines</code></ui-title>
               <ui-content>
                 <pre><code class="language-ts">@protoMerged static elementSetup: Partial&lt;E.ElementSetup&gt; = {
   styleSheets: {},
@@ -1711,6 +1778,7 @@ private syncSelect() {
   DOMElement: DOMElement,
   Fallback: undefined,
   canRenderUnstyled: false,
+  root: false,
   aria: {},
   disabled: "unusable",
   loading: "loader",
@@ -1721,7 +1789,14 @@ private syncSelect() {
             </ui-accordion>
           </ui-section>
 
-          <ui-section id="decorator-lazy-once" header="@E.lazy and @E.once" sticky collapsible dividing collapsed>
+          <ui-section
+            id="decorator-lazy-once"
+            header="@E.lazy, @E.once and @E.resets"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
             <ul>
               <li>
                 <code>@E.lazy get x()</code>: made on first read, then kept. NOT reactive: a reactive kept value is
@@ -1731,7 +1806,23 @@ private syncSelect() {
                 <code>@E.once</code> on a method: runs once, and every later call gets the same result (a loader's
                 promise).
               </li>
-              <li><code>E.forget(object, "name")</code> drops what either kept (tests).</li>
+              <li>
+                <code>@E.resets("load")</code> on an <code>accessor</code>: every write to it forgets what the members
+                it names kept, so the next call makes it anew.
+                <ul>
+                  <li>Every write resets, even of the same value.</li>
+                  <li>It needs <code>accessor</code>: a plain field's decorator never sees a later write.</li>
+                  <li>The names are checked, so a typo is a type error.</li>
+                </ul>
+              </li>
+              <li><code>E.forget(object, "name")</code> drops what either kept, by hand (tests).</li>
+              <li>
+                Which to use:
+                <ul>
+                  <li>made once and kept: <code>@E.lazy</code> or <code>@E.once</code></li>
+                  <li>changes later: <code>@E.state</code>, even when nothing reactive reads it</li>
+                </ul>
+              </li>
             </ul>
             <ui-accordion class="spell-code" styled>
               <ui-title>The runtime's browser support, made once · <code>Browser.ts · 3 lines</code></ui-title>
@@ -1742,11 +1833,117 @@ private syncSelect() {
               </ui-content>
             </ui-accordion>
             <ui-accordion class="spell-code" styled>
-              <ui-title>The docs site's data, loaded once · <code>SiteData.ts · 3 lines</code></ui-title>
+              <ui-title
+                >The docs site's data, loaded once until its address changes ·
+                <code>SiteData.ts · 6 lines</code></ui-title
+              >
               <ui-content>
-                <pre><code class="language-ts">@E.once static load(): Promise&lt;SiteDataFile&gt; {
+                <pre><code class="language-ts">@E.resets("load") static accessor url: string | undefined
+
+/** The data file, fetched once per page (until `url` is set). */
+@E.once static load(): Promise&lt;SiteDataFile&gt; {
   return SiteData.fetch(SiteData.resolve())
 }</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section
+            id="decorator-lint"
+            header="The lint guard:  decorators, not effects by hand"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <p>
+              <code>yarn lint</code> flags a component file that does BY HAND what a decorator or a timing helper
+              already does (epic spell-element, P10).
+            </p>
+            <ul>
+              <li>
+                Where: the component folders of Spell UI, of the plan docs' elements (epics) and of the brand pages.
+                <ul>
+                  <li>Not the app, whose components are plain Solid functions.</li>
+                  <li>Not the element core itself, nor tests.</li>
+                </ul>
+              </li>
+              <li>Each message names what to write instead.</li>
+            </ul>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>rule (<code>spell-ui/...</code>)</th>
+                    <th>flags</th>
+                    <th>write instead</th>
+                  </tr>
+                  <tr>
+                    <td><code>no-solid-effect</code></td>
+                    <td>Solid's <code>createEffect</code>, <code>onSettled</code>, <code>onMount</code> ...</td>
+                    <td>
+                      <a href="#decorator-on-change">@E.onChange</a>,
+                      <a href="#decorator-while-connected">@E.whileConnected</a>,
+                      <a href="#decorator-from-content">@E.watches</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>no-mutation-observer</code></td>
+                    <td>a <code>new MutationObserver()</code></td>
+                    <td><a href="#decorator-from-content">@E.watches</a></td>
+                  </tr>
+                  <tr>
+                    <td><code>no-dom-element-listener</code></td>
+                    <td><code>addEventListener</code> on the DOM element</td>
+                    <td><a href="#decorator-on">@E.on</a>, or <code>this.on()</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>no-untrack</code></td>
+                    <td><code>untrack(...)</code></td>
+                    <td><a href="#decorator-untracked">@E.untracked</a> on the method or getter</td>
+                  </tr>
+                  <tr>
+                    <td><code>no-raw-timer</code></td>
+                    <td><code>setTimeout</code>, <code>queueMicrotask</code>, <code>requestAnimationFrame</code> ...</td>
+                    <td>a <a href="#timing">timing helper</a>: <code>E.after()</code>, <code>E.afterSolidUpdate()</code> ...</td>
+                  </tr>
+                  <tr>
+                    <td><code>no-function-component</code></td>
+                    <td>an exported function component in a family folder</td>
+                    <td>a family class, or a private render method</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p>A use that has to stay says why, and goes on an allow-list.</p>
+            <ul>
+              <li>
+                On the line above it: a disable comment for that one line, with its reason after <code>--</code>.
+              </li>
+              <li>
+                The same reason goes on the allow-list, in a test (<a
+                  href="../../packages/ui/tools/LintPatterns.test.ts"
+                  target="src-packages-ui-tools-lintpatterns-test-ts"
+                  title="packages/ui/tools/LintPatterns.test.ts"
+                  ><code>LintPatterns.test.ts</code></a
+                >).
+                <ul>
+                  <li>The test fails on a disable comment the list doesn't name, so every exception is seen in review.</li>
+                  <li>16 uses are on it today: helper classes no decorator reaches, watches on ANOTHER element ...</li>
+                </ul>
+              </li>
+              <li>
+                The rules themselves:
+                <a href="../../vite.lint.patterns.ts" target="src-vite-lint-patterns-ts" title="vite.lint.patterns.ts"
+                  ><code>vite.lint.patterns.ts</code></a
+                >, at the repo root. Agents' short form: ui's <code>AGENTS.md</code>, "The lint guard".
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>A use that stays, and its reason · <code>UIForm.tsx · 2 lines</code></ui-title>
+              <ui-content>
+                <pre><code class="language-ts">// oxlint-disable-next-line spell-ui/no-mutation-observer -- only while connected:  `@E.watches` lasts the element's whole life
+const observer = new MutationObserver(() =&gt; this.findForm())</code></pre>
               </ui-content>
             </ui-accordion>
           </ui-section>
@@ -2846,7 +3043,97 @@ get hasIcon(): boolean {
                 That's why a component never writes a name as a string: <code>this.partForName()</code>,
                 <code>this.send()</code>, <code>this.attributes.value</code> all resolve it for the actual tag.
               </li>
+              <li>
+                The <a href="#disabled-and-friends">shared attributes</a> are translated too:
+                <code>&lt;ie-boton desactivado&gt;</code> is disabled.
+                <ul>
+                  <li>
+                    Each language names them once, in its own shared file (<a
+                      href="../../packages/ui/src/vocabulary/SharedVocabulary.es.ts"
+                      target="src-packages-ui-src-vocabulary-sharedvocabulary-es-ts"
+                      title="packages/ui/src/vocabulary/SharedVocabulary.es.ts"
+                      ><code>SharedVocabulary.es.ts</code></a
+                    >).
+                  </li>
+                  <li>Every dictionary of that language reads it, without naming it; its own names still win.</li>
+                </ul>
+              </li>
             </ul>
+          </ui-section>
+
+          <ui-section id="pattern-root" sticky collapsible dividing collapsed>
+            <span slot="header">A root of your own: <code>&lt;spell-app&gt;</code></span>
+            <p>
+              A ROOT is the top of a page or an app: it loads each Spell UI family the first time its tag appears, and
+              holds the settings everything inside reads (theme, size, icons ...).
+            </p>
+            <ul>
+              <li><code>&lt;ui-root&gt;</code> is the page's.</li>
+              <li>
+                A subclass of its component, <code>UIRoot</code>, is a root too, under its own tag: so
+                <code>&lt;spell-app&gt;</code> needs nothing around it on a page.
+                <ul>
+                  <li>
+                    The family setting <code>root: true</code> says so; <code>UIRoot</code> sets it, so every subclass
+                    inherits it.
+                  </li>
+                  <li>The elements inside find their nearest root by it, for its settings and its app context.</li>
+                </ul>
+              </li>
+              <li>
+                Its vocabulary is the root's, plus its own; every root attribute works on it.
+                <ul>
+                  <li>
+                    Where they share a name, its own wins: <code>&lt;spell-app&gt;</code>'s width, height and assets.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Two hooks say what more it loads:
+                <ul>
+                  <li><code>contentRoots</code>: where else to look for tags, its own shadow root say</li>
+                  <li>
+                    <code>ownTagLoader(tag)</code>: how to load a tag of its own, which Spell UI's catalog doesn't
+                    know
+                  </li>
+                </ul>
+              </li>
+              <li>
+                So a page with only <code>&lt;spell-app&gt;</code>s downloads the widgets each app draws, and never the
+                editor: <code>&lt;spell-editor&gt;</code> loads only when one appears inside.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>&lt;spell-app&gt;, a root · <code>SpellApp.tsx · 7 lines</code></ui-title>
+              <ui-content>
+                <pre><code class="language-ts">export class SpellApp extends UIRoot&lt;typeof vocabulary&gt; {
+  @E.proto static vocabulary = vocabulary
+  @E.protoMerged static elementSetup = {
+    DOMElement: DOMSpellAppElement,
+    // clicking the program's text must not move focus to its first button
+    delegatesFocus: false
+  } satisfies Partial&lt;E.ElementSetup&gt;</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>What more it loads · <code>SpellApp.tsx · 14 lines</code></ui-title>
+              <ui-content>
+                <pre><code class="language-ts">/** What the root loads is in our shadow root too:  the widgets the runner draws. */
+protected get contentRoots(): readonly ParentNode[] {
+  return [this.domElement, this.domElement.renderRoot]
+}
+
+/**
+ * A spell tag inside us (`&lt;spell-editor&gt;`) loads from its own script beside ours (`spell-editor.js`),
+ * the first time one appears.
+ * - Every `spell-*` tag:  `&lt;tag&gt;.js`, as `vite.element.config.ts` names each family's script.
+ */
+protected ownTagLoader(tag: string): (() =&gt; Promise&lt;void&gt;) | undefined {
+  if (!tag.startsWith(SPELL_TAG_PREFIX)) return undefined
+  return () =&gt; import(/* @vite-ignore */ new URL(`${tag}.js`, BUNDLE).href).then(() =&gt; undefined)
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
           </ui-section>
         </ui-section>
 
@@ -2860,16 +3147,20 @@ get hasIcon(): boolean {
         >
           <ui-icon slot="icon" name="eye"></ui-icon>
           <p>
-            Every element takes <code>disabled</code>, <code>loading</code>, <code>visible</code> and
-            <code>animation</code>, though its vocabulary never names them, and the platform's own
-            <code>hidden</code> (<code>visible</code> turned round) and <code>inert</code> (epic spell-element, P8 and
-            P12).
+            Every element takes four shared attributes, though its vocabulary never names them: disabled, loading,
+            visible and animation (epic spell-element, P8 and P12).
           </p>
           <ul>
             <li>
-              <code>SharedVocabulary</code> adds the four to every tag's definition, docs data and manifests, unless the
-              vocabulary declares its own of that name: then its own spec and meaning win. None declares its own
-              <code>visible</code> or <code>animation</code>.
+              It takes the platform's own two as well: <code>hidden</code> (visible turned round) and
+              <code>inert</code>.
+            </li>
+            <li>
+              <code>SharedVocabulary</code> adds the four to every tag's definition, docs data and manifests.
+              <ul>
+                <li>A vocabulary that declares its own of that name wins: its own spec and meaning.</li>
+                <li>None declares its own visible or animation.</li>
+              </ul>
             </li>
             <li>
               <code>UIComponent</code> reads them ("Shared states", "Shown or hidden"); what each means for a family is
@@ -2886,8 +3177,10 @@ get hasIcon(): boolean {
           <ui-section id="shared-disabled" header="disabled" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <code>:state(disabled)</code> on every element, from <code>isMarkedDisabled</code>: the attribute, or a
-                <code>&lt;fieldset disabled&gt;</code> around a form control.
+                <code>:state(disabled)</code> on every element, from <code>isMarkedDisabled</code>.
+                <ul>
+                  <li>That's the attribute, or a disabled <code>&lt;fieldset&gt;</code> around a form control.</li>
+                </ul>
               </li>
               <li>
                 <code>elementSetup.disabled = "unusable"</code>, the default, is the base class's way:
@@ -2912,18 +3205,28 @@ get hasIcon(): boolean {
                 it means:
                 <ul>
                   <li>
-                    unusable its own way: a form control disables its native control (and stays announced as a disabled
-                    control), <code>&lt;ui-button&gt;</code> its <code>&lt;button&gt;</code>; each overrides
-                    <code>isDisabled</code>
+                    unusable its own way, overriding <code>isDisabled</code>:
+                    <ul>
+                      <li>a form control disables its native control, and stays announced as a disabled control</li>
+                      <li>the button disables its inner <code>&lt;button&gt;</code></li>
+                    </ul>
                   </li>
                   <li>
-                    only a look: <code>&lt;ui-icon&gt;</code>, <code>&lt;ui-segment&gt;</code> dim, clicks go through
+                    only a look, on text or a glyph: the icon, emoji, header, text and progress dim, and clicks go
+                    through
+                    <ul>
+                      <li>inert would hide their text from a screen reader and find-in-page</li>
+                    </ul>
                   </li>
                   <li>
                     something else: <code>&lt;ui-transition&gt;</code> pauses, <code>&lt;ui-dimmer&gt;</code> never
                     shows
                   </li>
                 </ul>
+              </li>
+              <li>
+                Most families take the default: cards, segments, labels, forms, fields, comments, images, tabs ... (epic
+                spell-element, P11).
               </li>
             </ul>
             <ui-accordion class="spell-code" styled>
@@ -2943,17 +3246,27 @@ get hasIcon(): boolean {
           <ui-section id="shared-loading" header="loading" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <code>:state(loading)</code> on every element (<code>isMarkedLoading</code>, <code>true</code> only).
+                <code>:state(loading)</code> on every element, from <code>isMarkedLoading</code> (true only).
               </li>
               <li>
-                <code>elementSetup.loading = "loader"</code>, the default: <code>aria-busy</code>, everything inside
-                inert and dimmed, and a spinner over it (<code>:state(busy)</code>: a <code>::after</code> placed by
-                anchor positioning on the first box, as most DOM elements have no box of their own).
+                <code>elementSetup.loading = "loader"</code>, the default:
+                <ul>
+                  <li><code>aria-busy</code></li>
+                  <li>everything inside inert and dimmed</li>
+                  <li>
+                    a spinner over it, <code>:state(busy)</code>: a <code>::after</code> placed on the first box
+                    <ul>
+                      <li>placed by anchor positioning, as most DOM elements have no box of their own</li>
+                    </ul>
+                  </li>
+                </ul>
               </li>
               <li>
-                <code>"its own"</code>: the family draws its own (<code>&lt;ui-button&gt;</code>'s spinner,
-                <code>&lt;ui-segment&gt;</code>'s veil), or <code>loading</code> means something else
-                (<code>&lt;ui-root&gt;</code>'s message).
+                <code>"its own"</code>: the family draws its own, or loading means something else to it.
+                <ul>
+                  <li>its own: the button's spinner, the segment's veil</li>
+                  <li>something else: <code>&lt;ui-root&gt;</code>'s message</li>
+                </ul>
               </li>
             </ul>
           </ui-section>
@@ -2970,13 +3283,24 @@ get hasIcon(): boolean {
                 load all read it.
               </li>
               <li>
-                The element writes a <code>visible</code> attribute back only where the page wrote one, so a page that
-                only uses <code>hidden</code> never sees <code>visible</code> appear.
+                The element writes a <code>visible</code> attribute back only where the page wrote one.
+                <ul>
+                  <li>So a page that only uses <code>hidden</code> never sees visible appear.</li>
+                </ul>
               </li>
               <li>
-                Neither written: the family decides, <code>elementSetup.visible</code> (<code>"shown"</code> by
-                default). A modal, popup, flyout, sidebar, dimmer, loader or transition starts hidden, and writes
-                <code>hidden</code> on itself when it first connects.
+                Neither written: the family decides, by <code>elementSetup.visible</code> (<code>"shown"</code> by
+                default).
+                <ul>
+                  <li>
+                    A modal, popup, flyout, sidebar, dimmer, loader or transition starts hidden, and writes
+                    <code>hidden</code> on itself when it first connects.
+                  </li>
+                  <li>
+                    Removing <code>visible</code> later, with no hidden written, hands the choice back to the family: a
+                    modal hides, a message stays shown.
+                  </li>
+                </ul>
               </li>
               <li>
                 Both written in markup and disagreeing: <code>hidden</code> wins (the browser already hid it). After the
@@ -3038,20 +3362,42 @@ get hasIcon(): boolean {
                 <code>attributeValues.visible</code>.
               </li>
               <li>
-                <code>UIComponent</code> holds it as <code>isVisible</code>, controlled: a person's action asks first,
-                <code>requestChange("isVisible", false, () =&gt; this.send("ui-close", { visible: false }))</code>.
+                <code>UIComponent</code> holds it as <code>isVisible</code>, controlled: a person's action asks first.
+                <ul>
+                  <li>
+                    Closing a modal:
+                    <code>requestChange("isVisible", false, () =&gt; this.send("ui-close", { visible: false }))</code>
+                  </li>
+                  <li>
+                    The events: <code>ui-open</code> or <code>ui-close</code> before, which a page may cancel;
+                    <code>ui-show</code> or <code>ui-hide</code> once the animation is done.
+                  </li>
+                </ul>
               </li>
               <li>
-                Each change runs the hook <code>onVisibleChange(visible, animation)</code>: by default the animation on
-                the shadow root's top-level boxes, through <code>UI.transitions</code>. A family overrides it to show
-                and hide its own way (a dialog's <code>showModal()</code> / <code>close()</code>).
+                Each change runs the hook <code>onVisibleChange(visible, animation)</code>.
+                <ul>
+                  <li>By default: the animation on the shadow root's top-level boxes, through the transitions helper.</li>
+                  <li>
+                    A family overrides it to show and hide its own way: a dialog's <code>showModal()</code> and
+                    <code>close()</code>.
+                  </li>
+                </ul>
               </li>
               <li>
-                While a hide runs, <code>:state(hiding)</code> keeps the element on screen (<a
-                  href="../../packages/ui/src/styles/reset.css"
-                  target="src-packages-ui-src-styles-reset-css"
-                  ><code>reset.css</code></a
-                >); <code>:state(hidden)</code> once it's done.
+                While a hide runs, <code>:state(hiding)</code> keeps the element on screen; <code>:state(hidden)</code>
+                once it's done.
+                <ul>
+                  <li>
+                    One rule in the shared reset sheet (<a
+                      href="../../packages/ui/src/styles/reset.css"
+                      target="src-packages-ui-src-styles-reset-css"
+                      title="packages/ui/src/styles/reset.css"
+                      ><code>reset.css</code></a
+                    >) does the hiding for every family; a family wanting a hidden look of its own styles
+                    <code>:state(hidden)</code>.
+                  </li>
+                </ul>
               </li>
             </ul>
           </ui-section>
@@ -3083,6 +3429,16 @@ get hasIcon(): boolean {
               <li>
                 The switch stills a family's own CSS motion too (an overlay's transition), as reduced motion does; a
                 loader keeps spinning.
+                <ul>
+                  <li>
+                    That part is a CSS style query: a browser without style queries still runs the family's CSS
+                    motion, though showing and hiding stay at once.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <code>:state(still)</code> marks an element whose own animation is <code>none</code>; the reset sheet
+                stills everything inside it by that state, so a translated tag works too.
               </li>
               <li>
                 <code>UIComponent.animationToRun</code> works it out. <code>&lt;ui-visibility&gt;</code>'s lazy images
@@ -3393,7 +3749,7 @@ get hasIcon(): boolean {
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">Last checked 2026-10-09 against branch <code>spell-element</code>.</p>
+          <p class="meta">Last checked 2026-10-10 against branch <code>spell-element</code>.</p>
         </footer>
       </main>
     </div>
