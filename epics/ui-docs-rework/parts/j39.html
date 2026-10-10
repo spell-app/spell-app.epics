@@ -81,17 +81,12 @@ export const KIND_WEIGHT: Readonly&lt;Record&lt;SearchKind, number&gt;&gt; = {
   ><ul>
     <li>the likeliest answer is on top, whichever group it's in</li>
     <li>
-      the numbers live in
-      <a
-        href="../../../packages/ui/src/docs-components/ui-docs-search/ui-docs-search.types.ts"
-        target="src-packages-ui-src-docs-components-ui-docs-search-ui-docs-search-types-ts"
-        ><code>ui-docs-search.types.ts</code></a
-      >
-      (<code>SCORES</code>, <code>KIND_WEIGHT</code>)
+      the numbers live in the search's
+      <code title="packages/ui/src/docs-components/ui-docs-search/ui-docs-search.types.ts">ui-docs-search.types.ts</code
+      >, as SCORES and KIND_WEIGHT
     </li>
   </ul></epic-net-effect
->
-<epic-original
+><epic-original
   ><epic-version as-of="2026-10-04 08:08"
     ><p>
       <b>Title, as first written:</b> P8 search: ranking puts the page shown first, attributes last, groups by best hit
@@ -105,5 +100,99 @@ export const KIND_WEIGHT: Readonly&lt;Record&lt;SearchKind, number&gt;&gt; = {
       best hit. So vertical on Divider: On this page first, then Sections, then Attributes; or: Components first.
       Options: a fixed group order; more or fewer per group.
     </p></epic-version
+  ><epic-version as-of="2026-10-10 00:31"
+    ><p>
+      Each result gets a score from how well it matches, weighted by what kind of result it is. The page you're on comes
+      first and attributes last, and each group is ordered by its best hit.
+    </p>
+    <p>
+      How the whole query matches the result's title, or one of its terms (a term: its tag, an aka, a topic or a page
+      name):
+    </p>
+    <ui-table celled compact striped unstackable
+      ><table>
+        <thead>
+          <tr>
+            <th>Match</th>
+            <th class="num right aligned">Title</th>
+            <th class="num right aligned">Term</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>exact</td>
+            <td class="num right aligned">1000</td>
+            <td class="num right aligned">700</td>
+          </tr>
+          <tr>
+            <td>at the start</td>
+            <td class="num right aligned">800</td>
+            <td class="num right aligned">500</td>
+          </tr>
+          <tr>
+            <td>at a word start</td>
+            <td class="num right aligned">600</td>
+            <td class="num right aligned">350</td>
+          </tr>
+          <tr>
+            <td>inside a word</td>
+            <td class="num right aligned">400</td>
+            <td class="num right aligned">200</td>
+          </tr>
+        </tbody>
+      </table></ui-table
+    >
+    <ul>
+      <li>Or, every word of the query at a word start somewhere: 300, plus 100 per word found in the title.</li>
+      <li>
+        Times a weight per kind:
+        <ul>
+          <li>On this page: 1.25</li>
+          <li>Components and Pages: 1</li>
+          <li>other pages' Sections: 0.9</li>
+          <li>Attributes: 0.8</li>
+        </ul>
+      </li>
+      <li>Plus boosts: the main tag +20, the shown page's own attributes +40. Minus 0.5 per character of the title.</li>
+      <li>A match inside a word needs 3 characters: <code>or</code> finds Or, never every <code>color</code>.</li>
+      <li>Each group shows its best 4-6, and groups are ordered by their best hit.</li>
+      <li>
+        Examples:
+        <ul>
+          <li><code>vertical</code> on the Divider page: On this page first, then Sections, then Attributes</li>
+          <li><code>or</code>: Components first</li>
+        </ul>
+      </li>
+    </ul>
+    <epic-code title="ui-docs-search.types.ts · the kind weights · 7 lines" language="ts" open>
+      <pre>
+export const KIND_WEIGHT: Readonly&lt;Record&lt;SearchKind, number&gt;&gt; = {
+  here: 1.25,
+  component: 1,
+  page: 1,
+  section: 0.9,
+  attribute: 0.8
+}</pre>
+    </epic-code>
+    <p><b>The options:</b></p>
+    <ol>
+      <li>Groups ordered by their best hit (chosen).</li>
+      <li>A fixed group order.</li>
+      <li>More, or fewer, results per group.</li>
+    </ol>
+    <epic-net-effect
+      ><ul>
+        <li>the likeliest answer is on top, whichever group it's in</li>
+        <li>
+          the numbers live in
+          <a
+            href="../../../packages/ui/src/docs-components/ui-docs-search/ui-docs-search.types.ts"
+            target="src-packages-ui-src-docs-components-ui-docs-search-ui-docs-search-types-ts"
+            ><code>ui-docs-search.types.ts</code></a
+          >
+          (<code>SCORES</code>, <code>KIND_WEIGHT</code>)
+        </li>
+      </ul></epic-net-effect
+    ></epic-version
   ></epic-original
 >
