@@ -550,6 +550,11 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- `src/solid/Markdown.browser.test.tsx` "draws markdown as HTML once $/markdown has loaded" (2026-10-10, epic
+  `spell-element`):  fails when run with the other `src/solid` browser tests, passes alone (`yarn vitest run --project
+  browser src/solid/Markdown.browser.test.tsx`).  Seen since P4 of `spell-element` (2026-10-09), every full
+  `yarn test` in `packages/app`.  Likely test isolation:  `$/markdown`'s lazy load already done by an earlier test, so
+  "the plain text until then" never shows.  Not checked on a tip before P4.
 - `src/runner/element.build.test.ts` "one Solid per page" fails on `main` (2026-10-07, found merging outline-spell;
   the same in the main checkout):  the built runner's `ui/customElement.js` imports Solid itself, where only
   `spell-solid.js` should (`expected [ 'spell-solid.js', 'ui/customElement.js' ] to deeply equal [ 'spell-solid.js' ]`).
