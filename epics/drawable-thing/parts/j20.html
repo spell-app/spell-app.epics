@@ -1,0 +1,103 @@
+<!-- plan-doc part:  #j20's details in drawable-thing.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  When a program runs again, its drawable types' tags keep their first definition, and app swaps the two things behind
+  them; Spell UI needed nothing new for it.
+</p>
+<ul>
+  <li>
+    A page can define a tag only once, so <code>&lt;drawable-solitaire-card&gt;</code> stays the element class the first
+    run defined.
+    <ul>
+      <li>
+        A program runs again after an edit in the editor, or when a second <code>&lt;spell-app&gt;</code> on the page
+        runs the same project.
+      </li>
+    </ul>
+  </li>
+  <li>
+    What it draws with:
+    <a href="../../../packages/app/src/runner/SpellElement.tsx" target="src-packages-app-src-runner-spellelement-tsx"
+      ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.defineFor()</code></a
+    >
+    records the new run's runtime and class for the tag, and the element looks them up whenever it draws.
+  </li>
+  <li>
+    How it looks: the type's own CSS (its <code>&lt;css&gt;</code>) is a style sheet named for the tag.
+    <ul>
+      <li>
+        On a re-run,
+        <a
+          href="../../../packages/app/src/runner/SpellElement.tsx"
+          target="src-packages-app-src-runner-spellelement-tsx"
+          ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.restyle()</code></a
+        >
+        hands the new CSS to Spell UI's own
+        <a href="../../../packages/ui/src/runtime/Styles.ts" target="src-packages-ui-src-runtime-styles-ts"
+          ><code title="packages/ui/src/runtime/Styles.ts">UI.styles.register()</code></a
+        >.
+      </li>
+      <li>That replaces the sheet's rules in every element that uses it, at once, with nothing drawn again.</li>
+      <li>
+        It's the same call Spell UI's hot reload makes when a component's CSS file changes (<a
+          href="../../../packages/ui/src/elements/HotDefinitions.ts"
+          target="src-packages-ui-src-elements-hotdefinitions-ts"
+          ><code title="packages/ui/src/elements/HotDefinitions.ts">HotDefinitions.updateStyle()</code></a
+        >).
+      </li>
+    </ul>
+  </li>
+  <li>
+    The sheet is never empty: <code>register()</code> takes an empty text to mean "unregister".
+    <ul>
+      <li>A type with no CSS gets a comment instead, so a type that gains CSS on a later run still restyles.</li>
+    </ul>
+  </li>
+  <li>
+    Why no hook: the element class is generic, one per tag. Nothing in it is about the type but its names (its
+    vocabulary) and its sheet, so there is nothing to redefine.
+  </li>
+</ul>
+<epic-code title="SpellElement.defineFor(), the re-run path · 6 lines" language="ts">
+  <pre>
+SPELL_ELEMENTS.set(tag, { Class, spellCore })
+// never "":  `UI.styles.register()` takes that as "unregister"
+const css = SpellElement.cssOf(Class) || `/* &lt;${tag}&gt;:  no styles of its own */`
+if (customElements.get(tag)) return SpellElement.restyle(tag, css)
+...
+@E.protoMerged static elementSetup = { styleSheets: { [tag]: css } }</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="Replace each tag's sheet with UI.styles.register()" recommended
+    ><ul>
+      <li>Chosen and built.</li>
+      <li>No change to Spell UI: the call already exists, and its hot reload relies on it.</li>
+      <li>No redraw: only the CSS changes in the elements already on the page.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="A &quot;redefine this tag's component&quot; hook in Spell UI's element base"
+    ><ul>
+      <li>
+        What the plan said (the recompile question, <a href="#q5">Q5</a>, and P7's Files: HotDefinitions and
+        UIComponent).
+      </li>
+      <li>Not needed while the element class is generic: there's no new class to put behind the tag.</li>
+      <li>The cost: new code in Spell UI, and a test there, for nothing the swap uses.</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-aside title="when the hook may come back">
+  <p>
+    The Element API phase (<a href="#p8">P8</a>) turns each property into an attribute. A custom element's watched
+    attributes are read ONCE, when its tag is defined, so a property a re-run adds would get no attribute. If that
+    matters, P8 may need option B after all.
+  </p> </epic-aside
+><epic-net-effect>
+  <ul>
+    <li>Spell UI is unchanged by P7: HotDefinitions and UIComponent, named in P7's Files, weren't touched.</li>
+    <li>
+      The swap lives in app's
+      <a href="../../../packages/app/src/runner/SpellElement.tsx" target="src-packages-app-src-runner-spellelement-tsx"
+        ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement</code></a
+      >: one sheet per tag, replaced in place.
+    </li>
+    <li>P8 may still need a redefine hook, for attributes a re-run adds.</li>
+  </ul>
+</epic-net-effect>
