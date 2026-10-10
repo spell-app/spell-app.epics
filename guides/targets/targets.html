@@ -36,14 +36,15 @@
           <ui-item icon="flag"
             >Status: P1-P9 <ui-label size="mini" color="green">merged</ui-label> into <code>main</code> 2026-10-07 (PR
             #27), epic
-            <a href="../../epics/output-targets/output-targets.plan.html" target="output-targets">Output Targets</a
+            <a href="../../epics/output-targets/output-targets.plan.html" target="output-targets"
+              >Output Targets</a
             ></ui-item
           >
           <ui-item icon="code branch"
             >On branch <code>output-targets</code>, not merged: P10-P17. Compiled spell draws with Solid,
             <code>ts/solid</code> writes Solid TypeScript as a person would, and every fixture checks with 0
-            <code>tsc</code> errors. Still to come there: P18 (one rule per file) and P19 (javascript gets
-            TypeScript's tidiness and names).</ui-item
+            <code>tsc</code> errors. Still to come there: P18 (one rule per file) and P19 (javascript gets TypeScript's
+            tidiness and names).</ui-item
           >
           <ui-item icon="flask"
             >Checked on: branch <code>output-targets</code>, 2026-10-10, against the code, the fixtures' snapshots and
@@ -51,7 +52,6 @@
           >
           <!-- P18: one rule per file, rule classes in PascalCase, rule tests as { input, js, ts }:  add to the status line and Sources once built -->
           <!-- P19: javascript gets the TypeScript output's tidiness and camelCase names, as a feature of each writer:  add to the status line once built -->
-
         </ui-list>
 
         <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
@@ -84,7 +84,9 @@
               Compiled spell draws with Solid, on <code>@spell/core</code>'s drawing module (see
               <a href="#drawing">3. Drawing with Solid</a>).
               <ul>
-                <li>Each drawn thing sits in its own error net: a broken card shows a stand-in, the rest keeps drawing.</li>
+                <li>
+                  Each drawn thing sits in its own error net: a broken card shows a stand-in, the rest keeps drawing.
+                </li>
                 <li>Spell and Spell UI share one reactive engine, in <code>$/util/reactive</code>.</li>
                 <li>The examples draw with Spell UI's own tags. React is gone, but for the CLI's terminal screens.</li>
               </ul>
@@ -497,7 +499,347 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
           </ui-section>
         </ui-section>
 
-        <ui-section id="3-writers" header="3. Writers" sticky collapsible dividing collapsed>
+        <ui-section id="drawing" header="3. Drawing with Solid" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="paintbrush"></ui-icon>
+          <p>
+            Both targets draw with Solid, through <code>@spell/core</code>'s drawing module,
+            <a
+              href="../../../spell-app/.claude/worktrees/output-targets/packages/core/src/drawing.ts"
+              target="src-packages-core-src-drawing-ts"
+              ><code title="packages/core/src/drawing.ts">drawing.ts</code></a
+            >. A value that changes updates only its own node: flipping a card changes that card, and nothing redraws
+            the board.
+          </p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>spell</th>
+                  <th>javascript</th>
+                  <th>TypeScript</th>
+                </tr>
+                <tr>
+                  <td><code>&lt;span class="suit"&gt;{...}&lt;/span&gt;</code></td>
+                  <td><code>spellCore.element({ tag, props, children })</code></td>
+                  <td>real JSX, which Solid's compiler builds</td>
+                </tr>
+                <tr>
+                  <td>a value that can change</td>
+                  <td>a function: <code>() =&gt; this.short_suit</code></td>
+                  <td>an expression in braces: <code>{this.shortSuit}</code></td>
+                </tr>
+                <tr>
+                  <td><code>draw the card</code></td>
+                  <td><code>spellCore.drawThing(card)</code></td>
+                  <td><code>{card.draw()}</code>, its <code>draw()</code> marked <code>@drawn</code></td>
+                </tr>
+                <tr>
+                  <td><code>draw cards in it</code></td>
+                  <td><code>spellCore.drawItems(this)</code></td>
+                  <td><code>&lt;For each={this.items}&gt;</code></td>
+                </tr>
+                <tr>
+                  <td>an <code>if ... return</code> in <code>to draw</code></td>
+                  <td>as written: <code>draw()</code> runs again when what it read changes</td>
+                  <td><code>&lt;Show&gt;</code> / <code>&lt;Switch&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+
+          <ui-section id="drawing-js" header="In javascript" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Compiled spell has no build step, so its JSX is a call: <code>spellCore.element()</code>, built on
+                Solid's <code>@solidjs/h</code>.
+              </li>
+              <li>
+                Every value in a drawing that can change is written as a function, so Solid calls it again when what it
+                read changes.
+                <ul>
+                  <li>Literals, elements, inline handlers and <code>on*</code> props stay as they were.</li>
+                  <li>In the tree, such a value is an <code>ASTJSXLiveValue</code>.</li>
+                </ul>
+              </li>
+              <li>
+                <code>element()</code> turns the spellings spell programs write into the page's:
+                <ul>
+                  <li><code>className</code> is <code>class</code>, <code>htmlFor</code> is <code>for</code></li>
+                  <li>
+                    a camelCase attribute on an HTML tag is lowercased: <code>colSpan</code> is <code>colspan</code>
+                  </li>
+                  <li>
+                    on a tag with a dash (<code>&lt;ui-form&gt;</code>), an object or a live value is set as a PROPERTY:
+                    an attribute holds only text
+                  </li>
+                  <li>
+                    a dotted tag (<code>&lt;UI.Form&gt;</code>) throws: "isn't an element: write Spell UI's own tag"
+                  </li>
+                </ul>
+              </li>
+              <li>
+                A thing's <code>draw()</code> runs again when something it read outside its live values changes, e.g.
+                the <code>is face down</code> an <code>if</code> chose by. Only that thing's node is drawn again.
+              </li>
+              <li>
+                A list drawn with <code>drawItems()</code> keeps each item's node, by identity (Solid's
+                <code>&lt;For&gt;</code>).
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Solitaire.snapshot.js, a card's draw() · 31 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-js">  draw() {
+    let className = (((((("Card face-" + this.direction) + " ") + this.rank) + " ") + this.suit) + " ui button compact fluid ")
+    if (this.is_face_down) { return spellCore.element({
+      tag: "div",
+      props: {
+        onClick: (event) =&gt; {
+          return spellCore.trigger('card-click', { card: this })
+        },
+        className: () =&gt; className
+      },
+      children: [
+        spellCore.element({ tag: "i", props: { className: "fitted bicycle icon" } })
+      ]
+    }) }
+    return spellCore.element({
+      tag: "div",
+      props: {
+        onClick: (event) =&gt; {
+          return spellCore.trigger('card-click', { card: this })
+        },
+        className: () =&gt; (className + this.color)
+      },
+      children: [
+        () =&gt; (this.short_rank + " "),
+        spellCore.element({ tag: "span", props: { className: "suit" }, children: [
+          () =&gt; this.short_suit
+        ] })
+      ]
+    })
+  }</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <!-- P19: javascript gets the TypeScript output's tidiness and camelCase names:  refresh this excerpt and the table above once built -->
+          </ui-section>
+
+          <ui-section id="drawing-ts" header="In TypeScript" sticky collapsible dividing collapsed>
+            <ul>
+              <li>Real JSX in a <code>.tsx</code>: Solid's compiler builds it, as it builds a hand-written app.</li>
+              <li>
+                A drawing in Solid's shapes, where the writer knows them:
+                <ul>
+                  <li>a computed local becomes an accessor, <code>const className = () =&gt; ...</code></li>
+                  <li>
+                    an <code>if ... return</code> chain becomes <code>&lt;Show&gt;</code> or <code>&lt;Switch&gt;</code>
+                  </li>
+                  <li><code>draw cards in it</code> becomes <code>&lt;For&gt;</code></li>
+                  <li>any other shape re-runs whole, inside its net</li>
+                </ul>
+              </li>
+              <li>
+                <code>@drawn draw()</code> puts the drawing in its own error net, so a parent draws a child with a plain
+                call, <code>{card.draw()}</code>.
+              </li>
+              <li>
+                Only the page's spellings, as Solid 2's JSX types take no others: <code>class</code>,
+                <code>colspan</code>, and <code>prop:</code> for a live value on a <code>&lt;ui-*&gt;</code> tag.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Solitaire.snapshot.tsx, a card's draw() · 19 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-tsx">  @drawn
+  draw() {
+    const className = () =&gt; `Card face-${this.direction} ${this.rank} ${this.suit} ui button compact fluid `
+    const click = () =&gt; trigger("card-click", { card: this })
+    return (
+      &lt;Show
+        when={this.isFaceDown}
+        fallback={
+          &lt;div class={className() + this.color} onClick={click}&gt;
+            {`${this.shortRank} `}
+            &lt;span class="suit"&gt;{this.shortSuit}&lt;/span&gt;
+          &lt;/div&gt;
+        }
+      &gt;
+        &lt;div class={className()} onClick={click}&gt;
+          &lt;i class="fitted bicycle icon" /&gt;
+        &lt;/div&gt;
+      &lt;/Show&gt;
+    )
+  }</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="error-net" header="Each drawn thing's error net" sticky collapsible dividing collapsed>
+            <p>One broken drawing no longer takes the app down. When a thing's <code>draw()</code> throws:</p>
+            <ul>
+              <li>one line goes on the program's console</li>
+              <li>
+                the app's element sends a cancelable <code>ui-error</code> event, <code>{ error, thing }</code>, the
+                same name Spell UI's elements use
+              </li>
+              <li>the thing shows a small stand-in, unless that event was cancelled</li>
+              <li>the rest of the drawing keeps working, and the net heals when the thing draws again</li>
+            </ul>
+            <p>ONE net, for both targets (<code>drawInNet()</code>):</p>
+            <ul>
+              <li>
+                javascript draws a thing with <code>spellCore.drawThing(card)</code>, which puts its
+                <code>draw()</code> in the net
+              </li>
+              <li>
+                TypeScript, and hand-written code, mark <code>draw()</code> with <code>@drawn</code>, which puts it
+                there itself
+              </li>
+              <li>
+                <code>drawThing()</code> calls a <code>@drawn</code> method straight: a second net would catch nothing
+                more
+              </li>
+            </ul>
+            <p>Inside, the net is three things, as Solid 2's own error boundary isn't enough alone:</p>
+            <ul>
+              <li>Solid's <code>&lt;Errored&gt;</code>, for what a live value throws later</li>
+              <li>a memo running <code>draw()</code>, so it runs again only for what IT read</li>
+              <li>
+                a <code>try</code> / <code>catch</code> making the stand-in once: <code>&lt;Errored&gt;</code> makes its
+                fallback again whenever anything under it changes (C13)
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="mounting" header="Mounting, and where it runs" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <code>App.start()</code> mounts the app with Solid's <code>render()</code>, in a root of its own
+                (<code>mountApp()</code>).
+                <ul>
+                  <li>It's left on the element as <code>spellRoot</code>.</li>
+                  <li>A runner unmounts it before running a program again.</li>
+                </ul>
+              </li>
+              <li>
+                <code>spell-runtime.js</code>, compiled spell's <code>@spell/core</code>, uses the page's ONE shared
+                Solid, from <code>spell-solid.js</code>.
+                <ul>
+                  <li>
+                    That file also holds Spell UI's element core, since <code>&lt;spell-app&gt;</code> is a Spell UI
+                    component (J54).
+                  </li>
+                  <li>
+                    The runtime never holds a Solid of its own, nor
+                    <a
+                      href="../../../spell-app/.claude/worktrees/output-targets/packages/docs/tools/_assets/spell-ui.js"
+                      target="src-packages-docs-tools-assets-spell-ui-js"
+                      ><code>spell-ui.js</code></a
+                    >: the build tests pin both.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <code>spell run</code> and the core contract load Solid's browser builds under node, on a fake page
+                (linkedom), with no global React.
+              </li>
+              <li>
+                <code>notify</code>, <code>alert</code>, <code>confirm</code> and <code>prompt</code> are Spell UI's
+                toast and dialogs, and the program waits for each answer.
+                <ul>
+                  <li>Under <code>spell run</code> they print on the program's console, and take a default answer.</li>
+                </ul>
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="one-engine" header="One reactive engine" sticky collapsible dividing collapsed>
+            <p>
+              Spell's reactive engine is in
+              <a
+                href="../../../spell-app/.claude/worktrees/output-targets/packages/util/src/reactive/"
+                target="src-packages-util-src-reactive"
+                ><code title="packages/util/src/reactive/">$/util/reactive</code></a
+              >, where Spell UI can use it too. It has no lodash and no Solid, so any package can import it, file by
+              file.
+            </p>
+            <ul>
+              <li>
+                Spell cells (<code>Cell</code>, <code>Derived</code>, <code>Reaction</code>): who read what, and telling
+                them when it changed.
+              </li>
+              <li>The records each object keeps its values in, and each class's <code>Schema</code>.</li>
+              <li><code>bridgeSolid()</code>, which the host calls with its Solid, so Solid hears of changes.</li>
+              <li>
+                The decorators, for compiled TypeScript and hand-written classes alike:
+                <ul>
+                  <li><code>@prop</code>: a property, its type and default from the decorator's arguments</li>
+                  <li>
+                    <code>@state</code>, new: its initializer is the starting value, and it warns when
+                    <code>create()</code> set it first
+                  </li>
+                  <li><code>@derived</code>: a memoized getter</li>
+                  <li><code>@state</code> and <code>@derived</code> take <code>{ equals }</code>, as Spell UI's do</li>
+                </ul>
+              </li>
+              <li>
+                Spell's own layer stays in <code>$/util/spell</code>: <code>Observable</code> and <code>@thing</code>.
+                <code>@drawn</code> is core's, beside the net it shares.
+              </li>
+              <li>
+                Spell UI still runs its own reactive members. Moving them onto this engine is its own piece of work,
+                with four costs to check first (C12). Until then, a derived value sees only its own side's members
+                (C11).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="spell-ui-tags" header="Spell UI's elements in spell" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A spell program writes a Spell UI element by its own tag, <code>&lt;ui-form&gt;</code>. The examples all
+                do; the React kits (<code>UI.*</code>, <code>SUI.*</code>) are gone.
+              </li>
+              <li>
+                Spell UI gained what the Todos example needed, for any page:
+                <ul>
+                  <li>
+                    <code>&lt;ui-form value={the app}&gt;</code>: each named control shows that property, and writes it
+                    back as you type or click
+                  </li>
+                  <li>
+                    <code>&lt;ui-repeat&gt;</code>: its children once per item of a list, each row bound to its item;
+                    <code>items={...}</code> takes a spell expression, <code>name</code> a property's name
+                  </li>
+                  <li><code>&lt;ui-form debug&gt;</code>: the bound object as live JSON, under the form</li>
+                </ul>
+              </li>
+              <li>
+                React is gone from spell programs, the app and their packages. Only the spell CLI keeps it, for its
+                terminal screens (Ink).
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Todos - Form Based, its form · 12 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-spell">&lt;ui-form debug value={the app}&gt;
+  &lt;ui-repeat items={the shownTasks of the app}&gt;
+    &lt;ui-fields&gt;
+      &lt;ui-field width="1"&gt;&lt;ui-checkbox name="completed" aria-label="Done"/&gt;&lt;/ui-field&gt;
+      &lt;ui-field width="10"&gt;&lt;ui-input name="title" aria-label="Task"/&gt;&lt;/ui-field&gt;
+    &lt;/ui-fields&gt;
+  &lt;/ui-repeat&gt;
+  &lt;ui-fields&gt;
+    &lt;ui-field width="11"&gt;&lt;ui-input name="newTaskName" placeholder="New task name" label="New task:"/&gt;&lt;/ui-field&gt;
+    &lt;ui-field&gt;&lt;ui-button disabled={the newTaskName of the app is ""} onClick={create a new task}&gt;Add Task&lt;/ui-button&gt;&lt;/ui-field&gt;
+  &lt;/ui-fields&gt;
+&lt;/ui-form&gt;</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="3-writers" header="4. Writers" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="feather"></ui-icon>
           <p>
             Every writer lives in
@@ -531,7 +873,8 @@ spell compile Solitaire --target ts/solid --stdout  # prints it, writes nothing<
               <ui-content>
                 <ui-header>P.TSWriter</ui-header>
                 <ui-description
-                  >A <code>JSWriter</code> that adds types: overrides a few hooks and three node kinds.</ui-description
+                  >Solid TypeScript: a <code>JSWriter</code> that writes JSX, decorators, types and TypeScript's names,
+                  from a <code>TSProject</code> that has seen the whole project.</ui-description
                 >
               </ui-content>
             </ui-card>
@@ -803,6 +1146,15 @@ protected methodFor(node: P.ASTNode, suffix: "" | "AsMember"): (node: P.ASTNode)
                 (<code>SP.hoistClassMembers()</code>, in <code>SpellProject.combineCompiled()</code>):
                 <code>Card.move_to_$pile</code> from <code>Pile.spell</code> goes in <code>class Card</code>.
               </li>
+              <li>
+                TypeScript goes further: EVERY member goes inside its class, even one spell patches on from outside
+                (<code>the pile of a card</code>, set first in <code>Pile.spell</code>). One class body per type, as a
+                person would write it (J21).
+              </li>
+              <li>
+                Only a member of a class ANOTHER project declares is still patched on, with an
+                <code>interface</code> merged with the class first.
+              </li>
             </ul>
           </ui-section>
 
@@ -829,7 +1181,31 @@ protected methodFor(node: P.ASTNode, suffix: "" | "AsMember"): (node: P.ASTNode)
               <li>
                 <code>JSWriter.instance</code> is the one <code>ASTNode.compile()</code> and <code>js/solid</code> use.
               </li>
+              <li>
+                What changed in the javascript since P9:
+                <ul>
+                  <li>
+                    a value in a drawing that can change is a function (see <a href="#drawing-js">In javascript</a>)
+                  </li>
+                  <li>
+                    events are <code>spellCore.on()</code> / <code>spellCore.trigger()</code>: no compiled program
+                    writes <code>spellCore.RUNTIME</code>
+                  </li>
+                  <li>
+                    <code>?.</code> where a value may be nothing: <code>spellCore.getItemAt(deck, -1)?.name</code>
+                  </li>
+                  <li>
+                    a method's name keeps its receiver's type after a little word:
+                    <code>update_the_total_of_calculator()</code>, where the name would end in a dangling "of"
+                  </li>
+                  <li>
+                    core's position names: <code>positionOf()</code>, <code>getItemAt()</code> (see
+                    <a href="#position-names">Position names</a>)
+                  </li>
+                </ul>
+              </li>
             </ul>
+            <!-- P19: javascript gets the TypeScript output's tidiness and camelCase names, as a feature of each writer (each says how it writes spell's names):  describe it here once built -->
           </ui-section>
 
           <ui-section id="tswriter" header="TSWriter" sticky collapsible dividing collapsed>
@@ -838,12 +1214,153 @@ protected methodFor(node: P.ASTNode, suffix: "" | "AsMember"): (node: P.ASTNode)
                 href="../../packages/parser/src/writers/TSWriter.ts"
                 target="src-packages-parser-src-writers-tswriter-ts"
                 ><code title="packages/parser/src/writers/TSWriter.ts">TSWriter.ts</code></a
-              >: the JavaScript, plus a type wherever TypeScript needs one and spell knows it.
+              >: Solid TypeScript, written as a person would write it by hand (Owen: "as if I was writing the class by
+              hand").
             </p>
+            <ul>
+              <li>
+                It sees the whole project first: <code>TSWriter.forProject()</code> makes a
+                <a
+                  href="../../../spell-app/.claude/worktrees/output-targets/packages/parser/src/writers/TSProject.ts"
+                  target="src-packages-parser-src-writers-tsproject-ts"
+                  ><code title="packages/parser/src/writers/TSProject.ts">TSProject</code></a
+                >, the plain facts it needs.
+                <ul>
+                  <li>which members are getters, so a read can use TypeScript's name</li>
+                  <li>which variables are set again (<code>let</code>), and which aren't (<code>const</code>)</li>
+                  <li>which members move into their classes, and what each class declares</li>
+                  <li>which lists become typed constants, and each list class's item type</li>
+                </ul>
+              </li>
+              <li>
+                <code>TSWriter.instance</code> alone knows no project, e.g. writing one node in a test: then nothing is
+                renamed where it's read, and nothing moves.
+              </li>
+              <li>
+                It extends <code>JSWriter</code>, overriding about 80 of its methods; the javascript never changes
+                because of it.
+              </li>
+            </ul>
+
+            <ui-section id="ts-shape" header="Written as a person would" sticky collapsible dividing collapsed>
+              <ul>
+                <li>
+                  Real JSX and Solid's shapes: <code>&lt;Show&gt;</code>, <code>&lt;Switch&gt;</code>,
+                  <code>&lt;For&gt;</code> (see <a href="#drawing-ts">In TypeScript</a>).
+                </li>
+                <li>
+                  Decorators instead of four lines per property, from <code>@spell/core</code>:
+                  <ul>
+                    <li><code>@prop({ oneOf: RANKS }) accessor rank!: Rank</code></li>
+                    <li><code>@prop()</code> on a property spell never declared</li>
+                    <li><code>@derived</code> on a getter that loops (has a callback); any other getter stays plain</li>
+                    <li><code>@drawn</code> on <code>draw()</code>, and <code>@thing</code> where a class needs it</li>
+                  </ul>
+                </li>
+                <li>
+                  A list of values is a typed constant: <code>const RANKS = [...] as const</code>, then
+                  <code>type Rank</code>.
+                </li>
+                <li>
+                  TypeScript's names for methods, getters, functions and variables: <code>isASuit()</code>,
+                  <code>turnFaceUp()</code>, <code>allPiles</code>.
+                  <ul>
+                    <li>
+                      Properties keep spell's names: they're data a program prints, so both targets print the same.
+                    </li>
+                    <li>
+                      A member read is renamed only when the project declares it a getter, never a property (J20).
+                    </li>
+                    <li>
+                      A getter another project declares as a property is read by TypeScript's name too: its declarations
+                      say <code>"getter": true</code>.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  Tidy, as by hand:
+                  <ul>
+                    <li><code>const</code> unless the variable is set again</li>
+                    <li>template text, no extra parentheses or braces, no unused handler parameters</li>
+                    <li>a handler a drawing uses twice, written once as a local</li>
+                    <li>
+                      a <code>const</code> and its type together; one <code>export interface</code> block per class, a
+                      member a line
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  Spell's built-ins that count from 1 stay core calls, so both targets print the same:
+                  <code>spellCore.getItemAt(rank, 1)</code>.
+                </li>
+              </ul>
+              <!-- P19: the javascript gets this tidiness and these names too:  say so here once built -->
+            </ui-section>
+
+            <ui-section
+              id="ts-lists"
+              header="Lists, events, nothing and comparisons"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <ul>
+                <li>
+                  A spell list uses its own methods, counting from 1, as spell does:
+                  <code>foundations.getItem(2)</code>, <code>stock.lastItem</code>,
+                  <code>tableaus.filter(...)</code> (see <a href="#list-methods">List methods</a>).
+                  <ul>
+                    <li>
+                      <code>for each</code> is <code>forEach()</code>; a loop whose body waits is
+                      <code>for ... of</code>.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  Events from core, the payload taken apart:
+                  <code>on&lt;{ card: Card }&gt;("card-click", ({ card }) =&gt; card.play())</code>, and a bare
+                  <code>trigger(...)</code>.
+                </li>
+                <li>
+                  No <code>!</code> where a value may be nothing: <code>stock.lastItem?.turnFaceUp()</code>.
+                  <ul>
+                    <li>What may be nothing is followed through locals, guards and getters.</li>
+                    <li>
+                      <code>!</code> stays only where <code>?.</code> can't go: a value passed to a typed parameter, or
+                      one being set.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  Comparisons in TypeScript's own words:
+                  <ul>
+                    <li>
+                      <code>===</code> where both sides are known and alike; <code>=== undefined</code> for "is defined"
+                    </li>
+                    <li>a yes / no choice, and text that isn't empty, tested bare</li>
+                    <li>
+                      type tests: <code>instanceof</code> for a class, <code>typeof x === "number"</code>,
+                      <code>isOfType()</code> for the rest
+                    </li>
+                    <li>
+                      text known to be text uses its own methods: <code>.includes()</code>,
+                      <code>toLocaleUpperCase()</code>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  A method's name keeps its receiver's type after a little word, in both targets:
+                  <code>updateTheTotalOfCalculator()</code>.
+                </li>
+              </ul>
+            </ui-section>
+
             <ui-section id="ts-hooks" header="Hooks" sticky collapsible dividing collapsed>
               <p>
-                <code>JSWriter</code> calls these where a type could go; each writes nothing in JavaScript. Adding them
-                didn't move a byte of the JavaScript snapshots.
+                <code>JSWriter</code> calls these where a type could go; each writes nothing in JavaScript. Most matter
+                only for a member patched onto a class another project declares: every other member is written inside
+                its class, with a decorator.
               </p>
               <ui-table celled compact striped unstackable>
                 <table>
@@ -881,12 +1398,14 @@ protected methodFor(node: P.ASTNode, suffix: "" | "AsMember"): (node: P.ASTNode)
                   </tbody>
                 </table>
               </ui-table>
-              <p>And three node kinds of its own:</p>
               <ul>
-                <li><code>ASTAssignmentStatement</code>: a new variable, typed when spell knows its datatype.</li>
                 <li>
-                  <code>ASTReactiveProperty</code>, <code>ASTPropertyDefinition</code>: patched on from outside, so an
-                  <code>interface</code> merged with the class comes first.
+                  <code>params()</code> types a method's named arguments by their fields, each optional:
+                  <code>createANewTask(props: { title?: string } = {})</code>.
+                </li>
+                <li>
+                  A property patched on from outside (<code>ASTReactiveProperty</code>) gets an
+                  <code>interface</code> merged with its class first, so TypeScript knows it's there.
                 </li>
               </ul>
             </ui-section>
@@ -902,27 +1421,73 @@ protected methodFor(node: P.ASTNode, suffix: "" | "AsMember"): (node: P.ASTNode)
                   is.
                 </li>
                 <li>
-                  Parameters: every one typed. Spell doesn't know: <code>any /* spell: type unknown */</code>, since
-                  TypeScript needs something there.
+                  The rule (J13): a type is written only where spell knows it, or where TypeScript can't work it out.
+                  Writing <code>any</code> where TypeScript has a type would throw it away.
+                </li>
+              </ul>
+              <p>Where spell writes the type:</p>
+              <ul>
+                <li>
+                  parameters: every one; a slot named for a property takes that property's type,
+                  <code>isASuit(suit: Suit)</code>
                 </li>
                 <li>
-                  Reactive properties: from their <code>check</code>: <code>{ type: 'number' }</code> →
-                  <code>number</code>, <code>{ oneOf: Card.Suits }</code> → <code>(typeof Card.Suits)[number]</code>.
+                  properties, from their <code>check</code>:
+                  <code>@prop({ type: "number" }) accessor score!: number</code>,
+                  <code>@prop({ oneOf: SUITS }) accessor suit!: Suit</code>
+                </li>
+                <li>loop and <code>where</code> variables, items read from a list, a guard's item</li>
+                <li>named arguments, an event's payload (as a parameter), a getter's return</li>
+                <li>
+                  a list class says what it holds, <code>class Pile extends List&lt;Card&gt;</code>; core's helpers
+                  return their collection's type
+                </li>
+                <li>a property over an inherited getter keeps a getter / setter pair</li>
+              </ul>
+              <p>Where TypeScript works it out, so nothing is written:</p>
+              <ul>
+                <li>a callback's item: <code>this.forEach((card) =&gt; ...)</code></li>
+                <li>a local set from a value TypeScript knows: <code>let state = `${this.name || "pile"}:`</code></li>
+              </ul>
+              <p>Where spell fills a gap the program left (Q25, Q54):</p>
+              <ul>
+                <li>
+                  A member a class uses but never declares is declared for TypeScript, on the class its users share:
+                  <code>declare droppable: boolean</code> on <code>Pile</code>. Spell still warns about it.
                 </li>
                 <li>
-                  New variables: typed when spell knows (<code>let count: number = 0</code>). Set from a
-                  <code>spellCore</code> call, which returns <code>unknown</code>: <code>as Card</code> when spell
-                  knows, else the marker. Anything else left bare, so TypeScript works it out (<code
-                    >let it = new Card(…)</code
-                  >).
+                  A value whose type the program never says is typed from what the program gives it (P17):
+                  <code>new Stock_Pile({ name: "stock" })</code> makes a pile's <code>name</code> a <code>string</code>.
+                  <ul>
+                    <li>
+                      What counts: a value given when one is made, a value it's set to anywhere in the project, and its
+                      initial value.
+                    </li>
+                    <li>All alike (all text): that type. Mixed, or one it can't tell: the marker stays.</li>
+                    <li>Set on something the writer can't tell is one of that class: it doesn't count.</li>
+                  </ul>
                 </li>
                 <li>
-                  Lists: <code>any /* spell: list */</code>. <code>@spell/core</code>'s <code>List</code> doesn't say
-                  what it holds, and spell sets properties on lists, which a <code>List</code> can't have.
+                  A member declared only on sub-classes (<code>canPlayCard()</code> on each kind of pile) is typed on
+                  the shared class from what their definitions return (P17),
+                  <code>canPlayCard(card: Card): boolean</code>: a comparison, <code>and</code> / <code>or</code>,
+                  <code>yes</code> / <code>no</code>. If they disagree, or one can't be told (or may end without
+                  returning, or waits), the marker stays.
+                </li>
+              </ul>
+              <p>What's left:</p>
+              <ul>
+                <li>
+                  Only when nothing says: <code>any /* spell: type unknown */</code>, with spell's warning, so the
+                  author sees where to say it. Every gap is greppable.
                 </li>
                 <li>
-                  Every gap is greppable: Solitaire has 56 <code>spell: type unknown</code> markers, FizzBuzz 1 (its
-                  loop variable).
+                  A plain list: <code>any /* spell: list */</code>, as spell sets properties on lists, which a
+                  <code>List</code> can't have.
+                </li>
+                <li>
+                  Reading by position, or a list holding an item, may find nothing: read with <code>?.</code>, as found
+                  (Q26, then Q38).
                 </li>
               </ul>
             </ui-section>
@@ -952,54 +1517,129 @@ play_fizzbuzz()</code></pre>
                 </ui-tab>
                 <ui-tab label="ts/solid">
                   <ui-accordion class="spell-code" styled>
-                    <ui-title>FizzBuzz.snapshot.ts · 14 lines</ui-title>
+                    <ui-title>FizzBuzz.snapshot.tsx · 14 lines</ui-title>
                     <ui-content>
                       <pre><code class="language-ts">import { spellCore, Thing, List, App } from "@spell/core"
 
 spellCore.heading("File FizzBuzz.spell")
 /** File FizzBuzz.spell */
-export function play_fizzbuzz() {
-  spellCore.map(spellCore.getRange(1, 100), (number: any /* spell: type unknown */) =&gt; {
-    if (spellCore.isOfType(number / 15, 'integer')) { spellCore.console.log(number, "fizzbuzz") }
-    else if (spellCore.isOfType(number / 3, 'integer')) { spellCore.console.log(number, "fizz") }
-    else if (spellCore.isOfType(number / 5, 'integer')) { spellCore.console.log(number, "buzz") }
-    else { spellCore.console.log(number) }
+export function playFizzbuzz() {
+  spellCore.getRange(1, 100).forEach((number) =&gt; {
+    if (spellCore.isOfType(number / 15, "integer")) spellCore.console.log(number, "fizzbuzz")
+    else if (spellCore.isOfType(number / 3, "integer")) spellCore.console.log(number, "fizz")
+    else if (spellCore.isOfType(number / 5, "integer")) spellCore.console.log(number, "buzz")
+    else spellCore.console.log(number)
   })
 }
 
-play_fizzbuzz()</code></pre>
+playFizzbuzz()</code></pre>
                     </ui-content>
                   </ui-accordion>
                 </ui-tab>
-                <ui-tab label="Solitaire, typed">
+                <ui-tab label="Solitaire's Card">
                   <ui-accordion class="spell-code" styled>
-                    <ui-title>Solitaire.snapshot.ts (two excerpts) · 13 lines</ui-title>
+                    <ui-title>Solitaire.snapshot.tsx (excerpt) · 36 lines</ui-title>
                     <ui-content>
-                      <pre><code class="language-ts">  /** card suits */
-  static Suits = ['clubs', 'diamonds', 'hearts', 'spades']
-  static { this.declareProp('suit', { oneOf: Card.Suits }) }
-  get suit(): (typeof Card.Suits)[number] { return this.getProp('suit') as (typeof Card.Suits)[number] }
-  set suit(value: (typeof Card.Suits)[number]) { this.setProp('suit', value) }
+                      <pre><code class="language-tsx">import { Show, For } from "solid-js"
+import { spellCore, Thing, List, App, prop, derived, drawn, positionOf, trigger, on } from "@spell/core"
 
-export interface Card { pile: Pile }
-Card.declareProp('pile', { type: 'Pile' })
-Object.defineProperty(Card.prototype, 'pile', {
-  get(this: Card): Pile { return this.getProp('pile') as Pile },
-  set(this: Card, value: Pile) { this.setProp('pile', value) },
-  configurable: true
-})</code></pre>
+/** card suits */
+const SUITS = ["clubs", "diamonds", "hearts", "spades"] as const
+export type Suit = (typeof SUITS)[number]
+
+/** definition of a Card with nice english aliases for working with it */
+export class Card extends Thing {
+  static Suits = SUITS
+  @prop({ oneOf: SUITS }) accessor suit!: Suit
+
+  /** color as derivation of suit */
+  get color() {
+    if (spellCore.includes(["diamonds", "hearts"], this.suit)) return "red"
+    return "black"
+  }
+
+  /** value as a derivation of rank */
+  get value() {
+    return positionOf(Card.Ranks, this.rank)
+  }
+
+  /** "card is face up/down" */
+  get isFaceUp() {
+    return this.direction == "up"
+  }
+
+  /** "card is a spade", "...is a club" etc */
+  isASuit(suit: Suit) {
+    return this.suit === suit
+  }
+
+  async turnFaceUp() {
+    this.direction = "up"
+    await spellCore.pauseFor(50, "msec")
+  }
+}</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+                <ui-tab label="Solitaire's piles">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>Solitaire.snapshot.tsx (excerpts) · 37 lines</ui-title>
+                    <ui-content>
+                      <pre><code class="language-tsx">export class Pile extends List&lt;Card&gt; {
+  static instanceType = Card
+
+  get color() {
+    if (this.isEmpty) return "none"
+    return this.lastItem?.color ?? "none"
+  }
+
+  @derived
+  get state() {
+    let state = `${this.name || "pile"}:`
+    this.forEach((card) =&gt; (state = `${state} ${card.state}`))
+    return state
+  }
+
+  @prop() accessor name!: any /* spell: type unknown */
+
+  declare droppable: boolean
+}
+export interface Pile {
+  canPickUpCard(card: Card): any /* spell: type unknown */
+  canPlayCard(card: Card): any /* spell: type unknown */
+}
+
+export class Tableau extends Pile {
+  canPlayCard(card: Card) {
+    if (this.isEmpty) return card.isARank("king")
+    return this.color !== card.color &amp;&amp; this.value === card.value + 1
+  }
+
+  @drawn
+  draw() {
+    return (
+      &lt;div class="Pile Tableau staggered"&gt;
+        &lt;For each={this.items}&gt;{(card) =&gt; card.draw()}&lt;/For&gt;
+      &lt;/div&gt;
+    )
+  }
+}
+
+on&lt;{ card: Card }&gt;("card-click", ({ card }) =&gt; card.play())</code></pre>
                     </ui-content>
                   </ui-accordion>
                 </ui-tab>
               </ui-tabs>
               <ul>
                 <li>
-                  <code>export interface Card { … }</code> merges with <code>export class Card</code> wherever it is in
-                  the file, so TypeScript knows the class has the member patched on from outside.
+                  Every member is inside its class; <code>export interface Pile { … }</code> merges with
+                  <code>class Pile</code>, for members only its sub-classes define.
                 </li>
                 <li>
-                  <code>pile</code> above is declared <code>{ type: 'Pile' }</code>, yet still comes out unknown: one of
-                  the gaps the typed output shows (see <a href="#10-limits">Limits</a>).
+                  The three markers left in Solitaire are what P17 types (Q54): <code>name</code> becomes
+                  <code>string</code> from <code>new Stock_Pile({ name: "stock" })</code>, and
+                  <code>canPickUpCard()</code> / <code>canPlayCard()</code> return <code>boolean</code>, as each
+                  sub-class's does. The excerpt is the snapshot from before P17.
                 </li>
               </ul>
             </ui-section>
