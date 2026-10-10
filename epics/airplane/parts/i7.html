@@ -20,3 +20,70 @@
     <li>Not fixed yet: a later fix in the runtime's landing / hold code.</li>
   </ul></epic-net-effect
 >
+<p><strong>Fixed (2026-10-10).</strong> Three causes, each found by sampling the line every frame, headless:</p>
+<ol>
+  <li>
+    <strong>A click on an item's line scrolled the page to its top</strong> (Owen: "clicking item headers jumps to top
+    of page, seems maybe related to auto-closing after I reply").
+    <ul>
+      <li><code>&lt;epic-page&gt;</code> delegated focus, as every Spell UI element does unless it says not to.</li>
+      <li>
+        So a mouse-down on any plain text in the doc focused the page header's first link (the breadcrumb). Focusing
+        that sticky link scrolled the page to the top, and the click then missed the line: nothing folded.
+      </li>
+      <li>
+        After a reply, the item folds and its focused button goes with it: focus is back on the page, so the next click
+        on a line did it. Without a reply, any click while nothing had focus.
+      </li>
+      <li>
+        Fix: <code>delegatesFocus: false</code> on <code>&lt;epic-page&gt;</code>, as
+        <code>&lt;epic-item&gt;</code> already had; also on <code>&lt;epic-update&gt;</code> and
+        <code>&lt;epic-commit&gt;</code>, the other text holders with a button or link inside.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <strong>The line dropped 20-80px when the fold's hold ended</strong>, for an item near the page's end.
+    <ul>
+      <li>The runtime keeps the page's height while a fold closes, so the browser can't pull the reader back.</li>
+      <li>
+        To let go, it took that height off for a moment to measure the page. That one layout was enough: the browser
+        clamped the scroll to the shorter page.
+      </li>
+      <li>
+        Fix (<code>releaseHeight()</code>): the held height only shrinks to the window's bottom, never below, and goes
+        once the page is taller than that. It never measures by taking the hold off.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <strong>A link's landing kept scrolling for a second</strong>.
+    <ul>
+      <li>A link into a section or phase follows its target until it stays put (folds open above it).</li>
+      <li>
+        A target near the page's end can't reach its line, so it never "stayed put": it was scrolled back every frame
+        for the whole second, fighting a fold or a scroll in that time.
+      </li>
+      <li>
+        Fix (<code>EpicFold</code>'s <code>land()</code>): "put" also when the scroll went nowhere, and it stops at once
+        on the reader's click, wheel, touch or key.
+      </li>
+    </ul>
+  </li>
+</ol>
+<p>Checked, before → after (px the line moved), at 1200 / 390px:</p>
+<ul>
+  <li>an item's line clicked after a link: 339 / 356 → 0 (and it now folds)</li>
+  <li>the next item's line clicked after a reply: 347 / 365 → 0 (and it now opens)</li>
+  <li>the last item, near the page's end, after a link: 271 / 277 → 0</li>
+  <li>the chevron after a link, mid window, no link, a phase, a guide's section, a click on guide text: 0 → 0</li>
+  <li>
+    links still land below the stuck titles; the item fold still animates; P8's section fold holds (<a
+      href="../../../packages/docs/tools/check-spell.js"
+      target="src-packages-docs-tools-check-spell-js"
+      ><code>check-spell.js</code></a
+    >
+    on this doc and the Solid 2 guide)
+  </li>
+</ul>
+<p>The check: <code>node packages/epics/demo/check-fold-epics.mjs</code> fails if a line moves more than 1px.</p>
