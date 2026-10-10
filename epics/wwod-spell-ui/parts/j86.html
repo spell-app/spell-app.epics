@@ -1,51 +1,72 @@
 <!-- plan-doc part:  #j86's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  The site's three hand-rolled fetches (<a
-    href="../../../packages/ui/src/docs-components/SiteData.ts"
-    target="src-packages-ui-src-docs-components-sitedata-ts"
-    ><code>SiteData.ts</code></a
-  >, <code title="ui-docs-search/SearchData.ts">SearchData.ts</code>,
-  <a href="../../../packages/ui/site/_src/SiteShell.ts" target="src-packages-ui-site-src-siteshell-ts"><code title="packages/ui/site/_src/SiteShell.ts">SiteShell.ts</code></a>) checked <code>response.ok</code> and threw a plain <code>Error</code>. They now share ONE helper,
-  <code>SiteData.request(url, { method, fix })</code>, which throws a <code>load</code> <code>E.SourceError</code> (P3's
-  shape: <code>cause: { kind, status }</code>, or the network error as <code>cause.error</code>) with a house message,
-  e.g.
-  <code
-    >SiteData.load(): …/components.json answered 404 Not Found; run `yarn site:data` in packages/ui, or check
-    `SiteData.url`</code
-  >.
+  When a docs-site file fails to load, the site now throws ui's own <code>E.SourceError</code>, with a house-style
+  message.  Its three fetches share ONE helper for it, <code>SiteData.request()</code>.
 </p>
 <ul>
   <li>
-    Chosen over <code>UI.sources.load()</code>, which (1) refuses <code>data:</code> URLs as cross-origin, and the docs
-    tests point <code>SiteData.url</code> at one; (2) needs the runtime chunk, which the layout fetch
-    (<code>SiteShell.mount()</code>, before <code>&lt;ui-root&gt;</code>) must not wait for; (3) caches the 780 KB text
-    beside the parsed JSON.
+    Before: three hand-rolled fetches each checked <code>response.ok</code>, and threw a plain <code>Error</code>.
+    <ul>
+      <li>
+        <code title="packages/ui/src/docs-components/SiteData.ts">SiteData.ts</code>
+      </li>
+      <li><code title="ui-docs-search/SearchData.ts">SearchData.ts</code></li>
+      <li><code title="packages/ui/site/_src/SiteShell.ts">SiteShell.ts</code></li>
+    </ul>
   </li>
   <li>
-    <code>$fetch</code> / <code>ResponseError</code> live in <code>$/util/spell</code>, which <code>ui</code> must not
-    import.
+    Now: <code>SiteData.request(url, { method, fix })</code> throws a "load" <code>E.SourceError</code>.
+    <ul>
+      <li>It has P3's shape: <code>cause: { kind, status }</code>, or the network error as <code>cause.error</code>.</li>
+      <li>
+        Its message, for example:
+        <epic-code title="a failed load's message · 1 line" language="text">
+          <pre>SiteData.load(): …/components.json answered 404 Not Found; run `yarn site:data` in packages/ui, or check `SiteData.url`</pre>
+        </epic-code>
+      </li>
+    </ul>
   </li>
   <li>
-    <a
-      href="../../../packages/ui/src/docs-components/SiteData.ts"
-      target="src-packages-ui-src-docs-components-sitedata-ts"
-      ><code>SiteData.ts</code></a
-    >
-    now imports <code>E</code> from <code>$/ui/core</code>: every bundle that loads it (the site entry,
-    <code>brand-docs.js</code>) already had the core through <code>ExampleSource</code>.
+    Chosen over ui's own source loader, <code>UI.sources.load()</code>, because it:
+    <ol>
+      <li>
+        refuses <code>data:</code> URLs as cross-origin, and the docs tests point <code>SiteData.url</code> at one
+      </li>
+      <li>
+        needs the runtime chunk, which the layout fetch must not wait for (<code>SiteShell.mount()</code>, before
+        <code>&lt;ui-root&gt;</code>)
+      </li>
+      <li>caches the 780 KB text beside the parsed JSON</li>
+    </ol>
+  </li>
+  <li>
+    And not spell's own fetch helpers (<code>$fetch</code>, <code>ResponseError</code>).
+    They live in util's spell folder, which ui must not import.
+  </li>
+  <li>
+    <code>SiteData.ts</code> now imports ui's core namespace, <code>E</code>.
+    Every bundle that loads it already had the core, through <code>ExampleSource</code>: the site entry and
+    <code>brand-docs.js</code>.
   </li>
 </ul>
 <epic-net-effect
   ><ul>
+    <li>The same failures, typed and worded the house way.</li>
+    <li>A layout that has no <code>.site-content</code> is a "render" <code>SourceError</code>.</li>
     <li>
-      same failures, typed and worded the house way; a layout that has no <code>.site-content</code> is a
-      <code>render</code> <code>SourceError</code>; <code>SiteRouter</code>'s swap failures (no <code>main#main</code>,
-      an include <code>ui-error</code>, the 10 s timeout) are <code>SourceError</code>s too
+      <code>SiteRouter</code>'s failures to swap a page are <code>SourceError</code>s too:
+      <ul>
+        <li>no <code>main#main</code></li>
+        <li>an include that shows <code>ui-error</code></li>
+        <li>the 10 s timeout</li>
+      </ul>
     </li>
     <li>
-      every site warning goes through <code>E.Warnings.warn("Spell UI site", …)</code> (was 3 bare
-      <code>console.warn</code>s: <code>SiteShell</code>, <code>SiteRouter</code>, <code>site.ts</code>);
-      <code>UIDocsSearch</code>'s was already <code>Warnings</code> (P2)
+      Every site warning goes through <code>E.Warnings.warn("Spell UI site", …)</code>.
+      <ul>
+        <li>They were 3 bare <code>console.warn</code>s: in SiteShell, SiteRouter and site.ts.</li>
+        <li><code>UIDocsSearch</code>'s already used <code>Warnings</code> (P2).</li>
+      </ul>
     </li>
   </ul></epic-net-effect
 >

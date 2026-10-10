@@ -1,38 +1,62 @@
 <!-- plan-doc part:  #j87's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  The twin loaders disagreed (I10): <code>SiteData.reset()</code> kept its URL, <code>SearchData.reset()</code> cleared
-  it, so tests wrote <code>SiteData.reset(); SiteData.url = undefined</code>. Both now take SearchData's rule:
-  <code>reset(url?)</code> forgets the fetch and SETS <code>url</code>, so <code>reset()</code> is back to the page's
-  own default (the <code>&lt;meta&gt;</code> / <code>SITE_DATA_PATH</code>; beside the data file).
+  The site's two data loaders now agree on what <code>reset()</code> does: with no URL, it goes back to the default
+  URL.  Before, they disagreed (I10).
 </p>
 <ul>
   <li>
-    Chosen because <code>reset()</code> reads as "back to the start", and no shipped code calls it (only tests, which
-    always want a clean slate).
+    Before:
+    <ul>
+      <li><code>SiteData.reset()</code> kept its URL.</li>
+      <li><code>SearchData.reset()</code> cleared it.</li>
+      <li>So tests wrote <code>SiteData.reset(); SiteData.url = undefined</code>.</li>
+    </ul>
   </li>
   <li>
-    One shape, not one class: both keep the same static surface (<code>url</code>,
-    <code>load()</code>, <code>reset(url?)</code>) and fetch through the same <code>SiteData.request()</code>.
+    Now both follow SearchData's rule: <code>reset(url?)</code> forgets the fetch, and SETS the URL.
+    <ul>
+      <li>So <code>reset()</code> alone goes back to the page's own default.</li>
+      <li>
+        That default is the page's <code>&lt;meta&gt;</code>, or <code>SITE_DATA_PATH</code>, beside the data file.
+      </li>
+    </ul>
   </li>
   <li>
-    Rejected: a shared <code>SiteFile&lt;T&gt;</code> base. Statics on a base are shared by its subclasses (one
-    <code>loading</code> for both files) unless each redeclares them, and instance singletons
-    (<code>SiteData.file.url</code>) would change <code>SiteData.url</code> for <code>site.ts</code>,
-    <a href="../../../packages/brand/src/brand-docs.ts" target="src-packages-brand-src-brand-docs-ts"
-      ><code>brand-docs.ts</code></a
-    >
-    and ~40 test lines, for two 30-line classes.
+    Why: <code>reset()</code> reads as "back to the start".
+    No shipped code calls it, only tests, and they always want a clean slate.
+  </li>
+  <li>
+    One shape, not one class.
+    <ul>
+      <li>Both keep the same static members: a URL, <code>load()</code> and <code>reset(url?)</code>.</li>
+      <li>Both fetch through the same <code>SiteData.request()</code>.</li>
+    </ul>
+  </li>
+  <li>
+    Rejected: a shared <code>SiteFile&lt;T&gt;</code> base class.
+    <ul>
+      <li>
+        A base's statics are shared by its subclasses unless each redeclares them.
+        So both files would share one "loading" state.
+      </li>
+      <li>
+        Instance singletons instead (<code>SiteData.file.url</code>) would change <code>SiteData.url</code> for its
+        callers.
+        That's site.ts, <code title="packages/brand/src/brand-docs.ts">brand-docs.ts</code> and ~40 test lines.
+      </li>
+      <li>All that for two 30-line classes.</li>
+    </ul>
   </li>
 </ul>
 <epic-net-effect
   ><ul>
     <li>
-      the tests' <code>SiteData.url = undefined</code> after <code>reset()</code> is now redundant (left for P8, which
-      restyles tests)
+      The tests' <code>SiteData.url = undefined</code> after <code>reset()</code> is now redundant.
+      It's left for P8, which restyles the tests.
     </li>
     <li>
-      a caller that wanted reset-but-keep-the-URL passes it:
-      <code>SiteData.reset(SiteData.url)</code> (none does)
+      A caller that wants to reset but keep the URL passes it: <code>SiteData.reset(SiteData.url)</code>.
+      None does.
     </li>
   </ul></epic-net-effect
 >

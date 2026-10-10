@@ -1,32 +1,50 @@
 <!-- plan-doc part:  #j75's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Kept
-  <a href="../../../packages/ui/tools/hmr.e2e.ts" target="src-packages-ui-tools-hmr-e2e-ts"><code title="packages/ui/tools/hmr.e2e.ts">hmr.e2e.ts</code></a>
-  on <code>node:test</code> / <code>node:assert</code> rather than <code>vite-plus/test</code> (WWOD §20 › "Test APIs
-  come from Vite+"), because <code>yarn test:hmr</code> is <code>tsx tools/hmr.e2e.ts</code>: node runs a
-  <code>node:test</code> suite as a plain script, while Vitest's <code>describe()</code> only works inside its own
-  runner.
+  ui's hot-reload test, <code title="packages/ui/tools/hmr.e2e.ts">hmr.e2e.ts</code>, stays on node's own test
+  runner, not Vitest: an exception to WWOD §20 › "Test APIs come from Vite+".
 </p>
 <ul>
   <li>
-    Moving it means a third Vitest project (or config) for one file that owns a dev server, a browser and real edits to
-    source files: not worth it, and it must never run alongside the other tests; the reason is in the file's docstring
+    Why: <code>yarn test:hmr</code> runs the file with <code>tsx</code>, as a plain script.
+    <ul>
+      <li>Node runs a <code>node:test</code> suite that way.</li>
+      <li>Vitest's <code>describe()</code> only works inside Vitest's own runner.</li>
+    </ul>
   </li>
   <li>
-    Free functions over module-level <code>let server / browser / page</code> became two classes:
-    <code>HmrPage</code> (the page and what the scenarios do to it) and <code>SourceFiles</code> (edits on disk,
-    <code>restoreAll()</code>, <code>assertRestored()</code>); in-page arrow helpers became <code>function</code>s at
-    the bottom
+    Moving it would need a third Vitest project (or config) for one file.
+    <ul>
+      <li>That file owns a dev server, a browser, and real edits to source files.</li>
+      <li>It must never run alongside the other tests.</li>
+      <li>Not worth it;  the reason is in the file's docstring.</li>
+    </ul>
   </li>
   <li>
-    Sleeps: the button's <code>size</code> 50 ms -&gt; wait for its <code>large</code> class; the segment's 50 ms -&gt;
-    <code>recolorSegment()</code> waits for its class; <code>update()</code>'s 100 ms -&gt; two animation frames
-    (<code>SETTLE_FRAMES</code>); the 400 ms after a syntax error stays, named <code>ERROR_GUARD</code>:
-    <code>@solidjs/vite-plugin</code> drops updates for 200 ms after an error and fires no event
+    Its free functions, over module-level variables for the server, browser and page, became two classes:
+    <ul>
+      <li><code>HmrPage</code>: the page, and what the scenarios do to it</li>
+      <li>
+        <code>SourceFiles</code>: the edits on disk.
+        It can restore them all, and assert that they were (<code>restoreAll()</code>, <code>assertRestored()</code>).
+      </li>
+      <li>The in-page arrow helpers became <code>function</code>s at the bottom.</li>
+    </ul>
+  </li>
+  <li>
+    Its sleeps became real waits, all but one:
+    <ul>
+      <li>the button's <code>size</code> change: 50 ms became a wait for its <code>large</code> class</li>
+      <li>the segment's 50 ms: <code>recolorSegment()</code> now waits for its class</li>
+      <li><code>update()</code>'s 100 ms became two animation frames (<code>SETTLE_FRAMES</code>)</li>
+      <li>
+        the 400 ms after a syntax error stays, named <code>ERROR_GUARD</code>: Solid's Vite plugin drops updates for
+        200 ms after an error, and fires no event
+      </li>
+    </ul>
   </li>
 </ul>
 <epic-net-effect
   ><ul>
-    <li><code>yarn test:hmr</code> 8 / 8, four runs in a row, ~3 s</li>
+    <li><code>yarn test:hmr</code>: 8 / 8, four runs in a row, about 3 s</li>
   </ul></epic-net-effect
 >
