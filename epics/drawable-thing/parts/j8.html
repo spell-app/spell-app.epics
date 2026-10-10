@@ -1,0 +1,73 @@
+<!-- plan-doc part:  #j8's details in drawable-thing.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Spell's two new built-in types each have a two-word name, but each compiles to ONE class of one word:
+  <code>drawable list</code> becomes <code>DrawableList</code>, not <code>Drawable_List</code>.
+</p>
+<ul>
+  <li>
+    A type someone declares in several words still compiles with underscores, <code>Bank_Account</code> (<a href="#j4"
+      >the multi-word name call, J4</a
+    >).
+  </li>
+  <li>Built-in types are different: the class already exists in core, under the name the plan gave it.</li>
+  <li>
+    So one table in the parser now says what each built-in type's class is called:
+    <a href="../../../packages/parser/src/parser.types.ts" target="src-packages-parser-src-parser-types-ts"
+      ><code title="packages/parser/src/parser.types.ts">P.BUILT_IN_CLASS_NAMES</code></a
+    >.
+  </li>
+  <li>
+    One function names every class from a type's name, built-in or not:
+    <a href="../../../packages/parser/src/parser.types.ts" target="src-packages-parser-src-parser-types-ts"
+      ><code title="packages/parser/src/parser.types.ts">P.classCase()</code></a
+    >.
+    <ul>
+      <li>It looks the name up in the table first, and falls back to the usual underscore form.</li>
+      <li>
+        Every place that used to name a class itself now calls it: the type lists in each scope, the type rule, the root
+        scope.
+      </li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="the table, and what it gives" language="ts">
+  <pre>
+export const BUILT_IN_CLASS_NAMES: Record&lt;Datatype, string&gt; = {
+  list: "List",
+  thing: "Thing",
+  app: "App",
+  drawable: "Drawable",
+  "drawable list": "DrawableList"
+}
+
+classCase("drawable list")   // "DrawableList"
+classCase("bank-accounts")   // "Bank_Account", as before</pre></epic-code
+><epic-choices
+  ><epic-option letter="A" title="A table of built-in class names, and one naming function" recommended
+    ><ul>
+      <li>Chosen and built.</li>
+      <li>The class is <code>DrawableList</code>, as the plan names it.</li>
+      <li>One place decides every built-in class's name; a new built-in class is one more line in the table.</li>
+    </ul></epic-option
+  ><epic-option letter="B" title="Treat it like a user's type: Drawable_List"
+    ><ul>
+      <li>Name the datatype <code>drawable-list</code>, and let it compile like any dashed name.</li>
+      <li>No new table, but core would have to export a class called <code>Drawable_List</code>.</li>
+      <li>That name would leak into every compiled program and every TypeScript error message.</li>
+    </ul></epic-option
+  ><epic-option letter="C" title="Special-case only the list declaration"
+    ><ul>
+      <li>Have the list rule write <code>DrawableList</code> when it writes the parent class, and nothing else.</li>
+      <li>
+        Smallest change, but every other place that names a class (the scope's type lists, the Type Explorer,
+        TypeScript) would still say <code>Drawable_List</code>.
+      </li>
+    </ul></epic-option
+  ></epic-choices
+><epic-net-effect option="A" recommended
+  ><ul>
+    <li>"a pile is a drawable list of cards" compiles to <code>class Pile extends DrawableList</code></li>
+    <li>a scope finds the built-in type under <code>DrawableList</code>, its class name</li>
+    <li>user types are unchanged: <code>bank account</code> is still <code>Bank_Account</code></li>
+  </ul></epic-net-effect
+>
