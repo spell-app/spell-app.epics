@@ -1,40 +1,43 @@
 <!-- plan-doc part:  #i5's details in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  An <code>@E.aria</code> getter that throws never applies, and nothing says so:
-  the ARIA property stays empty for good.
+  An <code>@E.aria</code> getter that throws never applies, and nothing says so: the ARIA property stays empty for good.
 </p>
 <ul>
   <li>
     Found writing the docs inspector (<code>&lt;ui-docs-inspector&gt;</code>, P6).
     <ul>
-      <li>Its <code>@E.aria("ariaLabel") get label()</code> called <code>this.translationForKey()</code>, which reads <code>UI.i18n</code>.</li>
+      <li>
+        Its <code>@E.aria("ariaLabel") get label()</code> called <code>this.translationForKey()</code>, which reads
+        <code>UI.i18n</code>.
+      </li>
       <li><code>UI</code> throws until <code>UI.load()</code> resolves.</li>
     </ul>
   </li>
   <li>
-    What happened:  <code>internals.ariaLabel</code> stayed <code>null</code> for good.
+    What happened: <code>internals.ariaLabel</code> stayed <code>null</code> for good.
     <ul>
       <li>Even after the members the getter read (<code>title</code>) changed.</li>
-      <li>The element drew normally:  no <code>:state(errored)</code>, no fallback, nothing in the test's output.</li>
+      <li>The element drew normally: no <code>:state(errored)</code>, no fallback, nothing in the test's output.</li>
     </ul>
   </li>
   <li>
-    Where:  <code>Reactive.startAriaEffect()</code>, in the decorators' file
-    (<a href="../../../packages/ui/src/elements/Reactive.ts" target="src-packages-ui-src-elements-reactive-ts"
+    Where: <code>Reactive.startAriaEffect()</code>, in the decorators' file (<a
+      href="../../../packages/ui/src/elements/Reactive.ts"
+      target="src-packages-ui-src-elements-reactive-ts"
       ><code title="packages/ui/src/elements/Reactive.ts">Reactive.ts</code></a
     >).
     <ul>
       <li>It's <code>createEffect(createMemo(compute, ...), apply)</code>.</li>
       <li>A throw in <code>compute</code> seems to stop the memo for good, outside the element's error net.</li>
-      <li><code>@E.onChange</code> members likely share it:  same shape.</li>
+      <li><code>@E.onChange</code> members likely share it: same shape.</li>
     </ul>
   </li>
   <li>
-    Worked around in the inspector:  the getter returns <code>undefined</code> until <code>isReady</code>.
-    The guide's <code>@E.aria</code> section says so.
+    Worked around in the inspector: the getter returns <code>undefined</code> until <code>isReady</code>. The guide's
+    <code>@E.aria</code> section says so.
   </li>
   <li>
-    Fix to weigh:  route these effects' errors to the error net, as the <code>:state()</code> render effect does,
-    or warn once.
+    Fix to weigh: route these effects' errors to the error net, as the <code>:state()</code> render effect does, or warn
+    once.
   </li>
 </ul>
