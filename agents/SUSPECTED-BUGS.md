@@ -762,6 +762,14 @@ every entry below that date was fixed or disproven;  what's left:
   took the Spell Tree view out of the side bar.  Picking it from the palette likely does nothing, or errors "command
   not found".  Prove:  rebuild the extension, run the command on a `.spell` file.  Fix:  drop the contribution (and its
   menu entry), or bring the view back.
+- `src/DocView.ts` `restartServer()`:  when the page server is already DOWN, "Restart Page Server" can't bring it
+  back.  It finds the checkout by asking the server itself (`serverRoot()`, `/_server/ping`), so a dead server gets
+  "isn't a page server, so there's nothing to restart" (read from the code, epic `airplane`, 2026-10-10:  Owen found
+  the server down after a merge).  Prove:  `spell dev server stop` in the main checkout, then press the button.
+  Fix:  fall back to the window's checkout (its first folder) when the ping fails;  needs a window reload once.
+  Why it went down:  `PidFile.stop()` waited only until the old server stopped ANSWERING, so the restart after a merge
+  started the new one while the old still held port 4747;  the new one took another port (the log shows 54516).
+  Fixed in `$/server` the same day;  this button's gap remains.
 
 ## claude-code
 
