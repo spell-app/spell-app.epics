@@ -1098,6 +1098,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   'vscode-css-languageservice'`:  the branch added a dependency, and `main`'s `node_modules` predates it (the `spell`
   link runs the MAIN checkout's CLI, so every session's `spell` broke at once). · `yarn install` in the main checkout.
   Better:  `/isolate done`'s merge step runs `yarn install` in main when `yarn.lock` changed. · cli
+- 2026-10-11 · `spell speed --against main` printed its runs, then died cleaning up with `ENOTDIR ... lstat
+  '.../packages/goals.zip/node_modules'`, leaving its temp checkout and a prunable worktree:  `removeCheckout()`
+  unlinked `node_modules` in every entry of `packages/`, and main's `goals.zip` is a file. · Folders only
+  (python-target `d1976e503`);  `git worktree prune` and delete the temp folder by hand until that merges. · cli
 
 ## docs
 
