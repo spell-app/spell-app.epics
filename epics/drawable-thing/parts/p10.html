@@ -8,79 +8,6 @@
     <a href="#j41">J41</a> B). The page defines the tag with it, so the TypeScript's element is the same as the
     javascript's.
   </p></epic-field
-><epic-updated slot="changes" at="2026-10-11 05:16"
-  ><p>
-    A type's CSS compiles to a <code>css</code>-tagged template, as Lit writes it, so editors can colour it as CSS
-    (Owen, reviewing <a href="#j14">J14</a>). The tag hands back the sheet as text, with the shared indent taken off.
-  </p></epic-updated
-><epic-updated slot="changes" at="2026-10-11 06:45" phase="10"
-  ><p>
-    Part 1 built overnight (2026-10-11): a type's CSS as a <code>css</code> template, and a fixture with drawable types.
-    The element class itself waits on <a href="#j41">J41</a> (<a href="#t9">T9</a>), so the phase stays active.
-  </p>
-  <ul>
-    <li>
-      A type's <code>&lt;css&gt;</code> block compiles to <code>static css = css`...`</code>, in the javascript and the
-      TypeScript output, its sheet on lines of its own, indented inside the class (<a href="#j14">J14</a>, A).
-    </li>
-    <li>
-      <code>@spell/core</code> exports the
-      <a href="../../../packages/core/src/elements.ts" target="src-packages-core-src-elements-ts"
-        ><code title="packages/core/src/elements.ts">css</code></a
-      >
-      tag, and so does the runtime programs run on: it hands back the sheet as text, with the indent its lines share and
-      the blank first and last lines taken off. CSS's own escapes, like <code>"\201C"</code>, stay as written.
-    </li>
-    <li>
-      The sheet's later lines no longer gain the class body's indent: the browser gets the CSS exactly as written (J14's
-      caveat is gone). <code>SpellElement.cssOf()</code> is unchanged.
-    </li>
-    <li>
-      The parser's tree has a tagged template,
-      <a href="../../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
-        ><code title="packages/parser/src/ast/AST.ts">P.ASTTaggedTemplate</code></a
-      >; the javascript writer writes it, and imports <code>css</code> from <code>@spell/core</code> when it's used.
-    </li>
-    <li>
-      Spell's VS Code extension colours the inside of a <code>css</code> template as CSS, in javascript and TypeScript
-      files: a grammar injected into VS Code's own. Not yet seen running (<a href="#i8">I8</a>).
-    </li>
-    <li>
-      A new fixture, <code>DrawableSolitaire</code> (a copy of the Drawable Solitaire example): its TypeScript passes
-      <code>tsc</code> with no errors, and it runs in the core contract, printing the same for both targets.
-    </li>
-    <li>
-      Drive-by: <code>spell describe . "STOCK pile"</code> finds <code>StockPile</code> again. Names compare with a
-      word's capital as a space, since P11 made types one word; two cli tests had gone stale with it.
-    </li>
-    <li>
-      Checks: types pass in parser, core, spell, lsp, app and cli; tests pass in parser (521), core (512, +3 for the
-      tag), spell (1134, +4 for the fixture), lsp (127), cli (249), app's node tests (118) and its runner browser test
-      (24). Parser speed test against HEAD: 96 vs 96 on average, 0%.
-    </li>
-  </ul></epic-updated
-><epic-updated slot="changes" at="2026-10-11 13:52" phase="10"
-  ><p>
-    The element class is built on the runtime's own element, <code>SpellElement</code> (Owen picked B on
-    <a href="#j41">J41</a>, 2026-10-11). Changes no longer says the class calls its own <code>define()</code>: the page
-    stays the one place a tag is defined.
-  </p>
-  <ul>
-    <li>
-      The runtime hands app's <code>SpellElement</code> to compiled code, under a module name of its own,
-      <code>@spell/elements</code>, since core never imports Spell UI.
-    </li>
-    <li>Each type's compiled class says only what's its own: its attributes, its methods, its sheet.</li>
-    <li>
-      A new <code>spellCore.useElement(Card, CardElement)</code> hands that class to the page, which defines the tag
-      with it.
-    </li>
-    <li>
-      The type check maps the new module name to app's source; the headless run (<code>spell run</code>, the core
-      contract) maps it to a stand-in.
-    </li>
-    <li>What's left is about 3-4 hours.</li>
-  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
     <li>A drawable thing compiled to TypeScript reads like a Spell UI element Owen would write by hand.</li>
@@ -142,7 +69,463 @@
         <li>In a page, nothing visible changes: it's the same element as javascript's, behaviour for behaviour.</li>
       </ul>
     </li>
-  </ul></epic-field
+  </ul>
+  <epic-aside title="More details: what P10 built, before you review the diff">
+    <p>
+      The compiled TypeScript now writes, after each drawable type, its own element class: a short subclass of the
+      runtime's <code>SpellElement</code>, handed to the page with one new call.
+    </p>
+    <ul>
+      <li>
+        Why: Q6 wanted the TypeScript to read like a Spell UI element Owen would write by hand (<a href="#q6">Q6</a>).
+      </li>
+      <li>
+        Why on <code>SpellElement</code>: everything an element does (drawing its thing, error boundary, layouts) stays
+        in one class, so both targets draw the very same element (<a href="#j41">J41</a>, B).
+      </li>
+    </ul>
+
+    <epic-field label="What the writer writes">
+      <p>Drawable Solitaire's <code>Card</code>, from the DrawableSolitaire fixture's TypeScript snapshot.</p>
+      <ul>
+        <li>
+          Before: the class alone. The page built <code>&lt;test-project-card&gt;</code> from <code>Card</code> itself.
+        </li>
+        <li>
+          After: the same class, then <code>CardElement</code>, then the line handing it to the page. One more import at
+          the top, and every drawable tag declared for JSX at the end.
+        </li>
+      </ul>
+      <epic-code title="Before · Card, trimmed" language="ts">
+        <pre>
+import { spellCore, Thing, List, App, Drawable, DrawableList, prop, derived, drawn, css, positionOf, trigger, on } from "@spell/core"
+
+export class Card extends Drawable {
+  static elementTag = spellCore.defineElement(this, "test-project")
+
+  static css = css`
+    :host {
+    	display: block;
+    	position: relative;
+    }
+    ...
+  `
+
+  @prop({ oneOf: RANKS }) accessor rank!: Rank
+  @prop({ oneOf: SUITS }) accessor suit!: Suit
+  @prop({ oneOf: DIRECTIONS }) accessor direction!: Direction
+  ...
+  async turnOver() { ... }
+  async play() { ... }
+
+  get pile() {
+    return Pile.ownerOf(this)!
+  }
+}
+
+spellCore.heading("create a card instance with default properties")</pre>
+      </epic-code>
+      <epic-code title="After · Card, its element class, the hand-over (trimmed)" language="ts">
+        <pre>
+import { spellCore, Thing, List, App, Drawable, DrawableList, prop, derived, drawn, css, positionOf, trigger, on } from "@spell/core"
+import { E, SpellElement } from "@spell/elements"
+
+export class Card extends Drawable {
+  // ... unchanged ...
+}
+
+/**
+ * `&lt;test-project-card&gt;`:  a card, drawn in its own element, e.g. by `draw the card`.
+ * - The page defines its tag with this class:  `spellCore.useElement()`, below.
+ * - Its attributes are its card's properties;  its methods call its card's.
+ * - What every drawable thing's element does, e.g. drawing its card, is `SpellElement`'s.
+ */
+export class CardElement extends SpellElement&lt;Card&gt; {
+  @E.proto static vocabulary = SpellElement.vocabularyFor("test-project-card", "card", [
+    { name: "rank", kind: "string", description: "Its rank." },
+    { name: "suit", kind: "string", description: "Its suit." },
+    { name: "direction", kind: "string", description: "Its direction." }
+  ])
+  @E.protoMerged static elementSetup = {
+    styleSheets: { "test-project-card": Card.css }
+  } satisfies Partial&lt;E.ElementSetup&gt;
+
+  isASuit(suit: Suit) {
+    return this.currentThing?.isASuit(suit)
+  }
+
+  // ... isARank, isTheRankOfSuits, turnFaceUp, turnFaceDown ...
+
+  turnOver() {
+    return this.currentThing?.turnOver()
+  }
+
+  play() {
+    return this.currentThing?.play()
+  }
+}
+spellCore.useElement(Card, CardElement)
+
+spellCore.heading("create a card instance with default properties")
+
+// ... at the end of the file ...
+
+// each drawable type's tag, for the JSX
+declare module "@solidjs/web/types/jsx.js" {
+  namespace JSX {
+    interface IntrinsicElements {
+      /** `CardElement` */
+      "test-project-card": HTMLAttributes&lt;HTMLElement&gt; &amp; { [attribute: string]: unknown }
+      // ... one per drawable type ...
+    }
+  }
+}</pre>
+      </epic-code>
+      <ul>
+        <li>
+          A type with no <code>&lt;css&gt;</code> of its own writes no sheet line: <code>StockPileElement</code> is its
+          vocabulary and one method.
+        </li>
+        <li>
+          <code>TableauElement</code> builds on the runtime's element directly, not on the pile's element class: each
+          class stands alone (<a href="#j52">J52</a>).
+        </li>
+      </ul>
+    </epic-field>
+
+    <epic-field label="How a tag gets made now">
+      <p>
+        Both targets go through the same steps on the page. The only difference is step 2: javascript hands nothing
+        over, so the page starts from a bare element.
+      </p>
+      <ol>
+        <li>
+          The class is declared:
+          <code>static elementTag = spellCore.defineElement(this, ...)</code> names its tag, and tells the page a moment
+          later, once the class is whole (<a
+            href="../../../packages/core/src/elements.ts"
+            target="src-packages-core-src-elements-ts"
+            ><code title="packages/core/src/elements.ts">defineElement()</code></a
+          >).
+        </li>
+        <li>
+          TypeScript only: right after the element class,
+          <a href="../../../packages/core/src/elements.ts" target="src-packages-core-src-elements-ts"
+            ><code title="packages/core/src/elements.ts">useElement()</code></a
+          >
+          keeps <code>CardElement</code> on the card's class, for the page to find. Only a class's own counts, never one
+          handed for its super-class.
+        </li>
+        <li>
+          The page's
+          <a
+            href="../../../packages/app/src/runner/SpellElement.tsx"
+            target="src-packages-app-src-runner-spellelement-tsx"
+            ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.defineFor()</code></a
+          >
+          picks what to build on: the handed class, else a bare <code>SpellElement</code>.
+        </li>
+        <li>
+          Attributes: the class's own, as written (a card's rank, suit and direction), then what the page works out from
+          the type, as for javascript: super-types' properties, and the list holding it (a card's <code>pile</code>).
+          The naming rule is one function both sides share,
+          <a href="../../../packages/util/src/spell/drawable.ts" target="src-packages-util-src-spell-drawable-ts"
+            ><code title="packages/util/src/spell/drawable.ts">drawableAttributeFor()</code></a
+          >.
+        </li>
+        <li>Sheets, in order: the super-types' first, then the type's own (<code>sheetFor()</code>).</li>
+        <li>The tag is defined on the page once. A program run again only restyles it.</li>
+        <li>
+          Methods (<code>addMethods()</code>): a method the class has itself, like <code>CardElement.turnOver()</code>,
+          runs on the element; any other, like a super-type's, calls the thing's, as for javascript.
+        </li>
+      </ol>
+    </epic-field>
+
+    <epic-field label="Where @spell/elements comes from">
+      <p>
+        Core can't import Spell UI, so the element classes import their base under a name of their own. Each place that
+        runs or checks compiled TypeScript resolves it differently (<a href="#j54">J54</a>).
+      </p>
+      <ui-table compact
+        ><table>
+          <thead>
+            <tr>
+              <th>Place</th>
+              <th>What it gets</th>
+              <th>Who points it there</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Type check (the fixtures' <code>tsc</code>)</td>
+              <td>
+                app's real element and Spell UI's element core, from source:
+                <a
+                  href="../../../packages/app/src/runner/spellElements.ts"
+                  target="src-packages-app-src-runner-spellelements-ts"
+                  ><code title="packages/app/src/runner/spellElements.ts">spellElements.ts</code></a
+                >
+              </td>
+              <td>
+                <a
+                  href="../../../packages/spell/src/node/typecheck.ts"
+                  target="src-packages-spell-src-node-typecheck-ts"
+                  ><code title="packages/spell/src/node/typecheck.ts">typecheck()</code></a
+                >, which also learns Spell UI's own imports and the 2023 javascript library
+              </td>
+            </tr>
+            <tr>
+              <td>A page (the app, the VS Code runner, <code>&lt;spell-app&gt;</code>)</td>
+              <td>
+                the runtime bundle: the real element, and only the two decorators of Spell UI's element core (<a
+                  href="../../../packages/app/src/runner/spellRuntime.ts"
+                  target="src-packages-app-src-runner-spellruntime-ts"
+                  ><code title="packages/app/src/runner/spellRuntime.ts">spellRuntime.ts</code></a
+                >)
+              </td>
+              <td>
+                <a
+                  href="../../../packages/app/src/runner/runCompiled.ts"
+                  target="src-packages-app-src-runner-runcompiled-ts"
+                  ><code title="packages/app/src/runner/runCompiled.ts">linkModule()</code></a
+                >, to the same URL as <code>@spell/core</code>
+              </td>
+            </tr>
+            <tr>
+              <td>Headless (<code>spell run</code>, the core contract)</td>
+              <td>
+                a stand-in: an empty <code>SpellElement</code> and two decorators that do nothing (<a
+                  href="../../../packages/cli/src/runner/spellElements.mjs"
+                  target="src-packages-cli-src-runner-spellelements-mjs"
+                  ><code title="packages/cli/src/runner/spellElements.mjs">spellElements.mjs</code></a
+                >)
+              </td>
+              <td>
+                cli's
+                <a href="../../../packages/cli/src/runner/hooks.mjs" target="src-packages-cli-src-runner-hooks-mjs"
+                  ><code title="packages/cli/src/runner/hooks.mjs">hooks.mjs</code></a
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table></ui-table
+      >
+    </epic-field>
+
+    <epic-field label="What to look at in the diff">
+      <p>Six places carry the change. The other 20-odd files are tests, docs and moved code.</p>
+      <ol>
+        <li>
+          <a
+            href="../../../packages/spell/projects/test/DrawableSolitaire/DrawableSolitaire.snapshot.tsx"
+            target="src-packages-spell-projects-test-drawablesolitaire-drawablesolitaire-snapshot-tsx"
+            ><code title="packages/spell/projects/test/DrawableSolitaire/DrawableSolitaire.snapshot.tsx"
+              >DrawableSolitaire's TypeScript</code
+            ></a
+          >: read this first. It's what the writer writes now, all six element classes.
+        </li>
+        <li>
+          <a
+            href="../../../packages/parser/src/writers/TSWriter.ts"
+            target="src-packages-parser-src-writers-tswriter-ts"
+            ><code title="packages/parser/src/writers/TSWriter.ts">TSWriter.elementClassFor()</code></a
+          >: writes each element class, with its attributes, methods and the names it must avoid (<a href="#j53">J53</a
+          >).
+        </li>
+        <li>
+          <a
+            href="../../../packages/app/src/runner/SpellElement.tsx"
+            target="src-packages-app-src-runner-spellelement-tsx"
+            ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.defineFor()</code></a
+          >: the page building the tag on the handed class.
+        </li>
+        <li>
+          <a href="../../../packages/core/src/elements.ts" target="src-packages-core-src-elements-ts"
+            ><code title="packages/core/src/elements.ts">useElement()</code></a
+          >: the new hand-over, a few lines.
+        </li>
+        <li>
+          <a href="../../../packages/util/src/spell/drawable.ts" target="src-packages-util-src-spell-drawable-ts"
+            ><code title="packages/util/src/spell/drawable.ts">drawable.ts</code></a
+          >: the tag and attribute rules, moved out of core and app so the writer can share them (<a href="#j55">J55</a
+          >).
+        </li>
+        <li>The three resolutions of <code>@spell/elements</code>: the table above.</li>
+      </ol>
+      <p>
+        A side effect worth a glance: CardTable's two <code>tsc</code> errors are gone, since its hand-written tags are
+        now declared (<a href="#j56">J56</a>).
+      </p>
+      <p>The tests that show it working:</p>
+      <ul>
+        <li>
+          End to end in a browser:
+          <a
+            href="../../../packages/app/src/runner/SpellElement.browser.test.tsx"
+            target="src-packages-app-src-runner-spellelement-browser-test-tsx"
+            ><code title="packages/app/src/runner/SpellElement.browser.test.tsx">SpellElement's browser test</code></a
+          >, "an element class compiled TypeScript hands over".
+          <ul>
+            <li>A class shaped like the writer's, decorators and all, becomes a real tag.</li>
+            <li>
+              Its attributes, its own method winning over the thing's, its sheet after its super-type's, defined once.
+            </li>
+            <li>The writer's list of names to avoid, checked against a real element.</li>
+          </ul>
+        </li>
+        <li>
+          Through the real runner:
+          <a
+            href="../../../packages/app/src/runner/runner.browser.test.tsx"
+            target="src-packages-app-src-runner-runner-browser-test-tsx"
+            ><code title="packages/app/src/runner/runner.browser.test.tsx">the runner's browser test</code></a
+          >, "an element class the program hands over": a program importing <code>@spell/elements</code> draws.
+        </li>
+        <li>
+          Real compiled output:
+          <a
+            href="../../../packages/spell/src/test/typescript.test.ts"
+            target="src-packages-spell-src-test-typescript-test-ts"
+            ><code title="packages/spell/src/test/typescript.test.ts">the fixtures' type check</code></a
+          >
+          (0 errors) and
+          <a href="../../../packages/cli/src/contract.test.ts" target="src-packages-cli-src-contract-test-ts"
+            ><code title="packages/cli/src/contract.test.ts">the core contract</code></a
+          >
+          (TypeScript prints what javascript prints).
+        </li>
+      </ul>
+      <epic-code title="Running them" language="sh">
+        <pre>
+# in packages/app
+yarn vp test run src/runner/SpellElement.browser.test.tsx src/runner/runner.browser.test.tsx
+
+# in packages/spell
+yarn test:fixtures
+
+# in packages/cli
+yarn vp test run src/contract.test.ts</pre>
+      </epic-code>
+    </epic-field>
+
+    <epic-field label="Limits worth knowing">
+      <ol>
+        <li>
+          <b>No page runs TypeScript output yet, so the writer's own element classes have never drawn on a page.</b>
+          <ul>
+            <li>The browser tests use classes shaped like the writer's, and the runner test a javascript program.</li>
+            <li>The real output runs only headless, where the stand-in makes no element.</li>
+          </ul>
+        </li>
+        <li>
+          <b
+            >A hand-written element class that uses more of Spell UI's <code>E</code> as it runs would type-check, then
+            fail in a page.</b
+          >
+          The runtime's <code>E</code> holds only the two decorators: exporting the whole of it put a second copy of two
+          Spell UI files in the runtime bundle (<a href="#j54">J54</a>).
+        </li>
+        <li>
+          Element classes are flat (<a href="#j52">J52</a>).
+          <ul>
+            <li>
+              Each lists only its own type's attributes and methods; the page adds the super-types' and the owner list
+              at run time.
+            </li>
+            <li>
+              So <code>TableauElement</code>'s class doesn't show a pile's <code>name</code>, though its tag has it.
+            </li>
+          </ul>
+        </li>
+        <li>
+          A type's method named like one of the element's own (<code>send</code>, <code>render</code> ...) is left out
+          of its class; the tag still calls the thing's (<a href="#j53">J53</a>).
+        </li>
+      </ol>
+    </epic-field>
+  </epic-aside></epic-field
+><epic-update
+  at="2026-10-11 05:16"
+  summary="A type's CSS compiles to a css-tagged template, as Lit writes it, so editors can colour…"
+  ><p>
+    A type's CSS compiles to a <code>css</code>-tagged template, as Lit writes it, so editors can colour it as CSS
+    (Owen, reviewing <a href="#j14">J14</a>). The tag hands back the sheet as text, with the shared indent taken off.
+  </p></epic-update
+><epic-update
+  at="2026-10-11 06:45"
+  summary="Part 1 built overnight (2026-10-11): a type's CSS as a css template, and a fixture with…"
+  phase="10"
+  ><p>
+    Part 1 built overnight (2026-10-11): a type's CSS as a <code>css</code> template, and a fixture with drawable types.
+    The element class itself waits on <a href="#j41">J41</a> (<a href="#t9">T9</a>), so the phase stays active.
+  </p>
+  <ul>
+    <li>
+      A type's <code>&lt;css&gt;</code> block compiles to <code>static css = css`...`</code>, in the javascript and the
+      TypeScript output, its sheet on lines of its own, indented inside the class (<a href="#j14">J14</a>, A).
+    </li>
+    <li>
+      <code>@spell/core</code> exports the
+      <a href="../../../packages/core/src/elements.ts" target="src-packages-core-src-elements-ts"
+        ><code title="packages/core/src/elements.ts">css</code></a
+      >
+      tag, and so does the runtime programs run on: it hands back the sheet as text, with the indent its lines share and
+      the blank first and last lines taken off. CSS's own escapes, like <code>"\201C"</code>, stay as written.
+    </li>
+    <li>
+      The sheet's later lines no longer gain the class body's indent: the browser gets the CSS exactly as written (J14's
+      caveat is gone). <code>SpellElement.cssOf()</code> is unchanged.
+    </li>
+    <li>
+      The parser's tree has a tagged template,
+      <a href="../../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
+        ><code title="packages/parser/src/ast/AST.ts">P.ASTTaggedTemplate</code></a
+      >; the javascript writer writes it, and imports <code>css</code> from <code>@spell/core</code> when it's used.
+    </li>
+    <li>
+      Spell's VS Code extension colours the inside of a <code>css</code> template as CSS, in javascript and TypeScript
+      files: a grammar injected into VS Code's own. Not yet seen running (<a href="#i8">I8</a>).
+    </li>
+    <li>
+      A new fixture, <code>DrawableSolitaire</code> (a copy of the Drawable Solitaire example): its TypeScript passes
+      <code>tsc</code> with no errors, and it runs in the core contract, printing the same for both targets.
+    </li>
+    <li>
+      Drive-by: <code>spell describe . "STOCK pile"</code> finds <code>StockPile</code> again. Names compare with a
+      word's capital as a space, since P11 made types one word; two cli tests had gone stale with it.
+    </li>
+    <li>
+      Checks: types pass in parser, core, spell, lsp, app and cli; tests pass in parser (521), core (512, +3 for the
+      tag), spell (1134, +4 for the fixture), lsp (127), cli (249), app's node tests (118) and its runner browser test
+      (24). Parser speed test against HEAD: 96 vs 96 on average, 0%.
+    </li>
+  </ul></epic-update
+><epic-update
+  at="2026-10-11 13:52"
+  summary="The element class is built on the runtime's own element, SpellElement (Owen picked B on…"
+  phase="10"
+  ><p>
+    The element class is built on the runtime's own element, <code>SpellElement</code> (Owen picked B on
+    <a href="#j41">J41</a>, 2026-10-11). Changes no longer says the class calls its own <code>define()</code>: the page
+    stays the one place a tag is defined.
+  </p>
+  <ul>
+    <li>
+      The runtime hands app's <code>SpellElement</code> to compiled code, under a module name of its own,
+      <code>@spell/elements</code>, since core never imports Spell UI.
+    </li>
+    <li>Each type's compiled class says only what's its own: its attributes, its methods, its sheet.</li>
+    <li>
+      A new <code>spellCore.useElement(Card, CardElement)</code> hands that class to the page, which defines the tag
+      with it.
+    </li>
+    <li>
+      The type check maps the new module name to app's source; the headless run (<code>spell run</code>, the core
+      contract) maps it to a stand-in.
+    </li>
+    <li>What's left is about 3-4 hours.</li>
+  </ul></epic-update
 ><epic-commit sha="909b3f32f257d131b21dd316aa1b3ecedc2cf6e9"
   >Part 1: a type's CSS compiles to a css template in both writers, @spell/core's css tag hands back the sheet as text;
   VS Code colours css templates; the DrawableSolitaire fixture, 0 tsc errors</epic-commit
