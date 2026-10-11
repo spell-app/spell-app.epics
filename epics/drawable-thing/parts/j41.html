@@ -91,3 +91,475 @@ CardElement.define()</pre></epic-code
     <li>Nothing that runs changed for the element: the page still makes it, as before.</li>
   </ul></epic-net-effect
 >
+<epic-more
+  ><p>
+    The pick is where the compiled TypeScript gets the code behind <code>&lt;test-project-card&gt;</code> from: Spell
+    UI's own base (A), the runtime's existing element class (B), or nowhere, with types only (C). Below: what an element
+    class is here, what each option writes for Drawable Solitaire's card, and what I checked in the code.
+  </p>
+
+  <h4>What an "element class" is, and why Q6 wanted one</h4>
+  <p>
+    A drawable thing draws as its own custom element: a card in Drawable Solitaire draws as
+    <code>&lt;test-project-card&gt;</code>.
+  </p>
+  <ul>
+    <li>
+      The element has its own styles, and its own outside: the page's code can read its rank and call its turn-over.
+    </li>
+    <li>The class behind that tag is its element class.</li>
+  </ul>
+  <ul>
+    <li>
+      Today nobody WRITES that class: the page running the program makes one at run time, the same way for every type.
+    </li>
+    <li>
+      Q6 (answered B, "Both, in this epic") asked the TypeScript writer to write it out, so the compiled
+      <code>.tsx</code> reads like a Spell UI element Owen would write by hand, and passes the type check.
+    </li>
+  </ul>
+  <p>Today's flow, in the order it happens:</p>
+  <ol>
+    <li>
+      The compiled card class names its tag as it's declared:
+      <code>static elementTag = spellCore.defineElement(this, "test-project")</code>.
+    </li>
+    <li>
+      <code title="packages/core/src/elements.ts">defineElement()</code> keeps the tag on the class. A moment later,
+      once the class's CSS is set, it tells the page, through the page's definer
+      (<code>spellCore.elementDefiner</code>).
+    </li>
+    <li>
+      The page filled that in when it loaded the runtime (<code title="packages/app/src/runner/SpellElement.tsx"
+        >installSpellElements()</code
+      >), so app's <code title="packages/app/src/runner/SpellElement.tsx">SpellElement.defineFor()</code> runs: it
+      builds a <code>class extends SpellElement</code> with the card's attributes and sheet, defines the tag, and adds
+      the card's methods to it.
+    </li>
+    <li>
+      <code>draw the card</code> then draws the card's tag, with the card as its thing. The element draws the card
+      inside it (<code title="packages/core/src/drawing.ts">drawThing()</code>).
+    </li>
+  </ol>
+  <epic-aside title="what SpellElement does besides drawing">
+    <p>
+      About 400 lines, built up over this epic. A hand-written element class that wants the same behaviour has to do all
+      of it:
+    </p>
+    <ul>
+      <li>draws its thing in the thing's own error boundary</li>
+      <li>each property is an attribute and a property, and the element and its thing agree both ways (P8, P13)</li>
+      <li>a tag written by hand, with no <code>thing</code>, makes its own card</li>
+      <li>
+        in a <code>&lt;spell-app&gt;</code>'s layout, <code>&lt;solitaire-tableau id="T1"&gt;</code> finds the program's
+        tableau named T1, or shows a stand-in saying it's missing (P9, Q9)
+      </li>
+      <li>a program run again takes the tag over and swaps its CSS in place (P7)</li>
+    </ul>
+  </epic-aside>
+
+  <h4>What I checked</h4>
+  <p>Five facts from the code, and three probes run in a scratch folder (nothing in the repo changed):</p>
+  <ul>
+    <li>
+      <b>The type check can see Spell UI.</b> The A, B and C sketches below, each added to the real DrawableSolitaire
+      TypeScript, pass <code>tsc</code> with 0 errors, once the check:
+      <ul>
+        <li>
+          maps the new module names (Spell UI's core, app's <code>SpellElement</code>), and the paths Spell UI's own
+          files import each other by
+        </li>
+        <li>
+          uses the 2023 JavaScript library: without it, Spell UI's own files give 9 errors (<code>toReversed()</code>,
+          <code>findLast()</code>)
+        </li>
+        <li>
+          Those settings are in
+          <code title="packages/spell/src/node/typecheck.ts">typecheck()</code>; C needs neither.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Spell UI can't load in the headless run.</b> Under node, importing Spell UI's core fails.
+      <ul>
+        <li>The error: <code>Unknown file extension ".css"</code>.</li>
+        <li>Spell UI's core imports its own CSS files, which only Vite can load.</li>
+      </ul>
+      <ul>
+        <li>
+          So A and B both need a stand-in module there, mapped in cli's
+          <code title="packages/cli/src/runner/hooks.mjs">hooks.mjs</code>.
+        </li>
+        <li>
+          The fake page has no <code>customElements</code> either, so a <code>define()</code> as the file loads would
+          throw.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>"Defined twice" is silent, not an error.</b> Spell UI's <code>define()</code> and the page's
+      <code>defineFor()</code> both quietly skip a tag that's already defined: the first one wins, and the other's
+      settings are lost without a word.
+    </li>
+    <li>
+      <b>No page runs the TypeScript output today.</b> Only <code>spell run</code> and the core contract run it, under
+      node; the editor, VS Code and <code>&lt;spell-app&gt;</code> all run the javascript.
+      <ul>
+        <li>So the page-side blockers bite only when someone takes the <code>.tsx</code> into a page of their own.</li>
+      </ul>
+    </li>
+    <li>
+      <b>A thing draws as its element only when the page has a definer.</b> <code>elementFor()</code> answers a tag only
+      while <code>spellCore.elementDefiner</code> is set; otherwise the card draws as a plain thing.
+      <ul>
+        <li>That's why the core contract prints the same for both targets today: neither makes an element there.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>A · A Spell UI class per type, on Spell UI's own base</h4>
+  <p>
+    The writer writes the whole element per type, as Spell UI's own families are written: a vocabulary, a DOM element
+    class carrying the methods, and a component that draws the card.
+  </p>
+  <epic-code title="A: what the TypeScript would add after the card class (type-checks)" language="tsx">
+    <pre>
+import { E } from "@spell-app/ui/core"
+
+/** `&lt;test-project-card&gt;`'s names:  its tag, and an attribute per property of a card. */
+const cardElementVocabulary = {
+  tag: "test-project-card",
+  topics: ["views"],
+  aka: [],
+  noun: "card",
+  ui: false,
+  description: "A card, drawn in its own element.",
+  attributes: [
+    { name: "thing", kind: "json", description: "The card it draws." },
+    { name: "rank", kind: "string", description: "Its rank." },
+    { name: "suit", kind: "string", description: "Its suit." },
+    { name: "direction", kind: "string", description: "Its direction." }
+  ],
+  events: [], slots: [], parts: [], states: [], texts: []
+} as const satisfies E.ComponentVocabulary
+
+/** `&lt;test-project-card&gt;` on the page:  its methods call its card's. */
+export class DOMCardElement extends E.DOMElement&lt;CardElement&gt; {
+  get card(): Card | undefined {
+    return this.component?.thing as Card | undefined
+  }
+  turnFaceUp() { return this.card?.turnFaceUp() }
+  turnFaceDown() { return this.card?.turnFaceDown() }
+  turnOver() { return this.card?.turnOver() }
+  play() { return this.card?.play() }
+}
+
+/** Draws its card, in the card's own error boundary, with the card's CSS. */
+export class CardElement extends E.UIComponent&lt;typeof cardElementVocabulary&gt; {
+  @E.proto static vocabulary = cardElementVocabulary
+  @E.protoMerged static elementSetup = {
+    DOMElement: DOMCardElement,
+    delegatesFocus: false,
+    styleSheets: { "test-project-card": Card.css }
+  } satisfies Partial&lt;E.ElementSetup&gt;
+
+  render() {
+    return &lt;&gt;{this.thing ? spellCore.drawOwn(this.thing) : null}&lt;/&gt;
+  }
+}
+export interface CardElement extends E.AttributeValues&lt;typeof cardElementVocabulary&gt; {}
+
+// no page (spell run, the core contract):  nothing to define
+if (globalThis.customElements) CardElement.define()</pre>
+  </epic-code>
+  <ul>
+    <li>
+      What changes:
+      <ul>
+        <li>
+          the TypeScript writer (<code title="packages/parser/src/writers/TSWriter.ts">TSWriter</code>) writes the three
+          pieces after each drawable class
+        </li>
+        <li>
+          core: <code title="packages/core/src/elements.ts">elementFor()</code> answers a tag the class defined itself,
+          even with no definer, so <code>draw the card</code> draws the element on any page
+        </li>
+        <li>
+          app: <code>defineFor()</code> steps aside for a class that brought its own element, instead of quietly losing
+          to it
+        </li>
+        <li>the type check maps <code>@spell-app/ui/core</code> and uses the 2023 library</li>
+        <li>
+          the headless run maps <code>@spell-app/ui/core</code> to a stand-in for Spell UI's base classes, decorators
+          and
+          <code>define()</code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      The blockers:
+      <ul>
+        <li>type check: settings, checked above</li>
+        <li>defined twice: the compiled class defines the tag, the page steps aside</li>
+        <li>
+          headless: the stand-in, and the guarded <code>define()</code>; no definer there, so it prints what javascript
+          prints
+        </li>
+      </ul>
+    </li>
+    <li>
+      What a reader notices: the <code>.tsx</code> reads most like hand-written Spell UI, and needs only Spell UI's
+      published package, so it could run in Owen's own Vite app.
+    </li>
+    <li>
+      What a user notices: in a page, a LESSER element than javascript's. No agreeing both ways, no tag that makes its
+      own card, no layout lookup, no CSS swap on a re-run (the aside above), unless the writer repeats all of that per
+      type.
+    </li>
+    <li>
+      Cost: about 4-6 hours as sketched. Matching javascript's element means a shared base class with
+      <code>SpellElement</code>'s behaviour, which is option B again.
+    </li>
+    <li>
+      Risk: two element classes for the same tag, the page's and the program's, drifting apart; the headless stand-in
+      fakes Spell UI's public API.
+    </li>
+  </ul>
+
+  <h4>B · On the runtime's own element, SpellElement</h4>
+  <p>
+    The writer writes a short class on app's <code title="packages/app/src/runner/SpellElement.tsx">SpellElement</code>,
+    saying only what's the card's own, and hands it to the page, which defines the tag with it.
+  </p>
+  <epic-code
+    title="B: what the TypeScript would add after the card class (type-checks, but for the last line)"
+    language="tsx"
+  >
+    <pre>
+import { E, SpellElement } from "@spell/elements"
+
+/**
+ * `&lt;test-project-card&gt;`:  a card, drawn in its own element, e.g. by `draw the card`.
+ * - Its methods are its card's, as for javascript:  `turnOver()`, `play()` ...
+ */
+export class CardElement extends SpellElement {
+  @E.proto static vocabulary = {
+    ...SpellElement.vocabulary,
+    tag: "test-project-card",
+    noun: "card",
+    attributes: [
+      ...SpellElement.vocabulary.attributes,
+      { name: "rank", kind: "string", description: "Its rank." },
+      { name: "suit", kind: "string", description: "Its suit." },
+      { name: "direction", kind: "string", description: "Its direction." }
+    ]
+  } as unknown as typeof SpellElement.vocabulary
+  @E.protoMerged static elementSetup: Partial&lt;E.ElementSetup&gt; = {
+    styleSheets: { "test-project-card": Card.css }
+  }
+}
+
+// NEW in core:  the page defines &lt;test-project-card&gt; with this class, not one of its own
+spellCore.useElement(Card, CardElement)</pre>
+  </epic-code>
+  <ul>
+    <li>
+      What changes:
+      <ul>
+        <li>
+          <code title="packages/parser/src/writers/TSWriter.ts">TSWriter</code> writes the class and the
+          <code>useElement()</code> line after each drawable class
+        </li>
+        <li>
+          core: a small <code title="packages/core/src/elements.ts">useElement()</code>, which keeps the class on the
+          card class, as <code>defineElement()</code> keeps the tag
+        </li>
+        <li>
+          app: <code title="packages/app/src/runner/SpellElement.tsx">defineFor()</code> builds the tag on the class it
+          was handed, instead of on a bare <code>SpellElement</code>
+        </li>
+        <li>
+          the type check maps <code>@spell/elements</code> to app's <code>SpellElement</code>, and uses the 2023 library
+        </li>
+        <li>the headless run maps <code>@spell/elements</code> to a stand-in: one empty class and two decorators</li>
+        <li>
+          later, when a page first runs TypeScript output:
+          <code title="packages/app/src/runner/runCompiled.ts">runCompiled()</code> points the new module name at the
+          runtime file it already loads, which then exports the element class too (<code
+            title="packages/app/src/runner/spellRuntime.ts"
+            >spellRuntime.ts</code
+          >)
+        </li>
+      </ul>
+    </li>
+    <li>
+      The blockers:
+      <ul>
+        <li>type check: settings, checked above</li>
+        <li>
+          defined twice: never. The compiled class doesn't call <code>define()</code>; the page stays the one place a
+          tag is defined
+        </li>
+        <li>
+          headless: the stand-in; no definer there, so <code>useElement()</code> only records, and it prints what
+          javascript prints
+        </li>
+      </ul>
+    </li>
+    <li>
+      What a reader notices: a short Spell UI subclass per type, as <code>SpellApp</code> extends <code>UIRoot</code>;
+      the behaviour lives in the base class, one click away. A method or a <code>render()</code> written into it by hand
+      wins.
+    </li>
+    <li>What a user notices: nothing. It's the same element as javascript's, behaviour for behaviour.</li>
+    <li>
+      Cost: about 3-4 hours. The element's outside isn't typed for the page's own code yet (C's declaration, about an
+      hour more, whenever wanted).
+    </li>
+    <li>
+      Risk: the <code>.tsx</code> runs only where spell's runtime is, as javascript's element does today: Owen's own
+      Vite app would need the runtime too. And <code>@spell/elements</code> is a second module name to keep resolved in
+      three places: the type check, the headless run, a page.
+    </li>
+  </ul>
+
+  <h4>C · The element's outside, as types only</h4>
+  <p>
+    The writer adds a declaration that tells TypeScript what <code>&lt;test-project-card&gt;</code> looks like from
+    outside. Nothing runs: the page keeps making the element as today.
+  </p>
+  <epic-code title="C: what the TypeScript would add (type-checks)" language="tsx">
+    <pre>
+declare global {
+  interface HTMLElementTagNameMap {
+    /** `&lt;test-project-card&gt;`:  a card, drawn in its own element -- made by the page running the program. */
+    "test-project-card": HTMLElement &amp; {
+      thing: Card | undefined
+      rank: Rank
+      suit: Suit
+      direction: Direction
+      turnFaceUp: Card["turnFaceUp"]
+      turnFaceDown: Card["turnFaceDown"]
+      turnOver: Card["turnOver"]
+      play: Card["play"]
+    }
+  }
+}
+
+// so the page's own code is typed:
+const card = document.querySelector("test-project-card")
+void card?.turnOver()</pre>
+  </epic-code>
+  <ul>
+    <li>
+      What changes: <code title="packages/parser/src/writers/TSWriter.ts">TSWriter</code> only; no new module name, no
+      setting.
+    </li>
+    <li>The blockers: none apply, since nothing is defined or imported.</li>
+    <li>What a reader notices: the tag and its outside, typed; but no element class to read or edit.</li>
+    <li>What a user notices: nothing.</li>
+    <li>Cost: about 1-2 hours.</li>
+    <li>
+      Risk: Q6's goal isn't met, so P10's first goal stays unmet; the types can drift from what
+      <code>defineFor()</code> really adds.
+    </li>
+  </ul>
+
+  <h4>Side by side</h4>
+  <table>
+    <thead>
+      <tr>
+        <th>Option</th>
+        <th>What it costs</th>
+        <th>What you get</th>
+        <th>What changes at run time</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>A · Spell UI class per type</td>
+        <td>4-6 hours; more to match javascript's element</td>
+        <td>the most hand-written-looking <code>.tsx</code>, needing only Spell UI</td>
+        <td>a second element class per tag, with less behaviour than javascript's; core draws it with no definer</td>
+      </tr>
+      <tr>
+        <td>B · On SpellElement</td>
+        <td>3-4 hours</td>
+        <td>a short subclass per type, the same element as javascript's</td>
+        <td>nothing visible: the page builds the tag on the program's class instead of a bare one</td>
+      </tr>
+      <tr>
+        <td>C · Types only</td>
+        <td>1-2 hours</td>
+        <td>typed tags for the page's code; no element class</td>
+        <td>nothing</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Recommendation: B</h4>
+  <ul>
+    <li>
+      One element, not two: the TypeScript and the javascript draw the same class, so "both targets behave the same"
+      holds in a page, not only in the core contract.
+    </li>
+    <li>
+      A, made to behave like javascript's element, grows a shared base class: that base is <code>SpellElement</code>,
+      which is B.
+    </li>
+    <li>
+      Its blockers are the smallest: settings for the type check (checked), a one-class stand-in headless, and the page
+      stays the only place a tag is defined.
+    </li>
+    <li>
+      Pick A instead if the <code>.tsx</code> must stand alone in a page with Spell UI and no spell runtime. Then the
+      element does less, until it copies <code>SpellElement</code>.
+    </li>
+  </ul>
+
+  <epic-choices>
+    <epic-option letter="A" title="A Spell UI class per type, on Spell UI's own base">
+      <ul>
+        <li>reads most like hand-written Spell UI; needs only Spell UI's package</li>
+        <li>a lesser element than javascript's, unless it repeats <code>SpellElement</code></li>
+        <li>4-6 hours</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="On the runtime's own element, SpellElement" recommended>
+      <ul>
+        <li>a short subclass per type; the same element as javascript's</li>
+        <li>the page defines the tag with it: never defined twice</li>
+        <li>3-4 hours</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title="The element's outside, as types only">
+      <ul>
+        <li>typed tags, nothing that runs</li>
+        <li>no element class: Q6's goal unmet</li>
+        <li>1-2 hours</li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+
+  <epic-net-effect option="B" recommended>
+    <ul>
+      <li>
+        The TypeScript writer writes <code>CardElement extends SpellElement</code> after each drawable class, with its
+        attributes and sheet, and hands it to the page (<code>spellCore.useElement()</code>).
+      </li>
+      <li>
+        Core gains <code>useElement()</code>; app's <code>defineFor()</code> builds the tag on the class it's handed.
+      </li>
+      <li>
+        The type check maps <code>@spell/elements</code> to app's <code>SpellElement</code> and uses the 2023 library.
+      </li>
+      <li>The headless run maps <code>@spell/elements</code> to a stand-in.</li>
+      <li>
+        The DrawableSolitaire fixture's TypeScript is re-blessed: still 0 <code>tsc</code> errors, and the core contract
+        still prints the same for both targets.
+      </li>
+      <li>The javascript output doesn't change; P10 finishes with the element todo (T9).</li>
+    </ul>
+  </epic-net-effect></epic-more
+>
+<epic-reply from="Owen" at="2026-10-11 11:13" re="revisit now"><p>Need more detail</p></epic-reply>
