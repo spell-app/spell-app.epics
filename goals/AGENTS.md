@@ -1,12 +1,18 @@
 # goals/ -- goal sets
 
+> **PARKED** (2026-10-11, epic `epic-workflow` P6):  the goal sets below still show, read only, and their buttons say
+> "TODO:  this will ...".  The tools, skills, routes and templates are in `packages/goals.zip` (its README says how to
+> put them back);  the paths below marked "(in the zip)" are where they lived.  What goals was for, and what worked:
+> `guides/goals/goals.html`.  Epic `epic-goals` rebuilds it on the epic tools.  Don't run the goals commands or
+> skills:  they're gone (`spell dev goals` says so).
+
 Plans, one GOAL SET per project or idea:  a page per topic for people, a brief per topic for agents, thoughts
 waiting to be worked in, and the tools that keep it all consistent.  As the root's `AGENTS.md` and WWOD
 (`agents/wwod/WWOD.md`), plus what's below.
 
 - Start at `index.html` (every goal set), or a set's own `<set>/index.html`.  `spell dev goals open` shows them served
   live;  they also open straight from disk.
-- The /goals skills (`packages/docs/tools/goals/skills/`, linked into the repo's `.claude/skills/`) drive dialogs,
+- The /goals skills (packages/docs/tools/goals/skills/ (in the zip), linked into the repo's `.claude/skills/`) drive dialogs,
   thoughts and updates.
 - Built in this repo, meant for any project later:  keep paths relative, and project specifics in the preferences.
 
@@ -25,8 +31,8 @@ waiting to be worked in, and the tools that keep it all consistent.  As the root
   the same in every checkout (the root's `AGENTS.md`, "Shared content").
   - Not tracked by spell-app:  committed by itself after every Claude turn;  never `git add` it by hand.
   - So the tools find it as `<repo root>/goals`, never beside themselves.
-- The tooling is NOT shared:  `packages/docs/tools/goals/`, tracked in spell-app, versioned per branch.
-- `packages/docs/tools/goals/` -- the tools:
+- The tooling is NOT shared:  packages/docs/tools/goals/ (in the zip), tracked in spell-app, versioned per branch.
+- packages/docs/tools/goals/ (in the zip) -- the tools:
   - `goals.js` -- `spell dev goals ...` (below)
   - `page.js` -- `GoalsPage`:  every edit to a page, pure (HTML in, HTML out)
   - `targets.js` -- preferences, sets, topics, and what a target means;  where the repo root and this folder are
@@ -35,7 +41,7 @@ waiting to be worked in, and the tools that keep it all consistent.  As the root
     `goalsRoutes.test.ts` (`yarn goals:test`)
 - The tools run under `tsx` (`goals.sh`, `spell dev goals`), with `packages/docs/tsconfig.json` for the repo's aliases:
   they use the page server's code (`$/server`).
-- `packages/docs/tools/goals/skills/` -- the /goals skills:  `goals`, `goals-thought`, `goals-update`, `goals-open`,
+- packages/docs/tools/goals/skills/ (in the zip) -- the /goals skills:  `goals`, `goals-thought`, `goals-update`, `goals-open`,
   `goals-open-vs`.  `goals/scripts/goals.sh` there runs its checkout's tool:  every skill calls it.
 - Templates:  `templates/goals/`.  Look:  `packages/docs/tools/_assets/goals.css`.  Live buttons:
   `packages/docs/tools/_assets/goals-live.js`.
@@ -162,7 +168,7 @@ claude                                    is Claude Code installed and logged in
 ## The page server
 
 - Goals pages are served by the repo's PAGE SERVER (`packages/server`, `spell dev server`), one per checkout, which
-  serves docs, plans and Spell UI too.  Goals plug in as a ROUTE MODULE, `packages/docs/tools/goals/goalsRoutes.ts`, listed in the
+  serves docs, plans and Spell UI too.  Goals plug in as a ROUTE MODULE, packages/docs/tools/goals/goalsRoutes.ts (in the zip), listed in the
   root `package.json`'s `"pageServer"`.
 - `spell dev goals open` starts it in the background if need be (`spell dev goals server start|stop|status`;  `serve` runs
   it in front).  It asks for `server.port` (the preferences) first, else any free port.  State and log:
