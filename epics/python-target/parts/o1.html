@@ -1,37 +1,46 @@
 <!-- plan-doc part:  #o1's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-update phase="16"
+  ><p>
+    Made true to what was built: two Python targets, six contract programs, and how a compiled program runs today.
+  </p></epic-update
+>
 <p>
-  Python becomes a third target: <code>spell compile FizzBuzz --target py</code> writes
-  <code>FizzBuzz.compiled.py</code>, and it runs under <code>python3</code>.
+  Python is spell's first target that isn't javascript underneath: <code>spell compile Cards --target py</code> writes
+  <code>Cards.compiled.py</code>, and Python runs it.
 </p>
 <ul>
   <li>
-    Four pieces, as the targets guide's "Adding a target" lists them:
+    It took four pieces, as the targets guide's "Adding a target" lists them:
     <ul>
       <li>
         a WRITER,
-        <a href="../../../packages/parser/src/writers/" target="src-packages-parser-src-writers"
-          ><code title="packages/parser/src/writers/">PyWriter</code></a
+        <a href="../../../packages/parser/src/writers/PyWriter.ts" target="src-packages-parser-src-writers-pywriter-ts"
+          ><code title="packages/parser/src/writers/PyWriter.ts">PyWriter</code></a
         >, walking the same spell tree the JavaScript and TypeScript writers walk
       </li>
       <li>
-        an entry in the targets table,
+        two entries in the targets table,
         <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
           ><code title="packages/spell/src/targets.ts">SP.TARGETS</code></a
-        >: <code>py</code>
+        >:
+        <ul>
+          <li><code>py</code>: plain Python, where a pause sleeps</li>
+          <li>
+            <code>py/asyncio</code>: the same program on asyncio, Python's own way to wait (<a href="#q18">Q18</a>)
+          </li>
+        </ul>
       </li>
-      <li>
-        a RUNTIME, <code>spell_core</code>: a small Python package, the Python twin of <code>@spell-app/core</code>
-      </li>
-      <li>a place in the core contract: the five test programs print the same lines on every target</li>
+      <li>a RUNTIME, spell_core: a small Python package, the Python twin of the core</li>
+      <li>a place in the core contract: all six test programs print the same lines on every target</li>
     </ul>
   </li>
   <li>
-    Three things change for the JavaScript targets too, because Python needs them first:
+    Four things changed for the JavaScript targets too, because Python needed them first:
     <ul>
       <li>a project can count its lists from 0 ("Lists start at 0", <a href="#o3">1.3</a>)</li>
       <li>the core's position methods take where lists start, call by call (<a href="#q10">Q10</a>)</li>
       <li>
-        the core gets a seedable random of its own, and a machine-readable list of its methods (<a href="#o4">1.4</a>)
+        the core has a seedable random of its own, and a machine-readable list of its methods (<a href="#o4">1.4</a>)
       </li>
       <li>
         the tree holds spell's own values, not JavaScript spellings like <code>'up'</code> (<a href="#o5">1.5</a>)
@@ -39,18 +48,28 @@
     </ul>
   </li>
   <li>
-    The editor, the runners and the language server still run the JavaScript target: Python is compile-only.
+    A project asks for Python in its project file, <code>"targets": ["py"]</code>, or for one compile with
+    <code>--target py</code>.
+  </li>
+  <li>
+    The editor, the runners and the language server still run the JavaScript target.
     <ul>
-      <li>A project asks for it in its <code>project.json</code>: <code>"targets": ["py"]</code>.</li>
-      <li><code>--target py</code> asks for it on one run.</li>
+      <li>
+        Python is compile-only: <code>spell run</code> and <code>spell test</code> don't run it yet (<a href="#t4">T4</a
+        >).
+      </li>
+      <li>A compiled program runs through spell_core's own runner, seeded as the javascript is (P9):</li>
     </ul>
+    <epic-code title="running compiled Python · from the repo root" language="sh">
+      <pre>uv run --project packages/core/py python -m spell_core.run Cards.compiled.py --seed 1 --page</pre>
+    </epic-code>
   </li>
 </ul>
-<epic-aside title="how big each piece is today, on the JavaScript side">
+<epic-aside title="how big each piece was on the JavaScript side, when this was planned">
   <ul>
     <li>the JavaScript writer: 1,601 lines; the TypeScript writer on top of it: 1,278</li>
     <li>the facts both writers share about a project (getters, members, item types): 525 lines, mostly reusable</li>
     <li>the core: about 4,450 lines; the plain-logic part a Python port needs, about 3,000 of them</li>
-    <li>a first <code>spell_core</code> in Python: roughly 1,500 lines to run Cards and Solitaire's logic</li>
+    <li>a first spell_core in Python: roughly 1,500 lines to run Cards and Solitaire's logic</li>
   </ul>
 </epic-aside>
