@@ -1,0 +1,93 @@
+<!-- plan-doc part:  #j41's details in drawable-thing.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The TypeScript writer doesn't write a drawable thing's element class yet: P10 built the <code>css</code> tag part, and
+  stopped before the element, because how the element class gets Spell UI is a real fork.
+</p>
+<ul>
+  <li>
+    Today a drawable class names its element as it's declared (<code
+      >static elementTag = spellCore.defineElement(this, ...)</code
+    >), and the page running the program makes the element, from app's <code>SpellElement</code>. Core never imports
+    Spell UI.
+  </li>
+  <li>
+    An element class written in the compiled TypeScript would have to get Spell UI from somewhere. Three things block
+    it:
+    <ul>
+      <li>The type check sees only <code>@spell/core</code>, which is core's own code: it has no Spell UI types.</li>
+      <li>
+        The page would make the same tag again (<code>defineElement()</code>), so one of the two has to step aside.
+      </li>
+      <li>
+        The core contract runs every fixture headless, with no page, and the TypeScript must print exactly what the
+        javascript prints. Javascript makes no element there.
+      </li>
+    </ul>
+  </li>
+  <li>
+    What's built and checked: the new fixture with drawable types (<code>DrawableSolitaire</code>) compiles to
+    TypeScript that passes <code>tsc</code> with no errors, and runs in the core contract, printing what the javascript
+    prints. Its card and pile are still plain classes there.
+  </li>
+</ul>
+<epic-code title="what option B would write for the card (sketch)" language="tsx">
+  <pre>
+import { SpellElement } from "@spell/elements"
+
+export class CardElement extends SpellElement&lt;Card&gt; {
+  static vocabulary = SpellElement.vocabularyFor("test-project-card", {
+    rank: { kind: "json", values: RANKS },
+    suit: { kind: "string", values: SUITS }
+  })
+  static elementSetup = { styleSheets: { "test-project-card": Card.css } }
+
+  turnOver() {
+    this.thing?.turnOver()
+  }
+}
+CardElement.define()</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="A Spell UI class per type, on Spell UI's own base">
+    <ul>
+      <li>
+        As Q6's sketch: a vocabulary, a <code>UIComponent</code> subclass drawing its thing, and <code>define()</code>,
+        importing Spell UI's element core.
+      </li>
+      <li>Reads most like a hand-written Spell UI element.</li>
+      <li>
+        Cost: the type check learns Spell UI's types; <code>defineElement()</code> steps aside for a class with its own
+        element; the headless contract runs Spell UI with no page. About 4-6 hours.
+      </li>
+      <li>The element repeats what app's <code>SpellElement</code> does: error boundary, layouts, the P8 outside.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="On the runtime's own element, SpellElement" recommended>
+    <ul>
+      <li>
+        The runtime exports app's <code>SpellElement</code> to compiled code, as it now exports <code>h</code> and
+        <code>css</code>; each type's class says only what's its own: its attributes, its methods, its sheet.
+      </li>
+      <li>The element behaves exactly as the javascript target's does.</li>
+      <li>
+        Cost: a module name of its own (core can't import Spell UI), which the type check maps to app's source, and the
+        headless run maps to a stand-in. About 3-4 hours.
+      </li>
+    </ul>
+  </epic-option>
+  <epic-option letter="C" title="The element's outside, as types only">
+    <ul>
+      <li>
+        The page keeps making the element; the TypeScript says what it looks like from outside: its
+        <code>thing</code>, its properties and methods, under its tag.
+      </li>
+      <li>Small, about 1-2 hours, and changes nothing that runs.</li>
+      <li>But it isn't an element class: Q6's goal isn't met.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect
+  ><ul>
+    <li>P10 stays active: its <code>css</code> goals are built, the element class isn't.</li>
+    <li>A todo holds the element class, for whichever option is picked.</li>
+    <li>Nothing that runs changed for the element: the page still makes it, as before.</li>
+  </ul></epic-net-effect
+>
