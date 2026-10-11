@@ -1,0 +1,137 @@
+<!-- plan-doc part:  #p22's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    There are two Python targets, <code>py</code> and <code>py/asyncio</code>, so every test program is compiled, pinned
+    and checked twice.
+  </p></epic-field
+><epic-field name="changes"
+  ><p>
+    One target, <code>py</code>, on asyncio: a function that waits is <code>async def</code>, and its callers await it,
+    as <code>py/asyncio</code> writes today.
+  </p>
+  <p>A program that never waits stays plain <code>def</code>, so FizzBuzz reads exactly as it does now.</p>
+  <p>
+    <code>py/asyncio</code>, its six snapshots and the plain target's sleeping pause go; <code>py</code> writes the app
+    file.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen, on the durable doc, word for word (cm6, on "PyAsyncWriter extends PyWriter"):
+      <i>"Why 2? Why not assume we can use PyAsync everywhere?"</i>
+      <ul>
+        <li>
+          And (cm15, on "It became a target of its own, py/asyncio, not a project setting"):
+          <i>"just one target, see above"</i>.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Why there were two, for Owen coming back cold:
+      <ul>
+        <li>
+          Plain functions were the default (<a href="#q3">Q3</a>): with no page, a pause only slows a program down.
+        </li>
+        <li>
+          asyncio became a target of its own so the contract ran both on every test program (<a href="#q18">Q18</a>).
+        </li>
+        <li>
+          Since the web app (<a href="#p20">P20</a>), only the asyncio one is useful for a program with a page, and a
+          program with no pauses comes out the same either way.
+        </li>
+      </ul>
+    </li>
+    <li>
+      PyWriter writes what PyAsyncWriter writes now. The two classes become one, PyWriter, with the "which functions
+      wait" pass as its own (<a href="#j34">J34</a>, <a href="#j35">J35</a>, <a href="#j36">J36</a> still hold).
+    </li>
+    <li>
+      What changes, and what doesn't:
+      <ul>
+        <li>FizzBuzz never waits: its Python is unchanged (its two snapshots are identical today).</li>
+        <li>
+          Cards waits: its <code>turn_face_up()</code> is <code>async def</code>, and <code>turn_over()</code> awaits
+          it, as in today's asyncio snapshot.
+        </li>
+      </ul>
+    </li>
+    <li>
+      The targets table: <code>py</code> gets the app file, <code>.app.py</code>; <code>py/asyncio</code> is gone, and
+      asking for it says there's no such target, listing the ones there are.
+    </li>
+    <li>
+      spell_core loses its blocking pause: a pause is always <code>await core.sleep(...)</code>. Its core, events and
+      runtime methods lose their branches for plain Python.
+    </li>
+    <li>
+      The tests: the asyncio tests fold into the Python ones; the contract runs one Python target, not two; the Quart
+      app's tests compile with <code>--target py</code>.
+    </li>
+    <li>
+      The six <code>*.snapshot.asyncio.py</code> files are deleted, and each <code>*.snapshot.py</code> is blessed again
+      as the asyncio output. pyright's pinned errors stay as they are.
+    </li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <code>packages/py/src/PyWriter.ts</code>,
+      <a
+        href="../../../packages/parser/src/writers/PyAsyncWriter.ts"
+        target="src-packages-parser-src-writers-pyasyncwriter-ts"
+        ><code>PyAsyncWriter.ts</code></a
+      >
+      (gone),
+      <a
+        href="../../../packages/parser/src/writers/ElementsWriter.ts"
+        target="src-packages-parser-src-writers-elementswriter-ts"
+        ><code>ElementsWriter.ts</code></a
+      >
+      (after <a href="#p21">P21</a>'s move)
+    </li>
+    <li>
+      <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
+        ><code>packages/spell/src/targets.ts</code></a
+      >,
+      <a href="../../../packages/spell/src/test/pyAsync.test.ts" target="src-packages-spell-src-test-pyasync-test-ts"
+        ><code>packages/spell/src/test/pyAsync.test.ts</code></a
+      >
+      into <code>python.test.ts</code>,
+      <a href="../../../packages/spell/src/test/fixtures.test.ts" target="src-packages-spell-src-test-fixtures-test-ts"
+        ><code>packages/spell/src/test/fixtures.test.ts</code></a
+      >, <code>parseSpellProject.ts</code>
+    </li>
+    <li>
+      spell_core: <code>core.py</code>, <code>events.py</code>, <code>runtime_methods.py</code>, <code>page.py</code>,
+      <code>run.py</code>; spell-quart's <code>sessions.py</code>
+    </li>
+    <li>
+      <a href="../../../packages/cli/src/contract.test.ts" target="src-packages-cli-src-contract-test-ts"
+        ><code>packages/cli/src/contract.test.ts</code></a
+      >,
+      <a href="../../../packages/cli/src/quartApp.test.ts" target="src-packages-cli-src-quartapp-test-ts"
+        ><code>packages/cli/src/quartApp.test.ts</code></a
+      >
+    </li>
+    <li>the test projects: 6 <code>*.snapshot.asyncio.py</code> removed, 6 <code>*.snapshot.py</code> blessed again</li>
+    <li>
+      <a href="../../../packages/parser/src/scope/ScopeMethod.ts" target="src-packages-parser-src-scope-scopemethod-ts"
+        ><code>packages/parser/src/scope/ScopeMethod.ts</code></a
+      >,
+      <a
+        href="../../../packages/parser/src/writers/ProgramWriter.ts"
+        target="src-packages-parser-src-writers-programwriter-ts"
+        ><code>ProgramWriter.ts</code></a
+      >
+      (comments naming PyAsyncWriter); the
+      <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> files and <code>PARSING.md</code>
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li><code>git grep -n "py/asyncio\|PyAsyncWriter"</code> finds nothing outside history</li>
+    <li>FizzBuzz's Python snapshot is unchanged; the others equal yesterday's asyncio snapshots</li>
+    <li>the core contract prints the same in Python as in javascript, for all six programs</li>
+    <li><code>yarn review</code> in py, spell and cli; the Quart app's browser test plays Solitaire</li>
+  </ul></epic-field
+>

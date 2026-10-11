@@ -1,0 +1,86 @@
+<!-- plan-doc part:  #p25's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Where spell can't tell what kind a value is, compiled Python has no hint at all, and pyright pins 9 errors in the
+    solitaire games (<a href="#c3">C3</a>, <a href="#j38">J38</a>).
+  </p></epic-field
+><epic-field name="changes"
+  ><p>A value spell can't tell is hinted <code>Any</code>, on purpose, so a reader sees spell doesn't know.</p>
+  <p>
+    A value that may be nothing is checked before it's used, so pyright knows it's there, and the pinned errors go.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen, on the durable doc, word for word:
+      <ul>
+        <li>
+          cm8, on "Hints go only where spell knows what kind a value is; where it can't tell, there's no hint at all.":
+          <i>"Would be good to flag where spell doesn't know, what's the pythonic way to do that?"</i>
+        </li>
+        <li>
+          cm17, on "All but one are a value spell's tree says may be nothing, used as if it's there: a card's pile, a
+          list's last item.":
+          <i>"python has a `&lt;type&gt; or Null` or something like that, right? Can we use that?"</i>
+        </li>
+      </ul>
+    </li>
+    <li>
+      Unknown kinds: hinted <code>Any</code>, Python's own word for "could be anything" (<a href="#q30">Q30</a>,
+      recommended). <code>def is_a_suit(self, suit: Any) -&gt; bool</code>, where it has no hint today.
+    </li>
+    <li>
+      "Type or nothing": Python writes it <code>X | None</code>, and compiled Python already does:
+      <code>def pile(self) -&gt; Pile | None</code>. The errors come from using such a value as if it's there. The fix
+      is narrowing, telling pyright it's there at that point: <a href="#q31">Q31</a> (recommended: spell's own knowledge
+      where it has it, an <code>assert x is not None</code> where it doesn't).
+    </li>
+    <li>
+      The 9 pinned errors (<a href="#c3">C3</a>, <a href="#j38">J38</a>):
+      <epic-code title="The pinned pyright errors · line, rule, message · 9 lines">
+        <pre>
+Solitaire         162  reportCallIssue             Object of type "object" is not callable
+Solitaire         513  reportOptionalOperand       Operator "+" not supported for "None"
+Klondike          161  reportOptionalMemberAccess  "last_item" is not a known attribute of "None"
+Klondike          163  reportOptionalOperand       Operator "+" not supported for "None"
+Klondike          313  reportAttributeAccessIssue  Cannot assign to attribute "play" for class "type[Card]"
+OutlineSolitaire  210  reportOptionalMemberAccess  "starting_with" is not a known attribute of "None"
+OutlineSolitaire  211  reportOptionalMemberAccess  "name" is not a known attribute of "None"
+OutlineSolitaire  531  reportOptionalMemberAccess  "last_item" is not a known attribute of "None"
+OutlineSolitaire  533  reportOptionalOperand       Operator "+" not supported for "None"</pre>
+      </epic-code>
+      <ul>
+        <li>The 7 "None" ones go by narrowing.</li>
+        <li>
+          The object called (Solitaire 162) and the method set on another project's class (Klondike 313,
+          <a href="#j54">J54</a>) are looked at on their own: fixed, or left pinned with the reason written down.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Target: no pinned errors, or each one left with its reason; <a href="#c3">C3</a> and
+      <a href="#j38">J38</a> brought up to date.
+    </li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="../../../packages/parser/src/writers/PyWriter.ts" target="src-packages-parser-src-writers-pywriter-ts"
+        ><code>PyWriter.ts</code></a
+      >
+      (in <code>packages/py</code> after P21): hints, the <code>typing</code> import, the narrowing
+    </li>
+    <li>spell's type knowledge where a value is known to be there (the tree's may-be-nothing flag)</li>
+    <li>
+      <a href="../../../packages/spell/src/test/python.test.ts" target="src-packages-spell-src-test-python-test-ts"
+        ><code>packages/spell/src/test/python.test.ts</code></a
+      >; the test projects' <code>*.snapshot.py</code> and <code>*.snapshot.pyright.txt</code>
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>the pinned pyright files shrink, each remaining line explained</li>
+    <li>the core contract prints the same in Python</li>
+    <li>Pylance in VS Code shows no errors in Cards (<a href="#v5">V5</a>)</li>
+  </ul></epic-field
+>

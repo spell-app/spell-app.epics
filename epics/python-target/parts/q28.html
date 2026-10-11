@@ -1,0 +1,66 @@
+<!-- plan-doc part:  #q28's details in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    For <a href="#p23">P23</a>, Positions From 0. Owen's design (cm5, cm9, cm10): compiled javascript and Python always
+    count from 0, and spell code counting from 1 goes through a <code>position()</code> helper. That leaves one choice:
+    whether the javascript core's own list methods, which count from 1 today, simply change, or stay beside new ones.
+  </p>
+  <ul>
+    <li>
+      Today, in the javascript core, <code>list.getItem(1)</code> is the FIRST item, and every position method takes a
+      last <code>startAt</code>, 1 when left out.
+    </li>
+    <li>
+      Python's spell_core mirrors it: <code>deck.get_item(column)</code> counts from 1, <code>start_at=0</code> to count
+      from 0.
+    </li>
+    <li>
+      Who calls them: compiled programs (all of them), the 12 compiled examples committed in spell's system projects,
+      and a little hand-written javascript in core and app.
+    </li>
+  </ul></epic-question
+><epic-code title="Klondike, counting from 1 · today and after · 6 lines" language="py">
+  <pre>
+# today:  a variable position goes through the 1-based core method
+tableaus.get_item(column).append(stock.last_item)
+foundations[1]                        # foundation 2:  already worked out as it compiles
+# after:  the core counts from 0;  the compiled code converts
+tableaus[position(column)].append(stock.last_item)
+foundations[1]                        # unchanged</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="0 everywhere:  one break, everything blessed again" recommended
+    ><ul>
+      <li>
+        <code>getItem()</code>, <code>positionOf()</code>, <code>between()</code> and the rest count from 0 in both
+        cores, with no <code>startAt</code>.
+      </li>
+      <li>
+        One way of counting in the core, so a port can't get it wrong, and Python's list reads as any Python list.
+      </li>
+      <li>
+        Breaks: any program compiled before this reads the wrong item until it's compiled again. The 12 committed
+        examples are compiled again in the phase, and it checks how the editor's runners load a program, so none runs
+        stale javascript.
+      </li>
+      <li>Every pinned output is blessed again; what programs PRINT must not change.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="javascript keeps its 1-based methods beside new 0-based ones"
+    ><ul>
+      <li>
+        <code>getItem(1)</code> stays the first item; new methods count from 0, e.g. <code>itemAt(0)</code>, and
+        compiled code uses those.
+      </li>
+      <li>Nothing already compiled breaks.</li>
+      <li>
+        Two ways to count in one core, forever: twice the methods to port and test, and the old ones only for old code.
+      </li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect option="A" recommended
+  ><ul>
+    <li>the cores count from 0; <code>startAt</code> / <code>start_at</code> gone from every method</li>
+    <li><code>listsStartAt</code> stays a project setting, read only by the compiler</li>
+    <li>every compiled program and fixture snapshot written again, in the one phase</li>
+  </ul></epic-net-effect
+>

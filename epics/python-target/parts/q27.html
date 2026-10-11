@@ -1,0 +1,78 @@
+<!-- plan-doc part:  #q27's details in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    For <a href="#p21">P21</a>, Python Package. Owen asked for one place for "all of the python stuff" (cm1, cm16).
+    spell_core and spell-quart are Python, so they clearly move. The open part is the TypeScript that WRITES Python,
+    which lives in parser today beside the javascript writers, and what the new package is called in code.
+  </p>
+  <ul>
+    <li>
+      The TypeScript in question:
+      <ul>
+        <li><code>PyWriter</code> and <code>PyAsyncWriter</code>: the parsed tree as Python</li>
+        <li><code>pyText</code>: Python's blocks and indents</li>
+        <li><code>ElementsWriter</code>: a Python program's drawing half, in javascript, for its page</li>
+        <li><code>quartApp()</code>, in spell: the app file's text</li>
+      </ul>
+    </li>
+    <li>
+      They are built on parser's shared writer, <code>P.ProgramWriter</code>, and its helpers, so a
+      <code>py</code> package imports parser either way.
+    </li>
+    <li>
+      A namespace is the package's short name for itself in code (WWOD §8): parser's is <code>P</code>, spell's
+      <code>SP</code>, core's <code>SC</code>.
+    </li>
+  </ul></epic-question
+><epic-code title="targets.ts, today and with A · 4 lines" language="ts">
+  <pre>
+// today
+py: { name: "py", writer: P.PyWriter.instance, ... }
+// A:  import { PY } from "$/py"
+py: { name: "py", writer: PY.PyWriter.instance, ... }</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="All of Python moves:  $/py, namespace PY" recommended
+    ><ul>
+      <li>
+        spell_core, spell-quart, the Python writers, ElementsWriter and quartApp all live in <code>packages/py</code>.
+      </li>
+      <li>Imported as <code>$/py</code>; its namespace <code>PY</code>, as the other packages have one.</li>
+      <li>Anyone looking for "how spell becomes Python" finds it all in one folder, Owen's ask.</li>
+      <li>Cost: parser's writers barrel loses four exports; spell's targets import one more package.</li>
+    </ul>
+    <epic-net-effect option="A"
+      ><ul>
+        <li>new workspace <code>@spell-app/py</code>, alias <code>$/py</code>, namespace <code>PY</code></li>
+        <li>
+          <code>P.PyWriter</code> becomes <code>PY.PyWriter</code>; <code>SP.quartApp()</code> becomes
+          <code>PY.quartApp()</code>
+        </li>
+        <li>dependency arrows: <code>spell -&gt; py -&gt; parser</code></li>
+      </ul></epic-net-effect
+    ></epic-option
+  >
+  <epic-option letter="B" title="Only the Python code moves"
+    ><ul>
+      <li>
+        <code>packages/py</code> holds spell_core and spell-quart; the TypeScript writers stay in parser, beside
+        JSWriter and TSWriter.
+      </li>
+      <li>All writers stay together, but "all of the python stuff" is in two places again.</li>
+      <li>No new alias: py would be a folder of Python projects, not a yarn workspace with TypeScript.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="All of it moves, no namespace"
+    ><ul>
+      <li>As A, but imported by name: <code>import { PyWriter } from "$/py"</code>.</li>
+      <li>Shorter for a small package, but unlike every other package here.</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect option="A" recommended
+  ><ul>
+    <li>
+      one package, <code>@spell-app/py</code> (<code>$/py</code>, <code>PY</code>), holds every piece of Python and the
+      TypeScript that writes it
+    </li>
+    <li>parser keeps only the language-neutral writers and the javascript and TypeScript ones</li>
+  </ul></epic-net-effect
+>

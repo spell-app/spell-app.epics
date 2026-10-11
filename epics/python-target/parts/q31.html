@@ -1,0 +1,62 @@
+<!-- plan-doc part:  #q31's details in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    For <a href="#p25">P25</a>, Hints For The Unknown. Owen (cm17): "python has a `&lt;type&gt; or Null` or something
+    like that, right? Can we use that?" It does, and compiled Python already writes it: <code>X | None</code>, as in
+    <code>def pile(self) -&gt; Pile | None</code>. The 9 pinned errors (<a href="#c3">C3</a>, <a href="#j38">J38</a>)
+    come from USING such a value as if it's there. The fix is narrowing: telling the checker that at this point the
+    value is there.
+  </p>
+  <ul>
+    <li>
+      7 of the 9 are this kind, in Solitaire, Klondike and OutlineSolitaire: a card's pile, a list's last item, a number
+      that may be nothing.
+    </li>
+    <li>
+      The other two aren't: a value spell only knows as an object, called; and a method set on another project's class
+      (<a href="#j54">J54</a>). P25 looks at each on its own.
+    </li>
+  </ul></epic-question
+><epic-code title="Klondike.snapshot.py, line 161 · today · 3 lines" language="py">
+  <pre>
+def can_take(self, card: Card) -&gt; bool:
+    if card != card.pile.last_item:   # pyright:  "last_item" is not a known attribute of "None"
+        return False</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="spell's tree knows it's there"
+    ><ul>
+      <li>
+        Where spell can tell a value is there (the last item of a list it just checked isn't empty, a card that's always
+        on a pile), the hint leaves out <code>| None</code>.
+      </li>
+      <li>Clean code, no extra lines; needs spell to know more, so it covers only some of the 7.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="An assert before the use"
+    ><ul>
+      <li>
+        <code>pile = card.pile</code>, then <code>assert pile is not None</code>, then <code>pile.last_item</code>.
+      </li>
+      <li>Covers every case; fails loudly, with a line number, if spell was wrong.</li>
+      <li>Two extra lines at each place.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="typing.cast"
+    ><ul>
+      <li><code>cast(Pile, card.pile).last_item</code>: tells the checker, checks nothing when it runs.</li>
+      <li>One line, but it hides a real None until it fails somewhere else.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="D" title="A where spell can tell, B otherwise" recommended
+    ><ul>
+      <li>The tree's knowledge first; an assert where it has none.</li>
+      <li>The cleanest Python spell can honestly write.</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect option="D" recommended
+  ><ul>
+    <li>the 7 "may be nothing" errors go; the pinned pyright files shrink</li>
+    <li>compiled Python gains an <code>assert ... is not None</code> where spell can't tell</li>
+    <li><a href="#c3">C3</a> and <a href="#j38">J38</a> updated to what's left</li>
+  </ul></epic-net-effect
+>

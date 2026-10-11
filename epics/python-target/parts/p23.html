@@ -1,0 +1,178 @@
+<!-- plan-doc part:  #p23's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Compiled code tells the core where counting starts on every call, <code>deck.position_of(ace, start_at=0)</code>,
+    and Owen hates it.
+  </p></epic-field
+><epic-field name="changes"
+  ><p>Both cores count from 0, as javascript and Python do; no position method takes a start any more.</p>
+  <p>
+    Spell code that counts from 1 compiles each position through a helper, <code>deck[position(n)]</code>, and a plain
+    number is worked out as it compiles: item 2 is <code>deck[1]</code>.
+  </p>
+  <p>
+    The javascript core's list methods change too: one break, with every compiled program and pinned output written
+    again.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen, on the durable doc, word for word:
+      <ul>
+        <li>
+          cm5, on "core position methods told where counting starts, on every call":
+          <i
+            >"hmm, this seems like a runtime setting? Shouldn't be any change to `spellCore.itemOf()` or
+            `list.getItem()` to accomodate listsStartAt?"</i
+          >
+        </li>
+        <li>
+          cm9, on "Per call, not one switch for the whole program":
+          <i
+            >"Hmm, not wild about this being per-call. What if: we assume that indexes in JS/python compiled are always
+            0-based; if compiling a "section" in 1-based, use `position(#)` helper, so `deck[(position(2)]`?"</i
+          >
+        </li>
+        <li>cm10, on <code>deck.position_of(ace, start_at=0)</code>: <i>"yeah, I hate this as I anticipated"</i></li>
+      </ul>
+    </li>
+    <li>
+      What it means: <code>"listsStartAt"</code> stays a project setting, but only the COMPILER reads it. The cores
+      count one way, from 0, and know nothing of the setting.
+    </li>
+    <li>
+      Positions going in (item n, set item n, remove item n, a range): counting from 1, compiled code converts each with
+      <code>position()</code>.
+      <ul>
+        <li>
+          a variable: <code>tableaus[position(column)]</code>, where Klondike writes
+          <code>tableaus.get_item(column)</code> today
+        </li>
+        <li>
+          a plain number is worked out as it compiles: "foundation 2" is <code>foundations[1]</code>, as Python writes
+          already
+        </li>
+        <li>negative positions don't change: -1 is the last item either way</li>
+        <li>
+          counting from 1, "item 0" must still read nothing, not the last item: <code>position(0)</code> can't simply
+          give -1. How, is settled in the phase and recorded as a judgement call.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Positions coming out (the position of the ace, a loop's position): the other way, plus one, worked out as it
+      compiles where it can. The helper's name is settled in the phase.
+    </li>
+    <li>
+      Counting from 0 (CardsFromZero) compiles with no conversion at all: <code>deck.position_of(ace)</code>,
+      <code>deck.between(0, 3)</code>.
+    </li>
+    <li>
+      The cores: every <code>startAt</code> / <code>start_at</code> goes.
+      <ul>
+        <li>
+          javascript: List's <code>getItem</code>, <code>setItem</code>, <code>removeItem</code>,
+          <code>positionOf</code>, <code>between</code>, <code>startingFrom</code>, <code>forEach</code>,
+          <code>map</code>; spellCore's <code>getItemAt</code>, <code>setItemAt</code>, <code>removeItemAt</code>,
+          <code>positionOf</code>, <code>rangeBetween</code>, <code>rangeStartingAt</code>; the converters in
+          <a href="../../../packages/core/src/positions.ts" target="src-packages-core-src-positions-ts"
+            ><code>positions.ts</code></a
+          >
+        </li>
+        <li>Python: the same in spell_core's lists, collection methods and positions modules</li>
+      </ul>
+    </li>
+    <li>
+      <b
+        >What breaks: the javascript core's lists count from 0, so <code>list.getItem(1)</code> is now the SECOND
+        item.</b
+      >
+      Whether javascript keeps its 1-based methods beside new ones is <a href="#q28">Q28</a> (recommended: no, one
+      break).
+      <ul>
+        <li>
+          Any program compiled to javascript before this reads the wrong item until it's compiled again: the 12 compiled
+          examples committed in spell's system projects are compiled again here.
+        </li>
+        <li>
+          The editor's runners run compiled javascript: the phase checks they compile a program fresh, never run a stale
+          file.
+        </li>
+        <li>Hand-written javascript calling these methods (core, app) is checked call by call.</li>
+      </ul>
+    </li>
+    <li>
+      Blessed again: every test project's pinned javascript, TypeScript, Python and elements output, the core's method
+      list, and spell's rule tests that compile a position. What programs PRINT must not change.
+    </li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="../../../packages/core/src/classes/List.ts" target="src-packages-core-src-classes-list-ts"
+        ><code>packages/core/src/classes/List.ts</code></a
+      >,
+      <a href="../../../packages/core/src/collection-core.ts" target="src-packages-core-src-collection-core-ts"
+        ><code>collection-core.ts</code></a
+      >,
+      <a href="../../../packages/core/src/collection-other.ts" target="src-packages-core-src-collection-other-ts"
+        ><code>collection-other.ts</code></a
+      >,
+      <a href="../../../packages/core/src/positions.ts" target="src-packages-core-src-positions-ts"
+        ><code>positions.ts</code></a
+      >,
+      <a href="../../../packages/core/src/deprecated.ts" target="src-packages-core-src-deprecated-ts"
+        ><code>deprecated.ts</code></a
+      >;
+      <a
+        href="../../../packages/core/spellCore.declarations.json"
+        target="src-packages-core-spellcore-declarations-json"
+        ><code>packages/core/spellCore.declarations.json</code></a
+      >
+    </li>
+    <li>
+      spell_core: <code>lists.py</code>, <code>collection_methods.py</code>, <code>positions.py</code>, and their tests
+    </li>
+    <li>
+      <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
+        ><code>packages/parser/src/writers/JSWriter.ts</code></a
+      >,
+      <a
+        href="../../../packages/parser/src/writers/ProgramWriter.ts"
+        target="src-packages-parser-src-writers-programwriter-ts"
+        ><code>ProgramWriter.ts</code></a
+      >,
+      <a href="../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
+        ><code>TSWriter.ts</code></a
+      >;
+      <a href="../../../packages/parser/src/writers/PyWriter.ts" target="src-packages-parser-src-writers-pywriter-ts"
+        ><code>PyWriter.ts</code></a
+      >
+      (in <code>packages/py</code> after P21)
+    </li>
+    <li>
+      <a href="../../../packages/spell/src/builtinTypes.ts" target="src-packages-spell-src-builtintypes-ts"
+        ><code>packages/spell/src/builtinTypes.ts</code></a
+      >; spell's list rules and their tests
+    </li>
+    <li>
+      <a href="../../../packages/app/src/runner/spellRuntime.ts" target="src-packages-app-src-runner-spellruntime-ts"
+        ><code>packages/app/src/runner/spellRuntime.ts</code></a
+      >
+    </li>
+    <li>
+      every test project's snapshots; the 12 <code>*.compiled.js</code> in
+      <a href="../../../packages/spell/projects/system/" target="src-packages-spell-projects-system"
+        ><code>packages/spell/projects/system</code></a
+      >
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>the core contract prints the same on every target, for all six test programs</li>
+    <li><code>git grep -n "startAt\|start_at"</code> finds nothing in either core or the writers</li>
+    <li>the re-blessed snapshots' diff shows only position changes</li>
+    <li>the editor: Solitaire and Klondike open, deal and play as before</li>
+    <li><code>yarn review</code> in core, py, parser, spell, app</li>
+  </ul></epic-field
+>
