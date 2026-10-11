@@ -1,0 +1,38 @@
+<!-- plan-doc part:  #j76's details in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  spell_core reads a property nobody declared through <code>SpellObject.__getattr__</code>, which gives
+  <code>None</code> for a name it doesn't know. Its hint was <code>-&gt; object</code>, so pyright refused anything done
+  with such a value: Solitaire 164, "Object of type object is not callable".
+</p>
+<ul>
+  <li>
+    Solitaire's <code>Card</code> never declares <code>pile</code>, so <code>self.pile</code> comes through
+    <code>__getattr__</code>:
+    <epic-code title="Solitaire, Card.play()" language="py">
+      <pre>
+async def play(self) -&gt; bool | None:
+    start_pile = self.pile
+    if not start_pile.can_pick_up_card(self):
+        return False</pre>
+    </epic-code>
+  </li>
+  <li>
+    <code>__getattr__</code> is now <code>-&gt; Any</code>: spell knows nothing of the name, so pyright doesn't check it
+    either, as <a href="#q30">Q30</a> A says for any value spell can't tell.
+  </li>
+</ul>
+<epic-choices
+  ><epic-option letter="A" title="-> Any" recommended=""
+    ><ul>
+      <li>Matches Q30: Any where spell can't tell. pyright stops guessing about a name nobody declared.</li>
+    </ul></epic-option
+  ><epic-option letter="B" title="Keep -> object, and declare pile on Solitaire's Card"
+    ><ul>
+      <li>Fixes this one program, not the next one that reads an undeclared name.</li>
+    </ul></epic-option
+  ></epic-choices
+><epic-net-effect
+  ><ul>
+    <li>a property nobody declared reads as <code>Any</code> to pyright, not <code>object</code></li>
+  </ul></epic-net-effect
+>
