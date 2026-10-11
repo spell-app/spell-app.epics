@@ -358,6 +358,9 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## ui
 
+2026-10-11 (python-target):  `<ui-steps>` on a docs page doesn't wrap its steps' descriptions once its folded section
+is opened:  they run off the right edge (the targets guide's "What happens, in order", `guides/targets/targets.html`).
+`check-spell.js` can't see it inside a folded section.  Spell UI's steps, or `spell-doc.css`?  Unchecked.
 Disproven:  `Icons.get("zoom")` isn't missing -- it is Font Awesome's `zoom` BRAND logo;  with icon packs `zoom` is in
 `fa7-brands`, and the `fomantic` pack gives the magnifier.
 Disproven (2026-10-01):  the "empty strip" under an open multiple-selection dropdown is the NEXT example's field, which
