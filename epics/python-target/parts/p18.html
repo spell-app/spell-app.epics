@@ -6,95 +6,175 @@
   </p></epic-field
 ><epic-field name="changes"
   ><p>
-    A Flask app serves a compiled program: the page with P17's elements, the program's state, and a route each click is
-    posted to.
+    A Quart app (Flask's asyncio twin, <a href="#q23">Q23</a>) serves a program compiled to <code>py/asyncio</code>: its
+    page, and one WebSocket per page carrying clicks up and new drawings down (<a href="#q22">Q22</a>).
   </p>
-  <p>Python runs each click's handler and pushes what changed to the page, at every pause too, so moves animate.</p>
-  <p>Flask comes in only for web apps; the docs and the changelog gain the web half.</p></epic-field
+  <p>
+    Each visitor's session plays its own game, with its own core and its own run of the program, in one process (<a
+      href="#q24"
+      >Q24</a
+    >).
+  </p>
+  <p>
+    Compiling writes an app file beside the program (<a href="#q25">Q25</a>), on a new package, spell-quart (<a
+      href="#q26"
+      >Q26</a
+    >); spell_core stays standard library only.
+  </p></epic-field
+><epic-updated at="2026-10-11 14:26"
+  ><p>
+    Reshaped to Owen's answers, 2026-10-11: Quart, not Flask, running <code>py/asyncio</code> (<a href="#q23">Q23</a>,
+    B), over WebSockets (<a href="#q22">Q22</a>, C), with a game per visitor (<a href="#q24">Q24</a>, B), a generated
+    app file (<a href="#q25">Q25</a>, B), in a package of its own, spell-quart (<a href="#q26">Q26</a>, C).
+  </p>
+  <ul>
+    <li>
+      Gone: a click posted to a URL with a stream pushing changes back, one shared game per server,
+      <code>create_app()</code> in spell_core, and Flask as an extra of spell_core.
+    </li>
+    <li>
+      New: a core per session (<a href="#c4">C4</a>), the app file and its overwrite rule (<a href="#j45">J45</a>), the
+      spell-quart package (<a href="#j44">J44</a>).
+    </li>
+    <li>The name, Flask Spell Apps, is kept: the plan-doc tool has no rename. Read it as "Quart Spell Apps".</li>
+    <li>Estimate: 5-7h to 7-10h, mostly for the core per session (Q24 put it at 3-4h more) and the new package.</li>
+  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
     <li>
       Owen, 2026-10-11, word for word:
       <i>"spell apps" in python are python flask based apps, using these web components</i>.
       <ul>
-        <li>Flask: Python's small, standard web framework, where a function per URL answers a request.</li>
-        <li>"These web components": P17's elements draw the page; Flask serves it and holds the program.</li>
+        <li>
+          Read with his answers: Quart, not Flask (Q23, B). Quart is Flask's asyncio twin, by the same people (Pallets),
+          with the same API: a function per URL, <code>@app.get("/")</code>.
+        </li>
+        <li>"These web components": <a href="#p17">P17</a>'s page, with Spell UI's elements and the page client.</li>
       </ul>
     </li>
     <li>
-      One command serves a compiled app in a browser, e.g. Solitaire on <code>http://localhost:5000</code>:
+      Two commands serve a compiled app in a browser, e.g. Solitaire on <code>http://localhost:5000</code>.
+      <epic-code title="from a terminal · 4 lines" language="sh">
+        <pre>
+spell compile Solitaire --target py/asyncio
+#   writes Solitaire.compiled.py, and Solitaire.app.py beside it
+uv run python Solitaire.app.py
+#   serving Solitaire on http://localhost:5000</pre>
+      </epic-code>
+    </li>
+    <li>
+      The app file (Q25, B; its name and what compiling again does: <a href="#j45">J45</a>):
       <ul>
-        <li>the page: Spell UI, the spell runtime, P17's elements, the project's CSS</li>
-        <li>the program's state, as P17's JSON</li>
-        <li>a URL the page posts each click and call to</li>
-        <li>a way for the server to push new state to the page, when a handler changes things</li>
+        <li>a short Quart app with every route spelled out, for a Python programmer to read and grow</li>
+        <li>the page: Spell UI, the page client, the project's CSS, and the program's first drawing</li>
+        <li>the WebSocket, <code>/ws</code>: clicks in, drawings out</li>
+        <li>a place for their own routes</li>
       </ul>
-      How the command and the Flask app look to a Python programmer is <a href="#q25">Q25</a>; where Flask and the
-      page's files come from, <a href="#q26">Q26</a>.
     </li>
     <li>
       The program lives in Python, on the server; the page is only its view.
       <ul>
-        <li>Clicking a card runs the game's <code>on card-click</code>, in Python, where it was written.</li>
-        <li>What the handler changed reaches the page, and the board redraws.</li>
-        <li>How clicks and changes travel: <a href="#q22">Q22</a>.</li>
+        <li>A click on a card runs the game's <code>on card-click</code>, in Python, where it was written.</li>
+        <li>Python draws again, and the WebSocket carries the new HTML to the page, which morphs it in.</li>
       </ul>
     </li>
     <li>
-      Pauses show: auto-play's <code>pause for 100 msec</code> between moves pushes each move to the page as it happens,
-      so the game animates as it does in the editor's runner.
+      Pauses show: auto-play's <code>pause for 100 msec</code> sends the drawing before it waits, so the game animates
+      as it does in the editor's runner.
+      <ul>
+        <li>
+          On asyncio a pause awaits: one thread serves every page, and a timer can outlive the click that started it.
+        </li>
+      </ul>
     </li>
     <li>
-      Which Python target runs under Flask (<a href="#q23">Q23</a>), and whether every visitor shares one game (<a
-        href="#q24"
-        >Q24</a
-      >).
+      A game per visitor (Q24, B; what it means and leaves out: <a href="#c4">C4</a>):
+      <ul>
+        <li>a session cookie names the visitor; their game lives in the server's memory</li>
+        <li>
+          spell_core's <code>core</code>, one object today (<a href="#j5">J5</a>), becomes a stand-in for the session's
+          own core
+        </li>
+        <li>the compiled program runs once per session, so the game, the deck and the piles are that visitor's</li>
+        <li>two tabs in one browser share a game; two browsers each play their own</li>
+      </ul>
     </li>
-    <li>spell_core itself stays standard library only: Flask comes in only for a web app.</li>
+    <li>
+      The new package, spell-quart (Q26, C; its name and folder: <a href="#j44">J44</a>):
+      <ul>
+        <li>beside spell_core, depending on it and on Quart, pinned</li>
+        <li>
+          it carries the sessions, the WebSocket handler, the page's template, the page client and Spell UI's built
+          files
+        </li>
+        <li>spell_core itself stays standard library only</li>
+      </ul>
+    </li>
     <li>
       The docs: the durable doc, Python Target, gains "Python apps on the web"; the targets guide's Python rows say so;
       the changelog entry grows.
     </li>
-    <li>Not here: <code>spell run --target py</code> starting it (the todo <a href="#t4">T4</a>).</li>
+    <li>
+      Not here:
+      <ul>
+        <li><code>spell run --target py</code> starting it (the todo <a href="#t4">T4</a>)</li>
+        <li>
+          a plain <code>py</code> program on the web: its handlers and pauses don't await, so it stays a terminal
+          program
+        </li>
+      </ul>
+    </li>
   </ul></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
-      a new <code>web.py</code> in
-      <a href="../../../packages/core/py/spell_core/" target="src-packages-core-py-spell-core"
-        ><code title="packages/core/py/spell_core/">spell_core/</code></a
-      >: the Flask app and its command
+      a new uv project, <code title="packages/core/py-quart/">py-quart/</code>: spell-quart, its tests, and the build
+      step copying in the page client and Spell UI
     </li>
     <li>
-      <a href="../../../packages/core/py/pyproject.toml" target="src-packages-core-py-pyproject-toml"
-        ><code title="packages/core/py/pyproject.toml">pyproject.toml</code></a
-      >: Flask, as an extra and a uv group
+      <a href="../../../packages/core/py/spell_core/core.py" target="src-packages-core-py-spell-core-core-py"
+        ><code title="packages/core/py/spell_core/core.py">core.py</code></a
+      >
+      and
+      <a href="../../../packages/core/py/spell_core/run.py" target="src-packages-core-py-spell-core-run-py"
+        ><code title="packages/core/py/spell_core/run.py">run.py</code></a
+      >: <code>core</code> as a stand-in for the session's core; running a program for a session
     </li>
     <li>
       <a
         href="../../../packages/core/py/spell_core/runtime_methods.py"
         target="src-packages-core-py-spell-core-runtime-methods-py"
         ><code title="packages/core/py/spell_core/runtime_methods.py">runtime_methods.py</code></a
-      >: a pause tells the page
+      >: a pause sends the drawing before it waits
     </li>
     <li>
-      the <code>py</code> compile's output folder: the page's JavaScript beside the program, if
-      <a href="#q26">Q26</a> says so
+      <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
+        ><code title="packages/spell/src/targets.ts">targets.ts</code></a
+      >, and a template beside
+      <a href="../../../packages/parser/src/writers/PyWriter.ts" target="src-packages-parser-src-writers-pywriter-ts"
+        ><code title="packages/parser/src/writers/PyWriter.ts">PyWriter.ts</code></a
+      >: the <code>py/asyncio</code> target writes the app file
+    </li>
+    <li>
+      core's
+      <a href="../../../packages/core/package.json" target="src-packages-core-package-json"
+        ><code title="packages/core/package.json">package.json</code></a
+      >: its test, lint and format scripts run spell-quart's too
     </li>
     <li>
       the durable doc,
       <a href="../../../guides/python-target.html" target="src-guides-python-target-html"
         ><code title="guides/python-target.html">python-target.html</code></a
-      >, and the targets guide,
+      >, the targets guide,
       <a href="../../../guides/targets/targets.html" target="src-guides-targets-targets-html"
         ><code title="guides/targets/targets.html">targets.html</code></a
-      >; the changelog
+      >, and the changelog
     </li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
     <li>
-      Solitaire, compiled to Python and served by Flask with seed 1: a headless Playwright test (never the
+      Solitaire, compiled to <code>py/asyncio</code> and served with seed 1: a headless Playwright test (never the
       Claude-in-Chrome tools) opens the page and sees the dealt board, matching the javascript run's.
     </li>
     <li>
@@ -104,8 +184,11 @@
       On a seed where AutoPlay has two moves or more, it presses AutoPlay and sees the board change more than once
       before the moves finish: the pauses reached the page.
     </li>
+    <li>Two browser contexts deal and play two games: a click in one leaves the other as it was.</li>
+    <li>Compiling twice leaves an edited app file alone, and rewrites an unedited one.</li>
     <li>
-      spell_core's pytest covers the routes with Flask's test client; the core contract still passes on every target.
+      spell-quart's pytest covers the page and the WebSocket with Quart's test client; spell_core's pytest passes with
+      no Quart installed; the core contract still passes on every target.
     </li>
   </ul></epic-field
 >
