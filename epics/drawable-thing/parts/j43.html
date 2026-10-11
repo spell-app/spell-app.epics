@@ -40,3 +40,173 @@
     <li>The inspector shows a card's rank, suit, direction and pile, but not which card it is, by reference.</li>
   </ul></epic-net-effect
 >
+<epic-more
+  ><p>
+    An element's <code>thing</code> is the spell thing it shows. Every drawable element draws ONE thing of the running
+    program: a <code>&lt;solitaire-card&gt;</code> draws one card object, and the element is that card's view.
+  </p>
+  <ul>
+    <li>
+      The element draws the card's own <code>to draw</code> inside itself, and keeps the card's properties and its
+      attributes the same, both ways (P13).
+    </li>
+    <li>
+      The element finds its thing in one of three ways. The first one that applies wins (<code
+        title="packages/app/src/runner/SpellElement.tsx"
+        >SpellElement.currentThing</code
+      >).
+    </li>
+  </ul>
+
+  <epic-field label="1. The program draws it"
+    ><p>Spell code says <code>draw the card</code>, or a pile draws its cards as its children.</p>
+    <ul>
+      <li>
+        Core makes a <code>&lt;solitaire-card&gt;</code> and hands it the card object itself. It goes in the element's
+        <code>thing</code> JavaScript property (<code title="packages/core/src/drawing.ts">spellCore.drawThing()</code
+        >).
+      </li>
+      <li>
+        Only the property is set: no <code>thing="..."</code> attribute is written. This is the case J43 is about.
+      </li>
+    </ul>
+    <epic-code title="drawing.ts, drawThing() · 2 lines" language="ts">
+      <pre>
+// made NOW:  the thing is a plain value, set once
+return (h(tag, { "prop:thing": thing }, ...items) as unknown as () =&gt; Drawing)()</pre>
+    </epic-code></epic-field
+  >
+
+  <epic-field label="2. A tag written by hand names it"
+    ><p>Markup written by a person says which of the program's things the tag shows.</p>
+    <ul>
+      <li>
+        By a reference in its <code>thing</code> attribute, anywhere on the page (P18):
+        <code>&lt;solitaire-pile thing="Pile#stock"&gt;</code> is the program's pile named "stock".
+      </li>
+      <li>
+        Inside an app's layout, by its <code>id</code> (P9): <code>&lt;solitaire-tableau id="T1"&gt;</code> is the
+        program's tableau named T1.
+      </li>
+      <li>Until the program has that thing, the tag shows a stand-in: <code>⚠ no Pile#stock</code>.</li>
+    </ul></epic-field
+  >
+
+  <epic-field label="3. A tag with neither"
+    ><ul>
+      <li>
+        In a layout: the program's ONE thing of the tag's type, e.g. <code>&lt;solitaire-stock-pile&gt;</code> is the
+        stock. None, or more than one: a stand-in asking for an <code>id</code>.
+      </li>
+      <li>
+        On a plain page: the tag makes its own new thing of its type, once it's on the page, from its attributes:
+        <code>&lt;solitaire-card rank="ace" suit="spades"&gt;</code> makes a new ace of spades.
+      </li>
+    </ul></epic-field
+  >
+
+  <p>
+    What J43 is about: in case 1, the browser's inspector doesn't say WHICH card an element shows. Its other
+    thing-holding properties already show as references since P18, like <code>pile="Tableau#T1"</code>.
+  </p>
+  <epic-code title="the inspector, before and after T12 · 5 lines" language="html">
+    <pre>
+&lt;!-- today:  which card is this?  only its values say --&gt;
+&lt;solitaire-card rank="queen" suit="spades" direction="up" pile="Tableau#T1"&gt;&lt;/solitaire-card&gt;
+
+&lt;!-- after T12:  the card's own reference, first --&gt;
+&lt;solitaire-card thing="Card#queen-of-spades" rank="queen" suit="spades" direction="up" pile="Tableau#T1"&gt;&lt;/solitaire-card&gt;</pre>
+  </epic-code>
+
+  <p>Why writing that attribute isn't simple: the element would read it back, and lose the card.</p>
+  <ul>
+    <li>
+      Spell UI hears every attribute written on its elements as the page changing it (<code
+        title="packages/ui/src/elements/DOMElement.ts"
+        >DOMElement.attributeChangedCallback()</code
+      >).
+    </li>
+    <li>
+      So <code>setAttribute("thing", "Card#queen-of-spades")</code> would store that TEXT as the element's
+      <code>thing</code>, in place of the card object the program handed it.
+      <ul>
+        <li>
+          The attribute is the "json" kind, and its converter passes plain text through.
+          <code title="packages/ui/src/vocabulary/Converters.ts">Converters.json()</code>
+          parses only text that starts like JSON: a bracket, a brace or a quote.
+        </li>
+      </ul>
+    </li>
+    <li>
+      The element would then go from case 1 to case 2: it would look the card up by that reference (<code
+        title="packages/app/src/runner/SpellElement.tsx"
+        >referencedThing</code
+      >).
+    </li>
+    <li>
+      That finds the card only while it keeps its name.
+      <ul>
+        <li>A card's name is worked out from its rank and suit: "queen-of-spades".</li>
+        <li>So after <code>card.rank = 2</code>, the element would show <code>⚠ no Card#queen-of-spades</code>.</li>
+      </ul>
+    </li>
+    <li>
+      Spell UI can write an attribute WITHOUT hearing it, but only for itself (<code
+        title="packages/ui/src/elements/DOMElement.ts"
+        >DOMElement.writeAttribute()</code
+      >, private).
+      <ul>
+        <li>It does this when a property's value is written back to its attribute ("reflection").</li>
+        <li>
+          A "json" attribute like <code>thing</code> is never written back (<code
+            title="packages/ui/src/elements/ElementDefinition.ts"
+            >ElementDefinition</code
+          >): that's why handing over the card writes no attribute today.
+        </li>
+      </ul>
+    </li>
+  </ul>
+
+  <p>The small Spell UI change T12 needs, and what it would do:</p>
+  <ul>
+    <li>
+      Spell UI: a public way for a component to show an attribute without hearing it. It would be the private write
+      above, opened up.
+    </li>
+    <li>
+      The drawable element: in case 1, it writes its card's reference to its <code>thing</code> attribute that way, and
+      again whenever the reference changes (<code title="packages/core/src/references.ts"
+        >spellCore.referenceFor()</code
+      >
+      follows the card's name).
+    </li>
+    <li>The element keeps the card object itself as its <code>thing</code> property, so nothing is looked up.</li>
+    <li>
+      Typing a different reference into the inspector would still be heard: the element would switch to showing that
+      thing, as in case 2.
+    </li>
+    <li>Cases 2 and 3 don't change: a hand-written tag keeps the attributes it was written with.</li>
+  </ul>
+
+  <p>Where this is written down already:</p>
+  <ul>
+    <li>The durable doc has no section explaining an element's thing, its three cases together.</li>
+    <li>
+      The nearest:
+      <a href="../../../guides/drawable-thing.html#how-it-flows" target="src-guides-drawable-thing-html"
+        >"How it's drawn"</a
+      >
+      (case 1, in one step: "the card itself is the element's thing"), and
+      <a href="../../../guides/drawable-thing.html#layout-tags" target="src-guides-drawable-thing-html"
+        >"Tags find their things"</a
+      >
+      (case 2's <code>id</code>, from before P18).
+    </li>
+    <li>
+      References have no section at all yet: that's <a href="#t11">T11</a>, which could carry these three cases too.
+    </li>
+  </ul></epic-more
+>
+<epic-reply from="Owen" at="2026-10-11 15:47" re="revisit now"
+  ><p>add detail here (or link me to existing place) of what this `thing` is</p></epic-reply
+>
