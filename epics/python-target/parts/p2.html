@@ -1,0 +1,128 @@
+<!-- plan-doc part:  #p2's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Every spell list counts from 1, and some position helpers read the wrong item today: item 0 of a spell list reads
+    the second item.
+  </p></epic-field
+><epic-field name="changes"
+  ><p>A project setting, <code>"listsStartAt": 0</code>.</p>
+  <p>Every core method that takes a position also takes where lists start, and compiled code passes its project's.</p>
+  <p>The three position bugs are fixed first, each with a test.</p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      A project can say its lists count from 0, Owen's "let's try the first item is 0 here":
+      <ul>
+        <li>the setting is <code>"listsStartAt": 0</code> in its <code>project.json</code></li>
+        <li>without it, lists count from 1, as today</li>
+        <li>every target gets it, the JavaScript and TypeScript ones too, not only Python</li>
+      </ul>
+    </li>
+    <li>
+      Core methods respect the setting (Owen: "core methods in JS should respect listStartAt"):
+      <ul>
+        <li>each method that takes or returns a position takes a <code>startAt</code> too, 1 when left out</li>
+        <li>compiled code passes its own project's setting on every call</li>
+        <li>
+          per call, not one switch for the whole program: a library counting from 1 and a program counting from 0 can
+          share one core, and neither reads the wrong item
+        </li>
+      </ul>
+      <epic-code title="the methods that take startAt" language="text">
+        <pre>
+a spell list's  getItem  setItem  removeItem  addAtPosition
+the core's      getItemAt  positionOf
+                rangeBetween  rangeStartingAt
+                removeItemAt  removeRangeBetween
+a loop's position, from  getIteratorFor  countTo  getRange</pre>
+      </epic-code>
+    </li>
+    <li>
+      The 11 places in spell's rules that write a position, and the JavaScript writer's own shortcuts for "item N" and
+      "the first item", pass it.
+    </li>
+    <li>
+      -1 is still the last item, -2 the one before, whatever lists start at: Python's own <code>deck[-1]</code> (<a
+        href="#q7"
+        >Q7</a
+      >).
+    </li>
+    <li>"position of joker in card ranks" is still nothing when there's no joker, never -1 or 0.</li>
+    <li>The hover text and the Type Explorer say "counts from 0" in a project set so.</li>
+    <li>
+      The three bugs found while looking, fixed first, each with a test:
+      <ul>
+        <li>
+          Item 0 of a spell list reads the SECOND item. The helper that turns spell's position into JavaScript's index
+          sends 0 to 1, and <code>items[1]</code> is the second item. Its author wasn't sure either: the line ends in
+          <code>// ???</code>. Owen's reaction: "huh?". Counting from 1 there is no item 0, so after the fix it reads
+          nothing.
+          <epic-code title="List.ts · _getZeroIndex(), today" language="ts">
+            <pre>
+_getZeroIndex(oneIndex: number): number {
+  if (oneIndex === 0) return 1 // ???
+  if (oneIndex &lt; 0) return this.items.length + oneIndex
+  return oneIndex - 1
+}</pre>
+          </epic-code>
+        </li>
+        <li>On a plain list (not a spell list), item -1 reads nothing, where it should read the last item.</li>
+        <li>"the last two cards of the deck" returns ONE card: it asks for 2 cards starting at the last one.</li>
+      </ul>
+    </li>
+    <li>A copy of Cards that counts from 0, among the test programs, prints the same game as Cards.</li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="../../../packages/core/src/classes/List.ts" target="src-packages-core-src-classes-list-ts"
+        ><code title="packages/core/src/classes/List.ts">List.ts</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../packages/core/src/collection-other.ts" target="src-packages-core-src-collection-other-ts"
+        ><code title="packages/core/src/collection-other.ts">collection-other.ts</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../packages/core/src/spellCore.types.ts" target="src-packages-core-src-spellcore-types-ts"
+        ><code title="packages/core/src/spellCore.types.ts">spellCore.types.ts</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../packages/spell/src/rules/" target="src-packages-spell-src-rules"
+        ><code title="packages/spell/src/rules/">spell's rules (11 sites)</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
+        ><code title="packages/parser/src/writers/JSWriter.ts">JSWriter.ts</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../packages/spell/src/SpellProject.ts" target="src-packages-spell-src-spellproject-ts"
+        ><code title="packages/spell/src/SpellProject.ts">SpellProject.ts</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../packages/spell/src/builtinTypes.ts" target="src-packages-spell-src-builtintypes-ts"
+        ><code title="packages/spell/src/builtinTypes.ts">builtinTypes.ts</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../packages/app/src/solid/TypeExplorer.tsx" target="src-packages-app-src-solid-typeexplorer-tsx"
+        ><code title="packages/app/src/solid/TypeExplorer.tsx">TypeExplorer.tsx</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../packages/spell/projects/test/" target="src-packages-spell-projects-test"
+        ><code title="packages/spell/projects/test/">projects/test/ (a 0-based Cards)</code></a
+      >
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>Core, rule, fixture and contract tests pass.</li>
+    <li>The 0-based Cards prints what Cards prints.</li>
+  </ul></epic-field
+>

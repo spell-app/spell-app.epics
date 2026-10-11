@@ -1,17 +1,34 @@
 <!-- plan-doc part:  #o3's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-note state="update" title="after Owen's plan comments, 2026-10-11">
+  <ul>
+    <li>
+      The core now RESPECTS the setting, a <code>startAt</code> on every call (<a href="#q10">Q10</a>), rather than
+      staying 1-based while the compiler shifts every position.
+    </li>
+    <li>-1 is still the last item: Python's own <code>deck[-1]</code> (<a href="#q7">Q7</a>).</li>
+    <li>The item-0 bug is explained in plain words, below.</li>
+  </ul>
+</epic-note>
 <p>
   A project can say its lists count from 0, the way Python and JavaScript do: Owen's "let's try the first item is 0
-  here".
+  here". Built in <a href="#p2">P2 · Lists Start At 0</a>.
 </p>
 <ul>
   <li>
     It's a setting in the project's <code>project.json</code>: <code>"listsStartAt": 0</code>. Without it, lists count
     from 1, as today.
   </li>
-  <li>It's applied when COMPILING, so it works for every target, the JavaScript ones too.</li>
+  <li>It works for every target, the JavaScript ones too.</li>
   <li>
-    The core stays 1-based inside: a project compiled from 1 and another from 0 can share one core in one program, and
-    neither reads the wrong item.
+    The core's methods respect it (Owen: "core methods in JS should respect listStartAt"):
+    <ul>
+      <li>each method that takes or returns a position takes a <code>startAt</code> too, 1 when left out</li>
+      <li>compiled code passes its own project's setting on every call</li>
+      <li>
+        per call, not one switch for the whole program: a library counting from 1 and a program counting from 0 can
+        share one core, and neither reads the wrong item
+      </li>
+    </ul>
   </li>
   <li>Ordinal words don't change: "the first card" and "the last card" mean the same either way.</li>
   <li>
@@ -22,22 +39,45 @@
     </ul>
   </li>
   <li>
+    Negative positions don't change: -1 is the last item, -2 the one before, whatever lists start at. It's Python's own
+    <code>deck[-1]</code>.
+  </li>
+  <li>The hover text and the Type Explorer say "counts from 0" in a project set so.</li>
+  <li>
     In Python, the writer writes native indexes: <code>deck[0]</code>, <code>deck[-1]</code>, <code>deck[2:5]</code>.
     Spell's ranges include their end, so a slice's end gets 1 added: "items 3 to 5" counting from 0 is
     <code>deck[3:6]</code>.
   </li>
   <li>
-    The helpers it goes through: 11 places in spell's rules write one of six position helpers (get an item, find a
-    position, two kinds of range, two kinds of remove).
+    Where it reaches: 11 places in spell's rules write one of the core's position methods (get an item, find a position,
+    two kinds of range, two kinds of remove), plus a loop's position.
   </li>
 </ul>
 <epic-aside title="bugs in today's position helpers, found while looking">
+  <p>These are fixed first in P2, each with a test, before counting from 0 is added on top.</p>
   <ul>
+    <li>
+      On a spell list, "item 0" reads the SECOND item.
+      <ul>
+        <li>
+          A spell list turns spell's position into JavaScript's index with a small helper. For 0 it returns 1, and index
+          1 is the second item.
+        </li>
+        <li>Its author wasn't sure either: the line ends in <code>// ???</code>. Owen's reaction: "huh?".</li>
+        <li>Counting from 1 there is no item 0, so after the fix it reads nothing.</li>
+      </ul>
+      <epic-code title="List.ts · _getZeroIndex(), today" language="ts">
+        <pre>
+_getZeroIndex(oneIndex: number): number {
+  if (oneIndex === 0) return 1 // ???
+  if (oneIndex &lt; 0) return this.items.length + oneIndex
+  return oneIndex - 1
+}</pre>
+      </epic-code>
+    </li>
     <li>
       On a plain list (not a spell list), "item -1" reads nothing, and "remove item -1" removes the second-to-last item.
     </li>
     <li>"the last two cards of the deck" returns ONE card: it asks for 2 cards starting at the last one.</li>
-    <li>On a spell list, "item 0" reads the SECOND item.</li>
-    <li>They're fixed in the phase that touches these helpers, with tests, before 0 is added on top.</li>
   </ul>
 </epic-aside>
