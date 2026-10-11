@@ -15,32 +15,6 @@
     Python target.
   </p>
   <p>Every path naming the old places follows. Nothing a program compiles to or prints changes.</p></epic-field
-><epic-updated slot="changes" at="2026-10-11 18:20" phase="21"
-  ><p>
-    Owen answered <a href="#q27">Q27</a> (2026-10-11): A, all of Python moves, but the TypeScript goes in
-    <a href="../../../packages/py/ts/" target="src-packages-py-ts"><code>packages/py/ts</code></a
-    >, not <code>src</code>.
-  </p>
-  <blockquote>
-    <p>"typescript that writes python into `/packages/py/ts`. Does this complicate monorepo setup?"</p>
-  </blockquote>
-  <ul>
-    <li>
-      Only a little: <a href="../../../packages/py/" target="src-packages-py"><code>packages/py</code></a> is one yarn
-      workspace, <code>@spell-app/py</code>, whose TypeScript sits in <code>ts</code> instead of <code>src</code>.
-    </li>
-    <li>
-      The alias table points <code>$/py</code> at
-      <a href="../../../packages/py/ts/" target="src-packages-py-ts"><code>packages/py/ts</code></a
-      >; py's own tsconfig and vite config cover that folder.
-    </li>
-    <li>
-      The Python projects,
-      <a href="../../../packages/py/core/" target="src-packages-py-core"><code>packages/py/core</code></a> and
-      <a href="../../../packages/py/quart/" target="src-packages-py-quart"><code>packages/py/quart</code></a
-      >, sit beside it as uv projects, which yarn ignores.
-    </li>
-  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
     <li>
@@ -72,11 +46,8 @@
           <a href="../../../packages/py/core/" target="src-packages-py-core"><code>packages/py/core</code></a>
         </li>
         <li>
-          spell-quart and its tests: from
-          <a href="../../../packages/core/py-quart/" target="src-packages-core-py-quart"
-            ><code>packages/core/py-quart</code></a
-          >
-          to <a href="../../../packages/py/quart/" target="src-packages-py-quart"><code>packages/py/quart</code></a>
+          spell-quart and its tests: from <code>packages/core/py-quart</code> to
+          <a href="../../../packages/py/quart/" target="src-packages-py-quart"><code>packages/py/quart</code></a>
         </li>
         <li>
           the TypeScript, into
@@ -134,37 +105,107 @@
       </ul>
     </li>
   </ul></epic-field
+><epic-update
+  at="2026-10-11 18:20"
+  summary="Owen answered Q27 (2026-10-11): A, all of Python moves, but the TypeScript goes in…"
+  phase="21"
+  ><p>
+    Owen answered <a href="#q27">Q27</a> (2026-10-11): A, all of Python moves, but the TypeScript goes in
+    <a href="../../../packages/py/ts/" target="src-packages-py-ts"><code>packages/py/ts</code></a
+    >, not <code>src</code>.
+  </p>
+  <blockquote>
+    <p>"typescript that writes python into `/packages/py/ts`. Does this complicate monorepo setup?"</p>
+  </blockquote>
+  <ul>
+    <li>
+      Only a little: <a href="../../../packages/py/" target="src-packages-py"><code>packages/py</code></a> is one yarn
+      workspace, <code>@spell-app/py</code>, whose TypeScript sits in <code>ts</code> instead of <code>src</code>.
+    </li>
+    <li>
+      The alias table points <code>$/py</code> at
+      <a href="../../../packages/py/ts/" target="src-packages-py-ts"><code>packages/py/ts</code></a
+      >; py's own tsconfig and vite config cover that folder.
+    </li>
+    <li>
+      The Python projects,
+      <a href="../../../packages/py/core/" target="src-packages-py-core"><code>packages/py/core</code></a> and
+      <a href="../../../packages/py/quart/" target="src-packages-py-quart"><code>packages/py/quart</code></a
+      >, sit beside it as uv projects, which yarn ignores.
+    </li>
+  </ul></epic-update
+><epic-field name="done"
+  ><ul>
+    <li>
+      A new yarn workspace,
+      <a href="../../../../packages/py/" target="src-packages-py"><code>@spell-app/py</code></a> (alias
+      <code>$/py</code>, namespace <code>PY</code>), with its TypeScript in
+      <a href="../../../../packages/py/ts/" target="src-packages-py-ts"><code>ts/</code></a> (Owen,
+      <a href="#q27">Q27</a>): <code>PY.PyWriter</code>, <code>PY.PyAsyncWriter</code>, <code>PY.ElementsWriter</code>,
+      <code>PY.pyText</code> and <code>PY.quartApp()</code>, moved out of parser and spell. Imports run
+      <code>spell -&gt; py -&gt; parser</code>.
+    </li>
+    <li>
+      The two uv projects moved beside <code>ts/</code>, where yarn doesn't look: spell_core from
+      <code>packages/core/py</code> to
+      <a href="../../../../packages/py/core/" target="src-packages-py-core"><code>packages/py/core</code></a
+      >, spell-quart from <code>packages/core/py-quart</code> to
+      <a href="../../../../packages/py/quart/" target="src-packages-py-quart"><code>packages/py/quart</code></a
+      >.
+    </li>
+    <li>
+      Parser's barrel,
+      <a href="../../../../packages/parser/src/writers/index.ts" target="src-packages-parser-src-writers-index-ts"
+        ><code>writers/index.ts</code></a
+      >, now shares what the Python writers need from parser as <code>P.jsShapes</code> (<code>unwrapped()</code>,
+      <code>isCoreCall()</code> ...); its Python writers and <code>pyText</code> are gone from it.
+    </li>
+    <li>
+      py's yarn scripts run tsc, oxlint / oxfmt and vitest on <code>ts/</code>, then ruff and pytest in
+      <a href="../../../packages/core/" target="src-packages-core"><code>core/</code></a> and <code>quart/</code>;
+      core's scripts now run its javascript only.
+    </li>
+    <li>
+      Every path that named the old places follows:
+      <ul>
+        <li>cli's <code>runPython()</code>, the core contract and the browser test</li>
+        <li>spell's pyright check, and the Python tests that read core's shared files</li>
+        <li>spell-quart's path to spell_core, in its <code>pyproject.toml</code></li>
+        <li>
+          <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a
+          >: py has <a href="../../../../packages/py/AGENTS.md" target="src-packages-py-agents-md">its own</a>, taking
+          over core's and parser's Python notes; the root's packages table and dependency map list it
+        </li>
+        <li>the commands page</li>
+      </ul>
+    </li>
+  </ul></epic-field
+><epic-commit sha="b1c85fde08b423760d81b8ef32cbccce327418f9"
+  >Python Package: spell_core, spell-quart and the TypeScript that writes Python, all in one workspace,
+  packages/py</epic-commit
 ><epic-field name="files"
   ><ul>
     <li>
-      <a href="../../../packages/core/py/" target="src-packages-core-py"><code>packages/core/py/</code></a> to
+      <code>packages/core/py/</code> to
       <a href="../../../packages/py/core/" target="src-packages-py-core"><code>packages/py/core/</code></a
-      >;
-      <a href="../../../packages/core/py-quart/" target="src-packages-core-py-quart"
-        ><code>packages/core/py-quart/</code></a
-      >
-      to <a href="../../../packages/py/quart/" target="src-packages-py-quart"><code>packages/py/quart/</code></a>
+      >; <code>packages/core/py-quart/</code> to
+      <a href="../../../packages/py/quart/" target="src-packages-py-quart"><code>packages/py/quart/</code></a>
     </li>
     <li>
-      <a href="../../../packages/parser/src/writers/PyWriter.ts" target="src-packages-parser-src-writers-pywriter-ts"
-        ><code>packages/parser/src/writers/PyWriter.ts</code></a
+      from
+      <a href="../../../packages/parser/src/writers/" target="src-packages-parser-src-writers"
+        ><code>packages/parser/src/writers/</code></a
+      >
+      to <a href="../../../packages/py/ts/" target="src-packages-py-ts"><code>packages/py/ts/</code></a
+      >:
+      <a href="../../../packages/py/ts/PyWriter.ts" target="src-packages-py-ts-pywriter-ts"><code>PyWriter.ts</code></a
+      >, <code>PyAsyncWriter.ts</code> (which <a href="#p22">P22</a> folds into PyWriter),
+      <a href="../../../packages/py/ts/pyText.ts" target="src-packages-py-ts-pytext-ts"><code>pyText.ts</code></a
       >,
-      <a
-        href="../../../packages/parser/src/writers/PyAsyncWriter.ts"
-        target="src-packages-parser-src-writers-pyasyncwriter-ts"
-        ><code>PyAsyncWriter.ts</code></a
-      >,
-      <a href="../../../packages/parser/src/writers/pyText.ts" target="src-packages-parser-src-writers-pytext-ts"
-        ><code>pyText.ts</code></a
-      >,
-      <a
-        href="../../../packages/parser/src/writers/ElementsWriter.ts"
-        target="src-packages-parser-src-writers-elementswriter-ts"
+      <a href="../../../packages/py/ts/ElementsWriter.ts" target="src-packages-py-ts-elementswriter-ts"
         ><code>ElementsWriter.ts</code></a
       >,
-      <a
-        href="../../../packages/parser/src/writers/PyWriter.test.ts"
-        target="src-packages-parser-src-writers-pywriter-test-ts"
+      <a href="../../../packages/py/ts/PyWriter.test.ts" target="src-packages-py-ts-pywriter-test-ts"
         ><code>PyWriter.test.ts</code></a
       >;
       <a href="../../../packages/parser/src/writers/index.ts" target="src-packages-parser-src-writers-index-ts"
@@ -172,10 +213,10 @@
       >
     </li>
     <li>
-      <a href="../../../packages/spell/src/quartApp.ts" target="src-packages-spell-src-quartapp-ts"
-        ><code>packages/spell/src/quartApp.ts</code></a
-      >
-      and its test;
+      <code>packages/spell/src/quartApp.ts</code> and its test, to
+      <a href="../../../packages/py/ts/quartApp.ts" target="src-packages-py-ts-quartapp-ts"
+        ><code>packages/py/ts/quartApp.ts</code></a
+      >;
       <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
         ><code>packages/spell/src/targets.ts</code></a
       >;
