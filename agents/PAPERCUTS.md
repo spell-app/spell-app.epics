@@ -1093,6 +1093,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   test, a different one each time ("Test timed out in 5000ms":  `no project named > in a project's folder`, then
   `spell run > runs the program`):  each spawns `spell` through `tsx`, ~5s under the load of 26 test files at once.
   · `yarn vp test run src/cli.test.ts` alone passes (61).  Better:  a longer timeout on the spawning tests. · cli
+- 2026-10-11 · After fast-forwarding `main` to `drawable-thing`, `spell dev park list` (and any `spell dev` command
+  loading `$/lsp`) died in the main checkout with `ERR_MODULE_NOT_FOUND: Cannot find package
+  'vscode-css-languageservice'`:  the branch added a dependency, and `main`'s `node_modules` predates it (the `spell`
+  link runs the MAIN checkout's CLI, so every session's `spell` broke at once). · `yarn install` in the main checkout.
+  Better:  `/isolate done`'s merge step runs `yarn install` in main when `yarn.lock` changed. · cli
 
 ## docs
 
