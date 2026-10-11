@@ -97,3 +97,255 @@ const ATTRIBUTE_KINDS: Record&lt;string, E.AttributeKind&gt; = {
     <li>Worked-out values (a card's colour) aren't on the element; read them from the thing.</li>
   </ul>
 </epic-net-effect>
+<epic-reply from="Owen" at="2026-10-11 05:59" re="revisit soon"
+  ><p>
+    for card/pile/list -- maybe we could have a scheme like `Tableau#T1`? What would that do for us? Might be
+    interesting to reflect it that way into the DOM as well
+  </p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-11 14:05"
+  re="for card/pile/list -- maybe we could have a scheme like `Tableau#T1`?  What would that do for us?  Might be interesting to reflect it that way into the DOM as well"
+>
+  <p>
+    A <b>reference</b> would be a short text naming ONE thing by its type and its name: <code>Tableau#T1</code> is the
+    tableau named T1.
+  </p>
+  <ul>
+    <li>It reads like CSS's <code>tag#id</code>.</li>
+    <li>It would give a property that holds a thing an attribute after all: today that's J23's "property only" row.</li>
+  </ul>
+
+  <h4>What it would look like</h4>
+  <p>Drawable Solitaire's real names:</p>
+  <ul>
+    <li>the tableaus are named <code>T1</code> to <code>T7</code></li>
+    <li>the other piles are named <code>stock</code> and <code>discards</code></li>
+    <li>the foundations are named by suit, e.g. <code>hearts</code></li>
+    <li>a card's name is worked out from its rank and suit: <code>queen-of-spades</code>, <code>2-of-hearts</code></li>
+  </ul>
+  <p>Reflected into the DOM, a tableau and two of its cards would show:</p>
+  <epic-code title="what the inspector would show" language="html">
+    <pre>
+&lt;drawable-solitaire-tableau thing="Tableau#T1"&gt;
+  &lt;drawable-solitaire-card thing="Card#king-of-hearts" pile="Tableau#T1" direction="up"&gt;&lt;/drawable-solitaire-card&gt;
+  &lt;drawable-solitaire-card thing="Card#queen-of-spades" pile="Tableau#T1" direction="up"&gt;&lt;/drawable-solitaire-card&gt;
+&lt;/drawable-solitaire-tableau&gt;</pre>
+  </epic-code>
+  <p>Written by hand, the same attributes would wire things together:</p>
+  <epic-code title="a hand-written layout, setting references" language="html">
+    <pre>
+&lt;!-- the stock is a StockPile:  a reference finds a sub-type too --&gt;
+&lt;drawable-solitaire-pile thing="Pile#stock"&gt;&lt;/drawable-solitaire-pile&gt;
+
+&lt;!-- one particular card --&gt;
+&lt;drawable-solitaire-card thing="Card#ace-of-spades"&gt;&lt;/drawable-solitaire-card&gt;
+
+&lt;!-- a property holding a list:  its items' references, space between --&gt;
+&lt;my-hand cards="Card#ace-of-spades Card#2-of-hearts"&gt;&lt;/my-hand&gt;</pre>
+  </epic-code>
+  <ui-table>
+    <table>
+      <thead>
+        <tr>
+          <th>On the element</th>
+          <th>Today</th>
+          <th>With references</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>the thing it draws</td>
+          <td>a property only; in a layout, <code>id="T1"</code> finds a thing of the tag's exact type (P9)</td>
+          <td><code>thing="Tableau#T1"</code>, shown and settable</td>
+        </tr>
+        <tr>
+          <td>a property holding a thing</td>
+          <td>a property only</td>
+          <td><code>pile="Tableau#T1"</code></td>
+        </tr>
+        <tr>
+          <td>a property holding a list</td>
+          <td>a property only</td>
+          <td><code>cards="Card#ace-of-spades Card#2-of-hearts"</code></td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+
+  <h4>How it would work</h4>
+  <ul>
+    <li>A thing to text: its type's name, <code>#</code>, its name.</li>
+    <li>
+      Text to a thing:
+      <ol>
+        <li>split at the <code>#</code></li>
+        <li>
+          find the type by name, as reading saved JSON does (<a
+            href="../../../packages/core/src/things.ts"
+            target="src-packages-core-src-things-ts"
+            ><code title="packages/core/src/things.ts">spellCore.things.classNamed()</code></a
+          >)
+        </li>
+        <li>among the program's things, the one of that type or a sub-type with that name</li>
+      </ol>
+    </li>
+    <li>
+      Close to what P9's layout lookup already does (<a
+        href="../../../packages/core/src/elements.ts"
+        target="src-packages-core-src-elements-ts"
+        ><code title="packages/core/src/elements.ts">spellCore.thingFor()</code></a
+      >), but that matches only the EXACT type.
+      <ul>
+        <li>
+          So <code>&lt;drawable-solitaire-pile id="stock"&gt;</code> doesn't find the stock, a <code>StockPile</code>.
+        </li>
+      </ul>
+    </li>
+    <li>
+      The element would get a new attribute kind beside string, number and boolean: a reference, and a list of them,
+      kept agreeing both ways as P13 does for the others.
+    </li>
+  </ul>
+
+  <h4>What it would do for us</h4>
+  <ol>
+    <li>
+      <b>Inspectable:</b> the inspector shows which thing each element draws, and what its thing-holding properties
+      point at.
+      <ul>
+        <li>Today a card's element shows its rank, suit and direction, and nothing about its pile.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Settable from HTML:</b> a property holding a card, a pile or a list could be set in markup, not only from a
+      script.
+    </li>
+    <li>
+      <b>Layouts can wire things together:</b> bind an element to any thing by type and name, a sub-type included, or
+      hand one element another's thing.
+    </li>
+    <li>
+      <b>Styling and finding:</b> <code>[pile="Tableau#T1"]</code> picks the cards on T1, in CSS or a query, inside the
+      shadow root they're drawn in.
+    </li>
+    <li>
+      <b>Beyond the DOM</b> (not needed for the above, but the same idea):
+      <ul>
+        <li>a short way to print a thing in the console and the Thing Explorer</li>
+        <li>
+          saved JSON could keep identity: a card held by the deck AND a pile written as one card and one reference
+          <ul>
+            <li>
+              Today it comes back as two cards: <a href="#j37">J37</a>'s reason for not carrying over through JSON.
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ol>
+
+  <h4>What it would cost</h4>
+  <ol>
+    <li>
+      <b>Names must be unique per type:</b> mostly true in Drawable Solitaire, but not always.
+      <ul>
+        <li>Moving cards names a scratch list after its pile (<code>cardsToMove.name = startPile.name</code>).</li>
+        <li>Two matches need a rule: the first wins, or a stand-in saying so, as P9's "no Tableau named T1" does.</li>
+        <li>
+          It's also why the type prefix beats putting the name in an element's id: an id must be unique in its document,
+          and that scratch list and its tableau would both be T1.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>A thing with no name has no reference:</b> the game, the deck and the list of all piles have none.
+      <ul>
+        <li>
+          A top-level thing could fall back to its variable's name, which the program already knows:
+          <code>Game#game</code>, <code>Deck#deck</code>.
+        </li>
+        <li>A thing made in a loop with no name: no reference, and the attribute is left off.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Worked-out properties:</b> a card's pile isn't declared, it's worked out from which pile holds the card.
+      <ul>
+        <li>So today it isn't on the element at all (J23: only declared properties are).</li>
+        <li>Showing <code>pile="Tableau#T1"</code> is easy.</li>
+        <li>
+          Setting it in markup would mean MOVING the card, which asks the tableau's rules (can it take this card?).
+        </li>
+        <li>So: shown only, or a move. A call to make.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Lists:</b>
+      <ul>
+        <li>
+          A tableau of 13 cards is an attribute of 13 references, rewritten on every move, and long in the inspector.
+        </li>
+        <li>A name with a space (a pile named "my pile" is legal) needs quotes or escaping in a list.</li>
+        <li>Reading a list back gives the same things only when every item has a name unique for its type.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Renames break markup:</b> a layout pointing at <code>Tableau#T1</code> finds nothing once the tableau is
+      renamed.
+      <ul>
+        <li>A card's name follows its rank and suit, so it's stable.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Size:</b> roughly 2-3 hours for <code>thing</code> and single references, shown and settable.
+      <ul>
+        <li>Lists, the top-level fallback and moving by attribute add about as much again.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <epic-choices>
+    <epic-option letter="A" title="Build it as a later phase in this epic">
+      <ul>
+        <li>
+          A phase before Doc Review: references for <code>thing</code> and thing-holding properties, shown in the DOM
+          and settable from markup.
+        </li>
+        <li>Lists and worked-out properties settled in the phase.</li>
+        <li>About 2-3 hours, more with lists.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="A todo for later">
+      <ul>
+        <li>Written down with this answer, for a later epic.</li>
+        <li>This epic finishes as planned.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title="No">
+      <ul>
+        <li>Thing-holding properties stay script-only; the inspector shows what it does today.</li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A"
+    ><ul>
+      <li>A new phase before Doc Review: <code>Type#name</code> references on spell's elements.</li>
+      <li>
+        Every drawn element shows <code>thing="Card#queen-of-spades"</code>; a property holding a thing shows and takes
+        a reference.
+      </li>
+      <li>A layout can bind an element to a thing of a sub-type, e.g. <code>Pile#stock</code>.</li>
+      <li>J23 closes once it's built.</li>
+    </ul></epic-net-effect
+  >
+  <epic-net-effect option="B"
+    ><ul>
+      <li>A new todo holds the idea; J23 closes as accepted.</li>
+    </ul></epic-net-effect
+  >
+  <epic-net-effect option="C"
+    ><ul>
+      <li>Nothing changes; J23 closes as accepted.</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
