@@ -145,11 +145,13 @@ The markup is in `PLAN-DOC.md` ("Phases", "Items", "Log"). What to write in each
 - A phase reads Symptom (one line: what's wrong today), Changes (two or three lines: what changes), then the
   details (Owen, 2026-10-06; P3 of `windows-and-review`): `add-phase --symptom ... --changes ...`;
   `phase-body <name> <N> --symptom ...` sets them on a phase written before.
-- Updated: a change to the phase's plan (after Owen's feedback, or found while building), FENCED right under
-  Symptom / Changes, one dated line each: `updated <name> <N> "<p>what changed, and why</p>"`. Never an "Updated"
-  word buried in the text. It STAYS once the phase is done (the record of how the plan moved); while its phase is
-  still to do, its lines show in a "Plan changes" box atop that phase's body, and its title carries an orange pen and
-  their count, even folded, so a re-review sees what moved (Owen, 2026-10-11:  in their phase, not above the list).
+- Updates: a change to the phase's plan (after Owen's feedback, or found while building) is an `<epic-update>`
+  block at the END of the phase's description, after Goal, one per change:
+  `updated <name> <N> "<p>what changed, and why</p>" [--summary "..."]`. It's titled **Update**: <summary> (the
+  first sentence, unless given), its date at the right, and Owen can comment on it with its own bullhorn. Never an
+  "Updated" word buried in the text, and no box around them (Owen, 2026-10-11: "lose the "Plan changes"
+  surround"). It STAYS once the phase is done (the record of how the plan moved); while the phase isn't done, its
+  title carries an orange pen and their count, even folded, so a re-review sees what moved.
 - Requests (epic `epic-workflow`): what Owen sent the phase from other sessions (`/send`), one block each, under
   Symptom / Changes: his words quoted, what the sender was looking at, his screenshots. Written by
   `spell epic file <epic> <rN> <N>` (the epic skill's "12. Request"), never by hand.
@@ -213,7 +215,7 @@ element takes its colour from this table, never a colour that means something el
 | yellow | open, still undecided                       | an open todo, caveat or test (a todo a review queued too); a reviewed issue or judgement call; "to do"; a goals topic "in dialog". DARK text and icons on a yellow fill. NOT a state: a favourite epic's star (Owen, 2026-10-10) |
 | blue   | do it now, or Claude is working on it       | Do Now, Revisit, Send (everywhere: the page header, the agents panel, details pages); the Underway status card; an item Claude is working on (its chip, the spinner); an epic in progress; a goals topic "building" |
 | green  | decided or done (however long ago)          | Approve, Make Todo, a todo's "next phase" plane; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card (filled), the Noted status card (outlined: your choice recorded, nothing built yet); an item decided, done, or approved as it stands, for good; an epic done; a goals topic "agreed", "shipped" |
-| orange | ONLY changed since you looked, and warnings; an item Claude answered with options, waiting for your pick (Owen, 2026-10-09) | UPDATE notes, the Updated fence, "Plan changes"; "nobody is listening" (inverted, to stand out); a `replied` item's chip (DARK text on it)                                         |
+| orange | ONLY changed since you looked, and warnings; an item Claude answered with options, waiting for your pick (Owen, 2026-10-09) | UPDATE labels, `<epic-update>` blocks, a phase's changed pen; "nobody is listening" (inverted, to stand out); a `replied` item's chip (DARK text on it)                                         |
 | violet | Claude's voice                              | his reply cards; "recommended" (a thumbs-up, no word)                                                                                                                                                               |
 | ivory  | Owen's voice (the brand's brown tint)       | his note box, a marked note, his reply cards, the answer card; the toolbar                                                                                                                  |
 | grey   | no longer relevant, inactive, not chosen    | a canceled item (made moot); a todo's "drop it" x; the note box's "skip this" x; buttons at rest, and once Claude has handled them; a phase to do; a future epic; a paused epic (phases left, untouched for 3 days); a goals topic "draft"                                                                                 |
@@ -332,9 +334,8 @@ edit. The FIRST row that applies wins, top to bottom (`PLAN-DOC.md`, "Items", th
 ### Folding
 
 EVERYTHING boxed in a section folds (Owen, 2026-10-08): every card with a heading band folds from it, the chevron
-first -- a reply (Owen's and Claude's), the answer, a status card, a note, an UPDATE note, the Updated fence, an open
-question's option card; More Details, Choices, asides, code blocks, Original Discussion, Plan changes and Agents
-running too. They start open (the item around them starts folded); folding is the page's, never written; find-in-page
+first -- a reply (Owen's and Claude's), the answer, a status card, a note, an update (`<epic-update>`), an open
+question's option card; More Details, Choices, asides, code blocks, Original Discussion and Agents running too. They start open (the item around them starts folded); folding is the page's, never written; find-in-page
 reveals folded text.
 
 ## Parts
@@ -378,17 +379,21 @@ pages.js` `findPages()`, `relocate.js`, `spell static`): the docs index, `docs u
 
 ## UPDATE markers
 
-While a phase is active, flag what changed so the user can spot it:
+ONE element for every update, `<epic-update>` (Owen, 2026-10-11;  `PLAN-DOC.md`, "Updates"). While a phase is
+active, flag what changed so the user can spot it:
 
-- a new or changed item gets an UPDATE marker in its title (the tool adds it: `PLAN-DOC.md`, "Items")
-- a changed prose block gets, just before it, an orange UPDATE note of the active phase:
-  `<epic-update phase="2"><p>what changed</p></epic-update>`
-- `spell dev plan-doc phase <name> 2 done` removes phase 2's markers, notes and all
+- a new or changed item gets a bare UPDATE label in its title (the tool adds it: `PLAN-DOC.md`, "Items")
+- a changed prose block gets, right AFTER it, an update of the active phase, titled and dated:
+  `<epic-update at="2026-10-11 14:30" summary="what changed, one line" phase="2"><p>what changed, and
+  why</p></epic-update>`;  an update to a whole Overview sub-section goes last inside it
+- `spell dev plan-doc phase <name> 2 done` removes phase 2's labels and prose updates
 - a note that should STAY once the phase is done (an item partly fixed elsewhere, a decision done):
   `<epic-note state="update" title="partly fixed by J9, 2026-10-06"><p>...</p></epic-note>` (orange `UPDATE`), or
   `state="done"` (green `DONE`)
-- a change to a PHASE's plan is not a marker: it's that phase's fenced Updated line (`updated <name> <N>`, "What
-  phases and items say"), which stays
+- a change to a PHASE's plan is the same element, written by `updated <name> <N>` at the end of the phase's
+  description ("What phases and items say"), and it stays
+- an older doc's shapes (an UPDATE note BEFORE its block, `<epic-updated>` lines, a Plan changes box) are migrated
+  on the tool's next write (`updates-as-epic-update`)
 
 ## Review inbox
 
@@ -590,7 +595,7 @@ plan-doc` with no command prints the usage.
 | `new <name> [--title "..."] [--prompt "..." \| --prompt-file <path>] [--future]`                                                              | copy the tool's template to `epics/<name>/<name>.plan.html`, fill it (the prompt that started the plan goes in the Overview), update the docs index; `--future`: a future epic ("Page header"); on a future epic's doc: plans it, promoted where it is                                                                                                                                                                                                                                                                                                                            |
 | `add-phase <name> "Short Name" --symptom <html> --changes <html> [--goal <html>] [--files ...] [--verify ...] [--estimate 1-2h] [--before N]` | append a phase: Symptom (one line), Changes (two or three), then the details (the goal a `<ul>`); the estimate the title's badge. Neither `--symptom` nor `--changes`: Goal / Files / Verify. `--before N` (epic `skillz`): insert it as PN instead; PN and every later phase move down one, with their ids, part files and every link and `phase` pointing at them (prose without a link isn't changed); refused once any of them has started. `/epic phase` uses it                                                                                                             |
 | `phase-body <name> <N> [--symptom ...] [--changes ...] [--goal ...] [--files ...] [--verify ...]`                                             | set a phase's body fields, each in its place (`""` removes one)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `updated <name> <N> "<html>"` / `--file <path>`                                                                                               | a change to phase N's plan: a dated line in its fenced Updated block, under Symptom / Changes; kept once done; shown in phase N's own "Plan changes" box (and a pen + count on its title) while N is to do                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `updated <name> <N> "<html>"` / `--file <path>` `[--summary "..."]`                                                                           | a change to phase N's plan: an `<epic-update>` block at the end of its description, **Update**: <summary> and its date; kept once done; a pen + count on N's title while it isn't done                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `phase <name> <N> todo\|active\|done [--done <html>] [--no-open]`                                                                             | set a phase's status; `done` removes its UPDATE markers, and `--done` writes its Done field; brings the doc forward in VS Code                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `estimate <name> <N> "1-2h"`                                                                                                                  | change a phase's estimate (its title's badge); the Overview's total follows                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `add <name> question\|judgement\|caveat\|issue\|todo\|test\|decision "<title>" [--details "<html>"] [--calm]`                                 | append an item, print its id; a `decision` is a question born answered (`Q7`); `--calm` (last): a judgement call or issue that wouldn't surprise Owen (the default, "What phases and items say"), yellow (open) rather than red                                                                                                                                                                                                                                                                                                                                                   |
