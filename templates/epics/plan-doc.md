@@ -149,6 +149,9 @@ The markup is in `PLAN-DOC.md` ("Phases", "Items", "Log"). What to write in each
   Symptom / Changes, one dated line each: `updated <name> <N> "<p>what changed, and why</p>"`. Never an "Updated"
   word buried in the text. It STAYS once the phase is done (the record of how the plan moved); while its phase is
   still to do, it's also listed at the top of the phases, in a "Plan changes" box, so a re-review sees what moved.
+- Requests (epic `epic-workflow`): what Owen sent the phase from other sessions (`/send`), one block each, under
+  Symptom / Changes: his words quoted, what the sender was looking at, his screenshots. Written by
+  `spell epic file <epic> <rN> <N>` (the epic skill's "12. Request"), never by hand.
 - Goal: the details: a `<ul>`, one bullet per outcome, in Owen's terms (what he'll see or be able to do), not the
   build steps. Optional once the phase has a Symptom or Changes.
 - Done: written when the phase is done (`phase <name> <N> done --done "<ul>..."`), a `<ul>` of what was BUILT,
