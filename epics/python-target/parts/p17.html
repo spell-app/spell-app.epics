@@ -1,0 +1,136 @@
+<!-- plan-doc part:  #p17's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    A Python program draws only HTML text, printed when it ends: nothing a browser can show live, or click.
+  </p></epic-field
+><epic-field name="changes"
+  ><p>
+    Compiling to Python also writes the program's drawing as JavaScript: an element per drawable type, and one for the
+    app, on the javascript core.
+  </p>
+  <p>
+    Python hands its things to the page as JSON, each with an id; the page draws them, and sends each click back as a
+    message naming things by id.
+  </p>
+  <p>A test page draws Solitaire from a saved Python state, before any server exists.</p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen, 2026-10-11: "python compiler outputs compiled JS web components for the HTML bits".
+      <ul>
+        <li>The HTML bits: each type's <code>to draw</code>, its styles, and the layout of the app.</li>
+        <li>
+          Web components: custom elements, as a drawable thing already is in the browser,
+          <code>&lt;solitaire-card&gt;</code>.
+        </li>
+        <li>Python keeps the logic: what a click does still runs in Python.</li>
+      </ul>
+    </li>
+    <li>
+      Compiling Solitaire to Python writes a second file beside the Python: <code>Solitaire.elements.js</code>, the
+      drawing half of the program, in JavaScript.
+      <ul>
+        <li>
+          What goes in it is the fork in <a href="#q20">Q20</a>; recommended: each type's properties, the getters its
+          drawing reads, its <code>to draw</code> and its styles.
+        </li>
+        <li>An element per drawable type, as today, and one for the app itself, so a page can hold the whole game.</li>
+        <li>
+          It runs on the javascript core the editor's runners already use (the spell runtime, Solid and Spell UI): no
+          second drawing engine.
+        </li>
+      </ul>
+    </li>
+    <li>
+      The Python program hands its things to the page as JSON: the <code>"@type"</code> and <code>"@items"</code>
+      spell_core already writes, plus an id for each thing.
+      <ul>
+        <li>
+          Why the id: JSON keeps no identity, so the card a click names must be found again as the SAME card in Python,
+          not a copy.
+        </li>
+        <li>
+          The page rebuilds the things as stand-ins ("mirrors") and draws them; new state updates them in place, so only
+          what changed redraws.
+        </li>
+        <li>Whole state or only changes: <a href="#q21">Q21</a>.</li>
+      </ul>
+    </li>
+    <li>
+      A click goes back as a message, never run on the page:
+      <ul>
+        <li>a card's <code>onClick</code> fires <code>card-click</code>, sent as the event's name and the card's id</li>
+        <li>the AutoPlay button's call to <code>auto_play()</code>, sent as a call by that name</li>
+        <li>whoever hosts the page (P18's Flask app, or a test) says where the messages go</li>
+      </ul>
+    </li>
+    <li>
+      Python's own HTML drawing (<a href="#p12">P12</a>) stays: <code>--page</code> and the core contract still compare
+      it line for line.
+    </li>
+    <li>
+      Checked before any server exists: a test page with Solitaire's dealt state, saved from a Python run, draws the
+      same board the javascript run draws, and a click on it records the right message.
+    </li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="../../../packages/parser/src/writers/PyWriter.ts" target="src-packages-parser-src-writers-pywriter-ts"
+        ><code title="packages/parser/src/writers/PyWriter.ts">PyWriter.ts</code></a
+      >, and a new writer beside
+      <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
+        ><code title="packages/parser/src/writers/JSWriter.ts">JSWriter.ts</code></a
+      >
+      for the elements file
+    </li>
+    <li>
+      <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
+        ><code title="packages/spell/src/targets.ts">targets.ts</code></a
+      >: the <code>py</code> targets write a second file
+    </li>
+    <li>
+      <a href="../../../packages/core/py/spell_core/things.py" target="src-packages-core-py-spell-core-things-py"
+        ><code title="packages/core/py/spell_core/things.py">things.py</code></a
+      >
+      and
+      <a href="../../../packages/core/py/spell_core/run.py" target="src-packages-core-py-spell-core-run-py"
+        ><code title="packages/core/py/spell_core/run.py">run.py</code></a
+      >: ids in the JSON, a way to save the state
+    </li>
+    <li>
+      <a href="../../../packages/core/src/json.ts" target="src-packages-core-src-json-ts"
+        ><code title="packages/core/src/json.ts">json.ts</code></a
+      >
+      and
+      <a href="../../../packages/core/src/elements.ts" target="src-packages-core-src-elements-ts"
+        ><code title="packages/core/src/elements.ts">elements.ts</code></a
+      >: reading state in place by id, sending clicks to a host
+    </li>
+    <li>
+      <a href="../../../packages/app/src/runner/spellRuntime.ts" target="src-packages-app-src-runner-spellruntime-ts"
+        ><code title="packages/app/src/runner/spellRuntime.ts">spellRuntime.ts</code></a
+      >
+      and
+      <a href="../../../packages/app/src/runner/SpellElement.tsx" target="src-packages-app-src-runner-spellelement-tsx"
+        ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.tsx</code></a
+      >
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      <code>spell compile Solitaire --target py</code> writes <code>Solitaire.elements.js</code> beside the Python; a
+      snapshot pins it.
+    </li>
+    <li>
+      A headless Playwright test (never the Claude-in-Chrome tools) loads a test page with that file and the state a
+      seeded Python run saved: the board it draws matches the javascript run's, seed for seed.
+    </li>
+    <li>
+      In the same test, clicking a card records a <code>card-click</code> message with that card's id; clicking the
+      stock records a call to <code>play_from_the_stock_pile</code>.
+    </li>
+    <li>The core contract still passes on every target; spell_core's pytest, and the core and app tests, pass.</li>
+  </ul></epic-field
+>
