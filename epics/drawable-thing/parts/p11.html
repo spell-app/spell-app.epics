@@ -83,7 +83,7 @@
   ><ul>
     <li>
       Each output language has a naming map,
-      <a href="../../../packages/parser/src/writers/Naming.ts" target="src-packages-parser-src-writers-naming-ts"
+      <a href="../../../../packages/parser/src/writers/Naming.ts" target="src-packages-parser-src-writers-naming-ts"
         ><code title="packages/parser/src/writers/Naming.ts">P.Naming</code></a
       >: a case for each kind of name (type, method, variable, property, constant), or one case for <code>all</code>.
       <ul>
@@ -103,15 +103,53 @@
         <li>superclasses</li>
         <li><code>instanceof</code> checks</li>
         <li><code>merged()</code> and <code>cloneAs()</code></li>
-        <li>the text under <code>type:</code> and <code>instanceType:</code> (<a href="#j29">J29</a>)</li>
+        <li>a type's name written as text (below)</li>
         <li>its project writer (<code>forProject()</code>) keeps the map</li>
       </ul>
     </li>
     <li>
+      Reworked for Owen's pick on <a href="#j29">J29</a> (B): a type's name inside a string is a tree node of its own,
+      <a href="../../../../packages/parser/src/ast/AST.ts" target="src-packages-parser-src-ast-ast-ts"
+        ><code title="packages/parser/src/ast/AST.ts">P.ASTTypeNameLiteral</code></a
+      >, made by the spell rules.
+      <ul>
+        <li>
+          The rules that make it: a new list's item type (<code>new List({ instanceType: "Pile" })</code>), a declared
+          property's type, both where it's declared and where a <code>set</code> declares it (<code
+            >declareProp('pile', { type: "Pile" })</code
+          >), and a type check (<code>thing is a Pile</code>).
+        </li>
+        <li>
+          Each writer writes it as it writes a type's name: one of the project's own types through the map, any other
+          (<code>"List"</code>, <code>"number"</code>) as written.
+        </li>
+        <li>
+          The javascript writer no longer looks for a type's name under the keys <code>type</code> and
+          <code>instanceType</code>: that code is gone.
+        </li>
+        <li>The TypeScript writer inherits it, so it renames that text too, with no list of keys.</li>
+        <li>The compiled output is the same, byte for byte: no fixture or example changed.</li>
+      </ul>
+    </li>
+    <li>
+      The TypeScript writer's own type names go through the map too: its type annotations (<code>card: Card</code>),
+      <code>List&lt;Card&gt;</code>, and the interfaces it merges into a class.
+    </li>
+    <li>
       The detective test: Solitaire compiled with types in snake_case leaves no PascalCase type name in its code. It
       skips the program's own text, like headings (<a href="#j30">J30</a>).
+      <ul>
+        <li>It runs for the TypeScript writer as well as the javascript one now (<a href="#t4">T4</a>).</li>
+        <li>
+          And Solitaire in TypeScript with types in SCREAMING_SNAKE_CASE still passes <code>tsc</code> with no errors,
+          so every place a type is named agrees.
+        </li>
+        <li>
+          Not snake_case for that one: a type and the variable named for it collide,
+          <code>const card = new card()</code> (<a href="#i6">I6</a>).
+        </li>
+      </ul>
     </li>
-    <li>Still untested: the TypeScript writer under any map but javascript's (<a href="#t4">T4</a>).</li>
     <li>
       Merged main (output-targets P22: every member camelCase, <code>h()</code> drawing, an error boundary, words
       files).
@@ -121,10 +159,15 @@
       </ul>
     </li>
     <li>
-      Checks: parser, core, spell, lsp and app types and tests pass (app: 284 tests).
+      Checks: parser, core, spell, lsp and app types and tests pass.
       <ul>
+        <li>
+          parser 521 tests, spell 1130 (was 1128: the naming test checks TypeScript too, and runs it through tsc), lsp
+          127
+        </li>
         <li>the app's run logs a stale <code>&lt;Show&gt;</code> read after a runner test (<a href="#i5">I5</a>)</li>
-        <li>parser speed test against HEAD: 103 vs 104 on average, -1%</li>
+        <li>parser speed test against HEAD, first build: 103 vs 104 on average, -1%</li>
+        <li>parser speed test against HEAD, the rework: 102 vs 105 on average, -3%</li>
       </ul>
     </li>
   </ul></epic-field
@@ -134,6 +177,9 @@
 ><epic-commit sha="4abe16a3f8703121be1027dae577ec930cf3b4f7"
   >Names By Target: a naming map per output language, every type name through it; types one word, BankAccount; merged
   main (output-targets P22), every example recompiled</epic-commit
+><epic-commit sha="e356e1047263ce83ba43adf8c0b398a6daaaa20b"
+  >Names By Target, reworked for J29 B: a type's name in text is a tree node of its own, made by the spell rules and
+  renamed by every writer; the TypeScript writer's type names through the map too; output unchanged</epic-commit
 ><epic-field name="files"
   ><ul>
     <li>
@@ -172,4 +218,4 @@
     <li>the parser's speed is unchanged (<code>SP.spellParser.speedTest()</code>, before and after)</li>
   </ul></epic-field
 >
-<epic-field name="to-review"><a href="#t4">T4</a></epic-field>
+<epic-field name="to-review"><a href="#i6">I6</a></epic-field>
