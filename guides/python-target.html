@@ -1,0 +1,1548 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Python Target</title>
+    <meta
+      name="description"
+      content="How spell compiles to Python:  the py and py/asyncio targets, spell_core, PEP 8 names, lists counting from 0, drawing as HTML, type hints checked by pyright, and why it reads as a person would write it."
+    />
+    <link rel="stylesheet" href="../packages/docs/tools/_assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page">
+    <spell-site-header root=".."></spell-site-header>
+    <div class="spell-doc">
+      <main class="spell-doc-main">
+        <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
+          <ui-breadcrumb-section href="../pages/index.html" target="src-packages-docs-index-html"
+            >Docs</ui-breadcrumb-section
+          >
+          <ui-breadcrumb-section active>The Python Target</ui-breadcrumb-section>
+        </ui-breadcrumb>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>The Python Target</h1></header></ui-sticky
+        >
+        <p class="lede">
+          How spell compiles to Python a person would write by hand, what it runs on, and why it reads the way it does.
+        </p>
+        <ui-list class="spell-meta">
+          <ui-item icon="user"
+            >Written for: a developer about to change what the Python writer writes, port a core method to Python, or
+            run a compiled program</ui-item
+          >
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="green">built</ui-label> on branch <code>python-target</code>, not
+            merged yet; epic
+            <a href="../epics/python-target/python-target.plan.html" target="python-target">Python Target</a></ui-item
+          >
+          <ui-item icon="flask"
+            >Checked on: branch <code>python-target</code>, 2026-10-11, against the code, the test programs' snapshots
+            and the plan doc's decisions (see <a href="#sources">Sources</a>)</ui-item
+          >
+        </ui-list>
+
+        <ui-section id="summary" header="1. Summary" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <ui-statistics class="spell-stats" size="mini">
+            <ui-statistic value="2" label="Python targets"></ui-statistic>
+            <ui-statistic value="6 of 6" label="test programs print the same"></ui-statistic>
+            <ui-statistic value="8" label="pyright errors, pinned"></ui-statistic>
+          </ui-statistics>
+          <ul>
+            <li>
+              <code>spell compile Cards --target py</code> writes <code>Cards.compiled.py</code>: Python a Python
+              programmer would write, and happily edit.
+            </li>
+            <li>
+              It's spell's first target that isn't JavaScript underneath.
+              <ul>
+                <li><code>py</code>: plain Python, where a pause sleeps</li>
+                <li><code>py/asyncio</code>: the same program on asyncio, Python's own way to wait</li>
+              </ul>
+            </li>
+            <li>
+              Compiled Python runs on <b>spell_core</b>, the Python twin of the core.
+              <ul>
+                <li>It lives beside the JavaScript it ports, in core's <code>py</code> folder.</li>
+                <li>It needs nothing but Python's standard library, 3.12 or later.</li>
+              </ul>
+            </li>
+            <li>
+              All six test programs print in Python exactly what they print in JavaScript, on both Python targets.
+              <ul>
+                <li>The core contract checks it on every test run.</li>
+                <li>That includes the drawn page: Python draws HTML text, as there's no page to draw on.</li>
+              </ul>
+            </li>
+            <li>
+              Type hints come from what spell knows of each value, and pyright checks them, as <code>tsc</code> checks
+              the TypeScript.
+              <ul>
+                <li>Three programs are clean.</li>
+                <li>The three solitaire games keep 8 errors between them, pinned rather than fixed.</li>
+              </ul>
+            </li>
+            <li>
+              Python needed four things the JavaScript targets now have too:
+              <ul>
+                <li>lists that may count from 0, <code>"listsStartAt": 0</code></li>
+                <li>core position methods told where counting starts, on every call</li>
+                <li>a seedable random owned by the core, and a machine-readable list of its methods</li>
+                <li>spell's own values in the tree, not JavaScript spellings like <code>'up'</code></li>
+              </ul>
+            </li>
+            <li>
+              Python is compile-only for now: <code>spell run</code> and <code>spell test</code> still run JavaScript.
+              spell_core's own runner runs the Python.
+            </li>
+          </ul>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>Compile and run a copy of Solitaire as Python · 3 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-sh">cp -R packages/spell/projects/test/Solitaire /tmp/Solitaire   # never compile a test project in place
+spell compile /tmp/Solitaire --target py                      # Solitaire.compiled.py, its words file, pyright's count
+uv run --project packages/core/py python -m spell_core.run /tmp/Solitaire/Solitaire.compiled.py --seed 1 --page</code></pre>
+            </ui-content>
+          </ui-accordion>
+        </ui-section>
+
+        <ui-section id="targets" header="2. The two targets" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="bullseye"></ui-icon>
+          <p>
+            Both are in the targets table,
+            <a href="../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
+              ><code title="packages/spell/src/targets.ts">SP.TARGETS</code></a
+            >, beside the JavaScript and TypeScript targets.
+          </p>
+
+          <ui-section id="the-table" header="The table" sticky collapsible dividing collapsed>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>target</th>
+                    <th>writer</th>
+                    <th>file</th>
+                    <th>runs on</th>
+                    <th>checked by</th>
+                    <th>draws</th>
+                  </tr>
+                  <tr>
+                    <td><code>py</code></td>
+                    <td>
+                      <a
+                        href="../packages/parser/src/writers/PyWriter.ts"
+                        target="src-packages-parser-src-writers-pywriter-ts"
+                        ><code title="packages/parser/src/writers/PyWriter.ts">P.PyWriter</code></a
+                      >
+                    </td>
+                    <td><code>&lt;Project&gt;.compiled.py</code></td>
+                    <td>spell_core</td>
+                    <td>pyright</td>
+                    <td class="meh warning">HTML text</td>
+                  </tr>
+                  <tr>
+                    <td><code>py/asyncio</code></td>
+                    <td>
+                      <a
+                        href="../packages/parser/src/writers/PyAsyncWriter.ts"
+                        target="src-packages-parser-src-writers-pyasyncwriter-ts"
+                        ><code title="packages/parser/src/writers/PyAsyncWriter.ts">P.PyAsyncWriter</code></a
+                      >
+                    </td>
+                    <td><code>&lt;Project&gt;.compiled.asyncio.py</code></td>
+                    <td>spell_core, on asyncio</td>
+                    <td>pyright</td>
+                    <td class="meh warning">HTML text</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li><code>PyAsyncWriter</code> extends <code>PyWriter</code>, and changes only what waits.</li>
+              <li>
+                Both extend
+                <a
+                  href="../packages/parser/src/writers/ProgramWriter.ts"
+                  target="src-packages-parser-src-writers-programwriter-ts"
+                  ><code title="packages/parser/src/writers/ProgramWriter.ts">P.ProgramWriter</code></a
+                >, the base every program's writer shares with the JavaScript one:
+                <ul>
+                  <li>what kind each value is</li>
+                  <li>what may be nothing</li>
+                  <li>names, and where lists start counting</li>
+                </ul>
+              </li>
+              <li>
+                <code>py</code> also writes a words file, <code>&lt;Project&gt;.py.en.json</code> (see
+                <a href="#words-file">The words file</a>). <code>py/asyncio</code> has the same names, so it writes none
+                of its own.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>targets.ts · the two Python entries · 18 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-ts">// Python as a person writes it, with PEP 8's names, on `spell_core` (`packages/core/py`).
+// Draws HTML as text:  Python has no page (epic `python-target`, Q2)
+py: {
+  name: "py",
+  writer: P.PyWriter.instance,
+  suffix: ".compiled.py",
+  can: { draw: "html" },
+  wordsSuffix: ".py.en.json",
+  checkedBy: "pyright"
+},
+// The same Python on `asyncio`:  a function that pauses is `async def`, and its callers await it
+// (epic `python-target`, Q3 B and Q18)
+"py/asyncio": {
+  name: "py/asyncio",
+  writer: P.PyAsyncWriter.instance,
+  suffix: ".compiled.asyncio.py",
+  can: { draw: "html" },
+  checkedBy: "pyright"
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="picking" header="Asking for Python" sticky collapsible dividing collapsed>
+            <ul>
+              <li>A project lists its targets in its <code>project.json</code>: <code>"targets": ["py"]</code>.</li>
+              <li>Or for one compile: <code>spell compile &lt;project&gt; --target py</code>.</li>
+              <li>
+                <code>js/solid</code> is always compiled too: the editor, the runners and the language server run it.
+              </li>
+              <li>
+                Each compile runs pyright on the Python it wrote, and says how many errors it found, e.g. "2 pyright
+                errors", listing them.
+                <ul>
+                  <li>They don't fail the compile.</li>
+                  <li>There's no flag for it: it always runs.</li>
+                </ul>
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Compiling to Python · 3 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-sh">spell compile /tmp/Solitaire --target py               # Solitaire.compiled.py and Solitaire.py.en.json
+spell compile /tmp/Solitaire --target py/asyncio       # Solitaire.compiled.asyncio.py
+spell compile @test/FizzBuzz --target py --stdout      # prints it, saves nothing</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="running" header="Running compiled Python" sticky collapsible dividing collapsed>
+            <p>
+              spell_core has a runner of its own,
+              <a href="../packages/core/py/spell_core/run.py" target="src-packages-core-py-spell-core-run-py"
+                ><code title="packages/core/py/spell_core/run.py">spell_core.run</code></a
+              >: it runs one compiled program, seeded as <code>spell run</code> seeds the JavaScript.
+            </p>
+            <ul>
+              <li>
+                <code>uv run --project packages/core/py</code> runs it on the Python uv pins for spell_core (3.13), with
+                spell_core importable. Nothing to install but uv.
+              </li>
+              <li>
+                <code>--seed n</code>: the random numbers start from <code>n</code>, so the game deals the same cards
+                every run, and the same cards as the JavaScript run with that seed.
+                <ul>
+                  <li>Without it, each run deals differently, as in JavaScript.</li>
+                </ul>
+              </li>
+              <li><code>--no-pauses</code>: a pause doesn't wait, on either Python target.</li>
+              <li>
+                <code>--page</code>: when the program ends, print what it drew, a blank line then its HTML on one line.
+              </li>
+              <li>
+                The program's own folder comes first on Python's import path: a project it imports (<code
+                  >from cards import Card</code
+                >) sits beside it.
+              </li>
+              <li>
+                Printing a whole thing (<code>print the card</code>) goes to stderr: Python's
+                <code>Card(rank='queen', ...)</code> where node prints its own dump. Every other line is the same as
+                JavaScript's.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Running it · from the repo root · 2 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-sh">uv run --project packages/core/py python -m spell_core.run /tmp/Solitaire/Solitaire.compiled.py --seed 1 --page --no-pauses
+spell run /tmp/Solitaire --seed 1 --no-browser   # the javascript:  the same test lines</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="what-it-writes" header="3. What it writes" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="code"></ui-icon>
+          <p>
+            Python a Python programmer would write: Owen's "as idiomatic as Python can possibly be". Python's own words
+            wherever it has them; the core only where it has none.
+          </p>
+
+          <ui-section id="fizzbuzz" header="FizzBuzz" sticky collapsible dividing collapsed>
+            <ul>
+              <li>A native loop over a <code>range()</code>, not a core call per number.</li>
+              <li>
+                <code>(number / 15).is_integer()</code> asks whether the result is whole: in Python, 45 divided by 15 is
+                <code>3.0</code>, not 3.
+              </li>
+              <li><code>print()</code> where Python prints a value as spell does; the core's console otherwise.</li>
+              <li>It imports only what it uses: FizzBuzz imports nothing.</li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>FizzBuzz.snapshot.py · as compiled · 16 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">from __future__ import annotations
+
+def play_fizzbuzz() -&gt; None:
+    """File FizzBuzz.spell"""
+    for number in range(1, 101):
+        if (number / 15).is_integer():
+            print(number, "fizzbuzz")
+        elif (number / 3).is_integer():
+            print(number, "fizz")
+        elif (number / 5).is_integer():
+            print(number, "buzz")
+        else:
+            print(number)
+
+
+play_fizzbuzz()</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="names" header="Names" sticky collapsible dividing collapsed>
+            <p>
+              Names follow PEP 8, Python's style guide: one line in the naming table,
+              <a href="../packages/parser/src/writers/Naming.ts" target="src-packages-parser-src-writers-naming-ts"
+                ><code title="packages/parser/src/writers/Naming.ts">Naming.PYTHON</code></a
+              >.
+            </p>
+            <ul>
+              <li>functions, methods, variables and properties in snake_case: <code>turn_face_up</code></li>
+              <li>classes in PascalCase: <code>Card</code></li>
+              <li>constants in capitals joined by underscores: <code>Card.RANKS</code></li>
+              <li>
+                A name that clashes steps aside with PEP 8's trailing underscore:
+                <ul>
+                  <li>a Python keyword, as any kind of name: <code>class_</code>, <code>from_</code></li>
+                  <li>
+                    a builtin, only as a variable or parameter, where it would hide it: <code>list_</code>,
+                    <code>max_</code>
+                  </li>
+                  <li>a member keeps its name: <code>card.type</code>, <code>pile.max</code></li>
+                  <li>soft keywords stay names, such as <code>match</code> and <code>type</code></li>
+                </ul>
+              </li>
+              <li>
+                A spell name never becomes a dunder, a name with two underscores each side like
+                <code>__init__</code>: PEP 8 says never to invent one.
+              </li>
+              <li>
+                spell_core gives lists and things the dunders Python documents, so Python's own words work on them:
+                <ul>
+                  <li><code>len(deck)</code></li>
+                  <li><code>card in pile</code></li>
+                  <li><code>for card in deck</code></li>
+                  <li><code>deck[0]</code></li>
+                  <li><code>a == b</code></li>
+                  <li>printing a thing</li>
+                </ul>
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Naming.ts · Python's map · 5 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-ts">static readonly PYTHON: NamingMap = {
+  type: "PascalCase",
+  constant: "SCREAMING_SNAKE_CASE",
+  all: "snake_case"
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="things-and-lists" header="Things and lists" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A thing is a Python class:
+                <ul>
+                  <li>its docstring from spell's comment</li>
+                  <li>constants as tuples; properties declared in the class body with <code>prop()</code></li>
+                  <li>getters as <code>@property</code>, with <code>self</code></li>
+                  <li>made by keyword: <code>Card(rank="queen", suit="spades")</code></li>
+                </ul>
+              </li>
+              <li>
+                A spell list is a real Python sequence (a <code>MutableSequence</code>):
+                <ul>
+                  <li>an item: <code>deck[2]</code></li>
+                  <li>how many: <code>len(deck)</code></li>
+                  <li>a loop: <code>for card in deck</code></li>
+                  <li><code>if not stock:</code> for "the stock is empty"</li>
+                  <li>a position out of range is <code>None</code>, as spell reads it, not an error</li>
+                  <li>owners ("a card is in one pile at a time"), guards, and JSON with <code>"@type"</code></li>
+                </ul>
+              </li>
+              <li>
+                Native operators where the kinds are known:
+                <ul>
+                  <li><code>==</code> and <code>in</code></li>
+                  <li>f-strings</li>
+                  <li><code>isinstance()</code></li>
+                  <li><code>is None</code></li>
+                </ul>
+              </li>
+              <li>
+                A block passed along is a one-line <code>lambda</code>, or a <code>def</code> lifted above the call.
+              </li>
+              <li>
+                A bare <code>return</code> in a loop's body ends that turn only: it's written <code>continue</code>.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Cards.snapshot.py · Card, in part · 38 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">from spell_core import core, Thing, List, prop, h
+
+
+class Card(Thing):
+    """definition of a Card with nice english aliases for working with it"""
+
+    # card ranks
+    RANKS = ("ace", 2, 3, 4, 5, 6, 7, 8, 9, 10, "jack", "queen", "king")
+    rank = prop(one_of=RANKS)
+
+    # card suits
+    SUITS = ("clubs", "diamonds", "hearts", "spades")
+    suit = prop(one_of=SUITS)
+
+    @property
+    def color(self) -&gt; str:
+        """color as derivation of suit"""
+        if self.suit in ["diamonds", "hearts"]:
+            return "red"
+        return "black"
+
+    @property
+    def value(self) -&gt; float:
+        """value as a derivation of rank"""
+        return core.position_of(Card.RANKS, self.rank)
+
+    def is_a_suit(self, suit) -&gt; bool:
+        """\"card is a spade", "...is a club" etc"""
+        return self.suit == suit
+
+    @property
+    def name(self) -&gt; str:
+        """name as a derivation of name/suit"""
+        return f"{self.rank}-of-{self.suit}"
+
+    @property
+    def pile(self) -&gt; Pile | None:
+        return Pile.owner_of(self)</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Cards.snapshot.py · Deck · 18 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">class Deck(List):
+    item_type = Card
+
+    def set_up(self) -&gt; None:
+        if self.is_set_up:
+            return
+        for rank in Card.RANKS:
+            for suit in Card.SUITS:
+                it = Card(rank=rank, suit=suit)
+                self.append(it)
+        self.is_set_up = True
+
+    def display(self) -&gt; None:
+        card_names = List()
+        for card in self:
+            card_names.append(card.short_name)
+        core.echo(f"deck: {card_names}")
+
+    is_set_up = prop(type="choice")</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="tests-and-events" header="Spell's tests and events" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A spell test is a <code>with core.test(...):</code> block.
+                <ul>
+                  <li>Its lines print the same ✅ / ❌ lines as JavaScript's, indented the same.</li>
+                </ul>
+              </li>
+              <li>
+                An event's handler is a function under <code>@core.on("card-click")</code>; <code>core.trigger()</code>
+                fires one.
+              </li>
+              <li>
+                A process (spell's "only one at a time") runs inside a <code>try</code> / <code>finally</code>, started
+                and stopped through the core.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Solitaire.snapshot.py · a handler · 4 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">@core.on("card-click")
+def on_card_click(event) -&gt; None:
+    card = event.card
+    card.play()</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Cards.snapshot.py · a test, its first and last lines · 13 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">def test_card_setup():
+    """create a card instance with default properties"""
+    with core.test("test card setup"):
+        core.echo_test_action(
+            "the card is a new card whose rank is queen, suit is spades and direction is up",
+        )
+        card = Card(rank="queen", suit="spades", direction="up")
+        core.echo(card)
+        core.expect(card.rank, "the rank of the card", "queen", "queen")
+
+        core.echo_test_action("turn the card over")
+        card.turn_over()
+        core.expect(card.is_face_up, "the card is face up", True, "true")</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="pauses" header="Pauses:  py and py/asyncio" sticky collapsible dividing collapsed>
+            <p><code>pause for 50 msec</code> is the one place the two targets differ.</p>
+            <ul>
+              <li>
+                <code>py</code>: plain functions; a pause is <code>core.pause_for(50, "msec")</code>, which sleeps.
+              </li>
+              <li>
+                <code>py/asyncio</code>: a function that pauses, or calls one that does, is <code>async def</code>, and
+                every call to it is awaited.
+                <ul>
+                  <li>The pause is <code>await core.sleep(50, "msec")</code>.</li>
+                  <li>
+                    At the module's top level, where Python can't <code>await</code>, it runs through
+                    <code>asyncio.run()</code>.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Which functions wait is worked out by NAME, over the whole project: if one method called
+                <code>turn_over</code> waits, every method of that name is async.
+                <ul>
+                  <li>So an awaited call never reaches a plain function, at the cost of a few needless asyncs.</li>
+                </ul>
+              </li>
+              <li>
+                A project's declarations say which of its methods wait, <code>"waits": true</code>.
+                <ul>
+                  <li>So Klondike, importing Cards, awaits Cards' <code>turn_face_up()</code>.</li>
+                </ul>
+              </li>
+            </ul>
+            <ui-tabs class="spell-tabs" pointing secondary basic aria-label="turn a card over, on each Python target">
+              <ui-tab label="spell">
+                <ui-accordion class="spell-code" styled>
+                  <ui-title>Card.spell · 4 lines</ui-title>
+                  <ui-content>
+                    <pre><code class="language-plaintext">to turn a card over:
+	if its direction is up: turn it face down
+	otherwise: turn it face up
+	pause for 50 msec</code></pre>
+                  </ui-content>
+                </ui-accordion>
+              </ui-tab>
+              <ui-tab label="py">
+                <ui-accordion class="spell-code" styled>
+                  <ui-title>Cards.snapshot.py · 10 lines</ui-title>
+                  <ui-content>
+                    <pre><code class="language-python">def turn_over(self) -&gt; None:
+    """
+    Flip card to opposite direction
+    Note that this will animate if you `wait for turn the card face up`
+    """
+    if self.direction == "up":
+        self.turn_face_down()
+    else:
+        self.turn_face_up()
+    core.pause_for(50, "msec")</code></pre>
+                  </ui-content>
+                </ui-accordion>
+              </ui-tab>
+              <ui-tab label="py/asyncio">
+                <ui-accordion class="spell-code" styled>
+                  <ui-title>Cards.snapshot.asyncio.py · 10 lines</ui-title>
+                  <ui-content>
+                    <pre><code class="language-python">async def turn_over(self) -&gt; None:
+    """
+    Flip card to opposite direction
+    Note that this will animate if you `wait for turn the card face up`
+    """
+    if self.direction == "up":
+        await self.turn_face_down()
+    else:
+        await self.turn_face_up()
+    await core.sleep(50, "msec")</code></pre>
+                  </ui-content>
+                </ui-accordion>
+              </ui-tab>
+            </ui-tabs>
+          </ui-section>
+
+          <ui-section id="hints" header="Type hints and pyright" sticky collapsible dividing collapsed>
+            <p>Hints go only where spell knows what kind a value is; where it can't tell, there's no hint at all.</p>
+            <ul>
+              <li>text is <code>str</code>; yes or no is <code>bool</code>; a thing is its class</li>
+              <li>a number is <code>float</code>, since spell has one kind of number (an <code>int</code> passes)</li>
+              <li>a method that never returns a value is <code>-&gt; None</code></li>
+              <li>a return that may give nothing adds <code>| None</code>: <code>-&gt; Pile | None</code></li>
+              <li>
+                every module starts with <code>from __future__ import annotations</code>, so a hint may name a class
+                written further down
+              </li>
+              <li>
+                pyright checks it, in its basic mode, on Python 3.12, against spell_core's source.
+                <ul>
+                  <li>It's an npm package, a dev dependency at the repo root: no Python needed to run it.</li>
+                  <li>It's what VS Code's Python extension (Pylance) runs.</li>
+                </ul>
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Hints, as compiled · 6 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">def color(self) -&gt; str: ...
+def value(self) -&gt; float: ...
+def is_face_up(self) -&gt; bool: ...
+def turn_face_up(self) -&gt; None: ...
+def pile(self) -&gt; Pile | None: ...
+def is_a_suit(self, suit) -&gt; bool: ...</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="drawing" header="Drawing as HTML text" sticky collapsible dividing collapsed>
+            <p>Python has no page, so a <code>to draw</code> method builds HTML.</p>
+            <ul>
+              <li>
+                spell_core's
+                <a href="../packages/core/py/spell_core/drawing.py" target="src-packages-core-py-spell-core-drawing-py"
+                  ><code title="packages/core/py/spell_core/drawing.py">h()</code></a
+                >
+                builds an element tree: tag, attributes, children. <code>str()</code> writes it as HTML.
+              </li>
+              <li>
+                It writes exactly what the JavaScript run's page writes for the same drawing, quirks included, so the
+                core contract compares the two line for line.
+              </li>
+              <li>
+                An app (<code>class Game(App)</code>) is drawn when the page is written, at the end, showing each thing
+                as the program left it.
+              </li>
+              <li>
+                <code>core.draw_thing()</code> and <code>core.draw_items()</code> draw a thing, or a list's items,
+                inside another drawing.
+              </li>
+              <li>Clicks do nothing: there's nothing to click, and the tree keeps no click handlers.</li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Cards.snapshot.py · Card's draw() · 15 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">def draw(self):
+    class_name = f"Card face-{self.direction} {self.rank} {self.suit} ui button compact fluid "
+    if self.is_face_down:
+        return h(
+            "div",
+            {"class": class_name, "onClick": lambda event: core.trigger("card-click", card=self)},
+            h("i", {"class": "fitted bicycle icon"}),
+        )
+    return h(
+        "div",
+        {
+            "class": class_name + self.color,
+            "onClick": lambda event: core.trigger("card-click", card=self),
+        },
+        f"{self.short_rank} ",
+        h("span", {"class": "suit"}, self.short_suit),
+    )</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="words-file" header="The words file" sticky collapsible dividing collapsed>
+            <p>
+              Compiling to <code>py</code> also writes <code>&lt;Project&gt;.py.en.json</code>: spell's wording of each
+              member, keyed by its Python name.
+            </p>
+            <ul>
+              <li>
+                Why: <code>move_to_pile</code> loses where spell's values go, "move (a card) to (a pile)". Owen: "carry
+                the original wording somewhere for reflection, especially into other languages".
+              </li>
+              <li>
+                It's plain JSON, the same data as JavaScript's <code>&lt;Project&gt;.en.js</code>, which the Thing
+                Explorer reads.
+              </li>
+              <li>A target says whether it has words of its own: <code>wordsSuffix</code> in the targets table.</li>
+              <li>A compiled program never needs it to run: nothing in Python reads it yet.</li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Reading it back · 2 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">core.load_words("Solitaire.py.en.json")
+core.words_of(card)["move_to_pile"]  # "move (a card) to (a pile)"</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="lists-from-0" header="4. Lists that count from 0" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="list check"></ui-icon>
+          <p>
+            A project can say its lists count from 0, as Python and JavaScript do: Owen's "let's try the first item is 0
+            here".
+          </p>
+          <ul>
+            <li>
+              It's <code>"listsStartAt": 0</code> in the project's <code>project.json</code>. Without it, lists count
+              from 1, as before.
+            </li>
+            <li>It works on every target, the JavaScript and TypeScript ones too.</li>
+            <li>
+              Only NUMBERS change: "item 3 of the deck", "the position of the queen", a loop's position.
+              <ul>
+                <li>Ordinal words don't: "the first card" and "the last card" mean the same either way.</li>
+                <li>"position of queen in card ranks" is 12 counting from 1, 11 counting from 0.</li>
+                <li>"position of joker in card ranks" is still nothing, never -1 or 0.</li>
+              </ul>
+            </li>
+            <li>
+              Negative positions don't change: -1 is the last item, -2 the one before, whatever lists start at. It's
+              Python's own <code>deck[-1]</code>.
+            </li>
+            <li>
+              The core's position methods are told where counting starts, on every call: a last
+              <code>startAt</code>, 1 when left out.
+              <ul>
+                <li>
+                  Per call, not one switch for the whole program: a library counting from 1 and a program counting from
+                  0 share one core, and neither reads the wrong item.
+                </li>
+              </ul>
+            </li>
+            <li>
+              Compiled code uses each language's own words where it has them:
+              <ul>
+                <li>Python: <code>deck[0]</code>; JavaScript: <code>deck.at(0)</code></li>
+                <li>
+                  a range, "cards 0 to 3", through the list's own <code>between()</code>, since spell's ranges include
+                  their end and take negative ends
+                </li>
+              </ul>
+            </li>
+            <li>The hover text and the Type Explorer say "counts from 0" in such a project.</li>
+            <li>
+              Counting from 1, "item 0" is nothing now. It used to read the SECOND item; two more position bugs were
+              fixed on the way.
+            </li>
+            <li>The test program <code>CardsFromZero</code> is Cards counting from 0, and prints the same game.</li>
+          </ul>
+          <ui-tabs class="spell-tabs" pointing secondary basic aria-label="Cards counting from 0, in each language">
+            <ui-tab label="Python">
+              <ui-accordion class="spell-code" styled>
+                <ui-title>CardsFromZero.snapshot.py · in part, with spell's words · 5 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-python">getattr(deck[1], "name", None)                  # the name of card 1 of the deck
+deck.position_of(ace, start_at=0)               # the position of the ace in the deck:  0
+aces = deck.between(0, 3, start_at=0)           # cards 0 to 3 of the deck:  four cards
+kings = core.range_starting_at(deck, -2, 2, 0)  # the last two cards of the deck
+core.remove_item_at(deck, 0, 0)                 # remove card 0 of the deck</code></pre>
+                </ui-content>
+              </ui-accordion>
+            </ui-tab>
+            <ui-tab label="JavaScript">
+              <ui-accordion class="spell-code" styled>
+                <ui-title>CardsFromZero.snapshot.js · in part · 2 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-js">deck.at(1)?.name              // the name of card 1 of the deck
+const aces = deck.between(0, 3, 0)</code></pre>
+                </ui-content>
+              </ui-accordion>
+            </ui-tab>
+          </ui-tabs>
+        </ui-section>
+
+        <ui-section id="spell-core" header="5. spell_core" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="cubes"></ui-icon>
+          <p>
+            spell_core is what compiled Python imports to do what Python has no word for: the Python twin of the core.
+          </p>
+
+          <ui-section id="core-layout" header="Where it lives" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                In the core package's
+                <a href="../packages/core/py/" target="src-packages-core-py"
+                  ><code title="packages/core/py/">py</code></a
+                >
+                folder, beside the JavaScript it ports.
+              </li>
+              <li>The standard Python layout: a <code>pyproject.toml</code>, and the spell_core folder beside it.</li>
+              <li>Standard library only: compiled programs need nothing else installed.</li>
+              <li>
+                Its tests (pytest) and its tidying (ruff) run through uv.
+                <ul>
+                  <li>Core's <code>yarn test</code> runs them, so <code>yarn review</code> does too.</li>
+                  <li>So core's scripts need uv on the machine.</li>
+                </ul>
+              </li>
+              <li>
+                Compiled code imports one object, <code>core</code>, and the classes it extends:
+                <code>from spell_core import core, Thing, List, App, prop, h</code>.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>spell_core's own commands · from the repo root · 3 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-sh">uv run --directory packages/core/py pytest
+uv run --directory packages/core/py ruff check --fix
+uv run --directory packages/core/py ruff format</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="core-ports" header="What it ports" sticky collapsible dividing collapsed>
+            <ul>
+              <li>things with declared properties, as a plain dictionary: no reactivity</li>
+              <li>spell lists: owners, exclusive families, guards, moving between lists</li>
+              <li>types and deep equality</li>
+              <li>
+                spell's tests: <code>expect</code>, <code>echo</code>, the ✅ / ❌ / ❓ lines, the indented groups
+              </li>
+              <li>events, processes and pauses</li>
+              <li>JSON with <code>"@type"</code> and <code>"@items"</code></li>
+              <li>drawing, as an element tree written as HTML</li>
+              <li>the seeded random and its shuffle</li>
+            </ul>
+            <p>Not ported: drawing on a live page, the Thing Explorer's registry, and the core's deprecated names.</p>
+          </ui-section>
+
+          <ui-section id="core-console" header="Printing as node prints" sticky collapsible dividing collapsed>
+            <p>Its console prints exactly what node prints, checked against node on 8,000 random values.</p>
+            <ul>
+              <li><code>3.0</code> prints as 3</li>
+              <li>yes and no as <code>true</code> and <code>false</code>, never capitalized as Python's are</li>
+              <li>groups indented the same; lists laid out in columns, as node lays them out</li>
+              <li>
+                a whole thing or spell list goes to stderr, as each language's own dump; text, numbers, yes / no and
+                plain lists stay on stdout
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="core-method-list" header="The core's method list" sticky collapsible dividing collapsed>
+            <p>
+              A machine-readable list of the core's methods, so a port can't miss one:
+              <a
+                href="../packages/core/spellCore.declarations.json"
+                target="src-packages-core-spellcore-declarations-json"
+                ><code title="packages/core/spellCore.declarations.json">spellCore.declarations.json</code></a
+              >.
+            </p>
+            <ul>
+              <li>
+                Written in the format projects already write for themselves, a
+                <code>&lt;Project&gt;.declarations.json</code>.
+              </li>
+              <li>127 names on <code>spellCore</code>, and 12 that compiled code imports.</li>
+              <li><code>yarn gen:declarations</code>, in core, writes it; a test fails when it's out of date.</li>
+              <li>
+                A Python test checks spell_core against it, in snake_case: a missing method fails, unless it's listed as
+                not ported yet.
+              </li>
+              <li>
+                It found methods spell writes that the core didn't have: <code>absoluteValue</code>, now added, and
+                three for rounding, still missing (see <a href="#limits">Limits</a>).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="core-seed" header="A seed owned by the core" sticky collapsible dividing collapsed>
+            <ul>
+              <li><code>spellCore.seedRandom(n)</code>, after which every random is repeatable.</li>
+              <li>
+                Its own number generator (Park and Miller's) and its own shuffle: no lodash, no
+                <code>Math.random</code>.
+              </li>
+              <li>
+                The shuffle walks from the front, as lodash's did, one random number per item: so the saved games deal
+                the cards they always dealt.
+              </li>
+              <li>spell_core copies both exactly: one seed deals the same cards in both languages.</li>
+              <li>
+                The JavaScript runs take a seed too, <code>spell run --seed n</code>, and so does spell test. The
+                contract seeds with 1.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>The shuffle, for a list of n items · 3 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">for index in range(n):
+    swap = index + floor(random() * (n - index))
+    items[index], items[swap] = items[swap], items[index]</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="tested" header="6. How it's tested" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="flask"></ui-icon>
+          <p>Two ways: each test program's whole output, and each program run.</p>
+          <ul>
+            <li>
+              Fixture snapshots, beside each test program in <code>projects/test/</code>:
+              <ul>
+                <li><code>.snapshot.py</code> and <code>.snapshot.asyncio.py</code>: the compiled Python</li>
+                <li><code>.snapshot.pyright.txt</code>: pyright's errors, so a new one fails the test</li>
+              </ul>
+            </li>
+            <li>
+              The core contract,
+              <a href="../packages/cli/src/contract.test.ts" target="src-packages-cli-src-contract-test-ts"
+                ><code title="packages/cli/src/contract.test.ts">contract.test.ts</code></a
+              >: every test program, on every target, must print the same stdout, line for line.
+              <ul>
+                <li>Python runs through uv, in spell_core's own project, with <code>--seed 1</code>.</li>
+                <li>With <code>--page</code> when the JavaScript run drew a page, so the boards are compared too.</li>
+              </ul>
+            </li>
+            <li>
+              Spell's rule tests say only what each rule compiles to in JavaScript and TypeScript, not Python.
+              <ul>
+                <li>
+                  A rule that compiles wrong in Python, and isn't in any test program, slips through: its test can gain
+                  a Python line when that happens.
+                </li>
+              </ul>
+            </li>
+            <li>
+              The Python writer's names have unit tests of their own:
+              <a href="../packages/spell/src/test/naming.test.ts" target="src-packages-spell-src-test-naming-test-ts"
+                ><code title="packages/spell/src/test/naming.test.ts">naming.test.ts</code></a
+              >.
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="terminal" header="7. Drawing in a terminal" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="terminal"></ui-icon>
+          <p>
+            A study, not a target: the same <code>to draw</code> methods can draw Solitaire in a terminal, and take its
+            clicks.
+          </p>
+          <ul>
+            <li>
+              Owen asked for it: "python programs could translate widgets/etc into CLI programs. Explore what is
+              possible".
+            </li>
+            <li>
+              A prototype draws one element tree three ways: as HTML, a still picture with Rich, and a live board with
+              Textual.
+              <ul>
+                <li>Clicking a card on the Textual board fires spell's <code>card-click</code> with that card.</li>
+                <li>A smaller sketch draws with Ink, the spell CLI's own: keyboard only, as Ink reads no mouse.</li>
+              </ul>
+            </li>
+            <li>
+              Textual and Rich are in a uv dependency group of their own, <code>study</code>: spell_core still needs
+              nothing but Python.
+            </li>
+            <li>It was clicked headless, by Textual's own test driver, never by hand in a real terminal.</li>
+          </ul>
+          <ui-message state="positive" header="Recommended">
+            <ul>
+              <li>A future <code>py/terminal</code> target on Textual, as an epic of its own: about 20-30 hours.</li>
+              <li>
+                Of the three libraries, only Textual has mouse clicks, a style sheet that reads the page's class names,
+                a headless test driver, and a way into the browser (textual-serve).
+              </li>
+              <li>Rich's still picture of the board is a cheap first step of it.</li>
+            </ul>
+          </ui-message>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>Trying the prototype · from spell_core's folder · 3 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-sh">uv run --group study python experiments/terminal/textual_board.py   # click the cards;  q quits
+uv run --group study python experiments/terminal/rich_board.py      # a still picture of the board
+uv run --group study pytest experiments/terminal                    # its tests</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <p>
+            The findings in full, with a table comparing Ink, Textual and Rich:
+            <a href="../epics/python-target/python-target.plan.html#o7" target="python-target">the plan doc's 1.7</a>.
+          </p>
+        </ui-section>
+
+        <ui-section id="why" header="8. Why it's built this way" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="gavel"></ui-icon>
+          <p>
+            From the plan doc's questions (Q) and judgement calls (J): each links to the full reasoning, and the options
+            turned down.
+          </p>
+
+          <ui-section id="why-idiomatic" header="Idiomatic, not just running" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Python a person would write by hand and happily edit, not a thin layer of core calls imitating
+                JavaScript (<a href="../epics/python-target/python-target.plan.html#q8" target="python-target">Q8</a>).
+              </li>
+              <li>
+                The cost: the writer leans on what kind each value is much harder than the JavaScript one does, and
+                spell_core's lists and things act like Python's own.
+              </li>
+              <li>
+                Every Python phase was judged by "would a Python programmer write this?", not only "does it run?".
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-names" header="PEP 8's names" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                So compiled Python looks like any other Python (<a
+                  href="../epics/python-target/python-target.plan.html#q9"
+                  target="python-target"
+                  >Q9</a
+                >). Owen's start: "python names should be snake_case".
+              </li>
+              <li>
+                Clashes take PEP 8's trailing underscore, never a new dunder (<a
+                  href="../epics/python-target/python-target.plan.html#q14"
+                  target="python-target"
+                  >Q14</a
+                >). PEP 8 on dunders: "Never invent such names; only use them as documented."
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-html" header="Drawing as HTML" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Python has no page. Drawing HTML text lets every test program run, and print what JavaScript prints (<a
+                  href="../epics/python-target/python-target.plan.html#q2"
+                  target="python-target"
+                  >Q2</a
+                >).
+              </li>
+              <li>
+                Turned down: refusing a project that draws (only FizzBuzz would run), or compiling draw methods to
+                nothing (the solitaire boards would differ).
+              </li>
+              <li>
+                <code>h()</code> builds a tree rather than a string, so tests and a later terminal target can read it
+                (<a href="../epics/python-target/python-target.plan.html#j29" target="python-target">J29</a>).
+              </li>
+              <li>
+                It copies what the JavaScript run really prints, quirks and all, because the contract compares them (<a
+                  href="../epics/python-target/python-target.plan.html#j31"
+                  target="python-target"
+                  >J31</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-asyncio" header="Two targets for waiting" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Plain functions by default: with no page, a pause only slows the program down (<a
+                  href="../epics/python-target/python-target.plan.html#q3"
+                  target="python-target"
+                  >Q3</a
+                >).
+              </li>
+              <li>
+                Owen asked for asyncio as an option, "or twisted python?": asyncio, as it's built into Python and what
+                new code uses.
+              </li>
+              <li>
+                It became a target of its own, <code>py/asyncio</code>, not a project setting, so the contract runs both
+                on every test program (<a
+                  href="../epics/python-target/python-target.plan.html#q18"
+                  target="python-target"
+                  >Q18</a
+                >).
+              </li>
+              <li>
+                Which functions wait is worked out by name, so a call is never left unawaited: Python's unawaited call
+                does nothing at all, silently (<a
+                  href="../epics/python-target/python-target.plan.html#j34"
+                  target="python-target"
+                  >J34</a
+                >).
+              </li>
+              <li>
+                The declarations carry <code>"waits": true</code>, because an importing project can't see it in its own
+                source (<a href="../epics/python-target/python-target.plan.html#j35" target="python-target">J35</a>).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-stderr" header="Dumps to stderr" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Python can't print node's dump of an object, and shouldn't: it shows node's insides, not the card.
+              </li>
+              <li>
+                So a whole thing's dump goes to stderr, each language its own way, and the contract compares stdout
+                only: no rule for which lines to skip (<a
+                  href="../epics/python-target/python-target.plan.html#q4"
+                  target="python-target"
+                  >Q4</a
+                >, <a href="../epics/python-target/python-target.plan.html#q17" target="python-target">Q17</a>).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-hints" header="Hints, checked by pyright" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Modern Python has hints, and editors use them; the writer already knows most kinds (<a
+                  href="../epics/python-target/python-target.plan.html#q5"
+                  target="python-target"
+                  >Q5</a
+                >).
+              </li>
+              <li>pyright, because it's what VS Code's Python extension runs, and an npm package.</li>
+              <li>
+                Hints only where known, never <code>Any</code>, which reads noisier and turns checking off anyway (<a
+                  href="../epics/python-target/python-target.plan.html#j37"
+                  target="python-target"
+                  >J37</a
+                >).
+              </li>
+              <li>
+                Basic mode, with the solitaire games' errors pinned: strict mode would report hundreds on spell_core's
+                dynamic parts (<a href="../epics/python-target/python-target.plan.html#j38" target="python-target"
+                  >J38</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-core" header="spell_core inside core" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                One package, two languages, beside the code it ports; core's <code>yarn test</code> runs both (<a
+                  href="../epics/python-target/python-target.plan.html#q6"
+                  target="python-target"
+                  >Q6</a
+                >).
+              </li>
+              <li>
+                Python 3.12 or later: the oldest still widely installed with <code>int | None</code> hints,
+                <code>match</code>, and f-strings that hold any expression (<a
+                  href="../epics/python-target/python-target.plan.html#q11"
+                  target="python-target"
+                  >Q11</a
+                >).
+              </li>
+              <li>
+                pyright and Textual are dev dependencies only; spell_core stays standard library only (<a
+                  href="../epics/python-target/python-target.plan.html#q19"
+                  target="python-target"
+                  >Q19</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-counting" header="Counting from 0" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                The core respects the setting call by call, rather than staying 1-based while the compiler shifts every
+                position. Owen: "core methods in JS should respect listStartAt" (<a
+                  href="../epics/python-target/python-target.plan.html#q10"
+                  target="python-target"
+                  >Q10</a
+                >).
+              </li>
+              <li>
+                -1 stays the last item, because it's Python's own way. Owen: "-1 = last only if this is pythonic" (<a
+                  href="../epics/python-target/python-target.plan.html#q7"
+                  target="python-target"
+                  >Q7</a
+                >).
+              </li>
+              <li>
+                Each language's own words where it has them (<a
+                  href="../epics/python-target/python-target.plan.html#q15"
+                  target="python-target"
+                  >Q15</a
+                >), but a range through <code>between()</code>, never a slice: "cards 2 to -1" would be empty as
+                <code>slice(2, 0)</code> (<a
+                  href="../epics/python-target/python-target.plan.html#j3"
+                  target="python-target"
+                  >J3</a
+                >).
+              </li>
+              <li>
+                Counting from 1, item 0 is nothing, like a position past the end (<a
+                  href="../epics/python-target/python-target.plan.html#q16"
+                  target="python-target"
+                  >Q16</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-seed" header="A seed in the core" sticky collapsible dividing collapsed>
+            <ul>
+              <li>The contract used to patch JavaScript's <code>Math.random</code> from outside.</li>
+              <li>
+                Python can't share that trick, and has no lodash (<a
+                  href="../epics/python-target/python-target.plan.html#q13"
+                  target="python-target"
+                  >Q13</a
+                >).
+              </li>
+              <li>Owen: "add runtime seed mechanism to JS/spellcore".</li>
+              <li>
+                The shuffle keeps lodash's order, so the saved games needed no rebase (<a
+                  href="../epics/python-target/python-target.plan.html#j8"
+                  target="python-target"
+                  >J8</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-tests" header="Snapshots and the contract" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Python is checked by the test programs' snapshots and the contract, not a third line in every rule test:
+                hundreds of hand-written Python lines, for little more than the snapshots catch (<a
+                  href="../epics/python-target/python-target.plan.html#q12"
+                  target="python-target"
+                  >Q12</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="limits" header="9. Limits" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="triangle exclamation"></ui-icon>
+          <p>What's open, from the plan doc's caveats (C), todos (T) and issues (I).</p>
+
+          <ui-section id="limits-running" header="Running it" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>spell's own run and test commands don't run Python yet</b>: <code>spell run</code> has no
+                <code>--target py</code>, nor has spell test (<a
+                  href="../epics/python-target/python-target.plan.html#t4"
+                  target="python-target"
+                  >T4</a
+                >). Use spell_core's runner.
+              </li>
+              <li>
+                Every machine that runs the tests needs uv, and through it Python 3.12 or later, or the Python half of
+                the contract and of core's tests fails (<a
+                  href="../epics/python-target/python-target.plan.html#c2"
+                  target="python-target"
+                  >C2</a
+                >). uv fetches the pinned Python by itself.
+              </li>
+              <li>
+                A compiled program finds spell_core only from inside the repo: it isn't on PyPI yet (<a
+                  href="../epics/python-target/python-target.plan.html#t2"
+                  target="python-target"
+                  >T2</a
+                >).
+              </li>
+              <li>
+                <code>spell compile --stdout</code> still writes an imported project's compiled files, even into the
+                frozen test projects (<a
+                  href="../epics/python-target/python-target.plan.html#i11"
+                  target="python-target"
+                  >I11</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-checking" header="Checking" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>pyright finds 8 errors in the solitaire games' Python</b>, which still runs correctly: Solitaire 2,
+                Klondike 2, OutlineSolitaire 4 (<a
+                  href="../epics/python-target/python-target.plan.html#c3"
+                  target="python-target"
+                  >C3</a
+                >, <a href="../epics/python-target/python-target.plan.html#j38" target="python-target">J38</a>).
+                <ul>
+                  <li>
+                    All but one are a value spell's tree says may be nothing, used as if it's there: a card's pile, a
+                    list's last item.
+                  </li>
+                  <li>The other calls a value spell only knows as an object.</li>
+                  <li>Each fix needs spell to know more, e.g. a pile that's never empty: later type work.</li>
+                </ul>
+              </li>
+              <li>
+                The contract never clicks, so event handlers are compiled and type-checked in Python, never run by a
+                test (<a href="../epics/python-target/python-target.plan.html#c1" target="python-target">C1</a>). Events
+                a program fires itself are run and compared.
+              </li>
+              <li>A rule no test program uses isn't checked in Python at all (Q12).</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-core" header="spell_core" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>A program that rounds a number throws, on every target</b>: round, round up and round down compile to
+                core methods no core has (<a
+                  href="../epics/python-target/python-target.plan.html#i3"
+                  target="python-target"
+                  >I3</a
+                >).
+                <ul>
+                  <li>
+                    Not added, because JavaScript rounds 2.5 up to 3, and Python's <code>round()</code> to the even 2.
+                  </li>
+                  <li>Which one spell means is Owen's call.</li>
+                </ul>
+              </li>
+              <li>
+                Things and lists read any undeclared name as <code>None</code>, so a compiled
+                <code>self.name</code> works as spell's does (<a
+                  href="../epics/python-target/python-target.plan.html#i5"
+                  target="python-target"
+                  >I5</a
+                >).
+                <ul>
+                  <li>It hides typos: a misspelt method call fails as "'NoneType' object is not callable".</li>
+                  <li><code>hasattr()</code> is always true.</li>
+                  <li><code>getattr(card, "x", 0)</code> gives <code>None</code>, not 0.</li>
+                  <li>So hand-written Python should use <code>x or default</code> instead.</li>
+                </ul>
+              </li>
+              <li>
+                A list class whose set-up adds items puts them into every scratch result too, every
+                <code>filter()</code>, slice and copy, in both cores (<a
+                  href="../epics/python-target/python-target.plan.html#i6"
+                  target="python-target"
+                  >I6</a
+                >). Cards never meets it.
+              </li>
+              <li>
+                Every change to a spell list copies its items, as JavaScript's do: fine for 52 cards, slow for many
+                thousands (<a href="../epics/python-target/python-target.plan.html#i9" target="python-target">I9</a>).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-writer" header="The writer" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A list whose item type is defined after it gets a static method, <code>instance_type()</code>, where
+                <code>item_type = Card</code> would do (<a
+                  href="../epics/python-target/python-target.plan.html#i10"
+                  target="python-target"
+                  >I10</a
+                >). spell_core reads neither yet.
+              </li>
+              <li>
+                Reading off what may be nothing is still <code>getattr(x, "name", None)</code>, and a method called on
+                what may be nothing isn't guarded.
+              </li>
+              <li>
+                The editor's one-file compiled view still counts from 1 in a project counting from 0 (<a
+                  href="../epics/python-target/python-target.plan.html#t3"
+                  target="python-target"
+                  >T3</a
+                >).
+              </li>
+              <li>Nothing in Python reads the words file yet: Python has no Thing Explorer.</li>
+              <li>
+                Drawing is HTML text only; a terminal target is a future epic (<a
+                  href="../epics/python-target/python-target.plan.html#t1"
+                  target="python-target"
+                  >T1</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="history" header="10. History" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="clock rotate left"></ui-icon>
+          <ui-feed class="spell-history" size="small">
+            <ui-event icon="book">
+              <ui-content>
+                <ui-summary>This page, from the plan doc and the code <ui-date>2026-10-11</ui-date></ui-summary>
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built, P11-P15: <code>py/asyncio</code>, drawing as HTML, hints and pyright, the words file, the
+                  terminal study <ui-date>2026-10-11</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built, P1-P10: lists counting from 0, spell's values in the tree, the core's method list and seed,
+                  spell_core, Python's names, the Python writer, Python in the contract, things and lists
+                  <ui-date>2026-10-10 – 11</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided on the bedtime page: asyncio as a target of its own, dumps to stderr, each language's own
+                  0-based words <ui-date>2026-10-11</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Planned as epic <code>python-target</code>, from the brief output-targets left
+                  <ui-date>2026-10-10</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+          </ui-feed>
+        </ui-section>
+
+        <ui-section id="sources" header="11. Sources" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="book"></ui-icon>
+          <ui-items class="spell-sources" divided>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../epics/python-target/python-target.plan.html" target="python-target"
+                    >Python Target</a
+                  ></ui-header
+                >
+                <ui-meta>plan doc · the record</ui-meta>
+                <ui-description>Every phase, decision and judgement call this page cites.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="../packages/parser/src/writers/PyWriter.ts"
+                    target="src-packages-parser-src-writers-pywriter-ts"
+                    ><code title="packages/parser/src/writers/PyWriter.ts">PyWriter.ts</code></a
+                  ></ui-header
+                >
+                <ui-meta>code</ui-meta>
+                <ui-description
+                  >The <code>py</code> writer;
+                  <a
+                    href="../packages/parser/src/writers/PyAsyncWriter.ts"
+                    target="src-packages-parser-src-writers-pyasyncwriter-ts"
+                    ><code title="packages/parser/src/writers/PyAsyncWriter.ts">PyAsyncWriter.ts</code></a
+                  >
+                  beside it.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../packages/core/py/spell_core/" target="src-packages-core-py-spell-core"
+                    ><code title="packages/core/py/spell_core/">spell_core/</code></a
+                  ></ui-header
+                >
+                <ui-meta>code</ui-meta>
+                <ui-description
+                  >The Python core, its tests in
+                  <a href="../packages/core/py/tests/" target="src-packages-core-py-tests"
+                    ><code title="packages/core/py/tests/">tests/</code></a
+                  >.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../packages/spell/projects/test/" target="src-packages-spell-projects-test"
+                    ><code title="packages/spell/projects/test/">projects/test/</code></a
+                  ></ui-header
+                >
+                <ui-meta>snapshots</ui-meta>
+                <ui-description
+                  >Each test program's Python snapshots, and pyright's errors on them: every excerpt on this page is
+                  from them.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="../packages/core/py/experiments/terminal/"
+                    target="src-packages-core-py-experiments-terminal"
+                    ><code title="packages/core/py/experiments/terminal/">experiments/terminal/</code></a
+                  ></ui-header
+                >
+                <ui-meta>experiment · the terminal study</ui-meta>
+                <ui-description>The Textual, Rich and Ink prototypes, and their tests.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="targets/targets.html" target="src-guides-targets-targets-html"
+                    >Targets and Writers</a
+                  ></ui-header
+                >
+                <ui-meta>guide</ui-meta>
+                <ui-description>Every target, and how a writer works.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://peps.python.org/pep-0008/#descriptive-naming-styles"
+                    target="ext-peps-python-org-pep-0008-descriptive-naming-styles"
+                    >PEP 8, naming styles</a
+                  ></ui-header
+                >
+                <ui-meta>reference · read 2026-10-11</ui-meta>
+                <ui-description>The trailing underscore for a clash, and never inventing a dunder.</ui-description>
+              </ui-content>
+            </ui-item>
+          </ui-items>
+        </ui-section>
+
+        <footer class="spell-doc-footer">
+          <ui-divider></ui-divider>
+          <p class="meta">Last checked 2026-10-11 against branch <code>python-target</code> (P1-P15 built).</p>
+        </footer>
+      </main>
+    </div>
+    <script src="../packages/docs/tools/_assets/highlight.min.js"></script>
+    <script src="../packages/docs/tools/_assets/spell-ui.js"></script>
+  </body>
+</html>
