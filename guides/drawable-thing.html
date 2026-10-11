@@ -41,8 +41,8 @@
           >
           <ui-item icon="flag"
             >Status: part 1 (P1-P9, P11) <ui-label size="mini" color="green">merged</ui-label> into <code>main</code> on
-            2026-10-11; part 2 (P10's first half, P12-P19)
-            <ui-label size="mini" color="orange">on the branch</ui-label></ui-item
+            2026-10-11; part 2 (P10, P12-P19) <ui-label size="mini" color="orange">on the branch</ui-label>, P18's ids
+            under review</ui-item
           >
           <ui-item icon="code branch">Branch <code>drawable-thing</code></ui-item>
           <ui-item icon="flask"
@@ -79,6 +79,11 @@
               <code>pile="Tableau#T1"</code>.
             </li>
             <li>
+              A tag's id names its thing: <code>&lt;solitaire-tableau id="T1"&gt;</code> draws <code>Tableau#T1</code>.
+              An element the program draws takes its thing's name as its id,
+              <code>&lt;solitaire-card id="queen-of-spades"&gt;</code> (<a href="#its-id">Its id</a>).
+            </li>
+            <li>
               Spell has words for it too: <code>tableau T1</code>, <code>the first tableau</code> (<a href="#references"
                 >Thing references</a
               >).
@@ -92,8 +97,8 @@
               were, drawn the new way.
             </li>
             <li>
-              Not built yet: the TypeScript writer's own element class. For both output languages, the page makes the
-              element today (<a href="#10-limits">Limits</a>).
+              Compiled TypeScript writes each drawable type's element class, and hands it to the page: both output
+              languages draw the same element (<a href="#ts-element">In TypeScript</a>).
             </li>
           </ul>
           <ui-message state="positive" header="To make a type its own element">
@@ -269,11 +274,11 @@ export class Card extends Drawable {
               ></ui-step>
               <ui-step
                 header="The page defines the tag"
-                description="Once the class is whole:  at its first draw, or a moment later."
+                description="Once the class is whole:  at its first draw, or a moment later.  In TypeScript, on the element class the program handed it."
               ></ui-step>
               <ui-step
                 header="draw the card puts the tag on the page"
-                description="The card itself is the element's thing (see Its thing, in section 4)."
+                description="The card itself is the element's thing, and its name the element's id (see Its thing and Its id, in section 4)."
               ></ui-step>
               <ui-step
                 header="The element draws its thing"
@@ -299,6 +304,102 @@ export class Card extends Drawable {
               <li>
                 A tag written by hand finds its thing in other ways:
                 <a href="#its-thing">Its thing</a> has all three.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="ts-element"
+            header="In TypeScript, its own element class"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <p>
+              Compiled TypeScript writes, after each drawable type, its element class: a short subclass of the runtime's
+              own element, <code>SpellElement</code>. It reads like a Spell UI element written by hand.
+            </p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title
+                >the DrawableSolitaire test project, compiled to TypeScript · the card's element, shortened · 25
+                lines</ui-title
+              >
+              <ui-content>
+                <pre><code class="language-ts">import { E, SpellElement } from "@spell/elements"
+
+export class Card extends Drawable {
+  // ... unchanged:  its tag, its css, its properties and methods ...
+}
+
+export class CardElement extends SpellElement&lt;Card&gt; {
+  @E.proto static vocabulary = SpellElement.vocabularyFor("test-project-card", "card", [
+    { name: "rank", kind: "string", description: "Its rank." },
+    { name: "suit", kind: "string", description: "Its suit." },
+    { name: "direction", kind: "string", description: "Its direction." }
+  ])
+  @E.protoMerged static elementSetup = {
+    styleSheets: { "test-project-card": Card.css }
+  } satisfies Partial&lt;E.ElementSetup&gt;
+
+  turnOver() {
+    return this.currentThing?.turnOver()
+  }
+  // ... one method per card method ...
+}
+spellCore.useElement(Card, CardElement)
+
+// at the end of the file:  each drawable type's tag, declared for the JSX
+"test-project-card": HTMLAttributes&lt;HTMLElement&gt; &amp; { [attribute: string]: unknown }</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li>
+                The class holds only what's the type's own: its attributes, its sheet, and one method per method of the
+                type, calling the thing's.
+                <ul>
+                  <li>What every drawable element does, like drawing its thing, stays in <code>SpellElement</code>.</li>
+                  <li>
+                    The page adds the rest as it builds the tag, as for javascript: super-types' properties, and the
+                    list holding it (a card's <code>pile</code>).
+                  </li>
+                  <li>A type with no <code>&lt;css&gt;</code> of its own writes no sheet line.</li>
+                </ul>
+              </li>
+              <li>
+                It never defines the tag itself: <code>spellCore.useElement(Card, CardElement)</code> hands the class to
+                the page, which builds the tag on it, once.
+              </li>
+              <li>So both output languages draw the same element, behaviour for behaviour.</li>
+              <li>
+                A method the class has itself runs on the element. A type's method named like one of the element's own,
+                such as <code>send</code> or <code>render</code>, is left out: the tag still calls the thing's.
+              </li>
+              <li>
+                Core can't import Spell UI, so the class imports its base from a module name of its own,
+                <code>@spell/elements</code>, resolved in three places:
+                <ul>
+                  <li>the type check: app's real element, from source</li>
+                  <li>a page: the runtime the program runs on</li>
+                  <li>a headless run (<code>spell run</code>, the core contract): a stand-in that makes no element</li>
+                </ul>
+              </li>
+              <li>
+                Each drawable tag is declared for the JSX, so a tag written by hand in a drawing type-checks: every
+                fixture's TypeScript passes <code>tsc</code> with no errors.
+              </li>
+              <li>
+                Where: the TypeScript writer's
+                <a
+                  href="../packages/parser/src/writers/TSWriter.ts"
+                  target="src-packages-parser-src-writers-tswriter-ts"
+                  ><code title="packages/parser/src/writers/TSWriter.ts">elementClassFor()</code></a
+                >, and the page's
+                <a
+                  href="../packages/app/src/runner/SpellElement.tsx"
+                  target="src-packages-app-src-runner-spellelement-tsx"
+                  ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.defineFor()</code></a
+                >.
               </li>
             </ul>
           </ui-section>
@@ -379,8 +480,9 @@ to draw a table:
             The element shows its type on the outside: the type's properties are its attributes and properties, the
             type's methods its methods.
           </p>
+          <p>It draws one thing of the program, its thing, and its id is that thing's name: <code>id="T1"</code>.</p>
           <p>
-            It draws one thing of the program, its thing. A property holding another thing shows as a reference,
+            A property holding another thing shows as a reference,
             <code>pile="Tableau#T1"</code>, which spell can write too: <code>tableau T1</code>.
           </p>
 
@@ -516,18 +618,16 @@ to draw a table:
                     <td><code>draw the card</code></td>
                   </tr>
                   <tr>
-                    <td>2. A tag names it</td>
+                    <td>2. A tag names it by its id</td>
                     <td>
-                      A reference in its <code>thing</code> attribute, on any page; or, in a layout, its
-                      <code>id</code>
+                      On any page, the id is the part of a reference after its <code>#</code>, and the tag says the type
                     </td>
                     <td>
-                      <code>thing="Pile#stock"</code>,<br />
-                      <code>id="T1"</code>
+                      <code>&lt;solitaire-tableau id="T1"&gt;</code>
                     </td>
                   </tr>
                   <tr>
-                    <td>3. A tag with neither</td>
+                    <td>3. A tag with no id</td>
                     <td>
                       In a layout: the program's one thing of the tag's type. On a plain page: a new thing of its type,
                       made from its attributes
@@ -540,18 +640,38 @@ to draw a table:
                 </tbody>
               </table>
             </ui-table>
+            <p>A tag's id reads as a reference does:</p>
+            <ul>
+              <li><code>&lt;solitaire-tableau id="T1"&gt;</code> is <code>Tableau#T1</code>, the tableau named T1.</li>
+              <li>
+                <code>&lt;solitaire-pile id="discards"&gt;</code> is <code>Pile#discards</code>: a sub-type's thing too,
+                here the discard pile.
+              </li>
+              <li>Digits are a place: <code>&lt;solitaire-tableau id="1"&gt;</code> is the first tableau made.</li>
+              <li>The id is watched: a page changing it makes the tag draw the thing the new id names.</li>
+            </ul>
             <ul>
               <li>
-                A tag naming a thing the program hasn't made shows a stand-in, <code>⚠ no Pile#stock</code>, and draws
-                the thing as soon as the program makes it.
+                A tag with an id never makes a thing of its own. Until the program has the thing, it shows a stand-in,
+                <code>⚠ no Tableau named "T9"</code>, and draws the thing as soon as the program makes it.
+                <ul>
+                  <li>
+                    So a tag written by hand that should make its own thing has no id: find it by a class instead.
+                  </li>
+                </ul>
               </li>
               <li>
                 In a layout, a tag with no <code>id</code> whose type has no thing, or more than one, asks for an
                 <code>id</code>.
               </li>
               <li>
-                In way 1 the card is only handed over: no <code>thing="..."</code> attribute is written, so the
-                inspector doesn't show which card an element draws (<a href="#limits-references">Limits</a>).
+                A <code>thing="..."</code> attribute written in markup is no longer read: the tag acts as one with no
+                id.
+              </li>
+              <li>
+                The handed thing always wins: in way 1, the element's id is its thing's name (<a href="#its-id"
+                  >Its id</a
+                >), and it's never looked up.
               </li>
               <li>
                 Where:
@@ -559,6 +679,65 @@ to draw a table:
                   href="../packages/app/src/runner/SpellElement.tsx"
                   target="src-packages-app-src-runner-spellelement-tsx"
                   ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.currentThing</code></a
+                >.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="its-id" header="Its id" sticky collapsible dividing collapsed>
+            <p>
+              An element the program draws takes its thing's name as its id, so the browser's inspector says which thing
+              it draws.
+            </p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title
+                >a tableau holding both decks' queen of spades, as the inspector shows it, shortened · 4 lines</ui-title
+              >
+              <ui-content>
+                <pre><code class="language-html">&lt;solitaire-tableau id="T1"&gt;
+  &lt;solitaire-card id="queen-of-spades" rank="queen" suit="spades" pile="Tableau#T1"&gt;&lt;/solitaire-card&gt;
+  &lt;solitaire-card id="queen-of-spades-2" rank="queen" suit="spades" pile="Tableau#T1"&gt;&lt;/solitaire-card&gt;
+&lt;/solitaire-tableau&gt;</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li>
+                Two things of one name, as in a game with two decks, are numbered:
+                <ul>
+                  <li>the first made is <code>queen-of-spades</code>, the second <code>queen-of-spades-2</code></li>
+                  <li>a third ends in <code>-3</code>, and so on</li>
+                  <li>
+                    Counted per program, in the order it made its things, among its drawable things of every type.
+                  </li>
+                  <li>Each <code>&lt;spell-app&gt;</code> counts its own program's things.</li>
+                </ul>
+              </li>
+              <li>
+                Stable: a thing keeps its id while it keeps its name.
+                <ul>
+                  <li>A card moved to another pile is a new element there, with the same id.</li>
+                  <li>A thing thrown away earlier doesn't renumber the ones after it.</li>
+                </ul>
+              </li>
+              <li>
+                It follows the name: after <code>card.rank = "king"</code>, the queen of spades' element is
+                <code>king-of-spades</code>, numbered afresh.
+              </li>
+              <li>A space in a name is a dash: <code>discard pile</code> is <code>discard-pile</code>.</li>
+              <li>A thing with no name gets no id. An id the page wrote on the element itself is kept.</li>
+              <li>
+                A layout's spell doesn't take a drawn element's id as a name: only tags written by hand are, like
+                <code>T1</code>.
+              </li>
+              <li>
+                Where:
+                <a href="../packages/core/src/references.ts" target="src-packages-core-src-references-ts"
+                  ><code title="packages/core/src/references.ts">spellCore.elementIdFor()</code></a
+                >, written by
+                <a
+                  href="../packages/app/src/runner/SpellElement.tsx"
+                  target="src-packages-app-src-runner-spellelement-tsx"
+                  ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.nameAfterHandedThing()</code></a
                 >.
               </li>
             </ul>
@@ -602,6 +781,12 @@ Game#game     -- a thing with no name, by the top-level name the program keeps i
                 <code>Hand#2</code>.
               </li>
               <li>A thing that isn't the program's, like a scratch list, has no reference.</li>
+              <li>
+                A tag's id is the part after the hash, its tag saying the type:
+                <code>&lt;solitaire-tableau id="T1"&gt;</code> draws <code>Tableau#T1</code> (<a href="#its-thing"
+                  >Its thing</a
+                >).
+              </li>
               <li>
                 In code:
                 <a href="../packages/core/src/references.ts" target="src-packages-core-src-references-ts"
@@ -661,8 +846,8 @@ Game#game     -- a thing with no name, by the top-level name the program keeps i
               <li>Reading <code>card.pile</code> on the element gives the reference's text, "Tableau#T1".</li>
               <li>A list of things has no attribute: it's set from a script.</li>
               <li>
-                A tag can say which thing it draws with one, too: <code>thing="Pile#discards"</code> (<a
-                  href="#its-thing"
+                A tag names the thing it draws by the part after the hash, as its id:
+                <code>&lt;solitaire-pile id="discards"&gt;</code> is <code>Pile#discards</code> (<a href="#its-thing"
                   >Its thing</a
                 >).
               </li>
@@ -755,27 +940,35 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
               A drawable type's tag works on a plain HTML page, written by hand, once something on the page defines it.
             </p>
             <ui-accordion class="spell-code" styled>
-              <ui-title>the drawable elements demo, shortened · 12 lines</ui-title>
+              <ui-title>the drawable elements demo, shortened · 13 lines</ui-title>
               <ui-content>
                 <pre><code class="language-html">&lt;!-- runs the project, so its tags are defined;  its own game stays hidden --&gt;
 &lt;spell-app project="@examples/Drawable Solitaire" hidden&gt;&lt;/spell-app&gt;
 
-&lt;solitaire-card id="ace" rank="ace" suit="spades" direction="up"&gt;&lt;/solitaire-card&gt;
+&lt;!-- no id:  each makes its own card or pile;  the ace is found by its class --&gt;
+&lt;solitaire-card class="ace" rank="ace" suit="spades" direction="up"&gt;&lt;/solitaire-card&gt;
 &lt;solitaire-pile&gt;
   &lt;solitaire-card rank="king" suit="diamonds" direction="up"&gt;&lt;/solitaire-card&gt;
 &lt;/solitaire-pile&gt;
 
-&lt;!-- the hidden game's first tableau, named by a reference --&gt;
-&lt;solitaire-tableau thing="Tableau#1"&gt;&lt;/solitaire-tableau&gt;
+&lt;!-- the hidden game's tableau T1, named by its id --&gt;
+&lt;solitaire-tableau id="T1"&gt;&lt;/solitaire-tableau&gt;
 
-&lt;button onclick="document.getElementById('ace').turnOver()"&gt;ace.turnOver()&lt;/button&gt;</code></pre>
+&lt;button onclick="document.querySelector('.ace').turnOver()"&gt;ace.turnOver()&lt;/button&gt;</code></pre>
               </ui-content>
             </ui-accordion>
             <ul>
-              <li>A tag written by hand makes its own thing of its type when it's mounted, from its attributes.</li>
               <li>
-                A tag with a reference in its <code>thing</code> attribute draws the program's thing instead: here, the
-                hidden game's first tableau, its cards each showing <code>pile="Tableau#T1"</code>.
+                A tag written by hand with no id makes its own thing of its type when it's mounted, from its attributes.
+              </li>
+              <li>
+                A tag with an id draws the program's thing instead: here, the hidden game's tableau T1.
+                <ul>
+                  <li>
+                    Its cards are the game's own, drawn by the program: each takes its card's name as its id, like
+                    <code>id="queen-of-hearts"</code>, and shows <code>pile="Tableau#T1"</code>.
+                  </li>
+                </ul>
               </li>
               <li>A thing the program hands an element wins over the element's empty values.</li>
               <li>
@@ -806,7 +999,7 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
     &lt;button on-click="{auto-play}"&gt;AutoPlay&lt;/button&gt;
   &lt;/div&gt;
   &lt;div class="row"&gt;
-    &lt;solitaire-pile thing="Pile#discards"&gt;&lt;/solitaire-pile&gt;
+    &lt;solitaire-pile id="discards"&gt;&lt;/solitaire-pile&gt;
     &lt;!-- prettier-ignore --&gt;
     &lt;solitaire-stock-pile&gt;
       &lt;spell&gt;
@@ -827,29 +1020,29 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
             <ul>
               <li>The markup replaces the app's own <code>to draw</code>: the game's drawing isn't drawn.</li>
               <li>
-                Each drawable tag finds the program's thing, the first of these that applies (<a href="#its-thing"
-                  >Its thing</a
-                >):
+                Each drawable tag finds the program's thing (<a href="#its-thing">Its thing</a>):
                 <ul>
                   <li>
-                    a reference in its <code>thing</code> attribute: <code>thing="Pile#discards"</code> is the pile
-                    named discards
+                    its id, as the part of a reference after its <code>#</code>: <code>id="clubs"</code> is the
+                    foundation named clubs
                   </li>
-                  <li>its id, as the thing's name: <code>id="clubs"</code> is the foundation named clubs</li>
-                  <li>neither: the program's one thing of the tag's type, like the stock</li>
+                  <li>no id: the program's one thing of the tag's type, like the stock</li>
                 </ul>
               </li>
               <li>
-                A reference or an id finds a sub-type's thing too: a pile tag finds the stock pile with
-                <code>id="stock"</code>.
+                An id finds a sub-type's thing too: <code>&lt;solitaire-pile id="discards"&gt;</code> is the discard
+                pile, <code>Pile#discards</code>.
               </li>
               <li>
-                With neither, the type must match exactly: a pile tag with no id takes only a plain pile, never a
-                tableau.
+                With no id, the type must match exactly: a pile tag with no id takes only a plain pile, never a tableau.
               </li>
               <li>
-                A tag whose thing the program hasn't made shows a stand-in, <code>⚠ no Pile#discards</code>, until it
-                does.
+                A tag whose thing the program hasn't made shows a stand-in, <code>⚠ no Pile named "discards"</code>,
+                until it does.
+              </li>
+              <li>
+                The cards the program draws inside take their cards' names as their ids, like
+                <code>id="queen-of-hearts"</code> (<a href="#its-id">Its id</a>).
               </li>
               <li>A drawable list the page wrote puts its own items in.</li>
             </ul>
@@ -866,6 +1059,10 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
                 Names are looked up in order: the tag's own thing, its class, the page's named tags, then the program.
                 <ul>
                   <li>So <code>{the number of cards in T1}</code> finds the tableau whose id is T1.</li>
+                  <li>
+                    Only tags written by hand are names: a card the program drew, <code>id="queen-of-hearts"</code>,
+                    isn't one.
+                  </li>
                   <li>
                     Spell's own words find the program's tableau, tag or not:
                     <code>{the count of tableau T1}</code> (<a href="#reference-words">Spell's words for one thing</a>).
@@ -1105,6 +1302,60 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
             </ul>
           </ui-section>
 
+          <ui-section
+            id="why-ts-element"
+            header="TypeScript's element class, on SpellElement"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ul>
+              <li>
+                The compiled TypeScript should read like a Spell UI element Owen would write by hand (<a
+                  href="../epics/drawable-thing/drawable-thing.plan.html#q6"
+                  target="drawable-thing"
+                  >Q6</a
+                >).
+              </li>
+              <li>
+                Each class builds on the runtime's own element, so everything an element does stays in one class, and
+                both output languages draw the very same element (<a
+                  href="../epics/drawable-thing/drawable-thing.plan.html#j41"
+                  target="drawable-thing"
+                  >J41</a
+                >, option B).
+                <ul>
+                  <li>
+                    A class of its own on Spell UI's element core would repeat the error net, layouts and outside.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Classes are flat: each lists only its own type's attributes and methods, and the page adds the rest (<a
+                  href="../epics/drawable-thing/drawable-thing.plan.html#j52"
+                  target="drawable-thing"
+                  >J52</a
+                >).
+                <ul>
+                  <li>The list holding a thing, like a card's pile, is known only as the program runs.</li>
+                  <li>
+                    So a class that wrote everything out would still miss it, and element classes inheriting as the
+                    types do would stack their sheets under two names.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Each tag is declared for the JSX taking any attribute, as Spell UI's tags are: a tag also takes
+                attributes its type doesn't declare, like <code>id</code> and the list holding it (<a
+                  href="../epics/drawable-thing/drawable-thing.plan.html#j56"
+                  target="drawable-thing"
+                  >J56</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
           <ui-section id="why-tag" header="The tag's name" sticky collapsible dividing collapsed>
             <ul>
               <li>The project's or library's name, made singular, then the type's: <code>&lt;game-card&gt;</code>.</li>
@@ -1190,16 +1441,47 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
                 Lists stay properties: a tableau of 13 cards would be an attribute of 13 references, rewritten on every
                 move (<a href="../epics/drawable-thing/drawable-thing.plan.html#j46" target="drawable-thing">J46</a>).
               </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-ids" header="An id, not a thing attribute" sticky collapsible dividing collapsed>
+            <ul>
               <li>
-                An element drawn by the program doesn't write its own <code>thing</code> attribute yet (<a
+                A tag's id IS its thing's reference (<a
                   href="../epics/drawable-thing/drawable-thing.plan.html#j43"
                   target="drawable-thing"
                   >J43</a
+                >). Owen: "Seems simpler to not have the 'thing attribute' but use ID instead ... Allowing this to drift
+                by assigning a 'thing' explicitly seems likely to have problems."
+              </li>
+              <li>
+                An id names its thing on any page, not only in a layout (<a
+                  href="../epics/drawable-thing/drawable-thing.plan.html#j57"
+                  target="drawable-thing"
+                  >J57</a
                 >):
                 <ul>
-                  <li>Spell UI hears every attribute written on its elements as the page changing it.</li>
-                  <li>So writing it would swap the card the element was handed for a text that looks the card up.</li>
-                  <li>That text finds the card only while it keeps its name, and a card's name follows its rank.</li>
+                  <li>so a plain page can still show one of a hidden app's things</li>
+                  <li>
+                    an id that finds nothing never makes its own thing: tags mount before the program makes its things,
+                    so each would take the program's places, then switch things once the program's appeared
+                  </li>
+                </ul>
+              </li>
+              <li>
+                An element the program draws takes its thing's name as its id, so the inspector says which thing it
+                draws (<a href="../epics/drawable-thing/drawable-thing.plan.html#j58" target="drawable-thing">J58</a>).
+                <ul>
+                  <li>
+                    The id isn't one of Spell UI's attributes, so writing it isn't heard as the page changing the
+                    element, and the handed thing always wins over a lookup.
+                  </li>
+                  <li>
+                    A second thing of a name is counted per program, in the order it made things: counted per page, a
+                    card moved to another pile, a new element there, would take the next number, and ids would drift as
+                    the game plays.
+                  </li>
+                  <li>Owen, on two decks in a game: "Maybe queen-of-spades-2?"</li>
                 </ul>
               </li>
             </ul>
@@ -1255,9 +1537,7 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
 
           <ui-section id="why-layouts" header="Layouts" sticky collapsible dividing collapsed>
             <ul>
-              <li>
-                A tag finds its thing by a reference, its id, or its type; the markup replaces the app's own drawing.
-              </li>
+              <li>A tag finds its thing by its id, or its type; the markup replaces the app's own drawing.</li>
               <li>Holes and actions may hold any spell, since spell's own drawings already take any statement.</li>
               <li>The layout's spell is compiled in the page, against the running program.</li>
               <li>
@@ -1316,28 +1596,47 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
           <ui-section id="limits-ts" header="TypeScript" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                The TypeScript writer doesn't write the element class yet: it writes a drawable thing as a plain class,
-                and the page makes the element, as for javascript.
+                <b
+                  >No page runs TypeScript output yet, so the element classes the writer emits have never drawn on a
+                  page.</b
+                >
                 <ul>
                   <li>
-                    It's being built next, in P10, on the runtime's own element (<a
-                      href="../epics/drawable-thing/drawable-thing.plan.html#j41"
-                      target="drawable-thing"
-                      >J41</a
-                    >, option B).
+                    The browser tests use classes shaped like the writer's, and the runner's test a javascript program.
+                  </li>
+                  <li>The real output runs only headless, where the stand-in makes no element.</li>
+                </ul>
+              </li>
+              <li>
+                <b
+                  >A hand-written element class that uses more of Spell UI as it runs would type-check, then fail in a
+                  page</b
+                >
+                (<a href="../epics/drawable-thing/drawable-thing.plan.html#j54" target="drawable-thing">J54</a>).
+                <ul>
+                  <li>
+                    The runtime hands compiled code only two of Spell UI's decorators: exporting the whole of it put a
+                    second copy of two Spell UI files in the runtime bundle.
                   </li>
                 </ul>
               </li>
               <li>
-                Compiled TypeScript draws a drawable child inline, with its own <code>draw()</code>, not as its element.
+                Element classes are flat: <code>TableauElement</code>'s class doesn't show a pile's <code>name</code>,
+                though its tag has it (<a
+                  href="../epics/drawable-thing/drawable-thing.plan.html#j52"
+                  target="drawable-thing"
+                  >J52</a
+                >).
               </li>
               <li>
-                A drawable tag written by hand in a drawing doesn't type-check in TypeScript: no JSX tags are declared
-                for the program's own types (<a
-                  href="../epics/drawable-thing/drawable-thing.plan.html#i7"
+                A misspelt attribute on a drawable tag isn't caught by the type check, as for Spell UI's tags (<a
+                  href="../epics/drawable-thing/drawable-thing.plan.html#j56"
                   target="drawable-thing"
-                  >I7</a
+                  >J56</a
                 >).
+              </li>
+              <li>
+                Compiled TypeScript draws a drawable child inline, with its own <code>draw()</code>, not as its element.
               </li>
             </ul>
           </ui-section>
@@ -1371,8 +1670,8 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
             <ul>
               <li>Page CSS doesn't reach inside a drawable thing's element: style it in its own block.</li>
               <li>
-                A card moved to another pile is a new element there, drawing the same card: code shouldn't hold a card's
-                element across a move.
+                A card moved to another pile is a new element there, drawing the same card with the same id: code
+                shouldn't hold a card's element across a move.
               </li>
               <li>A frame without <code>&lt;children/&gt;</code> shows no items, with no warning.</li>
               <li>
@@ -1382,7 +1681,7 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
             </ul>
           </ui-section>
 
-          <ui-section id="limits-references" header="References" sticky collapsible dividing collapsed>
+          <ui-section id="limits-references" header="References and ids" sticky collapsible dividing collapsed>
             <ul>
               <li>
                 A place counts only things of one type exactly: <code>Pile#2</code> and
@@ -1390,11 +1689,6 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
                   href="../epics/drawable-thing/drawable-thing.plan.html#t10"
                   target="drawable-thing"
                   >T10</a
-                >).
-              </li>
-              <li>
-                An element the program draws doesn't show which thing it draws: no <code>thing="Card#..."</code> in the
-                inspector (<a href="../epics/drawable-thing/drawable-thing.plan.html#t12" target="drawable-thing">T12</a
                 >).
               </li>
               <li>
@@ -1412,8 +1706,31 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
                 >).
               </li>
               <li>
-                A reference written by name finds its thing only while it keeps that name: a card's name follows its
-                rank and suit, so <code>thing="Card#queen-of-spades"</code> loses the card when its rank changes.
+                A reference or an id written by name finds its thing only while it keeps that name.
+                <ul>
+                  <li>
+                    A card's name follows its rank and suit, so
+                    <code>&lt;solitaire-card id="queen-of-spades"&gt;</code>, written by hand, loses the card when its
+                    rank changes.
+                  </li>
+                  <li>An element the program draws is never looked up by its id, so it keeps its card.</li>
+                </ul>
+              </li>
+              <li>
+                Two <code>&lt;spell-app&gt;</code>s running the same game on one page each number their own things, so
+                ids can repeat on the page (<a
+                  href="../epics/drawable-thing/drawable-thing.plan.html#j58"
+                  target="drawable-thing"
+                  >J58</a
+                >).
+              </li>
+              <li>
+                A tag written by hand can't both have an id and make its own thing: an id always names the program's
+                thing (<a href="../epics/drawable-thing/drawable-thing.plan.html#j57" target="drawable-thing">J57</a>).
+              </li>
+              <li>
+                A <code>thing="..."</code> attribute left in older markup is silently ignored: the tag draws as one with
+                no id.
               </li>
               <li>
                 The duplicate-name warning sees only names given in so many words as a thing is made, not ones worked
@@ -1507,10 +1824,26 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
                     ><code title="packages/core/src/references.ts">core's references</code></a
                   ></ui-header
                 >
-                <ui-meta>code · finding a thing by a reference, and writing one</ui-meta>
+                <ui-meta>code · finding a thing by a reference or an id, and writing one</ui-meta>
                 <ui-description
-                  >The helpers a page's references and spell's words for one thing both use.</ui-description
+                  >The helpers a page's references, its tags' ids and spell's words for one thing all
+                  use.</ui-description
                 >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="../packages/spell/projects/test/DrawableSolitaire/DrawableSolitaire.snapshot.tsx"
+                    target="src-packages-spell-projects-test-drawablesolitaire-drawablesolitaire-snapshot-tsx"
+                    ><code title="packages/spell/projects/test/DrawableSolitaire/DrawableSolitaire.snapshot.tsx"
+                      >DrawableSolitaire's TypeScript</code
+                    ></a
+                  ></ui-header
+                >
+                <ui-meta>fixture · what the TypeScript writer writes</ui-meta>
+                <ui-description>Six drawable types, each with its element class handed to the page.</ui-description>
               </ui-content>
             </ui-item>
             <ui-item>
@@ -1554,9 +1887,10 @@ print the name of the last tableau    -- spellCore.thingAtPlace(Tableau, -1)?.na
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
           <p class="meta">
-            Last checked 2026-10-11 against branch <code>drawable-thing</code>, after P19 · Reference Words: written at
-            P17's Doc Review, then updated for P18-P19 (tags without "drawable", an element's thing, thing references,
-            spell's words for one thing).
+            Last checked 2026-10-11 against branch <code>drawable-thing</code>, after P10 · TS Solid Elements and P18's
+            id rework (uncommitted, under review): written at P17's Doc Review, updated for P18-P19 (tags without
+            "drawable", an element's thing, thing references, spell's words for one thing), then for P10's element class
+            and ids as thing references.
           </p>
         </footer>
       </main>
