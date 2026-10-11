@@ -42,3 +42,116 @@ export class Card extends Drawable {
     <li>A CSS string value spread over several lines would gain two spaces per line.</li>
   </ul>
 </epic-net-effect>
+<epic-reply from="Owen" at="2026-10-10 19:13" re="revisit soon"
+  ><p>
+    export class Card extends Drawable { ... static css = css``` :host { display: inline-block } .red { color: crimson }
+    ``` }
+  </p></epic-reply
+><epic-reply from="Claude" at="2026-10-11 05:30" re="static css = css`...`">
+  <p>
+    Yes, this can be done: a type's CSS would compile to a <code>css</code>-tagged template, the way Lit writes it, and
+    the tag would also fix this call's indent problem. I read your sketch as a request, so it's now part of
+    <a href="#p10">P10 · TS Solid Elements</a>.
+  </p>
+  <epic-field label="What it would take"
+    ><ul>
+      <li>
+        A small <code>css</code> function, exported by spell's runtime library beside <code>h</code> and
+        <code>on</code>.
+        <ul>
+          <li>The compiled file imports it like the others, only when a type has a <code>&lt;css&gt;</code> block.</li>
+          <li>It joins the template's text and hands back the style sheet as plain text.</li>
+          <li>
+            It also takes off the indent every line shares. So the compiled file can indent the CSS inside the class,
+            and the sheet the browser gets is still exactly what was written.
+          </li>
+        </ul>
+      </li>
+      <li>
+        The <code>&lt;css&gt;</code> rule,
+        <a
+          href="../../../packages/spell/src/rules/classes/CSSBlock.ts"
+          target="src-packages-spell-src-rules-classes-cssblock-ts"
+          ><code title="packages/spell/src/rules/classes/CSSBlock.ts">CSSBlock.getAST()</code></a
+        >, writes a tagged template instead of a plain backtick string.
+        <ul>
+          <li>The parser's syntax tree has no tagged template yet: it needs one, written by both writers.</li>
+          <li>Both targets change: the JavaScript output and the TypeScript output.</li>
+        </ul>
+      </li>
+      <li>
+        The element's side stays as it is.
+        <a
+          href="../../../packages/app/src/runner/SpellElement.tsx"
+          target="src-packages-app-src-runner-spellelement-tsx"
+          ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.cssOf()</code></a
+        >
+        still reads each class's <code>static css</code> as text, and live restyling after an edit keeps working.
+      </li>
+    </ul></epic-field
+  >
+  <epic-code title="what a card's block would compile to · 9 lines" language="ts">
+    <pre>
+import { spellCore, Drawable, h, css } from "@spell/core"
+
+export class Card extends Drawable {
+  static elementTag = spellCore.defineElement(this, "Drawable Solitaire")
+
+  static css = css`
+    :host { display: inline-block }
+    .red { color: crimson }
+  `
+}</pre>
+  </epic-code>
+  <epic-field label="Colouring it in editors"
+    ><ul>
+      <li>
+        VS Code does NOT colour the inside of a <code>css</code> template on its own: that takes an extension, such as
+        the one Lit users install.
+      </li>
+      <li>
+        Spell's own VS Code extension already colours <code>&lt;css&gt;</code> blocks in spell files. It can also colour
+        <code>css</code> templates in JavaScript and TypeScript files, with a small extra grammar. Then nothing else
+        needs installing.
+      </li>
+      <li>
+        The spell editor's own view of the compiled JavaScript (in the web app) would still show the CSS as a plain
+        string: that's left out of the phase.
+      </li>
+    </ul></epic-field
+  >
+  <p>One choice for you: what the tag hands back.</p>
+  <epic-choices>
+    <epic-option letter="A" title="Plain text: the sheet as a string" recommended
+      ><ul>
+        <li>Nothing that reads a type's CSS changes: the element, live restyling, the style registry.</li>
+        <li>The registry that shares sheets across shadow roots takes text, so text is what it wants anyway.</li>
+        <li>Works outside a browser too, in tests and on the server.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="A ready-made style sheet object, as Lit's does"
+      ><ul>
+        <li>The browser parses the CSS once, when the class loads.</li>
+        <li>
+          But the element and live restyling would have to turn it back into text, or learn a second way to adopt a
+          sheet.
+        </li>
+        <li>And it fails where there's no browser, such as the parser's own tests.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>
+        <a href="#p10">P10 · TS Solid Elements</a> gains a goal: a type's CSS compiles to
+        <code>static css = css`...`</code>, in both targets.
+      </li>
+      <li>
+        Spell's runtime library exports a <code>css</code> tag, which hands back the sheet as text, indent removed.
+      </li>
+      <li>This call's caveat goes: the sheet's later lines no longer gain the class body's indent.</li>
+      <li>Spell's VS Code extension colours <code>css</code> templates in compiled files.</li>
+      <li>This call stays open, queued for P10, until that's built.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
