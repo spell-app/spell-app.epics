@@ -6,7 +6,7 @@
     <title>The Python Target</title>
     <meta
       name="description"
-      content="How spell compiles to Python:  the py and py/asyncio targets, spell_core, PEP 8 names, lists counting from 0, drawing as HTML, type hints checked by pyright, and why it reads as a person would write it."
+      content="How spell compiles to Python:  the py and py/asyncio targets, spell_core, PEP 8 names, lists counting from 0, drawing as HTML, type hints checked by pyright, a Python program served as a web app on Quart, and why it reads as a person would write it."
     />
     <link rel="stylesheet" href="../packages/docs/tools/_assets/spell-doc.css" />
   </head>
@@ -32,8 +32,9 @@
             run a compiled program</ui-item
           >
           <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="green">built</ui-label> on branch <code>python-target</code>, not
-            merged yet; epic
+            >Status: <ui-label size="mini" color="green">merged</ui-label> P1-P16 into <code>main</code>, 2026-10-11;
+            <ui-label size="mini" color="yellow">built</ui-label> P17-P20, the web app, on branch
+            <code>python-target</code>, not merged yet; epic
             <a href="../epics/python-target/python-target.plan.html" target="python-target">Python Target</a></ui-item
           >
           <ui-item icon="flask"
@@ -47,7 +48,7 @@
           <ui-statistics class="spell-stats" size="mini">
             <ui-statistic value="2" label="Python targets"></ui-statistic>
             <ui-statistic value="6 of 6" label="test programs print the same"></ui-statistic>
-            <ui-statistic value="8" label="pyright errors, pinned"></ui-statistic>
+            <ui-statistic value="9" label="pyright errors, pinned"></ui-statistic>
           </ui-statistics>
           <ul>
             <li>
@@ -80,7 +81,7 @@
               the TypeScript.
               <ul>
                 <li>Three programs are clean.</li>
-                <li>The three solitaire games keep 8 errors between them, pinned rather than fixed.</li>
+                <li>The three solitaire games keep 9 errors between them, pinned rather than fixed.</li>
               </ul>
             </li>
             <li>
@@ -95,6 +96,14 @@
             <li>
               Python is compile-only for now: <code>spell run</code> and <code>spell test</code> still run JavaScript.
               spell_core's own runner runs the Python.
+            </li>
+            <li>
+              A program compiled to Python can be a web app, on branch <code>python-target</code> (see
+              <a href="#web">Python apps on the web</a>):
+              <ul>
+                <li>its logic runs in Python, on a Quart server, a game per visitor</li>
+                <li>the browser draws it with its own classes compiled to javascript, from the things Python sends</li>
+              </ul>
             </li>
           </ul>
           <ui-accordion class="spell-code" styled>
@@ -179,9 +188,17 @@ uv run --project packages/core/py python -m spell_core.run /tmp/Solitaire/Solita
                 <a href="#words-file">The words file</a>). <code>py/asyncio</code> has the same names, so it writes none
                 of its own.
               </li>
+              <li>
+                For a program that draws, both also write its drawing half in javascript,
+                <code>&lt;Project&gt;.elements.js</code>.
+              </li>
+              <li>
+                <code>py/asyncio</code> also writes a web app, <code>&lt;Project&gt;.app.py</code> (see
+                <a href="#web">Python apps on the web</a>).
+              </li>
             </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>targets.ts · the two Python entries · 18 lines</ui-title>
+              <ui-title>targets.ts · the two Python entries · 21 lines</ui-title>
               <ui-content>
                 <pre><code class="language-ts">// Python as a person writes it, with PEP 8's names, on `spell_core` (`packages/core/py`).
 // Draws HTML as text:  Python has no page (epic `python-target`, Q2)
@@ -191,6 +208,7 @@ py: {
   suffix: ".compiled.py",
   can: { draw: "html" },
   wordsSuffix: ".py.en.json",
+  elementsSuffix: ELEMENTS_JS_SUFFIX,
   checkedBy: "pyright"
 },
 // The same Python on `asyncio`:  a function that pauses is `async def`, and its callers await it
@@ -200,6 +218,8 @@ py: {
   writer: P.PyAsyncWriter.instance,
   suffix: ".compiled.asyncio.py",
   can: { draw: "html" },
+  elementsSuffix: ELEMENTS_JS_SUFFIX,
+  appSuffix: ".app.py",
   checkedBy: "pyright"
 }</code></pre>
               </ui-content>
@@ -654,7 +674,10 @@ def is_a_suit(self, suit) -&gt; bool: ...</code></pre>
                 <code>core.draw_thing()</code> and <code>core.draw_items()</code> draw a thing, or a list's items,
                 inside another drawing.
               </li>
-              <li>Clicks do nothing: there's nothing to click, and the tree keeps no click handlers.</li>
+              <li>
+                Clicks do nothing here: there's nothing to click, and the tree keeps no click handlers. A web app's page
+                does take them (see <a href="#web">Python apps on the web</a>).
+              </li>
             </ul>
             <ui-accordion class="spell-code" styled>
               <ui-title>Cards.snapshot.py · Card's draw() · 15 lines</ui-title>
@@ -994,7 +1017,621 @@ uv run --group study pytest experiments/terminal                    # its tests<
           </p>
         </ui-section>
 
-        <ui-section id="why" header="8. Why it's built this way" sticky collapsible dividing collapsed>
+        <ui-section id="web" header="8. Python apps on the web" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="globe"></ui-icon>
+          <p>
+            A program compiled to Python can be a web app: its logic runs in Python on a server, and a browser page
+            draws it.
+          </p>
+          <ul>
+            <li>
+              Owen's ask: "python compiler outputs compiled JS web components for the HTML bits", and "spell apps" in
+              Python served by a Python web framework.
+            </li>
+            <li>Python keeps everything that changes things, and every event handler.</li>
+            <li>
+              The page draws with the program's own classes, compiled to javascript, from the things Python sends.
+            </li>
+            <li>
+              The two keep in step through the program's things, each sent by its id: the whole state once, then only
+              what changed.
+            </li>
+            <li>Built on branch <code>python-target</code> as P17-P20, not merged yet.</li>
+          </ul>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>Serving Solitaire as a web app · from the repo root · 4 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-sh">yarn workspace @spell-app/app build:page                       # the page side, once:  packages/app/dist-page/
+cp -R packages/spell/projects/test/Solitaire /tmp/Solitaire   # never compile a test project in place
+spell compile /tmp/Solitaire --target py/asyncio              # the program, its drawing half, and its app
+uv run --project packages/core/py-quart python /tmp/Solitaire/Solitaire.app.py   # http://localhost:5000</code></pre>
+            </ui-content>
+          </ui-accordion>
+
+          <ui-section id="web-steps" header="What happens, in order" sticky collapsible dividing collapsed>
+            <ol>
+              <li>
+                <b>Compile:</b> Compiling Solitaire to <code>py/asyncio</code> writes its Python, and two files beside
+                it: its drawing half in javascript, and a short Quart app, <code>Solitaire.app.py</code>.
+              </li>
+              <li>
+                <b>Serve:</b> Running the app starts a Quart server, on spell-quart, a package of its own beside
+                spell_core.
+              </li>
+              <li>
+                <b>A visitor comes:</b> A browser opens the page. A cookie names the visitor, and the program runs once
+                for them, on a core of their own: their own deal.
+              </li>
+              <li>
+                <b>The page connects:</b> The page loads the javascript core, Spell UI and the drawing half, and opens a
+                WebSocket back to the server.
+              </li>
+              <li>
+                <b>The whole state:</b> Python sends every thing the program keeps, each with its id. The page reads
+                them into mirrors, javascript things standing in for Python's, and draws the board from them.
+              </li>
+              <li>
+                <b>A click:</b> Clicking a card sends <code>card-click</code> up the WebSocket, with the card's id.
+                Python finds that card, and runs the game's handler, in Python, where it was written.
+              </li>
+              <li>
+                <b>Only what changed:</b> After the handler, and at each pause in it, Python sends a patch: only the
+                things that changed. The mirrors take it, and what draws them redraws, so AutoPlay animates.
+              </li>
+            </ol>
+          </ui-section>
+
+          <ui-section id="web-state" header="The state, by id" sticky collapsible dividing collapsed>
+            <p>
+              A program's state is its things as JSON, each with an id, so a thing can be found again, and a card in two
+              places stays one card (P17).
+            </p>
+            <ul>
+              <li>
+                Both cores have a state writer and a mirror:
+                <a href="../packages/core/py/spell_core/state.py" target="src-packages-core-py-spell-core-state-py"
+                  ><code title="packages/core/py/spell_core/state.py">StateWriter</code></a
+                >
+                and <code>StateMirror</code> in Python. Their twins are in the javascript core's
+                <a href="../packages/core/src/state.ts" target="src-packages-core-src-state-ts"
+                  ><code title="packages/core/src/state.ts">state.ts</code></a
+                >.
+              </li>
+              <li>
+                The writer writes the same JSON as <code>to_json()</code>, plus an id on each thing and spell list,
+                <code>"@id"</code>, after its type.
+                <ul>
+                  <li>
+                    The first mention of a thing is whole; each later one is <code>{"@id": "3"}</code> alone, as JSON-LD
+                    writes a reference (<a
+                      href="../epics/python-target/python-target.plan.html#j48"
+                      target="python-target"
+                      >J48</a
+                    >).
+                  </li>
+                  <li>
+                    Each writer counts its own ids from 1, and keeps them: one writer per page (<a
+                      href="../epics/python-target/python-target.plan.html#j49"
+                      target="python-target"
+                      >J49</a
+                    >).
+                  </li>
+                  <li>
+                    A thing's plain fields go too: what its constructor was given and doesn't declare, such as a
+                    foundation's <code>symbol</code>.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                The mirror reads each new state INTO the things it read before, by id.
+                <ul>
+                  <li>A thing it has keeps being the same object: changed in place, so what draws it redraws.</li>
+                  <li>A new one is made; a property a thing no longer has is unset.</li>
+                </ul>
+              </li>
+              <li>
+                Reading JSON back, <code>core.from_json()</code> and <code>spellCore.fromJSON()</code>, now goes through
+                a mirror, so JSON with ids keeps a thing as one (<a
+                  href="../epics/python-target/python-target.plan.html#j51"
+                  target="python-target"
+                  >J51</a
+                >).
+              </li>
+              <li>
+                A program's state is its top-level things, by their Python names (<a
+                  href="../epics/python-target/python-target.plan.html#j50"
+                  target="python-target"
+                  >J50</a
+                >). spell_core's runner prints it when the program ends, with <code>--state</code>.
+              </li>
+              <li>
+                A saved state,
+                <a href="../packages/core/stateById.expected.json" target="src-packages-core-statebyid-expected-json"
+                  ><code title="packages/core/stateById.expected.json">stateById.expected.json</code></a
+                >, is written and read back by both cores' tests: they agree on every character.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>stateById.expected.json · a table of two stacks, as first written · 18 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-json">{
+  "@type": "Table",
+  "@id": "1",
+  "stacks": [
+    {
+      "@type": "Stack",
+      "@id": "2",
+      "name": "left",
+      "@items": [
+        { "@type": "Chip", "@id": "3", "color": "red", "value": 5 },
+        { "@type": "Chip", "@id": "4", "color": "blue", "value": 10 }
+      ]
+    },
+    { "@type": "Stack", "@id": "5", "name": "right", "@items": [] }
+  ],
+  "top": { "@id": "3" }
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Printing a program's state · from the repo root · 1 line</ui-title>
+              <ui-content>
+                <pre><code class="language-sh">uv run --project packages/core/py python -m spell_core.run /tmp/Solitaire/Solitaire.compiled.py --seed 1 --no-pauses --state</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="web-patches" header="Only what changed" sticky collapsible dividing collapsed>
+            <p>
+              After the first state, a page needs only what changed: a click turns over a card or two, not the deck
+              (P18).
+            </p>
+            <ul>
+              <li>
+                spell_core notes each change to a thing's property, or to a spell list's items, and tells every state
+                writer still alive:
+                <a href="../packages/core/py/spell_core/things.py" target="src-packages-core-py-spell-core-things-py"
+                  ><code title="packages/core/py/spell_core/things.py">note_change()</code></a
+                >.
+              </li>
+              <li>
+                <code>StateWriter.patch()</code> writes the things that changed since the writer last wrote, as a list.
+                <ul>
+                  <li>
+                    Each one whole, and what it holds by id (<a
+                      href="../epics/python-target/python-target.plan.html#j52"
+                      target="python-target"
+                      >J52</a
+                    >): a card moved to another pile is the two piles, each naming its cards by id.
+                  </li>
+                  <li>A thing new since then, held by one that changed, is written whole inside it, with a new id.</li>
+                  <li><code>[]</code> when nothing changed.</li>
+                </ul>
+              </li>
+              <li>A mirror reads a patch as it reads any state.</li>
+              <li>
+                Only Python's core tracks changes: the javascript core writes whole states, and reads patches (<a
+                  href="../epics/python-target/python-target.plan.html#j53"
+                  target="python-target"
+                  >J53</a
+                >).
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>stateById.expected.json · the patch after the red chip moves right · 4 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-json">[
+  { "@type": "Stack", "@id": "5", "name": "right", "@items": [{ "@id": "3" }] },
+  { "@type": "Stack", "@id": "2", "name": "left", "@items": [{ "@id": "4" }] }
+]</code></pre>
+              </ui-content>
+            </ui-accordion>
+
+            <h4>Checked click by click</h4>
+            <p>
+              A change nobody noted would leave a page wrong without a word, so the core contract checks every click.
+            </p>
+            <ul>
+              <li>
+                It plays Solitaire, Klondike and OutlineSolitaire in Python, seeded, 300 card clicks each:
+                <a
+                  href="../packages/core/py/tests/patches_in_a_game.py"
+                  target="src-packages-core-py-tests-patches-in-a-game-py"
+                  ><code title="packages/core/py/tests/patches_in_a_game.py">patches_in_a_game.py</code></a
+                >.
+              </li>
+              <li>
+                After every click, a mirror reads the patch, and must hold the same state as the game written whole.
+              </li>
+              <li>A click that throws fails the test too.</li>
+            </ul>
+            <ui-message state="info" header="The bug it found on its first run">
+              <ul>
+                <li>
+                  In Klondike's Python, every click failed (<a
+                    href="../epics/python-target/python-target.plan.html#i12"
+                    target="python-target"
+                    >I12</a
+                  >).
+                </li>
+                <li>
+                  Klondike adds a method to Cards' Card, <code>to play a card</code>: the Python writer wrote it as a
+                  bare function, never set on the class.
+                </li>
+                <li>
+                  Fixed: it's <code>def _card_play(self)</code>, then <code>Card.play = _card_play</code>. The
+                  javascript sets it on Card's prototype the same way (<a
+                    href="../epics/python-target/python-target.plan.html#j54"
+                    target="python-target"
+                    >J54</a
+                  >).
+                </li>
+                <li>pyright dislikes that line: one more error pinned in Klondike's snapshot.</li>
+                <li>Until then, nothing had clicked anything in a test (C1).</li>
+              </ul>
+            </ui-message>
+          </ui-section>
+
+          <ui-section id="web-page" header="The page draws in javascript" sticky collapsible dividing collapsed>
+            <p>
+              Compiling to either Python target also writes the program's drawing half in javascript,
+              <code>&lt;Project&gt;.elements.js</code>, for a program that draws (P19).
+            </p>
+            <ul>
+              <li>
+                Owen's revision of Q20: "the python writer can use the js/solid writer to create the components" (<a
+                  href="../epics/python-target/python-target.plan.html#q20"
+                  target="python-target"
+                  >Q20</a
+                >).
+              </li>
+              <li>
+                <a
+                  href="../packages/parser/src/writers/ElementsWriter.ts"
+                  target="src-packages-parser-src-writers-elementswriter-ts"
+                  ><code title="packages/parser/src/writers/ElementsWriter.ts">P.ElementsWriter</code></a
+                >
+                writes it, on the javascript writer:
+                <ul>
+                  <li>the program's classes as they are: properties, getters, <code>to draw</code>, styles</li>
+                  <li>its top-level steps left out (dealing, tests, starting the game): Python ran them</li>
+                  <li>
+                    each thing it keeps at its top level an <code>export let</code>, bound from Python's state by
+                    <code>adopt()</code>, under Python's name for it
+                  </li>
+                  <li>each top-level function a stand-in that asks Python to run it</li>
+                  <li>
+                    in a drawing's handler, a call of a thing's method asks Python too; an event, anywhere, goes to
+                    Python's handlers (<a
+                      href="../epics/python-target/python-target.plan.html#j55"
+                      target="python-target"
+                      >J55</a
+                    >)
+                  </li>
+                </ul>
+              </li>
+              <li>
+                What it sends uses Python's names, <code>play_from_the_stock_pile</code>: the same for both Python
+                targets.
+              </li>
+              <li>
+                Each test program that draws has one pinned beside its Python, as
+                <code>&lt;Project&gt;.elements.snapshot.js</code>.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Solitaire.elements.snapshot.js · excerpts · 21 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-js">// a card's drawing:  its click goes to Python's handlers, the card by its id
+return h("div", { class: () =&gt; className + this.color, onClick: () =&gt; sendTrigger("card-click", { card: this }) },
+  () =&gt; `${this.shortRank} `,
+  h("span", { class: "suit" }, () =&gt; this.shortSuit)
+)
+
+// a thing the program keeps:  bound from Python's state
+export let stock
+
+// a top-level function:  a stand-in, asking Python to run it
+export function playFromTheStockPile(...args) {
+  return sendCall("play_from_the_stock_pile", args)
+}
+
+// each thing the program keeps, from the state, by Python's name
+export function adopt(state) {
+  game = state["game"]
+  allPiles = state["all_piles"]
+  stock = state["stock"]
+  // ...
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+
+            <h4>The page's side</h4>
+            <p>
+              The javascript core's
+              <a href="../packages/core/src/page.ts" target="src-packages-core-src-page-ts"
+                ><code title="packages/core/src/page.ts">startPage()</code></a
+              >
+              starts a page from Python's state.
+            </p>
+            <ul>
+              <li>
+                It reads the state into mirrors, Python's property names read as javascript's: <code>is_set_up</code> is
+                <code>isSetUp</code> (<a
+                  href="../epics/python-target/python-target.plan.html#j57"
+                  target="python-target"
+                  >J57</a
+                >).
+              </li>
+              <li>It binds the program's things (<code>adopt()</code>), and starts the app the state holds.</li>
+              <li>Its <code>receive()</code> reads each patch into the same mirrors.</li>
+              <li>
+                <code>sendCall()</code> and <code>sendTrigger()</code> send a call or an event, each thing in it by its
+                id.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>What a page sends · 3 messages</ui-title>
+              <ui-content>
+                <pre><code class="language-json">{ "call": "play_from_the_stock_pile", "args": [] }
+{ "call": "turn_over", "on": { "@id": "3" }, "args": [] }
+{ "trigger": "card-click", "details": { "card": { "@id": "3" } } }</code></pre>
+              </ui-content>
+            </ui-accordion>
+
+            <h4>Python's side</h4>
+            <ul>
+              <li>
+                <a href="../packages/core/py/spell_core/page.py" target="src-packages-core-py-spell-core-page-py"
+                  ><code title="packages/core/py/spell_core/page.py">PageSession</code></a
+                >
+                is a program's side of its page: its state first, then each message run, and answered by a patch.
+              </li>
+              <li>A message's things are found by their ids; an event's details are read as Python names them.</li>
+              <li>
+                <code>python -m spell_core.page</code> talks to a page over stdin and stdout, a JSON line each: the
+                state first, then a patch per message.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>PageSession, by hand · 4 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">session = PageSession(run_program("Solitaire.compiled.py", seed=1))
+session.state()   # the whole state, by id, for the page to start from
+session.handle({"trigger": "card-click", "details": {"card": {"@id": "12"}}})
+# =&gt; the patch:  only what that click changed</code></pre>
+              </ui-content>
+            </ui-accordion>
+
+            <h4>How it's checked</h4>
+            <ul>
+              <li>
+                The core contract runs Solitaire, Klondike and OutlineSolitaire in Python, seeded, and draws each from
+                its state, with its elements file, on the contract's fake page.
+              </li>
+              <li>The board it draws must equal the javascript run's, exactly.</li>
+              <li>
+                A click on a face-up card must send <code>card-click</code> with the card's id, which Python then runs.
+              </li>
+              <li>
+                A fake page, not a real browser (<a
+                  href="../epics/python-target/python-target.plan.html#j59"
+                  target="python-target"
+                  >J59</a
+                >): the real browser comes with the Quart app's test.
+              </li>
+            </ul>
+            <ui-message state="warning" header="Parked:  an element class per type">
+              <ul>
+                <li>
+                  A drawable type doesn't get its own custom element class yet, a class the browser knows for
+                  <code>&lt;solitaire-card&gt;</code> (<a
+                    href="../epics/python-target/python-target.plan.html#i13"
+                    target="python-target"
+                    >I13</a
+                  >).
+                </li>
+                <li>
+                  It waits on epic <code>drawable-thing</code>'s P10, which writes those classes, still on its own
+                  branch.
+                </li>
+                <li>
+                  Until then the page draws with the core's own drawing, inside the drawable tags it already makes (<a
+                    href="../epics/python-target/python-target.plan.html#j56"
+                    target="python-target"
+                    >J56</a
+                  >).
+                </li>
+                <li>
+                  A drawable's plain properties as attributes on its tag wait with it (<a
+                    href="../epics/python-target/python-target.plan.html#j47"
+                    target="python-target"
+                    >J47</a
+                  >).
+                </li>
+              </ul>
+            </ui-message>
+          </ui-section>
+
+          <ui-section id="web-quart" header="Serving it on Quart" sticky collapsible dividing collapsed>
+            <p>
+              Compiling to <code>py/asyncio</code> also writes <code>&lt;Project&gt;.app.py</code>: a short web app on
+              Quart, Flask's asyncio twin by the same people (P20).
+            </p>
+            <ul>
+              <li>
+                Quart, not Flask: on asyncio a pause awaits, so one thread serves every page (<a
+                  href="../epics/python-target/python-target.plan.html#q23"
+                  target="python-target"
+                  >Q23</a
+                >).
+              </li>
+              <li>
+                Every route is spelled out, for a Python programmer to read and grow, with a place for their own (<a
+                  href="../epics/python-target/python-target.plan.html#q25"
+                  target="python-target"
+                  >Q25</a
+                >).
+              </li>
+              <li>
+                <a href="../packages/spell/src/quartApp.ts" target="src-packages-spell-src-quartapp-ts"
+                  ><code title="packages/spell/src/quartApp.ts">SP.quartApp()</code></a
+                >
+                writes it.
+              </li>
+              <li>
+                It runs on spell-quart, a uv project of its own beside spell_core (<a
+                  href="../epics/python-target/python-target.plan.html#q26"
+                  target="python-target"
+                  >Q26</a
+                >, <a href="../epics/python-target/python-target.plan.html#j44" target="python-target">J44</a>):
+                <a href="../packages/core/py-quart/spell_quart/" target="src-packages-core-py-quart-spell-quart"
+                  ><code title="packages/core/py-quart/spell_quart/">spell_quart</code></a
+                >. spell_core stays standard library only.
+              </li>
+              <li>
+                The page talks to the server over one WebSocket, <code>/ws</code> (<a
+                  href="../epics/python-target/python-target.plan.html#q22"
+                  target="python-target"
+                  >Q22</a
+                >).
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Solitaire.app.py · its routes, abridged · 33 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-python">app = Quart(__name__)
+
+# a game per visitor, each running Solitaire.compiled.asyncio.py
+sessions = SpellSessions(HERE / "Solitaire.compiled.asyncio.py")
+
+
+@app.get("/")
+async def page():
+    """The page:  it loads the program's drawing half, and plays over the WebSocket."""
+    projects = {}
+    html = page_html("Solitaire", elements="/Solitaire.elements.js", projects=projects)
+    return remember_visitor(await make_response(html), visitor_of(request))
+
+
+@app.get("/&lt;name&gt;.elements.js")
+async def elements(name: str): ...   # the program's drawing half, and each imported project's
+
+
+@app.get(f"{ASSETS_URL}/&lt;path:path&gt;")
+async def assets(path: str): ...     # the javascript core, Solid, Spell UI and Semantic UI
+
+
+@app.websocket("/ws")
+async def ws():
+    """The page's WebSocket:  its clicks up, the state and what changed down."""
+    await sessions.serve(websocket, visitor_of(websocket))
+
+
+# Your own routes go here, e.g.:
+#
+# @app.get("/scores")
+# async def scores():
+#     return {"best": 100}</code></pre>
+              </ui-content>
+            </ui-accordion>
+
+            <h4>A game per visitor</h4>
+            <p>
+              Each browser plays its own game: a cookie names the visitor, and the program runs once for each (<a
+                href="../epics/python-target/python-target.plan.html#q24"
+                target="python-target"
+                >Q24</a
+              >, <a href="../epics/python-target/python-target.plan.html#c4" target="python-target">C4</a>).
+            </p>
+            <ul>
+              <li>
+                Compiled Python's <code>core</code> stands in for the core of the program running now: spell_core's
+                <a href="../packages/core/py/spell_core/core.py" target="src-packages-core-py-spell-core-core-py"
+                  ><code title="packages/core/py/spell_core/core.py">using_core()</code></a
+                >
+                gives each visitor's run its own.
+                <ul>
+                  <li>It goes by Python's context variables, so a timer a click starts keeps the visitor's core.</li>
+                  <li>A plain run, with no host, uses the one default core, as before.</li>
+                </ul>
+              </li>
+              <li>A visitor's tabs share their game: a click in one shows in every one.</li>
+              <li>
+                Each tab gets the whole state when it opens, then a patch after each of its clicks, and at each pause.
+              </li>
+              <li>A message that fails is logged, and the page goes on.</li>
+            </ul>
+
+            <h4>Pauses send what changed so far</h4>
+            <ul>
+              <li>
+                On asyncio, a pause tells its host first (<code>core.before_pause</code>): the server sends every tab
+                what changed so far, then waits.
+              </li>
+              <li>So AutoPlay animates on the page, as it does in the editor's runner.</li>
+            </ul>
+
+            <h4>An app you've edited is yours</h4>
+            <ul>
+              <li>
+                The app's first line holds a hash of the rest (<a
+                  href="../epics/python-target/python-target.plan.html#j45"
+                  target="python-target"
+                  >J45</a
+                >).
+              </li>
+              <li>Compiling again rewrites the app only while that hash still matches: an edited one is left alone.</li>
+            </ul>
+
+            <h4>Settings</h4>
+            <ul>
+              <li><code>$PORT</code>: the port it serves on, else 5000, which AirPlay often takes on a Mac.</li>
+              <li>
+                <code>$SPELL_SEED</code>: every visitor is dealt from that seed, so each gets the same game; a test's.
+              </li>
+              <li>
+                <code>$SPELL_PAGE_ASSETS</code>: where the page side was built, else the repo's own build, made by
+                <code>yarn build:page</code> in the app package.
+              </li>
+            </ul>
+
+            <h4>What it costs on the wire</h4>
+            <ui-statistics class="spell-stats" size="mini">
+              <ui-statistic value="~8 KB" label="Solitaire's whole state"></ui-statistic>
+              <ui-statistic value="100-640" label="characters a click's patch"></ui-statistic>
+              <ui-statistic value="8" label="patches in one AutoPlay"></ui-statistic>
+            </ui-statistics>
+            <ul>
+              <li>Measured by the browser test below, Solitaire on seed 1, on 2026-10-11.</li>
+              <li>A stock click's patches run from about 100 to 640 characters, against a state of about 8,000.</li>
+              <li>AutoPlay sent 8 patches, one at each pause: so the page animates.</li>
+            </ul>
+
+            <h4>How it's checked</h4>
+            <ul>
+              <li>
+                spell-quart's own pytest, on Quart's test client: the page, the state and its patches, pauses and all,
+                and a game per visitor.
+              </li>
+              <li>
+                A browser test,
+                <a href="../packages/cli/src/quartApp.test.ts" target="src-packages-cli-src-quartapp-test-ts"
+                  ><code title="packages/cli/src/quartApp.test.ts">quartApp.test.ts</code></a
+                >, compiles Solitaire, serves it, and plays it seeded in headless Chromium:
+                <ul>
+                  <li>the page draws the javascript run's board</li>
+                  <li>a click on the stock plays in Python, and the discards change</li>
+                  <li>AutoPlay sends more than one patch</li>
+                  <li>two visitors each play their own game</li>
+                  <li>compiling again leaves an edited app alone, and rewrites an unedited one</li>
+                </ul>
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="why" header="9. Why it's built this way" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="gavel"></ui-icon>
           <p>
             From the plan doc's questions (Q) and judgement calls (J): each links to the full reasoning, and the options
@@ -1240,9 +1877,74 @@ uv run --group study pytest experiments/terminal                    # its tests<
               </li>
             </ul>
           </ui-section>
+
+          <ui-section id="why-web" header="A web app, Python keeping the logic" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Owen added the web app after the Doc Review, 2026-10-11, and answered seven questions on it, Q20 to Q26.
+              </li>
+              <li>
+                The page draws with compiled javascript, not Python's HTML (<a
+                  href="../epics/python-target/python-target.plan.html#q20"
+                  target="python-target"
+                  >Q20</a
+                >, A). Owen's first answer had Python draw the page, as Phoenix LiveView and htmx do; he revised it the
+                same day: "the python writer can use the js/solid writer to create the components".
+              </li>
+              <li>
+                The whole state by id first, then only the changes, each its own phase, before the page that reads them
+                (<a href="../epics/python-target/python-target.plan.html#q21" target="python-target">Q21</a>).
+                Attributes on a drawable's tag, Q21's third part, wait for the element classes (<a
+                  href="../epics/python-target/python-target.plan.html#j47"
+                  target="python-target"
+                  >J47</a
+                >).
+              </li>
+              <li>
+                One WebSocket per page, rather than posting clicks with a stream back (<a
+                  href="../epics/python-target/python-target.plan.html#q22"
+                  target="python-target"
+                  >Q22</a
+                >).
+              </li>
+              <li>
+                Quart rather than Flask: the same API, on asyncio, so a pause awaits and one thread serves every page
+                (<a href="../epics/python-target/python-target.plan.html#q23" target="python-target">Q23</a>).
+              </li>
+              <li>
+                A game per visitor rather than one shared game (<a
+                  href="../epics/python-target/python-target.plan.html#q24"
+                  target="python-target"
+                  >Q24</a
+                >): it needed a core per visitor (<a
+                  href="../epics/python-target/python-target.plan.html#c4"
+                  target="python-target"
+                  >C4</a
+                >).
+              </li>
+              <li>
+                A generated app file, every route spelled out, rather than a <code>create_app()</code> hiding them (<a
+                  href="../epics/python-target/python-target.plan.html#q25"
+                  target="python-target"
+                  >Q25</a
+                >); left alone once edited (<a
+                  href="../epics/python-target/python-target.plan.html#j45"
+                  target="python-target"
+                  >J45</a
+                >).
+              </li>
+              <li>
+                A package of its own, spell-quart, so spell_core stays standard library only (<a
+                  href="../epics/python-target/python-target.plan.html#q26"
+                  target="python-target"
+                  >Q26</a
+                >, <a href="../epics/python-target/python-target.plan.html#j44" target="python-target">J44</a>).
+              </li>
+            </ul>
+          </ui-section>
         </ui-section>
 
-        <ui-section id="limits" header="9. Limits" sticky collapsible dividing collapsed>
+        <ui-section id="limits" header="10. Limits" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="triangle exclamation"></ui-icon>
           <p>What's open, from the plan doc's caveats (C), todos (T) and issues (I).</p>
 
@@ -1285,8 +1987,8 @@ uv run --group study pytest experiments/terminal                    # its tests<
           <ui-section id="limits-checking" header="Checking" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                <b>pyright finds 8 errors in the solitaire games' Python</b>, which still runs correctly: Solitaire 2,
-                Klondike 2, OutlineSolitaire 4 (<a
+                <b>pyright finds 9 errors in the solitaire games' Python</b>, which still runs correctly: Solitaire 2,
+                Klondike 3, OutlineSolitaire 4 (<a
                   href="../epics/python-target/python-target.plan.html#c3"
                   target="python-target"
                   >C3</a
@@ -1296,14 +1998,31 @@ uv run --group study pytest experiments/terminal                    # its tests<
                     All but one are a value spell's tree says may be nothing, used as if it's there: a card's pile, a
                     list's last item.
                   </li>
-                  <li>The other calls a value spell only knows as an object.</li>
+                  <li>One calls a value spell only knows as an object.</li>
+                  <li>
+                    Klondike's third is <code>Card.play = _card_play</code>, a method set on another project's class (<a
+                      href="../epics/python-target/python-target.plan.html#j54"
+                      target="python-target"
+                      >J54</a
+                    >).
+                  </li>
                   <li>Each fix needs spell to know more, e.g. a pile that's never empty: later type work.</li>
                 </ul>
               </li>
               <li>
-                The contract never clicks, so event handlers are compiled and type-checked in Python, never run by a
-                test (<a href="../epics/python-target/python-target.plan.html#c1" target="python-target">C1</a>). Events
-                a program fires itself are run and compared.
+                Clicks are run in Python, but never compared with JavaScript's (<a
+                  href="../epics/python-target/python-target.plan.html#c1"
+                  target="python-target"
+                  >C1</a
+                >).
+                <ul>
+                  <li>
+                    Since P18 the contract plays each solitaire game in Python, 300 clicks, and a click that throws
+                    fails it (see <a href="#web-patches">Only what changed</a>).
+                  </li>
+                  <li>What a click prints or draws isn't checked against JavaScript's, on any target.</li>
+                  <li>Events a program fires itself are run and compared.</li>
+                </ul>
               </li>
               <li>A rule no test program uses isn't checked in Python at all (Q12).</li>
             </ul>
@@ -1354,6 +2073,70 @@ uv run --group study pytest experiments/terminal                    # its tests<
             </ul>
           </ui-section>
 
+          <ui-section id="limits-web" header="The web app" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>Only a program that imports no other project is served whole</b>: Klondike, which imports Cards,
+                isn't yet.
+                <ul>
+                  <li>Compiling doesn't copy an imported project's files beside the app.</li>
+                  <li>The app it writes lists no imported project's drawing half for the page.</li>
+                  <li>Solitaire, with its cards built in, is the one served and checked in a browser.</li>
+                </ul>
+              </li>
+              <li>
+                <b>The page side comes from the repo's own build</b>, made by <code>yarn build:page</code> in the app
+                package: an app run outside the repo needs <code>$SPELL_PAGE_ASSETS</code>.
+                <ul>
+                  <li>
+                    spell-quart isn't on PyPI, like spell_core (<a
+                      href="../epics/python-target/python-target.plan.html#t2"
+                      target="python-target"
+                      >T2</a
+                    >).
+                  </li>
+                </ul>
+              </li>
+              <li>
+                One server process holds every game, in memory (<a
+                  href="../epics/python-target/python-target.plan.html#c4"
+                  target="python-target"
+                  >C4</a
+                >).
+                <ul>
+                  <li>Restarting the server ends every game.</li>
+                  <li>Several worker processes would split a visitor's clicks between games.</li>
+                  <li>
+                    No game is dropped yet: each visitor's stays until the server stops. The plan meant to drop one idle
+                    for an hour or so.
+                  </li>
+                  <li>
+                    Things an imported project makes at its top level are shared by every visitor: it's imported once
+                    per process.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                A drawable type has no custom element class of its own yet (<a
+                  href="../epics/python-target/python-target.plan.html#i13"
+                  target="python-target"
+                  >I13</a
+                >): see <a href="#web-page">The page draws in javascript</a>.
+              </li>
+              <li>
+                Only <code>py/asyncio</code> writes an app: a plain <code>py</code> program's handlers and pauses don't
+                await, so it stays a terminal program.
+              </li>
+              <li>
+                <code>spell run</code> doesn't start the app: run it with uv (<a
+                  href="../epics/python-target/python-target.plan.html#t4"
+                  target="python-target"
+                  >T4</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
           <ui-section id="limits-writer" header="The writer" sticky collapsible dividing collapsed>
             <ul>
               <li>
@@ -1377,7 +2160,7 @@ uv run --group study pytest experiments/terminal                    # its tests<
               </li>
               <li>Nothing in Python reads the words file yet: Python has no Thing Explorer.</li>
               <li>
-                Drawing is HTML text only; a terminal target is a future epic (<a
+                Drawing is HTML text, or a web app's page; a terminal target is a future epic (<a
                   href="../epics/python-target/python-target.plan.html#t1"
                   target="python-target"
                   >T1</a
@@ -1387,9 +2170,38 @@ uv run --group study pytest experiments/terminal                    # its tests<
           </ui-section>
         </ui-section>
 
-        <ui-section id="history" header="10. History" sticky collapsible dividing collapsed>
+        <ui-section id="history" header="11. History" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="clock rotate left"></ui-icon>
           <ui-feed class="spell-history" size="small">
+            <ui-event icon="book">
+              <ui-content>
+                <ui-summary
+                  >This page gains "Python apps on the web", and P1-P16 are marked merged
+                  <ui-date>2026-10-11</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Built, P17-P20: the state by id, only what changed, the page drawing in javascript, Quart apps; the
+                  element class per type parked (I13) <ui-date>2026-10-11</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Planned after the Doc Review: a Python program as a web app, Q20-Q26 answered, then Q20 revised to
+                  compiled javascript <ui-date>2026-10-11</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="code branch">
+              <ui-content>
+                <ui-summary>P1-P16 merged into <code>main</code>, PR #28 <ui-date>2026-10-11</ui-date></ui-summary>
+              </ui-content>
+            </ui-event>
             <ui-event icon="book">
               <ui-content>
                 <ui-summary>This page, from the plan doc and the code <ui-date>2026-10-11</ui-date></ui-summary>
@@ -1431,7 +2243,7 @@ uv run --group study pytest experiments/terminal                    # its tests<
           </ui-feed>
         </ui-section>
 
-        <ui-section id="sources" header="11. Sources" sticky collapsible dividing collapsed>
+        <ui-section id="sources" header="12. Sources" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="book"></ui-icon>
           <ui-items class="spell-sources" divided>
             <ui-item>
@@ -1478,6 +2290,40 @@ uv run --group study pytest experiments/terminal                    # its tests<
                   >The Python core, its tests in
                   <a href="../packages/core/py/tests/" target="src-packages-core-py-tests"
                     ><code title="packages/core/py/tests/">tests/</code></a
+                  >.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../packages/core/py-quart/spell_quart/" target="src-packages-core-py-quart-spell-quart"
+                    ><code title="packages/core/py-quart/spell_quart/">spell_quart/</code></a
+                  ></ui-header
+                >
+                <ui-meta>code · the web app</ui-meta>
+                <ui-description
+                  >A game per visitor, and the page; the app file itself is written by
+                  <a href="../packages/spell/src/quartApp.ts" target="src-packages-spell-src-quartapp-ts"
+                    ><code title="packages/spell/src/quartApp.ts">quartApp.ts</code></a
+                  >.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../packages/core/src/page.ts" target="src-packages-core-src-page-ts"
+                    ><code title="packages/core/src/page.ts">page.ts</code></a
+                  ></ui-header
+                >
+                <ui-meta>code · the page's side</ui-meta>
+                <ui-description
+                  >startPage() and connectPage(); the drawing half it runs is written by
+                  <a
+                    href="../packages/parser/src/writers/ElementsWriter.ts"
+                    target="src-packages-parser-src-writers-elementswriter-ts"
+                    ><code title="packages/parser/src/writers/ElementsWriter.ts">ElementsWriter.ts</code></a
                   >.</ui-description
                 >
               </ui-content>
@@ -1538,7 +2384,10 @@ uv run --group study pytest experiments/terminal                    # its tests<
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">Last checked 2026-10-11 against branch <code>python-target</code> (P1-P15 built).</p>
+          <p class="meta">
+            Last checked 2026-10-11 against branch <code>python-target</code> (P1-P20 built; P1-P16 merged into
+            <code>main</code>), for "Python apps on the web". Before that, 2026-10-11 (P1-P15 built).
+          </p>
         </footer>
       </main>
     </div>
