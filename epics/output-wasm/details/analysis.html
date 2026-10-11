@@ -1,57 +1,354 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Output: WebAssembly:  analysis</title>
-    <meta name="description" content="Details:  Output: WebAssembly:  analysis">
-    <link rel="stylesheet" href="../../../packages/docs/tools/_assets/spell-doc.css">
-    <link rel="stylesheet" href="../../../packages/docs/tools/_assets/details.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Output: WebAssembly: analysis</title>
+    <meta name="description" content="Details:  Output: WebAssembly:  analysis" />
+    <link rel="stylesheet" href="../../../packages/docs/tools/_assets/spell-doc.css" />
+    <link rel="stylesheet" href="../../../packages/docs/tools/_assets/details.css" />
   </head>
   <body class="spell-doc-page">
     <spell-site-header root="../../.."></spell-site-header>
     <div class="spell-doc">
       <main class="spell-doc-main">
         <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
-          <ui-breadcrumb-section href="../../../pages/index.html" target="src-packages-docs-index-html">Docs</ui-breadcrumb-section>
-          <ui-breadcrumb-section active>Output: WebAssembly:  analysis</ui-breadcrumb-section>
+          <ui-breadcrumb-section href="../../../pages/index.html" target="src-packages-docs-index-html"
+            >Docs</ui-breadcrumb-section
+          >
+          <ui-breadcrumb-section active>Output: WebAssembly: analysis</ui-breadcrumb-section>
         </ui-breadcrumb>
-        <ui-sticky class="spell-h1"><header class="spell-page-head"><h1>Output: WebAssembly:  analysis</h1></header></ui-sticky>
-        <p class="lede">One sentence: what's being decided, and why it matters now.</p>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>Output: WebAssembly: analysis</h1></header></ui-sticky
+        >
+        <p class="lede">
+          The big choices for a spell target that writes WebAssembly: where its runtime comes from, what it writes, how
+          values live in memory, how much of spell it covers first, and when to start.
+        </p>
         <ui-list class="spell-meta">
-          <ui-item icon="comments">Asked by: session <code>name</code>, while doing what</ui-item>
-          <ui-item icon="calendar" data-details-asked>Asked:  2026-10-11</ui-item>
-          <ui-item icon="flag">Status:
-            <ui-label size="mini" color="red" data-details-status>waiting for your answer</ui-label></ui-item>
+          <ui-item icon="comments"
+            >Asked by: session <code>epic-workflow</code>, writing down your idea as a future epic</ui-item
+          >
+          <ui-item icon="calendar" data-details-asked>Asked: 2026-10-11</ui-item>
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="red" data-details-status>waiting for your answer</ui-label></ui-item
+          >
         </ui-list>
 
         <ui-message class="spell-where" state="info" header="Where we are">
           <ul>
-            <li><b>Epic:</b> <code>name</code> -- what that work is for, in one line.</li>
-            <li><b>Just now:</b> what happened that led to this question.</li>
-            <li><b>This decides:</b> what changes for you, whichever you pick.</li>
+            <li>
+              <b>Epic:</b> <code>output-wasm</code>, a FUTURE epic: written down, not planned yet. It's a new output
+              target, so <code>spell compile --target wasm</code> writes a <code>.wasm</code> module.
+            </li>
+            <li>
+              <b>Just now:</b> you asked for it ("OK if it is doing a subset of spell at this point, e.g. no html"). I
+              read how the JS, TS and Python targets work, to see the options and the hard parts.
+            </li>
+            <li>
+              <b>This decides:</b> the shape of the plan, when <code>/epic output-wasm</code> plans it later. Nothing is
+              built now.
+            </li>
           </ul>
         </ui-message>
 
-        <ui-section id="context" header="1. Context" sticky collapsible dividing>
+        <ui-section id="context" header="1. Context" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="lightbulb"></ui-icon>
-          <ul>
-            <li>What's going on, in plain words; define every coined word.</li>
-            <li>The picture: a table, the real code, a diagram, a live example.</li>
-          </ul>
+
+          <ui-section id="problem" header="1.1 The problem" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Spell compiles to JavaScript (and TypeScript). Python is a target on its own branch, not merged yet.
+              </li>
+              <li>
+                WebAssembly ("wasm") is a low-level binary format browsers and node run fast. It knows numbers,
+                functions and memory, and nothing else on its own: no text, lists or objects unless we bring them.
+              </li>
+              <li>
+                So the target is two jobs: a WRITER that turns spell into wasm, and a RUNTIME for what wasm lacks.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="today" header="1.2 What exists today" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A target is one entry in <code>packages/spell/src/targets.ts</code>: a name, a writer, a file suffix,
+                and whether it can draw.
+              </li>
+              <li>
+                A WRITER walks spell's syntax tree (the "AST": the program's meaning, not JavaScript's spelling), with
+                one method per kind of node: about 60 of them in the JS writer.
+              </li>
+              <li>
+                Compiled JS leans on the RUNTIME, <code>@spell/core</code> (about 8,000 lines): things with reactive
+                properties, 1-based lists, pauses, drawing, tests.
+              </li>
+              <li>
+                Python closed that gap by PORTING the core to Python, and using plain Python wherever it could. Its
+                branch also adds <code>ProgramWriter</code>, a writer base for languages that aren't JavaScript.
+              </li>
+              <li>
+                No wasm tooling is in the repo yet. Node 24 runs modern wasm (garbage-collected objects, exceptions, JS
+                strings) with no setup, so tests can run wasm directly.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>FizzBuzz, the "real test of a new target" · 9 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-plaintext">to fizzbuzz:
+  for each number in 1 to 100:
+    if number / 15 is an integer: print "FizzBuzz"
+    otherwise if number / 3 is an integer: print "Fizz"
+    otherwise if number / 5 is an integer: print "Buzz"
+    otherwise: print number</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <p>
+              It needs only numbers, a range loop, if / otherwise and printing. Its compiled JS makes 4 calls into the
+              core, and each has a plain wasm equivalent (printing goes out to the host).
+            </p>
+          </ui-section>
+
+          <ui-section id="shape" header="1.3 The shape I'd propose" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A <code>wasm</code> target that can't draw (<code>can: { draw: false }</code>): a project that draws
+                gets the existing "this target can't draw" error.
+              </li>
+              <li>
+                The writer writes wasm's TEXT form (<code>.wat</code>), so its output is readable and reviewable; a
+                small JS assembler turns it into the <code>.wasm</code> binary.
+              </li>
+              <li>
+                Numbers are always 64-bit floats at first: spell has one "number" type, and "is an integer" is a test it
+                makes at run time.
+              </li>
+              <li>
+                A tiny JS "host" gives the module printing (and seeded random), so the contract test can run it beside
+                JS and Python.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>What one FizzBuzz line might become · wat</ui-title>
+              <ui-content>
+                <pre><code class="language-plaintext">;; if number / 3 is an integer: print "Fizz"
+(if (call $isInteger (f64.div (local.get $number) (f64.const 3)))
+  (then (call $print (global.get $text_Fizz))))</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="away" header="1.4 What goes away" sticky collapsible dividing collapsed>
+            <ul>
+              <li>Nothing: JS stays the running target, and wasm is one more, like TypeScript and Python.</li>
+              <li>Inside the subset, wasm needs no <code>@spell/core</code> at all.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="catch" header="1.5 The catch" sticky collapsible dividing collapsed>
+            <ul>
+              <li><b>Text:</b> wasm has no strings. Either borrow JS strings (modern wasm can) or build our own.</li>
+              <li>
+                <b>Mixed values:</b> a card's rank is <code>"ace" | 2 | ... | "king"</code>: text or number. Wasm needs
+                every value's type up front, so mixed ones need boxing.
+              </li>
+              <li>
+                <b>Memory:</b> things and lists need garbage collection. Modern wasm has it built in ("WasmGC"); older
+                wasm means writing an allocator.
+              </li>
+              <li>
+                <b>Pauses and events:</b> <code>pause for</code>, processes and reactive properties don't fit wasm's
+                model; leave them out at first.
+              </li>
+              <li>
+                <b>Binary output:</b> the house rule "written as a person would" can only hold for the
+                <code>.wat</code> text.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="size" header="1.6 A rough size" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                FizzBuzz-level (numbers, actions, if, loops, print): about a day of work, plus the host and the contract
+                line.
+              </li>
+              <li>Things with number properties, and lists of numbers: a few days more.</li>
+              <li>Text and mixed choices (enough for Cards, without pauses): a week or more, mostly runtime.</li>
+            </ul>
+          </ui-section>
         </ui-section>
 
-        <ui-section id="q1" class="spell-question" header="Q1 · Short question" sticky collapsible dividing>
+        <ui-section
+          id="q1"
+          class="spell-question"
+          header="Q1 · Where does the runtime come from?"
+          sticky
+          collapsible
+          dividing
+          collapsed
+        >
           <ui-icon slot="icon" name="circle question"></ui-icon>
-          <p>The question in full, in one or two lines.</p>
-          <div class="spell-option" data-option="A" data-title="First option" data-recommended>
-            <p>One line: what changes, and why it's recommended.</p>
+          <p>
+            Wasm lacks text, lists and objects. Something must provide them: the module itself, or JavaScript beside it.
+          </p>
+          <div class="spell-option" data-option="A" data-title="In wasm, growing" data-recommended>
+            <p>
+              The subset needs almost no runtime; each new feature brings its own small wasm runtime piece. Only
+              printing and random come from the host. It becomes a "wasm core", as Python got a Python core.
+            </p>
             <div class="spell-option-details">
-              <p>Anything longer: a table, code, a picture.</p>
+              <ul>
+                <li>The module stands alone: it runs anywhere wasm runs.</li>
+                <li>Cost: every feature past numbers means runtime work in wasm.</li>
+              </ul>
             </div>
           </div>
-          <div class="spell-option" data-option="B" data-title="Second option">
-            <p>One line: what changes, and its cost.</p>
+          <div class="spell-option" data-option="B" data-title="Borrow the JS core">
+            <p>
+              Wasm does the arithmetic and control flow, and calls <code>@spell/core</code> in JavaScript for text,
+              lists and things. Quick to cover a lot of spell.
+            </p>
+            <div class="spell-option-details">
+              <ul>
+                <li>
+                  Cost: wasm becomes a thin layer over JS. Every list access crosses the boundary, which is slow, and
+                  the module never runs without the JS core.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="spell-option" data-option="C" data-title="Port the whole core first">
+            <p>A full wasm port of the core contract up front, as Python's port did, then the writer.</p>
+            <div class="spell-option-details">
+              <ul>
+                <li>
+                  Cost: weeks before the first program runs; much of the core is drawing and reactivity, which a
+                  non-drawing target doesn't need.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </ui-section>
+
+        <ui-section
+          id="q2"
+          class="spell-question"
+          header="Q2 · What does the writer write?"
+          sticky
+          collapsible
+          dividing
+          collapsed
+        >
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>The writer can write wasm's text form, the binary directly, or another language that compiles to wasm.</p>
+          <div class="spell-option" data-option="A" data-title="Wasm text (.wat)" data-recommended>
+            <p>
+              Readable output, reviewable in snapshots; an npm assembler (<code>wabt</code> or <code>binaryen</code>,
+              pure JS, no native build) makes the binary.
+            </p>
+          </div>
+          <div class="spell-option" data-option="B" data-title="Binary directly">
+            <p>No new dependency, but nothing to read: snapshots would be hex, and bugs harder to see.</p>
+          </div>
+          <div class="spell-option" data-option="C" data-title="AssemblyScript">
+            <p>
+              Write AssemblyScript (TypeScript-like) and compile it with its compiler. The writer could lean on the TS
+              writer, and gets text, arrays and GC for free.
+            </p>
+            <div class="spell-option-details">
+              <ul>
+                <li>
+                  Cost: a heavier dependency and its own runtime; we'd be targeting AssemblyScript's dialect, not wasm,
+                  and give up control of what the module looks like.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </ui-section>
+
+        <ui-section
+          id="q3"
+          class="spell-question"
+          header="Q3 · How do values live in memory?"
+          sticky
+          collapsible
+          dividing
+          collapsed
+        >
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>Things, lists and text need memory that's freed when they're no longer used.</p>
+          <div class="spell-option" data-option="A" data-title="Modern wasm (GC)" data-recommended>
+            <p>
+              Use wasm's built-in garbage collection for things and lists, and borrow JS strings for text. Node 24 and
+              current browsers have both.
+            </p>
+            <div class="spell-option-details">
+              <ul>
+                <li>Cost: older browsers and some non-JS wasm runtimes can't run it.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="spell-option" data-option="B" data-title="Classic linear memory">
+            <p>
+              Our own allocator over plain memory: runs on every wasm runtime, but means writing memory management by
+              hand. Much harder.
+            </p>
+          </div>
+        </ui-section>
+
+        <ui-section
+          id="q4"
+          class="spell-question"
+          header="Q4 · How much of spell first?"
+          sticky
+          collapsible
+          dividing
+          collapsed
+        >
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>
+            You said a subset is fine. Where should the first epic stop? Anything outside it is refused with a clear
+            "not in the wasm subset yet" error.
+          </p>
+          <div class="spell-option" data-option="A" data-title="Numbers and things" data-recommended>
+            <p>
+              FizzBuzz-level (numbers, actions, if / otherwise, loops, print), plus things with number properties and
+              lists of numbers, proven by a new pure-computation test project.
+            </p>
+          </div>
+          <div class="spell-option" data-option="B" data-title="FizzBuzz only">
+            <p>
+              The smallest proof: numbers, actions, if, loops and print. FizzBuzz passes the contract test, and that's
+              the epic.
+            </p>
+          </div>
+          <div class="spell-option" data-option="C" data-title="Up to Cards">
+            <p>
+              Also text, mixed choices and tests (<code>expect</code>): enough to run Cards without pauses. Much bigger:
+              most of the runtime work.
+            </p>
+          </div>
+        </ui-section>
+
+        <ui-section id="q5" class="spell-question" header="Q5 · When?" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>
+            The Python target's branch adds <code>ProgramWriter</code>, a writer base for non-JavaScript languages that
+            knows each value's kind. A wasm writer wants that base.
+          </p>
+          <div class="spell-option" data-option="A" data-title="After Python merges" data-recommended>
+            <p>
+              Start once <code>python-target</code> is on <code>main</code>, and build on its
+              <code>ProgramWriter</code>.
+            </p>
+          </div>
+          <div class="spell-option" data-option="B" data-title="Now, on the JS writer">
+            <p>
+              Start now from the JS writer's base; move onto <code>ProgramWriter</code> when Python merges. Some rework,
+              and merge conflicts in the writers.
+            </p>
           </div>
         </ui-section>
         <!-- no footer:  the Send bar `details.js` adds is the page's bottom;  the date is up top ("Asked") -->
