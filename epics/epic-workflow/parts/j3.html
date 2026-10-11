@@ -68,3 +68,255 @@
     <li><code>spell dev --help</code>: only the repo's plumbing, plus the old names as aliases until the tidy.</li>
   </ul></epic-net-effect
 >
+<epic-reply
+  from="Claude"
+  at="2026-10-11 14:23"
+  re='Let&apos;s go in the direction of `epic` being its own top-level cli -- so no "spell" in the CLI to invoke it. What does that do to the api? Make a review page which lists: current "spell" cli syntax | proposed cli syntax (editable) | purpose'
+>
+  <p>
+    With <code>spell</code> gone from the front, <code>epic</code> is a tool of its own, so the extra
+    <code>plan</code> word this call first proposed stops paying for itself: every plan-doc verb can sit straight under
+    <code>epic</code>, with its name unchanged.
+  </p>
+  <ul>
+    <li>
+      The review page lists all 199 command lines: current syntax, the proposed syntax in an editable box (my
+      recommendation filled in), and what each is for.
+      <a href="../details/epic-cli.html" target="epic-workflow-epic-cli">epic as its own command</a>
+    </li>
+    <li>Type over any box you'd name differently, then press Do it; the split phase (P7) builds what you send.</li>
+  </ul>
+
+  <epic-field label="What the API becomes">
+    <ul>
+      <li>
+        <code>epic &lt;verb&gt; &lt;epic&gt; ...</code> for everything that acts on one epic: today's plan-doc verbs and
+        today's <code>spell epic</code> verbs, side by side.
+        <ul>
+          <li>
+            <code>spell dev plan-doc add-phase seo "Name" ...</code> becomes <code>epic add-phase seo "Name" ...</code>
+          </li>
+          <li><code>spell dev plan-doc inbox seo wait</code> becomes <code>epic inbox seo wait</code></li>
+          <li><code>spell epic send seo --text "..."</code> becomes <code>epic send seo --text "..."</code></li>
+        </ul>
+      </li>
+      <li>
+        It's still one search and replace, the reason this call gave for its first answer:
+        <code>spell dev plan-doc</code> becomes <code>epic</code>, and every argument stays where it was.
+      </li>
+      <li>
+        The verbs that would have clashed under <code>spell epic</code> (<code>list</code>, <code>new</code>,
+        <code>check</code>, <code>open</code>, <code>docs</code>) are fine here: each one means the plan-doc verb, and
+        the docs tools stay in <code>spell dev docs</code>.
+      </li>
+      <li>
+        Two names change:
+        <ul>
+          <li>
+            Details pages: <code>spell dev details</code> becomes <code>epic ask</code>. The word
+            <code>details</code> stays with the plan-doc verb that writes into an item, which every background agent
+            runs.
+          </li>
+          <li>
+            The plan-doc verb <code>request</code> becomes <code>add-request</code>, matching <code>add-phase</code>.
+            Beside <code>requests</code> and <code>file</code> it read like a third way to send; only
+            <code>epic file</code> calls it.
+          </li>
+        </ul>
+      </li>
+      <li>
+        Groups under <code>epic</code>, verbs unchanged: <code>ask</code>, <code>choices</code>, <code>comments</code>,
+        <code>notes</code>, <code>agents</code>, <code>airplane</code>.
+      </li>
+      <li>
+        <code>spell dev</code> keeps the repo's plumbing: windows, worktrees, sessions, parking, the page server, shared
+        content, packs, bundles, the extension, the commands page, WWOD, docs, the design system.
+      </li>
+      <li>
+        <code>spell</code> keeps the language: <code>compile</code>, <code>check</code>, <code>run</code> ... unchanged.
+      </li>
+      <li>Goals is parked (P6), so its rows say it goes away rather than giving it a new name.</li>
+      <li>
+        The cost: <code>epic --help</code> is about 55 lines, against 12 with a <code>plan</code> group. It would list
+        them under headings (requests, phases, items, review inbox, reading, upkeep, groups).
+      </li>
+    </ul>
+    <epic-aside title="why not the epic first: epic seo add-phase">
+      <ul>
+        <li>It reads well, but every call changes shape, so it's no longer one search and replace.</li>
+        <li><code>epic list</code>, <code>epic home</code> and the groups take no epic, so they'd be exceptions.</li>
+      </ul>
+    </epic-aside>
+  </epic-field>
+
+  <epic-field label="How epic gets on the PATH">
+    <ul>
+      <li>
+        A second bin, <code title="packages/cli/bin/epic.mjs">epic.mjs</code>, beside
+        <a href="../../../packages/cli/bin/spell.mjs" target="src-packages-cli-bin-spell-mjs"
+          ><code title="packages/cli/bin/spell.mjs">spell.mjs</code></a
+        >, and an <code>epic</code> entry in the cli package's <code>bin</code>.
+      </li>
+      <li>
+        <code>yarn cli:install</code> links both; its
+        <a href="../../../packages/cli/scripts/install-cli.mjs" target="src-packages-cli-scripts-install-cli-mjs"
+          ><code title="packages/cli/scripts/install-cli.mjs">install script</code></a
+        >
+        links only <code>spell</code> today. Nothing named <code>epic</code> is on this Mac's PATH, so the name is free.
+      </li>
+      <li>
+        It starts lean, as <code>spell dev</code> does: its own entry loads only the command parser and the plan-doc
+        tool, never spell. So <code>epic add ...</code> costs what <code>spell dev plan-doc add ...</code> costs now,
+        not the extra half second the slow-start issue (I3) warns about.
+        <ul>
+          <li>
+            <code>send</code>, <code>requests</code>, <code>file</code>, <code>home</code> and <code>merge</code> still
+            need session helpers that live behind the CLI's barrel (J2): the lean entry hands just those over to the
+            full one, the way
+            <a href="../../../packages/cli/src/devMain.ts" target="src-packages-cli-src-devmain-ts"
+              ><code title="packages/cli/src/devMain.ts">devMain.ts</code></a
+            >
+            does today.
+          </li>
+        </ul>
+      </li>
+      <li>
+        The command tree moves out of
+        <a href="../../../packages/cli/src/main.ts" target="src-packages-cli-src-main-ts"
+          ><code title="packages/cli/src/main.ts">main.ts</code></a
+        >
+        into its own file beside
+        <a href="../../../packages/cli/src/devProgram.ts" target="src-packages-cli-src-devprogram-ts"
+          ><code title="packages/cli/src/devProgram.ts">devProgram.ts</code></a
+        >, which both entries build, as <code>spell dev</code>'s is.
+      </li>
+    </ul>
+  </epic-field>
+
+  <epic-field label="Who calls it today">
+    <p>
+      Counted with a grep for the epic tools' spellings (plan-doc, details, choices, comments, notes, agents, airplane,
+      and <code>spell epic</code>):
+    </p>
+    <ui-table celled compact striped unstackable>
+      <table>
+        <tbody>
+          <tr>
+            <th>where</th>
+            <th class="num right aligned">lines</th>
+            <th class="num right aligned">files</th>
+            <th>what changes</th>
+          </tr>
+          <tr>
+            <td>skills</td>
+            <td class="num right aligned">166</td>
+            <td class="num right aligned">15</td>
+            <td>
+              search and replace: plan-doc 104, agents 24, details 13, <code>spell epic</code> 13, airplane 7, the rest
+              5
+            </td>
+          </tr>
+          <tr>
+            <td>
+              root <a href="../../../CLAUDE.md" target="src-claude-md"><code>CLAUDE.md</code></a
+              >, <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a>
+            </td>
+            <td class="num right aligned">7</td>
+            <td class="num right aligned">2</td>
+            <td>the "Delegated work" rule (agents, 4 lines), the tooling-home rule, two mentions</td>
+          </tr>
+          <tr>
+            <td>packages</td>
+            <td class="num right aligned">217</td>
+            <td class="num right aligned">90</td>
+            <td>
+              comments, usage text, and messages printed to Claude, none of which runs the CLI; e.g. the comments tool
+              writes "spell dev comments answer ..." into a phase
+            </td>
+          </tr>
+          <tr>
+            <td>hooks</td>
+            <td class="num right aligned">0</td>
+            <td class="num right aligned">0</td>
+            <td>
+              they run only plumbing: <code>spell dev shared commit</code> (every turn) and
+              <code>spell dev shared link</code> (new worktrees), which stay
+            </td>
+          </tr>
+          <tr>
+            <td>VS Code extension</td>
+            <td class="num right aligned">0</td>
+            <td class="num right aligned">0</td>
+            <td>it runs only <code>spell dev server stop</code> and <code>ensure</code>, which stay</td>
+          </tr>
+          <tr>
+            <td>root yarn scripts</td>
+            <td class="num right aligned">2</td>
+            <td class="num right aligned">1</td>
+            <td>
+              <code>yarn plan-doc</code> and <code>yarn details</code>: <code>yarn epic</code> and
+              <code>yarn ask</code> beside them, the old ones kept until the tidy
+            </td>
+          </tr>
+          <tr>
+            <td>the commands page</td>
+            <td class="num right aligned">97</td>
+            <td class="num right aligned">1</td>
+            <td>
+              its data file's rows, rewritten; and <code>spell dev commands check</code> reads only
+              <a href="../../../packages/cli/src/main.ts" target="src-packages-cli-src-main-ts"><code>main.ts</code></a>
+              and
+              <a href="../../../packages/cli/src/devProgram.ts" target="src-packages-cli-src-devprogram-ts"
+                ><code>devProgram.ts</code></a
+              >, so it must learn the new tree, or every epic command shows as a gap
+            </td>
+          </tr>
+          <tr>
+            <td>shared docs</td>
+            <td class="num right aligned">330</td>
+            <td class="num right aligned">42</td>
+            <td>guides 293, templates 20, the logs 17: rewritten in the Doc Review (P8)</td>
+          </tr>
+          <tr>
+            <td>plan docs</td>
+            <td class="num right aligned">350</td>
+            <td class="num right aligned"></td>
+            <td>history: left as written</td>
+          </tr>
+        </tbody>
+      </table>
+    </ui-table>
+  </epic-field>
+
+  <epic-field label="Old names">
+    <ul>
+      <li>
+        Through the move, <code>spell epic &lt;verb&gt;</code>, <code>spell dev plan-doc &lt;verb&gt;</code> and each
+        old <code>spell dev &lt;group&gt;</code> run the new command, quietly: a warning would land in every agent's
+        output.
+      </li>
+      <li>They go in a later tidy, once a search over the skills, the root rules and the packages finds no caller.</li>
+      <li>
+        The deprecated <code>spell plan-doc</code> goes at P7: its 8 mentions are comments, the README and two tests; no
+        skill runs it.
+      </li>
+    </ul>
+  </epic-field>
+
+  <epic-net-effect>
+    <ul>
+      <li>
+        This call's recommendation changes from <code>spell epic plan &lt;verb&gt;</code> to
+        <code>epic &lt;verb&gt;</code>, once the page comes back.
+      </li>
+      <li>
+        The details-pages call (J4) becomes <code>epic ask</code>; the agents, airplane and notes calls (J5-J7) are
+        groups under <code>epic</code>; goals (J8) is parked.
+      </li>
+      <li>
+        P7 builds: the <code>epic</code> bin and its lean entry, the install linking both, the commands check reading
+        the new tree, every caller replaced, and the old names as aliases.
+      </li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
