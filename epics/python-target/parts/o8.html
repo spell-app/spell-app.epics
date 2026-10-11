@@ -1,40 +1,80 @@
 <!-- plan-doc part:  #o8's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Owen added this after Doc Review, 2026-10-11: a Python spell app becomes a web app, its logic and its drawing in
-  Python on a Quart server, the browser only its view.
+  Owen added this after Doc Review, 2026-10-11: a Python spell app becomes a web app. Its logic stays in Python, on a
+  Quart server; its drawing runs in the browser as JS web components the compiler writes; the two keep in step through
+  the program's things, sent by id.
 </p>
 <ul>
   <li>
-    His words:
+    His words, as he first gave them:
     <ul>
       <li>
-        <a href="#p17">P17 · Web Components For HTML</a>: "python compiler outputs compiled JS web components for the
-        HTML bits"
+        <a href="#p19">P19 · JS Web Components</a>: "python compiler outputs compiled JS web components for the HTML
+        bits"
       </li>
       <li>
-        <a href="#p18">P18 · Flask Spell Apps</a>:
+        <a href="#p20">P20 · Quart Spell Apps</a>:
         <i>"spell apps" in python are python flask based apps, using these web components</i>
       </li>
     </ul>
   </li>
   <li>
-    His answers to the seven questions, the same day (Q20 to Q26), chose a different path from the one first drafted:
-    Python draws the page itself, on Quart rather than Flask, a game per visitor.
+    His answers to the seven questions (<a href="#q20">Q20</a> to <a href="#q26">Q26</a>) chose Quart rather than Flask,
+    a game per visitor, and the state in three steps.
   </li>
   <li>
-    The phase names are kept, since the plan-doc tool can't rename a phase; read P17 as "Python Draws The Page" and P18
-    as "Quart Spell Apps".
+    Later the same day he revised two things:
+    <ul>
+      <li>
+        Q20 to A: "the python writer can use the js/solid writer to create the components". The page draws with compiled
+        JavaScript, not Python's HTML.
+      </li>
+      <li>
+        The order: the state by id and the changes come first, as <a href="#p17">P17</a> and <a href="#p18">P18</a>,
+        since the page draws from them.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>P19 waits on the drawable-thing epic</b>, still in its own worktree: it makes a drawable type its own custom
+    element.
+    <ul>
+      <li>Owen: assume it lands before it's needed.</li>
+      <li>If P19 is blocked on it, P19 is parked, and the work moves on.</li>
+      <li>P20's examples may then use only Spell UI's <code>ui-*</code> components.</li>
+    </ul>
   </li>
 </ul>
-<p>What happens, step by step, with his answers (each step's decision linked):</p>
+<p>The four phases, in order:</p>
 <ol>
   <li>
-    Compiling Solitaire to <code>py/asyncio</code> writes the Python as today, and beside it an app file,
-    <code>Solitaire.app.py</code>: a short Quart app with every route spelled out (<a href="#q23">Q23</a>,
-    <a href="#q25">Q25</a>).
+    <a href="#p17">P17 · Things As JSON By Id</a>: spell_core writes the whole state as JSON, each thing with an
+    <code>"@id"</code> and later mentions as references; it reads it back by id, and so does the javascript core, into
+    mirrors.
   </li>
   <li>
-    Running that file starts the server, on spell-quart, a package of its own beside spell_core (<a href="#q26">Q26</a
+    <a href="#p18">P18 · Only Changes Sent</a>: spell_core notes each change to a thing or a list, and hands over a
+    patch of what changed since the last one.
+  </li>
+  <li>
+    <a href="#p19">P19 · JS Web Components</a>: compiling to <code>py</code> also writes the drawing half with the
+    javascript writer, an elements file; its things are mirrors of Python's, and clicks go back as messages.
+  </li>
+  <li>
+    <a href="#p20">P20 · Quart Spell Apps</a>: a Quart app serves the page and a WebSocket, a game per visitor; the
+    state goes down when the page opens, then only the changes.
+  </li>
+</ol>
+<p>What happens, step by step, once all four are built (each step's decision linked):</p>
+<ol>
+  <li>
+    Compiling Solitaire to <code>py/asyncio</code> writes the Python as today, and beside it two files: the elements
+    file, <code>Solitaire.elements.js</code> (<a href="#q20">Q20</a>), and the app file, <code>Solitaire.app.py</code>,
+    a short Quart app with every route spelled out (<a href="#q23">Q23</a>, <a href="#q25">Q25</a>).
+  </li>
+  <li>
+    Running the app file starts the server, on spell-quart, a package of its own beside spell_core (<a href="#q26"
+      >Q26</a
     >).
   </li>
   <li>
@@ -42,42 +82,30 @@
     (<a href="#q24">Q24</a>).
   </li>
   <li>
-    Python draws the page as HTML, as it does today, in a web mode that adds a few marks (<a href="#q20">Q20</a>):
-    <ul>
-      <li>each thing's id and properties as attributes on its element (<a href="#q21">Q21</a>)</li>
-      <li>an id on each click handler</li>
-    </ul>
-  </li>
-  <li>
-    The page shows it with Spell UI's elements and styles, and opens a WebSocket back to the server (<a href="#q22"
+    The page loads Spell UI, the javascript core and the elements file, and opens a WebSocket back to the server (<a
+      href="#q22"
       >Q22</a
     >).
   </li>
-  <li>A click on a card sends its handler's id up the WebSocket.</li>
-  <li>Python runs that handler, the game's <code>on card-click</code>, in Python, where it was written.</li>
   <li>
-    Python draws the page again, after the handler and at each pause in it, and sends the HTML down the WebSocket.
+    Python sends the whole state, each thing with its id (<a href="#q21">Q21</a>, A); the page reads it into mirrors,
+    and the elements draw the board from them.
   </li>
-  <li>The page client morphs the new HTML in: only what changed is touched, so auto-play animates.</li>
+  <li>A click on a card sends a message up the WebSocket: <code>card-click</code>, with the card's id.</li>
+  <li>
+    Python finds that card by its id and runs the game's <code>on card-click</code>, in Python, where it was written.
+  </li>
+  <li>
+    After the handler, and at each pause in it, Python sends only what changed (Q21, B); the mirrors take it, and only
+    the elements whose things changed redraw, so auto-play animates.
+  </li>
 </ol>
-<p>
-  Then two more phases, in the order Owen gave for Q21: "start with C, new phase to do a, then subsequent phase to do
-  b".
-</p>
-<ul>
-  <li>
-    <a href="#p19">P19 · Things As JSON By Id</a>: the whole state travels beside each drawing, each thing with an id,
-    and the page keeps a mirror of each.
-  </li>
-  <li><a href="#p20">P20 · Only Changes Sent</a>: only what changed travels, and only the drawings it touches.</li>
-  <li>How those read when Python draws, and what to pick if that isn't what Owen meant: <a href="#j46">J46</a>.</li>
-</ul>
-<epic-aside title="the path first drafted, not taken">
-  <p>The questions' recommended answers drew a different app:</p>
+<epic-aside title="the earlier drafts, not taken">
+  <p>The questions' recommended answers drew one app:</p>
   <ul>
     <li>
       The compiler would have written each type's drawing as JavaScript, <code>Solitaire.elements.js</code>, run on the
-      javascript core (Q20, A).
+      javascript core (Q20, A): close to the plan now.
     </li>
     <li>Python would have sent its things as JSON with ids from the start, for the page to draw (Q21, A).</li>
     <li>Clicks would have been posted to the server, with a stream pushing changes back (Q22, A).</li>
@@ -86,11 +114,24 @@
       by <code>create_app()</code> in spell_core, with Flask an extra of spell_core (Q23 to Q26, A).
     </li>
   </ul>
+  <p>Owen's first answers, the same day, drew another: Python draws the page.</p>
+  <ul>
+    <li>
+      Q20, C: Python kept drawing the page as HTML, the way Phoenix LiveView and htmx work; nothing compiled to
+      JavaScript.
+    </li>
+    <li>
+      A web mode in spell_core marked each thing and click handler with an id (J42), and a small page client morphed
+      Python's new HTML in (J43).
+    </li>
+    <li>
+      Q21 in the order C, A, B: properties as attributes first, then the whole state by id, then only the changes, with
+      Python redrawing only the changed things.
+    </li>
+    <li>The phases ran web components, Quart apps, JSON by id, then only changes.</li>
+  </ul>
+  <p>
+    The tension that draft noted: Owen had asked the compiler to OUTPUT JavaScript web components, and Python drawing
+    compiled none. His revision of Q20 settled it.
+  </p>
 </epic-aside>
-<ul>
-  <li>
-    The tension worth a second look: Owen first asked the compiler to OUTPUT JavaScript web components, and the path he
-    chose compiles none. The reading recorded in Q20's answer is that the web components are the page's own, drawn by
-    Python.
-  </li>
-</ul>

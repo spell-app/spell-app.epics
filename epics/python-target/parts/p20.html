@@ -1,112 +1,224 @@
 <!-- plan-doc part:  #p20's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom"
   ><p>
-    After every click, and at every pause, Python draws the whole page again and sends all of it with the whole state: a
-    few kilobytes for Solitaire, too much for a bigger program or a slow connection.
+    A compiled Python program can't be used as an app: nothing serves its page, and nothing carries a click back to
+    Python.
   </p></epic-field
 ><epic-field name="changes"
   ><p>
-    spell_core notes each property set and each list change, and sends only those, by id, to the page's mirrors (<a
-      href="#q21"
-      >Q21</a
-    >, B).
+    A Quart app (Flask's asyncio twin, <a href="#q23">Q23</a>) serves a program compiled to <code>py/asyncio</code>: its
+    page, drawn with <a href="#p19">P19</a>'s web components, and one WebSocket per page (<a href="#q22">Q22</a>).
   </p>
   <p>
-    Python redraws only the things that changed, or whose drawing read something that changed, and sends each one's HTML
-    under its <code>spell-id</code>.
+    Up the WebSocket go events; down it go the whole state when the page opens (<a href="#p17">P17</a>), then only the
+    changes (<a href="#p18">P18</a>) after each event and at each pause.
   </p>
   <p>
-    A safety net compares the patched page with a whole drawing, so a missed change fails loudly in tests.
+    Each visitor's session plays its own game (<a href="#q24">Q24</a>). Compiling writes an app file beside the program
+    (<a href="#q25">Q25</a>), on a new package, spell-quart (<a href="#q26">Q26</a>); spell_core stays standard library
+    only.
   </p></epic-field
+><epic-updated at="2026-10-11 14:26"
+  ><p>
+    Reshaped to Owen's answers, 2026-10-11: Quart, not Flask, running <code>py/asyncio</code> (<a href="#q23">Q23</a>,
+    B), over WebSockets (<a href="#q22">Q22</a>, C), with a game per visitor (<a href="#q24">Q24</a>, B), a generated
+    app file (<a href="#q25">Q25</a>, B), in a package of its own, spell-quart (<a href="#q26">Q26</a>, C).
+  </p>
+  <ul>
+    <li>
+      Gone: a click posted to a URL with a stream pushing changes back, one shared game per server,
+      <code>create_app()</code> in spell_core, and Flask as an extra of spell_core.
+    </li>
+    <li>
+      New: a core per session (<a href="#c4">C4</a>), the app file and its overwrite rule (<a href="#j45">J45</a>), the
+      spell-quart package (<a href="#j44">J44</a>).
+    </li>
+    <li>The name, Flask Spell Apps, is kept: the plan-doc tool has no rename. Read it as "Quart Spell Apps".</li>
+    <li>Estimate: 5-7h to 7-10h, mostly for the core per session (Q24 put it at 3-4h more) and the new package.</li>
+  </ul></epic-updated
+><epic-updated at="2026-10-11 14:41"
+  ><p>
+    Reordered and revised 2026-10-11 (Owen): "Move P19 and P20 before P17" (by the numbers then: the JSON and changes
+    phases ahead of the web components), and Q20 revised to A, the page drawing with JS web components. This phase was
+    P18, and is renamed Quart Spell Apps.
+  </p>
+  <ul>
+    <li>
+      Down the WebSocket now go the state (P17) and the changes (P18), not Python's HTML; the page draws with P19's
+      compiled elements.
+    </li>
+    <li>
+      New: if the drawable-thing epic hasn't landed and P19 is parked, the examples use only Spell UI's components
+      (Owen's words).
+    </li>
+    <li>Kept: Quart on <code>py/asyncio</code>, a game per visitor, the app file, the spell-quart package.</li>
+    <li>Estimate: unchanged, 7-10h.</li>
+  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
     <li>
-      Owen, 2026-10-11, answering Q21: "start with C, new phase to do a, then subsequent phase to do b".
+      Owen, 2026-10-11, word for word:
+      <i>"spell apps" in python are python flask based apps, using these web components</i>.
       <ul>
-        <li>This phase is the "b": only what changed travels, on top of <a href="#p19">P19</a>'s mirrors.</li>
-        <li>How B reads when Python draws: <a href="#j46">J46</a>.</li>
+        <li>
+          Read with his answers: Quart, not Flask (Q23, B). Quart is Flask's asyncio twin, by the same people (Pallets),
+          with the same API: a function per URL, <code>@app.get("/")</code>.
+        </li>
+        <li>"These web components": P19's, compiled from the program by the javascript writer, with Spell UI's.</li>
       </ul>
     </li>
     <li>
-      spell_core tracks changes.
+      Examples, Owen, 2026-10-11: "for flask spell apps, you can make examples using only the spell/ui components".
       <ul>
         <li>
-          Things are plain Python objects today (<a href="#o4">1.4</a>): a thing gains a hook on setting a property, and
-          a list on adding, removing and moving items.
+          If the drawable-thing epic hasn't landed, and P19 is parked: the examples are programs drawn only with Spell
+          UI's <code>ui-*</code> elements, a counter or a form, and Solitaire waits.
         </li>
-        <li>
-          Each session keeps its changes until the next send (after a handler, and at each pause), then clears them.
-        </li>
+        <li>If it has: Solitaire, as below.</li>
       </ul>
-      <epic-code title="one click, as the page receives it" language="json">
+    </li>
+    <li>
+      Two commands serve a compiled app in a browser, e.g. Solitaire on <code>http://localhost:5000</code>.
+      <epic-code title="from a terminal · 4 lines" language="sh">
         <pre>
-{ "changes": [
-    { "@id": 18, "direction": "up" },
-    { "@id": 9, "@items": { "remove": [17] } },
-    { "@id": 4, "@items": { "add": [{ "@ref": 17 }] } }
-  ],
-  "drawings": { "18": "&lt;div class=\"Card face-up ...\"&gt;...&lt;/div&gt;", "9": "...", "4": "..." } }</pre>
+spell compile Solitaire --target py/asyncio
+#   writes Solitaire.compiled.py, Solitaire.elements.js, and Solitaire.app.py
+uv run python Solitaire.app.py
+#   serving Solitaire on http://localhost:5000</pre>
       </epic-code>
     </li>
     <li>
-      Only the drawings that changed.
+      The app file (Q25, B; its name and what compiling again does: <a href="#j45">J45</a>):
       <ul>
+        <li>a short Quart app with every route spelled out, for a Python programmer to read and grow</li>
+        <li>the page: Spell UI, the javascript core and its page side, the program's elements file and CSS</li>
+        <li>the WebSocket, <code>/ws</code>: events in, state and changes out</li>
+        <li>a place for their own routes</li>
+      </ul>
+    </li>
+    <li>
+      The program lives in Python, on the server; the page is its view.
+      <ul>
+        <li>A click on a card sends <code>card-click</code> with the card's id; the game's handler runs in Python.</li>
         <li>
-          While a thing draws, spell_core notes which things its drawing reads, as Solid notes what an effect reads.
-        </li>
-        <li>A change redraws each thing that read it: the card turned over, the pile it left, the pile it joined.</li>
-        <li>The page morphs each one in by its <code>spell-id</code> (<a href="#j43">J43</a>).</li>
-        <li>
-          When a change can't be placed (the app itself redraws, a new thing at the top), the whole page is drawn, as in
-          P17.
+          The changes it made go down the WebSocket as a patch; the page's mirrors take it, and the elements redraw.
         </li>
       </ul>
     </li>
     <li>
-      The safety net, since a change missed leaves the page wrong without a word:
+      Pauses show: auto-play's <code>pause for 100 msec</code> sends the changes so far before it waits, so the game
+      animates as it does in the editor's runner.
       <ul>
-        <li>a debug setting draws the whole page after each send, and compares it with the patched one</li>
-        <li>a difference is an error naming the thing; the tests run with it on</li>
+        <li>
+          On asyncio a pause awaits: one thread serves every page, and a timer can outlive the click that started it.
+        </li>
+      </ul>
+    </li>
+    <li>
+      A game per visitor (Q24, B; what it means and leaves out: <a href="#c4">C4</a>):
+      <ul>
+        <li>a session cookie names the visitor; their game lives in the server's memory</li>
+        <li>
+          spell_core's <code>core</code>, one object today (<a href="#j5">J5</a>), becomes a stand-in for the session's
+          own core
+        </li>
+        <li>the compiled program runs once per session, so the game, the deck and the piles are that visitor's</li>
+        <li>two tabs in one browser share a game; two browsers each play their own</li>
+      </ul>
+    </li>
+    <li>
+      The new package, spell-quart (Q26, C; its name and folder: <a href="#j44">J44</a>):
+      <ul>
+        <li>beside spell_core, depending on it and on Quart, pinned</li>
+        <li>
+          it carries the sessions, the WebSocket handler, the page's template, and the built javascript core, page side
+          and Spell UI
+        </li>
+        <li>spell_core itself stays standard library only</li>
+      </ul>
+    </li>
+    <li>
+      The docs: the durable doc, Python Target, gains "Python apps on the web"; the targets guide's Python rows say so;
+      the changelog entry grows.
+    </li>
+    <li>
+      Not here:
+      <ul>
+        <li><code>spell run --target py</code> starting it (the todo <a href="#t4">T4</a>)</li>
+        <li>
+          a plain <code>py</code> program on the web: its handlers and pauses don't await, so it stays a terminal
+          program
+        </li>
       </ul>
     </li>
   </ul></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
-      <a href="../../../packages/core/py/spell_core/things.py" target="src-packages-core-py-spell-core-things-py"
-        ><code title="packages/core/py/spell_core/things.py">things.py</code></a
+      a new uv project, <code title="packages/core/py-quart/">py-quart/</code>: spell-quart, its tests, and the build
+      step copying in the javascript core, its page side and Spell UI
+    </li>
+    <li>
+      <a href="../../../packages/core/py/spell_core/core.py" target="src-packages-core-py-spell-core-core-py"
+        ><code title="packages/core/py/spell_core/core.py">core.py</code></a
       >
       and
-      <a href="../../../packages/core/py/spell_core/lists.py" target="src-packages-core-py-spell-core-lists-py"
-        ><code title="packages/core/py/spell_core/lists.py">lists.py</code></a
-      >: noting each change
+      <a href="../../../packages/core/py/spell_core/run.py" target="src-packages-core-py-spell-core-run-py"
+        ><code title="packages/core/py/spell_core/run.py">run.py</code></a
+      >: <code>core</code> as a stand-in for the session's core; running a program for a session
     </li>
     <li>
       <a
-        href="../../../packages/core/py/spell_core/drawing_methods.py"
-        target="src-packages-core-py-spell-core-drawing-methods-py"
-        ><code title="packages/core/py/spell_core/drawing_methods.py">drawing_methods.py</code></a
-      >: noting what each drawing reads, redrawing only what changed
+        href="../../../packages/core/py/spell_core/runtime_methods.py"
+        target="src-packages-core-py-spell-core-runtime-methods-py"
+        ><code title="packages/core/py/spell_core/runtime_methods.py">runtime_methods.py</code></a
+      >: a pause sends the changes before it waits
     </li>
     <li>
-      <a href="../../../packages/core/src/json.ts" target="src-packages-core-src-json-ts"
-        ><code title="packages/core/src/json.ts">json.ts</code></a
-      >
-      and the page client (<a href="#j43">J43</a>): applying changes and drawings by id
+      <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
+        ><code title="packages/spell/src/targets.ts">targets.ts</code></a
+      >, and a template beside
+      <a href="../../../packages/parser/src/writers/PyWriter.ts" target="src-packages-parser-src-writers-pywriter-ts"
+        ><code title="packages/parser/src/writers/PyWriter.ts">PyWriter.ts</code></a
+      >: the <code>py/asyncio</code> target writes the app file
     </li>
-    <li>spell-quart (<a href="#j44">J44</a>): sending changes, and the safety net's setting</li>
+    <li>
+      <a href="../../../packages/core/package.json" target="src-packages-core-package-json"
+        ><code title="packages/core/package.json">package.json</code></a
+      >: its test, lint and format scripts run spell-quart's too
+    </li>
+    <li>
+      the durable doc,
+      <a href="../../../guides/python-target.html" target="src-guides-python-target-html"
+        ><code title="guides/python-target.html">python-target.html</code></a
+      >, the targets guide,
+      <a href="../../../guides/targets/targets.html" target="src-guides-targets-targets-html"
+        ><code title="guides/targets/targets.html">targets.html</code></a
+      >, and the changelog
+    </li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
     <li>
-      spell_core's pytest: turning a card over notes one change; moving a card notes both its piles; a pile's drawing is
-      noted as reading its cards.
+      A headless Playwright test (never the Claude-in-Chrome tools) on the served app, with seed 1:
+      <ul>
+        <li>
+          Solitaire (or, with P19 parked, a Spell UI example): the page opens and shows the first state, matching the
+          javascript run's
+        </li>
+        <li>clicking the stock turns a card over onto the discards; clicking a playable card moves it</li>
+        <li>
+          on a seed where AutoPlay has two moves or more, pressing AutoPlay changes the board more than once before the
+          moves finish: the pauses reached the page
+        </li>
+        <li>the test logs each message's size: a click's patch is a small part of the whole state</li>
+      </ul>
     </li>
+    <li>Two browser contexts deal and play two games: a click in one leaves the other as it was.</li>
+    <li>Compiling twice leaves an edited app file alone, and rewrites an unedited one.</li>
     <li>
-      A headless Playwright test (never the Claude-in-Chrome tools), Solitaire on P18's server with the safety net on: a
-      whole auto-play ends with the patched page equal to a whole drawing, every send along the way too.
+      spell-quart's pytest covers the page and the WebSocket with Quart's test client; spell_core's pytest passes with
+      no Quart installed; the core contract still passes on every target.
     </li>
-    <li>The same test logs each message's size: a single click sends a small part of what a whole drawing is.</li>
-    <li>The core contract still passes on every target; spell_core's pytest passes with no Quart installed.</li>
   </ul></epic-field
 >

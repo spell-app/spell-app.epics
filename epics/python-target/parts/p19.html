@@ -1,113 +1,171 @@
 <!-- plan-doc part:  #p19's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom"
   ><p>
-    The page knows Python's things only as attributes on their elements: flat values, nothing a thing holds (a pile's
-    cards, the game's score), and a card drawn in two places is two strangers.
+    A compiled Python program has no page: its drawing exists only as HTML text printed when it ends, nothing a browser
+    can show live, or click.
   </p></epic-field
 ><epic-field name="changes"
   ><p>
-    With each drawing, Python also sends the whole state as JSON: every thing once, with an <code>"@id"</code>, and each
-    later mention a reference to that id (<a href="#q21">Q21</a>, A).
+    Compiling to <code>py</code> also writes the program's drawing half as JavaScript, with the javascript target's
+    writer (<a href="#q20">Q20</a>, A, revised): web components, custom elements like
+    <code>&lt;solitaire-card&gt;</code>.
   </p>
   <p>
-    The page keeps a stand-in ("mirror") for each thing, updated in place by id, and each element with that
-    <code>spell-id</code> can read its whole thing.
-  </p></epic-field
+    Their things are mirrors of Python's, read from <a href="#p17">P17</a>'s state by id and patched with
+    <a href="#p18">P18</a>'s changes. Python keeps the logic.
+  </p>
+  <p>A click goes back as a message naming its thing by id; nothing the page runs changes the game.</p></epic-field
+><epic-updated at="2026-10-11 14:26"
+  ><p>
+    Reshaped to Owen's answers, 2026-10-11: Python keeps drawing the page as HTML (<a href="#q20">Q20</a>, C), and each
+    thing's state reaches the page as attributes (<a href="#q21">Q21</a>, C).
+  </p>
+  <ul>
+    <li>
+      Gone: the elements file compiled from each program (<code>Solitaire.elements.js</code>), and the JSON mirrors,
+      which move to <a href="#p17">P17</a>.
+    </li>
+    <li>
+      New: a web mode for spell_core's drawing (<a href="#j42">J42</a>), and one small page client that swaps in what
+      Python draws (<a href="#j43">J43</a>).
+    </li>
+    <li>
+      The name, Web Components For HTML, is kept: the plan-doc tool has no rename. It now means the page's own elements,
+      drawn by Python; read it as "Python Draws The Page".
+    </li>
+    <li>Estimate: 6-8h to 5-7h, since nothing is compiled to JavaScript.</li>
+  </ul></epic-updated
+><epic-updated at="2026-10-11 14:41"
+  ><p>
+    Reordered and revised 2026-10-11 (Owen): "Move P19 and P20 before P17" (by the numbers then: the JSON and changes
+    phases ahead of the web components), and Q20 revised to A: "the python writer can use the js/solid writer to create
+    the components". This phase was P17, and is renamed JS Web Components.
+  </p>
+  <ul>
+    <li>Gone: Python drawing the page as HTML in a web mode (J42), and a page client morphing it in (J43).</li>
+    <li>
+      Back: the elements file compiled from each program, its things mirrors read from P17's state and patched with
+      P18's changes.
+    </li>
+    <li>New: it waits on the drawable-thing epic, and is parked if blocked on it.</li>
+    <li>Q21's C, attributes, is now the plain properties on a drawable's own tag (J47).</li>
+    <li>Estimate: 5-7h to 6-8h, for the compiled elements.</li>
+  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
+    <li>Owen, 2026-10-11, first: "python compiler outputs compiled JS web components for the HTML bits".</li>
     <li>
-      Owen, 2026-10-11, answering Q21: "start with C, new phase to do a, then subsequent phase to do b".
+      Then, revising Q20 the same day: "the python writer can use the js/solid writer to create the components. This is
+      totally fine."
       <ul>
-        <li>This phase is the "a": the whole state, sent after every change, each thing with an id.</li>
-        <li>C was <a href="#p17">P17</a>; the "b", only the changes, is <a href="#p20">P20</a>.</li>
+        <li>So this is Q20's A after all: the compiler writes JavaScript, the drawing half of the program.</li>
+        <li>Python keeps everything that changes things, and every event handler.</li>
       </ul>
     </li>
     <li>
-      Python's JSON gains identity.
+      It waits on the epic
+      <a href="../../drawable-thing/drawable-thing.plan.html" target="drawable-thing">drawable-thing</a>:
       <ul>
         <li>
-          spell_core already writes a thing's class under <code>"@type"</code> and a list's items under
-          <code>"@items"</code>.
+          that epic makes a drawable type its own custom element, its plain properties attributes, events work anywhere
+          on the page, and things pass by reference
         </li>
+        <li>it is still in its own worktree, not merged into main</li>
+        <li>Owen: assume it lands before this phase needs it</li>
         <li>
-          Now each thing gets an <code>"@id"</code> the first time it's written, the same number as its
-          <code>spell-id</code> in the HTML.
-        </li>
-        <li>
-          A second mention is a reference, <code>{"@ref": 17}</code>: a card held by a pile and by the game is one card.
+          <b>If this phase is blocked waiting on it, the phase is parked</b>: an issue says what it waits on, and the
+          work moves on to what doesn't need it
         </li>
       </ul>
-      <epic-code title="a pile and its cards, as the page receives them" language="json">
+    </li>
+    <li>
+      What compiling writes: beside <code>Solitaire.compiled.py</code>, a <code>Solitaire.elements.js</code>.
+      <ul>
+        <li>
+          per drawable type: its element, its properties, the getters its drawing reads (and what they read), its
+          <code>to draw</code>, its styles
+        </li>
+        <li>the program's layouts</li>
+        <li>left out: every method that changes things, every event handler, the program's start</li>
+        <li>
+          a function a drawing calls, <code>auto_play()</code>, becomes a stand-in that sends the call to Python by name
+        </li>
+        <li>a getter that changes things is an error at compile time: it would change only the mirror</li>
+      </ul>
+    </li>
+    <li>
+      The things on the page are mirrors.
+      <ul>
+        <li>
+          the page reads Python's whole state (P17) into mirrors on the javascript core, then applies each patch (P18)
+        </li>
+        <li>Solid redraws only the elements whose things changed</li>
+      </ul>
+    </li>
+    <li>
+      Events go back as messages.
+      <epic-code title="two messages the page sends" language="json">
         <pre>
-{ "@type": "Tableau", "@id": 9, "name": "T1",
-  "@items": [
-    { "@type": "Card", "@id": 17, "rank": "queen", "suit": "spades", "direction": "up" },
-    { "@type": "Card", "@id": 18, "rank": 4, "suit": "hearts", "direction": "down" }
-  ] }</pre>
+{ "event": "card-click", "card": { "@ref": 17 } }
+{ "call": "auto_play" }</pre>
       </epic-code>
-    </li>
-    <li>
-      The page keeps mirrors.
       <ul>
-        <li>
-          The javascript core's JSON reader learns to update things in place by id, rather than make new ones: a card
-          keeps being the same object as it moves.
-        </li>
-        <li>Each drawn element finds its mirror by its <code>spell-id</code>, as <code>element.thing</code>.</li>
+        <li>Python finds card 17 by its id and fires the game's <code>on card-click</code> with it.</li>
+        <li>How messages travel belongs to the host: a test records them here; P20 sends them over a WebSocket.</li>
       </ul>
     </li>
     <li>
-      What it's for, with Python still drawing (<a href="#j46">J46</a>):
-      <ul>
-        <li>
-          code on the page can read the program's real things, not just flat attributes: a hand-written element, a page
-          that hosts the app, a test
-        </li>
-        <li>later, a Thing Explorer for a Python app, as the editor has one for javascript</li>
-        <li>the ground <a href="#p20">P20</a> builds on, sending only the changes to these mirrors</li>
-      </ul>
+      Attributes, Q21's C, now come last: a drawable's plain properties also sit on its own tag, the rest travel only as
+      JSON (<a href="#j47">J47</a>).
     </li>
-    <li>The HTML still comes from Python, and P17's attributes stay, for CSS and tests to read.</li>
-    <li>One message per send, over P18's WebSocket: the drawing and the state together.</li>
+    <li>
+      Checked before any server: a test page loads the elements, reads a seeded Python state, and draws Solitaire as the
+      javascript run draws it; a click records the right message.
+    </li>
   </ul></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
-      <a
-        href="../../../packages/core/py/spell_core/thing_methods.py"
-        target="src-packages-core-py-spell-core-thing-methods-py"
-        ><code title="packages/core/py/spell_core/thing_methods.py">thing_methods.py</code></a
-      >
-      and
-      <a href="../../../packages/core/py/spell_core/things.py" target="src-packages-core-py-spell-core-things-py"
-        ><code title="packages/core/py/spell_core/things.py">things.py</code></a
-      >: ids in the JSON, references for a second mention
+      <a href="../../../packages/parser/src/writers/PyWriter.ts" target="src-packages-parser-src-writers-pywriter-ts"
+        ><code title="packages/parser/src/writers/PyWriter.ts">PyWriter.ts</code></a
+      >: asks the javascript writer for the elements file
     </li>
     <li>
-      <a href="../../../packages/core/src/json.ts" target="src-packages-core-src-json-ts"
-        ><code title="packages/core/src/json.ts">json.ts</code></a
-      >: reading a state in place, by id
+      <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
+        ><code title="packages/parser/src/writers/JSWriter.ts">JSWriter.ts</code></a
+      >: writing the drawing half only, with stand-ins for calls
     </li>
     <li>
-      the page client, in <code title="packages/core/src/web/">web/</code> (<a href="#j43">J43</a>): mirrors, and
-      <code>element.thing</code>
+      <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
+        ><code title="packages/spell/src/targets.ts">targets.ts</code></a
+      >: the <code>py</code> targets write the elements file too
     </li>
     <li>
-      spell-quart, in <code title="packages/core/py-quart/">py-quart/</code> (<a href="#j44">J44</a>): the state beside
-      each drawing
+      a new folder in core, <code title="packages/core/src/web/">web/</code>: the page side (state in, patches applied,
+      messages out) and its browser test
+    </li>
+    <li>
+      <a href="../../../packages/core/py/spell_core/events.py" target="src-packages-core-py-spell-core-events-py"
+        ><code title="packages/core/py/spell_core/events.py">events.py</code></a
+      >: firing an event or a call that arrives by message, finding its things by id
     </li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
     <li>
-      spell_core's pytest: Solitaire's dealt state as JSON has 52 cards, each <code>"@id"</code> once; a card held in
-      two places is one id and one reference.
+      The writer's tests: Solitaire's elements file holds the card's and the piles' drawing and no handler body, with
+      <code>auto_play()</code> as a stand-in; a getter that sets a property fails to compile.
     </li>
-    <li>core's tests: reading a second state updates the same objects in place, adds what came and drops what went.</li>
     <li>
-      A headless Playwright test (never the Claude-in-Chrome tools), on P18's server: after a click moves a card, that
-      card's element still has the same mirror object, its pile changed; the board still matches the javascript run's.
+      A headless Playwright test (never the Claude-in-Chrome tools) loads a test page with the elements and a seed-1
+      state from Python:
+      <ul>
+        <li>the board matches the javascript run's page</li>
+        <li>applying a stock click's patch turns one card over, and it stays the same element</li>
+        <li>clicking a card records a <code>card-click</code> message with its id</li>
+      </ul>
     </li>
-    <li>The core contract still passes on every target; spell_core's pytest passes with no Quart installed.</li>
+    <li>spell_core's pytest: a <code>card-click</code> message fires the game's handler with the right card.</li>
+    <li>The core contract still passes on every target; spell_core's pytest, and the core and app tests, pass.</li>
   </ul></epic-field
 >
