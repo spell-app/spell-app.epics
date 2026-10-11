@@ -45,7 +45,8 @@
             as a person would (see <a href="#11-history">History</a>).</ui-item
           >
           <ui-item icon="code branch"
-            >Python's two targets: built on branch <code>python-target</code>, not merged yet; their own page is
+            >Python's two targets: merged into <code>main</code> 2026-10-11 (P1-P16); a Python program as a web app
+            (P17-P20) on branch <code>python-target</code>, not merged yet. Their own page is
             <a href="../python-target.html" target="src-guides-python-target-html">The Python Target</a></ui-item
           >
           <ui-item icon="flask"
@@ -82,12 +83,22 @@
               </ul>
             </li>
             <li>
-              Two Python targets, on branch <code>python-target</code> (see
+              Two Python targets (see
               <a href="../python-target.html" target="src-guides-python-target-html">The Python Target</a>):
               <ul>
                 <li><code>py</code>: idiomatic Python on spell_core, the core's Python twin; a pause sleeps</li>
                 <li><code>py/asyncio</code>: the same on asyncio, where what pauses is awaited</li>
                 <li>Both draw HTML text, are checked by pyright, and print what the javascript prints.</li>
+                <li>
+                  For a program that draws, both also write its drawing half in javascript, for a browser page that
+                  mirrors the program.
+                </li>
+                <li>
+                  <code>py/asyncio</code> also writes a web app on Quart, a game per visitor, on branch
+                  <code>python-target</code> (see
+                  <a href="../python-target.html#web" target="src-guides-python-target-html">Python apps on the web</a
+                  >).
+                </li>
               </ul>
             </li>
             <li>
@@ -338,7 +349,7 @@
               ></ui-step>
               <ui-step
                 header="Save"
-                description="<Project>.compiled.js, <Project>.declarations.json, and each other target's file, e.g. <Project>.compiled.tsx or <Project>.compiled.py, with a target's own words file if it has one (<Project>.py.en.json)."
+                description="<Project>.compiled.js, <Project>.declarations.json, and each other target's file, e.g. <Project>.compiled.tsx or <Project>.compiled.py, with a target's own words file if it has one (<Project>.py.en.json).  A Python target also writes a program's drawing half (<Project>.elements.js), and py/asyncio its web app (<Project>.app.py)."
               ></ui-step>
               <ui-step
                 header="Check"
@@ -391,8 +402,8 @@
                   <tr>
                     <td><code>py</code></td>
                     <td><code>P.PyWriter</code></td>
-                    <td><code>.compiled.py</code></td>
-                    <td class="meh warning">HTML text</td>
+                    <td><code>.compiled.py</code>, <code>.elements.js</code></td>
+                    <td class="meh warning">HTML text; a page, in javascript</td>
                     <td>spell_core (Python)</td>
                     <td>pyright</td>
                     <td>the core contract, and spell_core's own runner; not <code>spell run</code> yet</td>
@@ -400,17 +411,17 @@
                   <tr>
                     <td><code>py/asyncio</code></td>
                     <td><code>P.PyAsyncWriter</code></td>
-                    <td><code>.compiled.asyncio.py</code></td>
-                    <td class="meh warning">HTML text</td>
+                    <td><code>.compiled.asyncio.py</code>, <code>.elements.js</code>, and an app</td>
+                    <td class="meh warning">HTML text; a page, in javascript</td>
                     <td>spell_core, on asyncio</td>
                     <td>pyright</td>
-                    <td>the same as <code>py</code></td>
+                    <td>the same as <code>py</code>; and its web app, on Quart</td>
                   </tr>
                 </tbody>
               </table>
             </ui-table>
             <ui-accordion class="spell-code" styled>
-              <ui-title>targets.ts (excerpt) · 62 lines</ui-title>
+              <ui-title>targets.ts (excerpt) · 77 lines</ui-title>
               <ui-content>
                 <pre><code class="language-ts">/** A target spell compiles to -- see `TARGETS`. */
 export type Target = {
@@ -434,6 +445,18 @@ export type Target = {
    * - `js/solid`'s words are `&lt;Project&gt;.en.js`, which every runner loads -- see `SP.SpellProject.wordsFile`.
    */
   wordsSuffix?: string
+  /**
+   * End of the name of its PAGE's file, beside its output, e.g. `.elements.js`:  a program that draws, its drawing half
+   * in javascript (`P.ElementsWriter`), for a page that mirrors the program running here (epic `python-target` P19).
+   * - Written only for a project that draws.
+   */
+  elementsSuffix?: string
+  /**
+   * End of the name of its web APP's file, beside its output, e.g. `.app.py`:  a Quart app serving the program,
+   * a game per visitor (epic `python-target` P20, `SP.quartApp()`).
+   * - Written only for a project that draws, and only while nobody has edited it (`SP.isUneditedApp()`).
+   */
+  appSuffix?: string
 }
 
 /** What a target's runtime can do -- checked while compiling, so a project asks only what its targets give. */
@@ -462,6 +485,7 @@ export const TARGETS: Record&lt;string, Target&gt; = {
     suffix: ".compiled.py",
     can: { draw: "html" },
     wordsSuffix: ".py.en.json",
+    elementsSuffix: ELEMENTS_JS_SUFFIX,
     checkedBy: "pyright"
   },
   // The same Python on `asyncio`:  a function that pauses is `async def`, and its callers await it
@@ -471,6 +495,8 @@ export const TARGETS: Record&lt;string, Target&gt; = {
     writer: P.PyAsyncWriter.instance,
     suffix: ".compiled.asyncio.py",
     can: { draw: "html" },
+    elementsSuffix: ELEMENTS_JS_SUFFIX,
+    appSuffix: ".app.py",
     checkedBy: "pyright"
   }
 }</code></pre>
@@ -485,6 +511,11 @@ export const TARGETS: Record&lt;string, Target&gt; = {
               <li>
                 The two Python targets, and spell_core they run on:
                 <a href="../python-target.html" target="src-guides-python-target-html">The Python Target</a>.
+              </li>
+              <li>
+                A Python target's <code>.elements.js</code>, and <code>py/asyncio</code>'s app, serve a program as a web
+                app:
+                <a href="../python-target.html#web" target="src-guides-python-target-html">Python apps on the web</a>.
               </li>
             </ul>
           </ui-section>
@@ -567,6 +598,18 @@ spell compile Solitaire --target py/asyncio         # Solitaire.compiled.asyncio
                     <td><code>&lt;Project&gt;.compiled.asyncio.py</code></td>
                     <td><code>py/asyncio</code>'s code: the same Python, on asyncio</td>
                     <td>when <code>py/asyncio</code> is picked</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.elements.js</code></td>
+                    <td>the program's drawing half in javascript, for a page that mirrors it</td>
+                    <td>with either Python target's code, for a program that draws</td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;Project&gt;.app.py</code></td>
+                    <td>a Quart web app serving the program, a game per visitor</td>
+                    <td>
+                      with <code>py/asyncio</code>'s code, for a program that draws; never over an app someone edited
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -2547,6 +2590,12 @@ append()  reverse()  randomize()  filter()</code></pre>
                     its cards.
                   </li>
                   <li>An unknown <code>"@type"</code> comes back as a plain object, not an error.</li>
+                  <li>
+                    It reads through a state mirror: JSON whose things carry an <code>"@id"</code> keeps a card in two
+                    places as one card (see
+                    <a href="../python-target.html#web-state" target="src-guides-python-target-html">The state, by id</a
+                    >).
+                  </li>
                 </ul>
               </li>
               <li>
@@ -3177,6 +3226,11 @@ the rest     its class name in words:  ASTTryCatchBlock => Try catch block</code
                     <td>the same</td>
                   </tr>
                   <tr>
+                    <td><code>&lt;Project&gt;.elements.snapshot.js</code></td>
+                    <td>the Python targets' drawing half in javascript, for a program that draws</td>
+                    <td>the same</td>
+                  </tr>
+                  <tr>
                     <td><code>&lt;Project&gt;.snapshot.pyright.txt</code></td>
                     <td>what pyright says about the Python: one line per error, <code>line rule message</code></td>
                     <td>
@@ -3461,6 +3515,16 @@ the rest     its class name in words:  ASTTryCatchBlock => Try catch block</code
                     <a href="../python-target.html#running" target="src-guides-python-target-html">The Python Target</a
                     >).
                   </li>
+                  <li>
+                    Each solitaire game is also played in Python, 300 clicks: after each, its patch must give the same
+                    state as the game written whole.
+                  </li>
+                  <li>
+                    And drawn from Python's state by its drawing half in javascript: the board must be the javascript
+                    run's (see
+                    <a href="../python-target.html#web" target="src-guides-python-target-html">Python apps on the web</a
+                    >).
+                  </li>
                 </ul>
               </li>
               <li>
@@ -3724,6 +3788,14 @@ the rest     its class name in words:  ASTTryCatchBlock => Try catch block</code
               </li>
               <li>
                 Drawing: HTML text, as there's no page. A terminal target, on Textual, is recommended as a future epic.
+              </li>
+              <li>
+                The web: a program compiled to <code>py/asyncio</code> can be served on Quart, its logic in Python, its
+                page drawing with the program's classes compiled to javascript (<a
+                  href="../python-target.html#web"
+                  target="src-guides-python-target-html"
+                  >Python apps on the web</a
+                >).
               </li>
             </ul>
 
@@ -4658,7 +4730,10 @@ play_fizzbuzz()</code></pre>
               "Limits".
             </p>
             <ul>
-              <li><b>Python isn't merged yet:</b> it's on branch <code>python-target</code>.</li>
+              <li>
+                <b>A Python program as a web app isn't merged yet:</b> P17-P20 are on branch <code>python-target</code>;
+                P1-P16 are on <code>main</code>.
+              </li>
               <li>
                 <b><code>spell run</code> doesn't run Python yet</b>, nor does spell test: no
                 <code>--target py</code> (<a
@@ -4668,7 +4743,7 @@ play_fizzbuzz()</code></pre>
                 >). spell_core's own runner does.
               </li>
               <li>
-                pyright finds 8 errors in the solitaire games' Python, pinned in their snapshots; Cards, CardsFromZero
+                pyright finds 9 errors in the solitaire games' Python, pinned in their snapshots; Cards, CardsFromZero
                 and FizzBuzz are clean (<a
                   href="../../epics/python-target/python-target.plan.html#c3"
                   target="python-target"
@@ -4689,7 +4764,25 @@ play_fizzbuzz()</code></pre>
                   >C2</a
                 >).
               </li>
-              <li>Python draws HTML text only, and its clicks do nothing.</li>
+              <li>
+                Run on its own, Python draws HTML text, and its clicks do nothing. As a web app, the page draws it and
+                takes the clicks (<a href="../python-target.html#web" target="src-guides-python-target-html"
+                  >Python apps on the web</a
+                >).
+              </li>
+              <li>
+                The web app serves only a program that imports no other project, from one process, its page side built
+                in the repo (<a href="../python-target.html#limits-web" target="src-guides-python-target-html"
+                  >its Limits</a
+                >).
+              </li>
+              <li>
+                A drawable type has no custom element class of its own on that page yet (<a
+                  href="../../epics/python-target/python-target.plan.html#i13"
+                  target="python-target"
+                  >I13</a
+                >).
+              </li>
             </ul>
           </ui-section>
 
@@ -4878,10 +4971,14 @@ play_fizzbuzz()</code></pre>
           <ui-section id="limits-contract" header="The core contract" sticky collapsible dividing collapsed>
             <ul>
               <li>
-                Only the page when the program ends is compared: clicks never happen, so event handlers (<code
-                  >on card-click</code
-                >) aren't exercised (C7), on any target, Python's included. Its first half, a global
-                <code>React</code> on the fake page, went with React.
+                Only the page when the program ends is compared: what a click does is never compared between targets
+                (C7). Its first half, a global <code>React</code> on the fake page, went with React.
+                <ul>
+                  <li>
+                    Python's clicks do run: 300 in each solitaire game, checking its patches, and one on the page drawn
+                    from its state.
+                  </li>
+                </ul>
               </li>
               <li>
                 The Todos examples aren't contract fixtures: a runner browser test plays Todos - Form Based instead.
@@ -5005,6 +5102,15 @@ export const words = {
         <ui-section id="11-history" header="14. History" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="clock rotate left"></ui-icon>
           <ui-feed class="spell-history" size="small">
+            <ui-event icon="book">
+              <ui-content>
+                <ui-summary
+                  >Python's web app noted, from branch <code>python-target</code> (P17-P20): the drawing half in
+                  javascript, the Quart app, the contract's click-by-click checks; P1-P16 merged into <code>main</code>
+                  <ui-date>2026-10-11</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
             <ui-event icon="book">
               <ui-content>
                 <ui-summary
@@ -5397,8 +5503,9 @@ export const words = {
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
           <p class="meta">
-            Last checked 2026-10-11 against branch <code>python-target</code>, for the Python targets and the Limits.
-            Before that, 2026-10-10 against branch <code>output-targets</code> (P10-P20 built), and 2026-10-06.
+            Last checked 2026-10-11 against branch <code>python-target</code> (P1-P20 built, P1-P16 merged), for the
+            Python targets, their web app and the Limits. Before that, 2026-10-11 for the Python targets, 2026-10-10
+            against branch <code>output-targets</code> (P10-P20 built), and 2026-10-06.
           </p>
         </footer>
       </main>
