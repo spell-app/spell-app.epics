@@ -46,6 +46,77 @@ assert len(patch) == 3                             # the card, the pile it left,
       (Owen, cm19).
     </li>
   </ul></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      How Owen would use it: a Python test now plays a compiled program the way its page does, by the messages a click
+      or a call sends, and checks the patch each one sends back.
+      <epic-code title="Playing Solitaire by its page's messages · 5 lines" language="py">
+        <pre>
+game = play_page("Solitaire.compiled.py", seed=1)
+stock = game.named("stock")
+patch = game.trigger("card-click", card=game.ref(stock["@items"][-1]))
+assert [thing["@type"] for thing in patch] == ["Card", "StockPile", "DiscardPile"]
+assert game.thing(stock["@id"])["@items"] == stock["@items"][:-1]</pre>
+      </epic-code>
+    </li>
+    <li>
+      The player is spell_core's own module,
+      <a href="../../../packages/py/core/spell_core/playing.py" target="src-packages-py-core-spell-core-playing-py"
+        ><code title="packages/py/core/spell_core/playing.py">spell_core.playing</code></a
+      >
+      (judgement call <a href="#j82">J82</a>).
+      <ul>
+        <li>Each message is run by the program's page session, as the server runs it, and answered by its patch.</li>
+        <li>
+          After each message, the patches so far must add up to the program's whole state; when they don't, it raises
+          <code>PatchMismatchError</code>.
+        </li>
+        <li>
+          Things are named by their <code>@id</code> until references land in P27 (judgement call
+          <a href="#j83">J83</a>).
+        </li>
+      </ul>
+    </li>
+    <li>
+      Solitaire's test plays seed 1 patch by patch:
+      <ul>
+        <li>the whole deal: 52 cards, 23 in the stock, tableaus 1 to 7</li>
+        <li>a click on the stock patches exactly three things: the card, the stock and the discards</li>
+        <li>a function call, by name</li>
+        <li>five moves, each patching only the cards that changed</li>
+        <li>a click on a face-down card patches nothing</li>
+        <li>a change left out of a patch fails the check</li>
+      </ul>
+    </li>
+    <li>
+      The contract's 300 clicks per game now play through the same player, with the same result as before: on Solitaire
+      seed 1, 28 of the 300 clicks change something.
+    </li>
+    <li>
+      The Quart app's browser test now records, as JSON, the messages its page sends and the frames it gets back, and
+      asserts on them:
+      <ul>
+        <li>the click the page sends names the card by its <code>@id</code></li>
+        <li>
+          the answer is two patches: first, at the program's 150 millisecond pause, the card turned face up alone; then
+          the move itself, the stock, the card and the discards
+        </li>
+        <li>after the move, the card's pile is the discards, and the discards' last card is that card</li>
+        <li>the sizes: the first state 7199 characters, the two patches 94 and 559</li>
+      </ul>
+    </li>
+    <li>
+      The javascript side waits for the future epic
+      <a href="../../spell-server-state/spell-server-state.plan.html" target="spell-server-state"
+        >Spell Server State</a
+      >, as planned (Owen, cm19).
+    </li>
+  </ul></epic-field
+><epic-commit sha="c8d172e78656a77b5c7e889f851dee594082154a"
+  >spell_core.playing plays a program by its page's messages, checking each patch; Solitaire's moves asserted patch by
+  patch; the Quart app's browser test asserts on the click it sends and the two patches back; the contract's 300 clicks
+  play through it</epic-commit
 ><epic-field name="files"
   ><ul>
     <li>spell_core's <code>page.py</code>; a test helper beside its tests (<code>patches_in_a_game.py</code> today)</li>
@@ -65,3 +136,4 @@ assert len(patch) == 3                             # the card, the pile it left,
     <li><code>yarn review</code> in py and cli</li>
   </ul></epic-field
 >
+<epic-field name="to-review"><a href="#j82">J82</a>, <a href="#j83">J83</a></epic-field>
