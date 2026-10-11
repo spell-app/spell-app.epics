@@ -51,3 +51,140 @@
     <li>two new entries in the shared links, instead of one</li>
   </ul>
 </epic-net-effect>
+<epic-reply from="Owen" at="2026-10-11 18:05" re="revisit soon"
+  ><p>`packages/epic-components/` keep app components in `packages/app/components`</p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-11 18:15"
+  re="packages/epic-components/ keep app components in packages/app/components"
+>
+  <p>
+    Read as: the two sets' pages live in package folders, versioned with each branch, not in shared root folders. Epic
+    UI's pages go in a new folder, <code>packages/epic-components/</code>. App UI's go beside the app's own web
+    components, in
+    <a href="../../../packages/app/components/" target="src-packages-app-components"
+      ><code>packages/app/components/</code></a
+    >. Nothing found that blocks it, so both phases now say so (option A below).
+  </p>
+  <ul>
+    <li>
+      <b>What changes against a shared folder.</b> Shared folders (<a href="../../../guides/" target="src-guides"
+        ><code>guides/</code></a
+      >, <a href="../../../ui/" target="src-ui"><code>ui/</code></a> ...) are one copy for every checkout, committed by
+      the turn-end hook. A package folder is ordinary tracked code:
+      <ul>
+        <li>an element's page changes in the same commit as the element, so a branch's pages describe its own code</li>
+        <li>the pages merge with the branch, and can conflict like any file</li>
+        <li>
+          the main checkout shows <code>main</code>'s pages; a worktree's own pages show under its
+          <code>/worktrees/&lt;name&gt;/</code> address until it merges
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>A docs folder, not a new package.</b> The element code stays in the epics pack (<a
+        href="../../../packages/epics/components/"
+        target="src-packages-epics-components"
+        ><code title="packages/epics/components/">packages/epics</code></a
+      >).
+      <ul>
+        <li>
+          The root lists its workspaces by name, so a folder of pages under
+          <a href="../../../packages/" target="src-packages"><code>packages/</code></a> with no
+          <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> is fine: yarn never
+          sees it.
+        </li>
+        <li>It gets a row in the root's packages table and a short README, saying it holds pages, not code.</li>
+        <li>If the epic tooling ever moves out of the repo, the folder moves with it in one piece.</li>
+      </ul>
+    </li>
+    <li>
+      <b>How the page server serves them.</b> It already serves the whole checkout at <code>/</code>, so the pages work
+      at their long address with no change. Two short routes make them read like Spell UI's:
+      <ul>
+        <li><code>/epic-ui/</code> serves <code>packages/epic-components/</code></li>
+        <li>
+          <code>/app-ui/</code> serves
+          <a href="../../../packages/app/components/" target="src-packages-app-components"
+            ><code>packages/app/components/</code></a
+          >
+        </li>
+        <li>the same under <code>/worktrees/&lt;name&gt;/</code>, as <code>/ui/</code> is</li>
+        <li>
+          simpler than Spell UI's route: its pages are shared and its build is laid over them; here pages and data sit
+          in the one folder
+        </li>
+      </ul>
+    </li>
+    <li><b>The tabs are unchanged:</b> Epic/UI and App/UI, in the places Owen's toolbar order gives them.</li>
+  </ul>
+  <epic-aside title="what the move costs, and how each is handled">
+    <ol>
+      <li>
+        Moving pages OUT of the shared guides is instant for every checkout, but the new copies reach
+        <code>main</code> only when the branch merges. So the phase copies the element pages in, and the old shared
+        pages stay until the merge. Deleting them and turning on the redirects is a merge-time step.
+      </li>
+      <li>
+        Comments: the bullhorn takes comments only on shared pages today (guides, the docs home, epic pages). Spell UI's
+        pages take none either. The element pages take comments now, so the comment route learns the two folders, and
+        their waiting-comment files are git-ignored there.
+      </li>
+      <li>
+        Shared guides linking into a branch's new pages show those links as missing in other checkouts until the merge.
+        That is the known case the link check already reports.
+      </li>
+      <li>
+        No new shared links or ignore-list entries: J30's two root folders needed both, and a
+        <code>spell dev shared link</code>
+        in each checkout. This saves all three.
+      </li>
+      <li>
+        App UI's pages sit beside the two web components' code folders: the set's home and one page per component, with
+        their shared bits in <code>_parts/</code> and <code>_data/</code>.
+      </li>
+    </ol>
+  </epic-aside>
+  <epic-choices>
+    <epic-option letter="A" title="Package folders, served at /epic-ui/ and /app-ui/" recommended>
+      <ul>
+        <li>Owen's reading: the pages are tracked, beside or near the code they describe.</li>
+        <li>Two short routes in the page server; the tab labels unchanged.</li>
+        <li>
+          Costs: the old shared pages are removed at merge time, not during the phase; the comment route learns two
+          folders.
+        </li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="Package folders, published into shared epic-ui/ and app-ui/">
+      <ul>
+        <li>Written in the package folders, then copied by a publish command into shared root folders.</li>
+        <li>Every checkout sees the same pages at once, and comments work with no change.</li>
+        <li>
+          Costs: two copies of every page; a publish step to forget; the shared copy follows whichever branch published
+          last; comments land on the copy, not the source.
+        </li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>Epic UI's pages: <code>packages/epic-components/</code>, at <code>/epic-ui/</code></li>
+      <li>
+        App UI's pages:
+        <a href="../../../packages/app/components/" target="src-packages-app-components"
+          ><code>packages/app/components/</code></a
+        >, at <code>/app-ui/</code>
+      </li>
+      <li>
+        <a href="#j22">J22</a>'s <code>components/</code> and this call's shared <code>epic-ui/</code> /
+        <code>app-ui/</code> are dropped
+      </li>
+      <li>no new shared folders; the page server gets two routes; the comment route learns the two folders</li>
+      <li>
+        Epic UI Docs (<a href="#p9">P9</a>) and App UI Docs (<a href="#p10">P10</a>) updated to this, each with a Plan
+        changes note
+      </li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
