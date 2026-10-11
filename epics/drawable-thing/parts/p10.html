@@ -3,8 +3,10 @@
   ><p>The TypeScript writer writes a drawable thing as a plain class, with no element.</p></epic-field
 ><epic-field name="changes"
   ><p>
-    It also writes the element, as a hand-written Spell UI class would be: its vocabulary, its setup, its drawing and
-    its <code>define()</code> (<a href="#q6">Q6</a>).
+    It also writes the element class, as a short Spell UI subclass of the runtime's own element,
+    <code>SpellElement</code>: the type's attributes, its methods and its sheet (<a href="#q6">Q6</a>,
+    <a href="#j41">J41</a> B). The page defines the tag with it, so the TypeScript's element is the same as the
+    javascript's.
   </p></epic-field
 ><epic-updated at="2026-10-11 05:16"
   ><p>
@@ -57,6 +59,28 @@
       (24). Parser speed test against HEAD: 96 vs 96 on average, 0%.
     </li>
   </ul></epic-updated
+><epic-updated at="2026-10-11 13:52" phase="10"
+  ><p>
+    The element class is built on the runtime's own element, <code>SpellElement</code> (Owen picked B on
+    <a href="#j41">J41</a>, 2026-10-11). Changes no longer says the class calls its own <code>define()</code>: the page
+    stays the one place a tag is defined.
+  </p>
+  <ul>
+    <li>
+      The runtime hands app's <code>SpellElement</code> to compiled code, under a module name of its own,
+      <code>@spell/elements</code>, since core never imports Spell UI.
+    </li>
+    <li>Each type's compiled class says only what's its own: its attributes, its methods, its sheet.</li>
+    <li>
+      A new <code>spellCore.useElement(Card, CardElement)</code> hands that class to the page, which defines the tag
+      with it.
+    </li>
+    <li>
+      The type check maps the new module name to app's source; the headless run (<code>spell run</code>, the core
+      contract) maps it to a stand-in.
+    </li>
+    <li>What's left is about 3-4 hours.</li>
+  </ul></epic-updated
 ><epic-field name="goal"
   ><ul>
     <li>A drawable thing compiled to TypeScript reads like a Spell UI element Owen would write by hand.</li>
@@ -74,6 +98,50 @@
         <li>The sheet's later lines no longer gain the class body's indent (J14's caveat).</li>
       </ul>
     </li>
+    <li>
+      Each drawable type gets its element class, on the runtime's own element (<a href="#j41">J41</a>, B; todo
+      <a href="#t9">T9</a>):
+      <ul>
+        <li>
+          The runtime exports app's
+          <a
+            href="../../../packages/app/src/runner/SpellElement.tsx"
+            target="src-packages-app-src-runner-spellelement-tsx"
+            ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement</code></a
+          >
+          to compiled code, under a module name of its own, <code>@spell/elements</code>: core can't import Spell UI.
+        </li>
+        <li>
+          Each type's class, e.g. <code>CardElement extends SpellElement</code>, says only what's its own: its
+          attributes, its methods, its sheet. The behaviour stays in the base class.
+        </li>
+        <li>
+          A new
+          <a href="../../../packages/core/src/elements.ts" target="src-packages-core-src-elements-ts"
+            ><code title="packages/core/src/elements.ts">spellCore.useElement(Card, CardElement)</code></a
+          >
+          hands the class to the page instead of a <code>define()</code>. The page's
+          <a
+            href="../../../packages/app/src/runner/SpellElement.tsx"
+            target="src-packages-app-src-runner-spellelement-tsx"
+            ><code title="packages/app/src/runner/SpellElement.tsx">defineFor()</code></a
+          >
+          builds the tag on it, so a tag is never defined twice.
+        </li>
+        <li>The type check maps <code>@spell/elements</code> to app's source, and uses the 2023 JavaScript library.</li>
+        <li>
+          The headless run maps it to a stand-in, in cli's
+          <a href="../../../packages/cli/src/runner/hooks.mjs" target="src-packages-cli-src-runner-hooks-mjs"
+            ><code title="packages/cli/src/runner/hooks.mjs">hooks.mjs</code></a
+          >: one empty class and two decorators.
+        </li>
+        <li>
+          The DrawableSolitaire fixture's TypeScript is re-blessed: still 0 <code>tsc</code> errors, and the core
+          contract still prints the same for both targets.
+        </li>
+        <li>In a page, nothing visible changes: it's the same element as javascript's, behaviour for behaviour.</li>
+      </ul>
+    </li>
   </ul></epic-field
 ><epic-commit sha="909b3f32f257d131b21dd316aa1b3ecedc2cf6e9"
   >Part 1: a type's CSS compiles to a css template in both writers, @spell/core's css tag hands back the sheet as text;
@@ -83,7 +151,7 @@
     <li>
       <a href="../../../packages/parser/src/writers/TSWriter.ts" target="src-packages-parser-src-writers-tswriter-ts"
         ><code title="packages/parser/src/writers/TSWriter.ts">TSWriter.ts</code></a
-      >
+      >: the element class and its <code>useElement()</code> line, after each drawable class
     </li>
     <li>a new fixture, with its TypeScript snapshot and type-check result</li>
     <li>
@@ -109,16 +177,41 @@
         ><code title="packages/vscode/package.json">the VS Code extension</code></a
       >
     </li>
+    <li>
+      core's
+      <a href="../../../packages/core/src/elements.ts" target="src-packages-core-src-elements-ts"
+        ><code title="packages/core/src/elements.ts">useElement()</code></a
+      >, beside <code>defineElement()</code>
+    </li>
+    <li>
+      app's
+      <a href="../../../packages/app/src/runner/SpellElement.tsx" target="src-packages-app-src-runner-spellelement-tsx"
+        ><code title="packages/app/src/runner/SpellElement.tsx">SpellElement.defineFor()</code></a
+      >: the tag built on the class it's handed
+    </li>
+    <li>
+      the type check's settings,
+      <a href="../../../packages/spell/src/node/typecheck.ts" target="src-packages-spell-src-node-typecheck-ts"
+        ><code title="packages/spell/src/node/typecheck.ts">typecheck()</code></a
+      >
+    </li>
+    <li>
+      the headless stand-in, in cli's
+      <a href="../../../packages/cli/src/runner/hooks.mjs" target="src-packages-cli-src-runner-hooks-mjs"
+        ><code title="packages/cli/src/runner/hooks.mjs">hooks.mjs</code></a
+      >
+    </li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
     <li>the fixture type-checks with 0 errors</li>
-    <li>the core contract builds and runs it</li>
+    <li>the core contract builds and runs it, printing the same for both targets</li>
+    <li>a runner test: a type with its own element class draws, and the page defines its tag once</li>
   </ul></epic-field
 >
 <epic-field name="to-review"
-  ><a href="#j35">J35</a>, <a href="#j36">J36</a>, <a href="#j37">J37</a>, <a href="#j38">J38</a>,
-  <a href="#j39">J39</a>, <a href="#j40">J40</a>, <a href="#t7">T7</a>, <a href="#t8">T8</a>, <a href="#t9">T9</a>,
-  <a href="#i7">I7</a>, <a href="#i8">I8</a>, <a href="#v7">V7</a>, <a href="#v8">V8</a>, <a href="#v9">V9</a>,
-  <a href="#v10">V10</a>, <a href="#v11">V11</a></epic-field
+  ><a href="#j35">J35</a>, <a href="#j37">J37</a>, <a href="#j38">J38</a>, <a href="#j39">J39</a>,
+  <a href="#j40">J40</a>, <a href="#t7">T7</a>, <a href="#t8">T8</a>, <a href="#t9">T9</a>, <a href="#i7">I7</a>,
+  <a href="#i8">I8</a>, <a href="#v7">V7</a>, <a href="#v8">V8</a>, <a href="#v9">V9</a>, <a href="#v10">V10</a>,
+  <a href="#v11">V11</a></epic-field
 >
