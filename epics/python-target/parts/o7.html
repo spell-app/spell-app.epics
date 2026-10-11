@@ -1,0 +1,421 @@
+<!-- plan-doc part:  #o7's body in python-target.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Yes: the same <code>to draw</code> methods can draw Solitaire in a terminal, and take its clicks.</p>
+<ul>
+  <li>A prototype draws one element tree three ways: as HTML, with Rich, and with Textual.</li>
+  <li>A small sketch draws it with Ink, the CLI's own.</li>
+  <li>
+    Recommended: a future <code>py/terminal</code> target on Textual, as its own epic (the terminal target todo,
+    <a href="#t1">T1</a>).
+  </li>
+</ul>
+<h4 id="o7-prototype">What the prototype shows</h4>
+<p>
+  The prototype is <a href="#p15">P15 · Terminal Drawing Study</a>'s: a small Solitaire, hand-written in the shape the
+  Python writer gives a <code>to draw</code> method, since compiled Python doesn't draw yet.
+</p>
+<ul>
+  <li>
+    Its
+    <a
+      href="../../../packages/core/py/experiments/terminal/elements.py"
+      target="src-packages-core-py-experiments-terminal-elements-py"
+      ><code title="packages/core/py/experiments/terminal/elements.py">h()</code></a
+    >
+    builds a TREE (tag, props, children), where P12's writes HTML text at once.
+    <ul>
+      <li>The calls are the same: <code>h("div", {"class": ..., "onClick": ...}, ...)</code>.</li>
+      <li>The tree turns back into the same HTML, so nothing is lost by keeping it.</li>
+    </ul>
+  </li>
+  <li>
+    <a
+      href="../../../packages/core/py/experiments/terminal/textual_board.py"
+      target="src-packages-core-py-experiments-terminal-textual-board-py"
+      ><code title="packages/core/py/experiments/terminal/textual_board.py">textual_board.py</code></a
+    >
+    draws the tree with Textual: a live board in the terminal.
+    <ul>
+      <li>Clicking a card calls its <code>onClick</code>, which fires <code>card-click</code> with the card.</li>
+      <li>The game's <code>on card-click</code> plays it, and the board is drawn again.</li>
+    </ul>
+  </li>
+  <li>
+    <a
+      href="../../../packages/core/py/experiments/terminal/rich_board.py"
+      target="src-packages-core-py-experiments-terminal-rich-board-py"
+      ><code title="packages/core/py/experiments/terminal/rich_board.py">rich_board.py</code></a
+    >
+    draws the same tree with Rich: a still picture, printed once.
+  </li>
+  <li>
+    <a
+      href="../../../packages/core/py/experiments/terminal/ink_board.tsx"
+      target="src-packages-core-py-experiments-terminal-ink-board-tsx"
+      ><code title="packages/core/py/experiments/terminal/ink_board.tsx">ink_board.tsx</code></a
+    >
+    draws a smaller tree of the same shape with Ink, the CLI's own (Ink 5, React 18).
+    <ul>
+      <li>Ink reads no mouse: Tab moves between the clickable elements, and Enter clicks one.</li>
+    </ul>
+  </li>
+  <li>
+    A test proves it headless, with Textual's own test driver: the board draws, a click on the 2 of diamonds fires
+    <code>card-click</code> with that card, and the redrawn board shows it on the 3 of spades.
+  </li>
+  <li>
+    Textual and Rich are in a dependency group of their own, <code>study</code>: spell_core itself still needs nothing
+    but Python.
+  </li>
+  <li>It was clicked headless only, never by hand in a real terminal: the commands below do that.</li>
+</ul>
+<epic-code title="running the prototype · from packages/core/py" language="sh">
+  <pre>
+# the live board, in this terminal (click the cards;  q quits)
+uv run --group study python experiments/terminal/textual_board.py
+
+# a still picture of the board
+uv run --group study python experiments/terminal/rich_board.py
+
+# its tests:  not in spell_core's own run (that one collects tests/ only)
+uv run --group study pytest experiments/terminal
+
+# the Ink sketch, from the repo root (Tab, Enter, q)
+node_modules/.bin/tsx packages/core/py/experiments/terminal/ink_board.tsx</pre>
+</epic-code>
+<epic-aside title="what it looks like">
+  <p>Textual, after two clicks: the 2 of diamonds played onto the 3 of spades, and a card turned from the stock.</p>
+  <p><img src="../details/p15-textual-board.svg" alt="Solitaire drawn by Textual" style="max-width: 100%" /></p>
+  <p>Rich, the deal as it starts:</p>
+  <p><img src="../details/p15-rich-board.svg" alt="Solitaire drawn by Rich" style="max-width: 100%" /></p>
+</epic-aside>
+<epic-code title="sample_solitaire.py · a card's draw method, as the Python writer writes it" language="python">
+  <pre>
+def draw(self) -&gt; Element:
+    class_name = f"Card face-{self.direction} {self.rank} {self.suit} ui button compact fluid "
+    if not self.is_face_up:
+        return h(
+            "div",
+            {"class": class_name, "onClick": lambda: trigger("card-click", card=self)},
+            h("i", {"class": "fitted bicycle icon"}),
+        )
+    return h(
+        "div",
+        {"class": class_name + self.color, "onClick": lambda: trigger("card-click", card=self)},
+        f"{self.short_rank} ",
+        h("span", {"class": "suit"}, self.short_suit),
+    )</pre>
+</epic-code>
+<epic-code title="textual_board.py · the page's classes, picked out by Textual's own CSS" language="css">
+  <pre>
+.Card { height: 1; width: 100%; background: #eeeeee; color: black; text-style: bold; padding: 0 1; }
+.Card.red { color: #c00000; }
+.Card.face-down { background: #1f4fbf; color: #8fb0ff; text-style: none; }
+.Card:hover { background: #ffffbb; }
+
+/* the page lays a stacked pile's cards on top of each other (position: absolute):  docking does it here */
+.Pile.stacked { height: 1; }
+.Pile.stacked &gt; * { dock: top; }</pre>
+</epic-code>
+<epic-code title="textual_board.py · a click, back to the element's onClick" language="python">
+  <pre>
+class Node:
+    """What every drawn element's widget shares:  its element's click handler."""
+
+    handler: Callable[[], Any] | None = None
+
+    def on_click(self, event: events.Click) -&gt; None:
+        if self.handler is None:
+            return
+        event.stop()
+        # to the app, not run here:  drawing again removes this widget, which can't wait for its own removal
+        self.app.post_message(Clicked(self.handler))
+
+
+class SpellApp(App):
+    async def on_clicked(self, message: Clicked) -&gt; None:
+        """Call a click's handler, then draw the board again."""
+        message.handler()
+        await self.query_one(Board).recompose()</pre>
+</epic-code>
+<h4 id="o7-libraries">The three libraries</h4>
+<p>Textual does the most of what a spell app needs; Rich is the drawing underneath it; Ink is JavaScript's.</p>
+<ui-table celled compact striped unstackable
+  ><table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Ink</th>
+        <th>Textual</th>
+        <th>Rich</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>what it is</td>
+        <td>React for the terminal (JavaScript)</td>
+        <td>an app framework for the terminal (Python)</td>
+        <td>styled text, tables and panels (Python)</td>
+      </tr>
+      <tr>
+        <td>version looked at</td>
+        <td>5.2.1, the CLI's; 6 and later need React 19</td>
+        <td>8.2.8</td>
+        <td>15.0.0</td>
+      </tr>
+      <tr>
+        <td>building blocks</td>
+        <td><code>Box</code> and <code>Text</code>, from a React tree</td>
+        <td>widgets: containers, text, buttons, inputs, data tables ...</td>
+        <td>renderables: text, tables, panels, columns</td>
+      </tr>
+      <tr>
+        <td>layout</td>
+        <td>flexbox (Yoga): direction, grow, gap, padding</td>
+        <td>its own CSS: vertical, horizontal, grid, dock, <code>fr</code> widths</td>
+        <td>a table's columns, or things one under another; no layout engine</td>
+      </tr>
+      <tr>
+        <td>styles</td>
+        <td>props on each element (<code>color</code>, <code>bold</code>)</td>
+        <td>a style sheet, by class: the page's own class names work</td>
+        <td>a style per piece of text</td>
+      </tr>
+      <tr>
+        <td>clicks</td>
+        <td>none: keyboard only (Tab to focus, a key handler)</td>
+        <td>yes: <code>Click</code> events, hover, and keyboard focus too</td>
+        <td>none: it draws, and only reads typed lines</td>
+      </tr>
+      <tr>
+        <td>in a browser</td>
+        <td>no</td>
+        <td>yes: <code>textual-serve</code> runs the same app in a page</td>
+        <td>as an exported picture (SVG or HTML)</td>
+      </tr>
+      <tr>
+        <td>tested headless</td>
+        <td><code>ink-testing-library</code>: the last frame, as text</td>
+        <td><code>run_test()</code>: a driver that clicks and types; screenshots</td>
+        <td>a recording console: its text, SVG or HTML</td>
+      </tr>
+      <tr>
+        <td>fit for a spell app</td>
+        <td>good layout, no mouse; React beside Solid</td>
+        <td>the best: layout, styles by class, clicks, a browser too</td>
+        <td>a printout only: good for a board at the end of a run</td>
+      </tr>
+    </tbody>
+  </table></ui-table
+>
+<h4 id="o7-mapping">How spell's elements map</h4>
+<p>
+  A drawn tree is HTML-shaped, with Fomantic's classes on it. Each element became the nearest thing each library has.
+</p>
+<ui-table celled compact striped unstackable
+  ><table>
+    <thead>
+      <tr>
+        <th>On the page</th>
+        <th>Textual</th>
+        <th>Rich</th>
+        <th>Ink</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>a div, a table, a cell</td>
+        <td>a box, its children one under another</td>
+        <td>a group of renderables; a <code>Table</code> for a table</td>
+        <td>a column <code>Box</code></td>
+      </tr>
+      <tr>
+        <td><code>tr</code></td>
+        <td>a row of boxes, equal widths</td>
+        <td>a table row</td>
+        <td>a row <code>Box</code>, each cell grown equally</td>
+      </tr>
+      <tr>
+        <td>an element holding only text (a card)</td>
+        <td>one line of styled text</td>
+        <td>one styled <code>Text</code></td>
+        <td>one <code>Text</code></td>
+      </tr>
+      <tr>
+        <td><code>span</code> inside it</td>
+        <td>a styled run in that line</td>
+        <td>a styled run</td>
+        <td>nested text</td>
+      </tr>
+      <tr>
+        <td><code>class</code></td>
+        <td>the widget's classes, plus the tag (<code>el-td</code>)</td>
+        <td>looked up in a class-to-style table</td>
+        <td>looked up in code</td>
+      </tr>
+      <tr>
+        <td><code>onClick</code></td>
+        <td>a mouse click</td>
+        <td>nothing</td>
+        <td>focus with Tab, then Enter</td>
+      </tr>
+      <tr>
+        <td>a <code>stacked</code> pile (cards on top of each other)</td>
+        <td>every child docked to the top, so they overlap</td>
+        <td>only the last child</td>
+        <td>only the last child</td>
+      </tr>
+      <tr>
+        <td>an icon (<code>&lt;i class="bicycle icon"&gt;</code>)</td>
+        <td colspan="3">a pattern of text, <code>░░░░</code>: the terminal has no pictures</td>
+      </tr>
+      <tr>
+        <td>Spell UI's elements (<code>ui-button</code>, <code>ui-checkbox</code> ...)</td>
+        <td>
+          not tried; Textual has a widget for most: buttons, checkboxes, inputs, selects, tabs, collapsibles, progress
+          bars, markdown
+        </td>
+        <td>not tried</td>
+        <td>not tried; <code>@inkjs/ui</code> has a few</td>
+      </tr>
+    </tbody>
+  </table></ui-table
+>
+<h4 id="o7-snags">What doesn't carry over</h4>
+<ul>
+  <li>
+    The page's CSS doesn't run in a terminal: a terminal target needs a style sheet of its own.
+    <ul>
+      <li>Textual's CSS reads the same class names, so a project could keep one beside its <code>styles.css</code>.</li>
+      <li>A plain one for Fomantic's classes (<code>ui button</code>, <code>red</code>) could come with the core.</li>
+    </ul>
+  </li>
+  <li>
+    Sizes are in character cells, not pixels: a card is one line high.
+    <ul>
+      <li>Positions such as <code>position: absolute</code> have no equal; docking stood in for the stacked piles.</li>
+    </ul>
+  </li>
+  <li>
+    A class name can't start with a digit in Textual: a card's rank is one (<code>class="Card 8 clubs"</code>).
+    <ul>
+      <li>The prototype writes it <code>_8</code>; the page's CSS can't name <code>.8</code> plainly either.</li>
+    </ul>
+  </li>
+  <li>Rich and Ink have no <code>colspan</code>: "Klondike Solitaire" wraps in its narrow column under Rich.</li>
+  <li>
+    Emoji suits: <code>♠️</code> is two characters, the suit and a "draw me as a picture" mark.
+    <ul>
+      <li>Terminals disagree on how wide that draws, one cell or two, so columns slip.</li>
+      <li>The prototype leaves the mark out in the terminal: <code>♠</code>.</li>
+    </ul>
+  </li>
+  <li>
+    Nothing tracks what changed: after each click the whole board is drawn again.
+    <ul>
+      <li>Fine for Solitaire (instant); a bigger app would redraw only the things whose properties changed.</li>
+    </ul>
+  </li>
+  <li>
+    A click handler that redraws must not run inside the clicked widget: Textual waits forever for the widget to remove
+    itself. The prototype sends the click to the app instead.
+  </li>
+</ul>
+<h4 id="o7-target">A terminal target?</h4>
+<p>
+  Four ways forward. Each is a later epic, not more of this one: this epic's Python still draws HTML text (<a href="#q2"
+    >Q2</a
+  >).
+</p>
+<epic-choices>
+  <epic-option letter="A" title="py/terminal, on Textual" recommended>
+    <ul>
+      <li>A second Python target: the same compiled program, its app drawn in the terminal and clicked.</li>
+      <li>
+        Its steps:
+        <ol>
+          <li>spell_core's <code>h()</code> builds a tree, which still prints as the same HTML</li>
+          <li>a terminal half of spell_core draws the tree with Textual, clicks calling back</li>
+          <li>a style sheet: a plain one for Fomantic's classes, and a project's own beside its CSS</li>
+          <li>Spell UI's elements as Textual's widgets: buttons, checkboxes, inputs, tabs</li>
+          <li>redrawing only the things that changed</li>
+          <li>the contract clicking through a game, headless</li>
+        </ol>
+      </li>
+      <li>The same app also runs in a browser, through <code>textual-serve</code>.</li>
+      <li>Textual and Rich become an optional extra of spell_core: a program that never draws needs neither.</li>
+      <li>Cost: an epic of about 20-30 hours.</li>
+      <li>Why recommended: it's the only one of the three with clicks, a style sheet by class and a test driver.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="js/terminal, on Ink">
+    <ul>
+      <li>A second javascript target, its app drawn by Ink.</li>
+      <li>Keyboard only: Ink reads no mouse, so every click becomes Tab and Enter.</li>
+      <li>
+        javascript draws with Solid; Ink is React. A compiled program would need a second drawing path, or a tree both
+        could read.
+      </li>
+      <li>Ink stays at 5 while the CLI is on React 18.</li>
+      <li>Cost: an epic of about 15-25 hours.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="C" title="A printed board, on Rich">
+    <ul>
+      <li>
+        Python's <code>spell run</code> prints the app's board as a picture when the program ends, beside or instead of
+        its HTML.
+      </li>
+      <li>Nothing to click: a still picture.</li>
+      <li>Cost: about 3-4 hours, after Python draws (P12).</li>
+      <li>A good first step of A, since Rich comes with Textual anyway.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="D" title="No terminal drawing">
+    <ul>
+      <li>Python draws HTML text only, as decided (<a href="#q2">Q2</a>); the prototype stays a study.</li>
+      <li>Owen's "translate widgets into CLI programs" waits.</li>
+    </ul>
+  </epic-option>
+</epic-choices>
+<epic-net-effect option="A" recommended>
+  <ul>
+    <li>
+      <a href="#t1">T1</a> becomes a future epic, <code>py-terminal</code>, started from this section and the prototype.
+    </li>
+    <li>Nothing changes in this epic: its Python keeps drawing HTML text.</li>
+    <li>The prototype stays in the repo as that epic's starting point; its tests run only when asked for.</li>
+  </ul>
+</epic-net-effect>
+<h4 id="o7-sources">Sources</h4>
+<ul>
+  <li>
+    Ink's README, its components, layout, input and focus:
+    <a href="https://github.com/vadimdemedes/ink" target="ext-github-com-vadimdemedes-ink"
+      >github.com/vadimdemedes/ink</a
+    >
+  </li>
+  <li>
+    Textual's guides: <a href="https://textual.textualize.io/guide/CSS/" target="ext-textual-css">CSS</a>,
+    <a href="https://textual.textualize.io/guide/input/" target="ext-textual-input">input</a> (mouse and keys),
+    <a href="https://textual.textualize.io/guide/widgets/" target="ext-textual-widgets">widgets</a>,
+    <a href="https://textual.textualize.io/guide/testing/" target="ext-textual-testing">testing</a>, and the
+    <a href="https://textual.textualize.io/widget_gallery/" target="ext-textual-gallery">widget gallery</a>
+  </li>
+  <li>
+    textual-serve, a Textual app in a browser:
+    <a href="https://github.com/Textualize/textual-serve" target="ext-textual-serve"
+      >github.com/Textualize/textual-serve</a
+    >
+  </li>
+  <li>
+    Rich's <a href="https://rich.readthedocs.io/en/latest/console.html" target="ext-rich-console">console</a>
+    (recording and exporting) and
+    <a href="https://rich.readthedocs.io/en/latest/columns.html" target="ext-rich-columns">columns</a>
+  </li>
+  <li>
+    The CLI's own Ink notes:
+    <a href="../../../packages/cli/AGENTS.md" target="src-packages-cli-agents-md"
+      ><code title="packages/cli/AGENTS.md">AGENTS.md</code></a
+    >, "Ink"
+  </li>
+</ul>
