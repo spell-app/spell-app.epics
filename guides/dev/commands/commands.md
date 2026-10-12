@@ -27,6 +27,9 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
   call, with `--json` when the skill reads the answer.  Steps written only as prose are debt:  name them.
 - `spell` CLI:  every repo action.  Repo tools live under `spell dev`;  each finds the NEAREST checkout from the
   cwd (`CLI.findCheckout()`), so it works in a worktree.
+- The epic tools live under their own command, `epic`:  `epic <verb> <epic>#<id>` (`epic add-phase seo "Name"`,
+  `epic close seo#J3`, `epic update seo#P3 --estimate 2h`), from `packages/cli/src/epicProgram.ts`.  A new epic
+  tool is an `epic` verb, not a `spell dev` noun;  the old spellings (`spell dev plan-doc` ...) are aliases.
 - yarn:  a package's tool-native scripts stay (`build`, `ts`, `lint`, `format`, `test`, `gen:*`, vite, astro);
   repo actions are one-line aliases of a `spell dev` call (`"commands:check": "node packages/cli/bin/spell.mjs dev
   commands check"`).
@@ -38,7 +41,7 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 ## Names
 
 - Noun then verb, everywhere:  `spell dev server start` = yarn `server:start`;  dashes inside a word
-  (`plan-doc`, `merge-check`), colons only between yarn's noun and verb.
+  (`add-phase`, `merge-check`), colons only between yarn's noun and verb.
 - Spell-LANGUAGE commands stay bare:  `spell compile`, `spell check`.
 - Skills keep short workflow names (`/isolate`, `/park`).
 - The `spell dev` nouns, and their verbs:  the page's "5.2 Names".  Reuse a noun before inventing one.
@@ -46,7 +49,7 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 ## Keep the page true, in the same change
 
 - `commands.json`:  every command sits in some row's `cli` / `skill` / `yarn` `names` (`spell dev x`, `/name`,
-  `<package> <script>`, `root` for the repo root).  A new operation gets a new row (`op`, marks, `runs`,
+  `epic x`, `<package> <script>`, `root` for the repo root).  A new operation gets a new row (`op`, marks, `runs`,
   `target`);  the JSON's shape:  `packages/docs/tools/_assets/commands.js`'s header.
 - `spell dev commands check` must pass (root `yarn commands:check`:  exits 1 on a command the page lacks, or a name
   no command has).
