@@ -1366,6 +1366,14 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## claude-code
 
+- 2026-10-11 · Cmd + A / Cmd + C / Cmd + Z did nothing in a Claude Code tab (VS Code's text editors fine), right
+  after `spell dev vscode` reinstalled the spell extension in the ⎇ python-target window (and a day after Claude Code
+  2.1.296 installed).  An hour later they worked again, with the spell side-bar views open or closed:  not
+  reproduced, no code changed (epic `epic-workflow` P7, request r1).  If it comes back:  reload the window first;  then
+  "Developer: Toggle Keyboard Shortcuts Troubleshooting" and press the key in the Claude tab;  the prime suspect was
+  the side-bar views' key forwarding (`press()` / the `document.execCommand` wrapper in
+  `packages/vscode/src/DocView.ts`).
+
 - 2026-10-05 · `/epic output-targets`, started from the root window (`workspaces/spell-app.code-workspace`):
   `spell dev window open <name>` asked "which package?", Owen picked `spell-app`, and `--pkg spell-app` failed
   ("no package spell-app"):  `scripts/window.mjs` `open()` accepts only `packages/` names, though the root window
