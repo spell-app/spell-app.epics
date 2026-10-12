@@ -1676,3 +1676,8 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   Show it from the main checkout (`cd <main root> && spell dev docs link <main root>/epics/<name>/<name>.plan.html
   --review --show`:  `/epics/...` on 4747, main's pack), then `spell dev worktree merge-main`.  Better:  the openers
   could always use the main server's own path for a shared doc. · epics
+- 2026-10-12 · `spell dev plan-doc commits <epic> --backfill` found nothing for a commit titled
+  `people-and-orgs P1, Q17:  Ids And References -- ...`, the shape Owen's commit-message rule asks for
+  (`<epic> P5, T1, J7:  ...`):  it reads `<epic> P3:` and `P4 + P5:`, not a phase followed by item ids. ·
+  Listed it by hand:  `plan-doc commit <epic> <sha> --phase 1 "..."` and `--item Q17`.  Better:  the backfill
+  could take `P1, Q17:` too, filing the commit under each id. · epics
