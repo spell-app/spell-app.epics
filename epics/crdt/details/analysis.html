@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shared Editing (CRDT): analysis</title>
+    <meta name="description" content="Details:  Shared Editing (CRDT):  analysis" />
+    <link rel="stylesheet" href="../../../packages/docs/tools/_assets/spell-doc.css" />
+    <link rel="stylesheet" href="../../../packages/docs/tools/_assets/details.css" />
+  </head>
+  <body class="spell-doc-page">
+    <spell-site-header root="../../.."></spell-site-header>
+    <div class="spell-doc">
+      <main class="spell-doc-main">
+        <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
+          <ui-breadcrumb-section href="../../../pages/index.html" target="src-packages-docs-index-html"
+            >Docs</ui-breadcrumb-section
+          >
+          <ui-breadcrumb-section href="../crdt.plan.html" target="crdt">Epic crdt</ui-breadcrumb-section>
+          <ui-breadcrumb-section active>Shared Editing (CRDT): analysis</ui-breadcrumb-section>
+        </ui-breadcrumb>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>Shared Editing (CRDT): analysis</h1></header></ui-sticky
+        >
+        <p class="lede">
+          Several people editing one spell project at once: what they share, what it's built on, and how far it reaches.
+          Your answers shape the plan, when this epic is planned.
+        </p>
+        <ui-list class="spell-meta">
+          <ui-item icon="comments"
+            >Asked by: session <code>python-target</code>, writing down your idea as a future epic</ui-item
+          >
+          <ui-item icon="calendar" data-details-asked>Asked: 2026-10-11</ui-item>
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="red" data-details-status>waiting for your answer</ui-label></ui-item
+          >
+        </ui-list>
+
+        <ui-message class="spell-where" state="info" header="Where we are">
+          <ul>
+            <li>
+              <b>Epic:</b> <code>crdt</code>, a FUTURE epic: written down, not planned yet. It's about several people
+              editing one spell project at the same time.
+            </li>
+            <li>
+              <b>Just now:</b> you said the Python target's "send only the changed bits to the page" could be the base
+              of a spell editor many people edit at once.
+            </li>
+            <li>
+              <b>This decides:</b> what the plan starts from, when <code>/epic crdt</code> plans it. Nothing is built
+              now.
+            </li>
+          </ul>
+        </ui-message>
+
+        <ui-section id="context" header="1. Context" sticky collapsible dividing>
+          <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <p>Six short parts: the idea, what exists, the word "CRDT", the catch, a shape, and the size.</p>
+
+          <ui-section id="idea" header="1.1 The idea" sticky collapsible dividing collapsed>
+            <ul>
+              <li>Two or more people open the same spell project in the editor, on their own screens.</li>
+              <li>Each one's typing shows up on the others' screens as they type, with no "save and reload".</li>
+              <li>
+                Maybe also: they watch, and play with, the same RUNNING program, e.g. two people in one Solitaire game.
+              </li>
+              <li>
+                The base you named: the Python target's way of keeping a page in step with its program.
+                <ul>
+                  <li>The page gets the program's whole state once, each thing with an id.</li>
+                  <li>After that, only the things that changed: a "patch".</li>
+                </ul>
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="today" header="1.2 What exists today" sticky collapsible dividing collapsed>
+            <p>Two separate pieces, neither shared between people yet.</p>
+            <ui-table compact celled unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Piece</th>
+                    <th>What it does today</th>
+                    <th>Shared?</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>The editor</td>
+                    <td>
+                      Monaco (VS Code's editor), in the web app. A changed file goes to the editor server whole, and is
+                      saved to disk. The language server parses it again in the browser.
+                    </td>
+                    <td>No: one person, one tab. Two tabs editing one file: the last save wins.</td>
+                  </tr>
+                  <tr>
+                    <td>A program's state, by id</td>
+                    <td>
+                      The Python target's apps (epic <code>python-target</code>): the program runs on the server, its
+                      page mirrors it. The page sends clicks; the program answers with a patch.
+                    </td>
+                    <td>One program per visitor: each person plays their own game.</td>
+                  </tr>
+                  <tr>
+                    <td>The same, for javascript</td>
+                    <td>
+                      Future epic
+                      <a href="../../spell-server-state/spell-server-state.plan.html" target="spell-server-state"
+                        >Spell Server State</a
+                      >: a javascript program on a node server, mirrored the same way.
+                    </td>
+                    <td>Not built yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>A patch today · one click in Solitaire · 3 things</ui-title>
+              <ui-content>
+                <pre><code class="language-json">[
+  { "@type": "StockPile", "@id": "3", "name": "stock", "@items": [ ... ] },
+  { "@type": "Card", "@id": "26", "rank": "ace", "suit": "hearts", "pile": { "@id": "27" }, "direction": "up" },
+  { "@type": "DiscardPile", "@id": "27", "name": "discards", "@items": [ ..., { "@id": "26" } ] }
+]</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="word" header="1.3 What a CRDT is" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A CRDT ("conflict-free replicated data type") is a shared document that every copy can change at the
+                same time.
+              </li>
+              <li>Copies swap their changes in any order, and still all end up the same, with nobody's change lost.</li>
+              <li>
+                No referee needed: that's what sets it apart from today's patches, where ONE program decides everything.
+              </li>
+              <li>
+                Text is the hard case: two people typing in one line at once must both see both edits, in one order.
+                Libraries do this: Yjs (with a Monaco binding, <code>y-monaco</code>), Automerge, Loro.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="catch"
+            header="1.4 The catch:  today's patches aren't a CRDT"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <p>They work because there's always one referee: the running program. Without one, four things break.</p>
+            <ul>
+              <li>
+                <b>Ids:</b> the server hands them out, counting up ("3", "26"). Two editors making new things at once
+                would both make a "27".
+              </li>
+              <li>
+                <b>Whole things:</b> a patch sends a changed thing whole, and the last one to arrive wins. You change a
+                card's suit while I turn it face up: one of the two changes is lost.
+              </li>
+              <li>
+                <b>One way:</b> only the program sends patches; a page sends requests, which the program may refuse.
+              </li>
+              <li>
+                <b>Text:</b> source is text, not things. A "whole file" patch would wipe out whatever the other person
+                typed meanwhile.
+              </li>
+            </ul>
+            <p>
+              So the patches fit the RUNNING program well (a referee, every viewer's page mirrors it), and the source
+              text badly.
+            </p>
+          </ui-section>
+
+          <ui-section id="shape" header="1.5 The shape I'd propose" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>The source text:</b> a text CRDT library in the editor, with the editor server relaying changes
+                between tabs and saving the file to disk.
+                <ul>
+                  <li>Each person sees the others' cursors and selections.</li>
+                  <li>The language server parses each copy in its own tab, as it does today.</li>
+                </ul>
+              </li>
+              <li>
+                <b>A running program:</b> ONE program on the server (Spell Server State, for javascript), with every
+                viewer's page mirroring it through patches.
+                <ul>
+                  <li>
+                    Two people's clicks both go to that program, which settles them in order: no CRDT needed there.
+                  </li>
+                </ul>
+              </li>
+              <li><b>What goes away:</b> saving a whole file on each change, and "the last tab to save wins".</li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Roughly, in the editor · Yjs · 8 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-ts">import * as Y from "yjs"
+import { WebsocketProvider } from "y-websocket"
+import { MonacoBinding } from "y-monaco"
+
+const doc = new Y.Doc()
+const room = new WebsocketProvider(editorServerUrl, `${projectId}/${filePath}`, doc)
+const text = doc.getText("source")
+new MonacoBinding(text, editor.getModel()!, new Set([editor]), room.awareness)</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="size" header="1.6 A rough size" sticky collapsible dividing collapsed>
+            <ul>
+              <li>Shared source text, on one machine or a local network: about 3-4 phases.</li>
+              <li>Viewers sharing one running program: 1-2 phases, after Spell Server State.</li>
+              <li>Over the internet, with sign-in and sharing links: an epic of its own.</li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section
+          id="q1"
+          class="spell-question"
+          header="Q1 · What do people edit together?"
+          sticky
+          collapsible
+          dividing
+        >
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>
+            "Multi-edit spell editor" could mean the program's SOURCE (the text in the editor), the RUNNING program (its
+            things on screen), or both.
+          </p>
+          <div class="spell-option" data-option="A" data-title="Source first, then running" data-recommended>
+            <p>Shared source text first; sharing a running program as a later phase, once Spell Server State exists.</p>
+            <div class="spell-option-details">
+              <ul>
+                <li>The editor is where "multi-edit" helps most: two people writing one program.</li>
+                <li>The running half needs Spell Server State for javascript, which isn't built.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="spell-option" data-option="B" data-title="Source text only">
+            <p>Only the editor's text. Running programs stay one per person.</p>
+          </div>
+          <div class="spell-option" data-option="C" data-title="Running program only">
+            <p>Several people in one running program (one game, one app); the source stays one person's.</p>
+            <div class="spell-option-details">
+              <p>This is the part today's patches fit: one program referees, every page mirrors it.</p>
+            </div>
+          </div>
+        </ui-section>
+
+        <ui-section
+          id="q2"
+          class="spell-question"
+          header="Q2 · Our own patches, or a CRDT library?"
+          sticky
+          collapsible
+          dividing
+        >
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>
+            Shared text needs merging, character by character. We can grow today's patches into a CRDT, or use a library
+            that already does it.
+          </p>
+          <div class="spell-option" data-option="A" data-title="A library for text" data-recommended>
+            <p>
+              A text CRDT library for the source (Yjs, with its Monaco binding); our patches stay for running programs.
+            </p>
+            <div class="spell-option-details">
+              <ul>
+                <li>Yjs: widely used, small, plain javascript, a ready Monaco binding and cursor sharing.</li>
+                <li>Loro and Automerge: newer designs, in Rust compiled to WebAssembly; bigger downloads.</li>
+                <li>The plan would compare them before picking one.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="spell-option" data-option="B" data-title="Grow our own patches">
+            <p>
+              Make the patches a CRDT ourselves: ids unique per person, a clock per property, a text merge. We own all
+              of it; text merging is the hard part, and months of work to get right.
+            </p>
+          </div>
+        </ui-section>
+
+        <ui-section id="q3" class="spell-question" header="Q3 · Who keeps the shared copy?" sticky collapsible dividing>
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>Every person's tab has a copy; something must pass changes between them, and save the files.</p>
+          <div class="spell-option" data-option="A" data-title="The editor server" data-recommended>
+            <p>The app's own editor server relays changes between tabs, and writes the files to disk as they change.</p>
+          </div>
+          <div class="spell-option" data-option="B" data-title="Tab to tab">
+            <p>
+              Tabs talk to each other directly (WebRTC), no server in the middle. Someone still has to save the files.
+            </p>
+          </div>
+          <div class="spell-option" data-option="C" data-title="A hosted service">
+            <p>
+              A service on the internet keeps the shared copy (e.g. Liveblocks). Easy to reach; an outside dependency.
+            </p>
+          </div>
+        </ui-section>
+
+        <ui-section id="q4" class="spell-question" header="Q4 · How far does it reach?" sticky collapsible dividing>
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <p>Who can join an editing session, and from where.</p>
+          <div class="spell-option" data-option="A" data-title="One machine or local network" data-recommended>
+            <p>Tabs on your machine, or people on your network: no accounts, no sign-in. Enough to build and try it.</p>
+          </div>
+          <div class="spell-option" data-option="B" data-title="Over the internet">
+            <p>Anyone with a link, from anywhere: sign-in, permissions, hosting. An epic of its own.</p>
+          </div>
+        </ui-section>
+        <!-- no footer:  the Send bar `details.js` adds is the page's bottom;  the date is up top ("Asked") -->
+      </main>
+    </div>
+    <script src="../../../packages/docs/tools/_assets/highlight.min.js"></script>
+    <script src="../../../packages/docs/tools/_assets/details.js"></script>
+    <script src="../../../packages/docs/tools/_assets/spell-ui.js"></script>
+  </body>
+</html>
