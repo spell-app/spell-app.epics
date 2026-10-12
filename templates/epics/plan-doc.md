@@ -126,7 +126,8 @@ written:
   inside, nested in `<epic-overview>` (`PLAN-DOC.md`, "The page"). Sub-sub-items: `<h4 id>`.
 - NEVER change an `id`: the items, the log and other docs link to them.
 - A doc still in the old `ui-*` markup (none since the switch, 2026-10-08): `spell dev plan-doc convert <name>`.
-  `migrate` and `relayout` are gone: the converter replaced them.
+  `relayout` is gone: the converter replaced it. `migrate` brings a page already in `<epic-*>` markup up to today's
+  ("Migrations", below).
 
 ## Ids: short, so they're easy to say in chat
 
@@ -393,7 +394,15 @@ active, flag what changed so the user can spot it:
 - a change to a PHASE's plan is the same element, written by `updated <name> <N>` at the end of the phase's
   description ("What phases and items say"), and it stays
 - an older doc's shapes (an UPDATE note BEFORE its block, `<epic-updated>` lines, a Plan changes box) are migrated
-  on the tool's next write (`updates-as-epic-update`)
+  on the tool's next write, or by `migrate` (`updates-as-epic-update`)
+
+## Migrations
+
+- `spell dev plan-doc migrate` brings pages up to today's markup: every named, dated step of each page's kind,
+  oldest first, each page under its lock, safe to run again (`PLAN-DOC.md`, "Migrations").
+- Any change to epic page markup adds its step in the same commit (epics' `AGENTS.md`, "Rules").
+- Once it's on `main`: `migrate --all --notify`, and send each `TELL:` line to its session; a session told to run it
+  does so at its leisure, and may commit it without asking (the epic skill's "Migrations").
 
 ## Review inbox
 
