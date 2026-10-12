@@ -1,50 +1,85 @@
 <!-- plan-doc part:  #o4's body in people-and-orgs.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
   A person and an org are small JSONC files, one per thing, read and written through a storage adapter whose first
-  version is the local disk. Where the folders live is open (<a href="#q10">Q10</a>).
+  version is the local disk.
 </p>
+<ul>
+  <li>They live in a spaces folder chosen when the server starts (<a href="#q10">Q10</a>).</li>
+  <li>Either with <code>--spaces &lt;dir&gt;</code>, or with the setting <code>SPELL_SPACES_DIR</code>.</li>
+  <li>
+    By default it's <code>spell-spaces</code>, beside the main checkout and outside any repo (<a href="#j2">J2</a>).
+  </li>
+</ul>
 <epic-code title="The folders · roughly" language="text">
   <pre>
-people/
-  owen/
-    person.jsonc          who Owen is
-    friend-lists/
-      family.jsonc        one file per list:  two edits rarely touch the same file
-orgs/
-  three-degrees/
-    org.jsonc
-    members/
-      matt.jsonc          matt's role here
-    _index.jsonc          built from the folder, never edited by hand</pre>
+spell-spaces/             beside the spell-app checkout
+  people/
+    owen/
+      person.jsonc        who Owen is
+      friend-lists/
+        family.jsonc      one file per list:  two edits rarely touch the same file
+  orgs/
+    three-degrees/
+      org.jsonc
+      members/
+        matt.jsonc        matt's membership:  his role here
+      _index.jsonc        built from the folder, never edited by hand</pre>
 </epic-code>
-<epic-code title="person.jsonc · 9 lines" language="jsonc">
+<epic-code title="person.jsonc · 10 lines" language="jsonc">
   <pre>
 {
-  "$schema": "spell:person@1", // the type, and its version
-  "id": "owen",
+  "$schema": "@spell:library/people/Person", // its type, by spell address
+  "@version": 2,                               // none means version 1
+  "id": "owen",                                // built in:  every thing has one
   "names": ["Owen Williams"],
   "nickname": "Owen",
   "emails": ["owen@example.com"],
   // comments survive when the app saves
-  "dates": [{ "label": "birthday", "day": "1970-01-01" }],
+  "dates": [{ "label": "birthday", "day": "1970-01-01" }], // dated events are saved inline
 }</pre>
 </epic-code>
 <ul>
   <li>
     <b>JSONC</b> (<a href="#q4">Q4</a>): edited with Microsoft's <code>jsonc-parser</code>, which changes one value and
-    keeps every comment. The app's own project files lose their comments on every save today.
+    keeps every comment. The app's own project files lose their comments on every save today (<a href="#t1">T1</a>).
   </li>
   <li>
     <b>The schema is the spell declaration</b> (<a href="#q3">Q3</a>): it compiles to a checker the store runs on every
-    read and write, and to JSON Schema, so VS Code underlines a mistake in the file.
+    read and write, and to JSON Schema.
   </li>
   <li>
-    <b>Versions:</b> <code>"$schema": "spell:person@2"</code>. An old file is upgraded step by step when read, and
-    written back when next saved. How an upgrade step is written is open (<a href="#q14">Q14</a>).
+    A file's <code>"$schema"</code> is the spell address of its type (<a href="#j3">J3</a>). The spell VS Code extension
+    turns it into JSON Schema, so VS Code underlines a mistake in the file.
   </li>
+  <li>
+    <b>Versions:</b> <code>"@version"</code> in the file says which version it is; a file without one is version 1 (<a
+      href="#q14"
+      >Q14</a
+    >).
+  </li>
+  <li>A version goes up only when an existing property changes, never for a new one.</li>
+  <li>An old file is upgraded step by step when read, and written back as the newest version when next saved.</li>
   <li>
     <b>The storage adapter</b> is the one way in: read, write, list, remove, watch. Disk first; S3 or Git later. Writes
     keep using the page server's file lock.
   </li>
   <li><b>Indexes</b> (<code>_index.jsonc</code>) are rebuilt from a folder's files whenever one changes.</li>
 </ul>
+<epic-update at="2026-10-12 02:10" summary="The folder, the schema and the version, as decided">
+  <ul>
+    <li>
+      The folder is set at server start, by default <code>spell-spaces</code> beside the main checkout (<a href="#q10"
+        >Q10</a
+      >).
+    </li>
+    <li>
+      A file's schema is a spell address naming its type, no longer <code>spell:person@1</code> (<a href="#j3">J3</a>).
+    </li>
+    <li>
+      The version is the file's <code>"@version"</code>, bumped only when an existing property changes (<a href="#q14"
+        >Q14</a
+      >).
+    </li>
+    <li>The folder sketch starts at the spaces folder, and an org's member file is a membership.</li>
+  </ul>
+</epic-update>
