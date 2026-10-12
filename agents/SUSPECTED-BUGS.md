@@ -38,6 +38,14 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- `expect 1 to be 1` as a line of a `to test ...` method throws while compiling:
+  `Error creating ASTStringLiteral:  expected property 'value' to be string ... Actual value: 1`,
+  then `text.replace is not a function` in `jsText.inQuotes()`.
+  Seen 2026-10-12 (epic `drawable-thing` P17), writing `Block.test.ts`:  `print "testing"` in its place compiles.
+  Likely the test's echo of each line (`MethodDefinition.getAST()`, `echoTestAction`) or `expect`'s string of what
+  it tested, handed a number literal's value where it wants its text.  Prove:  compile a file
+  `to test it\n\texpect 1 to be 1`.
+
 - A `+` whose left side is an `or` gets the `or`'s datatype, a choice:  `(the name of the pile or "pile") + ":"`
   (Solitaire's `the state of a pile`) has datatype `choice`, though it's text.  Seen in epic `output-targets` P13,
   2026-10-09:  with every tree node falling back to its match's datatype, the TypeScript writer wrote
