@@ -1693,3 +1693,6 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-12 · `epic update <name>#P<N> --files "..."` wrote the phase's existing file links one level too deep
   (`../../../` became `../../../../` in `parts/p4.html`), and left a new path as plain text instead of the
   name-with-tooltip link. · Fixed by hand in the part file;  the tool itself is unfixed. · epics (people-and-orgs P4)
+- 2026-10-13 · cli's `yarn lint` fails on `main`:  `src/ui/ProjectPrompt.tsx:72` has a `react-hooks(exhaustive-deps)` warning,
+  and the script runs `--max-warnings 0`.  `yarn review` never shows it:  it runs `lint:fix`, which allows warnings. ·
+  Unfixed (seen while moving cli's tests, epic `people-and-orgs` P10). · cli
