@@ -824,3 +824,11 @@ Skills, hooks and their scripts (`.claude/`, `packages/docs/tools/goals/skills/`
 - `[V]` `.claude/skills/whassup/scripts/whassup.py` `merge()`:  `git merge --no-edit` (a merge commit), while its
   docstring says "as `/isolate done` would", which is `git merge --ff-only`.  One policy, one command:  roadmap
   `spell dev worktree merge` (epic `commands`).
+
+## epics
+
+- `node packages/epics/demo/check-review-epics.mjs` (the review sample, 2026-10-13, epic `people-and-orgs` P16):  every
+  flow passes but one, "j1's chip, skipped, unsent:  dashed grey":  the chip has `data-fill="dashed"` and no
+  `data-color`, where the check wants `grey`.  `<epic-item>`'s `chipMark()` gives a skip no colour, or the check is
+  older than the "own mark in flight keeps the state colour" rule (`EpicItem.css`, about line 377).  Not looked for;
+  nothing P16 touched draws it.

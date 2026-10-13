@@ -1652,6 +1652,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (windows-and-review I2) was installed:  the window had not been reloaded since the extension was, so it still ran
   the old one.  A traced round showed every hop working after a reload. · Fix:  after `spell dev vscode`, reload each
   open window (Developer: Reload Window) before judging a side-bar fix. · vscode
+- 2026-10-13 · After the page server's info call moved from `/_server/ping` to `/api/server` (epic `people-and-orgs`
+  P16), `spell dev server status` / `stop` in the worktree said "not running" while its OLD server (P15's code) still
+  held port 4747:  the new `PidFile` asks the new path, which the old server answers 404, so it can't see it, and
+  `ensure` started a second server on a free port beside it. · Killed the old pid by hand;  `PidFile.ensure()` now
+  stops this checkout's pid-file server when it holds its port but doesn't answer `/api/server`, so the merge into
+  `main` doesn't strand main's server the same way. · server
 
 ## brand
 
