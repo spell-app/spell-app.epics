@@ -1,0 +1,65 @@
+<!-- plan-doc part:  #j48's details in people-and-orgs.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  How an address with two slashes travels in a URL (<a href="#q32">Q32</a>). I checked it, and recommend keeping the two
+  slashes in the URL as they are, so a file's URL is still its address under <code>/spaces/</code>.
+</p>
+<epic-code title="An address and its URLs · 3 lines" language="text">
+  <pre>
+owen@spell/solitaire//Card.spell                       the address
+/spaces/owen@spell/solitaire//Card.spell               reading it
+/api/projects/file/owen@spell/solitaire//Card.spell    saving it</pre>
+</epic-code>
+<ul>
+  <li>
+    <b>What keeps the two slashes:</b>
+    <ul>
+      <li>the browser, and node's URL: the empty part between them stays in the path</li>
+      <li>the page server's router: it matches the path as it arrived, and a route's last part keeps them</li>
+      <li>vite's proxy, which passes the editor's <code>/api/</code> calls on unchanged</li>
+    </ul>
+  </li>
+  <li>
+    <b>What would lose them, and the rule for each:</b>
+    <ul>
+      <li>
+        Path functions (normalize, join, resolve), and the page server's own static-file lookup, squash
+        <code>//</code> to <code>/</code>. Rule: spaces' routes split the address at its first <code>//</code> BEFORE
+        they turn it into a path on disk.
+      </li>
+      <li>
+        A relative link with <code>../</code> climbs out of the two slashes. From
+        <code>/spaces/owen@spell/solitaire//Card.spell</code>, <code>../x</code> is
+        <code>/spaces/owen@spell/solitaire/x</code>: a page address. A link to a file beside it,
+        <code>Deck.spell</code>, stays inside. Rule: tools write a <code>/spaces/</code> link whole, never
+        <code>../</code> across the two slashes.
+      </li>
+      <li>
+        A link that STARTS with <code>//</code> names another web site: <code>//Card.spell</code> is the host
+        <code>card.spell</code>. Rule: every URL starts <code>/spaces/</code> or <code>/api/</code>, never with the
+        address itself.
+      </li>
+      <li>
+        Encoding a whole address in one go turns <code>//</code> into <code>%2F%2F</code>, which the static lookup
+        refuses. Rule: encode each part, never the address as one piece.
+      </li>
+      <li>
+        Python's web server (Werkzeug) merges double slashes only in a route's fixed parts, and it serves one app at its
+        own routes, never an address: nothing to change there.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>The other way, not recommended:</b> write the two slashes as <code>/~/</code> in URLs only,
+    <code>/spaces/owen@spell/solitaire/~/Card.spell</code>. Safe from any tool that squashes slashes, but a URL's tail
+    stops being its address, and nothing we run needs it.
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>
+      <code>/spaces/</code> and <code>/api/projects/file/</code> URLs hold the address as it is, two slashes included
+    </li>
+    <li>spaces' routes split at <code>//</code> first; one function turns an address into a URL and back</li>
+    <li>a test asks the page server for a two-slash URL, and checks that no tool writes <code>../</code> across one</li>
+  </ul></epic-net-effect
+>
