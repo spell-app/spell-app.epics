@@ -1722,3 +1722,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-13 · `epic add-phase` and `epic phase ... done --done` prefix links they're handed with one more `../`, as if
   relative to the skeleton, but the body lands in `parts/`, so a link written for the part file comes out one level too
   deep. · Fixed by hand in the part files;  pass links relative to the skeleton. · epics
+- 2026-10-13 · The `epic` on the `PATH` (the MAIN checkout's CLI), run in a worktree, registered an agent as
+  `main-plan-doc`, not `people-and-orgs-plan-doc`:  `epic agents` takes the epic from the checkout of the CLI it runs,
+  not the folder it's run in. · Removed it, re-added with this branch's `node packages/cli/bin/epic.mjs agents add`.
+  Better:  `epic agents` could read the epic from the working folder's worktree. · epics (people-and-orgs P18)
