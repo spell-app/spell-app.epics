@@ -355,12 +355,6 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   `Card.Colors = [red, 'black']`, i.e. `[5, 'black']`:  `identifier_list` takes the variable.  Prove:  those two
   lines, in that order.
 
-- Renaming or duplicating a project (`/api/projects/rename/project`, `/duplicate/project`, in `project-utils.ts`)
-  moves only its folder:  its `<Old>.compiled.js`, scopes pack, declarations and words keep the old project's name,
-  so their routes answer 404 until it's compiled again.
-  Seen 2026-10-13 (epic `people-and-orgs`), mapping the projects API for the spaces page, from reading the code.
-  Prove:  rename an example in the app, then open its compiled output before recompiling.
-
 ## parser
 
 ### 1. Behavior bugs
