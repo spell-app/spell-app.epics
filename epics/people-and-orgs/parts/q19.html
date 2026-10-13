@@ -1,0 +1,109 @@
+<!-- plan-doc part:  #q19's details in people-and-orgs.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    A saved person file has to say which version of Person it was written as, so an old file can be upgraded. This asks
+    WHERE in the file that version is written: in the type's address, in a key of its own, or both.
+  </p>
+  <p>Where it comes from, the judgement call on a file's schema and version (<a href="#j3">J3</a>):</p>
+  <ul>
+    <li>
+      Owen decided its first question: every internal key of saved JSON starts with <code>$</code>, so the version key
+      is <code>$version</code>, not <code>@version</code>.
+    </li>
+    <li>
+      He also decided how a type's address names one version: <code>Person$v2</code>, with a dollar sign, because
+      <code>@</code> already means a space or a place in an address.
+    </li>
+    <li>Its second question, below, was left open.</li>
+  </ul>
+  <p>What's already fixed, whichever option wins:</p>
+  <ul>
+    <li>
+      A type's address may end in <code>$v2</code>, naming that version's schema; without it, the address means the
+      newest version.
+    </li>
+    <li>A file that names no version is version 1, as the decision on upgrades (<a href="#q14">Q14</a>) says.</li>
+  </ul></epic-question
+>
+<p><b>The catch that makes this a real choice:</b></p>
+<ul>
+  <li>VS Code asks for a schema by its address alone. It never sees the rest of the file.</li>
+  <li>
+    So VS Code can check an old file against that file's OWN version only if <code>$schema</code> names the version.
+  </li>
+  <li>
+    Otherwise a version 1 file is checked against the newest Person: a renamed property shows as a mistake, though the
+    store reads the file fine.
+  </li>
+</ul>
+<epic-code title="A person file's first lines, each way · 11 lines" language="jsonc">
+  <pre>
+// A:  both
+"$schema": "@spell:library/people/Person$v2",
+"$version": 2,
+
+// B:  the address only
+"$schema": "@spell:library/people/Person$v2",
+
+// C:  the key only
+"$schema": "@spell:library/people/Person",
+"$version": 2,</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="Both:  the version in $schema, and $version" recommended>
+    <ul>
+      <li>VS Code checks every file against its own version.</li>
+      <li>The store reads <code>$version</code>, as the decision on upgrades (Q14) said.</li>
+      <li>A save writes both, at the newest version.</li>
+      <li>Cost: the version is said twice. A hand edit that makes them disagree gets a warning from the store.</li>
+    </ul>
+    <epic-net-effect option="A">
+      <ul>
+        <li>A saved file writes <code>"$schema": "...Person$v2"</code> and <code>"$version": 2</code></li>
+        <li>The store reads <code>$version</code>, and warns when the two disagree</li>
+      </ul>
+    </epic-net-effect>
+  </epic-option>
+  <epic-option letter="B" title="Only in $schema">
+    <ul>
+      <li>The version is said once, and VS Code checks each file against its own version.</li>
+      <li>There's no <code>$version</code> key, which Owen's note and the decision on upgrades both asked for.</li>
+      <li>A file whose address has no <code>$v</code> is version 1.</li>
+    </ul>
+    <epic-net-effect option="B">
+      <ul>
+        <li>A saved file writes only <code>"$schema": "...Person$v2"</code></li>
+        <li>The store reads the version from the address; no <code>$version</code> key anywhere</li>
+      </ul>
+    </epic-net-effect>
+  </epic-option>
+  <epic-option letter="C" title="Only $version;  $schema names the newest">
+    <ul>
+      <li>As the judgement call (J3) stood, with <code>$</code> in place of <code>@</code>.</li>
+      <li>An old file shows false mistakes in VS Code until the app saves it again.</li>
+      <li><code>Person$v2</code> is then used only where a version must be named, such as an upgrade sentence.</li>
+    </ul>
+    <epic-net-effect option="C">
+      <ul>
+        <li>A saved file writes <code>"$schema": "...Person"</code> and <code>"$version": 2</code></li>
+        <li>VS Code always checks against the newest Person</li>
+      </ul>
+    </epic-net-effect>
+  </epic-option>
+</epic-choices>
+<p><b>Where it's built:</b></p>
+<ul>
+  <li>One Address Scheme (<a href="#p4">P4</a>) reads <code>$v2</code> in a type's address, whichever option wins.</li>
+  <li>Schema From Spell (<a href="#p5">P5</a>) serves one schema per version, for <code>Person$v2</code>.</li>
+  <li>
+    Versions And Upgrades (<a href="#p6">P6</a>) reads and writes the version where this question puts it. It needs the
+    answer before it starts.
+  </li>
+</ul>
+<epic-net-effect option="A" recommended>
+  <ul>
+    <li>A saved file writes both <code>"$schema": "...Person$v2"</code> and <code>"$version": 2</code></li>
+    <li>VS Code checks an old file against its own version, not the newest</li>
+    <li>The store reads <code>$version</code>; a file with none is still version 1 (Q14)</li>
+    <li>Versions And Upgrades (P6) builds it this way</li>
+  </ul>
+</epic-net-effect>
