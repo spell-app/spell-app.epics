@@ -1,0 +1,55 @@
+<!-- plan-doc part:  #j41's details in people-and-orgs.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  You named <code>json5-writer</code> for TypeScript, and <code>commentjson</code> or <code>libcst</code> for Python. I
+  tried each on one test file (comments, bare keys, single quotes, trailing commas): set a value, remove a key, add one.
+  The findings, with sources:
+  <a href="../details/analysis.html#q4-json5" target="src-epics-people-and-orgs-details-analysis-html"
+    >analysis Q4, the update</a
+  >.
+</p>
+<ul>
+  <li>
+    <b>TypeScript:</b> <code>json5-writer</code> works, but it was last released in June 2020, has no types, and pulls
+    in an old jscodeshift and Babel (160 packages). <code>@croct/json5-parser</code> does the same job better: it
+    changes one key in place, writes a new key in the file's own style, is written in TypeScript, has one dependency,
+    and was released in December 2025.
+  </li>
+  <li>
+    <b>Python:</b> neither named library can do it.
+    <ul>
+      <li><code>commentjson</code> failed on bare keys and single quotes, and writes plain JSON, comments gone.</li>
+      <li><code>libcst</code> is a tree of Python source: it failed on the file.</li>
+      <li>
+        <code>json-five</code> keeps comments with its "model" loader and dumper. Adding a key means writing its spacing
+        by hand, so it sits behind one small helper, its version pinned.
+      </li>
+      <li>
+        Python's core uses the standard library only, and needs json-five only where it edits a file a person wrote: the
+        files spell generates are written as plain JSON, which is JSON5 too.
+      </li>
+    </ul>
+  </li>
+</ul>
+<epic-choices>
+  <epic-option letter="A" title="@croct/json5-parser, and json-five" recommended>
+    <ul>
+      <li>TypeScript: typed and kept up; edits one key at a time, so a comment stays exactly where it was.</li>
+      <li>Python: json-five, the only one of the libraries checked that keeps comments.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="json5-writer, and json-five">
+    <ul>
+      <li>TypeScript: the library you named. We'd write its types, and it moved a comment in the test.</li>
+      <li>Python: as A.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>
+      <code>@croct/json5-parser</code> becomes a dependency of the package that holds the storage adapter (<a href="#p8"
+        >P8</a
+      >), in place of <code>jsonc-parser</code>
+    </li>
+    <li><code>json-five</code>, pinned, only where Python edits a hand-written file (<a href="#p12">P12</a>)</li>
+  </ul>
+</epic-net-effect>

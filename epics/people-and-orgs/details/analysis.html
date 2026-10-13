@@ -215,7 +215,7 @@ an org is a thing with:
               <ui-content>
                 <pre><code class="language-text">people/
   owen/                       owen@spell, a personal workspace
-    person.jsonc              who Owen is
+    person.json5              who Owen is
     $settings/
     $docs/                    SpellWiki pages
     $data/                    data shared across projects
@@ -223,16 +223,16 @@ an org is a thing with:
     solitaire/                a project
 orgs/
   three-degrees/              @three-degrees, an org's workspace
-    org.jsonc
+    org.json5
     members/
-      matt.jsonc              matt's role here, one file per member
-      _index.jsonc            built from the folder, never hand-edited
+      matt.json5              matt's role here, one file per member
+      _index.json5            built from the folder, never hand-edited
     bubble-trouble/           a project
     @matt/                    matt@three-degrees, if the org gives members their own</code></pre>
               </ui-content>
             </ui-accordion>
             <ui-accordion class="spell-code" styled>
-              <ui-title>person.jsonc · one person · 10 lines</ui-title>
+              <ui-title>person.json5 · one person · 10 lines</ui-title>
               <ui-content>
                 <pre><code class="language-js">{
   "$schema": "spell:person@1",   // the type, and its version
@@ -370,7 +370,7 @@ orgs/
             <div class="spell-option-details">
               <ul>
                 <li>
-                  You'd see: <code>Person.spell</code> in a project, and <code>people/owen/person.jsonc</code> on disk,
+                  You'd see: <code>Person.spell</code> in a project, and <code>people/owen/person.json5</code> on disk,
                   read and written by the app.
                 </li>
                 <li>It proves the "written in spell, used elsewhere" idea first, which everything else depends on.</li>
@@ -529,6 +529,207 @@ a friend-list has a note as text per person</code></pre>
               <code>@type</code> as a key needs quotes.
             </p>
           </div>
+          <ui-message id="q4-json5" state="warning" header="Update 2026-10-13 · You switched to JSON5">
+            <p>
+              You picked JSONC first, then switched (2026-10-13): "Let's switch to JSON5 and work around the problems".
+              JSON5's two problems both have a fix, checked by hand on a test file with comments, unquoted keys, single
+              quotes and trailing commas.
+            </p>
+            <ul>
+              <li>
+                <b>Comments lost when the app saves:</b> fixed by a JSON5 editor that changes one value in the text and
+                leaves the rest alone. TypeScript has a good one; Python has one that works at a lower level.
+              </li>
+              <li>
+                <b>VS Code doesn't check <code>.json5</code> against its schema:</b> fixed by opening
+                <code>.json5</code> as VS Code's "JSON with comments", while spell writes its keys and text in double
+                quotes, which JSON5 allows.
+              </li>
+            </ul>
+          </ui-message>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>The JSON5 editors, checked · TypeScript</ui-title>
+            <ui-content>
+              <ui-table compact celled unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Library</th>
+                      <th>Keeps comments on save</th>
+                      <th>Add or remove a key</th>
+                      <th>Kept up</th>
+                      <th>Types</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <b><code>@croct/json5-parser</code></b> (recommended)
+                      </td>
+                      <td>Yes: a "lossless" tree of the text, every comment and space in it</td>
+                      <td>Yes: <code>set()</code>, <code>delete()</code>, <code>update()</code>, new keys in the file's style</td>
+                      <td>0.2.2, December 2025; about 875,000 downloads a week; one dependency</td>
+                      <td>Written in TypeScript</td>
+                    </tr>
+                    <tr>
+                      <td><code>json5-writer</code> (the one you named)</td>
+                      <td>Yes</td>
+                      <td>
+                        Yes, but only by writing the whole value: a key you leave out is removed. It moved a comment
+                        above the key it followed, in the test.
+                      </td>
+                      <td>0.2.0, June 2020; code last changed 2019; about 96,000 downloads a week</td>
+                      <td>None, and none on DefinitelyTyped. It pulls in an old jscodeshift (0.9) and Babel: 160 packages</td>
+                    </tr>
+                    <tr>
+                      <td><code>json5</code>, what the app uses today</td>
+                      <td>No: it reads, and writes a fresh file</td>
+                      <td>n/a</td>
+                      <td>2.2.3, December 2022</td>
+                      <td>Yes</td>
+                    </tr>
+                    <tr>
+                      <td><code>comment-json</code></td>
+                      <td>Yes, but for JSON with comments only: no unquoted keys, no single quotes</td>
+                      <td>Yes</td>
+                      <td>5.0.0, April 2026</td>
+                      <td>Yes</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <pre><code class="language-text">the test file, then each library sets age to 51, removes orgs, adds email
+
+{                                    @croct/json5-parser       json5-writer
+  // who this is                     {                         {
+  name: 'Owen',                        // who this is            // who this is
+  /* their orgs */                     name: 'Owen',             name: 'Owen',
+  orgs: ['spell', 'acme',],            /* their orgs */          // years
+  age: 50, // years                    age: 51, // years         age: 51,
+}                                      email: 'o@x',             email: 'o@x',
+                                     }                         }</code></pre>
+              <ul>
+                <li>
+                  Both keep the comments that matter. <code>@croct/json5-parser</code> keeps each where it was;
+                  <code>json5-writer</code> moved "// years" above its key.
+                </li>
+                <li>
+                  Sources: <a href="https://www.npmjs.com/package/@croct/json5-parser">@croct/json5-parser on npm</a>,
+                  <a href="https://github.com/croct-tech/json5-parser-js">its repo</a>,
+                  <a href="https://www.npmjs.com/package/json5-writer">json5-writer on npm</a>,
+                  <a href="https://github.com/noahsug/json5-writer">its repo</a>,
+                  <a href="https://www.npmjs.com/package/comment-json">comment-json</a>.
+                </li>
+              </ul>
+            </ui-content>
+          </ui-accordion>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>The JSON5 editors, checked · Python</ui-title>
+            <ui-content>
+              <ui-table compact celled unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Library</th>
+                      <th>Reads JSON5</th>
+                      <th>Keeps comments on save</th>
+                      <th>Kept up</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <b><code>json-five</code></b> (recommended; imported as <code>json5</code>)
+                      </td>
+                      <td>Yes</td>
+                      <td>
+                        Yes, with its "model" loader and dumper: an unchanged file comes back identical, and changing
+                        or removing a key keeps the rest. Adding a key means writing its spacing by hand, and the model
+                        may change between minor versions, so it sits behind one small helper, its version pinned.
+                      </td>
+                      <td>1.1.2, June 2024; repo active (October 2026); needs <code>sly</code> and <code>regex</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>commentjson</code> (the one you named)</td>
+                      <td>No: it failed on unquoted keys and single quotes</td>
+                      <td>No: it strips comments when reading, and <code>dumps()</code> writes plain JSON</td>
+                      <td>0.9.0, October 2020</td>
+                    </tr>
+                    <tr>
+                      <td><code>libcst</code> (the one you named)</td>
+                      <td>No: it's a tree of PYTHON source, and failed on the test file</td>
+                      <td>n/a</td>
+                      <td>1.9.0, July 2026</td>
+                    </tr>
+                    <tr>
+                      <td><code>pyjson5</code>, <code>json5</code></td>
+                      <td>Yes</td>
+                      <td>No: readers and plain writers. <code>json5</code> also imports as <code>json5</code>, so never beside json-five</td>
+                      <td>2.0.1, May 2026; 0.17.3, October 2026</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  Python's own core uses the standard library only. It needs no JSON5 library for what it reads today
+                  (a program's words, saved data): spell writes those files, so it can write them as plain JSON, which
+                  is JSON5 too.
+                </li>
+                <li>
+                  json-five comes in only where Python must read or change a file a person wrote.
+                </li>
+                <li>
+                  Sources: <a href="https://github.com/spyoungtech/json-five">json-five</a>,
+                  <a href="https://pypi.org/project/json-five/">on PyPI</a>,
+                  <a href="https://pypi.org/project/commentjson/">commentjson</a>,
+                  <a href="https://commentjson.readthedocs.io/en/latest/">its docs</a>,
+                  <a href="https://pypi.org/project/libcst/">libcst</a>,
+                  <a href="https://pypi.org/project/pyjson5/">pyjson5</a>.
+                </li>
+              </ul>
+            </ui-content>
+          </ui-accordion>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>VS Code and a .json5 file's schema</ui-title>
+            <ui-content>
+              <ul>
+                <li>
+                  VS Code (1.141) has no JSON5 mode of its own. The "JSON5 syntax" extension you have colours the text
+                  and checks nothing.
+                </li>
+                <li>
+                  Its JSON checker runs on files in "JSON" or "JSON with comments" mode. A setting can open
+                  <code>*.json5</code> in that mode: <code>"files.associations": { "*.json5": "jsonc" }</code>.
+                </li>
+                <li>
+                  Run on the test file that way, VS Code's own checker found the schema mistake, and also flagged
+                  every JSON5-only bit: "Property keys must be doublequoted" on each bare key, "Value expected" on each
+                  single-quoted text.
+                </li>
+                <li>
+                  So spell WRITES the JSON-compatible part of JSON5: keys and text in double quotes, comments and
+                  trailing commas allowed. Those files check cleanly. A bare key typed by hand gets one squiggle, and
+                  the schema check still runs past it.
+                </li>
+                <li>
+                  The setting goes in the repo's settings and the spaces folder's. The spell extension can also add
+                  <code>.json5</code> to "JSON with comments" for everyone, to be tried in the phase: an extension can't
+                  set <code>files.associations</code> itself.
+                </li>
+                <li>
+                  Later, if bare keys should check cleanly too: the spell language server checks <code>.json5</code>
+                  files itself, against the same JSON Schema.
+                </li>
+                <li>
+                  Sources: <a href="https://code.visualstudio.com/docs/languages/json">Editing JSON with VS Code</a>,
+                  <a href="https://code.visualstudio.com/docs/languages/overview">language modes and file associations</a>,
+                  <a href="https://github.com/microsoft/vscode-json-languageservice">vscode-json-languageservice</a>
+                  (the checker run in the test).
+                </li>
+              </ul>
+            </ui-content>
+          </ui-accordion>
         </ui-section>
 
         <ui-section
