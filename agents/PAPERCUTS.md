@@ -1681,3 +1681,6 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (`<epic> P5, T1, J7:  ...`):  it reads `<epic> P3:` and `P4 + P5:`, not a phase followed by item ids. ·
   Listed it by hand:  `plan-doc commit <epic> <sha> --phase 1 "..."` and `--item Q17`.  Better:  the backfill
   could take `P1, Q17:` too, filing the commit under each id. · epics
+- 2026-10-12 · `epic update <name>#P<N> --files "..."` wrote the phase's existing file links one level too deep
+  (`../../../` became `../../../../` in `parts/p4.html`), and left a new path as plain text instead of the
+  name-with-tooltip link. · Fixed by hand in the part file;  the tool itself is unfixed. · epics (people-and-orgs P4)
