@@ -372,6 +372,14 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   Seen 2026-10-12 (epic `people-and-orgs`), generating the spell-syntax guide, which compiles each rule's first test
   with `PY.PyWriter`.  Likely the text escaping (`pyText`) running over a placeholder it built itself.
   Prove:  compile `print 1 as a string` to Python and run it.
+- `[V]` A method with named arguments compiles to Python that reads them as attributes of a `dict`:
+  `to create a new task (with title as text, completed as a choice)`, called
+  `create a new task with title = "Create todos app", completed = yes`, writes
+  `create_a_new_task({"title": ..., "completed": True})` but `title = props.title` inside, which throws
+  `AttributeError: 'dict' object has no attribute 'title'`.
+  Seen 2026-10-13 (epic `people-and-orgs` P11), running the new `TodosFormBased` fixture (a copy of the
+  `Todos - Form Based` example) under Python in the core contract;  so it's left out of `PYTHON_FIXTURES`.
+  Prove:  add `TodosFormBased` to `PYTHON_FIXTURES`, then `yarn vp test run contract` in `packages/cli`.
 
 ## ui
 
