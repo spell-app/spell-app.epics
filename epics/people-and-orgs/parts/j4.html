@@ -20,3 +20,105 @@
     <li>The page server package stays a leaf</li>
   </ul>
 </epic-net-effect>
+<epic-reply
+  from="Claude"
+  at="2026-10-12 20:35"
+  re="I'm thinking that all of the code for the web servers and shared objects like Person comes from spell-app/packages/spaces. That can e.g. import packages/spell and packages/ui etc. What does this do to the import diagram? Show me a picture or pictures if you suggest something else."
+>
+  <p>
+    A spaces package fits the diagram with no cycle: the app imports it, and it imports spell, the core and the page
+    server. Two things should stay in spell, though. Pictures of today and of each option:
+    <a href="../details/spaces-package.html" target="src-epics-people-and-orgs-details-spaces-package-html"
+      >A Spaces Package</a
+    >, where you can answer too.
+  </p>
+  <ul>
+    <li>
+      Where it sits: <code>app -&gt; spaces -&gt; spell / core / server</code>. It may import Spell UI, in its browser
+      half only.
+    </li>
+    <li>
+      It has two halves, as spell does: a browser-safe main entry (Person and Org, for the app's "You" panel), and a
+      node-only folder (the people store, the servers).
+    </li>
+    <li>
+      The page server stays a leaf: it loads spaces' routes by their file path, listed in the root
+      <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+      >, as it loads the app's today.
+    </li>
+    <li>
+      Person's spell source stays in spell's built-in projects: the compiler and the language server find it there.
+      Spaces imports the compiled library through a package export on spell, as compiled libraries reach the core (<a
+        href="#j19"
+        >J19</a
+      >).
+    </li>
+    <li>
+      The storage adapter is the one thing I'd keep in spell. Spell reads and writes project files, for the CLI and the
+      language server too. Once those saves go through the adapter (<a href="#t1">T1</a>), or projects live in a
+      person's space, spell would have to import spaces, which imports spell: a cycle.
+    </li>
+    <li>
+      The page also asks where the app's server code goes (recommended: all of it into spaces, at the start of the
+      storage phase), and where Person's spell source lives (recommended: stays in spell).
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Spaces, adapter in spell" recommended
+      ><ul>
+        <li>Your package holds the servers, Person, Org and the people store.</li>
+        <li>The storage adapter stays in spell, so spell can save its own projects through it later.</li>
+        <li>No cycle now or later; about an hour to set the package up.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Spaces holds it all"
+      ><ul>
+        <li>Your idea as written: the storage adapter goes into spaces too.</li>
+        <li>Works today; it must move back into spell once spell saves projects through it.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="No new package"
+      ><ul>
+        <li>
+          This call as it stands: the adapter and the people store in spell, the people routes in the app's server.
+        </li>
+        <li>Spell and the app keep growing things that aren't theirs.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        A new package, <code>@spell-app/spaces</code> (alias <code>$/spaces</code>): the root AGENTS.md's table and
+        diagram, the alias table, the root workspaces list
+      </li>
+      <li>
+        The storage phase (<a href="#p8">P8</a>): the adapter stays in spell as its file list says; the server's start
+        options go to spaces; the app's server code moves into spaces first
+      </li>
+      <li>
+        The people phase (<a href="#p9">P9</a>): the people store goes in spaces, not spell; its routes go in spaces'
+        server, not the app's
+      </li>
+      <li>The Person and Org phase (<a href="#p7">P7</a>): spell gains a package export for the people library</li>
+      <li>This call's title and text change to match; no phase is edited until you pick</li>
+    </ul></epic-net-effect
+  >
+  <epic-net-effect option="B"
+    ><ul>
+      <li>
+        As A, and the adapter, the comment-keeping JSON edits and <code>jsonc-parser</code> go to spaces (<a href="#p8"
+          >P8</a
+        >)
+      </li>
+      <li>
+        The project.json saves through the adapter (<a href="#t1">T1</a>) can't happen until the adapter moves to spell
+      </li>
+    </ul></epic-net-effect
+  >
+  <epic-net-effect option="C"
+    ><ul>
+      <li>Nothing changes: the phases' file lists stand</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

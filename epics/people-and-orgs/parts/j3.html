@@ -34,3 +34,300 @@
     <li>No version in a schema's name anywhere</li>
   </ul>
 </epic-net-effect>
+<epic-reply
+  from="Claude"
+  at="2026-10-12 20:34"
+  re="`$version` rather than `@`. Keep the internal properties starting with `$` always. use `spell:person$v2` to refer to specific schema versions, so we don't conflict with `@` in addresses"
+>
+  <p>
+    Every internal key can start with <code>$</code>: I checked the clashes, and none is real. VS Code's own JSON
+    checker reads a person file full of <code>$</code> keys correctly.
+  </p>
+  <ul>
+    <li>
+      An "internal key" is one the saved JSON uses for itself, never a property of the thing: its kind, a list's items,
+      a reference, a version.
+    </li>
+    <li>
+      The file's type key already starts with a dollar sign, so today a person file would mix the two:
+      <code>$schema</code> beside <code>@type</code>.
+    </li>
+  </ul>
+  <table>
+    <thead>
+      <tr>
+        <th>What it says</th>
+        <th>Today</th>
+        <th>With <code>$</code></th>
+        <th>Where it's written</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>a thing's kind</td>
+        <td><code>"@type": "Person"</code></td>
+        <td><code>"$type"</code></td>
+        <td>every thing's JSON: saved files, a page's state, the debug view</td>
+      </tr>
+      <tr>
+        <td>a list type's items</td>
+        <td><code>"@items": [...]</code></td>
+        <td><code>"$items"</code></td>
+        <td>the same places</td>
+      </tr>
+      <tr>
+        <td>a reference</td>
+        <td><code>{"@ref": "Person#matt"}</code></td>
+        <td><code>{"$ref": ...}</code></td>
+        <td>saved files</td>
+      </tr>
+      <tr>
+        <td>a thing's number on one page</td>
+        <td><code>{"@id": "3"}</code></td>
+        <td><code>{"$id": "3"}</code></td>
+        <td>a page's state only, between the program and the page</td>
+      </tr>
+      <tr>
+        <td>a file's version (planned, <a href="#p6">P6</a>)</td>
+        <td><code>"@version": 2</code></td>
+        <td><code>"$version": 2</code></td>
+        <td>saved files</td>
+      </tr>
+      <tr>
+        <td>the file's type</td>
+        <td><code>"$schema"</code></td>
+        <td>unchanged</td>
+        <td>saved files; VS Code reads it</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    <b>What the switch touches:</b> about 280 mentions in 45 files, all mechanical. No saved file exists yet, so it's
+    cheap now.
+  </p>
+  <ul>
+    <li>
+      Four constants, each with a Python twin:
+      <ul>
+        <li>
+          the kind and items keys, in util's
+          <a href="../../../packages/util/src/reactive/extend.ts" target="src-packages-util-src-reactive-extend-ts"
+            ><code title="packages/util/src/reactive/extend.ts">extend.ts</code></a
+          >
+        </li>
+        <li>
+          the reference key, in core's
+          <a href="../../../packages/core/src/saving.ts" target="src-packages-core-src-saving-ts"
+            ><code title="packages/core/src/saving.ts">saving.ts</code></a
+          >
+        </li>
+        <li>
+          the page number key, in core's
+          <a href="../../../packages/core/src/state.ts" target="src-packages-core-src-state-ts"
+            ><code title="packages/core/src/state.ts">state.ts</code></a
+          >
+        </li>
+      </ul>
+    </li>
+    <li>Both cores' shared expected files, for saving and for a page's state.</li>
+    <li>
+      Tests: core's (saving, state, JSON, Thing, List, page), about ten of Python's, the app runner's, the CLI's Python
+      server test, util's.
+    </li>
+    <li>
+      Docs: core's, py's and util's AGENTS.md; the Python target and targets guides. The changelog's old entries stay as
+      written.
+    </li>
+    <li>
+      Generated bundles carry util's key, so they're regenerated: Spell UI's highlighter and markdown bundles, and the
+      docs tools' copies.
+    </li>
+    <li>
+      The first file on disk comes with the people store (<a href="#p9">P9</a>): after that, every person file would
+      need upgrading.
+    </li>
+  </ul>
+
+  <p><b>The clashes checked:</b></p>
+  <ol>
+    <li>
+      <b>JSON Schema's own keys.</b> JSON Schema has its own <code>$ref</code>, <code>$id</code> and so on.
+      <ul>
+        <li>They're keywords only inside a SCHEMA.</li>
+        <li>In a data file, such as a person file, they're plain properties.</li>
+      </ul>
+      <p>What I checked:</p>
+      <ul>
+        <li>
+          I ran VS Code's own JSON language server on a test person file, written with the new keys throughout.
+          It had three planted mistakes.
+        </li>
+        <li>It underlined exactly the three mistakes, and nothing else.</li>
+        <li>
+          The schema describes a reference as a property named <code>$ref</code>. That's legal: a key under a schema's
+          "properties" is a property's name, never a keyword.
+        </li>
+        <li>
+          One rule for the schema writer (<a href="#p5">P5</a>): never put a sample reference in the schema's own
+          examples or defaults. Some tools follow every <code>$ref</code> they find in a schema.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>JSON-LD.</b> The <code>@</code> keys were picked as JSON-LD's spellings (decision Q49 of epic
+      <code>output-targets</code>).
+      <ul>
+        <li>Nothing reads our files as JSON-LD: they have no <code>@context</code>. We lose only the look-alike.</li>
+        <li>
+          The dollar sign has its own precedent: .NET's JSON libraries.
+          <ul>
+            <li>They write <code>$id</code> and <code>$ref</code> for a thing held in two places.</li>
+            <li>They write <code>$type</code> for a thing's kind.</li>
+            <li>Those are the same meanings as ours.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Spell's own names.</b> The <code>@</code> was safe because no spell property can start with it.
+      <ul>
+        <li>The same holds for the dollar sign: a spell name starts with a letter.</li>
+      </ul>
+      <ul>
+        <li>
+          Generated method names such as <code>is_a_$suit</code> have a <code>$</code> inside, but they're methods,
+          never saved.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Addresses.</b> This is the real reason for your <code>$v2</code>: <code>@</code> already means a space or a
+      place in an address.
+      <ul>
+        <li><code>owen@spell</code> is a space; <code>Person#matt@three-degrees</code> is a thing in another place.</li>
+        <li>So <code>Person@2</code> would read as a place called "2".</li>
+        <li>
+          <code>$</code> appears in no address form, so <code>$v2</code> at the end of a type's address is unambiguous.
+        </li>
+      </ul>
+    </li>
+  </ol>
+  <epic-code title="The test:  VS Code's JSON server on a person file with $ keys · 12 lines" language="jsonc">
+    <pre>
+// the schema, in part:  a reference is an object with one property, named "$ref"
+"Reference": { "type": "object", "properties": { "$ref": { "type": "string", "pattern": "^[A-Z][\\w-]*#" } },
+               "required": ["$ref"], "additionalProperties": false }
+
+// the person file
+{
+  "$schema": "file:///.../schema.json", "$type": "Person", "$version": 2, "id": "owen", "name": "Owen",
+  "dates": [{ "$type": "DatedEvent", "label": "birthday", "day": "1970-01-01", "oops": 1 }],
+  "friends": [{ "$ref": "Person#matt" }, { "$ref": 3 }, { "$ref": "Person#jo", "extra": true }]
+}
+// what it underlined:  "Property oops is not allowed", "Incorrect type. Expected string" (the 3),
+// "Property extra is not allowed".  Nothing else.</pre>
+  </epic-code>
+
+  <p>
+    <b>Question 1: which keys move to <code>$</code>?</b>
+  </p>
+  <epic-choices>
+    <epic-option letter="A" title="Every internal key, as you said" recommended>
+      <ul>
+        <li>All five keys in the table move, to sit beside <code>$schema</code>.</li>
+        <li>One rule to remember: <code>$</code> means "the file's, not the thing's".</li>
+        <li>Cost: the 45 files above, once, before any file is saved for real.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="Only the new keys">
+      <ul>
+        <li>Only <code>$version</code> is new, beside <code>$schema</code>.</li>
+        <li>The kind, items, reference and page number keys keep their <code>@</code>.</li>
+        <li>No churn now.</li>
+        <li>Cost: two prefixes for the same idea in every person file, for good.</li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>Every internal key in saved files and a page's state starts with <code>$</code>, in both cores</li>
+      <li>The two shared expected files, the tests and the docs follow; two Spell UI bundles regenerated</li>
+    </ul>
+  </epic-net-effect>
+
+  <p><b>Question 2: where does a file say its version?</b></p>
+  <ul>
+    <li>
+      Your <code>spell:person$v2</code> in the address scheme's own form (<a href="#q15">Q15</a>):
+      <code>@spell:library/people/Person$v2</code>.
+    </li>
+    <li>
+      Your decision on upgrades (<a href="#q14">Q14</a>) put the version in the file, and your note keeps a
+      <code>$version</code> key.
+    </li>
+    <li>
+      The catch: VS Code asks for a schema by its address alone, not by the file it's for.
+      <ul>
+        <li>So it can only check an old file against ITS version if <code>$schema</code> names that version.</li>
+        <li>
+          Otherwise a version 1 file is checked against the newest Person, and a renamed property shows as a mistake,
+          though the store reads it fine.
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <epic-code title="person.jsonc, its first lines, each way · 11 lines" language="jsonc">
+    <pre>
+// A:  both
+"$schema": "@spell:library/people/Person$v2",
+"$version": 2,
+
+// B:  the address only
+"$schema": "@spell:library/people/Person$v2",
+
+// C:  the key only
+"$schema": "@spell:library/people/Person",
+"$version": 2,</pre>
+  </epic-code>
+  <epic-choices>
+    <epic-option letter="A" title="Both:  the version in $schema, and $version" recommended>
+      <ul>
+        <li>VS Code checks every file against its own version.</li>
+        <li>The store reads <code>$version</code>, as Q14 said; a save writes both, newest.</li>
+        <li>Cost: said twice. A hand edit that makes them disagree gets a warning from the store.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="Only in $schema">
+      <ul>
+        <li>Said once, and VS Code checks each file against its own version.</li>
+        <li>No <code>$version</code> key, which your note and Q14 both asked for.</li>
+        <li>A file whose address has no <code>$v</code> is version 1.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title="Only $version;  $schema names the newest">
+      <ul>
+        <li>As this judgement call stands, with <code>$</code>.</li>
+        <li>An old file shows false mistakes in VS Code until the app saves it.</li>
+        <li><code>Person$v2</code> is then used only where a version must be named, such as an upgrade sentence.</li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>A type's address may end in <code>$v2</code>: that version's schema; without it, the newest</li>
+      <li>A file with no <code>$version</code> is still version 1 (Q14)</li>
+      <li>A saved file writes both <code>"$schema": "...Person$v2"</code> and <code>"$version": 2</code></li>
+    </ul>
+  </epic-net-effect>
+
+  <p><b>Which phases build it:</b></p>
+  <ul>
+    <li>
+      One Address Scheme (<a href="#p4">P4</a>), next up: the <code>$</code> keys, and <code>$v2</code> in a type's
+      address. It already changes both cores' savers and the address reader.
+    </li>
+    <li>Schema From Spell (<a href="#p5">P5</a>): a schema per version, served for <code>Person$v2</code>.</li>
+    <li>Versions And Upgrades (<a href="#p6">P6</a>): reading and writing <code>$version</code>.</li>
+  </ul>
+</epic-reply>
