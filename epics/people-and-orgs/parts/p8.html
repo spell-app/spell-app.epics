@@ -2,8 +2,8 @@
 <epic-field name="symptom">Every file read and write is a bare disk call, and the app's saves drop comments.</epic-field
 ><epic-field name="changes"
   >A storage adapter (read, write, list, remove, watch), with a disk version first that writes through the page server's
-  file lock. JSON5 edits keep comments, and each folder gets an index rebuilt on change. The root folder is set when the
-  server starts.</epic-field
+  file lock. JSON5 edits keep comments: <code>json5-writer</code>, behind one helper, always writing the whole object
+  back. Each folder gets an index rebuilt on change. The root folder is set when the server starts.</epic-field
 ><epic-field name="goal"
   ><ul>
     <li>Saving from the app keeps every comment in the file (<a href="#q4">Q4</a>)</li>
@@ -25,6 +25,20 @@
     <code>@croct/json5-parser</code>, in place of <code>jsonc-parser</code> (<a href="#j41">J41</a>). It changes one key
     and leaves every comment where it was; a new key takes the file's own style. Files are named <code>.json5</code>.
   </p></epic-update
+><epic-update at="2026-10-13 03:48" summary="JSON5 edits with json5-writer, Owen's pick" phase="4"
+  ><p>
+    Owen picked <code>json5-writer</code> for the JSON5 edits, over <code>@croct/json5-parser</code> (<a href="#j41"
+      >J41</a
+    >, option B), so the update above now reads <code>json5-writer</code>. It writes a whole value at a time and removes
+    any key the value leaves out, so the adapter reads the file, changes it, and writes the WHOLE object back. It has no
+    types: we write them. It sits behind one helper, so it can be swapped later. A comment at the end of a line may move
+    to the line above (<a href="#i10">I10</a>).
+  </p>
+  <epic-net-effect
+    ><p>
+      The dependency is <code>json5-writer</code>; the adapter tests check that every key and comment survives a save.
+    </p></epic-net-effect
+  ></epic-update
 ><epic-field name="files"
   ><ul>
     <li>the adapter's interface, in a new storage folder of the spell package</li>
@@ -38,7 +52,10 @@
         ><code title="packages/server/src/FileLock.ts">FileLock</code></a
       >
     </li>
-    <li><code>@croct/json5-parser</code>, a new dependency of the spell package (<a href="#j41">J41</a>)</li>
+    <li>
+      <code>json5-writer</code>, a new dependency of the spell package, with a hand-written <code>.d.ts</code> or a
+      typed wrapper, behind one JSON5 helper (<a href="#j41">J41</a>)
+    </li>
     <li>the server's start options</li>
   </ul></epic-field
 ><epic-field name="verify"
