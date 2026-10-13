@@ -1363,6 +1363,15 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (`../../guides/...` from `packages/docs`, `guides/...` from the root), which writes `../../` links.  Grep a shared
   page for `.claude/worktrees` after editing it from a worktree.  Not found:  which watcher does it (no PostToolUse
   hook in the worktree's settings). · output-targets (P20)
+- 2026-10-12 · `node tools/bundle-spell-ui.js` (so `spell dev docs update`, and merge-main's regeneration of
+  `spell-ui.js`) stops at `!! tools/_assets/lazy/spell-en.js still has a runtime import(), a top-level import /
+  export`, before it writes `spell-ui.js`;  it also rewrites `lazy/spell-en.js` (642 -> 716 KB).  The input,
+  ui's committed `src/languages/spell.en.bundle.js` (as on `main` at 37af938b9), holds a real `import.meta.env?.PROD`
+  (a SyntaxError in a classic script), plus text the check reads as an `import(` call and a top-level `export`
+  (the Python / TypeScript writers' template strings). · Not fixed:  the spell-syntax guide's round 2 kept its
+  Expand all / Collapse all in `spell-syntax.js` instead of the runtime, so no bundle rebuild was needed;
+  `git checkout -- packages/docs/tools/_assets/lazy/spell-en.js` after a failed run.  Fix:  `yarn gen:spell` (ui)
+  defining `import.meta.env`, and the check skipping strings. · people-and-orgs (spell-syntax guide)
 
 ## claude-code
 
