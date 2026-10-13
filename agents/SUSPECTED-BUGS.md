@@ -775,6 +775,11 @@ every entry below that date was fixed or disproven;  what's left:
   can call it, but nothing limits it to the folders a page should edit.
   Seen 2026-10-13 (epic `people-and-orgs`), planning the page server's file operations for the spaces page.
   Prove:  `PUT /_server/page` with a `path` to a `.ts` file under `packages/`.
+- `StaticHandler.etagOf()`'s `ETag` is size + mtime in whole ms:  two saves of the same SIZE within one ms
+  get the same `ETag`, so an `If-Match` from before the second still matches, and a stale save wins.
+  Seen 2026-10-13 (epic `people-and-orgs` P15):  `FileOperations.test.ts` saving "1", "2", "3" over HTTP flaked.
+  Unlikely by hand (a person's edits are ms apart), likelier for tools.  A content hash would close it.
+  Prove:  save "a", then "b" with the first `ETag` within the same ms:  both answer 200.
 
 
 - `[V]` `src/page/cli.ts` `url`:  a RELATIVE `<file>` resolves against `packages/server`, not the folder `yarn
