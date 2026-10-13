@@ -3,7 +3,8 @@ id: r5
 epic: epic-workflow
 from: spell-app-43 (fef09ba1)
 at: 2026-10-13T13:37-04:00
-status: new
+status: filed
+filed: dropped:  false alarm, Owen says the doc server is OK (pages checked:  all 200, check-spell passes from main)
 ---
 
 ## Owen's words
