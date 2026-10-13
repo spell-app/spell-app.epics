@@ -1696,3 +1696,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-13 · cli's `yarn lint` fails on `main`:  `src/ui/ProjectPrompt.tsx:72` has a `react-hooks(exhaustive-deps)` warning,
   and the script runs `--max-warnings 0`.  `yarn review` never shows it:  it runs `lint:fix`, which allows warnings. ·
   Unfixed (seen while moving cli's tests, epic `people-and-orgs` P10). · cli
+- 2026-10-13 · `epic add` with two phases active (P4 half-built, P10 under way) filed the new items under the FIRST
+  active phase (P4), and nothing can move an item to another phase:  hand-editing its phase attribute in the skeleton is
+  refused. · Left them under P4 (J25-J29 of people-and-orgs, really P10's). · epics
+- 2026-10-13 · `epic add-phase` and `epic phase ... done --done` prefix links they're handed with one more `../`, as if
+  relative to the skeleton, but the body lands in `parts/`, so a link written for the part file comes out one level too
+  deep. · Fixed by hand in the part files;  pass links relative to the skeleton. · epics
