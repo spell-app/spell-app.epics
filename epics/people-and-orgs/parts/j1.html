@@ -22,3 +22,247 @@ it has dates as a new list of dated-events, saved inline         // not chosen</
     <li>A kind's runtime description says whether it's saved inline</li>
   </ul>
 </epic-net-effect>
+<epic-reply
+  from="Claude"
+  at="2026-10-12 20:32"
+  re='drawable things *should always* be saved inline. Otherwise all of the drawn parts of a spell would be saved in their own files, no? For language, e.g. `- its "dates" is an internal list of dated events`. I also like `list of dated events, saved internally`'
+>
+  <p>
+    You're right about where today's rule leads, and the fix needs one twist: a drawn part has to stay ONE thing however
+    many lists hold it.
+    <b
+      >P1 built the opposite of your note: saying <code>a card is saved inline</code> is an error today, because your
+      answer to <a href="#q9">Q9</a> said "Drawable things are not inlined."</b
+    >
+  </p>
+  <ul>
+    <li>
+      <b>A drawn part:</b> a thing of a kind declared <code>a drawable thing</code> or <code>a drawable list</code>. The
+      page draws each one in an element of its own.
+      <ul>
+        <li>In the Solitaire test game: each card (<code>&lt;solitaire-card&gt;</code>) and each pile.</li>
+        <li>Not the game itself (an app), and not the deck (a plain list of cards).</li>
+      </ul>
+    </li>
+    <li>
+      <b>Saved inline</b> today means written whole, inside what holds it, with no id and no entry of its own: a
+      person's dated events.
+    </li>
+    <li>
+      <b>Every other thing</b> is an ENTRY of its own, keyed by its id; what holds it writes a reference,
+      <code>{"@ref": "Card#card-a1b2c3d4"}</code>.
+    </li>
+  </ul>
+
+  <p><b>Own entries, or own files?</b> The saver makes entries, not files.</p>
+  <ul>
+    <li>Where each entry goes is up to whoever stores it.</li>
+    <li>The only store planned, the people store (<a href="#p9">P9</a>), writes one file per entry.</li>
+    <li>Nothing saves a game yet.</li>
+    <li>
+      But a store that followed <a href="#q9">Q9</a>'s "things are in their own file" would write a whole game as 67
+      files: the game, the deck, 13 piles and 52 cards.
+    </li>
+  </ul>
+
+  <p><b>Why drawn parts were kept out of inline:</b> one card, held in two places.</p>
+  <ul>
+    <li>
+      The test game deals each card into the stock without taking it out of the deck, so the deck and the stock hold the
+      same 52 cards.
+    </li>
+    <li>Each foundation sits in two lists too, the foundations and all the piles.</li>
+    <li>
+      Written whole at every place, a save would read back with 104 cards, and two of each foundation. Turning a card
+      over in the stock wouldn't turn over the deck's copy.
+    </li>
+    <li>
+      That's the bug this epic's saving phase (<a href="#p2">P2</a>) fixed: "a card in two piles comes back as two
+      cards."
+    </li>
+  </ul>
+  <p>
+    The way out is what a page's state already does for every thing it sends: write each one whole the FIRST time the
+    save reaches it, and a reference at every later place. Imagine a game that keeps its deck and its piles, with two
+    cards:
+  </p>
+  <epic-code title="Today:  every drawn part an entry of its own · 9 lines" language="jsonc">
+    <pre>
+"Game#game-r8p2c4xq": { "@type": "Game", "id": "game-r8p2c4xq", "score": 0,
+  "deck": { "@ref": "Deck#deck-m4t7w1za" }, "piles": [{ "@ref": "StockPile#stock-pile-q9d3h6ke" }] },
+"Deck#deck-m4t7w1za": { "@type": "Deck", "id": "deck-m4t7w1za",
+  "@items": [{ "@ref": "Card#card-a1b2c3d4" }, { "@ref": "Card#card-e5f6g7h8" }] },
+"StockPile#stock-pile-q9d3h6ke": { "@type": "StockPile", "id": "stock-pile-q9d3h6ke", "name": "stock",
+  "@items": [{ "@ref": "Card#card-a1b2c3d4" }, { "@ref": "Card#card-e5f6g7h8" }] },
+"Card#card-a1b2c3d4": { "@type": "Card", "id": "card-a1b2c3d4", "rank": "ace", "suit": "clubs", "direction": "down" },
+"Card#card-e5f6g7h8": { "@type": "Card", "id": "card-e5f6g7h8", "rank": 2, "suit": "clubs", "direction": "down" }
+// 5 entries here;  the real game, 67</pre>
+  </epic-code>
+  <epic-code title="Inside, whole the first time, a reference after · 9 lines" language="jsonc">
+    <pre>
+"Game#game-r8p2c4xq": { "@type": "Game", "id": "game-r8p2c4xq", "score": 0,
+  "deck": { "@ref": "Deck#deck-m4t7w1za" },
+  "piles": [{ "@type": "StockPile", "id": "stock-pile-q9d3h6ke", "name": "stock", "@items": [
+    { "@type": "Card", "id": "card-a1b2c3d4", "rank": "ace", "suit": "clubs", "direction": "down" },
+    { "@type": "Card", "id": "card-e5f6g7h8", "rank": 2, "suit": "clubs", "direction": "down" }] }] },
+"Deck#deck-m4t7w1za": { "@type": "Deck", "id": "deck-m4t7w1za",
+  // the same two cards:  references into the game's entry, so one card each, read back
+  "@items": [{ "@ref": "Card#card-a1b2c3d4" }, { "@ref": "Card#card-e5f6g7h8" }] }
+// 2 entries, however many cards</pre>
+  </epic-code>
+  <ul>
+    <li>A drawn part written whole keeps its <code>id</code>, so the later references can find it.</li>
+    <li>
+      The reader learns to find a thing inside another entry: it reads the whole save before it follows references.
+    </li>
+    <li>Dated events stay as they are: held in one place, they never need a reference.</li>
+  </ul>
+
+  <p><b>Question 1: what's the default for drawn parts?</b></p>
+  <epic-choices>
+    <epic-option letter="A" title="Always inside, whole the first time, a reference after" recommended>
+      <ul>
+        <li>
+          What your note asks for, without the 104 cards: a saved game is a handful of entries, never a file per card.
+        </li>
+        <li>No words needed: every drawable kind does it.</li>
+        <li><code>a card is saved inline</code> is no longer an error, just unneeded.</li>
+        <li>Matches a page's state, which already writes things this way.</li>
+        <li>Cost: both cores' saver and reader learn "whole the first time"; a little more to test.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="Inside by default, with a sentence to opt out">
+      <ul>
+        <li>
+          As A, plus a sentence such as <code>a card is saved on its own</code>, for a drawn part another file must
+          point at.
+        </li>
+        <li>Nothing needs it today; one more sentence to learn, test and document.</li>
+        <li>It can be added later, on top of A, if a need shows up.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title="As today:  every drawn part is an entry of its own">
+      <ul>
+        <li>Nothing to build now.</li>
+        <li>Whether a game becomes 67 files is then up to whatever saves games, a decision for later.</li>
+        <li>Cost: Q9's "things are in their own file" points the wrong way for games.</li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>Drawn parts are saved inside what holds them: whole the first time, a reference after</li>
+      <li>The refusal of <code>a card is saved inline</code> goes</li>
+      <li>Both cores' saver and reader change, with a drawn-part case in the shared expected file</li>
+      <li>The <code>savedInline</code> docs and PARSING.md's saving section say so</li>
+    </ul>
+  </epic-net-effect>
+
+  <p><b>Question 2: where does the spell say it?</b></p>
+  <ul>
+    <li>Today the KIND says it, once: <code>- it is saved inline</code>, in the dated event's own outline.</li>
+    <li>Your wordings put it on the PROPERTY that holds them, a person's <code>dates</code>.</li>
+  </ul>
+  <epic-code title="Today:  on the kind (People.spell) · 9 lines" language="text">
+    <pre>
+a person is a thing where:
+	- it has a name as text
+	- its "emails" is a list of text
+	- its "dates" is a list of dated-events
+
+a dated-event is a thing where:
+	- it has a label as text
+	- it has a day as a date
+	- it is saved inline</pre>
+  </epic-code>
+  <epic-code title="Your first:  an internal list · 10 lines" language="text">
+    <pre>
+a person is a thing where:
+	- it has a name as text
+	- its "emails" is a list of text
+	- its "dates" is an internal list of dated-events
+	- it has a birthday as an internal dated-event          // one thing, not a list
+
+a dated-event is a thing where:
+	- it has a label as text
+	- it has a day as a date
+	// nothing here:  each property says it</pre>
+  </epic-code>
+  <epic-code title="Your second:  saved internally · 10 lines" language="text">
+    <pre>
+a person is a thing where:
+	- it has a name as text
+	- its "emails" is a list of text
+	- its "dates" is a list of dated-events, saved internally
+	- it has a birthday as a dated-event, saved internally  // one thing, not a list
+
+a dated-event is a thing where:
+	- it has a label as text
+	- it has a day as a date
+	// nothing here:  each property says it</pre>
+  </epic-code>
+  <p><b>What on the property means:</b> the same kind can be inside in one place and an entry of its own in another.</p>
+  <ul>
+    <li>
+      e.g. a person's <code>dates</code> saved internally, while a calendar's list of dated events holds the same ones
+      by reference.
+    </li>
+    <li>
+      The writer from question 1 handles that within one save: whole at the internal place, a reference everywhere else.
+      <ul>
+        <li>The saver looks for the internal places first, so the order it meets them in doesn't decide.</li>
+      </ul>
+    </li>
+    <li>
+      A reference from another FILE into a person's file needs that file read first. The phase decides whether to allow
+      it or refuse it with a message.
+    </li>
+    <li>
+      The call on where the compiled line goes (<a href="#j8">J8</a>, inside the class, which you accepted for now) no
+      longer applies: it becomes part of the property's description, as a list's item type already is.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title='On the property:  "..., saved internally"' recommended>
+      <ul>
+        <li>Says what it does, saving, in so many words.</li>
+        <li>"Internal" alone reads like "private" to anyone who has programmed.</li>
+        <li>Works the same for one thing and for a list.</li>
+        <li>The line reads as it does today, up to the comma.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title='On the property:  "an internal list of ..."'>
+      <ul>
+        <li>Shortest, and reads well for a list.</li>
+        <li>Awkward for one thing: <code>a birthday as an internal dated-event</code>.</li>
+        <li>Doesn't say it's about saving.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title='On the kind, as today:  "it is saved inline"'>
+      <ul>
+        <li>Said once; a kind is always one or the other, so there's no both-ways case.</li>
+        <li>Every holder of a dated event gets it inside, wanted or not.</li>
+        <li>Could take your word: <code>it is saved internally</code>.</li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>
+        A property or list may end <code>, saved internally</code>; the kind's sentence,
+        <code>a dated-event is saved inline</code>, goes
+      </li>
+      <li>People.spell and PARSING.md's saving section change; the compiled flag moves onto the property</li>
+    </ul>
+  </epic-net-effect>
+
+  <p><b>Which phase builds it:</b> Schema From Spell (<a href="#p5">P5</a>), as its first step.</p>
+  <ul>
+    <li>
+      Its JSON Schema must say which properties hold whole things and which hold references, so the rule has to settle
+      before the schema writer is written.
+    </li>
+    <li>Person And Org (<a href="#p7">P7</a>) then writes the people library in the new words.</li>
+    <li>One Address Scheme (<a href="#p4">P4</a>), next up, would also do: it already opens both cores' savers.</li>
+  </ul>
+</epic-reply>
