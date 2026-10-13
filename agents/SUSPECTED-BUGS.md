@@ -364,6 +364,15 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   `token.whitespace` / `end` vs `next`.  Prove:  parse `* *` against a `Symbols("**")` rule.  Found planning the
   `markdown` epic (P4 there fixes it if confirmed).
 
+## py
+
+- The Python writer doubles the braces of an f-string's placeholder in two rules' outputs:
+  `1 as a string` compiles to `f"{{1}}"`, which prints the literal `{1}`, not `1`;
+  and `CSSStyles` writes `f"{""}"`.
+  Seen 2026-10-12 (epic `people-and-orgs`), generating the spell-syntax guide, which compiles each rule's first test
+  with `PY.PyWriter`.  Likely the text escaping (`pyText`) running over a placeholder it built itself.
+  Prove:  compile `print 1 as a string` to Python and run it.
+
 ## ui
 
 2026-10-11 (python-target):  `<ui-steps>` on a docs page doesn't wrap its steps' descriptions once its folded section
