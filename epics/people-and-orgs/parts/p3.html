@@ -2,19 +2,123 @@
 <epic-field name="symptom"
   >Importing compiled spell runs it: it loads Solid, and adds every thing to the global list.</epic-field
 ><epic-field name="changes"
-  >A library target writes plain JavaScript that keeps classes and exports, with no drawing and no top-level steps, plus
-  a <code>.d.ts</code> beside it. The core gets a model entry with no Solid, and things made outside a runner stay out
-  of the global list.</epic-field
+  >A library target, <code>ts/lib</code>, writes ONE TypeScript file beside its source: the project's classes and
+  top-level functions, with no drawing and no top-level steps, checked by <code>tsc</code>. The core gets a model entry
+  with no Solid, imported by its package name, and things made outside a running program stay out of the global list. </epic-field
 ><epic-field name="goal"
   ><ul>
     <li>
-      The server and the app import a compiled library like any JavaScript module, with no build step (<a href="#q11"
-        >Q11</a
+      The server, the app and the repo's tests import a compiled library like any TypeScript module, with no build step
+      (<a href="#q11">Q11</a>, as changed by <a href="#j5">J5</a>)
+    </li>
+    <li>
+      The library is one <code>.lib.ts</code> file, so code importing it gets real types from the file itself (<a
+        href="#j5"
+        >J5</a
       >)
     </li>
-    <li>TypeScript code importing it gets real types, from the <code>.d.ts</code> beside it (<a href="#j5">J5</a>)</li>
     <li>Importing it runs no heading and no test, and loads no Solid</li>
-    <li>The library's files are committed, marked generated, and a test fails while they're stale</li>
+    <li>
+      The library's file is committed beside its source and marked generated; the test that fails while it's stale comes
+      with the first real library, in <a href="#p7">P7</a> (<a href="#j23">J23</a>)
+    </li>
+  </ul></epic-field
+><epic-update at="2026-10-13 01:08" summary="One .lib.ts, no .d.ts" phase="3"
+  ><p>
+    A library is now ONE TypeScript file, <code>People.lib.ts</code>, committed beside its spell source. This phase
+    first built it as two files, a <code>.lib.js</code> to load and a <code>.lib.d.ts</code> beside it for the types.
+    Owen asked for just the TypeScript, and picked it on
+    <a
+      href="../details/build-and-tests-layout.html"
+      target="src-epics-people-and-orgs-details-build-and-tests-layout-html"
+      >the layout page</a
+    >
+    (its questions 5 and 6), which settles the call on the library's types (<a href="#j5">J5</a>).
+  </p>
+  <ul>
+    <li>
+      Why one file:
+      <ul>
+        <li>the TypeScript writer already knew every property's type, so its output can BE the library</li>
+        <li>
+          Vite, <code>tsx</code> and the repo's type check read a <code>.ts</code> as it is: no types file, and no extra
+          <code>tsc</code> run per compile
+        </li>
+        <li>one file per library is the easiest diff to review</li>
+      </ul>
+    </li>
+    <li>
+      What changed from the first build:
+      <ul>
+        <li>
+          the target is now <code>ts/lib</code>, not <code>js/lib</code>; it writes <code>&lt;Project&gt;.lib.ts</code>,
+          and <code>tsc</code> checks it, as it checks the Solid TypeScript target
+        </li>
+        <li>
+          the library writer,
+          <a
+            href="../../../packages/parser/src/writers/LibraryWriter.ts"
+            target="src-packages-parser-src-writers-librarywriter-ts"
+            ><code title="packages/parser/src/writers/LibraryWriter.ts">LibraryWriter</code></a
+          >, now builds on the TypeScript writer; the JavaScript library writer and its TypeScript twin are gone
+        </li>
+        <li>
+          the step that ran <code>tsc</code> to write the <code>.d.ts</code> is gone, so the call on formatting that
+          file (<a href="#j22">J22</a>) is moot
+        </li>
+        <li>People's fixture snapshot is one file, <code>People.lib.snapshot.ts</code></li>
+      </ul>
+    </li>
+    <li>
+      It reverses the "js" in the library-file decision (<a href="#q11">Q11</a>), by Owen's note. The repo's own tools
+      still import a library with no build step; a bare browser page or plain node can't, and couldn't load the
+      <code>.js</code> either.
+    </li>
+  </ul></epic-update
+><epic-field name="done"
+  ><ul>
+    <li>
+      Where to see it:
+      <ul>
+        <li>
+          People's library, as the compiler writes it:
+          <a
+            href="../../../packages/spell/projects/test/People/People.lib.snapshot.ts"
+            target="src-packages-spell-projects-test-people-people-lib-snapshot-ts"
+            ><code title="packages/spell/projects/test/People/People.lib.snapshot.ts">People.lib.snapshot.ts</code></a
+          >
+        </li>
+        <li>
+          a project whose <code>project.json</code> says <code>"targets": ["ts/lib"]</code>:
+          <code>spell compile</code> writes <code>&lt;Project&gt;.lib.ts</code> beside its spell file
+        </li>
+        <li>
+          the test that imports it as other code would,
+          <a
+            href="../../../packages/spell/src/test/library.test.ts"
+            target="src-packages-spell-src-test-library-test-ts"
+            ><code title="packages/spell/src/test/library.test.ts">library.test.ts</code></a
+          >
+        </li>
+      </ul>
+    </li>
+    <li>
+      What changed in how you work: nothing. It's a new target, and <code>spell run</code> refuses it with a message,
+      since a library doesn't run.
+    </li>
+    <li>
+      What's rough:
+      <ul>
+        <li>
+          a bare browser page, or plain node, can't load a <code>.lib.ts</code> without a build; Vite, <code>tsx</code>
+          and the type check can
+        </li>
+        <li>
+          no real library yet: the people library comes in <a href="#p7">P7</a>, with the test that fails while a
+          library is stale (<a href="#j23">J23</a>)
+        </li>
+      </ul>
+    </li>
   </ul></epic-field
 ><epic-commit sha="5d73585a75017938ad5f8edbc7a3057ca3dc401d"
   >the js/lib target: spell compile writes &lt;Project&gt;.lib.js (a project's classes alone: no drawing, none of its
@@ -23,33 +127,66 @@
   registerThing(); libraries marked generated, merge-main recompiles @library; spell run refuses a target that doesn't
   run; people-and-orgs I3, I4: tsc's declarations stay in their own folder (--rootDir /); cli's fixture lists and
   contract snapshot gain People</epic-commit
+><epic-commit sha="766cb56b1825f4343af4d81e75a1383d28971025"
+  >a library is ONE TypeScript file (Owen's pick on the layout page, Q5 and Q6): the ts/lib target writes
+  &lt;Project&gt;.lib.ts beside its source with P.LibraryWriter (now on P.TSWriter), checked by tsc; the .lib.js, the
+  .d.ts and its tsc step (declarationsFor, writeTypes, SpellProject.typesFileFor) are gone; People's snapshot is
+  People.lib.snapshot.ts; merge rules follow *.lib.ts</epic-commit
 ><epic-field name="files"
   ><ul>
     <li>
-      a new writer, a subclass of
-      <a href="../../../packages/parser/src/writers/JSWriter.ts" target="src-packages-parser-src-writers-jswriter-ts"
-        ><code title="packages/parser/src/writers/JSWriter.ts">JSWriter</code></a
-      >, and the target in
+      the library writer,
+      <a
+        href="../../../packages/parser/src/writers/LibraryWriter.ts"
+        target="src-packages-parser-src-writers-librarywriter-ts"
+        ><code title="packages/parser/src/writers/LibraryWriter.ts">LibraryWriter</code></a
+      >, on the TypeScript writer; the target in
       <a href="../../../packages/spell/src/targets.ts" target="src-packages-spell-src-targets-ts"
         ><code title="packages/spell/src/targets.ts">targets.ts</code></a
       >
     </li>
     <li>
-      Python's
-      <a href="../../../packages/py/ts/ElementsWriter.ts" target="src-packages-py-ts-elementswriter-ts"
-        ><code title="packages/py/ts/ElementsWriter.ts">ElementsWriter</code></a
-      >, for how it leaves out a program's steps
+      the core's model entry,
+      <a href="../../../packages/core/src/model.ts" target="src-packages-core-src-model-ts"
+        ><code title="packages/core/src/model.ts">model.ts</code></a
+      >, exported by the core's
+      <a href="../../../packages/core/package.json" target="src-packages-core-package-json"
+        ><code title="packages/core/package.json">package.json</code></a
+      >; the running program's things,
+      <a href="../../../packages/core/src/core.ts" target="src-packages-core-src-core-ts"
+        ><code title="packages/core/src/core.ts">programThings()</code></a
+      >
+      and
+      <a href="../../../packages/core/src/core.ts" target="src-packages-core-src-core-ts"
+        ><code title="packages/core/src/core.ts">registerThing()</code></a
+      >
     </li>
     <li>
-      a model entry in the core package;
-      <a href="../../../packages/core/src/classes/Thing.ts" target="src-packages-core-src-classes-thing-ts"
-        ><code title="packages/core/src/classes/Thing.ts">Thing</code></a
-      >'s registering
+      <code>spell run</code> refusing a target that doesn't run,
+      <a href="../../../packages/cli/src/runTarget.ts" target="src-packages-cli-src-runtarget-ts"
+        ><code title="packages/cli/src/runTarget.ts">runTarget.ts</code></a
+      >; the compile command, with no types step,
+      <a
+        href="../../../packages/cli/src/commands/compileCommand.ts"
+        target="src-packages-cli-src-commands-compilecommand-ts"
+        ><code title="packages/cli/src/commands/compileCommand.ts">compileCommand.ts</code></a
+      >
+    </li>
+    <li>
+      People's library snapshot,
+      <a
+        href="../../../packages/spell/projects/test/People/People.lib.snapshot.ts"
+        target="src-packages-spell-projects-test-people-people-lib-snapshot-ts"
+        ><code title="packages/spell/projects/test/People/People.lib.snapshot.ts">People.lib.snapshot.ts</code></a
+      >, and the test that imports it,
+      <a href="../../../packages/spell/src/test/library.test.ts" target="src-packages-spell-src-test-library-test-ts"
+        ><code title="packages/spell/src/test/library.test.ts">library.test.ts</code></a
+      >
     </li>
     <li>
       the root's merge rules,
       <a href="../../../.gitattributes" target="src-gitattributes"><code title=".gitattributes">.gitattributes</code></a
-      >, and
+      >, and merge-main's list of generators,
       <a href="../../../packages/cli/src/dev/mergeMain.ts" target="src-packages-cli-src-dev-mergemain-ts"
         ><code title="packages/cli/src/dev/mergeMain.ts">GENERATORS</code></a
       >
@@ -57,11 +194,15 @@
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
-    <li>a node test imports a compiled library directly: no Solid in the module graph, no heading or test run</li>
-    <li><code>yarn review</code></li>
+    <li>
+      a node test imports People's compiled library directly: no Solid and no drawing in its module graph, no heading or
+      test run, and it saves and loads things by id with no running program
+    </li>
+    <li>the fixture test keeps <code>People.lib.snapshot.ts</code> up to date, and <code>tsc</code> checks it</li>
+    <li><code>yarn review</code> in every package: parser 521, core 615, spell 1248 and cli 333 tests pass</li>
   </ul></epic-field
 >
 <epic-field name="to-review"
   ><a href="#q19">Q19</a>, <a href="#j19">J19</a>, <a href="#j20">J20</a>, <a href="#j21">J21</a>,
-  <a href="#j22">J22</a>, <a href="#j23">J23</a>, <a href="#j24">J24</a>, <a href="#t2">T2</a></epic-field
+  <a href="#j23">J23</a>, <a href="#j24">J24</a>, <a href="#t2">T2</a></epic-field
 >
