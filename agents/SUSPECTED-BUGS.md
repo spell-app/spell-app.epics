@@ -355,6 +355,12 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   `Card.Colors = [red, 'black']`, i.e. `[5, 'black']`:  `identifier_list` takes the variable.  Prove:  those two
   lines, in that order.
 
+- Renaming or duplicating a project (`/api/projects/rename/project`, `/duplicate/project`, in `project-utils.ts`)
+  moves only its folder:  its `<Old>.compiled.js`, scopes pack, declarations and words keep the old project's name,
+  so their routes answer 404 until it's compiled again.
+  Seen 2026-10-13 (epic `people-and-orgs`), mapping the projects API for the spaces page, from reading the code.
+  Prove:  rename an example in the app, then open its compiled output before recompiling.
+
 ## parser
 
 ### 1. Behavior bugs
@@ -761,6 +767,12 @@ every entry below that date was fixed or disproven;  what's left:
 ## server
 
 ### 1. Behavior bugs
+
+- The page editor's save (`PUT /_server/page`) writes ANY text file in the checkout it's handed:  `.spell`, `.ts`,
+  the built-in examples, not just docs pages.  Behind the write check (token and origin), so only this machine's pages
+  can call it, but nothing limits it to the folders a page should edit.
+  Seen 2026-10-13 (epic `people-and-orgs`), planning the page server's file operations for the spaces page.
+  Prove:  `PUT /_server/page` with a `path` to a `.ts` file under `packages/`.
 
 
 - `[V]` `src/page/cli.ts` `url`:  a RELATIVE `<file>` resolves against `packages/server`, not the folder `yarn
