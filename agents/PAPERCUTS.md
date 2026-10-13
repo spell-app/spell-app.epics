@@ -1576,6 +1576,15 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   open URL, but nothing showed.  Copying the transcript in from Claude was refused by auto mode ("Session
   Transcript Tampering"). · Owen copied `<id>.jsonl` into the root's project folder by hand, then reloaded.
   Why the hook didn't keep it at the root:  not found yet. · claude-code
+- 2026-10-13 · The worktree guard, three more shapes (epic `people-and-orgs` P18, a bulk path move):
+  `grep -rl ... | xargs sed -i` ("a value computed at runtime where an option may stand"), `cd ../.. && git status`
+  ("changes directory to a location computed at runtime"), and a `cat > x.mjs <<'EOF'` heredoc chained to `node`.
+  None touched git but the second. · A small node script in the scratchpad (Write tool) that walks the folder and
+  replaces text, run as `node <literal path> <args>`;  git only from the worktree root. · claude-code
+- 2026-10-13 · The same guard, two more (P18, the set pages' move):  a `sed -i -e ...` whose replacement holds a
+  literal newline (`\` at a line's end) is "too complex to verify", even with no git in it;  and so is a `sed -i` and a
+  `git diff` in one command, though each alone runs. · One edit per Edit tool call, or the scratchpad node script;
+  run `git diff` in a call of its own. · claude-code
 
 ## vscode
 
@@ -1664,6 +1673,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-08 · `yarn vp fmt .` in `packages/brand` reflowed the GENERATED `_data/components.json` (330 lines:
   arrays put on one line), which `yarn site:data` writes in its own shape. · `git checkout --` it;  format brand's
   changed files by name, not `.` (epic `spell-element`, P1). · brand
+- 2026-10-13 · Checking the `<brand-*>` pages headless:  `check-spell.js` only checks `ui-*` / `epic-*` tags
+  (`PACK_TAG`), so an undefined `brand-*` tag passes;  and it loads a Brand tab `.spell.html` copy from `file://`,
+  where its ES-module bundle can't load, so every tag is "undefined". · A throwaway Playwright script against the
+  page server (people-and-orgs P18);  `PACK_TAG` should take every registered pack's prefix, and the copies want
+  `data-spell-needs-server`. · brand
 
 ## epics
 
