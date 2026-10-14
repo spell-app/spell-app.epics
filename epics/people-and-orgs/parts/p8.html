@@ -1,9 +1,16 @@
 <!-- plan-doc part:  #p8's body in people-and-orgs.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom">Every file read and write is a bare disk call, and the app's saves drop comments.</epic-field
 ><epic-field name="changes"
-  >A storage adapter (read, write, list, remove, watch), with a disk version first that writes through the page server's
-  file lock. JSON5 edits keep comments: <code>json5-writer</code>, behind one helper, always writing the whole object
-  back. Each folder gets an index rebuilt on change. The root folder is set when the server starts.</epic-field
+  >A storage adapter that every file read and write goes through, and JSON5 edits that keep comments.
+  <ul>
+    <li>
+      The adapter reads, writes, lists, removes and watches; its disk version, first, writes through the page server's
+      file lock.
+    </li>
+    <li>JSON5 edits: <code>json5-writer</code>, behind one helper, always writing the whole object back.</li>
+    <li>Each folder gets an index rebuilt on change.</li>
+    <li>The root folder is set when the server starts.</li>
+  </ul></epic-field
 ><epic-field name="goal"
   ><ul>
     <li>Saving from the app keeps every comment in the file (<a href="#q4">Q4</a>)</li>
@@ -68,23 +75,32 @@
 ><epic-field name="done"
   ><ul>
     <li>
-      Spaces' files go through one interface, <code>SpaceStorage</code> (read, write, list, remove, watch), with paths
-      relative to spell-spaces such as <code>@spell/owen@/__me.json5</code>. S3 or Git can replace the disk later behind
-      it.
+      Spaces' files go through one interface,
+      <code title="packages/spaces/src/models/SpaceStorage.ts">SpaceStorage</code> (read, write, list, remove, watch),
+      with paths relative to spell-spaces such as <code>@spell/owen@/__me.json5</code>. S3 or Git can replace the disk
+      later behind it.
     </li>
     <li>
-      <code>DiskStorage</code>, the disk's version, writes through the page server's file operations, under the file's
-      lock, all at once. It keeps each folder's list in memory (J97), and one watcher on the root drops a folder's list
-      when anyone changes it. A path outside its root, or a dot file, is refused.
+      <code title="packages/spaces/src/server/node/storage/DiskStorage.ts">DiskStorage</code> is the disk's version.
+      <ul>
+        <li>It writes through the page server's file operations, under the file's lock, all at once.</li>
+        <li>
+          It keeps each folder's list in memory (<a href="#j97">J97</a>), and one watcher on the root drops a folder's
+          list when anyone changes it.
+        </li>
+        <li>A path outside its root, or a dot file, is refused.</li>
+      </ul>
     </li>
     <li>
       JSON5 is read and written in one file,
-      <a
-        href="../../../packages/spaces/src/server/node/storage/json5.ts"
-        target="src-packages-spaces-src-server-node-storage-json5-ts"
-        ><code>json5.ts</code></a
-      >, on json5-writer. An edit writes the whole value back, and the comments stay where they were, including one at
-      the end of a line (I10). Keys and text get double quotes, with no trailing commas.
+      <code title="packages/spaces/src/server/node/storage/json5.ts">json5.ts</code>, on json5-writer.
+      <ul>
+        <li>
+          An edit writes the whole value back, and the comments stay where they were, including one at the end of a
+          line (<a href="#i10">I10</a>).
+        </li>
+        <li>Keys and text get double quotes, with no trailing commas.</li>
+      </ul>
     </li>
     <li>The page server takes <code>--spaces &lt;dir&gt;</code>, which sets <code>SPELL_SPACES_DIR</code>.</li>
     <li>
@@ -104,9 +120,7 @@
     <li>the adapter's interface, in a new storage folder of the spell package</li>
     <li>
       the disk adapter in its node folder, on
-      <a href="../../../packages/spell/src/node/file-utils.ts" target="src-packages-spell-src-node-file-utils-ts"
-        ><code title="packages/spell/src/node/file-utils.ts">file-utils.ts</code></a
-      >
+      <code title="packages/spaces/src/server/node/projects/file-utils.ts">file-utils.ts</code>
       and the page server's
       <a href="../../../packages/server/src/FileLock.ts" target="src-packages-server-src-filelock-ts"
         ><code title="packages/server/src/FileLock.ts">FileLock</code></a
