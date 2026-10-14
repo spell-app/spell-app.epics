@@ -51,7 +51,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Short Title</title>
-    <meta name="description" content="One sentence:  shown in the docs index." />
+    <meta name="description" content="One sentence:  shown on its list page." />
     <link rel="stylesheet" href="../../packages/docs/tools/_assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page">
@@ -83,7 +83,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 - EVERY section is `sticky collapsible dividing collapsed`:  a rule under every title, every section folds, and every
   one STARTS folded (code blocks too:  no `open`);  the reader opens what they want.  A sticky page header goes above
   them on every page:  `<ui-sticky class="spell-h1"><header class="spell-page-head">` around the h1.
-- The goals pages keep the OLD markup, which the runtime still drives:  `section.s2|s3` >
+- The saga pages keep the OLD markup, which the runtime still drives:  `section.s2|s3` >
   `<ui-sticky class="spell-h2|spell-h3">` > `<h2|h3 id>`, `data-fold="closed"` to start folded.
 - `spell-docs/ui-section-test.html` is the runtime's TEST page:  every piece of the `<ui-section>` markup (3 deep,
   an h4, a `slot="header"` title, a folded section with a link into it, plan items with `data-status`).  Check
@@ -109,7 +109,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
   - titles end in `...` when they don't all fit;  under 50px each, they go (icons only, the title the tooltip:
     `fitTitles()`);  the row scrolls sideways if even that doesn't fit
   - a page without a sticky page header:  the last row of its filter bar, else a sticky bar of its own
-  - a plan doc's (`buildToolbar()`):  icons only, in `<epic-page>`'s header
+  - an epic page's (`buildToolbar()`):  icons only, in `<epic-page>`'s header
   - it can run again (a page updated in place):  it replaces what it built first
 - The site header (`<spell-site-header>`, `$/server/site`):  fixed on top of every page, its height
   `--spell-site-header-height` on `:root` (`siteHeaderHeight()`).  Everything that sticks or lands starts below it:
