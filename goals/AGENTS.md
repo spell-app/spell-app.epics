@@ -5,6 +5,7 @@
 > put them back);  the paths below marked "(in the zip)" are where they lived.  What goals was for, and what worked:
 > `guides/goals/goals.html`.  Epic `epic-goals` rebuilds it on the epic tools.  Don't run the goals commands or
 > skills:  they're gone (`spell dev goals` says so).
+> Now called SAGAS (Owen, 2026-10-14):  a goal set is a saga set, a topic's page a saga page.
 
 Plans, one GOAL SET per project or idea:  a page per topic for people, a brief per topic for agents, thoughts
 waiting to be worked in, and the tools that keep it all consistent.  As the root's `AGENTS.md` and WWOD
@@ -106,7 +107,7 @@ A TARGET names a set, a topic, or one place on a page:  `[set/]topic[/anchor]`.
 ```
 
 - Thoughts on a section sit right under its heading;  on the page as a whole, right under the hero.
-- An item's id chip is coloured by its STATE, as a plan doc's (the colour scheme:  `templates/epics/plan-doc.md`,
+- An item's id chip is coloured by its STATE, as an epic page's (the colour scheme:  `templates/epics/plan-doc.md`,
   "Colours"):  an open question red (needs Owen), any other open item yellow, a closed one grey.  The kind shows
   only in the id's letter (G, Q, D, R, W, I).
 
