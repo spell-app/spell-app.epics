@@ -21,7 +21,20 @@
     </li>
   </ul>
 </epic-net-effect>
-<epic-reply
+<epic-reply from="Owen" at="2026-10-12 20:16" re="revisit soon"
+  ><p>
+    I see your point here, we need the TS version for type checking in other spell-app packages, but we want `.js` for
+    being able to directly load in a browser. Suggest options. Also, while it is convenient to keep the compiled files
+    next to the `.spell` and other files for manual checking of the output by me, it's getting messy. Consider moving
+    all of the output to a `build` folder that's not checked in. `/build` would be a peer of `/packages`, and would have
+    the same structure of the packages themselves. The output files (build/folder1/folder2/foo.spell.js, foo.spell.ts,
+    foo.spell.py`) would be the same path as the source file. Also, I'm finding all of the test files and snapshot/etc
+    files distracting in the repo. What if we moved that all xinto a peer of `packages/`, called `tests/` with the same
+    structure as packages the packages folder themselves. Unclear if the `foo.test.ts` test SOURCE file should move in
+    to `/tests` as well, but leaning in that direction. Digest this and make picture(s) of what the options would look
+    like.
+  </p></epic-reply
+><epic-reply
   from="Claude"
   at="2026-10-12 20:33"
   re="(1) we need the TS version for type checking in other spell-app packages, but we want .js for being able to directly load in a browser. Suggest options. (2) Consider moving all of the output to a build folder that's not checked in ... (3) What if we moved [test files and snapshots] into a peer of packages/, called tests/ ... Digest this and make picture(s) of what the options would look like."
@@ -157,4 +170,85 @@
     <code>People.lib.ts</code> beside its source, committed and checked by <code>tsc</code>. The <code>.lib.js</code>,
     the <code>.d.ts</code> and the <code>tsc</code> step that wrote it are gone.
   </p>
+</epic-reply>
+<epic-reply
+  from="Claude"
+  at="2026-10-14 00:00"
+  re="(1) we need the TS version for type checking in other spell-app packages, but we want .js for being able to directly load in a browser. Suggest options. (2) Consider moving all of the output to a build folder that's not checked in ... (3) What if we moved [test files and snapshots] into a peer of packages/, called tests/ ... Digest this and make picture(s) of what the options would look like."
+>
+  <p>
+    All three parts are settled and built. The one thing not met is loading a library straight into a bare browser page;
+    you traded that away for a single TypeScript file, and nothing needs it yet.
+  </p>
+  <ul>
+    <li>
+      <b>(1) Types and JavaScript:</b> you picked one <code>.lib.ts</code> beside its source, committed (the layout
+      page's Q5 and Q6, both A, in my reply of 01:08 above). Library Target (<a href="#p3">P3</a>) writes it now.
+      <ul>
+        <li>No <code>.lib.js</code>, no <code>.d.ts</code>, no extra type-check step.</li>
+        <li>The repo's code imports it as is: Vite, <code>tsx</code> and the type check all read TypeScript.</li>
+        <li>This call's title, "A .d.ts beside people.lib.js", describes what was replaced.</li>
+      </ul>
+    </li>
+    <li>
+      <b>(2) A build folder:</b> built in Build Folder (<a href="#p11">P11</a>). Compiled programs go to
+      <a href="../../../build/" target="src-build"><code>build/</code></a> at the repo root, git-ignored, at each
+      project's own path.
+      <ul>
+        <li>Declarations, words and a library's <code>.lib.ts</code> stay beside the source, committed.</li>
+      </ul>
+    </li>
+    <li>
+      <b>(3) A tests folder:</b> built in Tests Folder (<a href="#p10">P10</a>). Every package's tests, snapshots and
+      test data are in <code>tests/&lt;package&gt;/</code>, at the same path as the code they test.
+    </li>
+  </ul>
+  <epic-code title="The people test project today:  source, library, build output · 12 lines" language="text">
+    <pre>
+tests/spaces/@spell/test/people/
+  People.spell                   the source
+  people.lib.snapshot.ts         what the ts/lib target writes (a test's snapshot here;
+                                 a real library's People.lib.ts sits beside its source)
+  people.snapshot.js, .py ...    the other targets' snapshots
+
+packages/spell/src/targets.ts:
+  "ts/lib":  suffix ".lib.ts",  can:  { draw: false, run: false },  checkedBy: "tsc"
+
+build/                           git-ignored:  Name.spell.js, .spell.tsx, .spell.py,
+                                 .elements.spell.js, scope packs, per project</pre>
+  </epic-code>
+
+  <p><b>Is "load it directly in a browser" met?</b> Not for a bare page, and it wasn't before either.</p>
+  <ul>
+    <li>
+      The library's first line is <code>import { Thing, List, prop } from "@spell-app/core/model"</code>. A browser
+      can't resolve a package name without an import map.
+    </li>
+    <li>The core is TypeScript with decorators, so the browser would need it built to JavaScript first.</li>
+    <li>
+      Inside the repo that's no problem: the app, the page server and the tests load it through Vite or
+      <code>tsx</code>.
+    </li>
+    <li>
+      The older <code>.lib.js</code> had the same two problems (the layout page, 3.1). Dropping it lost nothing a
+      browser could use.
+    </li>
+    <li>
+      If a bare page ever needs it: a build step writes the library and the core's model as JavaScript into
+      <a href="../../../build/" target="src-build"><code>build/</code></a
+      >, with an import map. That's later work, and no phase holds it. How a library names its core is its own call,
+      <a href="#j19">J19</a>, which you've marked to approve.
+    </li>
+  </ul>
+  <epic-net-effect>
+    <ul>
+      <li>
+        Nothing changes: one <code>.lib.ts</code>,
+        <a href="../../../build/" target="src-build"><code>build/</code></a> and
+        <a href="../../../tests/" target="src-tests"><code>tests/</code></a> are built
+      </li>
+      <li>Loading a library in a bare browser page stays later work, with no phase yet</li>
+      <li>This call can be closed as superseded by the layout page's Q5 and Q6</li>
+    </ul>
+  </epic-net-effect>
 </epic-reply>
