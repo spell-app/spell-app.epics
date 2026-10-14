@@ -1,4 +1,4 @@
-# Plan docs
+# Epic pages
 
 How to write and update `epics/<name>/<name>.plan.html`, the live doc behind a `/epic <name>` session.
 
@@ -76,13 +76,13 @@ review this doc, type `/epic review <name>`"). None of it is written by hand.
 
 - The `<title>` reads `Epic: <Title>`; `<epic-page title>` holds the title alone (`new` writes both). Scripts
   reading the title drop the `Epic: ` (`TITLE_PREFIX`).
-- The meta lines end with the durable doc, once Doc Review has written one (2026-10-04): a `<a slot="durable">`
-  in `<epic-page>`. The durable doc's own meta list (`ui-list.spell-meta`) starts with the plan doc, ONE standard
+- The meta lines end with the guide, once Doc Review has written one (2026-10-04): a `<a slot="durable">`
+  in `<epic-page>`. The guide's own meta list (`ui-list.spell-meta`) starts with the epic page, ONE standard
   line:
 
   ```html
   <ui-item icon="map"
-    ><b>Plan doc:</b>
+    ><b>Epic page:</b>
     <a href="epics/unified-server/unified-server.plan.html" target="unified-server">epic unified-server</a></ui-item
   >
   ```
@@ -90,19 +90,19 @@ review this doc, type `/epic review <name>`"). None of it is written by hand.
 The SEE ALSO box, above the Overview, is drawn too, never written: the pages the epic made or leans on, gathered by
 the page server every time (`SeeAlso`; Owen's Q13 and Q15 of `epic-workflow`).
 
-- its durable doc (the `<a slot="durable">` above), every page in its `details/` folder, newest first, then every
-  `guides/` page its page and parts link to, each with its kind (durable doc, details, choices, guide)
+- its guide (the `<a slot="durable">` above), every page in its `details/` folder, newest first, then every
+  `guides/` page its page and parts link to, each with its kind (the epic's guide, details, choices, guide)
 - so to list a guide there, link it from the doc; the same links say which epic a guide BELONGS to, where its
   comments go when Owen presses its Send (P13)
 
 A FUTURE epic (`/epic future <name>`, epic `epic-future`, 2026-10-07): an idea written down, not planned yet.
 
 - `new <name> --future`: no branch or worktree yet; the page says so, with a notice in place of "Plan hung?",
-  linking its analysis page, `details/analysis.html` (its high-level open questions, answered in the Review tab; the
+  linking its review page, `details/analysis.html` (its high-level open questions, answered in the Review tab; the
   answers land here as decided questions)
 - `list` says `future`, between the epics in progress and the done ones; the Epics index gives it a seedling
 - PLANNED by `new <name>` again (`/epic <name>`, "Reuse"): promoted where it is, the notice gone, the meta lines
-  naming the branch and worktree; its prompt, decisions and analysis page stay. Its first phase (`add-phase`)
+  naming the branch and worktree; its prompt, decisions and review page stay. Its first phase (`add-phase`)
   plans it too
 
 While planning (no phase yet), the page shows a folded "Plan hung?" notice (P3 of `windows-and-review`), drawn, never
@@ -117,7 +117,7 @@ written:
 
 | Section            | id            | What                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------ | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Overview        | `#overview`   | 2-sentence summary, the prompt that started the plan (folded in a "Kickoff prompt" aside), the total estimate (written by the tool), then the substance in numbered sub-sections (`#o1` "1.1 Structure" ...): becomes durable docs                                                                                                                        |
+| 1. Overview        | `#overview`   | 2-sentence summary, the prompt that started the plan (folded in a "Kickoff prompt" aside), the total estimate (written by the tool), then the substance in numbered sub-sections (`#o1` "1.1 Structure" ...): becomes guides                                                                                                                        |
 | 2. Phases          | `#phases`     | progress bar, then one block per phase (`#p1` ...): its estimate as the title's badge; Symptom, Changes, the details (Goal), Done (once done), Commits; Files and Verify hidden until the folder / flask toggle on the Phases title is pressed                                                                                                            |
 | 3. Questions       | `#decisions`  | open questions first (waiting on the user; each also asked with AskUserQuestion), then the answered ones, in id order: settled unless new facts arrive. A decision IS an answered question (D13 of `review-review`, 2026-10-04): `decide` writes the answer INTO the question; `add <name>#D` makes a question born answered                              |
 | 4. Judgement calls | `#judgements` | choices Claude made WITHOUT the user (a `/bedtime` run, an agent mid-phase): title the choice, details "chose X over Y because Z" + the options; open until the user reviews it, `close` = accepted, disagreement becomes a question. Its phase's "To review" line lists it while it's open and not reviewed (never hand-write a "Judgement calls:" line) |
@@ -214,14 +214,14 @@ The markup is in `PLAN-DOC.md` ("Phases", "Items", "Log"). What to write in each
 
 ## Colours
 
-ONE meaning per colour, on every doc page: plan docs, details pages, goals pages, the Epics index (Q20 of
+ONE meaning per colour, on every doc page: epic pages, details pages, saga pages, the Epics list page (Q20 of
 `epic-components`, Owen 2026-10-08, settled on its colour-scheme details page). Read a page at a glance by it; a new
 element takes its colour from this table, never a colour that means something else.
 
 | Colour | Means                                       | Examples                                                                                                                                                                                                            |
 | ------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | red    | needs you (Owen)                            | an open question's chip; an unreviewed judgement call or issue; the toolbar's count; a details question with nothing picked; a details page "waiting for your answer"; an open goals question; an epic with errors (every phase done, items need you) |
-| yellow | open, still undecided                       | an open todo, caveat or test (a todo a review queued too); a reviewed issue or judgement call; "to do"; a goals topic "in dialog". DARK text and icons on a yellow fill. NOT a state: a favourite epic's star (Owen, 2026-10-10) |
+| yellow | open, still undecided                       | an open todo, caveat or test (a todo a review queued too); a reviewed issue or judgement call; "to do"; a saga "in dialog". DARK text and icons on a yellow fill. NOT a state: a favourite epic's star (Owen, 2026-10-10) |
 | blue   | do it now, or Claude is working on it       | Do Now, Revisit, Send (everywhere: the page header, the agents panel, details pages); the Underway status card; an item Claude is working on (its chip, the spinner); an epic in progress; a goals topic "building" |
 | green  | decided or done (however long ago)          | Approve, Make Todo, a todo's "next phase" plane; a pick, the chosen option (a details page's chosen card); a phase done, the Done status card (filled), the Noted status card (outlined: your choice recorded, nothing built yet); an item decided, done, or approved as it stands, for good; an epic done; a goals topic "agreed", "shipped" |
 | orange | ONLY changed since you looked, and warnings; an item Claude answered with options, waiting for your pick (Owen, 2026-10-09) | UPDATE labels, `<epic-update>` blocks, a phase's changed pen; "nobody is listening" (inverted, to stand out); a `replied` item's chip (DARK text on it)                                         |
@@ -234,7 +234,7 @@ element takes its colour from this table, never a colour that means something el
 
 ### The fill
 
-How far along a button, pill or chip with a lifecycle is (the review buttons, Send, the Choose pill, goals topic
+How far along a button, pill or chip with a lifecycle is (the review buttons, Send, the Choose pill, saga
 labels):
 
 | Fill                   | Means                                                                    |
@@ -333,11 +333,11 @@ edit. The FIRST row that applies wins, top to bottom (`PLAN-DOC.md`, "Items", th
   nor a `/bedtime` run colours a chip any more.
 - `replied` (Owen, 2026-10-09; branch `spell-element` until it merges): a pick (`chosen`), a newer reply from you, or
   closing the item ends it; a reply asking without cards (a yes / no in prose) doesn't make it orange.
-- The toolbar counts only what needs you: on a plan doc, `attention` items in a red badge and `replied` ones in an
+- The toolbar counts only what needs you: on an epic page, `attention` items in a red badge and `replied` ones in an
   orange one; on other pages, a red badge; none, no badge. The state filter has a chip per state, with how many.
 - In CSS: `<epic-page>`'s `--epic-state-*` (`packages/epics`), `spell-doc.css`'s `--spell-state-*` (the other doc
   pages): the same values.
-- Goals pages colour their items by the same states (an open question `attention`, any other open item `open`, a
+- Saga pages colour their items by the same states (an open question `attention`, any other open item `open`, a
   decided or done one `recent`, a canceled one `old`): the kind shows only in the id's letter (G, Q, D, R, W, I).
 
 ### Folding
@@ -349,7 +349,7 @@ reveals folded text.
 
 ## Parts
 
-A plan doc is stored SPLIT (P3 of `claude-design`, 2026-10-05): a SKELETON plus one BODY file per bulky block, which
+An epic page is stored SPLIT (P3 of `claude-design`, 2026-10-05): a SKELETON plus one BODY file per bulky block, which
 the page loads the first time it's opened. So the doc preview opens fast, an edit to one item patches that item, and
 nothing flickers. The tool's `EpicParts` does it; the markup (`source`, `part-ids`, `commits`): `PLAN-DOC.md`,
 "Parts".
@@ -358,7 +358,7 @@ nothing flickers. The tool's `EpicParts` does it; the markup (`source`, `part-id
   reads and writes either shape: reading assembles a split doc into one document, the write splits it again.
 - The skeleton, `epics/<name>/<name>.plan.html`, keeps everything a reader or a script needs without a body: every
   section, every phase (id, title, status, estimate), every item (id, title, status, state, review marks), the page's
-  attributes, the Overview's summary and prompt. So `#id` links, counts, filters, review marks, the docs index and
+  attributes, the Overview's summary and prompt. So `#id` links, counts, filters, review marks, the docs' home page and
   the main server's epic cards all work without a single body.
 - The bodies, `epics/<name>/parts/<id>.html`, `<id>` the block's own id (`.htm` before the switch, 2026-10-08):
 
@@ -370,7 +370,7 @@ nothing flickers. The tool's `EpicParts` does it; the markup (`source`, `part-id
   | the log, `#log`                | `parts/log.html` | its events                                                                  |
 
 - How a part is told from a page: by its folder. Every page walker skips `parts/` folders (`packages/docs/tools/
-pages.js` `findPages()`, `relocate.js`, `spell static`): the docs index, `docs update` and link repairs never take
+pages.js` `findPages()`, `relocate.js`, `spell static`): the docs' home page, `docs update` and link repairs never take
   a part for a page.
 - A part file: a one-line comment saying whose body it is, then the body's markup. Its relative URLs are relative to
   `parts/`: one `../` more than the skeleton's (`../../../guides/x.html`, not `../../guides/x.html`).
@@ -479,7 +479,7 @@ server types `/epic review` into it, above):
            picks B · Land and unfold it
      revisit, to talk over (1):
        - Q3  question, open · Where should the send button sit?
-           picks A · In the page header, asks:  "A, but only on plan docs?"
+           picks A · In the page header, asks:  "A, but only on epic pages?"
      ...
    next:  `epic inbox review-review apply` (approve, pick, todo, a todo's next phase or drop, skip, new, urgency)
    ```
@@ -490,7 +490,7 @@ server types `/epic review` into it, above):
    - `sent`: every mark the last "send to Claude" covered, once per send (`handedOver` in the inbox); a mark an
      earlier send already handed over (a revisit still being talked over) says "(sent before)"
    - `sent from the pages <name> owns` (epic `epic-workflow` P13): Owen's comments on a docs page the epic owns
-     (its durable doc, its details pages, a guide its See Also claims), sent with that page's own Send, each under
+     (its guide, its details pages, a guide its See Also claims), sent with that page's own Send, each under
      its page; answered one at a time with `epic comments working` / `answer`, never `epic inbox`
    - timeout (3300s): exit 2, nothing taken; run it again
 
@@ -628,7 +628,7 @@ command prints the usage.
 
 | Command                                                                                                                                       | Does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `new <name> [--title "..."] [--prompt "..." \| --prompt-file <path>] [--future]`                                                              | copy the tool's template to `epics/<name>/<name>.plan.html`, fill it (the prompt that started the plan goes in the Overview), update the docs index; `--future`: a future epic ("Page header"); on a future epic's doc: plans it, promoted where it is                                                                                                                                                                                                                                                                                                                            |
+| `new <name> [--title "..."] [--prompt "..." \| --prompt-file <path>] [--future]`                                                              | copy the tool's template to `epics/<name>/<name>.plan.html`, fill it (the prompt that started the plan goes in the Overview), update the docs' home page; `--future`: a future epic ("Page header"); on a future epic's doc: plans it, promoted where it is                                                                                                                                                                                                                                                                                                                            |
 | `add-phase <name> "Short Name" --symptom <html> --changes <html> [--goal <html>] [--files ...] [--verify ...] [--estimate 1-2h] [--before N]` | append a phase: Symptom (one line), Changes (two or three), then the details (the goal a `<ul>`); the estimate the title's badge. Neither `--symptom` nor `--changes`: Goal / Files / Verify. `--before N` (epic `skillz`): insert it as PN instead; PN and every later phase move down one, with their ids, part files and every link and `phase` pointing at them (prose without a link isn't changed); refused once any of them has started. `/epic phase` uses it                                                                                                             |
 | `update <name>#P<N> [--symptom ...] [--changes ...] [--goal ...] [--files ...] [--verify ...]`                                                | set a phase's body fields, each in its place (`""` removes one)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `updated <name>#<N> "<html>"` / `--file <path>` `[--summary "..."]`                                                                           | a change to phase N's plan: an `<epic-update>` block at the end of its description, **Update**: <summary> and its date; kept once done; a pen + count on N's title while it isn't done                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -656,8 +656,8 @@ command prints the usage.
 | `list [--json]`                                                                                                                               | every epic: in progress / future / done, its worktree while it has one (`checkout`), not reviewed / all                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `backfill <name> \| --all [--apply]`                                                                                                          | one-off: items not reviewed that Owen named in a past session of the epic (his message, or a modal he answered); a dry run unless `--apply`, which marks them dated that day (`ReviewBackfill`)                                                                                                                                                                                                                                                                                                                                                                                   |
 | `summary <name> [--json]`                                                                                                                     | open questions, judgement calls, issues, caveats, todos, tests, and the next phase                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `docs <name> [--json]`                                                                                                                        | the docs the epic wrote besides its plan doc:  wrote (durable doc, its commits), related (name it, its turns swept up), linked;  its changelog entry.  For `/docs-check`                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `decisions <name> [--json]`                                                                                                                   | what the plan doc settled:  phases' Done lists and Updated notes, items' status, chosen option and answer (`--json`:  their text).  For `/docs-check`                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `docs <name> [--json]`                                                                                                                        | the docs the epic wrote besides its epic page:  wrote (guide, its commits), related (name it, its turns swept up), linked;  its changelog entry.  For `/docs-check`                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `decisions <name> [--json]`                                                                                                                   | what the epic page settled:  phases' Done lists and Updated notes, items' status, chosen option and answer (`--json`:  their text).  For `/docs-check`                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `summaries <file.html> ...`                                                                                                                   | `summary --json` of each doc, by PATH (a worktree's too), as one JSON object `{ <file>: summary \| { error } }`; for `/epics`                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `check <name> [--no-browser] [--links]`                                                                                                       | ids unique, every `#id` link resolves, every phase has a status, a split doc's parts there (checked whole); its file links, printed as `LINK:`, failing only with `--links`; then `check-spell.js`                                                                                                                                                                                                                                                                                                                                                                                |
 | `open <name> [--review]`                                                                                                                      | show the doc rendered in VS Code's doc preview (the right side bar's "Spell Docs" tab;  `--review`:  its "Review" tab); needs the spell extension (`spell dev vscode`)                                                                                                                                                                                                                                                                                                                                                                                                            |
