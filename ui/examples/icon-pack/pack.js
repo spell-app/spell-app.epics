@@ -4,7 +4,7 @@
 export default {
   id: "site-demo",
   label: "Spell UI site demo",
-  license: "Drawn for the Spell UI docs",
+  license: "Drawn for Spell UI's docs site",
   defaults: { width: 512, height: 512 },
   icons: {
     "spell-sparkle": {}

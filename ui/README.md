@@ -3,7 +3,7 @@
 Plain, hand-authored `.html` pages in [fomantic-ui.com](https://fomantic-ui.com)'s docs style, built ONLY from
 `<ui-*>` widgets:  a left nav of every component, a masthead, Examples / Usage / API / Theming tabs, every example
 live with its source a click away, and an "On this page" rail.  Where a widget can't do what a page needs, that's a
-gap in the library, recorded in the plan doc of epic `spell-ui-pages` (`epics/spell-ui-pages/`).
+gap in the library, recorded in the epic page of epic `spell-ui-pages` (`epics/spell-ui-pages/`).
 
 - No build step to VIEW a page:  pages are static files loading ONE bundle, which the page server builds when it
   starts, if it's stale (not committed since 2026-10-07).
