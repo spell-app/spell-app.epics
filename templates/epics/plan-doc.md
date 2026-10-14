@@ -428,14 +428,30 @@ Owen can ask for a NEW todo or question from the page: the `+` in the page heade
 end of the Todos and Questions sections, opens a small form (todo or question, title, note, what it's about). It
 waits in the inbox as a mark under its own key, `new1`, `new2` ... (`{ action: "new", kind, title, note?, near? }`,
 `POST new`), drawn at the end of its section until made (Edit, Remove), and goes with the next send like any mark.
-All of it works with no session listening: the marks just wait, dashed, for the next `/epic review`.
+All of it works with no session listening: the marks wait, dashed, until Send, Review Now or Do Now wakes the epic
+(below).
 
 Review Now (the page header's wand, beside Send; epic `windows-and-review` P4): sends every mark AND turns each
 revisit waiting (unsent, or sent and still to talk over) into a request for now (`POST send { now: true }`,
 `ReviewInbox.reviewNow()`): the listening session answers them all at once, by background agents, into the items.
 
-How a `/epic review` session takes the marks (nothing outside a session can wake it, except a background command
-it started ending):
+WAKING the epic (epic `epic-workflow` P16): Send, Review Now or Do Now pressed while NO session listens makes the page
+server wake the epic, inside that request (no process runs while Owen isn't working; `ReviewStart.changeAndWake()`):
+
+- who, first match wins: the ONE running session titled for the epic (`🚧 <epic>`) gets `/epic review <epic>` typed
+  in; else the epic's worktree window gets a new session tab with it typed in (opened with `spell dev window launch`
+  when closed); else (no worktree: an epic run in the main checkout, a future epic) a new session in a main window.
+  Never a new worktree. Owen presses Enter: the window bridge only types
+- the page says what it did, in its notice and in the orange pill under the review line, until a session listens:
+  "Typed /epic review seo into 🚧 seo: press Enter there"
+- once per epic per 10 minutes, or until a session listens: the inbox's `woken` record, claimed under its lock, so
+  two Sends at once (the epic page and one of its guides) wake once; a second press says "Already ... at 17:32"
+- no wake when several sessions are titled for the epic, in airplane mode, or for a Send with nothing new; the
+  pill's click still types the command on purpose
+- a Do Now waiting with nobody listening says "waiting for a session" (its tooltip), the usual spinner once taken
+
+How a `/epic review` session takes the marks (it wakes when a background command it started ends, or when the page
+server types `/epic review` into it, above):
 
 1. `epic inbox <name> listen`: the page stops saying nobody is reviewing.
    - a HEARTBEAT keeps it so: `wait` stamps `listening.seen` every 30s, and `apply`, `done`, `clear`, `working`
