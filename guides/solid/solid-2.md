@@ -85,7 +85,7 @@ count() // 1
   - Solid's DOM bindings skip equal text / attribute writes (input `value` / `checked` are always re-applied)
 - Derived properties:  plain getter by default;  `this.derive(name, fn)` ONLY when the parser proves it pure AND
   worth it (loops, list aggregates).  Memoizing a cheap getter is ~2x SLOWER.  `derive()` is BUILT;  the parser's
-  pure / worth-it analysis is (planned, plan doc T6):  today every compiled JAVASCRIPT derived property is a plain
+  pure / worth-it analysis is (planned, epic page T6):  today every compiled JAVASCRIPT derived property is a plain
   getter, while compiled TypeScript puts `@derived` on a getter that loops (`output-targets` J22:  a stand-in for
   "worth it", not proven pure).
 - **Keys in creation order:**  `keys()` lists own props in first-set order.
@@ -176,7 +176,7 @@ count() // 1
     `packages/app/AGENTS.md` "Overview".  Any other Solid / `ui` specifier (`solid-js/store`, `$/ui/runtime`) is a
     build ERROR:  add it to `sharedSolid()`'s list AND to what `vite.solid.config.ts` exports
   - on host pages with their own Solid / `@spell-app/ui`:  an import-map variant of `<spell-app>` (bare specifiers)
-    (planned, plan doc T5:  not shipped -- such a page gets a second Solid today)
+    (planned, epic page T5:  not shipped -- such a page gets a second Solid today)
   - two copies on one page FAIL SILENTLY:  the fork's `register()` swaps `existing.Component` across copies
 - NEVER put Things (class instances) in a Solid store:  stores wrap them in proxies, `===` breaks.
 
