@@ -1726,3 +1726,8 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `main-plan-doc`, not `people-and-orgs-plan-doc`:  `epic agents` takes the epic from the checkout of the CLI it runs,
   not the folder it's run in. · Removed it, re-added with this branch's `node packages/cli/bin/epic.mjs agents add`.
   Better:  `epic agents` could read the epic from the working folder's worktree. · epics (people-and-orgs P18)
+- 2026-10-14 · Owen's Review tab lost its formatting twice in one session:  this worktree's page server came back on a
+  NEW port each time it restarted (after a `merge-main`, and while cli's tests ran:  their `spell serve` tests stop
+  and start the checkout's page server), and the side bar's open page still loaded its styles from the dead port. ·
+  `epic open <name> --review` reloads it from the new one.  Better:  a worktree's page server keeps its port across
+  restarts, or cli's tests use a page server of their own. · server (people-and-orgs P4)
