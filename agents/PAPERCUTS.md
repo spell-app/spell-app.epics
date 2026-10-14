@@ -1729,5 +1729,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-14 · Owen's Review tab lost its formatting twice in one session:  this worktree's page server came back on a
   NEW port each time it restarted (after a `merge-main`, and while cli's tests ran:  their `spell serve` tests stop
   and start the checkout's page server), and the side bar's open page still loaded its styles from the dead port. ·
-  `epic open <name> --review` reloads it from the new one.  Better:  a worktree's page server keeps its port across
-  restarts, or cli's tests use a page server of their own. · server (people-and-orgs P4)
+  `epic open <name> --review` reloads it from the new one;  while a `yarn review` runs cli's tests, show it from the
+  MAIN server instead (`spell dev docs link <main root>/epics/<name>/<name>.plan.html --review --show`, on 4747),
+  which the tests don't touch.  Better:  a worktree's page server keeps its port across restarts, or cli's tests
+  use a page server of their own. · server (people-and-orgs P4)
