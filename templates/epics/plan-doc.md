@@ -87,6 +87,14 @@ review this doc, type `/epic review <name>`"). None of it is written by hand.
   >
   ```
 
+The SEE ALSO box, above the Overview, is drawn too, never written: the pages the epic made or leans on, gathered by
+the page server every time (`SeeAlso`; Owen's Q13 and Q15 of `epic-workflow`).
+
+- its durable doc (the `<a slot="durable">` above), every page in its `details/` folder, newest first, then every
+  `guides/` page its page and parts link to, each with its kind (durable doc, details, choices, guide)
+- so to list a guide there, link it from the doc; the same links say which epic a guide BELONGS to, where its
+  comments go when Owen presses its Send (P13)
+
 A FUTURE epic (`/epic future <name>`, epic `epic-future`, 2026-10-07): an idea written down, not planned yet.
 
 - `new <name> --future`: no branch or worktree yet; the page says so, with a notice in place of "Plan hung?",
@@ -481,6 +489,9 @@ server types `/epic review` into it, above):
      `soon` with the pick): that one stays for the next send
    - `sent`: every mark the last "send to Claude" covered, once per send (`handedOver` in the inbox); a mark an
      earlier send already handed over (a revisit still being talked over) says "(sent before)"
+   - `sent from the pages <name> owns` (epic `epic-workflow` P13): Owen's comments on a docs page the epic owns
+     (its durable doc, its details pages, a guide its See Also claims), sent with that page's own Send, each under
+     its page; answered one at a time with `epic comments working` / `answer`, never `epic inbox`
    - timeout (3300s): exit 2, nothing taken; run it again
 
 3. `epic inbox <name> apply`: the mechanical marks, applied and cleared:
