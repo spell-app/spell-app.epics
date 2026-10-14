@@ -83,7 +83,10 @@
               header="Show and wait"
               description="spell dev details show <slug> --wait, in the background;  the turn ends"
             ></ui-step>
-            <ui-step header="Answer" description="Owen picks, adds notes, Send:  the page locks, shows Sent"></ui-step>
+            <ui-step
+              header="Answer"
+              description="Owen picks, adds notes, Send:  the header says Sent, the page stays editable"
+            ></ui-step>
             <ui-step
               header="Wake"
               description="the waiter exits with the answer as text;  the session acts on it"
@@ -93,82 +96,73 @@
             <li>Owen answers in chat instead: Claude stops the waiter.</li>
             <li>No answer in 8 hours: the waiter exits 2, saying so, once.</li>
             <li>
-              "Change answer" on the page unlocks it; sending again replaces the answer (<code>changes</code> counts
-              up).
+              The page never locks (2026-10-08): a partial answer is fine, and sending again replaces the answer (<code
+                >changes</code
+              >
+              counts up, and <code>changed</code> says what's new).
             </li>
           </ul>
         </ui-section>
 
         <ui-section id="3-the-pieces" header="3. The pieces" sticky collapsible dividing>
           <ui-section id="the-page" header="The page" sticky collapsible dividing>
+            <p>
+              A details page is written in the epics pack's elements (epic <code>epic-workflow</code> P12), so a
+              question reads as a plan doc's: the same question text, option cards, thumbs-up and colours.
+            </p>
             <ul>
               <li>
-                <a href="../templates/details.html" target="src-templates-details-html" title="templates/details.html"
+                <a
+                  href="../packages/docs/tools/templates/details.html"
+                  target="src-packages-docs-tools-templates-details-html"
+                  title="packages/docs/tools/templates/details.html"
                   ><code>details.html</code></a
-                >
-                -- context, then one <code>ui-section.spell-question</code> per question.
+                >, the tool's own template -- context, then one <code>&lt;ui-section&gt;</code> per question, holding an
+                <code>&lt;epic-ask&gt;</code>.
                 <ul>
+                  <li>Never copied by hand: <code>epic ask new</code> fixes the paths for the page's depth.</li>
                   <li>
-                    Never copied by hand: <code>spell dev details new</code> fixes the asset paths for the page's depth.
-                  </li>
-                  <li>
-                    It shares that code with <code>docs new</code>:
-                    <a
-                      href="../packages/docs/tools/pages.js"
-                      target="src-packages-docs-tools-pages-js"
-                      title="packages/docs/tools/pages.js"
-                      ><code>atDepth()</code></a
+                    It builds the page as elements, never markup in strings:
+                    <a href="../packages/docs/tools/answerPages.js" target="src-packages-docs-tools-answerpages-js"
+                      ><code title="packages/docs/tools/answerPages.js">answerPages.js</code></a
                     >.
                   </li>
                 </ul>
               </li>
               <li>
-                <a
-                  href="../packages/docs/tools/_assets/details.js"
-                  target="src-packages-docs-tools-assets-details-js"
-                  title="_assets/details.js"
-                  ><code>details.js</code></a
-                >
-                -- a classic script loaded BEFORE
-                <a href="../packages/docs/tools/_assets/spell-ui.js" target="src-packages-docs-tools-assets-spell-ui-js"
-                  ><code>spell-ui.js</code></a
-                >, so what it builds is upgraded with the page.
+                The elements, each with its page in
+                <a href="../epic-ui/index.html" target="src-epic-ui-index-html">Epic UI</a> ("Pages Owen answers on"):
                 <ul>
                   <li>
-                    From each <code>.spell-option</code> it builds a card (<code>ui-segment</code>):
-                    <ul>
-                      <li>
-                        a radio button, or a checkbox when the question takes several (<code>data-multiple</code>)
-                      </li>
-                      <li>a Recommended label</li>
-                      <li>the summary</li>
-                      <li>the details, folded (<code>ui-accordion</code>)</li>
-                    </ul>
+                    <code>&lt;epic-ask&gt;</code>: the question. Its options draw a tick box each (round for pick one,
+                    square with <code>multiple</code>), a comment box under each, then an Other box; its chip takes the
+                    plan doc's state colours.
                   </li>
-                  <li>Then an Other box (<code>ui-input</code>) per question, and a Send section.</li>
+                  <li><code>&lt;epic-text-box&gt;</code>: a box Owen types in, the notes or a section's comment.</li>
+                  <li><code>&lt;epic-send&gt;</code>: Send, in the sticky header, and where the answer stands.</li>
                 </ul>
               </li>
               <li>
-                <a
-                  href="../packages/docs/tools/_assets/details.css"
-                  target="src-packages-docs-tools-assets-details-css"
-                  title="_assets/details.css"
-                  ><code>details.css</code></a
-                >
-                -- the cards, on the doc tokens (dark mode keeps working).
+                No page script any more: the old <code>_assets/details.js</code>, which built the cards from
+                <code>.spell-option</code> markup, is gone. The migration step <code>answer-elements</code> converts a
+                page written before, once.
               </li>
             </ul>
-            <ui-accordion class="spell-code" styled open="0">
-              <ui-title>One question, as Claude writes it · 10 lines</ui-title>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>One question, as Claude writes it · 14 lines</ui-title>
               <ui-content>
-                <pre><code class="language-html">&lt;ui-section id="q1" class="spell-question" header="Q1 · Which card layout?" sticky collapsible dividing&gt;
+                <pre><code class="language-html">&lt;ui-section id="q1" header="Q1 · Which card layout?" sticky collapsible dividing&gt;
   &lt;ui-icon slot="icon" name="circle question"&gt;&lt;/ui-icon&gt;
-  &lt;p&gt;The question in full.&lt;/p&gt;
-  &lt;div class="spell-option" data-option="A" data-title="Stacked cards" data-recommended&gt;
-    &lt;p&gt;One line:  what changes.&lt;/p&gt;
-    &lt;div class="spell-option-details"&gt;...folded...&lt;/div&gt;
-  &lt;/div&gt;
-  &lt;div class="spell-option" data-option="B" data-title="Side by side"&gt;&lt;p&gt;...&lt;/p&gt;&lt;/div&gt;
+  &lt;epic-ask&gt;
+    &lt;epic-question&gt;&lt;p&gt;The question in full.&lt;/p&gt;&lt;/epic-question&gt;
+    &lt;epic-choices&gt;
+      &lt;epic-option letter="A" title="Stacked cards" recommended&gt;
+        &lt;p&gt;One line:  what changes.&lt;/p&gt;
+        &lt;epic-aside title="Details"&gt;...folded...&lt;/epic-aside&gt;
+      &lt;/epic-option&gt;
+      &lt;epic-option letter="B" title="Side by side"&gt;&lt;p&gt;...&lt;/p&gt;&lt;/epic-option&gt;
+    &lt;/epic-choices&gt;
+  &lt;/epic-ask&gt;
 &lt;/ui-section&gt;</code></pre>
               </ui-content>
             </ui-accordion>
@@ -323,9 +317,13 @@
                 ><code>ui</code></a
               >: Owen's pick (plan doc D6).
             </li>
-            <li>Locked after Send, with Change answer: one answer at a time, but a change of mind is one click.</li>
             <li>
-              Short option markup, built by script: a third of the typing per question, and card fixes reach every page.
+              Never locked after Send (2026-10-08; locked with Change answer before): partial answers, sent again any
+              time.
+            </li>
+            <li>
+              Short option markup, drawn by elements (a page script before epic <code>epic-workflow</code> P12): a third
+              of the typing per question, and card fixes reach every page.
             </li>
             <li>
               A "Where we are" box on every page, questions that stand alone, plain short lines: Owen runs 5+ epics at
@@ -355,7 +353,9 @@
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">Last checked 2026-10-03 against branch <code>details</code>.</p>
+          <p class="meta">
+            Last checked 2026-10-14 against branch <code>epic-workflow</code> (P12: the page in elements).
+          </p>
         </footer>
       </main>
     </div>
