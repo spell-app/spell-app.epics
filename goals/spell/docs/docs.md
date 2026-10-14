@@ -13,13 +13,13 @@ Documentation for people who write spells, people who build spell, and agents, a
 
 - **Today's docs are for developers and agents:**  `AGENTS.md` files, `PARSING.md`, and design pages in
   `packages/docs`.  Nothing is written for people writing spells.
-- **The docs system is strong:**  pages on @spell-app/ui that open from disk, templates, plan docs, browser checks.
+- **The docs system is strong:**  pages on @spell-app/ui that open from disk, templates, epic pages, browser checks.
 - **December needs:**  getting started, a tour, a phrase book, annotated examples, and how the pieces fit
   together.
 
 ### Today
 
-- **Developer docs:**  `pages/index.html`:  precedence, Solid 2, how the docs work, plan docs.
+- **Developer docs:**  `pages/index.html`:  precedence, Solid 2, how the docs work, epic pages.
 - **@spell-app/ui docs:**  plain HTML pages on `<ui-*>` widgets in `packages/ui/site` (66 pages, Fomantic's docs
   style), not deployed.
 - **In the app:**  a `@system:guides` root is configured, with no folder behind it.

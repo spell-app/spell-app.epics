@@ -24,7 +24,7 @@ AI inside the spell app, and AI that helps people write spells.
   quick fix.
 - **Hooks we have:**  the parser's "expecting" mode knows what may come next;  `spell explain <word>` (cli
   branch) shows a rule's syntax and an example.
-- **Building spell:**  mostly Claude agents, guided by `AGENTS.md`, skills (`.claude/skills/`) and plan docs.
+- **Building spell:**  mostly Claude agents, guided by `AGENTS.md`, skills (`.claude/skills/`) and epic pages.
 
 ## Decisions (settled -- don't relitigate)
 
