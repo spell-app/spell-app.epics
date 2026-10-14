@@ -975,6 +975,11 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   `<ui-popup on="click">` became `on={UIT.CLICK}`:  Solid compiles an `on`-prefixed attribute with an EXPRESSION as an
   event listener (event `""`, handler `"click"`);  a string literal stays an attribute. · Keep `on="..."` literal on
   a composed `ui-*` tag (epic `wwod-spell-ui`, C12). · ui
+- 2026-10-14 · The root's `yarn review` failed in `ui`'s `UIDocsThemes.test.tsx` ("opens on the palette button,
+  focuses the chosen theme;  arrows move;  Escape closes back to the button"), and stopped there, leaving every
+  package after `ui` unreviewed.  The test passes alone (26 of 26):  a focus timing under the whole run's load. ·
+  Re-ran it alone, then each remaining package's own `yarn review`.  Worth a look:  the test reads focus once,
+  where a poll would ride out the load (epic `people-and-orgs` P12). · ui
 
 ## app
 
@@ -1021,6 +1026,10 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   which ships no bin, and `vp dev` prints no `ready in` line for `EditorServer` to wait on.  The epic's own checks
   never started the page server, so nothing caught it. · `EditorServer` runs `vite-plus/bin/vp dev` and waits for
   `Local:`;  `yarn stop` matches `vp dev`. · app
+- 2026-10-14 · The "You" panel's browser test passed alone and failed under `app`'s whole review:  Save's click
+  resolved the panel with no changes, so no `POST` went out.  The panel read its fields on the modal's `ui-approve`
+  event only. · It reads them on the Save button's own click too (`onClick={save}`), before anything can hide it
+  (epic `people-and-orgs` P12). · app
 
 ## cli
 
