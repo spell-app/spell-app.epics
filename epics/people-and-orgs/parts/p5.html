@@ -318,38 +318,54 @@ export class Person extends Thing {
       <li>The goals stay as they are until you pick: I've not edited them</li>
     </ul></epic-net-effect
   > </epic-reply
-><epic-reply from="Claude" at="2026-10-14 01:20" re="Add ability to spit out jsonSchema as a general function, add command for that to CLI which writes it to disk.  OK to save it to disk for vscode under /build.">
+><epic-reply
+  from="Claude"
+  at="2026-10-14 01:20"
+  re="Add ability to spit out jsonSchema as a general function, add command for that to CLI which writes it to disk.  OK to save it to disk for vscode under /build."
+>
   <p>
-    Half of it exists:  the general function is there, and schemas already go to <code>build/</code>.  What's missing is a
-    command of its own.
+    Half of it exists: the general function is there, and schemas already go to
+    <a href="../../../build/" target="src-build"><code>build/</code></a
+    >. What's missing is a command of its own.
   </p>
   <ul>
     <li>
-      <b>The function:</b>  <code title="packages/core/src/checking.ts">jsonSchemaFor(Class)</code>, in the core without
-      drawing (<code>$/core/model</code>).  It takes any spell type's class and returns its JSON Schema, read from the
-      same property kinds the checker uses, so the two never disagree.
+      <b>The function:</b>
+      <a href="../../../packages/core/src/checking.ts" target="src-packages-core-src-checking-ts"
+        ><code title="packages/core/src/checking.ts">jsonSchemaFor(Class)</code></a
+      >, in the core without drawing (<code>$/core/model</code>). It takes any spell type's class and returns its JSON
+      Schema, read from the same property kinds the checker uses, so the two never disagree.
     </li>
     <li>
-      <b>Writing to disk, today:</b>  only as a side effect of compiling a LIBRARY.  <code>spell compile
-      @spell/library/people</code> writes <code>build/spaces/@spell/library/people/schemas/Person.schema.json</code>, one
-      file per type (<code title="packages/cli/src/schemas.ts">writeSchemas()</code>), and the repo's VS Code settings
-      point <code>__me.json5</code> and <code>__org.json5</code> at them.
+      <b>Writing to disk, today:</b> only as a side effect of compiling a LIBRARY.
+      <code>spell compile @spell/library/people</code> writes
+      <a
+        href="../../../build/spaces/@spell/library/people/schemas/Person.schema.json"
+        target="src-build-spaces-spell-library-people-schemas-person-schema-json"
+        ><code>build/spaces/@spell/library/people/schemas/Person.schema.json</code></a
+      >, one file per type (<a href="../../../packages/cli/src/schemas.ts" target="src-packages-cli-src-schemas-ts"
+        ><code title="packages/cli/src/schemas.ts">writeSchemas()</code></a
+      >), and the repo's VS Code settings point <code>__me.json5</code> and <code>__org.json5</code> at them.
     </li>
     <li>
-      <b>Why only libraries:</b>  a schema is made from the compiled class.  A library compiles to classes node can load
-      with no page (<code>people.lib.ts</code>);  an app's program draws, so loading it needs the browser runtime.
+      <b>Why only libraries:</b> a schema is made from the compiled class. A library compiles to classes node can load
+      with no page (<code>people.lib.ts</code>); an app's program draws, so loading it needs the browser runtime.
     </li>
   </ul>
   <p>Where a command would go, as the commands guide asks before one is built:</p>
   <epic-choices>
-    <epic-option letter="A" title="spell schemas <project>" recommended>
+    <epic-option letter="A" title="spell schemas <project>" recommended="">
       <ul>
-        <li>A bare command, as <code>spell compile</code> is:  it's about the spell language, not the repo's tools.</li>
+        <li>A bare command, as <code>spell compile</code> is: it's about the spell language, not the repo's tools.</li>
         <li>
-          <code>spell schemas @spell/library/people</code> compiles the project to a library if it's stale, then writes each
-          type's schema into its build folder's <code>schemas/</code>, and prints the paths.
+          <code>spell schemas @spell/library/people</code> compiles the project to a library if it's stale, then writes
+          each type's schema into its build folder's <code>schemas/</code>, and prints the paths.
         </li>
-        <li><code>--out &lt;dir&gt;</code> writes them elsewhere;  <code>--stdout</code> prints one type's (<code>--type Person</code>).</li>
+        <li>
+          <code>--out &lt;dir&gt;</code> writes them elsewhere; <code>--stdout</code> prints one type's (<code
+            >--type Person</code
+          >).
+        </li>
         <li>A project with no <code>ts/lib</code> target is compiled to one for this run only.</li>
         <li><code>spell compile</code> keeps writing them too, so nothing you use today changes.</li>
         <li>A new row on the commands page (<code>commands.json</code>), and <code>spell dev commands check</code>.</li>
@@ -357,21 +373,29 @@ export class Person extends Thing {
     </epic-option>
     <epic-option letter="B" title="spell compile --schemas">
       <ul>
-        <li>A flag on the command that already writes them:  no new command.</li>
-        <li>Any project:  compiled to a library for this run, its schemas written.</li>
-        <li>Harder to find, and <code>--out</code> / <code>--stdout</code> would mean something else on <code>compile</code>.</li>
+        <li>A flag on the command that already writes them: no new command.</li>
+        <li>Any project: compiled to a library for this run, its schemas written.</li>
+        <li>
+          Harder to find, and <code>--out</code> / <code>--stdout</code> would mean something else on
+          <code>compile</code>.
+        </li>
       </ul>
     </epic-option>
   </epic-choices>
   <p>
-    Either way, a small helper joins the function:  <code>jsonSchemasFor(library)</code>, every type of a loaded library at
-    once, so the command and <code>spell compile</code> share it.  Built as a new phase before Doc Review is redone, or a
-    todo:  your call.
+    Either way, a small helper joins the function: <code>jsonSchemasFor(library)</code>, every type of a loaded library
+    at once, so the command and <code>spell compile</code> share it. Built as a new phase before Doc Review is redone,
+    or a todo: your call.
   </p>
   <epic-net-effect option="A" recommended>
     <ul>
-      <li><code>spell schemas @spell/library/people</code> writes <code>Person.schema.json</code> and the rest into <code>build/</code></li>
-      <li><code>jsonSchemaFor()</code> stays the general function;  <code>jsonSchemasFor()</code> does a whole library</li>
+      <li>
+        <code>spell schemas @spell/library/people</code> writes <code>Person.schema.json</code> and the rest into
+        <a href="../../../build/" target="src-build"><code>build/</code></a>
+      </li>
+      <li>
+        <code>jsonSchemaFor()</code> stays the general function; <code>jsonSchemasFor()</code> does a whole library
+      </li>
     </ul>
   </epic-net-effect>
 </epic-reply>
