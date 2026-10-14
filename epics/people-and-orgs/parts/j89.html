@@ -19,3 +19,187 @@
     <li>no file keeps an old project name</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Claude" at="2026-10-14 00:16" re="Seems like we need to add optional `$title` to __project.json5">
+  <p>
+    Agreed: a project needs a way to keep a title its folder name can't hold. P4 made every folder lower-kebab, and the
+    title is now made back from it, so anything the kebab name drops is lost.
+  </p>
+  <ui-table celled compact striped unstackable
+    ><table>
+      <thead>
+        <tr>
+          <th>Folder before P4</th>
+          <th>Folder now</th>
+          <th>Title made from it</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>Todos - Form Based</code></td>
+          <td><code>todos-form-based</code></td>
+          <td class="no negative">Todos Form Based</td>
+        </tr>
+        <tr>
+          <td><code>FizzBuzz</code></td>
+          <td><code>fizzbuzz</code></td>
+          <td class="no negative">Fizzbuzz</td>
+        </tr>
+        <tr>
+          <td><code>Solitaire-import</code></td>
+          <td><code>solitaire-import</code></td>
+          <td>Solitaire Import</td>
+        </tr>
+        <tr>
+          <td><code>OutlineSolitaire</code></td>
+          <td><code>outline-solitaire</code></td>
+          <td class="yes positive">Outline Solitaire</td>
+        </tr>
+        <tr>
+          <td><code>Drawable Solitaire</code></td>
+          <td><code>drawable-solitaire</code></td>
+          <td class="yes positive">Drawable Solitaire</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <p><b>How a title key would work:</b></p>
+  <ul>
+    <li>
+      <b>Where it's written:</b> the project file, one optional key: <code>"title": "Todos - Form Based"</code>. Today
+      that's <code>project.json</code>; JSON Five Everywhere (P12) renames it <code>__project.json5</code>, key and all.
+    </li>
+    <li>
+      <b>The default, with no key:</b> the title made from the folder name, as today:
+      <code>drawable-solitaire</code> shows as Drawable Solitaire.
+    </li>
+    <li>
+      <b>Read in two places on the server:</b>
+      <ul>
+        <li>
+          A project's index, which already copies the file's <code>version</code>, <code>exports</code>,
+          <code>targets</code> and <code>listsStartAt</code>. <code>SpellProject.title</code> returns the key, or the
+          made-up title.
+        </li>
+        <li>
+          A group's project list. This is the bigger half. Today the list is just addresses, and the editor's menus make
+          each name from the address without loading the project. So the list would read each project's file as it
+          lists, and send a title with each address.
+        </li>
+        <li>
+          That list's new shape reaches the group model, the answers to create, rename, duplicate and delete (they send
+          the list back), the spell command's project list, and the API tests.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>What shows it:</b>
+      <ul>
+        <li>
+          the editor's project menus (<a
+            href="../../../packages/app/src/solid/ProjectDropdown.tsx"
+            target="src-packages-app-src-solid-projectdropdown-tsx"
+            ><code title="packages/app/src/solid/ProjectDropdown.tsx">ProjectDropdown.tsx</code></a
+          >)
+        </li>
+        <li>its notices, "Created app Todos - Form Based."</li>
+        <li>
+          the spell command's picker, which today shows the kebab name and its group, <code>cards @spell/library</code>.
+          It would add the title after the name: you still type the name, so the name stays first.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>What writes it:</b> creating or renaming a project in the editor. You type "Todos - Form Based"; the folder
+      becomes <code>todos-form-based</code>, and the title is kept only when it differs from the one the folder name
+      would make. Duplicating copies it.
+    </li>
+    <li><b>What doesn't change:</b> built files and the command's messages keep the kebab name (this item).</li>
+    <li>
+      <b>It survives saves already:</b> when the server tidies a project file's file list, it writes back every key it
+      read. Comments survive from P12 on.
+    </li>
+  </ul>
+  <epic-code title="Today's title, and the change · SpellProject.ts" language="ts">
+    <pre>
+/** Its name for people, from its `projectName`:  `drawable-solitaire` =&gt; `Drawable Solitaire` (decision Q39). */
+get title(): string {
+  return SP.SpellLocation.titleFor(this.projectName ?? "")
+}
+
+// with the key:
+get title(): string {
+  return this.contents?.title ?? SP.SpellLocation.titleFor(this.projectName ?? "")
+}</pre>
+  </epic-code>
+  <p>
+    <b>Now, or with P12?</b> Now is cheap on the file side. P12's readers take either file name, so a key added to
+    <code>project.json</code> today simply moves with the file. The list's new shape is the real work, about two hours
+    whichever phase does it.
+  </p>
+  <epic-choices>
+    <epic-option letter="A" title="Now, as a P4 follow-up" recommended
+      ><ul>
+        <li>P4 is what lost the titles, so it's where they come back.</li>
+        <li>The examples get their titles back at once: "Todos - Form Based", "FizzBuzz".</li>
+        <li>P12 renames the file, and the key with it, for free.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="With JSON Five Everywhere (P12)"
+      ><ul>
+        <li>One phase touches the project file's shape: renamed and a key added together.</li>
+        <li>
+          Cost: the menus show "Todos Form Based" and "Fizzbuzz" until then; P12 is the last phase before the Doc
+          Review.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="No key; titles stay made from names"
+      ><ul>
+        <li>Nothing to build.</li>
+        <li>Cost: a title can't hold what a kebab name drops: capitals inside a word, dashes, punctuation.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <p>
+    <b>The key's name:</b> you wrote <code>$title</code>. I'd write it <code>"title"</code>, with no mark, but it's your
+    call:
+  </p>
+  <ul>
+    <li>
+      A project file's own settings are plain keys: <code>imports</code>, <code>version</code>, <code>exports</code>,
+      <code>targets</code>, <code>listsStartAt</code>, and the spaces page's planned <code>components</code> and
+      <code>prefix</code>.
+    </li>
+    <li>
+      A <code>$</code> key is a saved thing's bookkeeping, not one of its fields: <code>$schema</code>,
+      <code>$type</code>, <code>$id</code>, <code>$ref</code>. That's why those kept their <code>$</code> (J50).
+    </li>
+    <li><code>$title</code> would be the only <code>$</code> key in a project file.</li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title='"title"' recommended
+      ><ul>
+        <li>Like the project file's other settings.</li>
+        <li><code>"title": "Todos - Form Based"</code></li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title='"$title"'
+      ><ul>
+        <li>Marks it as spell's own key, not a field you made.</li>
+        <li>Cost: the one <code>$</code> key among plain ones; the <code>$</code> means something else elsewhere.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>a project file may hold <code>"title"</code>; with none, the title is made from the folder name, as now</li>
+      <li>
+        a group's project list sends each project's title with its address; the editor's menus and the command's picker
+        show it
+      </li>
+      <li>creating or renaming a project keeps the name you typed as its title, when the folder name can't hold it</li>
+      <li>"Todos - Form Based" and "FizzBuzz" get their titles back in their project files</li>
+      <li>P12 renames the file with the key in it; nothing more there</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
