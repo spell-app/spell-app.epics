@@ -28,3 +28,312 @@
     </li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-13 14:32" re="revisit soon"
+  ><p>I dislike `../` references intensely -- are the imports actually using `$/`?</p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-14 00:20"
+  re="I dislike `../` references intensely -- are the imports actually using `$/`?"
+>
+  <p>
+    The <code>../</code> in this item isn't an import. It's a folder path on disk, written into a generated Python file,
+    from the app's folder to the build folder. The TypeScript imports do use the <code>$/</code> aliases, with a few
+    exceptions listed below. The <code>../</code> in the app can go: the options are at the end.
+  </p>
+
+  <p>
+    <b>Where the <code>../</code> is:</b> three places, all the same path.
+  </p>
+  <ol>
+    <li>
+      The project's index carries <code>buildFolder</code>: where the project's built files are, measured from the
+      project's own folder.
+      <ul>
+        <li>
+          Made by
+          <a
+            href="../../../packages/spaces/src/server/node/projects/project-utils.ts"
+            target="src-packages-spaces-src-server-node-projects-project-utils-ts"
+            ><code title="packages/spaces/src/server/node/projects/project-utils.ts">relativeBuildFolder()</code></a
+          >, from
+          <a
+            href="../../../packages/spaces/src/server/node/projects/project-utils.ts"
+            target="src-packages-spaces-src-server-node-projects-project-utils-ts"
+            ><code title="packages/spaces/src/server/node/projects/project-utils.ts">buildFolderFor()</code></a
+          >.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Compiling to Python hands it to the app writer, as
+      <a href="../../../packages/py/ts/quartApp.ts" target="src-packages-py-ts-quartapp-ts"
+        ><code title="packages/py/ts/quartApp.ts">QuartAppSpec.outputs</code></a
+      >.
+    </li>
+    <li>
+      The app writer puts it in the app's <code>OUTPUTS</code> line. The app loads the compiled program and its page
+      file from there.
+    </li>
+  </ol>
+  <epic-code title="what the Solitaire app says today · Solitaire.app.py" language="python">
+    <pre>
+HERE = Path(__file__).parent
+# the compiled program and its page file:  where `spell compile` builds them
+OUTPUTS = (HERE / "../../../../../build/spaces/@spell/examples/solitaire").resolve()
+
+# a game per visitor, each running Solitaire.spell.py
+sessions = SpellSessions(OUTPUTS / "Solitaire.spell.py")</pre>
+  </epic-code>
+  <ul>
+    <li>
+      The app sits beside Solitaire's source, in the spaces package. The program it runs is built into the build folder
+      at the repo root. So the path climbs five folders up to the root, then goes down into the build folder.
+    </li>
+    <li>
+      <b>Two docstrings show the path with six <code>../</code>, one too many:</b>
+      <a
+        href="../../../packages/spaces/src/server/node/projects/project-utils.ts"
+        target="src-packages-spaces-src-server-node-projects-project-utils-ts"
+        ><code title="packages/spaces/src/server/node/projects/project-utils.ts">relativeBuildFolder()</code></a
+      >'s and
+      <a href="../../../packages/py/ts/quartApp.ts" target="src-packages-py-ts-quartapp-ts"
+        ><code title="packages/py/ts/quartApp.ts">QuartAppSpec.outputs</code></a
+      >'s. This item's own text above also shows an old path from before the One Address Scheme phase (P4)
+      (<code>build/spell/projects/system/...</code>).
+    </li>
+  </ul>
+
+  <p>
+    <b>Do the imports use <code>$/</code>?</b> Mostly. Between packages' TypeScript sources, yes. The
+    <code>../</code> imports that are left are mostly in places no alias reaches, or in node scripts that import
+    relatively by rule.
+  </p>
+  <epic-code title="every ../ import, by where it is · git grep" language="text">
+    <pre>
+$ git grep -nE "(from|import\() ?[\"']\.\./" -- packages tests
+
+in packages' src/:  15 imports
+  epics/src           13   5 into epics' docs tools (tools/, which no alias reaches),
+                           8 between epics' own src/ folders
+  assembler/src        1   ../../../vite.lint.ts, the repo root's lint settings
+  ui/src               1   ../../package.json, for ui's version
+
+in packages' tools/, scripts/ and demo/:  about 100
+  ui/tools, ui/scripts 81  relative ON PURPOSE:  ui's AGENTS.md says its node
+                           scripts import "relatively, no aliases"
+  epics/demo, tools    17  plain node .mjs / .js scripts;  6 of them reach into
+                           server's src/ (../../server/src/page/PageServer.ts)
+  others                6   two of them in generated pack entries
+
+in the packages' vite / vitest configs:  44
+  ../../vite.lint.ts, ../../vite.decorators.ts at the repo root
+
+in tests/:  40 imports in 25 files
+  34  ../../../packages/epics/tools/...   (no alias reaches tools/)
+   2  ../../../packages/app/tools/...     (likewise)
+   4  test data and the root lint files</pre>
+  </epic-code>
+  <ul>
+    <li>
+      TypeScript code that imports another package's
+      <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> uses <code>$/</code>. The
+      six that climb into server's
+      <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> are epics' plain JavaScript
+      scripts, which run under node without the aliases.
+    </li>
+    <li>
+      The ones left mostly reach a package's
+      <a href="../../../packages/ui/tools/" target="src-packages-ui-tools"><code>tools/</code></a> folder, which has no
+      alias: <code>$/epics/*</code> means <code>packages/epics/src/*</code>.
+    </li>
+    <li>
+      If you want those gone too, that's a todo of its own: an alias per package's
+      <a href="../../../packages/ui/tools/" target="src-packages-ui-tools"><code>tools/</code></a> folder, say
+      <code>$/epics/tools/*</code>. Not part of this item.
+    </li>
+  </ul>
+
+  <p>
+    <b>Ways to drop the <code>../</code> from the app.</b> What each must survive:
+  </p>
+  <ul>
+    <li><b>a worktree</b>: the app must load THIS checkout's build, not main's</li>
+    <li><b>the checkout moving</b> to another folder</li>
+    <li>
+      <b>a project in spell-spaces</b>: its app sits outside every checkout, shared by all of them, while each checkout
+      builds its own copy of the program
+    </li>
+    <li>
+      <b>the app copied elsewhere</b>. <code>spell run --target py</code> doesn't copy the committed app. It writes a
+      fresh one into a temp folder, with the program beside it (<code>OUTPUTS = HERE</code>), so no option changes it.
+    </li>
+  </ul>
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>A worktree</th>
+        <th>Checkout moved</th>
+        <th>spell-spaces</th>
+        <th>App copied away</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>A · today's <code>../</code></td>
+        <td>yes</td>
+        <td>yes</td>
+        <td>only the checkout that compiled it last</td>
+        <td>no</td>
+      </tr>
+      <tr>
+        <td>B · an absolute path</td>
+        <td>no: the last compile wins</td>
+        <td>no</td>
+        <td>only the checkout that compiled it last</td>
+        <td>yes, on this machine</td>
+      </tr>
+      <tr>
+        <td>C · an environment variable</td>
+        <td>yes, if set</td>
+        <td>yes, if set</td>
+        <td>yes, if set</td>
+        <td>yes, if set</td>
+      </tr>
+      <tr>
+        <td>D · the checkout's build folder, found by spell_quart</td>
+        <td>yes</td>
+        <td>yes</td>
+        <td>yes</td>
+        <td>yes, run by a checkout's <code>spell_quart</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <epic-code title="option D · the app's line, and spell_quart's helper (a sketch)" language="python">
+    <pre>
+# Solitaire.app.py, as compiling would write it
+from spell_quart import built_folder
+# the compiled program and its page file:  in this checkout's build/
+OUTPUTS = built_folder("spaces/@spell/examples/solitaire")
+
+# spell_quart, beside assets_folder(), which finds the page side the same way
+def built_folder(path: str) -&gt; Path:
+    """A folder in the build/ of the checkout this spell_quart is in:  `$SPELL_BUILD_DIR`, else found from this file."""
+    named = os.environ.get("SPELL_BUILD_DIR")
+    build = Path(named) if named else Path(__file__).resolve().parents[6] / "build"
+    return build / path</pre>
+  </epic-code>
+  <ul>
+    <li>
+      <code>SPELL_BUILD_DIR</code> is the variable the node side already reads to move the build folder (tests set it),
+      so both sides would answer to one name.
+    </li>
+    <li>
+      Python's web server, <code>spell_quart</code>, already finds the page side's files this way:
+      <a
+        href="../../../packages/spaces/src/server/py/spell_quart/page.py"
+        target="src-packages-spaces-src-server-py-spell-quart-page-py"
+        ><code title="packages/spaces/src/server/py/spell_quart/page.py">assets_folder()</code></a
+      >
+      counts up from its own file, with an environment variable to point it elsewhere.
+    </li>
+    <li>
+      Each checkout runs the app with its own <code>spell_quart</code>, so the app finds that checkout's build: main's
+      in main, the worktree's in a worktree. That works for spell-spaces too.
+    </li>
+    <li>
+      The project's index can then carry the path inside the build folder,
+      <a
+        href="../../../packages/spaces/@spell/examples/solitaire/"
+        target="src-packages-spaces-spell-examples-solitaire"
+        ><code>spaces/@spell/examples/solitaire</code></a
+      >, with no <code>../</code> there either.
+    </li>
+    <li>
+      Not taken in D: counting up from the APP's folder to a marker file at the repo root. It works for the spaces
+      package and the tests, but finds nothing from spell-spaces or from an app copied away.
+    </li>
+  </ul>
+
+  <epic-choices>
+    <epic-option letter="A" title="Keep today's relative path"
+      ><ul>
+        <li>Nothing changes.</li>
+        <li>The app keeps a <code>../../../../../</code> line.</li>
+        <li>It breaks if the app file alone is copied elsewhere.</li>
+        <li>An app in spell-spaces points at whichever checkout compiled it last.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="An absolute path, written at compile time"
+      ><ul>
+        <li><code>OUTPUTS = Path("/Users/owen/www/spell-app/spell-app/build/spaces/...")</code></li>
+        <li>No <code>../</code>, and a copied app still finds the build on this machine.</li>
+        <li>
+          But a committed app would name your machine and one checkout. Each compile in another worktree rewrites it, so
+          it shows as changed in git.
+        </li>
+        <li>It breaks when the checkout moves.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="An environment variable"
+      ><ul>
+        <li>
+          <code>OUTPUTS = Path(os.environ["SPELL_OUTPUTS"])</code>, or the folder beside the app when it's not set.
+        </li>
+        <li>No path in the app at all.</li>
+        <li>
+          But running it by hand needs the variable set first. That loses the "run it with one command" promise the app
+          was written for (epic <code>python-target</code>, P20).
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="D" title="The checkout's build folder, found by spell_quart" recommended
+      ><ul>
+        <li>
+          The app names its folder inside the build folder,
+          <a
+            href="../../../packages/spaces/@spell/examples/solitaire/"
+            target="src-packages-spaces-spell-examples-solitaire"
+            ><code>spaces/@spell/examples/solitaire</code></a
+          >, and <code>spell_quart</code> says which checkout's build folder.
+        </li>
+        <li>No <code>../</code> in the app or the project's index.</li>
+        <li>
+          It works in a worktree, after a move, for spell-spaces, and for an app copied away and run by a checkout.
+        </li>
+        <li>It's the way <code>spell_quart</code> already finds the page side's files.</li>
+        <li>
+          Cost: a five-line helper in <code>spell_quart</code>, a new <code>OUTPUTS</code> line in the app writer, the
+          index's <code>buildFolder</code> measured from the build folder, and the app writer's tests updated.
+        </li>
+        <li>An unedited app is rewritten on its next compile. An edited one keeps its old line, which still works.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+
+  <epic-net-effect option="D" recommended
+    ><ul>
+      <li>
+        the app's line becomes <code>OUTPUTS = built_folder("spaces/@spell/examples/solitaire")</code>, with no
+        <code>../</code>
+      </li>
+      <li>
+        the project index's <code>buildFolder</code> is measured from the build folder:
+        <a
+          href="../../../packages/spaces/@spell/examples/solitaire/"
+          target="src-packages-spaces-spell-examples-solitaire"
+          ><code>spaces/@spell/examples/solitaire</code></a
+        >
+      </li>
+      <li><code>spell_quart</code> gains <code>built_folder()</code>, beside <code>assets_folder()</code></li>
+      <li>an app in spell-spaces loads the build of the checkout running it, not the one that compiled it last</li>
+      <li>the two docstrings with six <code>../</code> are corrected along the way</li>
+      <li>
+        the <code>../</code> imports into packages'
+        <a href="../../../packages/ui/tools/" target="src-packages-ui-tools"><code>tools/</code></a> folders stay,
+        unless you make that a todo
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

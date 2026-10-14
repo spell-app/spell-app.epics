@@ -31,3 +31,192 @@
     <li>loading a saved file with a library means passing <code>classNamed</code> to the <code>Loader</code></li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-12 23:54" re="revisit soon"
+  ><p>I think libraries should be able to use `Tableau#T1` syntax</p></epic-reply
+><epic-reply from="Claude" at="2026-10-14 00:10" re="I think libraries should be able to use `Tableau#T1` syntax">
+  <p>
+    They can, without bringing drawing or Solid in. The lookups are small and need none of it. The real question is
+    WHERE a library looks a thing up, since a library has no running program whose things it could search.
+  </p>
+  <ul>
+    <li>
+      "References by name" are spell's words for one thing: <code>tableau T1</code> (by name) and
+      <code>the first tableau</code> (by place). Both compile to a call on the core.
+      <ul>
+        <li>A reference written as text, such as <code>Tableau#T1</code>, is found by the same code.</li>
+        <li>So "supporting the syntax" means the model core (the core without drawing) gets those calls.</li>
+      </ul>
+    </li>
+    <li>Today a library that uses them compiles, then fails when the line runs. I tried it against the model core:</li>
+  </ul>
+  <epic-code title="The model core today, asked for a thing by name · 3 lines" language="text">
+    <pre>
+thingNamed: undefined  thingAtPlace: undefined  things: undefined
+calling it: core.thingNamed is not a function</pre>
+  </epic-code>
+
+  <p><b>What the code is, and what it leans on:</b></p>
+  <ui-table celled compact striped unstackable
+    ><table>
+      <thead>
+        <tr>
+          <th>Piece</th>
+          <th>Size</th>
+          <th>What it needs</th>
+          <th>Into the model?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>the four lookups: by reference, by name, by place, and a thing's reference back</td>
+          <td>
+            about 100 of the 184 lines in
+            <a href="../../../packages/core/src/references.ts" target="src-packages-core-src-references-ts"
+              ><code title="packages/core/src/references.ts">references.ts</code></a
+            >
+          </td>
+          <td>a list of things to search, and the program's classes by name</td>
+          <td class="yes positive">yes: no drawing, no Solid</td>
+        </tr>
+        <tr>
+          <td>an element's id for its thing (<code>queen-of-spades-2</code>)</td>
+          <td>about 55 lines, same file</td>
+          <td>the element tag of a drawable thing</td>
+          <td class="no negative">no: it's drawing's, and stays behind</td>
+        </tr>
+        <tr>
+          <td>the running program's list of things</td>
+          <td>
+            539 lines,
+            <a href="../../../packages/core/src/things.ts" target="src-packages-core-src-things-ts"
+              ><code title="packages/core/src/things.ts">things.ts</code></a
+            >
+          </td>
+          <td>
+            the built-in drawable list class, which loads Solid's
+            <code>h</code>
+          </td>
+          <td class="no negative">not as it is: that import blocks it</td>
+        </tr>
+        <tr>
+          <td>carrying a program over a recompile</td>
+          <td>
+            299 lines,
+            <a href="../../../packages/core/src/carry.ts" target="src-packages-core-src-carry-ts"
+              ><code title="packages/core/src/carry.ts">carry.ts</code></a
+            >
+          </td>
+          <td>a running program</td>
+          <td>no need: a library is never recompiled under a running program</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <ul>
+    <li>
+      The ONLY Solid link is the list of things: it names the drawable classes among the built-in ones, and one of them
+      imports Solid. The lookups themselves import nothing but the core.
+    </li>
+    <li>
+      The reference's text form is already shared: a saved file writes <code>{ "$ref": "Person#matt" }</code>, and the
+      model core already reads and writes those (Saving By Id, <a href="#p2">P2</a>).
+    </li>
+  </ul>
+  <epic-code title="The lookups, as references.ts has them · 12 lines" language="ts">
+    <pre>
+thingNamed&lt;T&gt;(Class: abstract new (...args: never[]) =&gt; T, name: string): T | undefined {
+  const { things } = spellCore
+  for (const thing of things.all()) {
+    if (thing instanceof Class &amp;&amp; nameOf(thing) === name) return thing
+  }
+  const kept = things.exported[name]
+  return kept instanceof Class ? kept : undefined
+},
+
+thingAtPlace&lt;T&gt;(Class: abstract new (...args: never[]) =&gt; T, place: number): T | undefined {
+  const things = spellCore.things.all().filter((thing) =&gt; thing.constructor === Class)
+  ...</pre>
+  </epic-code>
+
+  <p><b>So where does a library look?</b> Three ways:</p>
+  <epic-choices>
+    <epic-option letter="A" title="Where its caller says:  a store, a loader" recommended
+      ><ul>
+        <li>The four lookups move into the model core, written against a small "where to look" shape.</li>
+        <li>In a running program, that's the program's own list of things, as today: nothing changes for programs.</li>
+        <li>
+          Under the model, the caller hands one. The people store would: <code>person Matt</code> in a library's
+          function finds matt among the people it loaded.
+        </li>
+        <li>Nothing handed: a plain error saying to hand one, not "is not a function".</li>
+        <li>
+          Size: about 100 lines moved, about 60 new (the shape, a loader as one, the error), and tests. No Solid
+          problem.
+        </li>
+        <li>
+          Catch: "the first person" means the first one that store loaded, which is weaker than "the first the program
+          made".
+        </li>
+      </ul>
+      <epic-code title="How a server would use it, a sketch (names made up) · 6 lines" language="ts">
+        <pre>
+import { spellCore, Loader } from "@spell-app/core/model"
+import { Person, Relationship } from "./people.lib.ts"
+
+const loader = new Loader({ entryFor, classNamed })
+// inside, `person Matt` finds Person#matt among what the loader loaded
+spellCore.lookingIn(loader, () =&gt; family.closest())</pre>
+      </epic-code></epic-option
+    >
+    <epic-option letter="B" title="One list of things for the whole model"
+      ><ul>
+        <li>
+          The running program's list moves into the model core too, its drawable classes added only by the full core:
+          that removes the Solid import.
+        </li>
+        <li>Every thing a library makes registers, as a program's does.</li>
+        <li>
+          Cost: it undoes the Library Target's goal (<a href="#p3">P3</a>) that things made outside a program stay out
+          of the list.
+        </li>
+        <li>
+          On a server holding people from many spaces, it's one list for all of them: two people with the id owen, in
+          two spaces, and <code>Person#owen</code> finds whichever was made first.
+        </li>
+        <li>Size: about 250 of the 539 lines move, the rest (the Thing Explorer's) stay.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Leave them out, but say so when compiling"
+      ><ul>
+        <li>As this call stands, made honest.</li>
+        <li>
+          The library writer refuses <code>tableau T1</code> and <code>the first tableau</code>, saying a library has no
+          things to look in.
+        </li>
+        <li>Size: about 20 lines. Your note's point isn't met.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+
+  <p><b>Which phase:</b></p>
+  <ul>
+    <li>
+      A fits People On Disk (<a href="#p9">P9</a>): it builds the people store, the first real "where to look", and that
+      phase's references are resolved there anyway.
+    </li>
+    <li>
+      If the people library's own spell needs <code>person Matt</code> earlier, its lookups can come in Person And Org
+      (<a href="#p7">P7</a>), with the store joining in P9.
+    </li>
+    <li>Carrying over a recompile stays out whichever you pick.</li>
+  </ul>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>The model core gets the four lookups: by reference, by name, by place, and a thing's reference back</li>
+      <li>They search wherever the caller says; a running program says "my things", as now</li>
+      <li>The people store and a loader can each be that place</li>
+      <li>An element's id for its thing, and carrying over, stay in the full core</li>
+      <li>Built in People On Disk (P9); this call's net effect changes to "a library can use Tableau#T1"</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

@@ -18,3 +18,222 @@
     <li>a router upgrade that changes its history interface needs this wrapper looked at</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-13 23:53" re="revisit soon"
+  ><p>what is another URL safe character we could use instead of `//`?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-14 00:04" re="what is another URL safe character we could use instead of `//`?">
+  <p>
+    Short answer: <code>~</code> is the only candidate that passes every check, and only as a part of its own,
+    <code>/~/</code>. Every other mark fails at least one place an address travels. Keeping <code>//</code> is still a
+    fair choice, and the one I recommend.
+  </p>
+  <epic-code title="The same address, three ways · 5 lines" language="text">
+    <pre>
+@spell/examples/solitaire//Card.spell        today:  two slashes (decisions Q32, J47)
+@spell/examples/solitaire/~/Card.spell       a tilde as its own part
+@spell/examples/solitaire~Card.spell         a tilde glued in:  breaks relative links (below)
+owen@spell/~/__me.json5                      a space's own file, with the tilde
+@spell/library/people/~/Person__v2           a type's version, with the tilde</pre>
+  </epic-code>
+  <ul>
+    <li>
+      <b>Why the mark must be a part of its own:</b> a page's links are read relative to its URL. From
+      <code>/spaces/@spell/examples/solitaire~Card.spell</code>, a link to <code>Deck.spell</code> lands on
+      <code>/spaces/@spell/examples/Deck.spell</code>, OUTSIDE the project, since the browser drops everything after the
+      last slash. With <code>//</code> or <code>/~/</code> it lands beside <code>Card.spell</code>, where it should. So
+      any mark, not just <code>~</code>, has to sit between two slashes.
+    </li>
+    <li>
+      <b>What the URL rules allow (RFC 3986):</b> every candidate is legal in a URL's path as it is.
+      <ul>
+        <li>
+          But the browser's own encoder, which our URL function uses, turns <code>+ , ; : $</code> into
+          <code>%2B %2C %3B %3A %24</code>. Each would need the same exception <code>@</code> has, or the URL stops
+          reading as the address.
+        </li>
+        <li><code>~ ! *</code> pass untouched, as <code>//</code> does.</li>
+      </ul>
+    </li>
+    <li>
+      <b>What names may hold:</b> a project, folder or file name may hold letters, digits, <code>_ - . $</code> and a
+      space (<a href="../../../packages/spell/src/SpellLocation.ts" target="src-packages-spell-src-spelllocation-ts"
+        ><code title="packages/spell/src/SpellLocation.ts">SpellLocation.isValidPathSegment()</code></a
+      >). So <code>$</code> could clash with a name; none of the others can, so a reader would never mistake them.
+    </li>
+    <li>
+      <b>Shell checks:</b> from zsh's documented rules, not run: this agent's sandbox refuses to start zsh. Your
+      <code>~/.zshrc</code> turns on none of the options that would change them (<code>extendedglob</code>, for one).
+    </li>
+  </ul>
+  <epic-code title="The regex that says what a name may hold · 4 lines" language="ts">
+    <pre>
+static isValidPathSegment(segment: string): boolean {
+  const LEGAL_SEGMENT_PATTERN = /^[\w\d-$. ]+$/
+  const SEGMENT_BLACKLIST = [".", ".."]
+  return typeof segment === "string" &amp;&amp; !SEGMENT_BLACKLIST.includes(segment) &amp;&amp; LEGAL_SEGMENT_PATTERN.test(segment)</pre>
+  </epic-code>
+  <ui-table celled compact striped unstackable
+    ><table>
+      <thead>
+        <tr>
+          <th>Mark</th>
+          <th>In a URL</th>
+          <th>Typed in zsh, unquoted</th>
+          <th>Markdown, JSON5, a spell comment</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>//</code> (today)</td>
+          <td>
+            legal, but the app's router matches no route with an empty part (the shim, J86); path tools squash it to one
+            slash; a URL starting with it names another site (J48's rules)
+          </td>
+          <td class="yes positive">as it is</td>
+          <td class="yes positive">
+            fine: an address is always a quoted string, so neither JSON5 nor spell reads it as a comment
+          </td>
+        </tr>
+        <tr>
+          <td><code>/~/</code></td>
+          <td class="yes positive">no encoder touches it; no empty part; nothing squashes it</td>
+          <td class="yes positive">as it is: <code>~</code> means home only at the start of a word</td>
+          <td>
+            fine; in plain prose two single <code>~</code> on one line can strike the text between them on GitHub, but
+            addresses sit in code spans
+          </td>
+        </tr>
+        <tr>
+          <td><code>:</code></td>
+          <td>
+            encoded <code>%3A</code>; a relative link <code>solitaire:Card.spell</code> reads as a scheme, like
+            <code>mailto:</code>
+          </td>
+          <td class="yes positive">as it is</td>
+          <td class="no negative">
+            fine there, but it's the mark you replaced with <code>//</code> (decisions Q28, Q32); and
+            <code>owen@spell:x</code> reads like ssh's <code>user@host:path</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>!</code></td>
+          <td class="yes positive">untouched</td>
+          <td class="no negative">
+            history expansion: <code>!Card.spell</code> says "event not found", even inside double quotes
+          </td>
+          <td>fine</td>
+        </tr>
+        <tr>
+          <td><code>+</code></td>
+          <td>
+            encoded <code>%2B</code>; many decoders (form fields, query strings, some servers) read <code>+</code> as a
+            space
+          </td>
+          <td class="yes positive">as it is</td>
+          <td>fine; reads as "plus"</td>
+        </tr>
+        <tr>
+          <td><code>;</code></td>
+          <td>
+            encoded <code>%3B</code>; some servers strip or refuse it (old "path parameters", Java's
+            <code>;jsessionid</code>)
+          </td>
+          <td class="no negative">
+            ends the command: <code>spell compile a;Card.spell</code> runs <code>Card.spell</code>
+          </td>
+          <td>fine</td>
+        </tr>
+        <tr>
+          <td><code>,</code></td>
+          <td>encoded <code>%2C</code>; terminals and GitHub end a detected link at a comma</td>
+          <td class="yes positive">as it is</td>
+          <td>reads as a list: <code>solitaire,Card.spell</code></td>
+        </tr>
+        <tr>
+          <td><code>*</code></td>
+          <td class="yes positive">untouched</td>
+          <td class="no negative">a wildcard: no match, and zsh refuses the command, "no matches found"</td>
+          <td>markdown emphasis between two of them</td>
+        </tr>
+        <tr>
+          <td><code>$</code></td>
+          <td>encoded <code>%24</code></td>
+          <td class="no negative">
+            a variable: <code>$Card</code> is empty (why <code>__</code> replaced it, Q33, J51)
+          </td>
+          <td class="no negative">names may hold it, so it can clash</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <p><b>Everywhere, or only in URLs?</b></p>
+  <ul>
+    <li>
+      <b>Only in URLs:</b> the address keeps <code>//</code>, and URLs write <code>/~/</code>. This was J48's "other
+      way", turned down.
+      <ul>
+        <li>A URL's tail stops being its address.</li>
+        <li>
+          It fixes nothing you see: the address bar already shows <code>//</code> today, thanks to the shim (<a
+            href="../../../packages/app/src/pages/addressHistory.ts"
+            target="src-packages-app-src-pages-addresshistory-ts"
+            ><code title="packages/app/src/pages/addressHistory.ts">addressHistory()</code></a
+          >).
+        </li>
+        <li>The conversion just moves, from the router's history into the URL function.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Everywhere:</b> the address itself becomes <code>@spell/examples/solitaire/~/Card.spell</code>.
+      <ul>
+        <li>
+          The router's shim goes, and so do two of J48's rules: nothing squashes <code>/~/</code>, and no URL can start
+          with it and name another site.
+        </li>
+        <li>
+          Two rules stay: a <code>../</code> link still climbs over <code>/~/</code>, as over <code>//</code>; and an
+          address is still encoded a part at a time.
+        </li>
+        <li>
+          The work: the two step constants, the splitting code, and a sweep like P4's. Today 36 files in the repo hold a
+          two-slash address (119 lines), plus 18 shared pages.
+        </li>
+        <li>The reading: three characters, not two, and <code>~</code> means "home" to anyone who uses a terminal.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Later, for hosting:</b> if spell is ever served through nginx, its default (<code>merge_slashes on</code>)
+      squashes <code>//</code> before it picks a route: one setting to turn off. <code>/~/</code> needs none.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Keep // (as built)" recommended
+      ><ul>
+        <li>It reads naturally, and P4 built and tested it.</li>
+        <li>Only the app's router needs help: a small shim, with a test for pasting a URL, Back and Forward.</li>
+        <li>The browser and every <code>/spaces/</code> and <code>/api/</code> URL show the address exactly.</li>
+        <li>Cost: J48's four rules stay, and a future nginx needs <code>merge_slashes off</code>.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="/~/ everywhere"
+      ><ul>
+        <li>No shim, and nothing anywhere can squash or misread it.</li>
+        <li>
+          Cost: a second address sweep (about 36 files and the docs); three characters; reads as "home"; the answer to
+          the question on telling a file from a page (Q32) changes from <code>//</code>.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="/~/ in URLs only"
+      ><ul>
+        <li>Addresses keep <code>//</code>; URLs write <code>/~/</code>.</li>
+        <li>Cost: a URL no longer shows its address, and the conversion moves rather than goes. Not recommended.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>nothing changes: J86 stays as built, and J48's rules stand</li>
+      <li>if spell is ever hosted behind nginx, its setup turns <code>merge_slashes</code> off</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

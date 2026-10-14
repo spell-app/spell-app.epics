@@ -23,3 +23,139 @@
     <li>the CLI's help and README show addresses</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-13 23:55" re="revisit soon"
+  ><p>can we use `@here` instead of `@workspace`? Or is `@workspace` a shell thing</p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-14 00:10"
+  re="can we use `@here` instead of `@workspace`?  Or is `@workspace` a shell thing"
+>
+  <p>
+    Yes, we can. <code>@workspace</code> isn't a shell thing: it's the spell command's own word for "the project in the
+    folder I'm in", one constant in its code. Neither zsh nor bash gives <code>@</code> any meaning at the start of a
+    word, so <code>@here</code> types just as well.
+  </p>
+  <ul>
+    <li>
+      You may be thinking of VS Code: Copilot Chat has an <code>@workspace</code> too. It's unrelated; the spell
+      command's word just happens to match.
+    </li>
+    <li>
+      It means exactly what <code>.</code> already means. <code>spell compile @workspace</code> and
+      <code>spell compile .</code> do the same thing, and so do <code>@workspace/Card.spell</code> and
+      <code>./Card.spell</code>. With no project named at all, the command also takes the project you're in.
+    </li>
+    <li>
+      Inside the command, it's also the value it uses for "the project here" when you name none (<a
+        href="../../../packages/cli/src/CliSession.ts"
+        target="src-packages-cli-src-clisession-ts"
+        ><code title="packages/cli/src/CliSession.ts">defaultProject()</code></a
+      >).
+    </li>
+  </ul>
+  <epic-code title="Where the word lives · resolveProject.ts" language="ts">
+    <pre>
+/** Stands for the current folder:  `@workspace` ~== `.` */
+export const WORKSPACE_ARG = "@workspace"
+
+export async function resolveProject(arg: string, cwd = process.cwd()): Promise&lt;CLI.CliProject&gt; {
+  if (arg === WORKSPACE_ARG) return resolveDiskPath(arg, cwd)
+  if (arg.startsWith(`${WORKSPACE_ARG}/`))
+    return resolveDiskPath(arg, resolve(cwd, arg.slice(WORKSPACE_ARG.length + 1)))
+  if (SP.SpellLocation.isAddress(arg)) return resolveSpellPath(arg)
+  return resolveDiskPath(arg, resolve(cwd, arg))
+}</pre>
+  </epic-code>
+  <p>
+    <b>Could <code>@here</code> ever clash with an address?</b> Only if an org were named <code>here</code>.
+  </p>
+  <ul>
+    <li>An org's space is written <code>@org</code>, so an org named <code>here</code> would be <code>@here</code>.</li>
+    <li>
+      The command checks its own word before it reads an address, so that org's projects could never be named on the
+      command line.
+    </li>
+    <li><code>@workspace</code> has the same gap today, with an org named <code>workspace</code>.</li>
+    <li>
+      A person named <code>here</code> is fine: their space is <code>here@spell</code>, which doesn't start with
+      <code>@</code>.
+    </li>
+    <li>
+      Nothing reserves org names yet. When orgs get names (Person And Org, P7), the word should be on a short list of
+      names no org may take, with <code>local</code> (the <code>@local/&lt;folder&gt;</code> groups).
+    </li>
+    <li>
+      A small one: in GitHub or Slack prose, <code>@here</code> outside a code span reads as a mention, and in Slack it
+      pings the channel. Every address starting with <code>@</code> already has that in GitHub (<code>@spell</code>).
+    </li>
+  </ul>
+  <p><b>What the rename touches:</b></p>
+  <ul>
+    <li>
+      the constant and the code above, in the spell command (<a
+        href="../../../packages/cli/src/resolveProject.ts"
+        target="src-packages-cli-src-resolveproject-ts"
+        ><code title="packages/cli/src/resolveProject.ts">resolveProject.ts</code></a
+      >)
+    </li>
+    <li>
+      the help that <code>spell --help</code> prints (<a
+        href="../../../packages/cli/src/main.ts"
+        target="src-packages-cli-src-main-ts"
+        ><code title="packages/cli/src/main.ts">main.ts</code></a
+      >)
+    </li>
+    <li>the command's README, its table of what you can type</li>
+    <li>three doc comments in the command's code</li>
+    <li>
+      its test: two lines in
+      <a href="../../../tests/cli/src/resolveProject.test.ts" target="src-tests-cli-src-resolveproject-test-ts"
+        ><code title="tests/cli/src/resolveProject.test.ts">resolveProject.test.ts</code></a
+      >
+    </li>
+    <li>
+      shared pages, at the merge: the command-line guide (one line) and the commands page's data (one note, on a script
+      nobody uses); and one entry in the suspected-bugs log
+    </li>
+    <li>
+      Tidy-up either way: two spaces tests and two language server tests still say "a <code>@workspace</code> root", the
+      old name for what is now a <code>@local/&lt;folder&gt;</code> group. Their wording is stale already.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="@here" recommended
+      ><ul>
+        <li>Says what it means, and it's shorter: <code>spell run @here</code>, <code>@here/Card.spell</code>.</li>
+        <li>It looks like the addresses it sits beside in the help.</li>
+        <li>Cost: about an hour, the list above; <code>here</code> joins the reserved org names in P7.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Keep @workspace"
+      ><ul>
+        <li>Nothing to change.</li>
+        <li>
+          Cost: a longer word that says less (a "workspace" is VS Code's word for a set of folders), and
+          <code>workspace</code> still needs reserving in P7.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Drop the word; . does it"
+      ><ul>
+        <li>One way to say "here", not two: <code>.</code> and <code>./Card.spell</code>, or no argument at all.</li>
+        <li>No org name to reserve.</li>
+        <li>
+          Cost: no word that reads like an address in the help; a script that types <code>@workspace</code> breaks.
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        the spell command takes <code>@here</code> and <code>@here/Card.spell</code>; <code>@workspace</code> is gone
+      </li>
+      <li>its help, README, tests and the shared CLI pages say <code>@here</code></li>
+      <li>Person And Org (P7) reserves <code>here</code> and <code>local</code> as org names</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

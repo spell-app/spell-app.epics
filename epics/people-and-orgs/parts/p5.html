@@ -3,6 +3,316 @@
 ><epic-field name="changes"
   >Declarations compile to a runtime checker and to JSON Schema. A file's <code>"$schema"</code> is the spell address of
   its type, and the spell VS Code extension turns that address into JSON Schema.</epic-field
+><epic-reply from="Owen" at="2026-10-13 03:50" re="revisit soon"
+  ><p>I hate JSON schema, can we come up with something better and lighter weight?</p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-14 00:05"
+  re="I hate JSON schema, can we come up with something better and lighter weight?"
+>
+  <p>
+    Yes: nobody has to write, read or keep JSON Schema. The spell declaration stays the one description of a type, the
+    app and the command line check a file against the compiled class itself, and JSON Schema is made by a machine only
+    for VS Code, which reads nothing else.
+  </p>
+  <ul>
+    <li>
+      What this phase, Schema From Spell, has to give, whatever the format:
+      <ul>
+        <li>a saved file says what type it is</li>
+        <li>editors and tools can check it</li>
+        <li>an old version can be upgraded (Versions And Upgrades, <a href="#p6">P6</a>)</li>
+      </ul>
+    </li>
+    <li>
+      The first is already settled. You picked C on the file's schema and version (<a href="#j3">J3</a>,
+      <a href="#q19">Q19</a>): the schema line names the type's plain address, and its own key says the version.
+    </li>
+    <li>So the question is only what CHECKS the file, and where the description of a Person comes from.</li>
+  </ul>
+
+  <p><b>The example used below:</b> a person with a name, an email and a list of friends.</p>
+  <epic-code title="Friends.spell, and a saved person file · 15 lines" language="spell">
+    <pre>
+a person is a thing where:
+	- it has a name as text
+	- it has an email as text
+	- its "friends" is a list of people
+
+// the saved file, __me.json5 (J3's option C:  $schema names the newest Person)
+{
+  "$schema": "@spell/library/people//Person",
+  "$version": 2,
+  "$type": "Person",
+  "id": "owen",
+  "name": "Owen",
+  "email": "owen@example.com",
+  "friends": [{ "$ref": "Person#matt" }]
+}</pre>
+  </epic-code>
+
+  <p><b>What VS Code can and can't do:</b></p>
+  <ul>
+    <li>
+      VS Code's own JSON support underlines mistakes, offers property names as you type, and shows hover text, only from
+      JSON Schema. It reads no other format.
+    </li>
+    <li>
+      It can fetch that schema from an extension, not just from a file or the web: the spell extension already serves
+      made-up documents this way (the compiled-code view, through a content provider).
+    </li>
+    <li>
+      Any other format means the spell extension does the underlining itself, through spell's language server, and
+      offering property names and hover text are ours to write too.
+    </li>
+  </ul>
+
+  <p><b>The four candidates, each shown for that Person:</b></p>
+
+  <p><b>(a) spell's declarations, served at the type's address.</b></p>
+  <ul>
+    <li>
+      Every compile already writes a declarations file. It's the compiler's own record of what a project provides, so
+      other projects can use its words.
+    </li>
+    <li>
+      It describes a type, but loosely:
+      <ul>
+        <li>the list's kind is English, "list of people", which a checker would have to turn back into Person</li>
+        <li>"saved inline" isn't in it at all</li>
+        <li>its properties sit among the project's phrases and line ranges</li>
+      </ul>
+    </li>
+  </ul>
+  <epic-code title="friends.declarations.json, as spell compile wrote it · 18 lines" language="json">
+    <pre>
+{
+  "spellVersion": "0.8.0",
+  "provides": ["Person"],
+  "statements": [
+    { "type": "Person", "superType": "Thing", "defined": "/Friends.spell:0-115" },
+    { "property": "name", "of": "Person", "datatype": "text", "defined": "/Friends.spell:30-51" },
+    { "property": "email", "of": "Person", "datatype": "text", "defined": "/Friends.spell:55-78" },
+    { "property": "friends", "of": "Person", "datatype": "list of people", "defined": "/Friends.spell:82-115" }
+  ],
+  "codeLines": [2, 3, 7, 11]
+}</pre>
+  </epic-code>
+
+  <p><b>(b) the compiled class: the library's TypeScript, and what it carries at run time.</b></p>
+  <ul>
+    <li>
+      The library target (Library Target, <a href="#p3">P3</a>) writes the class. Its TypeScript types vanish when it
+      runs, but each property's description stays on the class: its kind, a list's item kind, its legal values.
+    </li>
+    <li>
+      That runtime description is what the saver and the loader read already. Util's
+      <a href="../../../packages/util/src/reactive/Schema.ts" target="src-packages-util-src-reactive-schema-ts"
+        ><code title="packages/util/src/reactive/Schema.ts">schemaOf()</code></a
+      >
+      gives it.
+    </li>
+    <li>So a checker in the app or the command line needs no other file, and can't drift from the code.</li>
+    <li>VS Code can't check a JSON file against a TypeScript class: not by itself.</li>
+  </ul>
+  <epic-code title="friends.lib.ts, as spell compile wrote it · 9 lines" language="ts">
+    <pre>
+import { Thing, List, prop } from "@spell-app/core/model"
+
+export class Person extends Thing {
+  @prop({ type: "text" }) accessor name!: string
+
+  @prop({ type: "text" }) accessor email!: string
+
+  @prop({ itemType: "Person", init: () =&gt; new List&lt;Person&gt;({ instanceType: "Person" }) }) accessor friends!: List&lt;Person&gt;
+}
+
+// at run time:  schemaOf(Person).info("friends")  =&gt;  { itemType: "Person", init: ... }</pre>
+  </epic-code>
+
+  <p><b>(c) a small shape format of our own, in JSON5.</b></p>
+  <ul>
+    <li>The lightest thing to read: one line per property, in spell's words.</li>
+    <li>
+      But it's a third description of Person, beside the spell and the class. Either someone keeps it in step, against
+      the goal that the schema IS the declaration (<a href="#q3">Q3</a>), or the compiler writes it, and then it's just
+      another output nobody reads.
+    </li>
+    <li>VS Code can't read it, so the language server does the underlining.</li>
+  </ul>
+  <epic-code title="Person.shape.json5, made up · 9 lines" language="json">
+    <pre>
+// what a person file holds
+{
+  $type: "Person",
+  $version: 2,
+  name: "text",
+  email: "text",
+  friends: "list of Person",   // each one saved as { "$ref": "Person#matt" }
+}</pre>
+  </epic-code>
+
+  <p><b>(d) JSON Schema, made by a machine for VS Code only.</b></p>
+  <ul>
+    <li>Made from the spell, in memory or in the build folder; never committed, never written or read by a person.</li>
+    <li>VS Code gets everything it does for JSON: underlines, property names as you type, hover text, legal values.</li>
+    <li>
+      Checking with it outside VS Code would need a JSON Schema checker library in the app. Pairing it with (b) avoids
+      that.
+    </li>
+  </ul>
+  <epic-code title="What the extension would hand VS Code for Person · 22 lines" language="json">
+    <pre>
+{
+  "title": "Person",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "$version": { "type": "integer" },
+    "$type": { "const": "Person" },
+    "id": { "type": "string" },
+    "name": { "type": "string", "description": "it has a name as text" },
+    "email": { "type": "string", "description": "it has an email as text" },
+    "friends": { "type": "array", "items": { "$ref": "#/definitions/Reference" } }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Reference": {
+      "type": "object",
+      "properties": { "$ref": { "type": "string", "pattern": "^[A-Z][\\w-]*#" } },
+      "required": ["$ref"],
+      "additionalProperties": false
+    }
+  }
+}</pre>
+  </epic-code>
+
+  <p><b>What each costs:</b></p>
+  <ui-table celled compact striped unstackable
+    ><table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>(a) declarations</th>
+          <th>(b) the class</th>
+          <th>(c) our own shape</th>
+          <th>(d) JSON Schema, made</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>VS Code underlines a mistake</td>
+          <td class="no negative">only if we write it, in the language server</td>
+          <td class="no negative">no</td>
+          <td class="no negative">only if we write it</td>
+          <td class="yes positive">yes, built in</td>
+        </tr>
+        <tr>
+          <td>Property names as you type, hover text</td>
+          <td class="no negative">only if we write it</td>
+          <td class="no negative">no</td>
+          <td class="no negative">only if we write it</td>
+          <td class="yes positive">yes, built in</td>
+        </tr>
+        <tr>
+          <td>The app and the command line check a file</td>
+          <td>a checker that reads it (and parses "list of people")</td>
+          <td class="yes positive">a small checker over the class, nothing else to load</td>
+          <td>a checker that reads it</td>
+          <td>a JSON Schema library, unless paired with (b)</td>
+        </tr>
+        <tr>
+          <td>Something new to keep in step</td>
+          <td>no, but it needs fixing (list kinds, saved inline)</td>
+          <td class="yes positive">no</td>
+          <td class="no negative">yes, or one more output</td>
+          <td>no: made, never committed</td>
+        </tr>
+        <tr>
+          <td>Anyone sees JSON Schema</td>
+          <td class="yes positive">no</td>
+          <td class="yes positive">no</td>
+          <td class="yes positive">no</td>
+          <td>only if they go looking</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <ul>
+    <li>
+      Writing our own JSON checking in the language server, for (a) or (c), is the big hidden cost. It redoes what VS
+      Code already does well, and it fights VS Code's own JSON support for the same file.
+    </li>
+    <li>
+      Upgrades (<a href="#p6">P6</a>) don't care which: they read <code>$version</code> and the class, and the old
+      version's description comes from the old spell, named <code>Person__v1</code> (<a href="#j51">J51</a>).
+    </li>
+  </ul>
+
+  <epic-aside title="other formats I looked at"
+    ><ul>
+      <li>
+        JSON Type Definition (a 2020 standard, much smaller than JSON Schema): lighter, but VS Code doesn't read it
+        either, so it's (c) with someone else's spelling.
+      </li>
+      <li>
+        A TypeScript type turned into JSON Schema by a tool: that's (d) by a longer road, and spell already knows every
+        property's kind without TypeScript.
+      </li>
+    </ul></epic-aside
+  >
+
+  <epic-choices>
+    <epic-option letter="A" title="The class checks;  JSON Schema made for VS Code only" recommended
+      ><ul>
+        <li>(b) plus (d). The spell is the only thing anyone writes.</li>
+        <li>
+          The app, the store and the command line check a file against the compiled class's own description: a small
+          checker in the model core, beside the saver. No JSON Schema library.
+        </li>
+        <li>
+          The compiler (or the extension) makes JSON Schema from the same spell, one per version, served for an address
+          such as <code>Person__v2</code>. Never committed, never edited.
+        </li>
+        <li>VS Code underlines, completes and explains, for free.</li>
+        <li>Cost: two things read the one spell; one test checks they agree for each library type.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Declarations only;  spell's language server checks files"
+      ><ul>
+        <li>(a) alone. No JSON Schema anywhere, not even made.</li>
+        <li>The declarations file grows what it's missing: a list's item type, saved inline.</li>
+        <li>
+          Spell's language server opens person files and underlines mistakes itself; offering names and hover text are
+          extra work.
+        </li>
+        <li>Cost: we write a small JSON checker for the editor, and VS Code's own JSON support sees no schema.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="A shape file of our own"
+      ><ul>
+        <li>(c): one small JSON5 file per type, in spell's words.</li>
+        <li>Lightest to read, but a third description of each type, and VS Code reads none of it.</li>
+        <li>Cost: the language server work of B, plus keeping or generating the shape file.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <p>
+    Why A: it's the only one where VS Code does its full job and nobody touches JSON Schema. The checking the app needs
+    already half exists, in the description the saver reads.
+  </p>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        This phase's plan changes from "declarations compile to a runtime checker and to JSON Schema" to: the class
+        checks a file; JSON Schema is made for VS Code only
+      </li>
+      <li>A file checker in the model core, reading the class's description; no JSON Schema library in the app</li>
+      <li>A JSON Schema writer, its output in the build folder or in memory, never committed</li>
+      <li>A test that the two agree for every library type</li>
+      <li>The goals stay as they are until you pick: I've not edited them</li>
+    </ul></epic-net-effect
+  > </epic-reply
 ><epic-field name="goal"
   ><ul>
     <li>VS Code underlines a mistake in a <code>person.json5</code> (<a href="#v1">V1</a>)</li>

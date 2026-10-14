@@ -42,3 +42,204 @@
     <li>a change to one must be made in the other</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-13 14:29" re="revisit soon"><p>can we put that in `/tests/` folder?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-14 00:05" re="can we put that in `/tests/` folder?">
+  <p>
+    The copy is in the tests folder already: it's
+    <a href="../../../tests/ui/tests.types.ts" target="src-tests-ui-tests-types-ts"
+      ><code title="tests/ui/tests.types.ts">tests.types.ts</code></a
+    >, at the top of ui's tests. What's left outside is the ORIGINAL, in ui's test helpers. And since this epic's Tests
+    Folder phase (<a href="#p10">P10</a>) moved ui's tests out, nothing beside that original reads the two additions any
+    more. So the copy can become the only one.
+  </p>
+
+  <p><b>What the two additions are:</b></p>
+  <ul>
+    <li>
+      Vitest lets a project add to its own types by "augmenting" them: a <code>declare module "vitest"</code> block that
+      merges new names into Vitest's.
+    </li>
+    <li>
+      ui's test settings add two things, and these two blocks tell TypeScript about them:
+      <ul>
+        <li><code>inject("ci")</code>: true on a CI runner, so a timing test can skip its budget</li>
+        <li><code>commands.emulateReducedMotion()</code>: a browser command that turns on "reduced motion"</li>
+      </ul>
+    </li>
+    <li>Only two tests use them, both in ui's tests: the dropdown's speed test and the reveal's test.</li>
+  </ul>
+  <epic-code title="tests/ui/tests.types.ts, the copy · its two blocks" language="ts">
+    <pre>
+declare module "vitest" {
+  export interface ProvidedContext {
+    /** Running on CI:  skip timing budgets a shared runner can't hold. */
+    ci: boolean
+  }
+}
+
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    /** Emulate (or stop emulating) `prefers-reduced-motion: reduce`, through Playwright, in every browser. */
+    emulateReducedMotion(reduce: boolean): Promise&lt;void&gt;
+  }
+}</pre>
+  </epic-code>
+
+  <p><b>Why there are two copies:</b></p>
+  <ul>
+    <li>
+      The repo has two copies of Vitest on disk: the root's, and one of ui's own, in ui's
+      <code>node_modules</code> folder. Both are version 5.0.1.
+    </li>
+    <li>
+      Yarn made ui its own copy because ui's dependencies differ from the root's.
+      <ul>
+        <li>
+          Most likely the cause: ui lists <code>@vitest/ui</code> (Vitest's optional web screen), which the root
+          doesn't.
+        </li>
+        <li>spell lists it too, and spell has its own Vitest copy as well.</li>
+        <li>Not tried yet: that needs a <code>yarn install</code>.</li>
+      </ul>
+    </li>
+    <li>
+      An augmentation reaches only the copy of Vitest that ITS file finds, looking up from its own folder.
+      <ul>
+        <li>The original, in ui's helpers folder, finds ui's copy.</li>
+        <li>A test in the tests folder finds the root's copy, so the original never reached the tests.</li>
+        <li>That's why P10 wrote the copy beside the tests.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><b>Who reads the original now:</b> nobody, as far as a search finds.</p>
+  <epic-code title="every use of the two names, in ui and its tests" language="text">
+    <pre>
+$ git grep -ln -e 'inject("ci")' -e emulateReducedMotion -- tests packages
+packages/ui/test/test.types.ts                      the original
+packages/ui/tools/environment.ts                    a comment only
+packages/ui/vitest.config.ts                        where the two are SET, not read
+tests/ui/components/ui-dropdown/UIDropdown.perf.test.tsx   reads inject("ci")
+tests/ui/components/ui-reveal/UIReveal.test.tsx            calls emulateReducedMotion()
+tests/ui/tests.types.ts                             the copy</pre>
+  </epic-code>
+  <ul>
+    <li>
+      The settings file only SETS the two, and TypeScript doesn't check those settings against the augmentation, so it
+      doesn't need it either.
+    </li>
+    <li>
+      The rest of the original file, the visual tests' types (<code>VisualHooks</code>, <code>VisualState</code>), is
+      still used by ui's own code: ten examples and the visual-test tools import it. That part stays where it is.
+    </li>
+  </ul>
+
+  <p><b>Could one file at the tests root serve every package?</b> It could be found, but it would claim too much.</p>
+  <ul>
+    <li>
+      Each package's tests have their own settings file in the tests folder
+      (<code>tests/&lt;package&gt;/tsconfig.json</code>). Each one takes its package's settings and lists the folders it
+      checks.
+    </li>
+    <li>
+      A file at the tests root would find the root's Vitest, the copy every package's tests use, so it would work.
+    </li>
+    <li>
+      But the two additions describe ui's test settings only. In any other package, <code>inject("ci")</code> would pass
+      the type check and then be <code>undefined</code> when the tests run.
+    </li>
+    <li>It would be right once more packages set the same two things. None does today.</li>
+  </ul>
+
+  <p><b>The change, as files.</b> The recommended option, B:</p>
+  <epic-code title="before and after · option B" language="text">
+    <pre>
+BEFORE
+packages/ui/test/
+  test.types.ts         the two Vitest blocks  +  VisualHooks, VisualState
+tests/ui/
+  tsconfig.json
+  tests.types.ts        the two Vitest blocks again  ("keep the two the same")
+  components/ ...
+
+AFTER (B)
+packages/ui/test/
+  test.types.ts         VisualHooks, VisualState only
+tests/ui/
+  tsconfig.json
+  tests.types.ts        the two Vitest blocks, the only copy
+  components/ ...</pre>
+  </epic-code>
+  <epic-code title="before and after · option C, for comparison" language="text">
+    <pre>
+AFTER (C)
+packages/ui/test/
+  test.types.ts         VisualHooks, VisualState only
+tests/
+  vitest.types.ts       the two Vitest blocks, for every package's tests
+  ui/tsconfig.json      lists "../vitest.types.ts"
+  core/tsconfig.json    lists "../vitest.types.ts"
+  ... and every other package's tests likewise</pre>
+  </epic-code>
+
+  <epic-choices>
+    <epic-option letter="A" title="Leave the two copies"
+      ><ul>
+        <li>Nothing changes.</li>
+        <li>The comment saying to keep the two the same stays, and so does the chance of them drifting apart.</li>
+        <li>The original is dead weight in ui's helpers.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="One copy, in ui's tests" recommended
+      ><ul>
+        <li>Take the two blocks out of the original in ui's helpers. It keeps only the visual tests' types.</li>
+        <li>The copy in ui's tests becomes the only copy. Its "why twice" header becomes a plain "what these are".</li>
+        <li>It sits next to the only two tests that use it.</li>
+        <li>Cost: two small edits. ui's <code>yarn ts</code> confirms nothing else needed the original's blocks.</li>
+        <li>
+          Why recommended: it answers your question. The additions live only in the tests folder, and the copy goes.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="One file at the tests root, for every package"
+      ><ul>
+        <li>As B, but the file goes to the top of the tests folder, and every package's tests list it.</li>
+        <li>Cost: 16 settings files each gain a line.</li>
+        <li>The catch: the other packages' tests would be told about two things their settings never give them.</li>
+        <li>Worth it once a second package sets the same two things.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="D" title="Fix the cause: ui shares the root's Vitest"
+      ><ul>
+        <li>
+          Make yarn give ui the root's copy of Vitest, probably by listing <code>@vitest/ui</code> at the root as well.
+        </li>
+        <li>
+          Then the original reaches the tests too, and the copy in ui's tests can go. That's the reverse of B: the one
+          copy sits in ui's helpers.
+        </li>
+        <li>Cost: unknown. It needs a <code>yarn install</code> to try, and might not work.</li>
+        <li>B is smaller, and it leaves the additions in the tests folder, where you asked for them.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+
+  <epic-net-effect option="B" recommended
+    ><ul>
+      <li>
+        the two Vitest blocks have ONE home:
+        <a href="../../../tests/ui/tests.types.ts" target="src-tests-ui-tests-types-ts"
+          ><code title="tests/ui/tests.types.ts">tests.types.ts</code></a
+        >, at the top of ui's tests
+      </li>
+      <li>
+        <a href="../../../packages/ui/test/test.types.ts" target="src-packages-ui-test-test-types-ts"
+          ><code title="packages/ui/test/test.types.ts">test.types.ts</code></a
+        >
+        in ui's helpers keeps only the visual tests' types
+      </li>
+      <li>no "keep the two the same" comment, and nothing to keep in step</li>
+      <li>this judgement call (J28) closes</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
