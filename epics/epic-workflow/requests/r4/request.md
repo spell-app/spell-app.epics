@@ -4,7 +4,7 @@ epic: epic-workflow
 from: spell-app-5d (20af23f1)
 at: 2026-10-13T06:18-04:00
 status: filed
-filed: P18
+filed: in P18 · Details Notes Kept (built and merged 2026-10-14)
 ---
 
 ## Owen's words

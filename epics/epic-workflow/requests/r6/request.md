@@ -3,7 +3,8 @@ id: r6
 epic: epic-workflow
 from: 🚧 people-and-orgs (13f15327)
 at: 2026-10-14T08:19-07:00
-status: new
+status: filed
+filed: P19
 ---
 
 ## Owen's words
