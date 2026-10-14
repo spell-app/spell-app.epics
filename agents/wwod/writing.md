@@ -1,7 +1,7 @@
 # WWOD spoke -- Writing
 
 The long before / afters for the writing rules in `agents/wwod/WWOD.md` §6.
-Read this file whole before you write or rewrite docstrings, comments, READMEs, docs pages or plan docs.
+Read this file whole before you write or rewrite docstrings, comments, READMEs, docs pages or epic pages.
 
 The rules, in short:
 - WWOD §6 › "Writing for people":  for a reader figuring things out, not from inside the builder's head
@@ -184,9 +184,9 @@ Shows "Writing for people":
 - the after opens with what a component is, and what one does on a page
 - how it came to be (a render function from another package) is gone:  a reader needs what it is, not its past
 
-### A "Built / Checked" line in a plan doc
+### A "Built / Checked" line in an epic page
 
-A plan doc's phase notes, in the shape Owen pasted (2026-10-10, epic `airplane`;  the settings here are a
+An epic page's phase notes, in the shape Owen pasted (2026-10-10, epic `airplane`;  the settings here are a
 reconstruction).  His words:
 "In plan docs and elsewhere, text with file paths is hard to parse ...
 Text is waaaay to dense to parse quickly ... That is gobbeldygook."
@@ -249,9 +249,9 @@ In Markdown, which has no tooltips, the name is a link:
   It lists the misses a tool can find, by file and line:
   lines ending in a new phrase's first words, bullets of 3+ sentences, words like "the fork",
   file paths in a page's prose, sentences of 3+ code spans.
-- The plan-doc tool (`spell dev plan-doc`) turns a name and its path, handed to it as HTML,
+- The `epic` tool (`spell dev plan-doc`) turns a name and its path, handed to it as HTML,
   into the name with its path as the tooltip (`packages/epics/src/tool/PLAN-DOC.md`, "The way in").
 - `/fussbudget`:  the skill.
   It reads this file and WWOD §6 whole, runs the checker, then rewrites the text in place, uncommitted:
   the diff is the proposal.  `/fussbudget` alone asks what to cover.
-- Every epic's Doc Review runs both, on the branch and its plan doc.
+- Every epic's Doc Review runs both, on the branch and its epic page.

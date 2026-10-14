@@ -39,4 +39,4 @@ changed here applies everywhere at once.
 ## History
 
 - 2026-10-04, epic `wwod`:  Owen's WWOD rules from `construct-app` (Svelte), merged with this repo's own rules and
-  reviewed file by file.  The plan doc, the original files and the triage:  `epics/wwod/`.
+  reviewed file by file.  The epic page, the original files and the triage:  `epics/wwod/`.

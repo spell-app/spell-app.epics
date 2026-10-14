@@ -11,7 +11,7 @@ Read the spoke(s) for what you're touching BEFORE writing code or text:
 
 | Touching                                                       | Also read                                | §     |
 | -------------------------------------------------------------- | ---------------------------------------- | ----- |
-| docstrings, comments, READMEs, docs pages, plan docs           | `writing.md`                             | 6     |
+| docstrings, comments, READMEs, docs pages, epic pages          | `writing.md`                             | 6     |
 | new feature, module layout, file names, barrels, namespaces    | `architecture.md`                        | 8     |
 | types, function signatures, helper functions                   | `types.md`                               | 9     |
 | server routes and APIs, env vars, configuration                | `server-env.md`                          | 10-11 |
@@ -44,7 +44,7 @@ Read the spoke(s) for what you're touching BEFORE writing code or text:
   - Same before promoting a helper:  check the destination -- `$/util`, or the package's own util folder
     (WWOD §8 › "Promotion path") -- for a name collision.
 - **Record deviations and known issues;  NEVER fix them silently**, unless very minor:
-  - Epic work:  in its plan doc, `epics/<name>/<name>.plan.html`.
+  - Epic work:  in its epic page, `epics/<name>/<name>.plan.html`.
     - Each fidelity / refinement round names the deviations it closed, with literal values.
     - An evaluated-and-rejected approach gets a written census of what it would touch.
   - Standing problems:  in their ledger, never left implicit -- `agents/CODE-DEBT.md` (incl. code that doesn't
@@ -332,7 +332,7 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
 ## 6. Comments & docs
 
 The first five rules are for anything people read:
-docstrings, comments, READMEs, `AGENTS.md` files, docs pages, plan docs.
+docstrings, comments, READMEs, `AGENTS.md` files, docs pages, epic pages.
 Their long before / afters are in `agents/wwod/writing.md`.
 
 - **Writing for people:**  for a reader figuring things out, not from inside the builder's head.
@@ -398,7 +398,7 @@ Their long before / afters are in `agents/wwod/writing.md`.
     Markdown has no tooltips:  a link, `` [`buildTsx()`](packages/spell/src/node/buildTsx.ts) ``.
   - No insider shorthand:  write `jsx: "preserve"` out as "reads JSX the way app and ui do".
   - Why (Owen, 2026-10-10, epic `airplane`):  "Text is waaaay to dense to parse quickly ... That is gobbeldygook."
-  - Before / after, a plan doc's "Built / Checked" notes, shortened (`writing.md` has it whole):
+  - Before / after, an epic page's "Built / Checked" notes, shortened (`writing.md` has it whole):
 
     ```text
     BEFORE
@@ -461,7 +461,7 @@ Their long before / afters are in `agents/wwod/writing.md`.
   - `HACK:` -- state the fragile assumption
   - `SEE:` -- cross-reference or URL
   - `REFACTOR:` -- a local cleanup, proposing the new shape inline (structural debt goes in `agents/CODE-DEBT.md`
-    or the plan doc)
+    or the epic page)
 - **OK to ship WIP markers:**
   - `// TODO: selection!`, `// DOCME`, empty group headers for planned code.
   - Terse TODOs, not fully-explained prose:  just enough to pick it up later.
@@ -529,7 +529,7 @@ Their long before / afters are in `agents/wwod/writing.md`.
     of these, stop and reuse."
   - files table (unaligned `| --- |`), env-var table
   - numbered "Adding a new X" recipe, "Deferred" section
-  - in-flight design notes go in a plan doc (`epics/`), not beside the README
+  - in-flight design notes go in an epic page (`epics/`), not beside the README
 - **User-facing strings stay inline**, where they're used;  only `ui` localizes (its vocabularies, `UIButton.en.ts`).
   - NOT:  a `MSG.ts` object of every user-facing string per package -- one more file to keep in step, for no
     localization.
