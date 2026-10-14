@@ -1,12 +1,32 @@
 <!-- plan-doc part:  #j65's details in people-and-orgs.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>
-  Chose: every route module's own save (details answers, choices drafts and answers, favourites, agent redirects) goes
-  through <code>SRV.FileOperations.save()</code>, read-modify-write under its lock. The review and guide inboxes' async
-  updates and the page-notes edit keep their own lock but write through <code>FileOperations.writeAtomic()</code> (an
-  empty inbox deletes its file, which <code>save()</code> can't). The CLI's synchronous writers
-  (<code>ReviewInbox.update()</code>, <code>GuideInbox.update()</code>, <code>AgentList</code>) keep their own temp file
-  and rename, over making them async, which would spread through the plan-doc tool's commands and about 30 tests.
-</p>
+<p>Chose one safe write for the server's routes, and left two small synchronous copies in the CLI.</p>
+<ul>
+  <li>
+    Every route module's own save goes through <code>SRV.FileOperations.save()</code>, read-modify-write under its lock:
+    <ul>
+      <li>details answers</li>
+      <li>choices drafts and answers</li>
+      <li>favourites</li>
+      <li>agent redirects</li>
+    </ul>
+  </li>
+  <li>
+    The review and guide inboxes' async updates, and the page-notes edit, keep their own lock but write through
+    <code>FileOperations.writeAtomic()</code>.
+    <ul>
+      <li>why: an empty inbox deletes its file, which <code>save()</code> can't</li>
+    </ul>
+  </li>
+  <li>
+    The CLI's synchronous writers keep their own temp file and rename, over making them async, which would spread
+    through the plan-doc tool's commands and about 30 tests:
+    <ul>
+      <li><code>ReviewInbox.update()</code></li>
+      <li><code>GuideInbox.update()</code></li>
+      <li><code>AgentList</code></li>
+    </ul>
+  </li>
+</ul>
 <epic-net-effect
   ><ul>
     <li>one write code for the server's routes; two small sync copies left in the CLI's inbox writers</li>
