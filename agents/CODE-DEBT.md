@@ -587,7 +587,7 @@ knowingly kept:
   does the markup), migrate `cli-additions`, then delete the HEADINGS branch of `spell-doc-runtime.js`
   (`readHeadings()`, `wireHeadingFolds()`, `headingSection()` ...), the old-markup CSS, and the old-markup paths in
   `plan-doc.js` / `index.js` / `check-spell.js` (and the old-layout fixture's tests, or migrate them).
-- **Pinned at** -- `packages/docs/tools/_assets/spell-doc-runtime.js` (header:  SECTIONS / HEADINGS), `_assets/spell-doc.css`
+- **Pinned at** -- `packages/epics/tools/_assets/spell-doc-runtime.js` (header:  SECTIONS / HEADINGS), `_assets/spell-doc.css`
   ("The goals pages' markup"), `scripts/plan-doc.js` ("Sections, either markup"), `scripts/fixtures/plan-2026-09-30.html`,
   `AGENTS.md` "Writing a page" / "Templates".
 

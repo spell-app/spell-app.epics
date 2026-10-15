@@ -635,7 +635,7 @@ every entry below that date was fixed or disproven;  what's left:
   `<ui-radio>`s inside Solid's `render()`;  three warm runs printed nothing.  Probably `solid-element` reading signals
   while an element upgrades inside an owner.  Prove:  clear `node_modules/.vite` / vitest's cache, rerun once.
   - P8 (2026-10-02):  the dev server prints them on EVERY page load, with stacks:  `constructor.isLoaded` /
-    `createProps.get` from `packages/ui/src/components/ui-button/UIButton.tsx` `hasNativeInvokers()` (`invokers()` until
+    `createProps.get` from `packages/ui/components/ui-button/UIButton.tsx` `hasNativeInvokers()` (`invokers()` until
     epic `wwod-spell-ui` P5) / `resolveInvoker()` (~lines 379-396, read in an effect's APPLY), and an unnamed one from `packages/ui/src/elements/RootSettings.ts`
     `set()` via `UIRoot.applySettings()` (`UIRoot.tsx` ~242-275).  So `ui`'s, not the app's:  those reads belong in
     the effects' compute (or `untrack()`).
@@ -752,7 +752,7 @@ every entry below that date was fixed or disproven;  what's left:
   `node scripts/check-spell.js epics/isolate-changes/isolate-changes.plan.html` notes "5 icon(s) with no <svg> drawn",
   all `ui-item[clock]`.  Fix:  add `solid/clock` to `ICONS`, then `yarn docs:update`.
 - `../spell-app-dev/.gitignore` (written by `spell dev shared init`):  ignores `details/`, `*.lock`, `*.tmp`, but
-  NOT plan docs' review inboxes, `epics/*/*.inbox.json` -- which `packages/docs/AGENTS.md` ("Review inbox") calls
+  NOT plan docs' review inboxes, `epics/*/*.inbox.json` -- which `packages/epics/AGENTS.md` ("Review inbox") calls
   git-ignored, per-machine state.  spell-app's `.gitignore` still ignores them, but they now live in the shared
   repo, so the `Stop` hook's auto commit would commit Owen's pending marks.  Prove:  mark an item on a plan doc,
   end a turn, `git -C ../spell-app-dev log --stat -1`.  Fix:  add the pattern to `spell dev shared init`'s ignore
@@ -812,7 +812,7 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## claude-code
 
-Skills, hooks and their scripts (`.claude/`, `packages/docs/tools/goals/skills/`).
+Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/`).
 
 - `scripts/window.test.mjs` fails 1 of 19 on `main` (2026-10-04, after shared-content's cutover):  "a worktree's
   window:  the main root first, then the worktree's package and root;  theme, tinted".  The written folder list now

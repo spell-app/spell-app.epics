@@ -173,7 +173,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 - 2026-09-30 · Bundling `../ui/dist/index.js` with esbuild for the `.html` docs:  every `ui-*` element failed
   with `NoOwnerError`.  The fork (`../ui/packages/solid-element`) has its OWN `node_modules/solid-js` and
   `@solidjs/*`, so a naive bundle carries two Solids. · Resolve every `solid-js` / `@solidjs/*` /
-  `@spell/solid-element` import from UI's root (`packages/docs/tools/bundle-spell-ui.js` does, and fails the build if a
+  `@spell/solid-element` import from UI's root (`packages/epics/tools/bundle-spell-ui.js` does, and fails the build if a
   Solid package appears twice).  Also:  UI's `yarn build` doesn't rebuild the fork -- run `yarn fork:build` first. ·
   spell/parser
   - 2026-10-09:  no fork any more, and no `yarn fork:build`:  epic `spell-element` (P5) folded solid-element into
@@ -821,7 +821,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   and the root one may flip. · Keep `spell` / `cli` exact;  check `node_modules/.bin/tsx --version` is 4.20.3. · monorepo
 - 2026-09-30 · `yarn docs:update` fails at "bundle @spell/ui" with `Cannot read file: packages/ui/dist/glyphs/solid/*.js`:
   `bundle-spell-ui.mjs` still expects `dist/glyphs/`, which `ui`'s build no longer emits (icons moved to
-  `dist/icon-packs/`).  Not caused by hoisting. · Fixed:  `packages/docs/tools/bundle-spell-ui.js` reads its `ICONS` from
+  `dist/icon-packs/`).  Not caused by hoisting. · Fixed:  `packages/epics/tools/bundle-spell-ui.js` reads its `ICONS` from
   `fa7-free` at build time and `UI.icons.register()`s them, then `reset()`s the packs (a page on `file://` can't load
   one). · docs/ui
 - 2026-09-30 · `yarn smoke` in `ui` dies with `no vendor/importmap.json` on a fresh checkout. · `yarn vendor` first. · ui
@@ -1144,14 +1144,14 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   by hand:  `plan-doc review <name> <id> "picked A ..."`, `close`, `inbox clear`.  Fix:  `apply` should treat a pick
   of a judgement call's chosen card as an approval (or the page shouldn't offer Choose there). · docs (plan-doc
   inbox)
-- 2026-10-01 · `tidy()` (`packages/docs/tools/pages.js`) failed on a page outside `packages/docs`:  oxfmt
+- 2026-10-01 · `tidy()` (`packages/epics/tools/pages.js`) failed on a page outside `packages/docs`:  oxfmt
   refuses any path containing `..` ("PATH must not contain \"..\""), and `tidy()` runs in `packages/docs`. ·
-  Pass ABSOLUTE paths to `tidy()`:  oxfmt and `doc-links.py` both accept them (`packages/docs/tools/goals/goals.js`
+  Pass ABSOLUTE paths to `tidy()`:  oxfmt and `doc-links.py` both accept them (`packages/epics/tools/goals/goals.js`
   `tidyOrFail()`). · goals
 - 2026-10-01 · The goals server said Claude Code was "not logged in" though `claude auth status` said it was:  a Node
   process found a stale npm-installed `claude` 1.0.98 (no `auth status`) in Volta's Node image, which Volta puts
   FIRST on a Node process's `PATH`;  the terminal finds the current native install in `~/.local/bin`. · Run the
-  NEWEST `claude` on `PATH` or in the installers' folders, by absolute path (`packages/docs/tools/goals/launch.js`
+  NEWEST `claude` on `PATH` or in the installers' folders, by absolute path (`packages/epics/tools/goals/launch.js`
   `claudePath()`).  Or remove the stale one:  `npm uninstall -g @anthropic-ai/claude-code` under Volta's Node. · goals
 - 2026-10-01 · `F="a.ts b.ts"; oxfmt --check $F` said "Expected at least one target file" and `oxlint $F` "No files
   found to lint" (exit 0!):  the Bash tool's shell is zsh, which does NOT word-split an unquoted `$F`, so both got
@@ -1168,7 +1168,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   the scroll area reserves nothing (`UISticky.reserve()`). · ui
 - 2026-10-02 · Converted pages came out as `<ui-section dividing collapsible sticky header="..." id="...">`:
   linkedom's `setAttribute` puts each NEW attribute first, so a built element serializes its attributes reversed. ·
-  Build elements from HTML instead (`createElement()` in `packages/docs/tools/to-ui-section.js`, which
+  Build elements from HTML instead (`createElement()` in `packages/epics/tools/to-ui-section.js`, which
   `plan-doc.js` `element()` uses too). · docs
 - 2026-10-02 · After moving a page to `<ui-section>`, a section ending in a card grid lost the cards' bottom border:
   the content part clips (`overflow-y: clip`) and a card's border is a box-shadow;  `overflow-clip-margin` did
@@ -1193,14 +1193,14 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   options;  the epic skill's cheat sheet shows them as `..`, not `html`. · docs
 - 2026-10-02 · `yarn review` in `packages/docs` rewrote all 53 `_assets/emoji/<set>/<letter>.js` (quoted keys -> bare):
   `yarn format` (`oxfmt .`) formats the GENERATED emoji chunks, and the bundler writes them back quoted on every
-  `bundle-spell-ui.js` run, so the two fight. · Not fixed:  `git checkout -- packages/docs/tools/_assets/emoji` after a
+  `bundle-spell-ui.js` run, so the two fight. · Not fixed:  `git checkout -- packages/epics/tools/_assets/emoji` after a
   review;  the fix is an `ignorePatterns` entry for `**/docs/_assets/emoji/**` (as `_assets/lazy/` has). · docs
 - 2026-10-02 · `yarn plan-doc add-phase` writes `--goal` / `--files` / `--verify` text into the page UNESCAPED:
   `<ui-*>`, `<For>`, `<spell-app>` became real tags and `check` failed with "undefined elements:  ui-*". ·
   Hand-escape them in the phase body (`<code>&lt;ui-*&gt;</code>`);  `add --details` takes HTML on purpose, but
   `add-phase` text should be escaped by the script. · docs
 - 2026-10-02 · Plan docs' phase "Estimate" line (`icon="clock"`) draws nothing:  `clock` isn't in `ICONS` in
-  `packages/docs/tools/bundle-spell-ui.js` (only `clock rotate left`), so `check` notes "N icon(s) with no
+  `packages/epics/tools/bundle-spell-ui.js` (only `clock rotate left`), so `check` notes "N icon(s) with no
   <svg> drawn", one per phase. · Not fixed:  add `clock` to `ICONS`, then `yarn docs:update`. · docs
 - 2026-10-02 · Root `yarn review` (its `format` step) rewrote ~60 files nobody touched:  `main` holds unformatted
   files (generated `_assets/emoji/*.js`, `goals-live.js`, `bundle-spell-ui.js`, `templates/epics/plan.html`,
@@ -1294,7 +1294,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   fails every page ("undefined elements", 2 files not found), `doc-links --check` reports every repo link missing,
   and the plan doc's real path moved under an open editor.  No worktree in `.claude/worktrees/` held the new tools.
   · Checked the edited pages on scratch copies with the asset paths pointed at the worktree's
-  `packages/docs/tools/_assets/` (both passed);  wrote new links in the new layout's depth.  Rerun the checks once
+  `packages/epics/tools/_assets/` (both passed);  wrote new links in the new layout's depth.  Rerun the checks once
   the branch merges the layout's tools. · design-system
 - 2026-10-05 · `check-review.js` timed out at its first step ("waiting for locator('.plan-act-button') to be
   visible"):  plan docs start with every section folded (2026-10-03), so no item button is visible until a section
@@ -1317,7 +1317,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-06 · `yarn review` (or `yarn format`) in `packages/docs` rewrites all 52 generated emoji chunks
   (`tools/_assets/emoji/<set>/<letter>.js`):  `bundle-spell-ui.js` writes their keys quoted, oxfmt unquotes them,
   so every docs review leaves 52 changed files nobody meant to touch.  Hit twice in one day (worktrees
-  `docs-sidebar`, `windows-and-review`). · `git checkout -- packages/docs/tools/_assets/emoji` after the review.
+  `docs-sidebar`, `windows-and-review`). · `git checkout -- packages/epics/tools/_assets/emoji` after the review.
   Fix:  have `bundle-spell-ui.js` write the chunks as oxfmt would (unquoted keys where valid), or add the folder to
   the `fmt` ignores. · windows-and-review
 - 2026-10-06 · A review page's draft saves all failed ("Not saved") although the page loaded fine:  this
@@ -1353,7 +1353,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   them skeleton-relative (`../../packages/x`), or as plain `<code>` paths (the tool links those itself, correctly). ·
   skillz
 - 2026-10-07 · The root `yarn review` (and `yarn workspace @spell-app/docs review`) rewrote committed GENERATED
-  files nobody touched:  the 61 emoji chunks (`packages/docs/tools/_assets/emoji/*/*.js`, the 2026-10-06 entry
+  files nobody touched:  the 61 emoji chunks (`packages/epics/tools/_assets/emoji/*/*.js`, the 2026-10-06 entry
   above), and `packages/ui/src/components/ui-markdown/md.bundle.d.ts` and
   `packages/ui/src/components/ui-root/ui-root.catalog.ts` too.  In the same root run, cli's
   `element.build.test.ts` failed ("one Solid per page":  `agents/SUSPECTED-BUGS.md`, `## app`), though it passed in
@@ -1379,7 +1379,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (a SyntaxError in a classic script), plus text the check reads as an `import(` call and a top-level `export`
   (the Python / TypeScript writers' template strings). · Not fixed:  the spell-syntax guide's round 2 kept its
   Expand all / Collapse all in `spell-syntax.js` instead of the runtime, so no bundle rebuild was needed;
-  `git checkout -- packages/docs/tools/_assets/lazy/spell-en.js` after a failed run.  Fix:  `yarn gen:spell` (ui)
+  `git checkout -- packages/epics/tools/_assets/lazy/spell-en.js` after a failed run.  Fix:  `yarn gen:spell` (ui)
   defining `import.meta.env`, and the check skipping strings. · people-and-orgs (spell-syntax guide)
 
 ## claude-code
@@ -1696,7 +1696,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   other agent runs plan-doc commands on that epic (`spell dev agents list`), or re-check every edited part afterwards. ·
   epics (plan-doc tool)
 - 2026-10-10 · `node packages/epics/demo/check-header-epics.mjs --doc airplane` times out on `main` too (waiting 15s for
-  `<epic-page>`'s `.review-line`, line 99), so it checks nothing. · Used `packages/docs/tools/check-spell.js` on the
+  `<epic-page>`'s `.review-line`, line 99), so it checks nothing. · Used `packages/epics/tools/check-spell.js` on the
   plan doc instead (passes);  the header check needs looking at. · epics (demo checks)
 - 2026-10-09 · `yarn review` (its `yarn format`) in `packages/epics` rewrites the test fixture
   `src/convert/fixtures/one-file.plan.html` (two spaces become one), a change nobody meant;  it hit twice in epic

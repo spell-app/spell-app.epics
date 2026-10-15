@@ -69,7 +69,7 @@ This spoke is house style on top.
   - NOT:  `#` for private fields, TS `private` for methods -- see above.
 - **`static` class constants, declared after the main methods:**
   - In a class, all helpers and constants go AFTER the main methods, e.g. `EmojiData`'s registries
-    (`private static readonly sets`, `loads`:  `packages/ui/src/components/ui-emoji/EmojiData.ts`).
+    (`private static readonly sets`, `loads`:  `packages/ui/components/ui-emoji/EmojiData.ts`).
   - Module level:  WWOD §8 › "Class first, its types and helpers below".
     - `ui` keeps a constant ONE class uses as a module `const` below the class instead (a static's name survives
       minification):  `packages/ui/AGENTS.md` "Classes" (epic `wwod-spell-ui`, Q18).

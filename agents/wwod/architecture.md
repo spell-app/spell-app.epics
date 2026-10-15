@@ -35,7 +35,7 @@ From:  original WWOD §8, root `AGENTS.md` "Types / Exports" (files, barrels, na
     class name (`UIButton.tsx`, `UIButton.types.ts`, `UIButton.css`;  its vocabulary named for its language too,
     `UIButton.en.ts`), as any class file is named for its class.  SEE:  `packages/ui/AGENTS.md` "Overview".
   - A runnable script in a `scripts/` or `tools/` folder is named for its command, kebab-case:
-    `packages/ui/scripts/gen-styles.ts`, `packages/docs/tools/check-spell.js`.
+    `packages/ui/scripts/gen-styles.ts`, `packages/epics/tools/check-spell.js`.
   - NEVER any other kebab-case name.  Existing ones (`packages/spell/src/node/disk-fetch.ts`, `file-utils.ts` ...)
     are `agents/CODE-DEBT.md` entries.
 

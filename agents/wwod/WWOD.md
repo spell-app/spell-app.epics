@@ -501,7 +501,7 @@ Their long before / afters are in `agents/wwod/writing.md`.
   - `packages/app/src/solid/modals/dialogs.ts`:  "`editor` reaches these through a DYNAMIC `import()`, so
     `editor.ts` stays free of Solid and `$/ui`".
   - What it deliberately does NOT know about, and why that matters -- often what makes it testable, e.g.
-    `FormFields` (`packages/ui/src/components/ui-form/FormFields.ts`):  "plain DOM, no Solid, so it reads light-DOM
+    `FormFields` (`packages/ui/components/ui-form/FormFields.ts`):  "plain DOM, no Solid, so it reads light-DOM
     natives and `ui-*` hosts alike";  `EmojiData`:  "no rendering, so the native fallback uses it too".
 - **Record the REJECTED refactor at the site**, so nobody re-proposes it blind:
   - Same for a deliberate non-obvious shape:  "STATIC and instance-free on purpose", "Free

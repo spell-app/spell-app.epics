@@ -5,7 +5,7 @@ Styling the app's components and pages, on top of `@spell-app/ui`.  Read with `a
 From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui`'s tokens (no Tailwind).
 
 - `@spell-app/ui`'s own sheets (layers, tokens, units, `::part()` names, utility grammar, global sheets):
-  `packages/ui/AGENTS.md` "CSS" and `packages/ui/docs/theming.md`.
+  `packages/ui/AGENTS.md` "CSS" and `packages/ui/notes/theming.md`.
 - Class attributes in JSX:  WWOD §17 and `guides/solid/solid-2.md` "DOM and `@spell-app/ui` elements".
 
 ## 18. CSS
@@ -44,7 +44,7 @@ From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui
 
 - **Keep CSS DRY:**
   - re-skin by overriding ONE custom property, not by adding classes or per-hue rules:  token remaps, e.g. `ui`'s
-    `--ui-color`, `--ui-scale` (`packages/ui/docs/theming.md` "Overriding colours")
+    `--ui-color`, `--ui-scale` (`packages/ui/notes/theming.md` "Overriding colours")
   - bridge a TS constant to CSS through a custom property, never the value in both:
     ``style={{ "--TypeExplorer-indent": `${INDENT_WIDTH}px` }}``, then `var(--TypeExplorer-indent)` in the sheet
   - layout algebra in CSS (`calc()` on custom properties) over measuring in JS
@@ -54,7 +54,7 @@ From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui
 
 - **Colours and themes through `ui`'s tokens:**
   - intent tokens (`--ui-text-muted`, `--ui-surface`, `--ui-border-color`, `--ui-link`), never the raw per-scheme
-    bases (`--ui-red-on-light`) and never a literal colour:  `packages/ui/docs/theming.md` "Tokens"
+    bases (`--ui-red-on-light`) and never a literal colour:  `packages/ui/notes/theming.md` "Tokens"
   - dark mode is a colour SCHEME:  `light-dark()` tokens, switched by `color-scheme`, `.ui-dark` or
     `<ui-root theme="dark">` -- never a second set of rules per scheme (`theming.md` "Overriding colours")
 
@@ -69,7 +69,7 @@ From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui
 
 - **Utilities before one-off rules:**
   - `ui`'s `ui-*` utilities (`ui-stack`, `ui-cluster`, `ui-muted`, `ui-hidden` ...) before a rule of your own:
-    `packages/ui/docs/theming.md` "Utilities"
+    `packages/ui/notes/theming.md` "Utilities"
   - a new utility joins `ui`'s `utilities.css`, named in `ui`'s utility grammar:  SEE `packages/ui/AGENTS.md` "CSS"
 
 - **Naming:**
@@ -123,6 +123,6 @@ From:  original WWOD §19 ("CSS"), rewritten for plain `.css` and `@spell-app/ui
   - pages, the docs and anything embeddable work at phone width (390px):  no horizontal scroll, nothing squeezed
   - breakpoints are `ui`'s `@custom-media` (`--ui-mobile`, `--ui-tablet` ...;  `packages/ui/src/styles/media.css`),
     never a bare px media query
-  - the checks fail on phone-width overflow:  `packages/docs/tools/check-spell.js` (docs pages), `yarn site:check`
+  - the checks fail on phone-width overflow:  `packages/epics/tools/check-spell.js` (docs pages), `yarn site:check`
     (Spell UI's site)
   - NOT:  "desktop only, no mobile breakpoints" -- the docs, the Spell UI site and `<spell-app>` are read on phones
