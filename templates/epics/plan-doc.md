@@ -137,13 +137,40 @@ written:
   `relayout` is gone: the converter replaced it. `migrate` brings a page already in `<epic-*>` markup up to today's
   ("Migrations", below).
 
+## Saga pages
+
+A SAGA PAGE is a saga's page, built of the same elements as an epic page (epic `epic-workflow` P15):
+`sagas/<saga-id>/<saga-id>.saga.html`, an `<epic-page kind="saga" saga="<id>">`.
+- What a saga is:  an epic of epics, the larger aim its epics serve.
+  The list, in Owen's order:  `sagas/sagas.json` (`epic saga list`);  an epic names its saga with `<epic-page saga>`.
+- Its sections, fixed, in this order:
+  - 1. Overview:  the saga's purpose as its summary, then "Done so far" (`#o1`) and "Ideas not done yet" (`#o2`)
+  - 2. Epics (`#epics`):  a card per epic naming the saga, grouped as on the Epics page;  drawn from the page
+    server (`<epic-cards>`), never written by hand
+  - 3. Questions, 4. Todos, 5. Log:  as an epic page's
+- Made once by `epic saga page <id>` (`--force` remakes it);  then every verb edits it, named by its short address:
+  `epic add SAGA:/epics#T "..."`, `epic close SAGA:/epics#T1`, `epic check SAGA:/epics`.
+- Owen comments on it as on an epic page:  a note box on each Overview part and on the summary, the bullhorn on any
+  block, Send in the header.  The marks and comments wait in its own inbox, `<id>.inbox.json` beside it.
+  - The session that takes them runs `/epic review SAGA:/<id>` (the epic skill, "Review").
+  - Nobody listening:  Send wakes one, as an epic page's does:  a new session typed `/epic review SAGA:/<id>`.
+- Filling its Overview, the rules above apply:  a plain lead sentence, then bullets;  each epic linked to its epic
+  page, with what it built and whether it's done or merged;  written for Owen coming back cold.
+  - "Done so far":  a line per epic, from its summary and changelog entry.
+  - "Ideas not done yet":  future epics, open todos, review pages, and the parked goals' topics (`goals/spell/`).
+- The parked goal sets (`goals/`) are NOT saga pages:  read only, their story in the goals guide.
+
 ## Ids: short, so they're easy to say in chat
 
 - Items: `q1` questions (answered ones are the decisions), `j1` judgement calls, `c1` caveats, `i1` issues, `t1`
   todos, `v1` tests ("verify": `t` is taken). Shown as `Q1`, `J1`, `C1` ...
   - docs from before 2026-10-04 also had `d1` decisions; each lives on as the answer inside its question (old
     `#d7` links still land there, and `close d7` finds the question)
-- Phases: `p1` ... Shown as `P1 · Short Name`: a 2-4 word name, so "start P2" is unambiguous.
+- Phases: a STABLE id, made once from the name when the phase is added (`p-epic-migrate` for "Epic Migrate"), kept
+  through renames and inserts (epic `epic-workflow` P15). Shown as `P1 · Short Name`: the number is its place in the
+  list, worked out as the page draws, and the name 2-4 words, so "start P2" is unambiguous. Link to it by its id
+  (`#p-epic-migrate`); `epic` takes it by number, id or name (`seo#P2`, `seo#epic-migrate`). An older page's `p2`
+  ids still read until `epic migrate` turns them stable, and an old `#p2` link still lands on the 2nd phase.
 - Overview sub-sections: `o1` ...
 - Link to them in prose: `<a href="#i2">I2</a>`. `epic check` fails on a link to a missing id.
 - On ANOTHER page (another epic, a saga, a guide): `<epic-link>`, written by what it points at, never a path
