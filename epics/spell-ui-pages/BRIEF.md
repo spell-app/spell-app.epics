@@ -25,7 +25,7 @@ have gaps.
   `<script type="module" src="<rel>/_assets/site.js">`.  It defines `<ui-root>` (which lazy-loads every other
   family on first use), the doc-only elements' catalog, `<spell-site-header>`, every icon pack.
 - Shared header / footer:  `packages/ui/site/_parts/*.html`, pulled in with `<ui-include>`.
-- Data:  `packages/ui/site/_data/components.json`, GENERATED from the vocabularies (`ComponentDefinitions`) and the
+- Data:  `packages/ui/docs/__data/components.json`, GENERATED from the vocabularies (`ComponentDefinitions`) and the
   family sheets by `yarn site:data` (part of `yarn site:build`), committed.  The doc-only elements fetch it;  they
   NEVER import vocabularies (that would drag ~325 KB of source into every bundle).
 - Doc-only elements:  `packages/ui/src/docs-components/ui-docs-<name>/`, written exactly like a component family
@@ -42,7 +42,7 @@ have gaps.
     from `<ui-menu vertical>` / `<ui-item>` etc.
   - `<ui-docs-themes>`:  theme `<ui-dropdown>` (every sheet in `src/styles/themes/`) + light / dark / system.
 - Themes:  each Fomantic theme becomes `packages/ui/src/styles/themes/<name>.css`, a token sheet in
-  `@layer ui.theme` (`packages/ui/docs/theming.md`).
+  `@layer ui.theme` (`packages/ui/notes/theming.md`).
 
 ## Fomantic sources (read-only, git-ignored)
 

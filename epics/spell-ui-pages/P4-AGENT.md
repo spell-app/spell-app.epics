@@ -16,7 +16,7 @@ Per page:
 - `yarn site:new <tag>` (in `packages/ui`) makes it from the template.
 - Sources:  the Fomantic page (plan doc 1.3 "Fomantic page map";
   `packages/ui/reference/Fomantic-UI-Docs/server/documents/<group>/<name>.html.eco`), our family's vocabulary
-  (`packages/ui/src/components/ui-<name>/*.vocabulary.en.ts`), its `examples/elements/*.html` (our element markup,
+  (`packages/ui/components/ui-<name>/*.vocabulary.en.ts`), its `examples/elements/*.html` (our element markup,
   known to work), and the OLD Astro page `packages/ui/site/src/content/components/ui-<name>.mdx` (what our docs
   already say:  keep every fact that is still true, especially for our-only components and the Usage tab).
 - EVERY Fomantic example our widget can render goes in, as `<ui-docs-example>`, with Fomantic's header and text

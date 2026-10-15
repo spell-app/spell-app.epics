@@ -1,6 +1,6 @@
 # spell-ui-pages -- themes contract (P6)
 
-Read `BRIEF.md` beside this first, then `packages/ui/docs/theming.md` IN FULL, and `packages/ui/src/styles/themes/classic.css`.
+Read `BRIEF.md` beside this first, then `packages/ui/notes/theming.md` IN FULL, and `packages/ui/src/styles/themes/classic.css`.
 
 ## The contract (every theme agent codes to it)
 
