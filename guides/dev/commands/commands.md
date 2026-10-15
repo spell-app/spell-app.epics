@@ -35,7 +35,7 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
   commands check"`).
 - Package-local tool CLIs stay (`packages/ui/tools/cli.ts`).  Claude-only steps stay in skills (`EnterWorktree`,
   `SendMessage`, modals).
-- One language:  tools are TypeScript (`packages/cli/src/dev/` for `spell dev`) or node JS (`packages/docs/tools`),
+- One language:  tools are TypeScript (`packages/cli/src/dev/` for `spell dev`) or node JS (`packages/epics/tools`),
   never python or shell scripts.
 
 ## Names
@@ -50,7 +50,7 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 
 - `commands.json`:  every command sits in some row's `cli` / `skill` / `yarn` `names` (`spell dev x`, `/name`,
   `epic x`, `<package> <script>`, `root` for the repo root).  A new operation gets a new row (`op`, marks, `runs`,
-  `target`);  the JSON's shape:  `packages/docs/tools/_assets/commands.js`'s header.
+  `target`);  the JSON's shape:  `packages/epics/tools/_assets/commands.js`'s header.
 - `spell dev commands check` must pass (root `yarn commands:check`:  exits 1 on a command the page lacks, or a name
   no command has).
 - A new noun or verb, or a roadmap change:  edit the page's "5. Target" / "6. Roadmap" too.
