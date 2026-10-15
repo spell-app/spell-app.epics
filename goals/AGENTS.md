@@ -13,7 +13,7 @@ waiting to be worked in, and the tools that keep it all consistent.  As the root
 
 - Start at `index.html` (every goal set), or a set's own `<set>/index.html`.  `spell dev goals open` shows them served
   live;  they also open straight from disk.
-- The /goals skills (packages/docs/tools/goals/skills/ (in the zip), linked into the repo's `.claude/skills/`) drive dialogs,
+- The /goals skills (packages/epics/tools/goals/skills/ (in the zip), linked into the repo's `.claude/skills/`) drive dialogs,
   thoughts and updates.
 - Built in this repo, meant for any project later:  keep paths relative, and project specifics in the preferences.
 
@@ -32,20 +32,20 @@ waiting to be worked in, and the tools that keep it all consistent.  As the root
   the same in every checkout (the root's `AGENTS.md`, "Shared content").
   - Not tracked by spell-app:  committed by itself after every Claude turn;  never `git add` it by hand.
   - So the tools find it as `<repo root>/goals`, never beside themselves.
-- The tooling is NOT shared:  packages/docs/tools/goals/ (in the zip), tracked in spell-app, versioned per branch.
-- packages/docs/tools/goals/ (in the zip) -- the tools:
+- The tooling is NOT shared:  packages/epics/tools/goals/ (in the zip), tracked in spell-app, versioned per branch.
+- packages/epics/tools/goals/ (in the zip) -- the tools:
   - `goals.js` -- `spell dev goals ...` (below)
   - `page.js` -- `GoalsPage`:  every edit to a page, pure (HTML in, HTML out)
   - `targets.js` -- preferences, sets, topics, and what a target means;  where the repo root and this folder are
   - `launch.js` -- Claude sessions in a terminal window
   - `goalsRoutes.ts` -- the pages' buttons, as a route module of the page server (below);  tests:
     `goalsRoutes.test.ts` (`yarn goals:test`)
-- The tools run under `tsx` (`goals.sh`, `spell dev goals`), with `packages/docs/tsconfig.json` for the repo's aliases:
+- The tools run under `tsx` (`goals.sh`, `spell dev goals`), with `packages/epics/tsconfig.json` for the repo's aliases:
   they use the page server's code (`$/server`).
-- packages/docs/tools/goals/skills/ (in the zip) -- the /goals skills:  `goals`, `goals-thought`, `goals-update`, `goals-open`,
+- packages/epics/tools/goals/skills/ (in the zip) -- the /goals skills:  `goals`, `goals-thought`, `goals-update`, `goals-open`,
   `goals-open-vs`.  `goals/scripts/goals.sh` there runs its checkout's tool:  every skill calls it.
-- Templates:  `templates/goals/`.  Look:  `packages/docs/tools/_assets/goals.css`.  Live buttons:
-  `packages/docs/tools/_assets/goals-live.js`.
+- Templates:  `templates/goals/`.  Look:  `packages/epics/tools/_assets/goals.css`.  Live buttons:
+  `packages/epics/tools/_assets/goals-live.js`.
 
 ## Words
 
@@ -132,7 +132,7 @@ A TARGET names a set, a topic, or one place on a page:  `[set/]topic[/anchor]`.
 - Keep the `.md` in step after every dialog or update:  new decisions, work status (`proposed` → `ready` →
   `done`), closed questions.  Same ids, same titles.
 - Links between goals pages open in the SAME tab (`target="_self"`, added by the tool);  every other link gets a
-  named new-tab target from `packages/docs/tools/doc-links.js`.  Write code references as
+  named new-tab target from `packages/epics/tools/doc-links.js`.  Write code references as
   `<code>path/from/repo/root</code>`:  the tool links them.
 - History (`#history`):  newest first, one line per session or change, via `spell dev goals log`.
 
@@ -163,13 +163,13 @@ update [target] [--print] [--window]      /goals-update with Claude (--print:  h
 claude                                    is Claude Code installed and logged in?
 ```
 
-- An icon a page uses must be in `ICONS` in `packages/docs/tools/bundle-spell-ui.js`, then
-  `node packages/docs/tools/bundle-spell-ui.js --skip-ui-build`:  any other name draws nothing.
+- An icon a page uses must be in `ICONS` in `packages/epics/tools/bundle-spell-ui.js`, then
+  `node packages/epics/tools/bundle-spell-ui.js --skip-ui-build`:  any other name draws nothing.
 
 ## The page server
 
 - Goals pages are served by the repo's PAGE SERVER (`packages/server`, `spell dev server`), one per checkout, which
-  serves docs, plans and Spell UI too.  Goals plug in as a ROUTE MODULE, packages/docs/tools/goals/goalsRoutes.ts (in the zip), listed in the
+  serves docs, plans and Spell UI too.  Goals plug in as a ROUTE MODULE, packages/epics/tools/goals/goalsRoutes.ts (in the zip), listed in the
   root `package.json`'s `"pageServer"`.
 - `spell dev goals open` starts it in the background if need be (`spell dev goals server start|stop|status`;  `serve` runs
   it in front).  It asks for `server.port` (the preferences) first, else any free port.  State and log:
