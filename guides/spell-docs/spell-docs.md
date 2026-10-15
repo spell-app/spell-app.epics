@@ -52,7 +52,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Short Title</title>
     <meta name="description" content="One sentence:  shown on its list page." />
-    <link rel="stylesheet" href="../../packages/docs/tools/_assets/spell-doc.css" />
+    <link rel="stylesheet" href="../../packages/epics/tools/_assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page">
     <div class="spell-doc">
@@ -73,7 +73,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
       </main>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="../../packages/docs/tools/_assets/spell-ui.js"></script>
+    <script src="../../packages/epics/tools/_assets/spell-ui.js"></script>
   </body>
 </html>
 ```
