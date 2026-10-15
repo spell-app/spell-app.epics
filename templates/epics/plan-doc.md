@@ -146,6 +146,24 @@ written:
 - Phases: `p1` ... Shown as `P1 · Short Name`: a 2-4 word name, so "start P2" is unambiguous.
 - Overview sub-sections: `o1` ...
 - Link to them in prose: `<a href="#i2">I2</a>`. `epic check` fails on a link to a missing id.
+- On ANOTHER page (another epic, a saga, a guide): `<epic-link>`, written by what it points at, never a path
+  (epic `epic-workflow` P15):
+
+  ```html
+  <epic-link epic="seo" item="J3"></epic-link>                 <!-- draws "seo J3", J3's title its tooltip -->
+  <epic-link saga="drawable-spell" item="T3"></epic-link>      <!-- an item on a saga page -->
+  <epic-link item="T3"></epic-link>                            <!-- this page:  draws "T3" -->
+  <epic-link phase="epic-migrate"></epic-link>                 <!-- draws "P7 · Epic Migrate" -->
+  <epic-link epic="seo" phase="2">the meta tags phase</epic-link>
+  ```
+
+  - With no text it draws the short form; a phase by number (`7`, `P7`) or by name (its title's slug).
+  - `saga` isn't needed with an `epic`.
+  - A plain link may use the SHORT ADDRESS instead: `<a href="SAGA:/drawable-spell/python-target#T1">`, rewritten
+    to the page by the docs runtime. Owen types the same in chat, and `spell dev docs open | link SAGA:/...` opens
+    it.
+  - `epic check --links` and `doc-links.js --check` fail on a saga, page or id that isn't there, and on an epic under a
+    saga it doesn't name.
 
 ## What phases and items say
 
@@ -577,7 +595,8 @@ elements".
 - A note that stays: `<epic-note state="update|done" title>` ("UPDATE markers").
 - A question's text as first asked: the tool wraps it in `<epic-question>` (`add <name>#Q`, `details --file` on a
   question); written by hand, it's the first thing in the item.
-- Link caveats, issues, decisions and phases wherever prose mentions them.
+- Link caveats, issues, decisions and phases wherever prose mentions them;  another epic's or a saga's with
+  `<epic-link>` ("Ids").
 
 ## Explaining a question or issue
 
