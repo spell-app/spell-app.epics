@@ -28,7 +28,7 @@ Read with `.agents/WWOD.md` (the hub).
   - [CONFLICT → D8j:  phone-width checks stay] Desktop only — no mobile breakpoints needed.
   - [ADAPT:  the norm here:  <Name>.css beside <Name>.tsx] Component-adjacent `.css` imported by the component is the exception (`Circuit.css`,
     `Table.css`) — note it won't reach web components unless imported into `app.css`.
-- [HAVE → packages/ui/docs/theming.md "Tokens"] **Colors & themes: two tiers, semantic on top.**
+- [HAVE → packages/ui/notes/theming.md "Tokens"] **Colors & themes: two tiers, semantic on top.**
   - Raw brand palette in `theme-colors.css` `@theme`; semantic tokens in `theme.css` built
     with `light-dark()` from the base pair `--theme-fg`/`--theme-bg`.
   - [ADAPT:  theme-dark → .ui-dark / <ui-root theme="dark">] Dark mode = `color-scheme` + `light-dark()` + a `theme-dark` class toggled from TS —
@@ -55,7 +55,7 @@ Read with `.agents/WWOD.md` (the hub).
     simple lowercase names OK inside a scoped `<style>` (`.operation`, `.title`).
   - [CONFLICT → D8e:  lowercase state classes (.Row.selected)] State classes: `isPascalCase` (`.isSelected`, `.isDragging`, `.isEditing`) — defined
     globally in `selection.css`.
-  - [HAVE → packages/ui/docs/theming.md "Utilities"] Global semantic classes/utilities: `kebab-case` (`.field-container`, `.button-group`).
+  - [HAVE → packages/ui/notes/theming.md "Utilities"] Global semantic classes/utilities: `kebab-case` (`.field-container`, `.button-group`).
   - [DROP:  construct-app's tree] Known inconsistencies — don't copy them: `.dragging`/`.Dragging` vs `.isDragging`,
     `.selected` vs `.isSelected`, `Circuit-Node` PascalCase sub-parts,
     `Circuit-RailSelector` vs `Circuit-Rail-Selector`, camelCase states (`.showIcon`).
