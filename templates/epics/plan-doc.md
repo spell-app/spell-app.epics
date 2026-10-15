@@ -387,7 +387,7 @@ nothing flickers. The tool's `EpicParts` does it; the markup (`source`, `part-id
   | an item with details, `#q7`    | `parts/q7.html`  | its details (not its title)                                                 |
   | the log, `#log`                | `parts/log.html` | its events                                                                  |
 
-- How a part is told from a page: by its folder. Every page walker skips `parts/` folders (`packages/docs/tools/
+- How a part is told from a page: by its folder. Every page walker skips `parts/` folders (`packages/epics/tools/
 pages.js` `findPages()`, `relocate.js`, `spell static`): the docs' home page, `docs update` and link repairs never take
   a part for a page.
 - A part file: a one-line comment saying whose body it is, then the body's markup. Its relative URLs are relative to
@@ -445,7 +445,7 @@ go at once (the inbox's `now` queue), and Owen may call one off ("nevermind": `c
 session to stop that item's agent; `epic details` then refuses its write). A todo may carry Owen's note (from
 before 2026-10-09, when the note box had Make Todo), written into the new todo;  a skip (the note box's x) its note,
 kept as his reply. Read it with `epic inbox <name>`; shape, routes and helpers:
-`packages/docs/AGENTS.md`, "Review inbox". NEVER edit the file by hand: go through `ReviewInbox`
+`packages/epics/AGENTS.md`, "Review inbox". NEVER edit the file by hand: go through `ReviewInbox`
 (`packages/epics/src/tool/ReviewInbox.ts`, its lock).
 
 The summary and every phase take marks too (epic `airplane` P2), as an Overview sub-section does: Revisit (with a
