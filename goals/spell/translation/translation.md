@@ -29,7 +29,7 @@ una carta "está boca arriba" si su dirección es arriba
 
 - **The sample:**  `packages/spell/projects/system/examples/Solitaire/Card.spell-es`.
 - **Hooks:**  "negatable" words (`is` / `is not`) can be registered per language;  names are never used as ids.
-- **@spell-app/ui:**  `packages/ui/docs/translation.md` (tags, attributes and values);  `UI.i18n` for text.
+- **@spell-app/ui:**  `packages/ui/notes/translation.md` (tags, attributes and values);  `UI.i18n` for text.
 - **Where English is baked in:**  the rules are TypeScript classes with English keywords in their syntax strings.
 
 ## Decisions (settled -- don't relitigate)
@@ -79,4 +79,4 @@ _None yet._
 
 - `packages/spell/projects/system/examples/Solitaire/Card.spell-es`
 - `packages/spell/src/rules/` -- where keywords live
-- `packages/ui/docs/translation.md` -- ui's translation contract
+- `packages/ui/notes/translation.md` -- ui's translation contract

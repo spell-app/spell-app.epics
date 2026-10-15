@@ -73,6 +73,6 @@ _None yet._
 
 ## Pointers
 
-- `packages/docs/AGENTS.md` -- how docs pages are written;  `templates/`
+- `packages/epics/AGENTS.md` -- how docs pages are written;  `templates/`
 - `packages/ui/site/` -- ui's docs site (plain HTML pages)
 - `packages/spell/thoughts/site-structure.md` -- 2020 notes on guides and the phrase book
