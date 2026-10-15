@@ -208,7 +208,7 @@ The markup is in `PLAN-DOC.md` ("Phases", "Items", "Log"). What to write in each
   title carries an orange pen and their count, even folded, so a re-review sees what moved.
 - Requests (epic `epic-workflow`): what Owen sent the phase from other sessions (`/send`), one block each, under
   Symptom / Changes: his words quoted, what the sender was looking at, his screenshots. Written by
-  `epic file <epic> <rN> <N>` (the epic skill's "12. Request"), never by hand.
+  `epic file <epic>#P<N> <rN>` (the epic skill's "12. Request"), never by hand.
 - Goal: the details: a `<ul>`, one bullet per outcome, in Owen's terms (what he'll see or be able to do), not the
   build steps. Optional once the phase has a Symptom or Changes.
 - Done: written when the phase is done (`phase <name>#<N> done --done "<ul>..."`), a `<ul>` of what was BUILT,
