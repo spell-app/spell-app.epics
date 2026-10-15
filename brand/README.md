@@ -1,6 +1,6 @@
 # brand/
 
-Spell's brand pages and design files:  Claude Design's export and its Spell UI copies, the `ui-brand-*` elements'
+Spell's brand pages and design files:  Claude Design's export and its Spell UI copies, the `brand-*` elements'
 docs pages, and pages pulled back from Claude Design.
 
 - `index.html` -- the Brand tab's home:  every Claude Design page with its copy and Compare, the elements, and (between
@@ -8,7 +8,7 @@ docs pages, and pages pulled back from Claude Design.
 - `compare.html?page=<Name>` -- an original and its copy side by side, or one over the other.
 - `spell-design-system/` -- Claude Design's output, AS EXPORTED (never edit):  `readme.md` (the brand rules), tokens,
   logo assets, the 13 `*.dc.html` pages;  beside each, its copy on Spell UI, `<Name>.spell.html`.
-- `components/<tag>.html` -- each `<ui-brand-*>` family's docs page;  `components/components.spell.html` the specimen.
+- `components/<tag>.html` -- each `<brand-*>` family's docs page;  `components/components.spell.html` the specimen.
 - `leonardo/` -- the reference images and brief from before Claude Design.
 - `pony.html` -- the Spell pony, built in Claude Design and brought back with `spell dev design pull` (P10 of epic
   `claude-design`).
