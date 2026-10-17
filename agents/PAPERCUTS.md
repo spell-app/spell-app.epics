@@ -1594,6 +1594,15 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   literal newline (`\` at a line's end) is "too complex to verify", even with no git in it;  and so is a `sed -i` and a
   `git diff` in one command, though each alone runs. · One edit per Edit tool call, or the scratchpad node script;
   run `git diff` in a call of its own. · claude-code
+- 2026-10-17 · A session missing from the Claude panel's list in EVERY window (epic `epic-eject`, the
+  `try-layout` test), under its old and new title alike.  Took a long read of the extension's list code
+  (`extension.js` 2.1.301:  `Wy1()`, `cN0()`, `pN0()`, `EN0()`, `Ox0()`), and a wrong first guess that worktrees
+  beside the repo hide their sessions.  They don't. · It was ARCHIVED:  its id was in the extension's
+  `hiddenSessionIds`, in VS Code's `state.vscdb`.  Check that FIRST (read-only), before any theory:
+  `sqlite3 -readonly ~/Library/Application\ Support/Code/User/globalStorage/state.vscdb "select value from ItemTable
+  where key='Anthropic.claude-code'" | grep -c <session id>`.  Unarchive it from the panel's Archived section.
+  The list's other filters, for next time:  SDK-started sessions (`entrypoint` `sdk-*`), a `continued-in` record,
+  a sidechain first line, and two folders whose names collide once punctuation becomes `-`. · claude-code
 
 ## vscode
 
