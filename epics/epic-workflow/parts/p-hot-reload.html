@@ -1,0 +1,61 @@
+<!-- plan-doc part:  #p-hot-reload's body in epic-workflow.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  >A page keeps running old code after its stylesheet, the docs bundle or the epics pack changes, and restarting the
+  page server can land it on another port, leaving every open page on the usual one with no server.</epic-field
+><epic-field name="changes"
+  >A page swaps a changed stylesheet in place and reloads for changed code, keeping its place, waiting while you type; a
+  page served before a server restart reloads; stopping the server waits for its process to end, so the new one gets the
+  same port.</epic-field
+><epic-field name="goal"
+  ><p>
+    Built during epic <code>airplane</code>, 2026-10-10 (worktree <code>agent-a6cea48c8bc6af280</code>, uncommitted, 10
+    files with tests), and never landed; found in the airplane clean-up, 2026-10-17. The port bug it fixes happened that
+    day: the log shows a server started on port 54516.
+  </p>
+  <ul>
+    <li>
+      A page's CODE changing hot-reloads it (the live client's <code>liveAction()</code>): a stylesheet it uses (<a
+        href="../../../packages/epics/tools/_assets/spell-doc.css"
+        target="src-packages-epics-tools-assets-spell-doc-css"
+        ><code>spell-doc.css</code></a
+      >
+      ...) swapped in place, no reload; a script it loaded (the docs bundle and its lazy chunks,
+      <a
+        href="../../../packages/epics/components/__pack/epics.pack.js"
+        target="src-packages-epics-components-pack-epics-pack-js"
+        ><code>epics.pack.js</code></a
+      >, an experiment's bundle) reloads the page, keeping its scroll, folds and comment drafts.
+    </li>
+    <li>
+      Not while you type: an “Updated: reload” pill waits, and the page reloads once you leave the field; reloads come
+      one at a time, 500ms after the last change (<code>reloadGate()</code>).
+    </li>
+    <li>
+      Each live socket opens with <code>hello</code> and the server's run id (<code>LiveReload.run</code>): a page
+      served by an earlier run (the server restarted, say a merge changed its code) reloads, so it gets the new live
+      client and write token.
+    </li>
+    <li>
+      <code>spell dev server stop</code> waits for the old PROCESS to end (<code>SIGKILL</code> after 10s), not just for
+      it to stop answering, so <code>ensure</code> never starts the new one while the old one still holds the port.
+    </li>
+    <li>
+      So a merge's new widgets show by themselves: VS Code's window needs reloading only when the extension changes.
+    </li>
+    <li>
+      Re-applied onto today's layout from that worktree's diff (<code>RunningEpics</code> now in
+      <a href="../../../packages/epics/src/list/" target="src-packages-epics-src-list"
+        ><code>packages/epics/src/list/</code></a
+      >, tests in <a href="../../../tests/" target="src-tests"><code>tests/</code></a
+      >); then the worktree removed.
+    </li>
+  </ul></epic-field
+><epic-field name="files"
+  >packages/server/src/liveClient.ts, LiveReload.ts, PidFile.ts, WebServer.ts; packages/epics/src/list/RunningEpics.ts;
+  packages/server/AGENTS.md, packages/epics/AGENTS.md; tests/server/...; source:
+  .claude/worktrees/agent-a6cea48c8bc6af280 (git diff)</epic-field
+><epic-field name="verify"
+  >server tests (live client, run id, stop waits for the process); a page open while spell-doc.css changes restyles in
+  place, while the docs bundle is rebuilt reloads and keeps its place, and waits while typing; restarting the server
+  keeps port 4747</epic-field
+>
