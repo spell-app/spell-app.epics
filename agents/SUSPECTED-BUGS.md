@@ -809,6 +809,15 @@ every entry below that date was fixed or disproven;  what's left:
   Why it went down:  `PidFile.stop()` waited only until the old server stopped ANSWERING, so the restart after a merge
   started the new one while the old still held port 4747;  the new one took another port (the log shows 54516).
   Fixed in `$/server` the same day;  this button's gap remains.
+- `src/RunnerPanel.ts`:  in the Play panel, a program's timers run about once a second (Owen, 2026-10-17, epic
+  `people-and-orgs` P19).  Solitaire's deal takes about a second per card, but each move only pauses
+  `core.pauseFor(50, "msec")`.  The same program in plain Chromium (the app's runner, in a vitest browser test) deals
+  all 28 cards in 1.5s, 50ms each.  So the program and the core are fine.  Likely Chromium's timer throttling
+  (setTimeout at most once a second) for a page it thinks is hidden:  the webview, or the frame inside it, reports
+  `document.visibilityState === "hidden"` while it's on screen.  Prove:  "Developer: Open Webview Developer Tools" on
+  the panel, pick the runner's frame, and run
+  `document.visibilityState; const t = performance.now(); setTimeout(() => console.log(performance.now() - t), 50)`:
+  `hidden`, or about 1000, confirms it.  Not yet checked:  whether it's slow from a `main` window too.
 
 ## claude-code
 
