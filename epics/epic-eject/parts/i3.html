@@ -15,10 +15,244 @@
       href="../../../.claude/worktrees/"
       target="src-claude-worktrees"
       ><code>.claude/worktrees</code></a
-    >).
+    >): see <a href="#i3-today">Today's layout</a>, below.
   </li>
 </ul>
 <p>
   Fix in <a href="#p-folders-move">P8</a>: a worktree's session comes back in its worktree. Reopened from another
   window, it goes to its worktree's window (or opens that window), rather than running in the window it was opened from.
+</p>
+
+<h4 id="i3-mechanism">How a reopened session picks its folder</h4>
+<p>
+  Two programs pick the folder, one after the other: the Claude panel (the VS Code extension), then Claude Code itself.
+  Neither one looks for a worktree that sits BESIDE the repo.
+</p>
+<ol>
+  <li>
+    The panel lists the saved sessions. For each one it notes the folder the session was last in:
+    <ul>
+      <li>
+        the newest "moved" note in the transcript, if any (a <code>relocated</code> line, which Claude Code writes when
+        a session enters a worktree)
+      </li>
+      <li>else the folder on the transcript's first line, where the session started</li>
+    </ul>
+  </li>
+  <li>
+    It marks the session as a worktree's only when that folder ends in <code>.claude/worktrees/&lt;name&gt;</code>. A
+    folder like <code>spell-app.worktrees/try-layout</code> never matches.
+  </li>
+  <li>
+    Owen clicks the session. The panel opens its tab: a session marked as a worktree's gets that folder, any other gets
+    none.
+  </li>
+  <li>
+    A tab with no folder takes the window's FIRST folder, and starts Claude Code there, resuming the session by its id.
+  </li>
+  <li>
+    Claude Code reads the transcript. It moves back into a worktree only when the transcript holds a "worktree" note (a
+    <code>worktree-state</code> line).
+    <ul>
+      <li>
+        That note is written only when a session ENTERS a worktree with Claude's <code>EnterWorktree</code>: what
+        <code>/isolate</code> and <code>/epic</code> do, through the repo's worktree hook.
+      </li>
+      <li>The "moved" note of step 1 is only copied forward. Claude Code never changes folder because of it.</li>
+    </ul>
+  </li>
+  <li>
+    The <code>try-layout</code> session had neither note. It was STARTED in the side-by-side folder, so:
+    <ul>
+      <li>step 2 didn't mark it, and step 4 gave it the main checkout's root, the window's first folder</li>
+      <li>step 5 had nothing to go back to, so it stayed there</li>
+      <li>
+        its transcript shows it: the first lines worked in <code>spell-app.worktrees/try-layout</code>, and from the
+        reopen on (2026-10-17, 10:32) in <code>spell-app</code>
+      </li>
+    </ul>
+  </li>
+</ol>
+<details>
+  <summary>Where each step is in the code</summary>
+  <ul>
+    <li>
+      Steps 1-4, the extension 2.1.301 (<code
+        title="~/.vscode/extensions/anthropic.claude-code-2.1.301-darwin-arm64/extension.js and webview/index.js"
+        >extension.js, webview/index.js</code
+      >, minified names):
+      <ul>
+        <li>
+          step 1: <code>dT()</code> and <code>Wy1()</code>, the list entry's <code>cwd</code>:
+          <code>relocatedCwd</code> from the tail, else the head's <code>cwd</code>
+        </li>
+        <li>
+          step 2: <code>FS()</code>, with <code>Dc = /[/\\]\.claude[/\\]worktrees[/\\]([^/\\]+)$/</code>, gives the
+          entry's <code>worktree</code> field (<code>sessionEntriesFromSdk()</code>)
+        </li>
+        <li>
+          step 3: the webview's <code>Eq.fromServer()</code>: <code>if ($.worktree) X.cwd.value = $.worktree.path</code>
+        </li>
+        <li>
+          step 4: the webview's <code>launchClaude()</code> falls back to <code>defaultCwd</code>, the host's
+          <code>this.cwd</code>, which is <code>Nk()</code>: the window's first folder. The host's
+          <code>launchClaude()</code> and <code>spawnClaude()</code> pass it on as <code>cwd</code>, with
+          <code>resume: &lt;id&gt;</code>.
+        </li>
+        <li>
+          <code>resolveSession()</code> finds a session in another worktree's folder, but only to list it, not to pick
+          its folder.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Step 5, Claude Code 2.1.296 (the <code title="~/.local/share/claude/versions/2.1.296">claude</code> binary; its
+      code is readable in it):
+      <ul>
+        <li>
+          <code>restoreWorktreeForResume()</code> (minified <code>eOe()</code> / <code>Ne()</code>), called on start-up
+          resume, on <code>/resume</code>, and in the SDK's print mode (<code>NC()</code>), with the transcript's
+          <code>worktreeSession</code>
+        </li>
+        <li>
+          no record: it stays where it was started. A record: it checks the folder (still there, a real worktree, safe
+          to enter) and moves into it, or warns and stays.
+        </li>
+        <li>
+          the record is written by <code>saveWorktreeState()</code> (minified <code>AM()</code>) when
+          <code>EnterWorktree</code> runs, and set to <code>null</code> by <code>ExitWorktree</code>
+        </li>
+        <li>
+          <code>relocated</code> lines: written by <code>relocateSessionTranscript()</code> on entering, and only
+          re-stamped on resume
+        </li>
+      </ul>
+    </li>
+  </ul>
+</details>
+<p>What the repo's own tools do on reopen:</p>
+<ul>
+  <li>
+    <a
+      href="../../../packages/cli/src/commands/sessionCommand.ts"
+      target="src-packages-cli-src-commands-sessioncommand-ts"
+      ><code title="packages/cli/src/commands/sessionCommand.ts">openSession()</code></a
+    >
+    (<code>spell dev session open</code>) opens the session in the window it's running in, else in the CALLER's window.
+    It never looks at the session's folder.
+  </li>
+  <li>
+    <a href="../../../scripts/window.mjs" target="src-scripts-window-mjs"
+      ><code title="scripts/window.mjs">Window.resume()</code></a
+    >
+    (a <code>handoff</code>) opens the session in the worktree's window. Its comment counts on the session going "back
+    into its worktree by itself": true only for a session that entered with <code>EnterWorktree</code> (step 5).
+  </li>
+  <li>
+    <a href="../../../scripts/window.mjs" target="src-scripts-window-mjs"
+      ><code title="scripts/window.mjs">Window.launch()</code></a
+    >
+    starts a NEW session in a worktree's window. That window's first folder is the main root, so the session starts on
+    main and has to enter its worktree itself.
+  </li>
+  <li>
+    The worktree hook (<a href="../../../.claude/hooks/worktree.mjs" target="src-claude-hooks-worktree-mjs"
+      ><code title=".claude/hooks/worktree.mjs">worktree.mjs</code></a
+    >) only makes the folder and prints its path. It has no say on reopen.
+  </li>
+  <li>
+    No <code>SessionStart</code> hook today. One could notice a session reopened in the wrong folder, but it can't move
+    it: a hook can only add a note for Claude, or warn.
+  </li>
+</ul>
+
+<h4 id="i3-today">Today's layout</h4>
+<p>
+  <b>Pending:</b> the comparison run with a worktree inside the repo (<a
+    href="../../../.claude/worktrees/try-nest/"
+    target="src-claude-worktrees-try-nest"
+    ><code>.claude/worktrees/try-nest</code></a
+  >) is still going.
+</p>
+<ul>
+  <li>
+    What the code predicts: it comes back in its worktree, from any window.
+    <ul>
+      <li>
+        its folder ends in
+        <a href="../../../.claude/worktrees/try-nest/" target="src-claude-worktrees-try-nest"
+          ><code>.claude/worktrees/try-nest</code></a
+        >, so the panel marks it and hands it that folder
+      </li>
+      <li>if it entered with <code>EnterWorktree</code>, Claude Code's "worktree" note brings it back too</li>
+    </ul>
+  </li>
+  <li>So the side-by-side layout loses both: the panel's match, and (when started in the folder) the note.</li>
+</ul>
+
+<h4 id="i3-options">Fix options</h4>
+<ol>
+  <li>
+    <b>Always enter by <code>EnterWorktree</code>.</b> <b>Recommended.</b>
+    <ul>
+      <li>
+        Every worktree session starts at the main root, as <code>launch</code> already does, and enters its worktree
+        with <code>EnterWorktree</code>. The worktree hook returns the side-by-side folder.
+      </li>
+      <li>Claude Code then writes its "worktree" note, and brings the session back from ANY window (step 5).</li>
+      <li>
+        Costs: P8's hook returns the new path, and nothing starts a session straight in a worktree's folder (a window
+        whose first folder is a worktree would).
+      </li>
+      <li>
+        Risk: not yet checked that Claude Code accepts, on resume, a worktree OUTSIDE the repo. Its safety checks look
+        at where the worktree sits. P8 tests it first: enter, close the tab, reopen from main's window.
+      </li>
+      <li>A session that left with <code>ExitWorktree</code> comes back on main, as it should.</li>
+    </ul>
+  </li>
+  <li>
+    <b>A <code>SessionStart</code> hook as a guard.</b>
+    <ul>
+      <li>
+        On a resume, it compares the folder the session last worked in with the one it got. They differ: it tells Claude
+        to enter its worktree again before anything else, and warns.
+      </li>
+      <li>Costs: one small hook; an extra step on a wrong reopen.</li>
+      <li>
+        Breaks: it relies on Claude following the note, and can't move the folder itself. It must tell a session that
+        LEFT its worktree on purpose from one that got lost.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>Send reopens to the worktree's window.</b>
+    <ul>
+      <li>
+        <code>spell dev session open</code> and <code>/session</code> read the session's last folder, and open a
+        worktree's session in its worktree's window (opening the window if needed).
+      </li>
+      <li>Costs: a small change to <code>openSession()</code>.</li>
+      <li>
+        Breaks nothing, but helps only reopens through our tools: the panel's own list still opens a session in the
+        window you click in. And by step 4 it works only when that window's FIRST folder is the worktree; today's
+        worktree windows put the main root first.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>End the side-by-side path in <code>.claude/worktrees/&lt;name&gt;</code>.</b>
+    <ul>
+      <li>
+        For example <code>spell-app.worktrees/.claude/worktrees/&lt;name&gt;</code>: the panel's check (step 2) then
+        matches, and hands the session its folder from any window.
+      </li>
+      <li>Costs: an odd-looking path.</li>
+      <li>Breaks: it leans on an undocumented detail of the extension, which may change in any release.</li>
+    </ul>
+  </li>
+</ol>
+<p>
+  The pick: option 1, the way Claude Code itself means worktrees to come back. Add option 2 only if P8's test shows a
+  gap.
 </p>
