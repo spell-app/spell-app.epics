@@ -1,7 +1,7 @@
 # Solid 2 -- rules for agents
 
 Distilled from `solid-2.html` (the why) and `cheatsheet.html` (the API) in this folder.  Read this BEFORE writing
-or reviewing Solid code, JSX, `spellCore` rendering, `$/util` reactivity (spell cells), or anything touching
+or reviewing Solid code, JSX, `core` rendering, `$/util` reactivity (spell cells), or anything touching
 `@spell-app/ui`.
 
 ## Status
@@ -14,7 +14,7 @@ or reviewing Solid code, JSX, `spellCore` rendering, `$/util` reactivity (spell 
   - Compiled spell draws with Solid too, in both targets (epic `output-targets` P10-P12, on `main` since
     2026-10-10):
     - javascript calls Solid's own `h()` (`@solidjs/h`, imported from `@spell/core`;  P20) and
-      `spellCore.drawThing()`.  `spellCore.element()`, what it called before P20, is gone (P22).
+      `core.drawThing()`.  `core.element()`, what it called before P20, is gone (P22).
     - TypeScript (`ts/solid`, a `.compiled.tsx`) is real JSX, with `<Show>` / `<For>` and `@drawn draw()`
     - how, and why:  `guides/targets/targets.html`, "Drawing with Solid"
   - React is GONE from `app`, `core` and `util`:  no React kits, no `view()`, no `@vitejs/plugin-react`.
@@ -95,7 +95,7 @@ count() // 1
 - **Property types** live in a per-class schema (`schemaOf(Class)`, `Class.schema`):
   - declared by the parser (explicit specifier, or the default literal's type) -- declared types win.  Compiled:
     `static { this.declareProp('suit', { oneOf: Card.Suits }) }` in the class, `Card.declareProp(...)` outside it;
-    `Thing` / `List` check a declared prop on the PROGRAM's console (`spellCore.checkProp()`), as before
+    `Thing` / `List` check a declared prop on the PROGRAM's console (`core.checkProp()`), as before
   - undeclared props:  observed per class, WIDENED on mismatch (`number | text`) with a dev warning, never thrown
   - `nothing` never counts;  Thing-typed props compare with `instanceof`, not by class name
 - **Accessors for Things, a `Proxy` only for class-less data** (nested plain objects, JSON a program holds).
@@ -122,7 +122,7 @@ count() // 1
   - `@derived get y()` -- memoized with the equality cutoff;  only for pure, worth-it getters (compiled TypeScript:  a
     getter that loops).  `@state` and `@derived` take `{ equals }`, as Spell UI's do.  BUILT
   - `@drawn draw()` -- the drawing in its own error boundary (`core`'s `drawing.ts`, not `util`'s:  it shares
-    `spellCore.drawThing()`'s boundary).  BUILT (P12)
+    `core.drawThing()`'s boundary).  BUILT (P12)
   - `@thing` on the class -- runs `create()` after the most-derived class's field initializers.  BUILT:
     `packages/util/src/spell/spellDecorators.ts` (`import { thing } from "$/util"`);  `Thing` / `List` skip their own
     `create()` call when a `@thing` class is in the chain (`runsCreate()`), so it runs exactly once, also for compiled
@@ -134,8 +134,8 @@ count() // 1
   - where a decorator goes on its line:  SEE WWOD §12 › "A decorator starts its line"
 - The editor store is a decorated class (`EditorStore` in `app`'s `editor.ts`, BUILT):  `editor.x = y` call sites
   didn't change.  Solid 2 has NO mutable store.
-- `spellCore.flush()` / `flushCells()` (`$/util`) = run pending derived checks, then the host's Solid `flush()`.  BUILT.
-  - spell state:  tests and imperative code call `spellCore.flush()`, NEVER Solid's bare `flush()`, which skips the
+- `core.flush()` / `flushCells()` (`$/util`) = run pending derived checks, then the host's Solid `flush()`.  BUILT.
+  - spell state:  tests and imperative code call `core.flush()`, NEVER Solid's bare `flush()`, which skips the
     derived checks
   - plain Solid signals and stores:  Solid's `flush()`
 - `tracked(read)` (`app`'s `$/app/solid`) = a Solid memo over a read of spell state (boxed, `equals: false`).  A plain
@@ -143,7 +143,7 @@ count() // 1
   never mid-write, so program code is safe to run in it (`deferred` is gone).
 - Compiled JAVASCRIPT imports ONLY `@spell/core`, never Solid:  `h` included, which core exports (the page's one
   `@solidjs/h`).  It draws with `h()` directly (BUILT, `output-targets` P20, `core`'s `drawing.ts`;  before it,
-  `spellCore.element()`, gone since P22):
+  `core.element()`, gone since P22):
   - `h()` returns a THUNK:  `draw()` returns it as is, and the error boundary makes it (`madeOnce()`), once, inside its
     `try`, so a throw while it's made shows the stand-in.  Only `h()`'s own thunks:  any other function stays a live
     value.  Nested `h()` calls are made by their parent.
@@ -165,7 +165,7 @@ count() // 1
   others.  The runners can't run it yet;  the core contract does.
 - One Solid per page, shared with `@spell-app/ui` (whose `UI` runtime is already one per page, on `globalThis`):
   - within a bundle:  Solid + `@spell-app/ui` live in the shared files, NEVER `spell-runtime.js`.  Each `<spell-app>`
-    keeps its OWN `spellCore`, all share ONE Solid.  `enableExternalSource` is registered once per Solid, by
+    keeps its OWN `core`, all share ONE Solid.  `enableExternalSource` is registered once per Solid, by
     `bridgeSolid()` from the host (`app`'s `cellsBridge.ts`)
   - `spell-runtime.js` gets Solid, `@solidjs/web` and `@solidjs/h` from `spell-solid.js` (`sharedSolid()`), which
     also holds Spell UI's element core since `<spell-app>` became a Spell UI component;  it never loads
@@ -213,7 +213,7 @@ h(
   "div",
   { class: () => "card " + this.color, onClick: (event) => this.play() },
   () => this.shortRank + " ",
-  () => spellCore.drawThing(this.pile)
+  () => core.drawThing(this.pile)
 )
 ```
 
@@ -239,7 +239,7 @@ draw() {
 - Reads:
   - read reactive values in JSX, a memo or an effect compute -- a component body or `<For>` / `<Show>` callback body
     is an owner, NOT a tracking scope (`STRICT_READ_UNTRACKED`)
-  - need the value now in imperative code or a test?  `flush()` first (`spellCore.flush()` for spell state).  NEVER
+  - need the value now in imperative code or a test?  `flush()` first (`core.flush()` for spell state).  NEVER
     `flush()` inside an `action`, an effect apply or `onSettled`.
 - Effects:
   - `createEffect(compute, apply)` -- two functions, always
@@ -363,7 +363,7 @@ h(Picker, { onPick: () => go() }) // WRONG:  becomes a getter, passes go()'s res
 
 ## Testing
 
-- `flush()` after any write or event, before asserting (`spellCore.flush()` for spell state).
+- `flush()` after any write or event, before asserting (`core.flush()` for spell state).
   `await resolve(() => x())` for async.
 - Under Node, `@solidjs/web` resolves to the SERVER build (no DOM `render`):  component tests need the
   `browser` + `development` conditions plus jsdom or vitest browser mode.  An SSR test project needs its own `solid()`.
@@ -413,4 +413,4 @@ expect(button.textContent).toBe("Clicks: 1")
 - Nothing updates after an error:  the scheduler halted -- find the first thrown error, not the last symptom.
 - A value reads stale right after a write:  that's staging -- use a cell, or `flush()` in tests.
 - A write is invisible even after `flush()`:  it's entangled with a held async write in the same batch.
-- A reader of a derived value didn't update in a test:  derived checks run on a microtask -- `spellCore.flush()`.
+- A reader of a derived value didn't update in a test:  derived checks run on a microtask -- `core.flush()`.
