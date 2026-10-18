@@ -1,12 +1,45 @@
 <!-- plan-doc part:  #i2's details in epic-eject.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Seen in P2's test window (2026-10-10): three "Vitest not found in <code>epics</code> / <code>server</code> /
-  <code>try-layout</code>" warnings at startup. A worktree nested inside main (today's
-  <a href="../../../.claude/worktrees/" target="src-claude-worktrees"><code>.claude/worktrees/</code></a
-  >) borrows main's <code>node_modules</code>, since node looks up the folder tree. One beside the repo can't, so the
-  Vitest extension, TypeScript and the tools find nothing until <code>yarn install</code> runs there (about 4s).
+  Seen in P2's test window (2026-10-10): three "Vitest not found" warnings at startup, for epics, server and try-layout.
 </p>
+<ul>
+  <li>
+    A worktree nested inside main (today's
+    <a href="../../../.claude/worktrees/" target="src-claude-worktrees"><code>.claude/worktrees/</code></a
+    >) borrows main's <code>node_modules</code>, since node looks up the folder tree.
+  </li>
+  <li>
+    One beside the repo can't: the Vitest extension, TypeScript and the tools find nothing until
+    <code>yarn install</code> runs there (about 4s).
+  </li>
+</ul>
 <p>
-  Fix in <a href="#p-folders-move">P8</a>: the <code>WorktreeCreate</code> hook runs the repo's install command
-  (<code>EpicConfig</code>) BEFORE the window opens, so nothing starts without it.
+  Fix in <a href="#p-folders-move">P8</a>: the <code>WorktreeCreate</code> hook runs the repo's install command BEFORE
+  the window opens, so nothing starts without it.
 </p>
+<epic-reply
+  from="Claude"
+  at="2026-10-17 15:30"
+  re="Fix in P8: the WorktreeCreate hook runs the repo's install command BEFORE the window opens"
+  ><p>
+    Built in spell-epic (P8, not live until the switch): the worktree hook runs <code>installCommand</code> in a NEW
+    worktree before it answers, so before <code>EnterWorktree</code> returns and before any window opens.
+  </p>
+  <ul>
+    <li>
+      On with <code>"installOnCreate": true</code> in
+      <a href="../../../.epic/config.json5" target="src-epic-config-json5"><code>.epic/config.json5</code></a> (off by
+      default: the skills still run it after entering, as today); <code>installTimeout</code> bounds it (600 seconds),
+      and the hook's own limit is 900 seconds (<code>hooks/hooks.json</code>).
+    </li>
+    <li>
+      A failed or timed-out install fails the hook (J27): the worktree is kept, and the message says to run the install
+      there by hand, then <code>EnterWorktree</code> with its path.
+    </li>
+    <li>
+      Tested on a throwaway repo (<code>tests/epics/src/command/WorktreeHook.test.ts</code>): runs in the new worktree,
+      fails on a bad exit and on the timeout.
+    </li>
+    <li>For you to confirm by hand after the morning steps: V10.</li>
+  </ul></epic-reply
+>

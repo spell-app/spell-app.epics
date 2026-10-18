@@ -1,0 +1,143 @@
+<!-- plan-doc part:  #i5's details in epic-eject.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  P6 made spell-epic and got it green on its own, but spell-app still runs its own copies: nothing was removed from
+  spell-app tonight, so nothing is half-switched.
+</p>
+<p>What blocks the switch, each a change of its own:</p>
+<ol>
+  <li>
+    <b>The pages load the engine by path.</b> Every shared page links two things from the checkout's root:
+    <ul>
+      <li>
+        the docs bundle, its CSS and runtime (<a
+          href="../../../packages/epics/tools/_assets/"
+          target="src-packages-epics-tools-assets"
+          ><code title="packages/epics/tools/_assets/">the docs assets</code></a
+        >)
+      </li>
+      <li>
+        the component pack (<a
+          href="../../../packages/epics/components/__pack/epics.pack.js"
+          target="src-packages-epics-components-pack-epics-pack-js"
+          ><code title="packages/epics/components/__pack/epics.pack.js">epics.pack.js</code></a
+        >)
+      </li>
+      <li>
+        So the page server would have to serve <code>/packages/epics/</code> from spell-epic: the machine-wide page
+        server (P7), or a mount in <code>PageServer</code>.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>About 45 files in spell-app reach into the epics package:</b>
+    <ul>
+      <li>
+        ui: its vite config, the site check, <code>RootLoader</code>, <code>EmojiData</code>, <code>SitePacks</code>
+      </li>
+      <li>app's <code>vite.shared.ts</code></li>
+      <li>assembler: <code>Linker</code>, <code>format</code></li>
+      <li>brand</li>
+      <li>
+        server: <code>PageServer</code>, <code>mainServer</code>, the site header, and the component sets in
+        <a href="../../../packages/server/src/page/page.types.ts" target="src-packages-server-src-page-page-types-ts"
+          ><code title="packages/server/src/page/page.types.ts">page.types.ts</code></a
+        >
+      </li>
+      <li>
+        the CLI: the <code>spell dev</code> aliases, <code>passThrough</code>, the docs, design, commands and vscode
+        commands, the pack tools
+      </li>
+      <li>the VS Code extension's <code>DocPreview</code></li>
+      <li>
+        the root
+        <a href="../../../vitest.config.ts" target="src-vitest-config-ts"
+          ><code title="vitest.config.ts">vitest.config.ts</code></a
+        >, and their tests
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b
+      >The root <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+      >'s <code>pageServer.routes</code> and <code>watch</code></b
+    >
+    name <code>packages/epics/...</code> files. Pointing only them at spell-epic would serve spell-epic's routes beside
+    spell-app's assets: half a switch.
+  </li>
+  <li>
+    <b>A loop.</b> spell-epic takes ui, server, assembler, util and spell-solid from a spell-app checkout; spell-app's
+    CLI would take <code>@spell-app/epics</code> from spell-epic. Each needs the other installed first.
+  </li>
+  <li>
+    <b>Finding the caller's checkout.</b> <code>Git.nearestCheckout()</code> looks for the epic tool's own file (<a
+      href="../../../packages/epics/tools/plan-doc.js"
+      target="src-packages-epics-tools-plan-doc-js"
+      ><code title="packages/epics/tools/plan-doc.js">plan-doc.js</code></a
+    >).
+    <ul>
+      <li>
+        Without the epics package, spell-app needs another marker: its
+        <a href="../../../.epic/config.json5" target="src-epic-config-json5"
+          ><code title=".epic/config.json5">epic config</code></a
+        >.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>Twice over.</b> Installed, the plugin's hooks and skills come on top of spell-app's own: they'd have to go in the
+    same step.
+    <ul>
+      <li>
+        the hooks in
+        <a href="../../../.claude/settings.json" target="src-claude-settings-json"
+          ><code title=".claude/settings.json">spell-app's Claude settings</code></a
+        >
+      </li>
+      <li>
+        <a href="../../../.claude/skills/" target="src-claude-skills"
+          ><code title=".claude/skills">spell-app's skills</code></a
+        >
+      </li>
+    </ul>
+  </li>
+</ol>
+<p>
+  Until then: make epic changes in spell-app as before; spell-epic is a snapshot of commit <code>79c78e58c</code>,
+  brought up to date at the switch.
+</p>
+<h4 id="i5-p7">After P7 (2026-10-17, overnight)</h4>
+<ol>
+  <li>
+    <b>The pages load the engine by path: cleared in code, one command left.</b>
+    <ul>
+      <li>
+        spell-epic's one server per machine (<code>epic hub</code>) serves the engine at <code>/_epic/assets/</code> and
+        <code>/_epic/pack/</code>, and the OLD paths too, from spell-epic, so a page not migrated yet still draws there.
+      </li>
+      <li>
+        spell-app's page server serves <code>/_epic/</code> as well, from its own epics package (commit
+        <code>3b35b30a4</code>).
+      </li>
+      <li>
+        Every template and page writer in spell-epic writes the routes; the migration step
+        <code>engine-asset-routes</code> moves existing pages (tried on copies: 0 problems).
+      </li>
+      <li>Left: running it on the shared pages, once main serves <code>/_epic/</code> (<a href="#t13">T13</a>).</li>
+    </ul>
+  </li>
+  <li><b>About 45 files in spell-app reach into the epics package:</b> still there.</li>
+  <li>
+    <b
+      >The root <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+      >'s routes and watch:</b
+    >
+    no longer a blocker for serving. spell-epic's server loads spell-epic's own route modules, and spell-app's server
+    keeps its own, so no half-switched mix of the two. They still go from spell-app at the switch.
+  </li>
+  <li><b>A loop:</b> still there.</li>
+  <li><b>Finding the caller's checkout:</b> still there.</li>
+  <li>
+    <b>Twice over:</b> still there, and one more of the same kind: the spell language extension keeps its Review tab and
+    bridge until spell-epic's extension is installed and checked (<a href="#i7">I7</a>).
+  </li>
+</ol>

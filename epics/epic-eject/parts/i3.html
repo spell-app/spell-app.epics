@@ -133,10 +133,8 @@
 <p>What the repo's own tools do on reopen:</p>
 <ul>
   <li>
-    <a
-      href="../../../packages/cli/src/commands/sessionCommand.ts"
-      target="src-packages-cli-src-commands-sessioncommand-ts"
-      ><code title="packages/cli/src/commands/sessionCommand.ts">openSession()</code></a
+    <a href="../../../packages/epics/src/command/Sessions.ts" target="src-packages-epics-src-command-sessions-ts"
+      ><code title="packages/epics/src/command/Sessions.ts">Sessions.open()</code></a
     >
     (<code>spell dev session open</code>) opens the session in the window it's running in, else in the CALLER's window.
     It never looks at the session's folder.
@@ -232,14 +230,22 @@
         whose first folder is a worktree would).
       </li>
       <li>
-        Risk: not yet checked that Claude Code accepts, on resume, a worktree OUTSIDE the repo. Its safety checks look
-        at where the worktree sits. P8 tests it first: enter, close the tab, reopen from main's window.
+        Risk: not yet checked that Claude Code accepts, on resume, a worktree OUTSIDE the repo.
+        <ul>
+          <li>Its safety checks look at where the worktree sits.</li>
+          <li>P8 tests it first: enter, close the tab, reopen from main's window.</li>
+        </ul>
       </li>
       <li>
-        <b>Still to run:</b> the sibling test is set up. Session <code>67b926aa</code> entered
-        <code>spell-app.worktrees/try-layout</code> with <code>EnterWorktree</code> (by path), and its tab was closed.
-        Reopening it and running <code>pwd</code> is the one step left. (A first try opened a new session,
-        <code>3cd0ba48</code>, by mistake.)
+        <b>Still to run:</b> the sibling test is set up.
+        <ul>
+          <li>
+            Session <code>67b926aa</code> entered <code>spell-app.worktrees/try-layout</code> with
+            <code>EnterWorktree</code> (by path), and its tab was closed.
+          </li>
+          <li>Reopening it and running <code>pwd</code> is the one step left.</li>
+          <li>A first try opened a new session, <code>3cd0ba48</code>, by mistake.</li>
+        </ul>
       </li>
       <li>A session that left with <code>ExitWorktree</code> comes back on main, as it should.</li>
     </ul>
@@ -289,3 +295,61 @@
   The pick: option 1, the way Claude Code itself means worktrees to come back. Add option 2 only if P8's test shows a
   gap.
 </p>
+<epic-reply
+  from="Claude"
+  at="2026-10-17 15:30"
+  re="The pick: option 1, the way Claude Code itself means worktrees to come back. Add option 2 only if P8's test shows a gap."
+  ><p>
+    Built in spell-epic (P8, not live until the switch): option 1, plus option 2's guard for the gap the worktree-only
+    windows open.
+  </p>
+  <ul>
+    <li>
+      Option 1: every skill reaches a worktree with <code>EnterWorktree</code>, never by starting in its folder.
+      <ul>
+        <li>a new one by <code>name</code></li>
+        <li>an existing one by <code>path</code>, from the new <code>epic worktree path &lt;name&gt;</code></li>
+        <li><code>/isolate</code> step 3 says so</li>
+        <li>
+          <code>/epic</code>'s Launched, Resume and Request, <code>/unpark</code> and the standing-epic merge enter by
+          path
+        </li>
+        <li>A handoff resumes a session that entered that way, so Claude Code's worktree note brings it back.</li>
+      </ul>
+    </li>
+    <li>
+      The gap: a worktree-only window's first folder is the worktree, so a new tab there (<code>window launch</code>, a
+      wake) starts IN it, with no worktree note.
+    </li>
+    <li>
+      Option 2, the guard: <code>WorktreeGuard</code>, run on SessionStart by the
+      <code title="hooks/worktree-guard.mjs">worktree guard hook</code>.
+      <ul>
+        <li>
+          A session whose last worktree note names a worktree it isn't in is told to <code>EnterWorktree</code> back
+          first.
+        </li>
+        <li>
+          A session started in a worktree beside the repo with no note is told to <code>EnterWorktree</code> the folder
+          it's in, so the note gets written (J29).
+        </li>
+        <li>A session that left with <code>ExitWorktree</code> is left alone.</li>
+      </ul>
+    </li>
+    <li>
+      Not fixable from here (I8):
+      <ul>
+        <li>the panel's own reopen: it marks only <code>.claude/worktrees</code> folders</li>
+        <li>a hook can't move a session</li>
+      </ul>
+    </li>
+    <li>
+      Untested:
+      <ul>
+        <li>Claude Code accepting, on resume, a worktree beside the repo (session 67b926aa's reopen)</li>
+        <li><code>EnterWorktree</code> into the session's own folder</li>
+      </ul>
+    </li>
+    <li>For you to confirm by hand: V11, V12.</li>
+  </ul></epic-reply
+>
