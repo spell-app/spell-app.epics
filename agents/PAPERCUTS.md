@@ -1751,3 +1751,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   MAIN server instead (`spell dev docs link <main root>/epics/<name>/<name>.plan.html --review --show`, on 4747),
   which the tests don't touch.  Better:  a worktree's page server keeps its port across restarts, or cli's tests
   use a page server of their own. · server (people-and-orgs P4)
+- 2026-10-17 · A test script started `node bin/epic hub serve &` and stopped it with `kill $!`:  the server kept
+  running, orphaned, on its port, and the next run's checks talked to the OLD server (serving other files).  `node` is
+  Volta's shim (`~/.volta/bin/node`), which starts the real node as a child:  `$!` is the shim, and killing it leaves
+  the child. · Start a background server with the real binary, `"$(node -p process.execPath)" ...`, so `$!` is the
+  server;  check the port is free (`lsof -nP -iTCP:<port> -sTCP:LISTEN`) before trusting a run. · epics (epic-eject P7)
+- 2026-10-17 · spell-epic's `yarn format` reformatted the generated docs bundle and emoji chunks
+  (`packages/epics/tools/_assets/`):  the root's ignore patterns (`**/epics/tools/_assets/...`) don't match from
+  `packages/epics`, where `vp fmt tools` runs. · Fixed:  the package's `vite.config.ts` adds the same patterns from its
+  own folder (`GENERATED_ASSETS`).  spell-app's own copy may have the same gap. · epics (epic-eject P7)

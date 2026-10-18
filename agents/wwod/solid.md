@@ -32,7 +32,7 @@ From:  original WWOD §18 ("Svelte / UI"), rewritten for Solid 2 (D9).
     `useContext()` in the component body:  it needs an OWNER -- at module scope it throws `NoOwnerError`, default
     or not
   - take the INSTANCE you're handed;  never reach for a parallel one, and say why in the docstring:
-    `<RunnerConsole console>` shows the console it's given, NOT the imported `spellCore`'s -- every `<spell-app>`
+    `<RunnerConsole console>` shows the console it's given, NOT the imported `core`'s -- every `<spell-app>`
     runs on its own runtime copy (`runner/RunnerConsole.tsx`)
   - NOT:  `getAppContext()` at module scope, destructured before props -- `useContext()` throws without an owner,
     and app singletons are imports anyway
