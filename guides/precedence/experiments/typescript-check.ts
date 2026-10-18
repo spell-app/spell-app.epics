@@ -5,7 +5,7 @@
  * - EXPECTED to report errors:  each line under "as emitted today" is what the parser emits for the spell above it
  *   (see `grammar-today.mts`), typed the way the proposed backend would type it.  The errors are the point.
  * - The lines under "as the proposal parses them" MUST report nothing.
- * - Stand-ins for `@spell/core`:  just enough of `Thing`, `List` and `spellCore` to type these lines.
+ * - Stand-ins for `@spell/core`:  just enough of `Thing`, `List` and `core` to type these lines.
  * - NOTE: each class carries a private brand.  TypeScript is structural, spell's types are nominal:  without it a
  *   `Deck` and a `Pile` with the same members are the same type, and `card.add_to_$pile(deck)` passes.
  */
@@ -16,7 +16,7 @@ declare class Thing {}
 declare class List<Item> extends Thing {
   items: Item[]
 }
-declare const spellCore: {
+declare const core: {
   getItemAt<Item>(list: List<Item> | Item[], position: number): Item
   itemCountOf(list: List<unknown> | unknown[]): number
   isEmpty(thing: List<unknown> | unknown[] | string): boolean
@@ -64,17 +64,17 @@ chip.put_on_$pile(pot)
 // P4c  add the card to the deck  (after a user's `to add (a card) to (a pile)`)
 card.add_to_$pile(deck)
 // P1a  the first card of the deck is face up
-spellCore.getItemAt(deck.is_face_up, 1)
+core.getItemAt(deck.is_face_up, 1)
 // P1b  the number of cards in the deck is 52
-spellCore.itemCountOf(deck == 52)
+core.itemCountOf(deck == 52)
 // P1c  the number of cards in the deck + 1
-spellCore.itemCountOf(deck + 1)
+core.itemCountOf(deck + 1)
 // P1d  the suit of the first card of the deck is hearts
-spellCore.getItemAt(deck == "hearts", 1).suit
+core.getItemAt(deck == "hearts", 1).suit
 // P3   x + y is empty
-x + spellCore.isEmpty(y)
+x + core.isEmpty(y)
 // P2b  x ends with y and 1
-spellCore.endsWith(x, y && 1)
+core.endsWith(x, y && 1)
 // a typo no rule catches:  the colour of the card
 card.colour
 
@@ -83,9 +83,9 @@ card.colour
 ////////////////
 
 chip.put_on_$pot(pot)
-spellCore.append(deck, card)
-spellCore.getItemAt(deck, 1).is_face_up
-spellCore.itemCountOf(deck) == 52
-spellCore.itemCountOf(deck) + 1
-spellCore.getItemAt(deck, 1).suit == "hearts"
+core.append(deck, card)
+core.getItemAt(deck, 1).is_face_up
+core.itemCountOf(deck) == 52
+core.itemCountOf(deck) + 1
+core.getItemAt(deck, 1).suit == "hearts"
 card.color
