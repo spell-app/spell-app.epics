@@ -79,3 +79,137 @@
     <li>spell-epic's layout is spell-app's for the moved files, the plugin's parts beside them</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-18 00:49" re="revisit soon"
+  ><p>
+    Hmm, since spell-epic is not a monorepo, we shouldn't have "packages". This violates the principle of least surprise
+    -- I'd expect to see the following in a `src` folder: "epics", "templates", "tests", "types", "vscode". Not clear if
+    `bin`, `scripts` and `hooks` should go in there -- what is standard for a normal, non-monorepo JS package?
+  </p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-18 13:10"
+  re='since spell-epic is not a monorepo, we shouldn&apos;t have "packages" ... what is standard for a normal, non-monorepo JS package?'
+>
+  <p>
+    You're right: <a href="../../../packages/" target="src-packages"><code>packages/</code></a> only makes sense in a
+    monorepo. spell-epic has it because P6 copied the epics package over whole, at its old path.
+  </p>
+  <p>What a normal single-package JS repo does, and what Claude Code adds:</p>
+  <ul>
+    <li>
+      <b
+        ><a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+        >:</b
+      >
+      the code you write and run. No extra <a href="../../" target="src-epics"><code>epics/</code></a> level inside it:
+      the whole repo is the epics package.
+    </li>
+    <li>
+      <b
+        ><a href="../../../tests/" target="src-tests"><code>tests/</code></a> (or
+        <a href="../../../packages/ui/test/" target="src-packages-ui-test"><code>test/</code></a
+        >):</b
+      >
+      at the root, beside <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+      >, mirroring its folders. Tests inside
+      <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> are unusual: build and
+      publish tools then have to be told to leave them out.
+    </li>
+    <li>
+      <b><code>bin/</code>:</b> at the root. That's npm's convention for a package's commands (<code
+        >"bin": { "epic": "bin/epic" }</code
+      >), and Claude Code's too: a plugin's <code>bin/</code> goes on the PATH.
+    </li>
+    <li>
+      <b
+        ><a href="../../../scripts/" target="src-scripts"><code>scripts/</code></a
+        >:</b
+      >
+      at the root, for dev-only scripts (build, release). Code the product RUNS doesn't belong there: so the window
+      script moves into <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+      >.
+    </li>
+    <li>
+      <b
+        ><a href="../../../types/" target="src-types"><code>types/</code></a
+        >, <a href="../../../templates/" target="src-templates"><code>templates/</code></a
+        >:</b
+      >
+      usually at the root: ambient type files, and data the package ships. Inside
+      <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> works too.
+    </li>
+    <li>
+      <b
+        ><a href="../../../packages/vscode/" target="src-packages-vscode"><code>vscode/</code></a
+        >:</b
+      >
+      its own package, with its own
+      <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> and build (the
+      <code>.vsix</code>), so it sits beside
+      <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+      >, not in it, the way a docs site or an example app would.
+    </li>
+    <li>
+      <b>The plugin's parts:</b> <code>.claude-plugin/</code>, <code>skills/</code> and <code>hooks/</code> (with
+      <code>hooks.json</code>) sit at the root, where Claude Code looks for them by default (<a
+        href="https://code.claude.com/docs/en/plugins/components.md"
+        target="cc-plugins-components"
+        >plugins: components</a
+      >).
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Standard single-package layout" recommended>
+      <epic-code title="spell-epic/ · 12 lines" language="text">
+        <pre>
+.claude-plugin/   plugin.json, marketplace.json
+bin/epic
+hooks/            hooks.json and the hook scripts
+skills/
+src/              the engine:  today's packages/epics, one level up
+                  (tool/, list/, components/, tools/, docs/ ...), and window.mjs
+tests/            mirrors src/
+templates/
+types/
+scripts/          dev-only scripts
+vscode/           the extension:  its own package
+README.md  AGENTS.md  package.json</pre>
+      </epic-code>
+      <ul>
+        <li>
+          What a reader of any JS repo expects; <code>$/epics</code> keeps working, pointed at
+          <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+          >.
+        </li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="Your list:  everything in src/">
+      <ul>
+        <li>
+          <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> holds
+          <a href="../../" target="src-epics"><code>epics/</code></a
+          >, <a href="../../../templates/" target="src-templates"><code>templates/</code></a
+          >, <a href="../../../tests/" target="src-tests"><code>tests/</code></a
+          >, <a href="../../../types/" target="src-types"><code>types/</code></a> and
+          <a href="../../../packages/vscode/" target="src-packages-vscode"><code>vscode/</code></a
+          >; <code>bin/</code>, <a href="../../../scripts/" target="src-scripts"><code>scripts/</code></a
+          >, <code>hooks/</code> and the plugin's parts at the root.
+        </li>
+        <li>
+          Works, but tests and a second package inside
+          <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a> are the surprise this
+          time.
+        </li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>
+        About an hour, in P6 (still open): move the files, fix the imports, the alias, the tests' config and the README;
+        the tests must pass as before.
+      </li>
+      <li>Done before the switch-over, so spell-app never points at the old layout.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
