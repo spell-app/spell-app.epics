@@ -250,7 +250,7 @@ In Markdown, which has no tooltips, the name is a link:
   lines ending in a new phrase's first words, bullets of 3+ sentences, words like "the fork",
   file paths in a page's prose, sentences of 3+ code spans.
 - The `epic` tool (`epic <verb>`, once `spell dev plan-doc`) turns a name and its path, handed to it as HTML,
-  into the name with its path as the tooltip (`packages/epics/src/tool/PLAN-DOC.md`, "The way in").
+  into the name with its path as the tooltip (`spell-epic/src/tool/PLAN-DOC.md`, "The way in").
 - `/fussbudget`:  the skill.
   It reads this file and WWOD §6 whole, runs the checker, then rewrites the text in place, uncommitted:
   the diff is the proposal.  `/fussbudget` alone asks what to cover.
