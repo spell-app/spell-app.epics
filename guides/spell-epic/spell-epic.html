@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spell-epic: the epic engine, outside spell-app</title>
+    <meta
+      name="description"
+      content="The epic tooling in its own repo, spell-epic:  what's in it, how a repo uses it, why it's built this way, and the steps that switch spell-app over."
+    />
+    <meta name="spell-saga" content="epics" />
+    <link rel="stylesheet" href="../../packages/epics/tools/_assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page">
+    <spell-site-header root="../.."></spell-site-header>
+    <div class="spell-doc">
+      <main class="spell-doc-main">
+        <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
+          <ui-breadcrumb-section href="../../pages/index.html" target="src-packages-docs-index-html"
+            >Docs</ui-breadcrumb-section
+          >
+          <ui-breadcrumb-section active>spell-epic: the epic engine, outside spell-app</ui-breadcrumb-section>
+        </ui-breadcrumb>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>spell-epic: the epic engine, outside spell-app</h1></header></ui-sticky
+        >
+        <p class="lede">
+          spell-epic is the epic tooling in a repo of its own, beside spell-app: one copy per machine, that every repo
+          and every window can run.
+        </p>
+        <ui-list class="spell-meta">
+          <ui-item icon="user"
+            >Written for: anyone changing the epic tools, setting up a repo to use them, or switching spell-app over to
+            them</ui-item
+          >
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="green">built</ui-label>, and
+            <ui-label size="mini" color="orange">not switched over yet</ui-label>: spell-app still runs its own
+            copies</ui-item
+          >
+          <ui-item icon="list check"
+            >The epic: <a href="../../epics/epic-eject/epic-eject.plan.html" target="epic-eject">Epic Eject</a>, its
+            phases, decisions and hand checks</ui-item
+          >
+          <ui-item icon="flask"
+            >Checked on: spell-epic's own tests (1259), lint and plugin check, and one epic run end to end in a repo
+            that has never heard of spell, 2026-10-17</ui-item
+          >
+        </ui-list>
+
+        <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="info circle"></ui-icon>
+          <ui-statistics class="spell-stats" size="mini">
+            <ui-statistic value="17" label="skills"></ui-statistic>
+            <ui-statistic value="1" label="copy per machine"></ui-statistic>
+            <ui-statistic value="1259" label="tests"></ui-statistic>
+          </ui-statistics>
+          <ul>
+            <li>
+              The epic tooling lives in <b>spell-epic</b>, a repo beside spell-app at
+              <code>~/www/spell-app/spell-epic</code>.
+            </li>
+            <li>
+              It's a Claude Code <b>plugin</b>: 17 skills, the hooks, and the <code>epic</code> command with every epic
+              verb in it.
+            </li>
+            <li>
+              It also holds the epics package (the epic pages' elements and tools), one epic server for every repo, and
+              its own VS Code extension.
+            </li>
+            <li>
+              A repo says where its epic things are in ONE file,
+              <code title="&lt;repo&gt;/.epic/config.json5">.epic/config.json5</code>. <code>epic init</code> writes it
+              for a new repo.
+            </li>
+            <li>Worktrees can go beside the repo, in windows that show each file once and still list every session.</li>
+            <li>
+              It ran one epic from start to finish in a throwaway repo that has never heard of spell, with no spell-app
+              path in any output.
+            </li>
+          </ul>
+          <ui-message state="warning" header="Not switched over yet">
+            <ul>
+              <li>
+                <b>spell-app doesn't run spell-epic yet.</b> Every window still runs spell-app's own copies of the epic
+                code, hooks and skills.
+              </li>
+              <li>
+                The switch is a list of steps for Owen, in order:
+                <a href="#8-switching-over">Switching spell-app over</a>, below.
+              </li>
+              <li>
+                Until then, an epic change still goes into spell-app, and is carried over to spell-epic as the switch's
+                first step.
+              </li>
+            </ul>
+          </ui-message>
+        </ui-section>
+
+        <ui-section id="2-why-a-repo" header="2. What it fixes" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <p>
+            The epic system is TOOLING, but it lived inside the PRODUCT repo, so git versioned it per branch like the
+            product code. Three things went wrong because of that.
+          </p>
+          <ul>
+            <li>
+              <b>The lag:</b> a feature added in one window reached the others one piece at a time, some only when their
+              branch merged main. One worktree was 274 commits behind.
+            </li>
+            <li>
+              <b>The duplicate files:</b> every worktree window showed main's files too, so Quick Open and Find showed
+              each file twice.
+            </li>
+            <li>
+              <b><code>/epic</code> couldn't run in another repo:</b> it was tied to spell-app's folders and names.
+            </li>
+          </ul>
+          <p>What spell-epic does about each one, once a repo runs it:</p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>problem</th>
+                  <th>before</th>
+                  <th>with spell-epic</th>
+                </tr>
+                <tr>
+                  <td>the lag</td>
+                  <td class="no negative">each worktree ran its own copy of some tools, as old as its branch</td>
+                  <td class="yes positive">every window runs the one copy; an edit is live at the next verb</td>
+                </tr>
+                <tr>
+                  <td>the duplicate files</td>
+                  <td class="no negative">main's checkout was every window's first folder</td>
+                  <td class="yes positive">a worktree's window holds only the worktree and the content folder</td>
+                </tr>
+                <tr>
+                  <td>another repo</td>
+                  <td class="no negative">spell-app's paths written into about 30 places</td>
+                  <td class="yes positive">one config file per repo, and <code>epic init</code> to write it</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+        </ui-section>
+
+        <ui-section id="3-whats-in-it" header="3. What's in it" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="folder"></ui-icon>
+          <p>spell-epic's folders, each with one job:</p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>folder</th>
+                  <th>what</th>
+                </tr>
+                <tr>
+                  <td><code>skills/</code></td>
+                  <td>
+                    the 17 skills: planning (<code>epic</code>, <code>epics</code>, details, comment, docs-check, send),
+                    worktrees and sessions (isolate, park, unpark, wait-for, worktrees, session, title, wtf), background
+                    and offline (bg, bedtime, airplane)
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>hooks/</code></td>
+                  <td>
+                    making and removing worktrees, the behind-main notice, the worktree guard, the reminder on leaving a
+                    worktree, the prompt gate, and the end-of-turn window move and shared-content commit
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>bin/epic</code></td>
+                  <td>the <code>epic</code> command, on every session's path while the plugin is on</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code title="spell-epic/packages/epics/">packages/epics/</code>
+                  </td>
+                  <td>
+                    the epics package: the <code>&lt;epic-*&gt;</code> elements, the epic tool, the command's code, the
+                    docs tools and their assets, Epic UI's pages
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <code title="spell-epic/tests/epics/">tests/epics/</code>
+                  </td>
+                  <td>its tests, at the same paths as the code</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code title="spell-epic/scripts/window.mjs">scripts/window.mjs</code>
+                  </td>
+                  <td>the VS Code windows (<code>epic window</code>), and its test</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code title="spell-epic/vscode/">vscode/</code>
+                  </td>
+                  <td>
+                    its VS Code extension: the Review tab, Epic Docs, "Open Epic…", the window bridge and the handoff
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <code title="spell-epic/templates/">templates/</code>
+                  </td>
+                  <td>every kind of page's starting point: details, review, choice pages, guides, cheatsheets ...</td>
+                </tr>
+                <tr>
+                  <td><code>.claude-plugin/</code></td>
+                  <td>the plugin's manifest, and a marketplace of one: this folder, so the plugin loads in place</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ul>
+            <li>
+              Its README says how to install it, how a repo uses it, and how spell-app switches over.
+              <ul>
+                <li>Its own checks: types, tests (node and browser), lint, and Claude Code's plugin check.</li>
+              </ul>
+            </li>
+            <li>
+              Its git history starts fresh: the first commit names the spell-app commit the files came from,
+              <code>79c78e58c</code>. To see how a file came to be before that, look in spell-app's history.
+            </li>
+            <li>
+              Staying in spell-app, since they're about spell itself: WWOD, and the fussbudget, design, solid-2,
+              spell-docs and spell-serve skills.
+            </li>
+          </ul>
+
+          <ui-section id="the-folders" header="The folders, after the switch" sticky collapsible dividing collapsed>
+            <p>Sibling folders under <code>~/www/spell-app/</code>:</p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>~/www/spell-app/ · 5 folders</ui-title>
+              <ui-content>
+                <pre><code class="language-text">spell-app/                  the code
+spell-app.worktrees/&lt;name&gt;  a worktree per branch
+spell-epic/                 the engine:  plugin, epics package, epic server, VS Code extension, templates
+spell-app.epics/            pages about spell-app (was spell-app-dev):  epics, sagas, guides, pages,
+                            brand, agents, goals
+spell-spaces/               Owen's own Spell projects</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li>
+                Today the content folder is still <code>spell-app-dev</code>, and worktrees are still inside the repo:
+                the switch renames and moves them.
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="4-a-repo" header="4. A repo that uses it" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="laptop code"></ui-icon>
+          <p>
+            Each repo says where it keeps its epic things in ONE file,
+            <code title="&lt;repo&gt;/.epic/config.json5">.epic/config.json5</code>, in its main checkout.
+          </p>
+          <ul>
+            <li>Every key is optional. A key left out takes its default, which is spell-app's layout.</li>
+            <li>Folders are relative to the main checkout, and every worktree reads the main checkout's file.</li>
+            <li><code>epic config [key]</code> prints what's in force.</li>
+            <li>
+              The hooks act only in a repo that has the file, except the worktree hook, which Claude Code needs
+              everywhere.
+            </li>
+            <li>
+              The engine's data about ONE repo stays in that repo's content folder: the tooling home, the favourites,
+              the list of sagas.
+            </li>
+            <li>
+              A repo's generated files, the ones a merge rebuilds instead of merging, are its own list,
+              <code title="&lt;repo&gt;/.epic/generators.json5">.epic/generators.json5</code>.
+            </li>
+          </ul>
+
+          <ui-section id="the-keys" header="The keys" sticky collapsible dividing collapsed>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>key</th>
+                    <th>what</th>
+                  </tr>
+                  <tr>
+                    <td><code>contentFolder</code></td>
+                    <td>the shared content repo: epics, guides, sagas, pages</td>
+                  </tr>
+                  <tr>
+                    <td><code>baseBranch</code></td>
+                    <td>the branch worktrees start from and merge into</td>
+                  </tr>
+                  <tr>
+                    <td><code>worktreesFolder</code></td>
+                    <td>where NEW worktrees go; may be beside the repo</td>
+                  </tr>
+                  <tr>
+                    <td><code>installCommand</code></td>
+                    <td>what makes a new worktree ready to run</td>
+                  </tr>
+                  <tr>
+                    <td><code>installOnCreate</code>, <code>installTimeout</code></td>
+                    <td>
+                      whether the worktree hook runs that install before it hands the worktree over, and for how long
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>windows</code></td>
+                    <td>the window names, and whether a worktree's window holds only the worktree</td>
+                  </tr>
+                  <tr>
+                    <td><code>linkSessionFolders</code></td>
+                    <td>whether each new worktree's saved-session folder is linked to main's</td>
+                  </tr>
+                  <tr>
+                    <td><code>sharedFolders</code></td>
+                    <td>the content folder's folders every checkout links in at its root</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>Each key's default and its exact values: spell-epic's README, "A repo that uses it".</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="epic-init" header="A new repo: epic init" sticky collapsible dividing collapsed>
+            <p>In the repo's main checkout, with the plugin on:</p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Setting up a repo · 5 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-sh">git init -b main                 # a git repo, with a first commit
+epic init --dry-run              # what it would write
+epic init                        # .epic/config.json5, the content repo, the links, .gitignore
+git add .epic/config.json5 .gitignore &amp;&amp; git commit -m "epic init"
+epic repo add &amp;&amp; epic hub ensure # the epic server serves its pages</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <p>What <code>epic init</code> does, each step skipped when it's done, so it's safe to run twice:</p>
+            <ol>
+              <li>
+                Writes the config with every key, each with a comment, valued for THIS repo.
+                <ul>
+                  <li>
+                    The content folder goes beside the repo, <code>../&lt;repo&gt;.epics</code>, and worktrees in
+                    <code>../&lt;repo&gt;.worktrees</code>.
+                  </li>
+                  <li>The install command is what the lock file names; none, nothing to install.</li>
+                </ul>
+              </li>
+              <li>Makes the content folder a git repo of its own, with its epics, sagas, guides and pages folders.</li>
+              <li>Links each folder in at the checkout's root.</li>
+              <li>
+                Lists the links, and the VS Code window files, in the repo's
+                <code title="&lt;repo&gt;/.gitignore">.gitignore</code>.
+              </li>
+            </ol>
+            <p>Then <code>/epic &lt;name&gt;</code> works there as it does in spell-app.</p>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="5-the-command" header="5. One epic command" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="terminal"></ui-icon>
+          <ul>
+            <li>
+              Every epic verb is <code>epic</code>: the epic-page verbs, and window, worktree, park, session, stock,
+              shared and server, under their own headings in <code>epic --help</code>.
+            </li>
+            <li>
+              Every verb runs ONE copy of the code, the called <code>epic</code>'s, on the caller's checkout.
+              <code>epic --version</code> says which.
+              <ul>
+                <li>So a worktree far behind main no longer runs its own old tools.</li>
+              </ul>
+            </li>
+            <li>No verb loads the spell compiler: <code>epic worktree list</code> went from 1.3s to 0.5s.</li>
+            <li>Each verb group is a class, registered by one <code>EpicProgram</code>.</li>
+            <li>
+              spell-app keeps the <code>spell dev</code> spellings, as hidden aliases. That part is on spell-app's
+              branch already, and reaches <code>main</code> when it merges.
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="6-the-server" header="6. One epic server" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="globe"></ui-icon>
+          <p>
+            <code>epic hub</code> runs ONE page server for every repo that uses spell-epic, on port 4848, beside each
+            checkout's own page server.
+          </p>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>Starting it · 3 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-sh">epic repo add ~/www/spell-app/spell-app --default   # register a repo, served at / too
+epic repo list
+epic hub ensure                                      # start it:  http://127.0.0.1:4848/</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>address</th>
+                  <th>what</th>
+                </tr>
+                <tr>
+                  <td><code>/_epic/assets/</code>, <code>/_epic/pack/</code></td>
+                  <td>the engine's styles, scripts and component pack, so a page in any repo draws the same</td>
+                </tr>
+                <tr>
+                  <td><code>/r/&lt;repo&gt;/...</code></td>
+                  <td>a registered repo's content folder</td>
+                </tr>
+                <tr>
+                  <td><code>/...</code></td>
+                  <td>the default repo's content folder too, so today's addresses keep working</td>
+                </tr>
+                <tr>
+                  <td><code>/api/...</code></td>
+                  <td>
+                    the review, details, choices, comments, agents, airplane and links calls, for the default repo
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ul>
+            <li>Its files are in <code>~/.spell-epic/</code>: the repo list, its pid file and its log.</li>
+            <li><code>ensure</code> restarts it when its code or the repo list changed since it started.</li>
+            <li>
+              spell-app's own page server serves <code>/_epic/</code> as well, so a page moved to the new addresses
+              draws on both.
+            </li>
+            <li>A page not moved yet still draws on the epic server, from its old addresses.</li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="7-worktrees" header="7. Worktrees beside the repo" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="code branch"></ui-icon>
+          <p>
+            Worktrees can move OUT of the repo, so a worktree's window holds just the worktree and the content folder:
+            no main checkout, each file once. Every part is off by default; a repo turns it on in its config.
+          </p>
+          <ul>
+            <li>
+              <b>Where:</b> <code>../spell-app.worktrees/&lt;name&gt;</code>, when the config's worktrees folder points
+              there.
+              <ul>
+                <li>
+                  Worktrees left in the old place keep working until their <code>/isolate done</code>: every tool reads
+                  both places.
+                </li>
+                <li>
+                  <code>epic worktree path &lt;name&gt;</code> says where one is; <code>epic worktree move</code> moves
+                  an idle one.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <b>One window, one checkout:</b> <code>⎇ &lt;name&gt;</code>, then the content folder. Quick Open and Find
+              show each file once, and Source Control shows one repo.
+            </li>
+            <li>
+              <b>Every session listed:</b> the worktree hook links each new worktree's saved-session folder to main's,
+              so Claude Code saves every session in one place, and every window's Claude panel lists them all.
+            </li>
+            <li>
+              <b>Packages first:</b> a worktree beside the repo can't borrow main's packages, so the hook runs the
+              install before it hands the worktree over, before any window opens.
+            </li>
+            <li>
+              <b>Back in the right folder:</b> every skill enters a worktree with Claude's <code>EnterWorktree</code>,
+              never by starting in its folder.
+              <ul>
+                <li>Only then does Claude Code bring a reopened session back to its worktree.</li>
+                <li>
+                  A session-start guard tells a session that comes back elsewhere, or starts in a worktree unrecorded,
+                  to enter it.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <b>The content folder's new name:</b> <code>epic shared rename spell-app.epics</code> renames it, leaving
+              a link at the old name for old paths and running sessions.
+            </li>
+          </ul>
+
+          <ui-section id="layout-test" header="The layout test run" sticky collapsible dividing collapsed>
+            <p>Owen tried the layout by hand first, in a throwaway worktree beside the repo:</p>
+            <ol>
+              <li>Explorer and Quick Open show each file once. <b>Yes.</b></li>
+              <li>The window's Claude panel lists main's sessions. <b>Yes.</b></li>
+              <li>A session started there shows in main's window, saved through the link. <b>Yes.</b></li>
+              <li>
+                Resuming it from another window. <b>Failed:</b> it came back with its history, but worked on the main
+                checkout.
+                <ul>
+                  <li>The <code>EnterWorktree</code> rule and the guard above are the fix.</li>
+                </ul>
+              </li>
+              <li>Entering that worktree from a session in the main checkout, by its path. <b>Yes.</b></li>
+            </ol>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="8-switching-over" header="8. Switching spell-app over" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="arrows left right"></ui-icon>
+          <p>Owen's steps, in order, one command each.</p>
+          <ul>
+            <li><code>epic</code> here is spell-epic's own, which step 7 puts on the path.</li>
+            <li>The todo each one closes on the epic page is in brackets.</li>
+          </ul>
+          <ol>
+            <li>
+              Merge this epic's branch into spell-app's <code>main</code>: <code>/isolate done</code> in its session.
+            </li>
+            <li>Point spell-epic at spell-app's main checkout, then <code>yarn install</code> there (T10).</li>
+            <li>
+              Bring spell-epic up to date with the epic changes spell-app took since its snapshot, and port each (T12).
+            </li>
+            <li>Install the plugin for the machine, from spell-epic's own marketplace (T6).</li>
+            <li>
+              Bare <code>/epic</code>: link spell-epic's skills into <code>~/.claude/skills</code>, and remove
+              spell-app's own copies of them in the same commit as step 6 (T7).
+            </li>
+            <li>Take spell-app's own hooks out of its Claude settings, or each hook runs twice (T9).</li>
+            <li>Point <code>~/.local/bin/epic</code> at spell-epic's <code>bin/epic</code> (T8).</li>
+            <li>The epic server: register spell-app, and start it (T14).</li>
+            <li>Move the shared pages to the engine's addresses, with the migration step, dry run first (T13).</li>
+            <li>Install spell-epic's VS Code extension, then hand checks V7-V9 (T15).</li>
+            <li>
+              Remove
+              <code title="spell-app-dev/templates/">templates/</code>
+              from the content folder, once the tools read spell-epic's copies (T11).
+            </li>
+            <li>
+              Rename the content folder to <code>spell-app.epics</code>, dry run first; then
+              <code>epic window init</code>, and edit the files it lists (T18).
+            </li>
+            <li>
+              New worktrees beside the repo: turn on the worktrees folder, linked session folders and install-first in
+              spell-app's config, and commit on <code>main</code> (T19).
+            </li>
+            <li>Move the idle worktrees, dry run first. Busy ones move at their <code>/isolate done</code> (T20).</li>
+            <li>The hand checks V10-V13: a new worktree, a reopened session, a new tab, old pages after the rename.</li>
+            <li>
+              Later, code rather than a command: <code>epic server</code> hands over to <code>epic hub</code> (T16), the
+              commands page learns the new verbs (T22), a call per repo on the epic server (T17).
+            </li>
+          </ol>
+          <ul>
+            <li>The exact commands: spell-epic's README, "Switching a repo over".</li>
+            <li>
+              Every hand check the switch needs, each a step and what should happen: the epic page's "To test", V4 to
+              V20.
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="9-why" header="9. Why it's built this way" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="scroll"></ui-icon>
+          <p>The decisions behind it, each Owen's (Q) or a judgement call he can review (J), on the epic page:</p>
+          <ul>
+            <li>
+              <b>A repo of its own, separate from the pages it makes</b> (Q2): the engine is one copy per machine; each
+              repo's pages stay in its own content folder.
+            </li>
+            <li><b>A fresh git history</b> (Q9): its first commit names the spell-app commit it came from.</li>
+            <li>
+              <b>spell's packages linked from a spell-app checkout</b> (Q5, J13): the epic pages are drawn with Spell UI
+              and served by spell's page server. They go to npm at release.
+              <ul>
+                <li>
+                  Linked from the <code>epic-eject</code> worktree for now, since the epic code needs that branch's
+                  server package.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <b>The epics package kept whole, at its spell-app path</b> (J14): every path inside it means the same as
+              in spell-app, so the move changed no code inside it.
+            </li>
+            <li>
+              <b>Bare <code>/epic</code> kept</b> (Q6): the plugin's skills are also linked into
+              <code>~/.claude/skills</code>.
+            </li>
+            <li><b>Every verb group a class</b> (Q15), as the epic-page verbs already were.</li>
+            <li>
+              <b>One config file per repo</b> (Q13), with every key optional and spell-app's layout as the defaults, so
+              spell-app needs no change to keep working.
+            </li>
+            <li><b>The hooks act only in a repo with that file</b> (J15), so the plugin is quiet everywhere else.</li>
+            <li><b>Templates move into spell-epic</b> (Q8): a repo adds its own only if it wants one.</li>
+            <li>
+              <b>Worktrees beside the repo, session folders linked</b> (Q3, Q4): Owen picked both on the layout page. No
+              Sessions view (J25): the link lists every session.
+            </li>
+            <li>
+              <b>The engine at one address, <code>/_epic/</code></b> (J19, J21): a page in any repo draws the same, on
+              either server.
+            </li>
+            <li>
+              <b>The closing line as a hook too</b> (J42): leaving a worktree with a bare
+              <code>ExitWorktree</code> loads no skill, so only a hook reaches that reply in another repo.
+            </li>
+            <li>
+              <b>Code only, overnight</b> (Q16, Q17): nothing was installed, renamed or moved; spell-app's own copies
+              were frozen and are replaced at the switch (J32).
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="10-limits" header="10. Limits" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="warning"></ui-icon>
+          <p>What's open, each on the epic page:</p>
+          <ul>
+            <li>
+              <b>Not switched over</b> (I5): spell-app runs its own copies of the epic code, hooks and skills until the
+              steps above.
+              <ul>
+                <li>About 45 spell-app files still reach into its own epics package.</li>
+                <li>The two repos need each other installed first.</li>
+              </ul>
+            </li>
+            <li>
+              <b>The old <code>epic</code> wins on the path</b> (I6): the terminal's own link comes before the plugin's,
+              until step 7.
+            </li>
+            <li>
+              <b>Two Review tabs for a while</b> (I7): the spell language extension keeps its own until spell-epic's is
+              installed and checked.
+            </li>
+            <li>
+              <b>Reopening from the Claude panel</b> (I3, I8): the panel itself can't be fixed from here, and a hook
+              can't move a session, only tell Claude to.
+            </li>
+            <li>
+              <b>One repo's calls on the epic server</b> (J22, T17): a second repo's pages draw, but their review
+              controls reach the default repo.
+            </li>
+            <li>
+              <b>The skills still name a few of spell-app's own tools</b> (T24): <code>spell dev vscode</code>, the WWOD
+              check, the changelog.
+            </li>
+            <li>
+              <b>Claude Code facts not yet seen</b> (C3): a plugin loading in place, and its worktree hook, with the
+              plugin installed for the machine.
+            </li>
+            <li>
+              <b>Smaller ones:</b>
+              <ul>
+                <li><code>epic session list</code> shows a running session twice (I4).</li>
+                <li><code>epic hub ensure</code> didn't restart after one code change (I11).</li>
+                <li>The config file is read by a small reader of its own, not the shared data-file reader (J2).</li>
+              </ul>
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="11-history" header="11. History" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="history"></ui-icon>
+          <p class="meta">Epic Eject's phases, newest first.</p>
+          <ui-feed class="spell-history" size="small">
+            <ui-event icon="route">
+              <ui-content>
+                <ui-summary
+                  >Leaving a worktree ends with the closing line; launch leaves an open window's look alone (P10)
+                  <ui-date>2026-10-17</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="flask">
+              <ui-content>
+                <ui-summary
+                  >One epic run end to end in a repo that has never heard of spell; <code>epic init</code> (P9)
+                  <ui-date>2026-10-17</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="code branch">
+              <ui-content>
+                <ui-summary
+                  >Worktrees beside the repo, linked session folders, install first, the worktree guard (P8)
+                  <ui-date>2026-10-17</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="globe">
+              <ui-content>
+                <ui-summary
+                  >One epic server, the <code>/_epic/</code> addresses, spell-epic's VS Code extension (P7)
+                  <ui-date>2026-10-17</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="cubes">
+              <ui-content>
+                <ui-summary
+                  >spell-epic made, green on its own; spell-app's switch held back (P6)
+                  <ui-date>2026-10-17</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="terminal">
+              <ui-content>
+                <ui-summary
+                  >One <code>epic</code> command, every verb group a class (P5)
+                  <ui-date>2026-10-17</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="laptop code">
+              <ui-content>
+                <ui-summary
+                  >One config file per repo, every written-in path through it (P4)
+                  <ui-date>2026-10-17</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >Quick Relief: shared pages from main's server, the behind-main notice (P1, P3)
+                  <ui-date>2026-10-17</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="gavel">
+              <ui-content>
+                <ui-summary
+                  >Decided: its own repo, worktrees beside it, session folders linked (Q2-Q6)
+                  <ui-date>2026-10-10</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+          </ui-feed>
+        </ui-section>
+
+        <ui-section id="12-sources" header="12. Sources" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="book"></ui-icon>
+          <ui-items class="spell-sources" divided>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="../../epics/epic-eject/epic-eject.plan.html" target="epic-eject">Epic Eject</a></ui-header
+                >
+                <ui-meta>epic page</ui-meta>
+                <ui-description
+                  >Every phase, decision, judgement call, issue, todo and hand check behind this page.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>spell-epic's README</ui-header>
+                <ui-meta>in <code>~/www/spell-app/spell-epic</code></ui-meta>
+                <ui-description>
+                  Installing it, the config keys and their defaults, <code>epic init</code>, the epic server, and the
+                  switch-over's exact commands.
+                </ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://code.claude.com/docs/en/plugins/loading.md" target="claude-code-plugins-loading"
+                    >Claude Code: loading plugins</a
+                  ></ui-header
+                >
+                <ui-meta>reference · read 2026-10-10</ui-meta>
+                <ui-description
+                  >A local-path marketplace loads its plugin in place, so an edit is the plugin.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+          </ui-items>
+        </ui-section>
+
+        <footer class="spell-doc-footer">
+          <ui-divider></ui-divider>
+          <p class="meta">
+            Last checked 2026-10-17 against spell-epic's <code>main</code> and spell-app's <code>epic-eject</code>
+            branch.
+          </p>
+        </footer>
+      </main>
+    </div>
+    <script src="../../packages/epics/tools/_assets/highlight.min.js"></script>
+    <script src="../../packages/epics/tools/_assets/spell-ui.js"></script>
+  </body>
+</html>
