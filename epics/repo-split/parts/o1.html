@@ -1,2 +1,62 @@
 <!-- plan-doc part:  #o1's body in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>What goes where: the part that becomes the epic's guide in the last phase.</p>
+<p>
+  What goes where once the monorepo is split. This part becomes the epic's guide in the last phase. It follows your
+  answers on the
+  <a href="../details/analysis.html" target="src-epics-repo-split-details-analysis-html">analysis page</a> (<a
+    href="#q1"
+    >Q1</a
+  >-<a href="#q5">Q5</a>).
+</p>
+<h4 id="o1-repos">The repos, bottom to top</h4>
+<p>Every arrow points down, so each repo builds and tests with only the repos below it beside it.</p>
+<epic-code title="the layers · 7 repos" language="text">
+  <pre>
+spell-app      core, py, spell, spaces, lsp, app, cli, vscode, brand, the page server's own layer
+spell-epic     the epic engine and the docs tools (its own repo since epic-eject)
+spell-ui       ui, its site tools, and the pack build spell-epic borrows today
+spell-parser   parser, markdown
+spell-element  spell-solid, renamed
+spell-server   the generic HTTP layer (~3,900 lines) and the assembler
+spell-util     util's generic and reactive layers (and the few spell helpers the parser needs)
+</pre>
+</epic-code>
+<ul>
+  <li>spell-ui may import spell-parser, for markdown (your note on Q1).</li>
+  <li>
+    spell's highlighter is NOT imported by spell-ui: it's built from the spell language, which stays in spell-app. So
+    spell-ui keeps a slot for it, and spell-app fills it.
+  </li>
+  <li>Whether spell-util is its own repo, or a package inside spell-server's repo, is <a href="#q7">Q7</a>.</li>
+</ul>
+<h4 id="o1-order">The order of the work</h4>
+<ul>
+  <li>
+    First, inside the monorepo, on this branch: cut every arrow that points the wrong way. Each cut is a normal change
+    with normal checks, and could merge into <code>main</code> on its own.
+  </li>
+  <li>
+    Then the cutover: a parent folder becomes the meta repo (<a href="#q4">Q4</a>), and each new repo is cut out of
+    spell-app with its git history.
+  </li>
+  <li>Last, the tooling learns about several repos: worktrees, the page server's settings, the extension, CI.</li>
+</ul>
+<h4 id="o1-meta">The meta repo</h4>
+<p>
+  <code>~/www/spell-app/</code> already holds spell-app, spell-epic and the content folder side by side. It becomes the
+  meta repo: a <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> whose workspaces
+  are the repos, so one <code>yarn install</code> links them all.
+</p>
+<epic-code title="~/www/spell-app/package.json · sketch" language="json">
+  <pre>
+{
+  "private": true,
+  "workspaces": ["spell-util/packages/*", "spell-server/packages/*", "spell-element", "spell-parser/packages/*",
+                 "spell-ui", "spell-epic", "spell-app/packages/*"]
+}
+</pre>
+</epic-code>
+<ul>
+  <li>One lockfile: one Solid, one set of tool versions, nothing copied by hand.</li>
+  <li>How a worktree fits in, when the repos are separate, is <a href="#q9">Q9</a>.</li>
+  <li>How one repo names another's code (<code>$/ui</code> today) is <a href="#q8">Q8</a>.</li>
+</ul>
