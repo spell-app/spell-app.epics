@@ -1,0 +1,74 @@
+<!-- plan-doc part:  #j14's details in outline-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A line that leaves out <code>it</code> / <code>its</code> is read by a new rule that stands in for the missing word
+  and takes no words of the line. It was option A of the implicit-subject todo (<a href="#t8">T8</a>), built on a small
+  addition to the generic parser.
+</p>
+<ul>
+  <li>
+    The new rule,
+    <a
+      href="../../../packages/spell/src/rules/types/SubjectImplied.ts"
+      target="src-packages-spell-src-rules-types-subjectimplied-ts"
+      ><code title="packages/spell/src/rules/types/SubjectImplied.ts">subject_implied</code></a
+    >, is a third subject beside <code>it</code> and <code>its</code>.
+    <ul>
+      <li>it matches only directly in a type's outline body, and answers "the type this body is about"</li>
+      <li>
+        each member rule that names <code>{type:subject_it}</code> or <code>{type:subject_its}</code> got a twin with
+        <code>{type:subject_implied}</code>
+      </li>
+    </ul>
+  </li>
+  <li>
+    The generic parser learned what a rule that takes no words is.
+    <ul>
+      <li>
+        a rule says so with
+        <a href="../../../packages/parser/src/rules/Rule.ts" target="src-packages-parser-src-rules-rule-ts"
+          ><code title="packages/parser/src/rules/Rule.ts">Rule.zeroWidth</code></a
+        >
+      </li>
+      <li>
+        the parser's quick pre-check of a line (<a
+          href="../../../packages/parser/src/rules/Sequence.ts"
+          target="src-packages-parser-src-rules-sequence-ts"
+          ><code title="packages/parser/src/rules/Sequence.ts">Sequence.test()</code></a
+        >) used to assume every sub-rule eats at least one word; now it stays in place for such a rule, if the rule says
+        it could match here at all
+      </li>
+      <li>
+        it knows those rules by name, from a set
+        <a href="../../../packages/parser/src/Parser.ts" target="src-packages-parser-src-parser-ts"
+          ><code title="packages/parser/src/Parser.ts">addRule()</code></a
+        >
+        fills (<a href="../../../packages/parser/src/rules/Subrule.ts" target="src-packages-parser-src-rules-subrule-ts"
+          ><code title="packages/parser/src/rules/Subrule.ts">Subrule.zeroWidthRules</code></a
+        >): looking the rule up for every sub-rule was too slow (below)
+      </li>
+    </ul>
+  </li>
+  <li>
+    Why not option B, re-reading a failed line with an invisible <code>its</code> put in front:
+    <ul>
+      <li>every "Don't understand" line in a body would be parsed twice</li>
+      <li>the error for a line that fails both ways would have to pick which reading to report</li>
+      <li>the hover's "Reads as" and the highlighter would see words that aren't in the file</li>
+    </ul>
+  </li>
+  <li>
+    The cost: the parser is about 5% slower on its rule tests (the parser-speed caveat, <a href="#c5">C5</a>). The first
+    version, looking the rule up per sub-rule, cost 12%.
+  </li>
+  <li>
+    A rough edge: the set is by rule NAME and shared by every parser. A rule called <code>subject_implied</code> in
+    another parser that does take words would be pre-checked wrongly. None exists.
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>the generic parser has a new rule property, <code>zeroWidth</code>, and the quick test honours it</li>
+    <li>spell has a third subject rule; 17 new syntaxes use it</li>
+    <li>no line is parsed twice; "Reads as" puts the subject back from the match itself</li>
+  </ul></epic-net-effect
+>
