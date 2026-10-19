@@ -23,7 +23,13 @@
             saga="drawable-spell"
           >
             <epic-overview id="overview">
-              <epic-summary>Two sentences: what this plan does, and why.</epic-summary>
+              <epic-summary
+                >A set of Spell UI elements that draw a property editor (a header, folding property groups, one field
+                per property) straight from a schema: a spell class, a web component's vocabulary, or a JSON block.
+                It edits one thing or many at once, live or on Apply, and the spell editor can save a generated one as
+                an <code>.editor.html</code> page to tweak by hand, check against its schema, and compile for use
+                without spell.</epic-summary
+              >
               <epic-prompt
                 ><p>
                   goal: a set of components to make a "property editor" for any class / json block / web component /
@@ -91,7 +97,165 @@
                   These "editors" can be "compiled" for use outside of spell (e.g. where spell parser is not available).
                 </p>
                 <p>And I want another pony, which gallops properly this time (e.g. its legs move).</p></epic-prompt
-              ><epic-section id="o1" kind="overview-part" title="Structure" source="parts/o1.html"></epic-section>
+              ><epic-section id="o1" kind="overview-part" title="What we start from" source="parts/o1.html"></epic-section>
+              <epic-section id="o2" kind="overview-part" title="The elements">
+                <p>Four new elements, nested the way the Theme Creator's panel already is.</p>
+                <ul>
+                  <li>
+                    <code>&lt;ui-property-editor&gt;</code>: the whole editor. It takes the thing (or things) to edit,
+                    its schema, and when to apply changes (live, or on Apply). Its header is the panel's header
+                    ("Theme").
+                  </li>
+                  <li>
+                    <code>&lt;ui-property-group&gt;</code>: a folding band of fields ("Color", "Type", "Shape"). A
+                    <code>&lt;ui-panel&gt;</code> underneath.
+                  </li>
+                  <li>
+                    <code>&lt;ui-property&gt;</code>: one property. It draws the label row, the info tip, the hint
+                    under the control, the error, and preset buttons, then picks the control for the property's type.
+                  </li>
+                  <li>
+                    The controls are the ones Spell UI has: <code>&lt;ui-input&gt;</code>,
+                    <code>&lt;ui-select&gt;</code>, <code>&lt;ui-slider&gt;</code>, a segmented
+                    <code>&lt;ui-menu&gt;</code> as a button group, <code>&lt;ui-checkbox&gt;</code>, the colour
+                    pickers. A property may ask for another control than its type's default (<code>as="range"</code>).
+                  </li>
+                  <li>A property whose value is itself a thing nests a whole editor inside it.</li>
+                </ul>
+                <epic-code title="Theme editor, as it would be written · 24 lines" language="html"
+                  ><pre>
+&lt;ui-property-editor header="Theme" schema="Theme" mode="live"&gt;
+  &lt;ui-property name="name" hint="Used for the file name"&gt;&lt;/ui-property&gt;
+
+  &lt;ui-property-group header="Color"&gt;
+    &lt;ui-property name="primary" as="color-set"&gt;&lt;/ui-property&gt;
+    &lt;ui-property name="darkSurfaces" as="buttons"&gt;&lt;/ui-property&gt;
+  &lt;/ui-property-group&gt;
+
+  &lt;ui-property-group header="Type"&gt;
+    &lt;ui-property name="headings" options="fonts"&gt;&lt;/ui-property&gt;
+    &lt;ui-property name="textSize" as="range"&gt;
+      &lt;ui-button slot="actions" icon="rotate left" data-preset="md"&gt;Reset&lt;/ui-button&gt;
+    &lt;/ui-property&gt;
+  &lt;/ui-property-group&gt;
+
+  &lt;ui-property-group header="Shape"&gt;
+    &lt;ui-property name="corners" as="buttons"&gt;&lt;/ui-property&gt;
+    &lt;ui-property name="depth" as="buttons"&gt;&lt;/ui-property&gt;
+  &lt;/ui-property-group&gt;
+&lt;/ui-property-editor&gt;
+
+&lt;!-- labels, tooltips, options and validation come from the schema;
+     options="fonts" names an (async) options source the page registers --&gt;</pre
+                  ></epic-code
+                >
+              </epic-section>
+              <epic-section id="o3" kind="overview-part" title="One schema for all three sources">
+                <p>
+                  The editor reads ONE description of a property, whatever it came from. A small adapter per source
+                  turns what that source has into it.
+                </p>
+                <ul>
+                  <li>
+                    A spell class: its compiled property info (type, one-of choices, default, list item type), and its
+                    words file for the labels.
+                  </li>
+                  <li>A web component: its vocabulary (each attribute's kind, values, default, description).</li>
+                  <li>A JSON block: JSON Schema if it has one, else guessed from the values it holds.</li>
+                </ul>
+                <p>What the description adds that no source has today:</p>
+                <ul>
+                  <li>a label and a tooltip, apart from the description, each a translation key</li>
+                  <li>numeric limits (<code>min</code>, <code>max</code>, <code>step</code>) and a regex pattern</li>
+                  <li>
+                    where the choices come from: the schema's own list, an outside (maybe async) function such as
+                    "every font installed", or a list written in the form (rare)
+                  </li>
+                  <li>an ordered scale, so "xs, sm, md, lg, xl, 2xl, huge" can show as a slider with named steps</li>
+                  <li>validation rules, and "on change" rules (setting A changes B, or B's choices)</li>
+                  <li>when a change applies: at once, after a pause (debounce), when the field is left, or on Apply</li>
+                </ul>
+                <epic-code title="One property, as the editor reads it · 12 lines" language="ts"
+                  ><pre>
+const textSize: PropertySpec = {
+  name: "textSize",
+  label: "theme.textSize",            // a translation key;  English default "Text size"
+  tooltip: "theme.textSize.tip",
+  type: "choice",
+  options: ["xs", "sm", "md", "lg", "xl", "2xl", "huge"],
+  ordered: true,                      // a scale:  may show as a slider
+  default: "md",
+  as: "range",
+  commit: "live",
+}</pre
+                  ></epic-code
+                >
+              </epic-section>
+              <epic-section id="o4" kind="overview-part" title="How values flow">
+                <p>
+                  The editor writes changes straight into the thing it edits, as the Theme Creator does by hand today,
+                  unless it is told to wait for Apply.
+                </p>
+                <ul>
+                  <li>
+                    Live (the default): each change lands at once. A text field waits for a short pause first
+                    (debounce); a field marked "on leave" (an id, say) lands only when the cursor leaves it.
+                  </li>
+                  <li>In a modal: changes are kept in the editor, and land all at once on Apply. Cancel drops them.</li>
+                  <li>
+                    Many things at once: a field shows the value when every thing agrees, and a blank "mixed" state
+                    when they don't. Typing into it sets that property on all of them.
+                  </li>
+                  <li>
+                    Errors show as you type, from the property's type first, then any rule the schema or the form
+                    adds. A value that fails is not written.
+                  </li>
+                  <li>
+                    "On change" rules run after a write: setting the font family can change the weights offered.
+                  </li>
+                </ul>
+              </epic-section>
+              <epic-section id="o5" kind="overview-part" title="The .editor.html page, checked and compiled">
+                <p>
+                  The spell editor makes a default editor from a schema, and saves it as a page you can tweak by hand:
+                  <code>Theme.editor.html</code>.
+                </p>
+                <ul>
+                  <li>
+                    It holds only the markup above: groups, order, which control, hints. Everything else still comes
+                    from the schema, so the page stays short.
+                  </li>
+                  <li>
+                    A check-and-fix tool compares the page with the schema as it is now:
+                    <ul>
+                      <li>a property the page names that the schema dropped: flagged, or removed with a fix</li>
+                      <li>a new property in the schema: added to the page, in an "Other" group</li>
+                      <li>a control that no longer fits (a list of choices became free text): flagged</li>
+                    </ul>
+                  </li>
+                  <li>
+                    Validators and "on change" rules: TypeScript first. Written in spell later, in English (and other
+                    languages once spell reads them).
+                  </li>
+                  <li>
+                    Compiled: the page and its rules become one TypeScript module defining a custom element
+                    (<code>&lt;theme-editor&gt;</code>), so it runs where the spell parser isn't loaded.
+                  </li>
+                </ul>
+              </epic-section>
+              <epic-section id="o6" kind="overview-part" title="The pony">
+                <p>Sparkle, the brand pages' pony, gallops at last: its legs move.</p>
+                <ul>
+                  <li>
+                    Today the Gallop button only bounces and rocks the whole drawing: each leg is a plain rectangle
+                    with nothing to swing it.
+                  </li>
+                  <li>
+                    Each leg gets its own group, turning at the hip; the front and back pairs swing out of step, and
+                    the body bobs in time.
+                  </li>
+                </ul>
+              </epic-section>
             </epic-overview>
             <epic-section id="phases" kind="phases"></epic-section>
             <epic-section id="decisions" kind="questions"></epic-section>
