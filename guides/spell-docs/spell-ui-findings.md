@@ -245,7 +245,28 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
     - workaround:  a plain `<ol>`, which also lets identifiers be `<code>` (attributes can't hold markup)
     - suggest:  left-align a step's content when the steps stack
 
+28. **`ui-icon` in a page's own round button:  its glyph sits 1.3-1.7px left of centre**
+    - found 2026-10-19 (epic `epic-engine` I26;  Owen:  "alignment of icons in these buttons is almost always wrong as
+      you create them -- should be center aligned"), in the docs runtime's raw `<button>`s:  the table's expand
+      button, the comments' pen, trash and ×
+    - cause:  `<ui-icon>` is `display: contents`;  its box is the `.ui.icon` span inside, Fomantic's 1.18em-wide icon
+      cell, whose `margin-right` is 0.25em (Fomantic's space before a label's text).  A button that centres that cell
+      (`place-items: center`) centres cell AND margin, so the glyph sits half the margin left of centre:  0.125em,
+      the trash 1.67px (a 13.3px icon), the expand arrows 1.27px (10px)
+    - `<ui-button circular>` doesn't:  an icon-only button's icon has no margin (`--_button-icon-margin: 0`) and a
+      1em box (`--_button-icon-width`), so the glyph is centred
+      (measured in Chromium, the glyph's ink against the button's box, at 1200 and 390px, light and dark:  within
+      0.37px for every icon the runtime and comments draw:  bullhorn, check, history, xmark, trash can, edit, arrows
+      left right)
+    - workaround:  none needed:  every control the runtime and comments draw is a `<ui-button circular basic>` now
+      (`src/AGENTS.md`, "Widgets" › buttons);  no CSS of ours sizes or moves an icon
+    - suggest:  no margin on a `<ui-icon>` that's an element's only content (`:only-child`), or the margin only when a
+      sibling follows it, so a lone icon centres wherever it's put
+
 ## Verified working (no action)
+
+- `<ui-button circular basic size="mini" icon="...">`:  the icon centred in the circle by the component, at every size
+  tried (25px mini, 24px in a `ui-buttons` group), light and dark (2026-10-19)
 
 - find-in-page / text fragments open a folded `ui-accordion` panel (native `<details>`), and the accordion
   adopts it:  `open` becomes `"0"`
