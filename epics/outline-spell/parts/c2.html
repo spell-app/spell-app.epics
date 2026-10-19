@@ -4,3 +4,235 @@
   <li>guard: infer only when exactly ONE answer fits; two fit: an error naming both</li>
   <li>guard: hover shows the long form the line was read as (P6)</li>
 </ul>
+<epic-reply from="Owen" at="2026-10-19 16:13" re="revisit soon"
+  ><p>
+    in the case when 2 fit, can VSC/Monaco show as an error with both possibilities and allow them to pick?
+  </p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-19 16:35"
+  re='"in the case when 2 fit, can VSC/Monaco show as an error with both possibilities and allow them to pick?"'
+  ><p>
+    Yes. Both editors can already list several quick fixes under one error and let you pick one, and most of that
+    plumbing is built. What's missing is in spell itself:
+    <b
+      >it never notices that two fit. The guard this caveat promises ("two fit: an error naming both") was never built,
+      and today the first-declared phrase wins silently.</b
+    >
+  </p>
+
+  <h4>Where "two fit" happens today</h4>
+  <ul>
+    <li>
+      Not where a phrase is declared any more.
+      <ul>
+        <li>since the parens became required (<a href="#j9">J9</a>, option A), a blank names its property by name</li>
+        <li>
+          <code>it "is a (suit)"</code> reads the property <code>suit</code>, or it's an error: one answer or none
+        </li>
+      </ul>
+    </li>
+    <li>
+      It happens where a phrase is USED, when two of a thing's phrases match the same words.
+      <ul>
+        <li>e.g. a card with a color (red or black) and a team (red or blue), and a phrase for each</li>
+        <li><code>the card is red</code> fits both: its color is red, or its team is red</li>
+      </ul>
+    </li>
+    <li>
+      I tried it on a scratch project: <code>spell check</code> says no errors, and the compiled line calls whichever
+      phrase was declared first.
+      <epic-code title="Two.spell, and what it compiles to · 13 lines" language="spell">
+        <pre>
+a card is a thing where:
+	- its "color" is red or black
+	- its "team" is red or blue
+	- it "is (color)"
+	- it "is (team)"
+the card is a new card with color = red, team = blue
+set x to the card is red
+
+-- compiles to:
+export const x = card.isColor("red")
+
+-- the same lines in the sentence style, team declared first:
+export const x = card.isTeam("red")</pre>
+      </epic-code>
+    </li>
+    <li>
+      Why: two rules matching the same words, with the same priority, are settled by the parser's tie-break, and the
+      earliest rule wins (<a
+        href="../../../../packages/parser/src/rules/Choice.ts"
+        target="src-packages-parser-src-rules-choice-ts"
+        ><code title="packages/parser/src/rules/Choice.ts">Choice.getBestMatch()</code></a
+      >). Nothing records that there was a tie.
+    </li>
+    <li>
+      Found on the way, and logged as <a href="#i8">I8</a>: the obvious long form crashes.
+      <ul>
+        <li><code>the team of the card is red</code> compiles to <code>card.team.isColor("red")</code></li>
+        <li>it runs as <code>TypeError: card.team.isColor is not a function</code>, with no error in the editor</li>
+        <li>it matters here: that long form is exactly what a "pick one" fix would write</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>How an error reaches VS Code and Monaco</h4>
+  <ul>
+    <li>
+      One language service feeds both editors:
+      <a
+        href="../../../../packages/lsp/src/SpellLanguageService.ts"
+        target="src-packages-lsp-src-spelllanguageservice-ts"
+        ><code title="packages/lsp/src/SpellLanguageService.ts">SpellLanguageService</code></a
+      >.
+      <ul>
+        <li>its <code>diagnostics()</code> turns spell's parse errors and warnings into red and yellow squiggles</li>
+        <li>VS Code gets them through the language server, over the standard protocol</li>
+        <li>the app's Monaco editor calls the same service directly, in the page</li>
+      </ul>
+    </li>
+    <li>
+      Quick fixes exist already, in both editors.
+      <ul>
+        <li>
+          the service's <code>codeActions()</code> offers one today: "Define <code>to &lt;phrase&gt;</code>" on a line
+          that didn't parse
+        </li>
+        <li>
+          the language server announces quick fixes to VS Code (<a
+            href="../../../../packages/lsp/src/SpellLanguageServer.ts"
+            target="src-packages-lsp-src-spelllanguageserver-ts"
+            ><code title="packages/lsp/src/SpellLanguageServer.ts">SpellLanguageServer</code></a
+          >)
+        </li>
+        <li>
+          Monaco registers a quick-fix provider that asks the same service (<a
+            href="../../../../packages/app/src/ui/monaco/SpellLanguageFeatures.ts"
+            target="src-packages-app-src-ui-monaco-spelllanguagefeatures-ts"
+            ><code title="packages/app/src/ui/monaco/SpellLanguageFeatures.ts">SpellLanguageFeatures</code></a
+          >), and turns its edits into Monaco's (<a
+            href="../../../../packages/app/src/ui/monaco/LspToMonaco.ts"
+            target="src-packages-app-src-ui-monaco-lsptomonaco-ts"
+            ><code title="packages/app/src/ui/monaco/LspToMonaco.ts">LspToMonaco.codeAction()</code></a
+          >)
+        </li>
+      </ul>
+    </li>
+    <li>
+      So "pick one" is just two quick fixes on one error.
+      <ul>
+        <li>both editors show a lightbulb on the line; Cmd+. opens the list</li>
+        <li>
+          e.g. "Read as its color: the color of the card is red" and "Read as its team: the team of the card is red"
+        </li>
+        <li>neither marked as the preferred one, so "fix all" never picks for you</li>
+        <li>the VS Code extension and Monaco need no new code for it</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>What it would take</h4>
+  <ol>
+    <li>
+      <b>Fix the crash first</b> (<a href="#i8">I8</a>): a card's phrase must not match a value of one of its
+      properties. Otherwise the fix writes a line that crashes.
+    </li>
+    <li>
+      <b>spell notices the tie.</b> When the parser's tie-break picks between user phrases, it keeps the others on the
+      winning match (only in the tie, which is rare, so the parser's speed shouldn't move).
+    </li>
+    <li>
+      <b>spell says it, with the choices.</b> The phrase's use becomes an error naming both:
+      <code>"red" could be the card's color or its team</code>. The error carries one fix per meaning: the words to put
+      in its place.
+      <ul>
+        <li>today an error is only a message: it gains an optional list of fixes</li>
+        <li>
+          where:
+          <a
+            href="../../../../packages/spell/src/rules/classes/QuotedPropertyRule.ts"
+            target="src-packages-spell-src-rules-classes-quotedpropertyrule-ts"
+            ><code title="packages/spell/src/rules/classes/QuotedPropertyRule.ts">QuotedPropertyRule</code></a
+          >, the rule that matches a phrase where it's used
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The language service offers them.</b> <code>codeActions()</code> adds one quick fix per listed fix, next to
+      "Define <code>to ...</code>". About 30 lines.
+    </li>
+    <li><b>Tests:</b> the outline tests (the error and its fixes), and the language service's quick-fix test.</li>
+  </ol>
+  <epic-code title="SpellLanguageService.ts, the new part of codeActions() (a sketch) · 14 lines" language="ts">
+    <pre>
+for (const error of SP.Block.getParseErrors(file.match) ?? []) {
+  for (const fix of SP.ParseFixes.of(error)) {
+    const range = this.rangeOf(file, fix.replace)
+    if (!range) continue
+    actions.push({
+      title: fix.title,
+      kind: CodeActionKind.QuickFix,
+      diagnostics: [this.diagnosticFor(file, error)],
+      edit: {
+        changes: { [this.addresses.uriFor(file)]: [{ range, newText: fix.text }] }
+      }
+    })
+  }
+}</pre>
+  </epic-code>
+  <ul>
+    <li>
+      Rough size: one small phase, about 150 lines with tests, plus <a href="#i8">I8</a>'s fix (likely small: an "is red
+      or blue" property's value should count as text, not as "could be anything").
+    </li>
+    <li>
+      VS Code picks it up once merged into <code>main</code> and the extension is rebuilt (<code>spell dev vscode</code
+      >).
+    </li>
+  </ul>
+
+  <h4>Error, or warning?</h4>
+  <epic-choices
+    ><epic-option letter="A" recommended title="An error, with a fix for each meaning"
+      ><ul>
+        <li>the line doesn't compile until you pick</li>
+        <li>gain: what this caveat promised, "never a guess"; a wrong guess runs and does something else</li>
+        <li>
+          cost: adding a second phrase can turn working lines red, e.g. adding a team to a card that had only colors
+        </li>
+      </ul></epic-option
+    ><epic-option letter="B" title="A warning, with the same fixes"
+      ><ul>
+        <li>the line compiles as today (the first-declared phrase), with a yellow squiggle and the two fixes</li>
+        <li>gain: nothing that worked stops working</li>
+        <li>cost: the guess stays; a warning is easy to miss</li>
+      </ul></epic-option
+    ></epic-choices
+  >
+  <epic-aside title="also possible: warn where the second phrase is declared"
+    ><ul>
+      <li>
+        <code>it "is (team)"</code> could warn at once: "red is both a color and a team, so <code>the card is red</code>
+        won't say which"
+      </li>
+      <li>it catches the clash before any line uses it, but can't offer a pick: the choice belongs to each use</li>
+      <li>cheap to add alongside either option</li>
+    </ul></epic-aside
+  >
+
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li><code>the card is red</code>, when red is both a color and a team, is an error naming both</li>
+      <li>
+        VS Code and the app's editor offer two quick fixes under it; picking one rewrites the line in the long form
+      </li>
+      <li>
+        <a href="#i8">I8</a> fixed first: <code>the team of the card is red</code> compiles to a plain comparison, and
+        runs
+      </li>
+      <li>C2's first guard becomes true: today it isn't built</li>
+      <li>nothing changed yet: research only</li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
