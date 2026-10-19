@@ -4,3 +4,368 @@
   parseability?
 </p>
 <p>Also, it looks like the "where" is optional in `a "card" is a thing where:` correct?</p>
+<epic-reply
+  from="Claude"
+  at="2026-10-19 16:40"
+  re='In a class definition, I&apos;d like `- "suit" is a suit of its deck` to work without the it/its. What&apos;s the impact on parseability? Also, it looks like the "where" is optional in `a "card" is a thing where:` correct?'
+  ><p>
+    Two answers. Dropping <code>it</code> / <code>its</code> doesn't work today, but it can, inside a type's outline
+    body only, at a small cost in speed and one real risk to readers. And yes, <code>where</code> is optional: the colon
+    is what opens the body.
+  </p>
+  <ul>
+    <li>
+      I ran each line below through the real parser on <code>main</code> (a throwaway test, deleted after), with a deck
+      that keeps the suits, as in the live Solitaire.
+    </li>
+    <li>
+      <b>This reverses part of an earlier answer:</b> the property-shape decision (<a href="#q4">Q4</a>) chose "always
+      <code>its</code>"; what you ask for is its option B, "<code>its</code> optional".
+    </li>
+  </ul>
+
+  <h4>What a bullet in a type's body accepts today</h4>
+  <p>
+    Every member rule has a second way of writing it, where the type is the word <code>it</code> or
+    <code>its</code> instead of <code>a card</code>. Those words only count directly inside a type's outline body.
+  </p>
+  <ul>
+    <li>
+      the words <code>it</code> and <code>its</code> are two small rules,
+      <a
+        href="../../../../packages/spell/src/rules/types/SubjectRule.ts"
+        target="src-packages-spell-src-rules-types-subjectrule-ts"
+        ><code title="packages/spell/src/rules/types/SubjectRule.ts">SubjectRule</code></a
+      >; each answers "the type this body is about"
+    </li>
+    <li>
+      12 syntaxes use them, in 8 rule files; the property ones are in
+      <a
+        href="../../../../packages/spell/src/rules/classes/DefinePropertyHas.ts"
+        target="src-packages-spell-src-rules-classes-definepropertyhas-ts"
+        ><code title="packages/spell/src/rules/classes/DefinePropertyHas.ts">DefinePropertyHas</code></a
+      >
+    </li>
+    <li>a line naming no subject matches none of them, so it's "Don't understand"</li>
+  </ul>
+  <epic-code title="every outline syntax with it / its · 12 lines" language="ts">
+    <pre>
+// DefinePropertyHas.ts
+"{type:subject_it} has (a|an|a property)? {property:member_words} {specifier:type_specifier}?"
+"{type:subject_its} {property:quoted_member} is {specifier:outline_specifier}"
+"{type:subject_its} {property:member_words} is {specifier:outline_specifier}"
+// PropertyValueGetter.ts
+"{type:subject_its} {property:quoted_member} is :? {expression_body}?"
+"{type:subject_its} {property:member_words} is :? {expression_body}?"
+// ItsQuotedProperty.ts (its "color" is red if ... otherwise ...)
+"{type:subject_its} {property:quoted_member}"
+"{type:subject_its} {property:member_words}"
+// QuotedPropertyFormula.ts, QuotedTypeExpression.ts (phrases)
+"{type:subject_it} {alias:text}"
+"{type:subject_it} {signature:quoted_method_signature} (if|is)? :? {expression_body}?"
+// BelongsToOne.ts, SavedInline.ts, SavedInFile.ts
+"{type:subject_it} belongs to (one|a|an) {list:type}"
+"{type:subject_it} is saved inline"
+"{type:subject_it} is saved in its own file"</pre>
+  </epic-code>
+
+  <h4>Each line, with and without it / its</h4>
+  <ui-table compact celled>
+    <table>
+      <thead>
+        <tr>
+          <th>The bullet</th>
+          <th>Today</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>- its "suit" is a suit of its deck</code></td>
+          <td>works: the card's suit is one of the deck's suits</td>
+        </tr>
+        <tr>
+          <td><code>- "suit" is a suit of its deck</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "suit" is a suit</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "suit" is one of clubs or spades</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "color" is red if ... otherwise it is black</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "short name" is: its rank</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- has a name as text</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- belongs to a pile</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- is saved inline</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "is a (suit)"</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "is face up" if its direction is up</code></td>
+          <td>
+            <b>no error, and wrong:</b> it's read as one line of a getter, <code>value if condition</code>, and lands at
+            the file's top level, outside the class (<a href="#i9">I9</a>)
+          </td>
+        </tr>
+        <tr>
+          <td><code>- suit is one of clubs or spades</code> (no quotes either)</td>
+          <td>read as setting a variable, <code>suit is one</code>; then "Don't understand of clubs or spades"</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <epic-code title="the silent misreading · 6 lines" language="ts">
+    <pre>
+// a "card" is a thing where:
+//   - its direction is up or down
+//   - "is face up" if its direction is up
+export class Card extends Thing { ...direction... }
+if (this.direction == "up") return "is face up"
+// and at the top level, `red if x is 1` gives  if (x === 1) return "red"</pre>
+  </epic-code>
+
+  <h4>Making the subject implicit, in a body only</h4>
+  <p>
+    Each of the 12 syntaxes gets a twin with no subject. The twin matches only directly inside a type's outline body,
+    and takes its type from the body, exactly as <code>it</code> does now.
+  </p>
+  <ul>
+    <li>
+      A bullet needs a quoted name, or a verb first, to drop its subject.
+      <ul>
+        <li>works: <code>- "suit" is ...</code>, <code>- "is face up" if ...</code></li>
+        <li>
+          works: <code>- has a name as text</code>, <code>- belongs to a pile</code>, <code>- is saved inline</code>
+        </li>
+        <li>
+          NOT a bare name: <code>- suit is one of ...</code> already means "set the variable suit" (last row above). So
+          a property line keeps its quotes or its <code>its</code>, never neither.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Outside a body nothing changes.
+      <ul>
+        <li>at the top level, <code>"suit" is ...</code> stays an error</li>
+        <li>
+          inside a method or getter in the body, <code>it</code> is the card, as now; I tried
+          <code>"hi" is its name</code> in a method: still an error
+        </li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>What it could collide with</h4>
+  <ul>
+    <li>
+      <b>A kind of value, one word away.</b> In the deck's body, <code>- "suits" as one of clubs, ...</code> makes a new
+      kind of thing, the suit, kept on the deck.
+      <ul>
+        <li><code>- "suits" is one of clubs, ...</code> would make a property of each deck instead</li>
+        <li>only <code>as</code> versus <code>is</code> tells them apart: the cost Q4 gave option B</li>
+        <li>guard: hovering says what the line was read as (the <b>Reads as</b> line)</li>
+      </ul>
+    </li>
+    <li>
+      <b>The getter line, <code>value if condition</code>.</b> A phrase (declaration priority) beats it, so
+      <code>- "is face up" if ...</code> would become the phrase you meant. The misreading above should be fixed anyway
+      (<a href="#i9">I9</a>).
+    </li>
+    <li>
+      <b>Statements starting with a quoted word:</b> the value kind is the only one. Others start with a word:
+      <code>if "a" is x:</code>, <code>to "draw its front":</code>.
+    </li>
+    <li>
+      <b>Nested bullets:</b> a bullet under a bullet is still about the type, not the line above it.
+      <ul>
+        <li>I tried <code>- it has a rank</code> under <code>- it has a name</code>: both became card properties</li>
+        <li>
+          with the subject left out, <code>- "name" is text</code> nested under <code>- its "deck" is a deck</code>
+          looks like the deck's name; it would be the card's
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Getter or property:</b> <code>- "x" is total</code> has the same reading as <code>its "x" is total</code> (a
+      getter, as now). Nothing new.
+    </li>
+  </ul>
+
+  <h4>Ambiguity and speed</h4>
+  <ul>
+    <li>
+      <b>No new "two fit" guess</b> (the guessing caveat, <a href="#c2">C2</a>). A body is about exactly one type, so
+      the left-out subject always has one answer.
+    </li>
+    <li>The new guess is the shape of the line: <code>is</code> means a property, <code>as</code> a kind.</li>
+    <li>
+      <b>Speed</b> (the parser-speed caveat, <a href="#c5">C5</a>): each syntax gives up at its first word if that word
+      can't start it.
+      <ul>
+        <li>the twins start with a quoted word, or with <code>has</code>, <code>belongs</code> or <code>is</code></li>
+        <li>an ordinary line pays one cheap check per twin: about 12 more, beside some 730 rule tests</li>
+        <li>my guess: 1-2% slower; <code>spell speed --against main</code> says for sure</li>
+      </ul>
+    </li>
+    <li>
+      The hover's <b>Reads as</b> line finds the <code>it</code> / <code>its</code> word in the line to spell it out.
+      With no such word, it has to insert one: <code>- "suit" is a suit</code> reads as
+      <code>the "suit" of a card is a suit</code>.
+    </li>
+  </ul>
+
+  <h4>The "its" in "of its deck" stays</h4>
+  <ul>
+    <li>
+      It isn't the line's subject: it says WHOSE deck, the card's.
+      <ul>
+        <li><code>a suit of deck</code> isn't English, and is "Don't understand" today</li>
+        <li><code>a suit of the deck</code> could be taught too; it's a one-line syntax</li>
+      </ul>
+    </li>
+    <li>
+      Those words are only for the reader.
+      <ul>
+        <li>the kind, a suit, already says the deck keeps the list</li>
+        <li><code>- its "suit" is a suit</code> compiles the same</li>
+        <li>so does <code>a suit of its banana</code>: never checked, which I've logged (<a href="#i10">I10</a>)</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>Is "where" optional? Yes</h4>
+  <p>
+    The heading's last word is one small rule, <code>with_nested_statements</code>, and the word in it is optional. The
+    colon is required. Where and with mean the same (the openers decision, <a href="#q7">Q7</a>).
+  </p>
+  <epic-code title="WithNestedStatements.ts · 1 line" language="ts"><pre>syntax: "(where|with)? :"</pre></epic-code>
+  <ui-table compact celled>
+    <table>
+      <thead>
+        <tr>
+          <th>The heading, then <code>- it has a name as text</code></th>
+          <th>Today</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>a "card" is a thing where:</code></td>
+          <td>works</td>
+        </tr>
+        <tr>
+          <td><code>a "card" is a thing with:</code></td>
+          <td>works</td>
+        </tr>
+        <tr>
+          <td><code>a "card" is a thing:</code></td>
+          <td>works</td>
+        </tr>
+        <tr>
+          <td><code>a card is a thing:</code> (no quotes)</td>
+          <td>works; the quotes on the type's name are optional too</td>
+        </tr>
+        <tr>
+          <td><code>a "deck" is a list of cards:</code></td>
+          <td>works</td>
+        </tr>
+        <tr>
+          <td><code>a card is a thing where</code> (no colon)</td>
+          <td>"Don't understand where", and each bullet errors</td>
+        </tr>
+        <tr>
+          <td><code>a card is a thing</code> (nothing)</td>
+          <td>
+            the type is declared; each bullet says
+            <code>"it" and "its" mean a type only in its outline, indented under e.g. "a card is a thing where:"</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ul>
+    <li>
+      That last message is a little off: the bullet IS indented under the type. It could say "end the line above with a
+      colon". A few lines in
+      <a href="../../../../packages/spell/src/rules/BlockLine.ts" target="src-packages-spell-src-rules-blockline-ts"
+        ><code title="packages/spell/src/rules/BlockLine.ts">BlockLine</code></a
+      >, if you want it.
+    </li>
+  </ul>
+
+  <h4>The ways to go</h4>
+  <epic-choices
+    ><epic-option letter="A" title="Optional, for quoted names and verbs, in a body" recommended
+      ><ul>
+        <li>every bullet in the table above works without <code>it</code> / <code>its</code>, except a bare name</li>
+        <li>each of the 12 subject syntaxes gets a twin without one; the rules take their type from the body</li>
+        <li>the hover's long form learns to put the subject back</li>
+        <li><code>it</code> / <code>its</code> keep working: both styles, the same output</li>
+        <li>cost: about a day; some 150 lines in 8 rule files, about 15 tests</li>
+        <li>also changes: the parsing map, the outline guide, the syntax table, the highlighter bundle</li>
+        <li>cost: the <code>"suits" as</code> / <code>"suits" is</code> pair, one word apart</li>
+        <li>why recommended: it's what you asked for; the quotes keep it from colliding with ordinary statements</li>
+      </ul>
+      <epic-code title="the card, written this way · 5 lines" language="spell">
+        <pre>
+a "card" is a thing:
+	- belongs to a deck
+	- "suit" is a suit of its deck
+	- "is a (suit)"
+	- "is face up" if its direction is up</pre>
+      </epic-code></epic-option
+    ><epic-option letter="B" title="Retry the line with it / its put in front"
+      ><ul>
+        <li>a bullet in a body that didn't parse is read again, with an invisible <code>its</code> before it</li>
+        <li>gain: one file, about 40 lines; no new syntaxes, so no speed cost</li>
+        <li>
+          cost: a line that parses WRONG today is never retried: <code>- "is face up" if ...</code> stays the misreading
+        </li>
+        <li>cost: the invisible word isn't in the text, so hover, colouring and error positions need special cases</li>
+      </ul></epic-option
+    ><epic-option letter="C" title="Keep it / its required (Q4 as decided)"
+      ><ul>
+        <li>a bullet with a quoted name and no <code>its</code> says what to write</li>
+        <li>e.g. <code>a property starts with its: its "suit" is ...</code></li>
+        <li>cost: small, about 20 lines, like the hint a line outside its body gets now</li>
+        <li>cost: one more word on most lines</li>
+      </ul></epic-option
+    ></epic-choices
+  >
+  <p>Whichever you pick, the misreading (<a href="#i9">I9</a>) should be fixed first. Nothing is changed yet.</p>
+
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        in a type's body, <code>- "suit" is a suit of its deck</code>, <code>- has a name as text</code> and
+        <code>- "is face up" if ...</code> work, and compile as the <code>its</code> forms do
+      </li>
+      <li><code>its</code> stays required before an unquoted name: <code>- its rank is a number</code></li>
+      <li>the <code>its</code> in <code>of its deck</code> stays</li>
+      <li>the property-shape decision (Q4) changes from "always its" to "its optional"</li>
+      <li>the parser gets about 1-2% slower, to be measured</li>
+      <li><code>where:</code>, <code>with:</code> and a bare <code>:</code> stay the same; the colon stays required</li>
+      <li>
+        logged on the way: I9 (the getter line read anywhere), I10 (the words after "a suit of its" never checked)
+      </li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
