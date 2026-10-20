@@ -1122,6 +1122,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   branch had just added it.  Cause:  the `spell` on the PATH (`yarn cli:install`'s link) always runs the MAIN
   checkout's CLI, so a branch's new commands and flags don't exist until it merges.  Fix:  from the worktree,
   `node packages/cli/bin/spell.mjs ...`.  (property-editor P8)
+- 2026-10-20 · `spell dev pack build brand` in a worktree built the brand's pack with MAIN's pack tool (Spell UI's
+  `ComponentPack.ts`), silently:  the branch's new shared specifier (`$/spell-element`) was bundled, a second copy of
+  the element bases (+40 KB), and `spell dev pack check` still said current (it compares hashes).  Same cause as above:
+  the PATH's `spell` is main's.  Fix:  `node packages/cli/bin/spell.mjs dev pack build <pack>` from the worktree, and
+  look at the pack's size.  (repo-split P3, I8)
 
 
 ## docs
