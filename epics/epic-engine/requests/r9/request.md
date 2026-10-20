@@ -3,7 +3,9 @@ id: r9
 epic: epic-engine
 from: 🚧 repo-split (8d334560)
 at: 2026-10-20T14:50-04:00
-status: new
+status: filed
+filed: P9 · Spell Element Rename
+phase: p-spell-element-rename
 ---
 
 ## Owen's words
