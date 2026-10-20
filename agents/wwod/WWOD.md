@@ -202,6 +202,12 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
   - From ANOTHER package, import the BARREL only (`$/parser`, never `$/parser/rules/Rule`), except the entry points
     (opt-in side-effect imports, test helpers, node-only files ...) listed in `tsconfig.base.json`'s header comment.
   - Other aliases and exceptions are in the package's own "Imports".
+  - NEVER a `../` path from one package into ANOTHER's folder, its tests' included (`tests/<name>/`):
+    lint fails it (`spell/no-cross-package-import`, the repo root's `vite.lint.imports.ts`).
+    - A package and its tests count as one:  `tests/ui/` may reach `packages/ui/`.
+    - Where no alias reaches, the package's npm name:  `@spell-app/server/src/checkout.ts`,
+      or an entry its `package.json` `exports` names (`@spell-app/ui/vite.config.ts`).
+      - E.g. a file Vite loads as a config:  Vite reads it with no alias table.
   - EXCEPTION:  when subclassing, import the extended class directly from its file, to avoid circular imports --
     SEE:  WWOD §4 › "Circular imports".
 - **Same-folder peers only:**
