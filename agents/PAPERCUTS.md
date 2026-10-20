@@ -1111,6 +1111,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   '.../packages/goals.zip/node_modules'`, leaving its temp checkout and a prunable worktree:  `removeCheckout()`
   unlinked `node_modules` in every entry of `packages/`, and main's `goals.zip` is a file. · Folders only
   (python-target `d1976e503`);  `git worktree prune` and delete the temp folder by hand until that merges. · cli
+- 2026-10-20 · `spell pony --gallop` in a worktree's VS Code terminal:  `error: unknown option '--gallop'`, though the
+  branch had just added it.  Cause:  the `spell` on the PATH (`yarn cli:install`'s link) always runs the MAIN
+  checkout's CLI, so a branch's new commands and flags don't exist until it merges.  Fix:  from the worktree,
+  `node packages/cli/bin/spell.mjs ...`.  (property-editor P8)
+
 
 ## docs
 
