@@ -4,8 +4,7 @@ epic: epic-engine
 from: 🚧 property-editor (ba126030)
 at: 2026-10-19T21:22-04:00
 status: filed
-filed: P5 · Page Polish
-phase: p-page-polish
+filed: fixed at once (Owen):  on main, ahead of P5
 ---
 
 ## Owen's words
