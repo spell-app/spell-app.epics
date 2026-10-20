@@ -1,11 +1,134 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Repo Split:  the layout</title>
-    <meta name="description" content="Details:  Repo Split:  the layout">
-    <link rel="stylesheet" href="/_epic/assets/spell-doc.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Repo Split: the layout</title>
+    <meta
+      name="description"
+      content="Details:  Repo Split's layout -- where every package and repo lives once the split is done (the meta repo spell-app, its five child repos, the content repo, an epic's worktree), how someone works with it whole or with spell-ui alone, and the trade-offs against today's monorepo, the repo loop included"
+    />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+    <style>
+      /*
+       * This page's diagrams:  a box per repo, a chip per package or folder, an arrow per "uses".
+       * - Colours from the doc tokens and currentColor, so dark mode works.
+       * - Dashed accent box:  a child repo (its own git repo, cloned inside spell-app).
+       * - Red:  the repo loop (a lower repo that needs the top repo's util/).
+       * - A big diagram scrolls inside its own box at phone width, never the page.
+       */
+      .split-fig {
+        overflow-x: auto;
+        margin: 0.75rem 0;
+      }
+      .split-fig svg {
+        display: block;
+        width: 100%;
+        min-width: 680px;
+        height: auto;
+        color: var(--spell-ink);
+        font-family: var(--spell-sans, sans-serif);
+      }
+      .split-fig.small svg {
+        min-width: 0;
+        max-width: 340px;
+      }
+      .split-fig figcaption {
+        font-size: 0.9em;
+        color: var(--spell-muted);
+      }
+      .split-trio {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+        gap: 1rem;
+      }
+      .split-svg text {
+        fill: currentColor;
+        font-size: 12px;
+      }
+      .split-svg .repo {
+        fill: var(--spell-tint);
+        stroke: var(--spell-muted);
+        stroke-width: 1.4;
+      }
+      .split-svg .own {
+        fill: var(--spell-card);
+        stroke: var(--spell-muted);
+        stroke-width: 1;
+      }
+      .split-svg .child {
+        fill: var(--spell-card);
+        stroke: var(--spell-doc-accent);
+        stroke-width: 1.8;
+        stroke-dasharray: 6 3;
+      }
+      .split-svg .chip {
+        fill: var(--spell-card);
+        stroke: var(--spell-muted);
+        stroke-width: 1;
+      }
+      .split-svg .chip.hl {
+        stroke: var(--spell-doc-accent);
+        stroke-width: 2.2;
+      }
+      .split-svg .chip.loop {
+        stroke: var(--spell-state-attention);
+        stroke-width: 2.2;
+      }
+      .split-svg .name {
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .split-svg .name.s {
+        font-size: 12.5px;
+      }
+      .split-svg .sub {
+        font-size: 10.5px;
+        fill: var(--spell-muted);
+      }
+      .split-svg .mid {
+        text-anchor: middle;
+      }
+      .split-svg .end {
+        text-anchor: end;
+      }
+      .split-svg .num,
+      .split-svg .why {
+        font-size: 11px;
+        font-weight: 700;
+        paint-order: stroke;
+        stroke: var(--spell-bg);
+        stroke-width: 3px;
+        stroke-linejoin: round;
+      }
+      .split-svg .why {
+        fill: var(--spell-state-attention);
+      }
+      .split-svg .edge {
+        fill: none;
+        stroke: var(--spell-muted);
+        stroke-width: 1.5;
+      }
+      .split-svg .edge.loop {
+        stroke: var(--spell-state-attention);
+        stroke-width: 2;
+      }
+      .split-svg .edge.path {
+        stroke-dasharray: 5 4;
+      }
+      .split-heads {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+      .split-heads .grey path {
+        fill: var(--spell-muted);
+      }
+      .split-heads .red path {
+        fill: var(--spell-state-attention);
+      }
+    </style>
   </head>
   <body class="spell-doc-page spell-details-page">
     <ui-root>
@@ -14,47 +137,1112 @@
       <div class="spell-doc">
         <main class="spell-doc-main">
           <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
-            <ui-breadcrumb-section href="../../../pages/index.html" target="src-packages-docs-index-html">Docs</ui-breadcrumb-section>
-            <ui-breadcrumb-section active>Repo Split:  the layout</ui-breadcrumb-section>
+            <ui-breadcrumb-section href="../../../pages/index.html" target="src-packages-docs-index-html"
+              >Docs</ui-breadcrumb-section
+            >
+            <ui-breadcrumb-section active>Repo Split: the layout</ui-breadcrumb-section>
           </ui-breadcrumb>
-          <ui-sticky class="spell-h1"><header class="spell-page-head">
-              <h1>Repo Split:  the layout</h1>
-              <epic-send></epic-send></header></ui-sticky>
-          <p class="lede">One sentence: what's being decided, and why it matters now.</p>
+          <ui-sticky class="spell-h1"
+            ><header class="spell-page-head">
+              <h1>Repo Split: the layout</h1>
+              <epic-send></epic-send></header
+          ></ui-sticky>
+          <p class="lede">
+            What the repo split leaves behind once all of it is built: where every package and repo lives, how someone
+            works with it (the whole thing, or Spell UI alone), and what it costs against today's one repo. Nothing to
+            decide here: it's so you can judge the approved plan by what it makes.
+          </p>
           <div class="spell-details-meta">
-            <epic-field label="Asked by" data-details-by>session <code>name</code>, while doing what</epic-field>
+            <epic-field label="Asked by" data-details-by
+              >session <code>repo-split</code> (its helper <code>repo-split-layout</code>), after you approved the
+              plan</epic-field
+            >
             <epic-field label="Asked" data-details-asked>2026-10-19</epic-field>
           </div>
 
           <ui-message class="spell-where" state="info" header="Where we are">
-            <epic-field label="Epic"><code>name</code> -- what that work is for, in one line.</epic-field>
-            <epic-field label="Just now">what happened that led to this question.</epic-field>
-            <epic-field label="This decides">what changes for you, whichever you pick.</epic-field>
+            <epic-field label="Epic"
+              ><code>repo-split</code>: splitting the monorepo so the top level is no longer one repo. Six repos, in
+              layers, where a lower repo never needs a higher one's code.</epic-field
+            >
+            <epic-field label="Just now"
+              >You approved the plan (ten phases, about 20-27 hours). Nothing is built yet. The epic page is being
+              filled from the plan in the background, and you asked for this page: the file listing, how to work with
+              it, and the trade-offs.</epic-field
+            >
+            <epic-field label="This shows"
+              >The end state, after the last phase. There's no question on it; comment anywhere and press Send. The
+              first phase starts only when you say so.</epic-field
+            >
+            <epic-field label="Reading order"
+              >2.1 (the picture), "Where does packages/app live?" at the top of 2, then 3 and 4.</epic-field
+            >
           </ui-message>
 
-          <ui-section id="context" header="1. Context" sticky collapsible dividing>
-            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <!-- the arrowheads every diagram on this page uses:  defined once, outside any fold, so a folded section never hides them -->
+          <svg class="split-heads" aria-hidden="true" focusable="false">
+            <defs>
+              <marker
+                id="head-grey"
+                class="grey"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+              </marker>
+              <marker
+                id="head-red"
+                class="red"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+              </marker>
+            </defs>
+          </svg>
+
+          <ui-section id="where" header="1. Where we are, and the words" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="map"></ui-icon>
+            <p>The plan is approved and nothing is built. It runs in three stretches:</p>
             <ul>
-              <li>What's going on, in plain words; define every coined word.</li>
-              <li>The picture: a table, the real code, a diagram, a live example.</li>
+              <li>
+                <b>Phases 1-6, inside today's one repo:</b> cut every import that points the wrong way (util trimmed,
+                Spell UI's plugins, spell-solid renamed spell-element, the server split, the pack build moved into Spell
+                UI's tools, package names and a shared toolchain). Each is an ordinary change that merges into
+                <code>main</code>.
+              </li>
+              <li>
+                <b>Phases 7-8, the cutover:</b> spell-app becomes the meta repo, and four new repos are cut out of its
+                history: spell-server, spell-element, spell-parser and spell-ui. spell-epic moves inside spell-app.
+              </li>
+              <li>
+                <b>Phase 9, the tooling:</b> worktrees, merging <code>main</code>, <code>/isolate done</code>, the VS
+                Code extension and CI learn about several repos.
+              </li>
             </ul>
-            <epic-text-box for="context"></epic-text-box>
+            <p>Words this page uses:</p>
+            <ul>
+              <li><b>Repo:</b> a git repository of its own: its own history, branches, pull requests and releases.</li>
+              <li>
+                <b>Meta repo:</b> the repo at the top that holds the others and the ONE install for all of them. Here
+                that's spell-app itself: its <code>package.json</code> lists its own packages and every child repo's, so
+                one <code>yarn install</code> links them all.
+              </li>
+              <li>
+                <b>Child repo:</b> a repo cloned INSIDE spell-app's folder (<code>spell-app/spell-ui/</code> ...). It's
+                still its own git repo; spell-app just holds it on disk.
+              </li>
+              <li>
+                <b>Git-ignored:</b> listed in spell-app's <code>.gitignore</code>, so spell-app's git never sees the
+                child repo's files. <code>git status</code> at spell-app's root shows only spell-app's own changes; each
+                child repo has its own <code>git status</code>.
+              </li>
+              <li>
+                <b>Lower and higher:</b> a lower repo is one others use (spell-element, spell-parser); a higher one uses
+                others (spell-app). The rule: arrows only point down.
+              </li>
+              <li>
+                <b>Worktree:</b> a second checkout of a repo on another branch, in its own folder. An epic gets one.
+              </li>
+            </ul>
+            <epic-text-box for="where"></epic-text-box>
           </ui-section>
 
-          <ui-section id="q1" header="Q1 · Short question" sticky collapsible dividing>
-            <ui-icon slot="icon" name="circle question"></ui-icon>
-            <epic-ask>
-              <epic-question><p>The question in full, in one or two lines.</p></epic-question>
-              <epic-choices>
-                <epic-option letter="A" title="First option" recommended>
-                  <p>One line: what changes, and why it's recommended.</p>
-                  <epic-aside title="Details"><p>Anything longer: a table, code, a picture.</p></epic-aside>
-                </epic-option>
-                <epic-option letter="B" title="Second option">
-                  <p>One line: what changes, and its cost.</p>
-                </epic-option>
-              </epic-choices>
-            </epic-ask>
+          <ui-section id="listing" header="2. The file listing" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="folder"></ui-icon>
+            <ui-message state="info" header="Where does packages/app live?">
+              <p>
+                It doesn't move. The editor app stays in spell-app, at
+                <code>~/www/spell-app/spell-app/packages/app/</code>, with its tests at
+                <code>~/www/spell-app/spell-app/tests/app/</code>, exactly as today. So do core, py, spell, spaces, lsp,
+                cli, vscode and brand. What leaves <code>packages/</code> is the lower layers: util (to a top-level
+                <code>util/</code> folder), and parser, markdown, spell-solid, ui, server and assembler (to child
+                repos). Table 2.4 has every package.
+              </p>
+            </ui-message>
+
+            <ui-section
+              id="l-picture"
+              header="2.1 The picture:  six repos, and which uses which"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <ui-icon slot="icon" name="layer group"></ui-icon>
+              <p>
+                The big box is spell-app, the meta repo. The dashed boxes inside it are the five child repos, each its
+                own git repo. An arrow points from the user to what it uses. Every grey arrow points down; the red ones
+                are the repo loop (section 4.2).
+              </p>
+              <figure class="split-fig">
+                <svg class="split-svg" viewBox="0 0 900 680" role="img" aria-labelledby="layout-title">
+                  <title id="layout-title">
+                    spell-app, the meta repo, holding its own packages, its util, toolchain and agents folders, and five
+                    child repos: spell-epic, spell-ui, spell-server, spell-element, spell-parser
+                  </title>
+                  <!-- spell-app, the meta repo -->
+                  <rect class="repo" x="10" y="10" width="880" height="590" rx="10" />
+                  <text class="name" x="24" y="32">spell-app</text>
+                  <text class="sub" x="104" y="32">
+                    the meta repo: its own git repo, and the one install for all six
+                  </text>
+
+                  <!-- spell-app's own packages -->
+                  <rect class="own" x="30" y="44" width="840" height="88" rx="6" />
+                  <text class="name s" x="44" y="64">packages/</text>
+                  <text class="sub" x="116" y="64">
+                    spell-app's own packages: the language, the editor and their tools
+                  </text>
+                  <rect class="chip" x="44" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="81" y="94">core</text>
+                  <rect class="chip" x="126" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="163" y="94">py</text>
+                  <rect class="chip" x="208" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="245" y="94">spell</text>
+                  <rect class="chip" x="290" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="327" y="94">spaces</text>
+                  <rect class="chip" x="372" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="409" y="94">lsp</text>
+                  <rect class="chip hl" x="454" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="491" y="94">app</text>
+                  <rect class="chip" x="536" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="573" y="94">cli</text>
+                  <rect class="chip" x="618" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="655" y="94">vscode</text>
+                  <rect class="chip" x="700" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="737" y="94">brand</text>
+                  <rect class="chip" x="782" y="76" width="74" height="28" rx="4" />
+                  <text class="mid" x="819" y="94" style="font-size: 10.5px">page-server</text>
+                  <text class="sub mid" x="491" y="122">packages/app: here, as today</text>
+
+                  <!-- the child repos -->
+                  <rect class="child" x="40" y="190" width="220" height="80" rx="8" />
+                  <text class="name" x="54" y="212">spell-epic</text>
+                  <text class="sub" x="54" y="230">the epic engine and the docs tools</text>
+                  <text class="sub" x="54" y="246">moved in from beside spell-app</text>
+
+                  <rect class="child" x="300" y="190" width="220" height="80" rx="8" />
+                  <text class="name" x="314" y="212">spell-ui</text>
+                  <text class="sub" x="314" y="230">Spell UI: elements, site, docs</text>
+                  <text class="sub" x="314" y="246">code colour, markdown: plugins</text>
+
+                  <rect class="child" x="760" y="190" width="110" height="230" rx="8" />
+                  <text class="name s" x="772" y="212">spell-server</text>
+                  <text class="sub" x="772" y="232">server</text>
+                  <text class="sub" x="772" y="248">assembler</text>
+                  <text class="sub" x="772" y="272">uses no other</text>
+                  <text class="sub" x="772" y="286">repo's code</text>
+
+                  <rect class="child" x="300" y="340" width="220" height="80" rx="8" />
+                  <text class="name" x="314" y="362">spell-element</text>
+                  <text class="sub" x="314" y="380">custom elements on Solid</text>
+                  <text class="sub" x="314" y="396">spell-solid, renamed</text>
+
+                  <rect class="child" x="560" y="340" width="170" height="80" rx="8" />
+                  <text class="name" x="574" y="362">spell-parser</text>
+                  <text class="sub" x="574" y="380">parser + markdown</text>
+                  <text class="sub" x="574" y="396">the markdown plugin</text>
+
+                  <!-- spell-app's own top-level folders -->
+                  <rect class="own" x="30" y="478" width="840" height="104" rx="6" />
+                  <text class="name s" x="44" y="498">spell-app's own top-level folders</text>
+                  <rect class="chip" x="44" y="510" width="110" height="28" rx="4" />
+                  <text class="mid" x="99" y="528">toolchain/</text>
+                  <rect class="chip" x="164" y="510" width="110" height="28" rx="4" />
+                  <text class="mid" x="219" y="528">agents/</text>
+                  <rect class="chip loop" x="440" y="510" width="120" height="28" rx="4" />
+                  <text class="mid" x="500" y="528">util/</text>
+                  <text class="sub" x="44" y="558">
+                    toolchain/: lint, base tsconfig, decorators, types: every repo's configs
+                  </text>
+                  <text class="sub" x="44" y="572">agents/: WWOD and the three logs, linked into every repo</text>
+                  <text class="sub" x="576" y="524">util/: generic + reactive helpers</text>
+                  <text class="sub" x="576" y="540">needed by spell-element, spell-ui</text>
+                  <text class="sub" x="576" y="556">and spell-parser, all lower repos</text>
+
+                  <!-- grey:  uses, pointing down -->
+                  <path class="edge path" d="M 150 132 L 150 188" marker-end="url(#head-grey)" />
+                  <text class="num" x="156" y="156">runs its routes</text>
+                  <text class="num" x="156" y="170">(a setting)</text>
+                  <path class="edge" d="M 410 132 L 410 188" marker-end="url(#head-grey)" />
+                  <text class="num" x="416" y="164">app, cli, brand</text>
+                  <path class="edge" d="M 815 132 L 815 188" marker-end="url(#head-grey)" />
+                  <text class="num end" x="809" y="164">spaces, cli, page-server</text>
+                  <path class="edge" d="M 645 132 L 645 338" marker-end="url(#head-grey)" />
+                  <text class="num" x="651" y="300">spell, lsp, app</text>
+                  <path class="edge" d="M 280 132 L 280 395 L 298 395" marker-end="url(#head-grey)" />
+                  <text class="num" x="286" y="182">app, brand</text>
+                  <path class="edge" d="M 260 222 L 298 222" marker-end="url(#head-grey)" />
+                  <path class="edge" d="M 220 270 L 220 365 L 298 365" marker-end="url(#head-grey)" />
+                  <path class="edge" d="M 120 270 L 120 450 L 815 450 L 815 422" marker-end="url(#head-grey)" />
+                  <text class="num" x="130" y="444">server, assembler</text>
+                  <path class="edge" d="M 410 270 L 410 338" marker-end="url(#head-grey)" />
+                  <path class="edge path" d="M 520 215 L 758 215" marker-end="url(#head-grey)" />
+                  <text class="num" x="530" y="208">its site tools only</text>
+
+                  <!-- red:  the repo loop -->
+                  <path class="edge loop" d="M 480 420 L 480 508" marker-end="url(#head-red)" />
+                  <path class="edge loop" d="M 600 420 L 545 508" marker-end="url(#head-red)" />
+                  <text class="why" x="612" y="468">the repo loop</text>
+
+                  <!-- key -->
+                  <path class="edge" d="M 30 622 L 70 622" marker-end="url(#head-grey)" />
+                  <text x="80" y="626">uses (points at what's used)</text>
+                  <path class="edge path" d="M 30 646 L 70 646" marker-end="url(#head-grey)" />
+                  <text x="80" y="650">by a setting, or by tools only</text>
+                  <path class="edge loop" d="M 340 622 L 380 622" marker-end="url(#head-red)" />
+                  <text x="390" y="626">a lower repo needs the top repo's util/: the loop</text>
+                  <rect class="child" x="340" y="638" width="40" height="16" rx="3" />
+                  <text x="390" y="650">a child repo: its own git repo, cloned inside spell-app, git-ignored</text>
+                </svg>
+                <figcaption>
+                  spell-ui also uses util directly (5 imports) and through spell-element. Every repo's configs import
+                  toolchain/ and link agents/, so those point up too: the same loop, for the tools rather than the code.
+                </figcaption>
+              </figure>
+              <epic-text-box for="l-picture"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="l-main" header="2.2 The main checkout, in full" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="folder outline"></ui-icon>
+              <p>Everything under <code>~/www/spell-app/</code> once the split is done:</p>
+              <ul>
+                <li>
+                  <b>spell-app</b> keeps its own packages, gains three top-level folders (<code>util/</code>,
+                  <code>toolchain/</code>, <code>agents/</code>) and one new package (<code>page-server</code>).
+                </li>
+                <li>The five child repos sit inside it, git-ignored.</li>
+                <li>
+                  The content repo and the worktrees folder stay beside it, as today. Only spell-epic moves: from
+                  <code>~/www/spell-app/spell-epic</code> into <code>spell-app/spell-epic/</code>.
+                </li>
+              </ul>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>~/www/spell-app/ · after the split · 43 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-plaintext">~/www/spell-app/
+  spell-app/                      the spell-app repo, AND the meta repo (github.com/spell-app/spell-app)
+    package.json                  the one install:  spell-app's packages and every child repo's, as workspaces
+    yarn.lock                     one lockfile for all six repos:  one Solid, one vite-plus
+    .yarnrc.yml                   the one catalog of tool versions
+    .gitignore                    ignores the five child repo folders below
+    AGENTS.md  CLAUDE.md          spell-app's own rules (each child repo has its own)
+    .epic/config.json5            spell-app's epic settings;  engineFolder now points inside, at spell-epic/
+    .github/workflows/review.yml  CI:  clones the child repos inside spell-app, then checks everything
+    scripts/                      as today;  plus the proposed repos.mjs (section 3.1)
+    util/                         @spell-app/util:  the generic and reactive helpers, plus the parser's five
+    toolchain/                    @spell-app/toolchain:  the lint config and its patterns, the decorators plugin,
+                                    the base tsconfig, the global types (today's root vite.lint.ts,
+                                    vite.lint.patterns.ts, vite.decorators.ts, tsconfig.base.json, types/)
+    agents/                       WWOD and the three logs;  every child repo links its agents/ here
+    packages/
+      core/                       the runtime compiled spell runs on
+      py/                         Python's writers and spell_core
+      spell/                      the language;  gains src/util/ (spell's own helpers, out of util)
+                                    and builds the spell-colouring plugin for Spell UI (src/highlight/)
+      spaces/                     projects and people, and the editor's server routes
+      lsp/                        the language server
+      app/                        the editor app, the runner, &lt;spell-app&gt; and &lt;spell-editor&gt;   (stays here)
+      cli/                        the spell command
+      vscode/                     the VS Code extension:  its own yarn project, as today
+      brand/                      Spell's brand:  its &lt;brand-*&gt; elements and Brand UI
+      page-server/                NEW:  the page server's spell-app layer (component sets, engine routes,
+                                    bundle builds), out of today's server package
+    tests/                        core/ py/ spell/ spaces/ lsp/ app/ cli/ brand/ page-server/
+    spell-server/                 child repo, git-ignored:  server + assembler
+    spell-element/                child repo, git-ignored:  spell-solid, renamed
+    spell-parser/                 child repo, git-ignored:  parser + markdown
+    spell-ui/                     child repo, git-ignored:  Spell UI
+    spell-epic/                   child repo, git-ignored:  the epic engine, moved in from ~/www/spell-app/spell-epic
+    node_modules/                 the one install
+  spell-app.epics/                the content repo, as today:  epics, guides, sagas, pages, brand, windows
+  spell-app.worktrees/
+    &lt;epic&gt;/                       an epic's worktree (2.5)
+  spell-spaces/                   your own projects, as today
+
+Gone from spell-app's root:  vite.lint.ts, vite.lint.patterns.ts, vite.decorators.ts, tsconfig.base.json,
+types/ (all into toolchain/);  the agents link (agents/ is a real folder now);  the spell-epic link
+(spell-epic/ is the real checkout now).</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <epic-text-box for="l-main"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="l-children" header="2.3 Inside each child repo" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="cubes"></ui-icon>
+              <p>Every child repo has the same shape as spell-app has today, only smaller:</p>
+              <ul>
+                <li>
+                  its own <code>package.json</code>, with its scripts (<code>ts</code>, <code>test</code>,
+                  <code>lint</code>, <code>review</code>)
+                </li>
+                <li>
+                  its own <code>AGENTS.md</code> and <code>CLAUDE.md</code>: today's package rules, plus the repo's
+                </li>
+                <li>an <code>agents</code> link to spell-app's <code>agents/</code> folder (WWOD and the logs)</li>
+                <li>
+                  its own <code>.epic/config.json5</code>, <code>.gitattributes</code> and generators list (the
+                  generated files it commits)
+                </li>
+                <li>
+                  <code>packages/&lt;name&gt;/</code> for its code, and <code>tests/&lt;name&gt;/</code> beside it
+                </li>
+                <li>
+                  no <code>yarn.lock</code> and no CI of its own while it lives inside spell-app: the meta repo's
+                  install and CI cover it
+                </li>
+              </ul>
+              <p>spell-epic keeps its own shape (one package laid out as a repo), less the copies it carries today.</p>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>The five child repos, inside spell-app · 52 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-plaintext">spell-server/                     server + assembler  (github.com/spell-app/spell-server, proposed)
+  package.json  AGENTS.md  CLAUDE.md  .epic/  .gitattributes
+  agents -&gt; ../agents             WWOD and the logs, from spell-app
+  packages/
+    server/                       @spell-app/server:  WebServer, Router, StaticHandler, live reload, locks,
+                                    ports, RouteModule, the page editor, the settings reader
+    assembler/                    @spell-app/assembler:  Linker, formatHTML, Bundle, json5, DataFile
+  tests/
+    server/  assembler/
+
+spell-element/                    spell-solid, renamed  (github.com/spell-app/spell-element, proposed)
+  package.json  AGENTS.md  CLAUDE.md  .epic/  .gitattributes
+  agents -&gt; ../agents
+  packages/
+    spell-element/                @spell-app/spell-element:  the component and element bases, the reactive
+                                    decorators, shadow events, hot reloading
+  tests/
+    spell-element/                with a small test fixture of its own (no Spell UI needed)
+
+spell-parser/                     parser + markdown  (github.com/spell-app/spell-parser, proposed)
+  package.json  AGENTS.md  CLAUDE.md  .epic/  .gitattributes
+  agents -&gt; ../agents
+  packages/
+    parser/                       @spell-app/parser:  the rule-based parser, and Rulex
+    markdown/                     @spell-app/markdown:  GitHub markdown;  builds Spell UI's markdown plugin
+  tests/
+    parser/  markdown/
+
+spell-ui/                         Spell UI  (github.com/spell-app/spell-ui, proposed)
+  package.json  AGENTS.md  CLAUDE.md  .epic/  .gitattributes
+  agents -&gt; ../agents
+  packages/
+    ui/                           @spell-app/ui:  today's packages/ui, whole
+      components/                 the ui-* elements
+      src/                        core, forms, icons, styles, the new plugin slot (no committed bundles)
+      docs/                       Spell UI's docs pages (the components set, at /components/ui/)
+      site/                       the docs site's shell;  _assets/ git-ignored, as today
+      tools/                      the site and design tools, and the pack build (moved in from the cli)
+      scripts/  test/  vendor/
+  tests/
+    ui/                           today's tests/ui/, plus spell-element's tests that need real elements
+
+spell-epic/                       the epic engine  (github.com/spell-app/spell-epic, as today)
+  package.json  AGENTS.md  README.md  .epic/  .claude-plugin/
+  agents -&gt; ../agents             (today:  a link into the content repo)
+  bin/epic                        the epic command
+  hooks/  skills/  templates/     the Claude Code plugin's parts
+  src/                            the epics package:  components, docs (Epic UI), tools, server ...
+  tests/
+  vscode/                         its VS Code extension, its own yarn project
+  Gone:  the .spell-app link, the portal: dependencies, the copied catalog and Solid pins,
+         the second alias table (tsconfig.base.json), the copied lint config</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <epic-text-box for="l-children"></epic-text-box>
+            </ui-section>
+
+            <ui-section
+              id="l-table"
+              header="2.4 Today to after, package by package"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <ui-icon slot="icon" name="arrows left right"></ui-icon>
+              <p>
+                Today's 16 packages, then the other things that move. Each package's tests move with it, from
+                <code>tests/&lt;name&gt;/</code> to the same path in its new repo.
+              </p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Package</th>
+                      <th>Today</th>
+                      <th>After</th>
+                      <th>Repo</th>
+                      <th>What changes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>util</b></td>
+                      <td><code>packages/util/</code></td>
+                      <td><code>util/</code></td>
+                      <td>spell-app</td>
+                      <td>
+                        Keeps its generic and reactive helpers and the five the parser uses; spell's other helpers move
+                        to <code>packages/spell/src/util/</code>.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>parser</b></td>
+                      <td><code>packages/parser/</code></td>
+                      <td><code>spell-parser/packages/parser/</code></td>
+                      <td>spell-parser</td>
+                      <td>Moves with its history.</td>
+                    </tr>
+                    <tr>
+                      <td><b>markdown</b></td>
+                      <td><code>packages/markdown/</code></td>
+                      <td><code>spell-parser/packages/markdown/</code></td>
+                      <td>spell-parser</td>
+                      <td>Builds Spell UI's markdown plugin.</td>
+                    </tr>
+                    <tr>
+                      <td><b>core</b></td>
+                      <td><code>packages/core/</code></td>
+                      <td><code>packages/core/</code></td>
+                      <td>spell-app</td>
+                      <td>Stays.</td>
+                    </tr>
+                    <tr>
+                      <td><b>py</b></td>
+                      <td><code>packages/py/</code></td>
+                      <td><code>packages/py/</code></td>
+                      <td>spell-app</td>
+                      <td>Stays.</td>
+                    </tr>
+                    <tr>
+                      <td><b>spell</b></td>
+                      <td><code>packages/spell/</code></td>
+                      <td><code>packages/spell/</code></td>
+                      <td>spell-app</td>
+                      <td>Stays; takes in spell's own helpers from util, and builds the spell-colouring plugin.</td>
+                    </tr>
+                    <tr>
+                      <td><b>spaces</b></td>
+                      <td><code>packages/spaces/</code></td>
+                      <td><code>packages/spaces/</code></td>
+                      <td>spell-app</td>
+                      <td>Stays.</td>
+                    </tr>
+                    <tr>
+                      <td><b>lsp</b></td>
+                      <td><code>packages/lsp/</code></td>
+                      <td><code>packages/lsp/</code></td>
+                      <td>spell-app</td>
+                      <td>Stays.</td>
+                    </tr>
+                    <tr>
+                      <td><b>app</b></td>
+                      <td><code>packages/app/</code></td>
+                      <td><code>packages/app/</code></td>
+                      <td>spell-app</td>
+                      <td>Stays. Its <code>../ui/...</code> path imports become package imports.</td>
+                    </tr>
+                    <tr>
+                      <td><b>cli</b></td>
+                      <td><code>packages/cli/</code></td>
+                      <td><code>packages/cli/</code></td>
+                      <td>spell-app</td>
+                      <td>
+                        Stays; its pack build moves to Spell UI's tools, and <code>spell dev pack build</code> calls it.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>vscode</b></td>
+                      <td><code>packages/vscode/</code></td>
+                      <td><code>packages/vscode/</code></td>
+                      <td>spell-app</td>
+                      <td>Stays; finds lsp and the runner without spell-app's root baked into its bundle.</td>
+                    </tr>
+                    <tr>
+                      <td><b>brand</b></td>
+                      <td><code>packages/brand/</code></td>
+                      <td><code>packages/brand/</code></td>
+                      <td>spell-app</td>
+                      <td>Stays, a user of Spell UI.</td>
+                    </tr>
+                    <tr>
+                      <td><b>spell-solid</b></td>
+                      <td><code>packages/spell-solid/</code></td>
+                      <td><code>spell-element/packages/spell-element/</code></td>
+                      <td>spell-element</td>
+                      <td>
+                        Renamed: <code>@spell-app/spell-element</code>, <code>$/spell-element</code>. Its tests get
+                        their own fixture.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>ui</b></td>
+                      <td><code>packages/ui/</code></td>
+                      <td><code>spell-ui/packages/ui/</code></td>
+                      <td>spell-ui</td>
+                      <td>
+                        Loses its two committed bundles (spell colouring, markdown) for a plugin slot; gains the pack
+                        build.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>server</b></td>
+                      <td><code>packages/server/</code></td>
+                      <td><code>spell-server/packages/server/</code></td>
+                      <td>spell-server</td>
+                      <td>
+                        Only the generic layer goes. Its spell-app layer (<code>src/page/</code>,
+                        <code>src/site/</code>) becomes <code>packages/page-server/</code> in spell-app.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>assembler</b></td>
+                      <td><code>packages/assembler/</code></td>
+                      <td><code>spell-server/packages/assembler/</code></td>
+                      <td>spell-server</td>
+                      <td>Moves with its history.</td>
+                    </tr>
+                    <tr>
+                      <td><i>page-server</i> (new)</td>
+                      <td><code>packages/server/src/page/</code>, <code>src/site/</code></td>
+                      <td><code>packages/page-server/</code></td>
+                      <td>spell-app</td>
+                      <td>Reads its component sets and engine routes from the root <code>package.json</code>.</td>
+                    </tr>
+                    <tr>
+                      <td><i>toolchain</i> (new)</td>
+                      <td>
+                        root <code>vite.lint.ts</code>, <code>vite.lint.patterns.ts</code>,
+                        <code>vite.decorators.ts</code>, <code>tsconfig.base.json</code>, <code>types/</code>
+                      </td>
+                      <td><code>toolchain/</code></td>
+                      <td>spell-app</td>
+                      <td>A package every repo's configs import; spell-epic drops its copies.</td>
+                    </tr>
+                    <tr>
+                      <td><i>spell-epic</i></td>
+                      <td><code>~/www/spell-app/spell-epic/</code></td>
+                      <td><code>spell-app/spell-epic/</code></td>
+                      <td>spell-epic</td>
+                      <td>Still its own repo; now inside spell-app, on the one install.</td>
+                    </tr>
+                    <tr>
+                      <td><i>WWOD and the logs</i></td>
+                      <td><code>spell-app.epics/agents/</code>, linked in</td>
+                      <td><code>spell-app/agents/</code></td>
+                      <td>spell-app</td>
+                      <td>Every child repo links <code>agents/</code> to it.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <epic-text-box for="l-table"></epic-text-box>
+            </ui-section>
+
+            <ui-section
+              id="l-worktree"
+              header="2.5 The content repo, and an epic's worktree"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <ui-icon slot="icon" name="code branch"></ui-icon>
+              <ul>
+                <li>
+                  <b>The content repo</b>, <code>~/www/spell-app/spell-app.epics/</code>, doesn't change: epics, guides,
+                  sagas, pages, brand pages, window files. Only its <code>agents/</code> folder leaves, for spell-app's.
+                </li>
+                <li>
+                  <b>An epic's worktree</b> is a worktree of spell-app with a worktree of each child repo inside it,
+                  every one on the epic's branch, and one install for all of them.
+                </li>
+                <li>
+                  <b>In VS Code</b> it's still one window, folder 1 spell-app's main root as today, so the Claude panel
+                  lists every session. Quick Open, Explorer and Go to Definition reach every repo in the worktree;
+                  Source Control shows one entry per repo (the epic page's question about worktrees,
+                  <epic-link epic="repo-split" item="Q9"></epic-link>, has the full table).
+                </li>
+              </ul>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>~/www/spell-app/spell-app.worktrees/repo-split/ · 14 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-plaintext">~/www/spell-app/spell-app.worktrees/repo-split/   a git worktree of spell-app, on branch repo-split
+  package.json  yarn.lock  .yarnrc.yml
+  util/  toolchain/  agents/
+  packages/  tests/
+  node_modules/                 one install for the whole epic, as today
+  spell-server/                 a git worktree of spell-server, on branch repo-split
+  spell-element/                a git worktree of spell-element, on branch repo-split
+  spell-parser/                 a git worktree of spell-parser, on branch repo-split
+  spell-ui/                     a git worktree of spell-ui, on branch repo-split
+  spell-epic/                   a git worktree of spell-epic, on branch repo-split
+
+Each child's history lives in the MAIN checkout's copy (spell-app/spell-ui/.git ...);
+the worktree's spell-ui/ is a worktree of it, as the epic's spell-app folder is of spell-app.
+/isolate done merges each repo the epic changed, one by one.</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <epic-text-box for="l-worktree"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="work" header="3. How someone works with it" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="laptop code"></ui-icon>
+            <p>
+              Two people: one hacking on everything, one who only wants Spell UI. Then the parser and the epic engine.
+            </p>
+
+            <ui-section id="w-all" header="3.1 Hacking on the entire thing" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="terminal"></ui-icon>
+              <ul>
+                <li>
+                  <b>Set up once:</b> clone spell-app, clone the five child repos inside it, run one
+                  <code>yarn install</code> at spell-app's root.
+                </li>
+                <li>
+                  <b>The cloning step is a proposal</b> (the plan doesn't name it): a small script in spell-app,
+                  <code>scripts/repos.mjs</code>, that reads the child repos' list from spell-app's
+                  <code>package.json</code> and clones the missing ones.
+                  <ul>
+                    <li>
+                      It must run with plain <code>node</code> the first time, not as <code>yarn repos clone</code>:
+                      yarn runs no script before <code>yarn install</code>, and the install needs the child repos
+                      present first (spell-app's packages depend on theirs).
+                    </li>
+                    <li>
+                      After that, <code>yarn repos pull</code> (or <code>spell dev repos ...</code>) updates them all.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Checks:</b> <code>yarn review</code> (or <code>yarn ts</code>, <code>yarn test</code>) at
+                  spell-app's root covers every package of every repo, since they're all one install. One repo's alone:
+                  its own scripts, from its folder.
+                </li>
+                <li>
+                  <b>A change across two repos is two commits</b>, one in each repo, then two pull requests. No publish,
+                  no version bump: spell-app's packages use spell-ui's source straight from <code>spell-ui/</code>.
+                </li>
+                <li>
+                  <b>Git:</b> <code>git status</code> at spell-app's root shows only spell-app's files. Each child repo
+                  answers for itself (<code>cd spell-ui &amp;&amp; git status</code>); VS Code's Source Control lists
+                  them all.
+                </li>
+              </ul>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>Set up the whole thing · 9 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-sh">git clone https://github.com/spell-app/spell-app.git
+cd spell-app
+node scripts/repos.mjs clone      # proposed:  clones the five child repos below, by the list in package.json
+#   the same by hand:
+#   for r in spell-server spell-element spell-parser spell-ui spell-epic; do
+#     git clone https://github.com/spell-app/$r.git $r
+#   done
+yarn install                      # ONE install:  spell-app's packages and every child repo's
+yarn review                       # every package of every repo</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>Checks, at each level · 6 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-sh">yarn review                              # at spell-app's root:  everything
+yarn ts &amp;&amp; yarn test                     # at spell-app's root:  everything, faster
+cd spell-ui &amp;&amp; yarn ts &amp;&amp; yarn test      # one repo
+cd spell-ui/packages/ui &amp;&amp; yarn test     # one package
+cd packages/app &amp;&amp; yarn test             # one of spell-app's own packages, as today
+cd spell-epic &amp;&amp; yarn ts &amp;&amp; yarn test    # the epic engine, now on the same install</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>A change across two repos: a new button option the editor uses · 8 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-sh"># in spell-ui:  the option
+cd spell-ui
+git commit -am "ui:  ui-button takes size=tiny"
+# in spell-app:  the editor uses it (it sees spell-ui's source at once:  no publish, no bump)
+cd ..
+git commit -am "app:  the toolbar's buttons are tiny"
+# two pushes, two pull requests;  spell-ui's merges first
+git -C spell-ui push  &amp;&amp;  git push</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <epic-text-box for="w-all"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="w-ui" header="3.2 Hacking on Spell UI alone" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="palette"></ui-icon>
+              <p>
+                The honest answer: under the approved plan, someone who only wants Spell UI still clones everything,
+                until util is on npm.
+              </p>
+              <ul>
+                <li>
+                  <b>What Spell UI needs from other repos:</b>
+                  <ul>
+                    <li><code>@spell-app/spell-element</code> (spell-element), in its code: 98 imports</li>
+                    <li>
+                      <code>@spell-app/util</code> (spell-app's <code>util/</code>), in its code: 5 imports, and through
+                      spell-element
+                    </li>
+                    <li>
+                      <code>@spell-app/toolchain</code> (spell-app's <code>toolchain/</code>), for its lint, type and
+                      build configs
+                    </li>
+                    <li>
+                      <code>@spell-app/server</code> and <code>@spell-app/assembler</code> (spell-server), for its site
+                      tools and tests only
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Until those are on npm:</b> clone spell-app, the meta repo, with every child repo, as 3.1, and work
+                  in <code>spell-ui/</code>. Cloning only some of them doesn't install: spell-app's own packages need
+                  the parser and the rest.
+                </li>
+                <li>
+                  <b>Once they're on npm:</b> <code>git clone spell-ui</code> and <code>yarn install</code> work on
+                  their own.
+                  <ul>
+                    <li>
+                      Missing, by design: markdown and spell colouring (they're plugins). Code shows uncoloured,
+                      markdown as plain text.
+                    </li>
+                    <li>
+                      Missing too: brand's elements in the design tool (brand's folder is a setting), and WWOD (the
+                      <code>agents</code> link points at nothing).
+                    </li>
+                    <li>Everything else works: the elements, the docs site, the tests.</li>
+                    <li>
+                      spell-ui then needs its own tool versions and Solid pins, which the meta repo holds for it today.
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              <ui-tabs class="spell-tabs" pointing secondary basic>
+                <ui-tab label="Until npm">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>Spell UI, with the meta repo · 7 lines</ui-title>
+                    <ui-content>
+                      <pre><code class="language-sh">git clone https://github.com/spell-app/spell-app.git
+cd spell-app
+node scripts/repos.mjs clone      # all five:  spell-app's own packages need them to install
+yarn install
+cd spell-ui
+yarn test                         # Spell UI's checks only
+cd packages/ui &amp;&amp; yarn site:dev   # its docs site</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+                <ui-tab label="Once on npm">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>Spell UI by itself · 5 lines</ui-title>
+                    <ui-content>
+                      <pre><code class="language-sh">git clone https://github.com/spell-app/spell-ui.git
+cd spell-ui
+yarn install                      # util, spell-element, toolchain, server, assembler come from npm
+yarn test
+cd packages/ui &amp;&amp; yarn site:dev   # no markdown or spell colouring:  plain text, uncoloured code</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+              </ui-tabs>
+              <epic-text-box for="w-ui"></epic-text-box>
+            </ui-section>
+
+            <ui-section
+              id="w-other"
+              header="3.3 The parser alone, and the epic engine alone"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <ui-icon slot="icon" name="puzzle piece"></ui-icon>
+              <p>The same pattern: the meta repo until the lower packages are on npm, then the repo alone.</p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Hacking on</th>
+                      <th>It needs</th>
+                      <th>Until npm</th>
+                      <th>Once on npm</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>The parser</b> (spell-parser)</td>
+                      <td>util and toolchain, both in spell-app. Nothing else: markdown is in the same repo.</td>
+                      <td>The meta repo, as 3.1; work in <code>spell-parser/</code>.</td>
+                      <td>
+                        <code>git clone spell-parser &amp;&amp; yarn install</code>. Everything works, the markdown
+                        plugin's build too.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>The epic engine</b> (spell-epic)</td>
+                      <td>
+                        Spell UI, spell-element, server, assembler, util (through Spell UI), toolchain; to show pages, a
+                        content repo; for the brand's elements in its bundle, brand's folder.
+                      </td>
+                      <td>
+                        The meta repo, as 3.1; work in <code>spell-epic/</code>. The Claude Code plugin installs from
+                        there.
+                      </td>
+                      <td>
+                        <code>git clone spell-epic &amp;&amp; yarn install</code> runs its checks and its own page
+                        server. Serving epics still needs a content repo beside it, as today.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <epic-text-box for="w-other"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="tradeoffs" header="4. The trade-offs" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="gavel"></ui-icon>
+
+            <ui-section id="t-table" header="4.1 Against today's one repo" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="arrows left right to line"></ui-icon>
+              <p>What gets better, and what gets worse, once the split is done.</p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>What</th>
+                      <th>Today (one repo, plus spell-epic beside it)</th>
+                      <th>After the split</th>
+                      <th>Net</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>A fix to Spell UI</b></td>
+                      <td>A commit in spell-app, among 16 packages' history.</td>
+                      <td>One commit in spell-ui, its own history, pull requests and releases.</td>
+                      <td>Better</td>
+                    </tr>
+                    <tr>
+                      <td><b>Spell UI standing alone</b></td>
+                      <td>
+                        Commits 970 KB of bundles built from the language and markdown, stale until someone regenerates
+                        them.
+                      </td>
+                      <td>Builds and runs with no parser, language or server: those come in as plugins.</td>
+                      <td>Better</td>
+                    </tr>
+                    <tr>
+                      <td><b>spell-epic's install</b></td>
+                      <td>
+                        Its own install, through links into spell-app: Solid's pins, the catalog and the lint config
+                        copied by hand, a second alias table, "which checkout?" bugs.
+                      </td>
+                      <td>On the one install: one Solid, one catalog, no copies, no link to the wrong checkout.</td>
+                      <td>Better</td>
+                    </tr>
+                    <tr>
+                      <td><b>CI</b></td>
+                      <td>spell-app only; spell-epic has none.</td>
+                      <td>spell-app's CI clones the child repos inside it and checks all six.</td>
+                      <td>Better</td>
+                    </tr>
+                    <tr>
+                      <td><b>Which way imports point</b></td>
+                      <td>By convention only; every alias works from every package.</td>
+                      <td>
+                        Package names say which repo an import comes from, a lint rule stops climbing into another
+                        package's folders, and a repo cloned alone can't see the repos above it.
+                      </td>
+                      <td>Better</td>
+                    </tr>
+                    <tr>
+                      <td><b>A change across repos</b></td>
+                      <td>One commit, one pull request.</td>
+                      <td>One commit and one pull request per repo, merged in order (the lower repo first).</td>
+                      <td>Worse</td>
+                    </tr>
+                    <tr>
+                      <td><b>An epic's worktree</b></td>
+                      <td>One git worktree.</td>
+                      <td>
+                        Up to six git worktrees, one per repo, in one folder; merging <code>main</code> and
+                        <code>/isolate done</code> loop over them, and can stop with one repo merged and another not.
+                      </td>
+                      <td>Worse</td>
+                    </tr>
+                    <tr>
+                      <td><b>Git, day to day</b></td>
+                      <td>One <code>git status</code>, <code>git log</code>, <code>git grep</code>.</td>
+                      <td>
+                        One per repo; history searches go repo by repo. VS Code's Source Control lists them together.
+                      </td>
+                      <td>Worse</td>
+                    </tr>
+                    <tr>
+                      <td><b>Getting started</b></td>
+                      <td>Clone, install.</td>
+                      <td>Clone, clone five more inside it (one script), install.</td>
+                      <td>Slightly worse</td>
+                    </tr>
+                    <tr>
+                      <td><b>Per-repo upkeep</b></td>
+                      <td>One <code>AGENTS.md</code>, one epic settings file, one list of generated files.</td>
+                      <td>Each repo its own: rules, epic settings, <code>.gitattributes</code>, generators list.</td>
+                      <td>Worse</td>
+                    </tr>
+                    <tr>
+                      <td><b>The rules and logs</b></td>
+                      <td>One copy in the content repo, seen by every branch at once.</td>
+                      <td>
+                        In spell-app's <code>agents/</code>, linked into every repo. A folder in a git repo has
+                        branches: a log line written in an epic's worktree shows elsewhere only once it merges, unless
+                        every checkout links the main checkout's copy.
+                      </td>
+                      <td>Worse, unless linked to main</td>
+                    </tr>
+                    <tr>
+                      <td><b>The cost of getting there</b></td>
+                      <td>Nothing.</td>
+                      <td>
+                        About 20-27 hours over ten phases; a rewrite of about 3,100 import lines in 970 files; the
+                        cutover runs on <code>main</code>, and other sessions' worktrees merge <code>main</code> before
+                        it.
+                      </td>
+                      <td>Cost</td>
+                    </tr>
+                    <tr>
+                      <td><b>A lower repo cloned alone</b></td>
+                      <td>Not possible: one repo.</td>
+                      <td>Not possible either, until util and toolchain are on npm: the repo loop (4.2).</td>
+                      <td>Same, for now</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <epic-text-box for="t-table"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="t-loop" header="4.2 The repo loop" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="arrows rotate"></ui-icon>
+              <ui-message state="warning" header="util lives in the top repo, and the lower repos need it">
+                <ul>
+                  <li>
+                    spell-parser, spell-element and spell-ui (the lower repos) all use <code>@spell-app/util</code>,
+                    which lives in spell-app's <code>util/</code> folder: the top repo.
+                  </li>
+                  <li>
+                    No package needs a package that needs it back, so the code has no cycle. But the REPOS loop:
+                    spell-app needs spell-ui, and spell-ui needs spell-app.
+                  </li>
+                  <li>
+                    Inside the meta checkout you never see it: it's all one install. It shows the moment someone clones
+                    a lower repo alone (3.2, 3.3): it can't install.
+                  </li>
+                  <li>
+                    <code>toolchain/</code> and <code>agents/</code> make the same loop, for the tools and the rules.
+                  </li>
+                </ul>
+              </ui-message>
+              <p>
+                How it came about: on the analysis page you picked a repo of its own for util (Q2, spell-util); your
+                comments on the plan then made spell-app the meta repo, with <code>util/</code> and
+                <code>toolchain/</code> as top-level folders in it, so there's no spell-util repo (<epic-link
+                  epic="repo-split"
+                  item="Q2"
+                ></epic-link
+                >, <epic-link epic="repo-split" item="Q7"></epic-link>).
+              </p>
+              <div class="split-trio">
+                <figure class="split-fig small">
+                  <svg class="split-svg" viewBox="0 0 300 200" role="img" aria-labelledby="loop-plan-title">
+                    <title id="loop-plan-title">
+                      The plan: util in spell-app, so the lower repos point back up at it
+                    </title>
+                    <rect class="repo" x="20" y="14" width="260" height="56" rx="8" />
+                    <text class="name" x="32" y="36">spell-app</text>
+                    <text class="sub" x="32" y="54">the top repo</text>
+                    <rect class="chip loop" x="196" y="28" width="70" height="28" rx="4" />
+                    <text class="mid" x="231" y="46">util/</text>
+                    <rect class="child" x="20" y="126" width="120" height="44" rx="6" />
+                    <text class="name s" x="30" y="146">spell-ui</text>
+                    <text class="sub" x="30" y="161">spell-element</text>
+                    <rect class="child" x="170" y="126" width="110" height="44" rx="6" />
+                    <text class="name s" x="180" y="152">spell-parser</text>
+                    <path class="edge" d="M 60 70 L 60 124" marker-end="url(#head-grey)" />
+                    <path class="edge" d="M 190 70 L 190 124" marker-end="url(#head-grey)" />
+                    <path class="edge loop" d="M 120 126 L 206 58" marker-end="url(#head-red)" />
+                    <path class="edge loop" d="M 250 126 L 250 58" marker-end="url(#head-red)" />
+                    <text class="why mid" x="150" y="190">a lower repo alone can't install</text>
+                  </svg>
+                  <figcaption>The plan: util in spell-app.</figcaption>
+                </figure>
+                <figure class="split-fig small">
+                  <svg class="split-svg" viewBox="0 0 300 200" role="img" aria-labelledby="loop-fixed-title">
+                    <title id="loop-fixed-title">Fixed: util at the bottom, on npm or in a small repo of its own</title>
+                    <rect class="repo" x="20" y="10" width="260" height="40" rx="8" />
+                    <text class="name" x="32" y="35">spell-app</text>
+                    <rect class="child" x="20" y="80" width="120" height="40" rx="6" />
+                    <text class="name s" x="30" y="98">spell-ui</text>
+                    <text class="sub" x="30" y="112">spell-element</text>
+                    <rect class="child" x="156" y="80" width="104" height="40" rx="6" />
+                    <text class="name s" x="166" y="104">spell-parser</text>
+                    <rect class="own" x="20" y="150" width="260" height="40" rx="6" />
+                    <text class="name s" x="32" y="168">util, toolchain</text>
+                    <text class="sub" x="32" y="182">on npm, or a spell-util repo</text>
+                    <path class="edge" d="M 60 50 L 60 78" marker-end="url(#head-grey)" />
+                    <path class="edge" d="M 208 50 L 208 78" marker-end="url(#head-grey)" />
+                    <path class="edge" d="M 80 120 L 80 148" marker-end="url(#head-grey)" />
+                    <path class="edge" d="M 208 120 L 208 148" marker-end="url(#head-grey)" />
+                    <path class="edge" d="M 272 50 L 272 148" marker-end="url(#head-grey)" />
+                  </svg>
+                  <figcaption>Either fix: every arrow points down.</figcaption>
+                </figure>
+              </div>
+              <p>What would fix it, either way:</p>
+              <ul>
+                <li>
+                  <b>util (and toolchain) on npm</b>, the later step the analysis page already picked for release
+                  (<epic-link epic="repo-split" item="Q4"></epic-link>).
+                  <ul>
+                    <li>A lower repo alone installs versions, and stands on its own.</li>
+                    <li>Inside the meta checkout nothing changes: it still uses the live source.</li>
+                    <li>
+                      The cost: a build, an exports map and a version bump for util whenever a lower repo needs a util
+                      change.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>util in a small repo of its own</b>, spell-util, at the bottom, as your first pick had it (Q2, and
+                  Q7's B: separate from the server).
+                  <ul>
+                    <li>A seventh repo, cloned inside spell-app like the others; the loop is gone from the picture.</li>
+                    <li>
+                      A lower repo alone then needs only spell-util beside it, not the whole of spell-app; with no npm,
+                      still a clone.
+                    </li>
+                    <li>toolchain and the rules could live there too.</li>
+                  </ul>
+                </li>
+              </ul>
+              <p>The plan as approved keeps util in spell-app and lives with the loop until npm.</p>
+              <epic-text-box for="t-loop"></epic-text-box>
+            </ui-section>
           </ui-section>
 
           <epic-text-box type="notes"></epic-text-box>
