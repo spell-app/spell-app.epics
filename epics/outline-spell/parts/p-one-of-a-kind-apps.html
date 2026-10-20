@@ -51,6 +51,143 @@
     <li>The Python target the same, or a note in this phase saying why not yet.</li>
     <li>The outline guide shows it.</li>
   </ul></epic-field
+><epic-field name="done"
+  ><ul>
+    <li><b>Uncommitted:</b> the changes wait in Source Control, for Owen's review before the commit.</li>
+    <li>
+      Where to see it: the three new tests in
+      <a
+        href="../../../tests/spell/src/parserTests/outline.test.ts"
+        target="src-tests-spell-src-parsertests-outline-test-ts"
+        ><code title="tests/spell/src/parserTests/outline.test.ts">outline.test.ts</code></a
+      >, under "one-of-a-kind apps (P21)".
+    </li>
+    <li>
+      <code>solitaire is an app where:</code>, with no article, declares two things:
+      <ul>
+        <li>the type, <code>Solitaire</code>, as <code>a solitaire is an app where:</code> does</li>
+        <li>its one instance, the variable <code>solitaire</code></li>
+      </ul>
+    </li>
+    <li>
+      No <code>set the solitaire to a new solitaire</code>: <code>print solitaire</code>,
+      <code>debug solitaire</code> and <code>the solitaire</code> all reach it.
+    </li>
+    <li>
+      Only an app, or a kind of app.
+      <ul>
+        <li><code>game is a thing</code> isn't understood: a parse error</li>
+        <li><code>a solitaire is an app</code>, with its article, is unchanged: a type, no instance</li>
+      </ul>
+    </li>
+    <li>
+      It compiles to the class, then the instance right after it: <code>export const solitaire = new Solitaire()</code>.
+      <ul>
+        <li>Python: <code>solitaire = Solitaire()</code></li>
+        <li>
+          that line is running code, so every class declared below it in the file moves above it (<a
+            href="#p-classes-load-first"
+            >P15</a
+          >)
+        </li>
+        <li>
+          so its starting values (<a href="#p-starting-values">P19</a>) can make piles whose types are declared further
+          down
+        </li>
+      </ul>
+    </li>
+    <li>
+      Its body's methods with no receiver (<a href="#p-body-methods">P20</a>) can be called by their words alone
+      ANYWHERE.
+      <ul>
+        <li>at a file's top level: <code>deal the cards</code></li>
+        <li>
+          in another type's method: <code>deal the cards</code> in a pile's <code>draw</code> is
+          <code>solitaire.dealTheCards()</code>; Python <code>await solitaire.deal_the_cards()</code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      How:
+      <ul>
+        <li>
+          a new rule,
+          <a
+            href="../../../packages/spell/src/rules/classes/CreateOneOfAKind.ts"
+            target="src-packages-spell-src-rules-classes-createoneofakind-ts"
+            ><code title="packages/spell/src/rules/classes/CreateOneOfAKind.ts">create_one_of_a_kind</code></a
+          >, built on <code>create_type</code>
+        </li>
+        <li>
+          its variable is of a new kind, <code>only</code> (<a
+            href="../../../packages/parser/src/scope/ScopeVariable.ts"
+            target="src-packages-parser-src-scope-scopevariable-ts"
+            ><code title="packages/parser/src/scope/ScopeVariable.ts">P.ScopeVariable.kind</code></a
+          >), which
+          <a
+            href="../../../packages/spell/src/rules/methods/DynamicMethodRule.ts"
+            target="src-packages-spell-src-rules-methods-dynamicmethodrule-ts"
+            ><code title="packages/spell/src/rules/methods/DynamicMethodRule.ts"
+              >DynamicMethodRule.theOnlyOne()</code
+            ></a
+          >
+          finds for a call with no receiver
+        </li>
+        <li>
+          the editor's suggestions: the rule's quick test needs <code>is a|an</code> and an app type on the line, so
+          after any words (<code>set y</code>) the editor still offers only <code>to</code>, not <code>is a</code>
+        </li>
+        <li>
+          the pre-pass that finds types,
+          <a href="../../../packages/spell/src/SpellParser.ts" target="src-packages-spell-src-spellparser-ts"
+            ><code title="packages/spell/src/SpellParser.ts">SpellParser.TYPE_DECLARATION</code></a
+          >, knows <code>solitaire is an app</code> too, so a line above it can name the type
+        </li>
+      </ul>
+    </li>
+    <li>
+      Checks:
+      <ul>
+        <li>
+          run: bare calls at the top and from a pile's method, and a starting value of a type declared below: score 2,
+          name "clubs"
+        </li>
+        <li>
+          <code>game is an app</code> compiles to the class then <code>export const game = new Game()</code>;
+          <code>a game is an app</code> makes none
+        </li>
+        <li><code>game is a thing</code> is a parse error</li>
+        <li>
+          spell 1333 passed (17 skipped); parser 521 (its 6 expected failures); lsp 131, cli 226 (6 skipped), app 295,
+          core 642 pass; types and lint clean
+        </li>
+        <li>the syntax table, rule-names and priority snapshots regenerated</li>
+        <li>the test projects' and the examples' compiled output didn't move</li>
+        <li>Spell UI's highlighter bundle regenerated; the VS Code extension rebuilt from this branch and installed</li>
+        <li>
+          <a href="../../../packages/spell/PARSING.md" target="src-packages-spell-parsing-md"
+            ><code title="packages/spell/PARSING.md">PARSING.md</code></a
+          >
+          has it
+        </li>
+      </ul>
+    </li>
+    <li>
+      Speed against HEAD (<code>spell speed --against HEAD</code>, the rule tests' average): 133 before, 132 after, -1%,
+      so no change.
+    </li>
+    <li>
+      The outline guide shows it:
+      <a href="../../../guides/outline-spell.html#one-of-a-kind" target="src-guides-outline-spell-html"
+        >One-of-a-kind apps</a
+      >, with a line in "Classes first, every pile, tests last".
+    </li>
+    <li>
+      Not yet: another project importing this one doesn't learn <code>solitaire</code> is one of a kind. Its
+      declarations carry the type and the variable's class, not the <code>only</code> kind.
+    </li>
+    <li>Not done here: the outline Solitaire doesn't use it yet; <a href="#p-solitaire-in-one-block">P24</a> does.</li>
+  </ul></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
