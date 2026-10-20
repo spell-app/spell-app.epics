@@ -3,7 +3,9 @@ id: r2
 epic: epic-engine
 from: 🚧 property-editor (ba126030)
 at: 2026-10-19T19:41-04:00
-status: new
+status: filed
+filed: P6 · Session Title Fix
+phase: p-session-title-fix
 ---
 
 ## Owen's words
