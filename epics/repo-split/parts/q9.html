@@ -33,3 +33,148 @@
     <li>the worktree tooling grows a loop over repos</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-19 20:00" re="revisit soon"
+  ><p>What does A mean in terms of working with files in VSCode?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-19 21:16" re="What does A mean in terms of working with files in VSCode?"
+  ><p>
+    You also asked, on the plan: “provide more detail in Q9 for how this will affect 'file open' in vscode”. In short:
+    with A, an epic's window shows ONE folder holding every repo, and any file you open there is the epic's own copy,
+    ready to edit.
+  </p>
+  <p>One change to A first, so that last part is always true:</p>
+  <ul>
+    <li>
+      EVERY repo in an epic's worktree is on branch <code>&lt;epic&gt;</code>, not only the repos the epic changes.
+    </li>
+    <li>So any file you open is editable, in any repo, with no step to "check out" a repo first.</li>
+    <li>A repo the epic never touched has an empty branch, and merging the epic skips it.</li>
+  </ul>
+  <h4>What the window holds</h4>
+  <p>The epic's window, titled <code>⎇ repo-split</code>, has two folders:</p>
+  <ol>
+    <li>
+      spell-app's MAIN root.
+      <ul>
+        <li>It's first so the Claude panel lists every session (<a href="#q10">Q10</a>).</li>
+        <li>Its files are hidden in Explorer and Quick Open, as today, so you never open main's copy by mistake.</li>
+      </ul>
+    </li>
+    <li>
+      The epic's worktree.
+      <ul>
+        <li>
+          spell-app's own files, with the five child repos inside it: spell-server, spell-element, spell-parser,
+          spell-ui and spell-epic.
+        </li>
+        <li>Each child repo is a git worktree of its own repo, on branch <code>repo-split</code>.</li>
+      </ul>
+    </li>
+  </ol>
+  <epic-code title="the epic's worktree folder" language="text">
+    <pre>
+spell-app.worktrees/repo-split/     spell-app, on branch repo-split
+  util/  toolchain/  packages/ ...  spell-app's own files
+  spell-server/                     spell-server, on branch repo-split
+  spell-element/                    spell-element, on branch repo-split
+  spell-parser/                     spell-parser, on branch repo-split
+  spell-ui/                         spell-ui, on branch repo-split
+  spell-epic/                       spell-epic, on branch repo-split
+</pre>
+  </epic-code>
+  <h4>Opening a file, every way</h4>
+  <ui-table celled compact striped unstackable
+    ><table>
+      <thead>
+        <tr>
+          <th>How you open a file</th>
+          <th>What happens</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Quick Open (Cmd+P)</td>
+          <td>
+            It searches every repo in the worktree. <code>Button.tsx</code> shows once, its folder beside it (inside
+            spell-ui). Main's copies stay hidden.
+          </td>
+        </tr>
+        <tr>
+          <td>The same name in several repos</td>
+          <td>
+            <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+            >, <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> and
+            <code>index.ts</code> show one row per repo, told apart by the folder beside each. Typing
+            <code>ui/AGENTS</code> narrows it to one. Editor tabs add the folder when two names clash.
+          </td>
+        </tr>
+        <tr>
+          <td>Explorer</td>
+          <td>One tree: spell-app's folders, with the child repos among them.</td>
+        </tr>
+        <tr>
+          <td>Go to Definition, or Cmd+click on an import</td>
+          <td>
+            An import of
+            <a href="../../../packages/ui/README.md" target="src-packages-ui-readme-md"><code>@spell-app/ui</code></a>
+            resolves, through the one install, to the epic's own spell-ui folder: the epic's copy, editable. Never a
+            copy in <code>node_modules</code>: TypeScript follows the link to the real file.
+          </td>
+        </tr>
+        <tr>
+          <td>A link in Claude's reply</td>
+          <td>
+            Written from the worktree's root, so it starts with the repo's folder (<code>spell-ui/...</code>). Still one
+            click.
+          </td>
+        </tr>
+        <tr>
+          <td>A path into MAIN's checkout</td>
+          <td>
+            It opens main's copy, not the epic's: the same risk as today. It's hidden from Quick Open and Explorer, but
+            a pasted full path still gets there.
+          </td>
+        </tr>
+        <tr>
+          <td>The terminal</td>
+          <td>
+            It opens at the worktree's root. <code>cd spell-ui</code> for one repo's checks, or run the root's scripts
+            for all of them.
+          </td>
+        </tr>
+        <tr>
+          <td>Source Control</td>
+          <td>One entry per repo, each with its own changes. Repos the epic didn't touch show nothing.</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <epic-choices>
+    <epic-option letter="A" title="A meta worktree:  every repo, one install, all on the epic's branch" recommended
+      ><ul>
+        <li>The epic's worktree holds a git worktree of every repo, each on branch <code>&lt;epic&gt;</code>.</li>
+        <li>Any file you open is the epic's copy, editable.</li>
+        <li>One install per epic, as today.</li>
+        <li>
+          Cost: the worktree commands, merge-main and <code>/isolate done</code> loop over the repos (<a
+            href="#p-multi-repo-tooling"
+            >P9</a
+          >).
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="A worktree of one repo, the rest linked to main"
+      ><ul>
+        <li>As first written: lighter, one git worktree.</li>
+        <li>But yarn won't take linked folders as workspaces, and an epic changing two repos is stuck.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>an epic is one window and one folder, as today</li>
+      <li>every file in that folder is the epic's own copy, in every repo</li>
+      <li>Quick Open and Source Control show the repos side by side, told apart by folder</li>
+      <li>opening main's copy by a pasted full path stays possible, as today</li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
