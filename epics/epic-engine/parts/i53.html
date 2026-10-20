@@ -12,3 +12,44 @@
   </li>
 </ul>
 <epic-reply from="Owen" at="2026-10-19 21:20" re="revisit soon"><p>do it</p></epic-reply>
+<epic-reply from="Claude" at="2026-10-19 21:35"
+  ><p>
+    Fixed: removing a worktree now stops its page and vite servers first, and every session's start stops any left by a
+    folder deleted another way, at most once an hour.
+  </p>
+  <ul>
+    <li>
+      One class does both, <code>CheckoutServers</code> (spell-epic's <code>src/command/</code>). It finds servers with
+      spell-app's own finder,
+      <a href="../../../packages/server/src/page/prune.ts" target="src-packages-server-src-page-prune-ts"
+        ><code>prune.ts</code></a
+      >
+      (what <code>epic server prune</code> runs), by process, not by pid file. So no spell-app change was needed.
+    </li>
+    <li>
+      Stopped first by: the WorktreeRemove hook (only once it's sure to remove), a new
+      <code>epic worktree remove &lt;name&gt; [--force]</code>, and <code>epic worktree move</code>.
+      <code>/isolate done</code> (<code>/epic done</code>) and <code>/worktrees</code>' clean-up now run
+      <code>epic worktree remove</code> instead of a bare <code>git worktree remove</code>. Parking never removes a
+      worktree, so nothing changed there.
+    </li>
+    <li>
+      The safety net: a new SessionStart hook, <code>hooks/server-prune.mjs</code>. It's quiet, always exits 0, and runs
+      only in a repo using epics. Its stamp is <code>~/.spell-epic/server-prune.stamp</code>. It never stops a live
+      checkout's server: only one whose checkout and working folder are both gone. It took 0.2s here.
+    </li>
+    <li>
+      Checked: <code>tests/command/CheckoutServers.test.ts</code>, 6 tests on scratch checkouts, each "server" a tiny
+      node process run as spell-app's page server and vite are. They show: a removal stops its own servers and no one
+      else's; the hook keeps a dirty worktree and its servers; the session-start prune stops a deleted checkout's
+      servers and leaves a live one's; the hour's wait. The full suite passes (1461 tests), and <code>yarn ts</code>,
+      <code>yarn lint</code> and <code>yarn plugin:validate</code> pass. I also ran <code>epic worktree remove</code> by
+      hand on a scratch repo: "stopped 2 servers", then removed.
+    </li>
+    <li>Docs: AGENTS.md, src/AGENTS.md, the README, and the isolate and worktrees skills.</li>
+  </ul></epic-reply
+>
+<epic-commit sha="037db0f88494a53fe9967db1564ed8c23ea381ef"
+  >removing a worktree stops its servers first, and every session's start stops servers left by a removed checkout (at
+  most hourly)</epic-commit
+>
