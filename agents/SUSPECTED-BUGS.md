@@ -354,6 +354,12 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 - the other way round:  `set red to 5` ABOVE `cards have a color as either red or black` gives
   `Card.Colors = [red, 'black']`, i.e. `[5, 'black']`:  `identifier_list` takes the variable.  Prove:  those two
   lines, in that order.
+- 2026-10-20 · a card's quoted phrase used ABOVE the file that defines it is misread with no error or warning:
+  in the outline Solitaire's Deck.spell (loaded before Card.spell), `the first card of the deck is the ace of clubs`
+  compiled to `deck.firstItem == "clubs".ace`, a property `ace` of the text "clubs", always false.  P22 (methods
+  before their definitions) makes `to ...` methods callable early, but not quoted phrases (`a card "is the (rank) of
+  (suits)" for ...`).  Prove:  that line in a test in Deck.spell, `spell test @spell/examples/outline-solitaire`.
+  Found in epic `outline-spell` P22. · spell
 
 ## parser
 
