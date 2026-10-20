@@ -45,11 +45,12 @@
             >Status: <ui-label size="mini" color="green">built</ui-label> (P1-P6), merged into
             <code>main</code> 2026-10-07 (PR #26); P8 and P9, leaving out <code>it</code> / <code>its</code> and bare
             property names, committed on the branch (<code>7da9c3b6</code>); P10, headings without colons, committed
-            (<code>804ef488</code>); P11, re-opening a type, built, not yet committed</ui-item
+            (<code>804ef488</code>); P11, re-opening a type, committed (<code>3583a97c</code>); P12, a kind's value's
+            position, built, not yet committed</ui-item
           >
           <ui-item icon="code branch"
             >Checked on: branch <code>outline-spell</code> at <code>e9e9cc36</code>, 2026-10-06, against the code and
-            the example's compiled output; P8's to P11's sections 2026-10-19, against their tests</ui-item
+            the example's compiled output; P8's to P12's sections 2026-10-19, against their tests</ui-item
           >
         </ui-list>
 
@@ -688,9 +689,40 @@
                     <td>the same words</td>
                     <td>a phrase on a value kind: <code>its rank is a face card</code></td>
                   </tr>
+                  <tr>
+                    <td><code>- value is the position of its rank</code></td>
+                    <td><code>the position of its rank in deck ranks</code></td>
+                    <td>
+                      a kind's value is found in its kind's own list, with no <code>in ...</code>: 12 for a queen
+                      (P12); the deck may be above or below the card
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </ui-table>
+            <ul>
+              <li>
+                <code>the position of</code> with no list works only for a kind's value.
+                <ul>
+                  <li>
+                    anything else needs its list: <code>the position of its deck</code> warns, in yellow,
+                    <code>a deck isn't a kind's value;  say which list, "... in ..."</code>, and finds nothing
+                  </li>
+                  <li><code>... in deck ranks</code> keeps working</li>
+                </ul>
+              </li>
+              <li>
+                A kind's list is a list of that kind: the deck's ranks are a list of ranks (P12, issue I14).
+                <ul>
+                  <li>so <code>for each rank in its ranks</code> knows each item is a rank</li>
+                  <li>
+                    and a member a rank doesn't have warns inside the loop: <code>print its suits</code> says
+                    <code>A rank never says it has a suits</code>, as a card's missing member does
+                  </li>
+                  <li>before P12 it compiled to <code>rank.suits</code> with no warning, and the loop never ran</li>
+                </ul>
+              </li>
+            </ul>
           </ui-section>
 
           <ui-section id="phrases" header="Phrases and drawing" sticky collapsible dividing collapsed>
@@ -796,25 +828,34 @@
 
           <ui-section id="kinds-compiled" header="Value kinds" sticky collapsible dividing collapsed>
             <ul>
-              <li>The deck keeps the list; the kind is a class with only statics.</li>
+              <li>
+                The deck keeps the list, as a static inside its class (<code>static Suits = [...]</code>); the kind is a
+                class with only statics.
+              </li>
+              <li>
+                <code>the position of its rank</code>, with no list, compiles to
+                <code>spellPosition(positionOf(Deck.Ranks, this.rank))</code> (P12).
+              </li>
               <li>A kind's property is a static method taking the value.</li>
               <li><code>is diamonds or hearts</code> is a lookup in the list (J5); it used to be always true.</li>
             </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>Suit and Rank · 15 lines</ui-title>
+              <ui-title>The deck's lists, Suit and Rank · 17 lines</ui-title>
               <ui-content>
-                <pre><code class="language-js">Deck.Suits = ['clubs', 'diamonds', 'hearts', 'spades']
+                <pre><code class="language-js">export class Deck extends List {
+  // ...
+  static Suits = ["clubs", "diamonds", "hearts", "spades"]
+  static Ranks = ["ace", 2, 3, 4, 5, 6, 7, 8, 9, 10, "jack", "queen", "king"]
+}
 export class Suit {
   static color(suit) {
-    if (core.includes(['diamonds', 'hearts'], suit)) { return 'red' }
-    return 'black'
+    if (core.includes(["diamonds", "hearts"], suit)) return "red"
+    return "black"
   }
 }
-
-Deck.Ranks = ['ace', 2, 3, 4, 5, 6, 7, 8, 9, 10, 'jack', 'queen', 'king']
 export class Rank {
-  static is_a_face_card(rank) {
-    return core.includes(['jack', 'queen', 'king'], rank)
+  static isAFaceCard(rank) {
+    return core.includes(["jack", "queen", "king"], rank)
   }
 }</code></pre>
               </ui-content>
@@ -1369,7 +1410,16 @@ draw() {
             <ui-event icon="check">
               <ui-content>
                 <ui-summary
-                  >P11 (built, not yet committed): <code>a game:</code> re-opens a type, in the same file or a later
+                  >P12 (built, not yet committed): <code>the position of its rank</code> finds a kind's value in its own
+                  list; a loop over a kind's list knows its item, and warns on a member it lacks
+                  <ui-date>2026-10-19</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >P11 (committed, <code>3583a97c</code>): <code>a game:</code> re-opens a type, in the same file or a later
                   one; a type declared twice is an error naming the first <ui-date>2026-10-19</ui-date></ui-summary
                 >
               </ui-content>
@@ -1452,7 +1502,7 @@ draw() {
           <p class="meta">
             Last checked 2026-10-19 against branch <code>outline-spell</code> (P1-P6, <code>e9e9cc36</code>; P8's and
             P9's "Leaving out it / its", <code>7da9c3b6</code>; P10's headings without colons, <code>804ef488</code>; P11's
-            "Re-opening a type", uncommitted): re-read
+            "Re-opening a type", <code>3583a97c</code>; P12's "the position of" and a kind's list, uncommitted): re-read
             <a href="../packages/spell/PARSING.md" target="src-packages-spell-parsing-md"
               ><code title="packages/spell/PARSING.md">PARSING.md</code></a
             >
