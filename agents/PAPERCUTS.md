@@ -225,6 +225,9 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 ## ui
 
+- 2026-10-20 · `yarn smoke` failed every import-map page (`'@solidjs/web' does not provide an export named
+  'mergeProps'`) after a rebuild:  `vendor/` is tree-shaken to the bindings the LAST `dist/` imported, and the new
+  build imports more. · `yarn vendor`, then `yarn smoke` again. · ui (epic `repo-split` P6)
 - 2026-09-28 · `yarn install` with the global yarn (volta, 4.9.2) dies in the fetch step:
   `ENOENT ... lstat '/node_modules/typescript/lib/_tsc.js'` -- yarn's builtin `compat/typescript` patch
   predates TypeScript 7, whose package has no `_tsc.js`. · Pinned the repo to yarn 4.18.0 (as `spell/parser`)
