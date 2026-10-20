@@ -1760,3 +1760,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (`packages/epics/tools/_assets/`):  the root's ignore patterns (`**/epics/tools/_assets/...`) don't match from
   `packages/epics`, where `vp fmt tools` runs. · Fixed:  the package's `vite.config.ts` adds the same patterns from its
   own folder (`GENERATED_ASSETS`).  spell-app's own copy may have the same gap. · epics (epic-eject P7)
+- 2026-10-19 · `epic plan-doc phase <epic> <n> done --done <html>` wrote the Done field's file links one `../` too
+  deep, pointing outside the checkout, so `epic check` flagged them as missing. · Put back by hand to the three-level
+  form the other parts use (`../../../...`);  the tool should write links relative to the part's own folder
+  (`parts/`), as the page's other parts do. · epics (outline-spell P19)
