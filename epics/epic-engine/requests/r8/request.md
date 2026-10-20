@@ -3,7 +3,9 @@ id: r8
 epic: epic-engine
 from: 🚧 repo-split (8d334560)
 at: 2026-10-20T11:29-04:00
-status: new
+status: filed
+filed: P8 · Server Split Follow-up
+phase: p-server-split-follow-up
 ---
 
 ## Owen's words
