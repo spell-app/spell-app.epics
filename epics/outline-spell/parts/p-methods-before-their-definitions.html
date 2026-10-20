@@ -48,6 +48,147 @@
     </li>
     <li>The outline guide says it: order no longer matters for methods.</li>
   </ul></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      <b>Committed</b> as <code>0c90d4c9</code>, after Dealing.spell went into Deck.spell (<code>dfcd1002</code>), with
+      <a href="#p-solitaire-in-one-block">P24</a>'s one block.
+    </li>
+    <li>
+      Where to see it: the two new tests in
+      <a
+        href="../../../tests/spell/src/parserTests/outline.test.ts"
+        target="src-tests-spell-src-parsertests-outline-test-ts"
+        ><code title="tests/spell/src/parserTests/outline.test.ts">outline.test.ts</code></a
+      >, under "methods before their definitions (P22)".
+    </li>
+    <li>
+      A line can call a method defined further down, or in a later file.
+      <ul>
+        <li>
+          in the solitaire's auto-play, <code>play test-card</code>, above <code>to play a card</code>: the second
+          <code>a solitaire:</code> block is gone (<a href="#p-solitaire-in-one-block">P24</a>)
+        </li>
+        <li>
+          <code>set x to double 21</code> in a file loaded before the one with <code>to double (n as a number)</code>
+        </li>
+        <li>a call to a method defined nowhere still says "Don't understand"</li>
+      </ul>
+    </li>
+    <li>
+      How:
+      <ul>
+        <li>
+          before a project's files parse, after the type pass,
+          <a href="../../../packages/spell/src/SpellParser.ts" target="src-packages-spell-src-spellparser-ts"
+            ><code title="packages/spell/src/SpellParser.ts">SpellParser.declaredMethods()</code></a
+          >
+          scans each file for methods' first lines:
+          <ul>
+            <li><code>to ...</code> and <code>animation ...</code> at a file's top</li>
+            <li>
+              <code>- to ...</code> in a type's outline body, parsed in that type's subject scope, so
+              <a href="#p-body-methods">P20</a>'s body methods work too
+            </li>
+          </ul>
+        </li>
+        <li>
+          each first line, parsed alone, registers its call rule early,
+          <a
+            href="../../../packages/spell/src/rules/methods/MethodDefinition.ts"
+            target="src-packages-spell-src-rules-methods-methoddefinition-ts"
+            ><code title="packages/spell/src/rules/methods/MethodDefinition.ts">MethodDefinition.callAhead()</code></a
+          >, marked <code>ahead</code>
+          <ul>
+            <li>
+              it steps aside once the real definition has run (<a
+                href="../../../packages/spell/src/rules/methods/DynamicMethodRule.ts"
+                target="src-packages-spell-src-rules-methods-dynamicmethodrule-ts"
+                ><code title="packages/spell/src/rules/methods/DynamicMethodRule.ts">DynamicMethodRule.test()</code></a
+              >)
+            </li>
+            <li>
+              registered straight on the parser, journaled, NOT in the scope's rules: a project's declarations never
+              export one
+            </li>
+          </ul>
+        </li>
+        <li>
+          the generic hooks are on the parser package's
+          <a href="../../../packages/parser/src/Parser.ts" target="src-packages-parser-src-parser-ts"
+            ><code title="packages/parser/src/Parser.ts">Parser</code></a
+          >: <code>declaredMethods()</code>, <code>stubDeclaredMethods()</code>, <code>changesMethods()</code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      Editing (<a
+        href="../../../packages/parser/src/IncrementalProject.ts"
+        target="src-packages-parser-src-incrementalproject-ts"
+        ><code title="packages/parser/src/IncrementalProject.ts">P.IncrementalProject</code></a
+      >):
+      <ul>
+        <li>an edit that adds or deletes a method re-parses the whole project, as a type change does</li>
+        <li>
+          in the editor's keep-last-good mode, a method whose first line is being edited keeps its early call until the
+          next full parse
+          <ul>
+            <li>so a half-typed first line doesn't re-parse everything, and later lines keep working</li>
+          </ul>
+        </li>
+        <li>
+          two fixes found on the way, by the incremental tests and the language server's tests: deleting a method must
+          re-parse, else its calls kept parsing, and so in keep-last-good mode too
+        </li>
+      </ul>
+    </li>
+    <li>
+      Checks:
+      <ul>
+        <li>
+          two outline tests: a body's method called above its definition, and a top-level call above
+          <code>to play a game</code>, score 3; a call from a file loaded before the method's file, 42
+        </li>
+        <li>
+          an incremental test: a method added below a line that calls it, that line parses; deleted, it doesn't; with
+          and without keep-last-good
+        </li>
+        <li>
+          spell 1337 passed (17 skipped); parser 521 (its 6 expected failures); lsp 131, cli 226 (6 skipped), app 295,
+          core 643 pass; types and lint clean
+        </li>
+        <li>the examples compile</li>
+        <li>
+          <a href="../../../packages/spell/PARSING.md" target="src-packages-spell-parsing-md"
+            ><code title="packages/spell/PARSING.md">PARSING.md</code></a
+          >
+          has it
+        </li>
+        <li>Spell UI's highlighter bundle regenerated; the VS Code extension rebuilt from this branch and installed</li>
+      </ul>
+    </li>
+    <li>
+      Speed against HEAD (<code>spell speed --against HEAD</code>, the rule tests' average): 134 before, 135 after, 0%,
+      so no change.
+    </li>
+    <li>
+      The outline guide shows it:
+      <a href="../../../guides/outline-spell.html#methods-ahead" target="src-guides-outline-spell-html"
+        >Methods before their definitions</a
+      >.
+    </li>
+    <li>
+      <b>Not yet: a quoted phrase used above its definition is silently misread</b> (<a href="#i16">I16</a>).
+      <ul>
+        <li>
+          <code>the first card of the deck is the ace of clubs</code> in Deck.spell, loaded before Card.spell, which
+          defines <code>a card "is the (rank) of (suits)"</code>
+        </li>
+        <li>it compiled to <code>deck.firstItem == "clubs".ace</code>: always false, and no error</li>
+        <li>logged in the suspected-bugs log too</li>
+      </ul>
+    </li>
+  </ul></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
