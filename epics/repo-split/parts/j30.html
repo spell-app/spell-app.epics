@@ -1,0 +1,39 @@
+<!-- plan-doc part:  #j30's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  spell-epic reads spell-app's main checkout through its <code>.spell-app</code> link: its elements import
+  <code>$/spell-solid</code> (25 files), and it links <code>@spell-app/spell-solid</code> by <code>portal:</code>. So
+  the old name stays usable, each stand-in marked REFACTOR (T6 lists them):
+</p>
+<ul>
+  <li>
+    <a href="../../../packages/spell-solid/" target="src-packages-spell-solid"><code>packages/spell-solid/</code></a
+    >: a <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> (the portal needs one),
+    a
+    <a href="../../../packages/ui/tsconfig.json" target="src-packages-ui-tsconfig-json"><code>tsconfig.json</code></a>
+    extending the alias table, and three one-line files re-exporting <code>$/spell-element</code>,
+    <code>/vocabulary.types</code> and <code>/elements.types</code>: the only paths spell-epic imports. Re-exports, so a
+    page still has ONE copy of the element bases. Not a workspace: nothing in spell-app imports it. Chose this over a
+    folder symlink to spell-element: a link makes the same files reachable by two paths, which is how the docs bundle
+    once held two copies of the element bases (epic <code>epic-engine</code> I18).
+  </li>
+  <li>
+    At run time the old name is a key of <code>SpellUI.packModules</code>: the epics pack (every set's layout loads it)
+    reads <code>packModules["$/spell-solid"]</code>. So Spell UI's site bundle offers both keys
+    (<code>SitePacks.ts</code>), and the pack build still leaves <code>$/spell-solid</code> external
+    (<code>PACK_MODULES</code>).
+  </li>
+  <li>
+    The other way round, spell-epic's docs bundle names only <code>$/spell-solid</code>, so the app's
+    <code>spell-solid-shared.js</code> no longer asks the page for
+    <code>$/spell-element</code> (<code>SHARED_SPECIFIERS</code>): the page's <code>$/ui/core</code> carries every name
+    of it. Otherwise a <code>&lt;spell-app&gt;</code> on an epic page would load a second Solid.
+  </li>
+</ul>
+<p>
+  The one thing no stand-in can cover: spell-epic's <code>tsc</code> type-checks Spell UI's SOURCE through the link with
+  spell-epic's own alias table, and that source now imports <code>$/spell-element</code>. So T6's first step, two path
+  lines in spell-epic's
+  <a href="../../../tsconfig.base.json" target="src-tsconfig-base-json"><code>tsconfig.base.json</code></a
+  >, has to land BEFORE P3 merges into main (harmless before). Without it only spell-epic's <code>yarn ts</code> fails;
+  its tests, pack check and pack build pass (tried in a scratch clone against this worktree).
+</p>

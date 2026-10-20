@@ -1,0 +1,82 @@
+<!-- plan-doc part:  #t6's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  <b>First, BEFORE P3 merges into main</b> (forward-compatible, harmless against today's main): spell-epic's
+  <a href="../../../tsconfig.base.json" target="src-tsconfig-base-json"><code>tsconfig.base.json</code></a> gains
+  <code>"$/spell-element": ["./.spell-app/packages/spell-element/src/index.ts"]</code> and
+  <code>"$/spell-element/*": ["./.spell-app/packages/spell-element/src/*"]</code>. Its <code>tsc</code> follows Spell
+  UI's source through the link, and that source now imports <code>$/spell-element</code>: without these two lines its
+  <code>yarn ts</code> fails (TS2307 in ui's <code>core.ts</code> ...). Nothing else of spell-epic breaks (tried in a
+  scratch clone against this worktree: tests 143 files / 1499 pass, <code>pack:check</code> current, the pack rebuilt
+  byte for byte the same).
+</p>
+<p>
+  <b>Then, once P3 is on main</b>, in spell-epic (each tried in the scratch clone: <code>yarn install</code>,
+  <code>yarn ts</code>, the pack rebuilt, 143 test files / 1499 tests pass):
+</p>
+<ul>
+  <li>
+    Every <code>$/spell-solid</code> import becomes <code>$/spell-element</code>: the 25 element files in
+    <code>src/components/</code>, <code>src/definitions/definitions.types.ts</code> (and
+    <code>$/spell-solid/vocabulary.types</code>, <code>/elements.types</code>).
+  </li>
+  <li>
+    <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+    >: <code>"@spell-app/spell-element": "portal:./.spell-app/packages/spell-element"</code> in place of spell-solid's;
+    <code>yarn install</code>.
+  </li>
+  <li>
+    <a href="../../../tsconfig.base.json" target="src-tsconfig-base-json"><code>tsconfig.base.json</code></a
+    >: drop the two <code>$/spell-solid</code> paths.
+  </li>
+  <li>
+    The docs bundle's <code title="src/tools/_assets/spell-ui.entry.js">packModules</code>:
+    <code>"$/spell-element": uiCore</code> in place of <code>"$/spell-solid"</code>; rebuild the docs bundle.
+  </li>
+  <li>
+    <code>src/tools/bundle-spell-ui.js</code>: the brand's resolver <code>/^\$\/spell-element$/</code> (line 466: today
+    it matches only <code>$/spell-solid</code>, so a design bundle built from main after P3 would resolve the brand's
+    <code>$/spell-element</code> through tsconfig paths to spell-element's SOURCE, a second copy);
+    <code>checkNoSpellUI()</code>'s <code>packages\/(?:ui|spell-element)</code>.
+  </li>
+  <li>
+    <code>src/tools/bundle-experiment.ts</code>: <code>PACK_MODULES</code> and <code>SHARED_IMPORT</code> name
+    <code>$/spell-element</code>.
+  </li>
+  <li>
+    Rebuild the epics pack (<code>yarn pack:build</code>): it then reads <code>packModules["$/spell-element"]</code>.
+  </li>
+  <li>
+    Words: <a href="../../../README.md" target="src-readme-md"><code>README.md</code></a> 379,
+    <code>src/AGENTS.md</code> 45, 325-349, 1835, <code>src/README.md</code> 4, 26,
+    <a href="../../../vite.lint.patterns.ts" target="src-vite-lint-patterns-ts"><code>vite.lint.patterns.ts</code></a>
+    9, 124, <a href="../../../vite.lint.ts" target="src-vite-lint-ts"><code>vite.lint.ts</code></a> 172, 177,
+    <a href="../../../vitest.config.ts" target="src-vitest-config-ts"><code>vitest.config.ts</code></a> 64,
+    <a href="../../../tsconfig.base.json" target="src-tsconfig-base-json"><code>tsconfig.base.json</code></a> 11.
+  </li>
+</ul>
+<p>
+  <b>Then in spell-app</b>, delete every REFACTOR stand-in naming <code>spell-solid</code>: the folder
+  <a href="../../../packages/spell-solid/" target="src-packages-spell-solid"><code>packages/spell-solid/</code></a
+  >; <code>"$/spell-solid"</code> in <code>PACK_MODULES</code> and
+  <a href="../../../packages/ui/tools/ComponentPack.ts" target="src-packages-ui-tools-componentpack-ts"
+    ><code title="packages/ui/tools/ComponentPack.ts">SHARED_IMPORT</code></a
+  >
+  and in
+  <a href="../../../packages/ui/site/_src/SitePacks.ts" target="src-packages-ui-site-src-sitepacks-ts"
+    ><code title="packages/ui/site/_src/SitePacks.ts">packModules</code></a
+  >; put <code>$/spell-element</code> back in the app's
+  <a href="../../../packages/app/vite.shared.ts" target="src-packages-app-vite-shared-ts"
+    ><code title="packages/app/vite.shared.ts">SHARED_SPECIFIERS</code></a
+  >
+  and its pin in
+  <a href="../../../tests/app/src/runner/element.build.test.ts" target="src-tests-app-src-runner-element-build-test-ts"
+    ><code>tests/app/src/runner/element.build.test.ts</code></a
+  >; <code>"spell-solid"</code> in
+  <a href="../../../packages/cli/src/dev/packNew.ts" target="src-packages-cli-src-dev-packnew-ts"
+    ><code title="packages/cli/src/dev/packNew.ts">CORE_PACKAGES</code></a
+  >; the REFACTOR lines in the root
+  <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> ("spell-epic") and
+  <a href="../../../packages/spell-element/AGENTS.md" target="src-packages-spell-element-agents-md"
+    ><code>packages/spell-element/AGENTS.md</code></a
+  >. <code>rg -n "spell-solid(?![.-])" -P</code> then finds only history.
+</p>
