@@ -26,3 +26,47 @@
     Can the `App` link go to a route on the spell epic server which starts the app server if necessary, then redirects?
   </p></epic-reply
 >
+<epic-reply from="Claude" at="2026-10-19 21:10"
+  ><p>
+    Yes, built. The App tab's <code>/editor/</code> is now a route on the epic server (4848). It sends you to the app
+    when the app is running, and starts it first when it isn't.
+  </p>
+  <ul>
+    <li>
+      <strong>The app answers:</strong> a redirect to it. spell-app's editor is found the way its own page server finds
+      it, from the record
+      <a href="../../../.spell-server.editor.json" target="src-spell-server-editor-json"
+        ><code>.spell-server.editor.json</code></a
+      >, and only if that URL answers within a second.
+    </li>
+    <li>
+      <strong>It doesn't:</strong> the epic server runs the repo's start command in the background, from its main
+      checkout. For spell-app that's <code>node packages/cli/bin/spell.mjs dev server ensure</code>: the page server,
+      which starts the editor with it. The output goes to <code>~/.spell-epic/app-spell-app.log</code>. You get a
+      "Starting spell-app's app…" page at once, never a hung click. It asks every 0.7s and goes to the editor once it
+      answers. A start that fails, or doesn't answer within 2 minutes, says so there and names the log.
+    </li>
+    <li><strong>A repo without an app:</strong> a page saying so, showing how to declare one. Not a 404.</li>
+    <li>
+      <strong>Each repo declares its own</strong>, in its
+      <a href="../../../.epic/config.json5" target="src-epic-config-json5"><code>.epic/config.json5</code></a
+      >: <code>"app": { "path": "/editor/", "urlFile": ".spell-server.editor.json", "start": "..." }</code>, or a fixed
+      <code>"url"</code>. The default repo's is at <code>/editor/</code>, and each repo's at
+      <code>/r/&lt;repo&gt;/editor/</code>. <code>/api/app/&lt;repo&gt;</code> says how it stands.
+    </li>
+  </ul>
+  <p>
+    Code: <code>RepoApp</code> (spell-epic's <code>src/server/RepoApp.ts</code>), wired in by <code>EpicServer</code>;
+    the <code>app</code> key in <code>EpicConfig</code>. spell-app's <code>app</code> key is in spell-app's
+    <code>epic-engine</code> worktree. It counts once that is merged into spell-app's <code>main</code>. Until then,
+    4848 shows "spell-app has no app".
+  </p>
+  <p>
+    Checked: <code>tests/server/RepoApp.test.ts</code> (3 tests). It uses a scratch repo whose "app" is a tiny node
+    server started by the route. The first click starts it once, the second gives the same page, and then both
+    <code>/editor/</code> and <code>/r/one/editor/</code> redirect. A failing start reports its exit code, and a repo
+    with no app gets its page. I also ran a scratch epic server on port 4911. In headless Chromium,
+    <code>/editor/</code> showed "Starting demo's app…" and landed on the app 2.1s later. Pointed read-only at your
+    running editor's record, it redirected to <code>http://localhost:3000/</code>. Your servers weren't touched.
+  </p></epic-reply
+>
