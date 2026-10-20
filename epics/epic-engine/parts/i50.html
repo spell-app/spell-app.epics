@@ -12,3 +12,71 @@
 </p>
 <p><img src="../tests/v1-20261019-2041.png" alt="Owen's screenshot of V1" /></p>
 <epic-reply from="Owen" at="2026-10-19 21:12" re="revisit soon"><p>fix it</p></epic-reply>
+<epic-reply from="Claude" at="2026-10-19 21:15"
+  ><p>Fixed: two things went wrong in this test.</p>
+  <p>
+    <b>1. The screenshot was there, but <code>epic send</code> didn't look where it was.</b>
+  </p>
+  <ul>
+    <li>
+      A message you send while a session is mid-turn is queued. Claude Code writes it into the transcript as an
+      attachment of type <code>queued_command</code>, not as an ordinary prompt.
+    </li>
+    <li>
+      <code>send</code> read ordinary prompts only, so it found no image, and the property-editor session described the
+      picture in words. Its transcript has your screenshot at 20:39:50, 20 seconds before the send.
+    </li>
+    <li>
+      Fix: <code>Requests.promptBlocks()</code> reads both kinds. A subagent's report, which is queued the same way,
+      never counts. The send skill now says a screenshot pasted mid-turn counts like any other.
+    </li>
+    <li>
+      r3's screenshot is back in its folder:
+      <a href="../requests/r3/image-1.png" target="src-epics-epic-engine-requests-r3-image-1-png"
+        ><code>requests/r3/image-1.png</code></a
+      >. P5's Requests field doesn't show it yet.
+    </li>
+  </ul>
+  <p>
+    <b>2. "No epic-engine session was running" was wrong too.</b>
+  </p>
+  <ul>
+    <li>
+      This epic's session was running, and its tab said 🚧 epic-engine. But Claude Code's record of it
+      (<code>~/.claude/sessions/&lt;pid&gt;.json</code>) called it <code>epic-engine-d6</code>. It makes up a name like
+      that when a session is resumed in a new process.
+    </li>
+    <li>
+      <code>send</code> matched on that record name only, so it told nobody. Instead it opened a new window, and it
+      opened spell-app's epic-engine worktree: the window in your screenshot. epic-engine's real session runs in
+      spell-epic's worktree.
+    </li>
+    <li>Fix: the same as <a href="#i51">I51</a>'s. A made-up name is looked up in the session's transcript.</li>
+  </ul>
+  <p>
+    <b>"Paste screenshot doesn't work in this window":</b> I read this as the send losing your screenshot. The new
+    window's logs show no paste, and the one you pasted in property-editor did arrive. If pasting into the new window's
+    Claude input failed too, that's VS Code or Claude Code, not our code: tell me and I'll file it separately.
+  </p>
+  <p>Checked:</p>
+  <ul>
+    <li>
+      New tests in <code>tests/command/Requests.test.ts</code>, on a synthetic transcript: a mid-turn screenshot is
+      taken, and is the newest; a subagent's queued image never is; a session with a made-up name is told, at its
+      address.
+    </li>
+    <li>
+      On the real transcripts: <code>send</code> now finds your screenshot in property-editor's session, and finds
+      <code>epic-engine-d6</code> as epic-engine's session.
+    </li>
+    <li>
+      <code>yarn ts</code>, <code>yarn lint</code>, <code>yarn test</code> (1455 passed),
+      <code>yarn plugin:validate</code>.
+    </li>
+    <li>
+      Retest V1 once this is on <code>main</code>. Paste the screenshot while the other session is busy, to check the
+      mid-turn case.
+    </li>
+  </ul></epic-reply
+>
+<epic-commit sha="432609965c258867df12b1eb87862954279040e9">what Owen's first test run found</epic-commit>
