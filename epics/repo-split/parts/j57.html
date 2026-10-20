@@ -1,0 +1,22 @@
+<!-- plan-doc part:  #j57's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Not in I12's three options, found at the first run: <code>tsx</code> reads ONE tsconfig for every file it runs, so
+  spell-app's CLI running spell-lang's and spell-server's source failed on their own <code>$/</code> imports (<code
+    >Cannot find package '$'</code
+  >), and so did the page server loading spell-epic's route modules. Vite and Vitest are fine (the tsconfig nearest the
+  importing file).
+</p>
+<ul>
+  <li>
+    The fix: a node resolve hook (<code>module.registerHooks()</code>, spell-util toolchain/src/aliases.ts) that maps a
+    <code>$/</code> specifier through the alias table of the IMPORTING file's repo (the nearest tsconfig.base.json with
+    paths). Registered after tsx, it runs first.
+  </li>
+  <li>
+    Loaded by: spell-app's cli/bin/spell.mjs, its runner children (run, static, speed), the language server,
+    spell-server's background page server, spell-ui's spell-ui-pack, and every <code>tsx</code> package script (<code
+      >tsx --import @spell-app/toolchain/aliases ...</code
+    >).
+  </li>
+  <li>So <code>@spell-app/toolchain</code> is a runtime dependency of spell-server's server now (was dev).</li>
+</ul>
