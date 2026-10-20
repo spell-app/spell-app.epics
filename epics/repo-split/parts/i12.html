@@ -1,0 +1,32 @@
+<!-- plan-doc part:  #i12's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Found cutting the repos; NOT fixed (it needs a choice). <code>exports</code> point at source files, so a repo's
+  <code>tsc</code> type-checks every lower repo's source it imports, resolving ALL of it with the importing repo's
+  <code>paths</code>, which now hold only its own <code>$/</code> names (<a
+    href="../../../tsconfig.base.json"
+    target="src-tsconfig-base-json"
+    ><code>tsconfig.base.json</code></a
+  >, P8).
+</p>
+<ul>
+  <li>
+    spell-ui's <code>yarn ts</code> reaches spell-element's
+    <a href="../../../packages/ui/src/" target="src-packages-ui-src"><code>src/</code></a
+    >, whose 10 files import <code>$/spell-element/...</code>: TS2307. Likewise every repo above spell-lang that imports
+    <code>@spell-app/spell</code> (253 of spell's files import <code>$/parser</code>), and spell-brand through spell-ui.
+  </li>
+  <li>
+    Vite and Vitest are fine: <code>resolve.tsconfigPaths</code> uses the tsconfig nearest the IMPORTING file. Spell
+    UI's declarations build is fine too: it maps both repos' names itself.
+  </li>
+  <li>
+    Ways out: (a) a package's own files import each other relatively, keeping <code>$/</code> for its repo-mates
+    (spell-element and spell-ui would have none left); (b) each repo's table also maps the <code>$/</code> names of the
+    repos it uses, by path through the top install (<code>../node_modules/@spell-app/...</code>, which climbs out of the
+    repo); (c) project references / built declarations per repo.
+  </li>
+  <li>
+    The next agent (the top repo's install and checks) hits this first: spell-element and spell-util pass on their own,
+    the rest don't until it's settled.
+  </li>
+</ul>
