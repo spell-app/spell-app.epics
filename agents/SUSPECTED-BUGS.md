@@ -413,8 +413,8 @@ every entry below that date was fixed or disproven;  what's left:
   `coreOutsideCore` list (`$/util`'s `decorators.ts` / `dom.ts` / `string.ts`, `vocabulary/`, `icons/`,
   `docs-components/SiteData.ts`, `runtime/load.ts` ...).  None of them names a markdown file, and the `dist/` built
   before P8 already holds that same `rolldown-runtime-B72Djju_.js`, so they look older than the markdown branch.
-  Not checked on `main`.  NOTE:  `own ui-markdown` reads 92.59 kB because `md.bundle.js` sits in the family folder
-  (`groups()` buckets by folder);  it's a LAZY chunk (`MDEngine`), not eager code.
+  Not checked on `main`.  (2026-10-20, epic `repo-split` P2:  `md.bundle.js` left Spell UI, so `own ui-markdown` reads
+  6.33 kB;  and that branch's `yarn measure` printed no `CHECK` line.)
 - `src/components/ui-parts/ui-parts.css` `:state(in-item) > .avatar` [V]:  sets only `display` / `overflow` / round corners,
   no size and no `vertical-align`, so an item's `<ui-avatar>` draws at the image's own size (~3em for Fomantic's
   `avatar/small/*.jpg`) with the name on its baseline, while a card's is 2em, `vertical-align: middle`
