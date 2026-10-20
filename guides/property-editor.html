@@ -4,7 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Property Editor</title>
-    <meta name="description" content="One sentence." />
+    <meta
+      name="description"
+      content="Spell UI's property editor:  a form drawn from a schema, with groups and a grown ui-field per property;  saved as an .editor.html page that spell check keeps in step and spell compile turns into a module;  and rules written on a spell type, checked by the editor, VS Code and the running program."
+    />
+    <meta name="spell-saga" content="drawable-spell" />
     <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page">
@@ -12,223 +16,1185 @@
     <div class="spell-doc">
       <main class="spell-doc-main">
         <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
-          <ui-breadcrumb-section href="../pages/index.html" target="src-packages-docs-index-html"
-            >Docs</ui-breadcrumb-section
-          >
+          <ui-breadcrumb-section href="../pages/index.html">Docs</ui-breadcrumb-section>
           <ui-breadcrumb-section active>Property Editor</ui-breadcrumb-section>
         </ui-breadcrumb>
         <ui-sticky class="spell-h1"
           ><header class="spell-page-head"><h1>Property Editor</h1></header></ui-sticky
         >
-        <p class="lede">One sentence: what this doc settles, and for whom.</p>
+        <p class="lede">
+          A PROPERTY EDITOR is a form Spell UI draws for you from a description of a thing: a header, folding groups,
+          and a field per property, each with its label, tip, hint, choices and rules.
+        </p>
+        <ul>
+          <li>It edits one thing, or many at once, and writes each change at once or holds them all until Save.</li>
+          <li>
+            Its layout can be saved as a plain <code>.editor.html</code> page, tweaked by hand, checked and compiled.
+          </li>
+          <li>The rules a value must follow can be written in spell, on the type itself.</li>
+        </ul>
         <ui-list class="spell-meta">
-          <ui-item icon="user">Written for: who reads this, and what they're about to do</ui-item>
-          <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="orange">draft</ui-label> (or decided / built)</ui-item
+          <ui-item icon="map"
+            ><b>Epic page:</b>
+            <a href="../epics/property-editor/property-editor.plan.html" target="property-editor"
+              >epic property-editor</a
+            ></ui-item
           >
-          <ui-item icon="flask"
-            >Researched on: branch, date, and how the claims were checked (see
-            <a href="#4-sources">Sources</a>)</ui-item
+          <ui-item icon="user"
+            >Written for: anyone building a form on Spell UI, writing spell types that forms edit, or changing the
+            editor itself</ui-item
+          >
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="green">built</ui-label> P1-P10 committed on branch
+            <code>property-editor</code>, not merged yet. Next, P11, the doc review.</ui-item
+          >
+          <ui-item icon="code branch"
+            >Checked on: the branch at <code>852d4003f</code>, 2026-10-20, against the epic page, the docs pages and the
+            tests.</ui-item
           >
         </ui-list>
 
         <ui-section id="1-summary" header="1. Summary" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="lightbulb"></ui-icon>
           <ui-statistics class="spell-stats" size="mini">
-            <ui-statistic value="3×" label="faster"></ui-statistic>
-            <ui-statistic value="1.2" label="ms, median"></ui-statistic>
-            <ui-statistic value="0" label="breaking changes"></ui-statistic>
+            <ui-statistic value="3" label="new elements"></ui-statistic>
+            <ui-statistic value="9" label="rule words in spell"></ui-statistic>
+            <ui-statistic value="2,746" label="section words swept, in 222 files"></ui-statistic>
           </ui-statistics>
           <ul>
-            <li>The conclusion first, one idea per bullet.</li>
-            <li>Every fact, number and caveat survives condensing.</li>
-            <li>Headline numbers above: 2-4 of them, each also stated (with its caveat) in the body.</li>
+            <li>
+              Three new Spell UI elements draw the editor (<a href="#the-elements">The elements</a>):
+              <ul>
+                <li><code>&lt;ui-property-editor&gt;</code>: the whole form</li>
+                <li><code>&lt;ui-property-group&gt;</code>: a folding group of properties</li>
+                <li><code>&lt;ui-property&gt;</code>: one property, which picks its own control</li>
+              </ul>
+            </li>
+            <li>
+              Spell UI's own <code>&lt;ui-field&gt;</code> grew into the field shell every form now uses: a label row
+              with a tip, an output and action buttons, a hint, and its errors as a plain line under the control (<a
+                href="#field-shell"
+                >The field</a
+              >).
+            </li>
+            <li>
+              The editor reads ONE description of a thing: a component vocabulary, grown so it can describe a value of
+              any type (<a href="#vocabulary">What the editor reads</a>).
+              <ul>
+                <li>A web component's vocabulary is one already.</li>
+                <li>A JSON block, a JSON Schema and a spell class are read into one.</li>
+              </ul>
+            </li>
+            <li>
+              Every <code>&lt;ui-form&gt;</code> learned WHEN to write (<a href="#binding">When values are written</a>):
+              <ul>
+                <li>each field: at once, after a pause in typing, or on leaving it</li>
+                <li>the form: at once, or held until Save, with Cancel dropping them</li>
+                <li>many things at once, with a blank "Mixed" field where they disagree</li>
+              </ul>
+            </li>
+            <li>
+              The spell editor's Project Settings is its first real use: a dialog that edits and saves the project file
+              (<a href="#project-settings">Project Settings</a>).
+            </li>
+            <li>
+              A layout is a plain <code>.editor.html</code> page (<a href="#editor-pages">Editor pages</a>):
+              <ul>
+                <li>the spell editor writes a default one for a type</li>
+                <li>
+                  <code>spell check</code> finds where it has drifted from the type, and <code>--fix</code> mends it
+                </li>
+                <li><code>spell compile</code> turns it into a module defining <code>&lt;card-editor&gt;</code></li>
+              </ul>
+            </li>
+            <li>
+              A spell type can say what each value must be: <code>- its title must not be empty</code> (<a
+                href="#3-rules-in-spell"
+                >Rules in spell</a
+              >). It's checked in three places:
+              <ul>
+                <li>the property editor</li>
+                <li>VS Code, through the type's JSON Schema</li>
+                <li>the running program, in javascript and Python</li>
+              </ul>
+            </li>
+            <li>
+              <code>&lt;ui-section&gt;</code> speaks the field's words now:
+              <code title="label, hint, description">label</code> and the rest. The old words still work (<a
+                href="#4-section-words"
+                >ui-section's new words</a
+              >).
+            </li>
+            <li>
+              And Sparkle, the brand pages' pony, gallops at last: her legs swing, and a property editor on her page
+              changes her live (<a href="#the-pony">The pony</a>).
+            </li>
           </ul>
-          <ui-message state="positive" header="Recommendation">
+          <ui-message state="warning" header="Before merging">
             <ul>
-              <li>What to do, in one line.</li>
+              <li>
+                <b>Project Settings hasn't been saved on a real project by hand yet</b> (<epic-link
+                  epic="property-editor"
+                  item="V1"
+                ></epic-link
+                >).
+              </li>
+              <li><b>The screenshot tests were not run after the section renames</b>: Docker Desktop didn't start.</li>
+              <li>
+                <b
+                  >Until this branch merges, <code>main</code> shows two brand pages without field labels, and the pony
+                  page without her editor</b
+                >
+                (<a href="#5-limits">Limits</a>).
+              </li>
             </ul>
           </ui-message>
         </ui-section>
 
-        <ui-section id="2-the-design" header="2. The design" sticky collapsible dividing collapsed>
+        <ui-section id="2-the-editor" header="2. The editor" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="puzzle piece"></ui-icon>
           <p>
-            A short lead, then a nested <code>&lt;ui-section&gt;</code> per distinct part. A
-            <dfn class="spell-term" tabindex="0">coined term</dfn>
-            <ui-popup
-              header="coined term"
-              content="What it means here, in one line:  hover or focus the term."
-            ></ui-popup>
-            gets its meaning in a popup.
+            What it is made of, from the field up, and how to use it. Spell UI's own docs page shows each part live:
+            <a href="../components/ui/ui-property-editor.html" target="src-components-ui-ui-property-editor-html"
+              >the Property Editor page</a
+            >.
           </p>
 
-          <ui-section id="how-it-flows" header="How it flows" sticky collapsible dividing collapsed>
-            <ui-steps class="spell-steps" ordered>
-              <ui-step header="step one" description="What happens first, and when."></ui-step>
-              <ui-step header="step two" description="What it hands on."></ui-step>
-              <ui-step header="step three" description="Where it ends."></ui-step>
-            </ui-steps>
+          <ui-section id="by-example" header="By example" sticky collapsible dividing collapsed>
+            <p>
+              An editor for a theme, laid out by hand. Labels, tips, choices and rules come from the schema; the markup
+              says only how this one form shows them.
+            </p>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>A theme's editor, laid out · 12 lines</ui-title>
+              <ui-content>
+                <ui-code language="html"
+                  ><script type="text/plain">
+                    <ui-property-editor label="Theme" schema="Theme" apply="on save" validate="on leave">
+                      <ui-property name="title" hint="Used for the file name."></ui-property>
+
+                      <ui-property-group label="Shape" collapsible>
+                        <ui-property name="corners" as="buttons"></ui-property>
+                      </ui-property-group>
+
+                      <ui-property-group label="Type" collapsible>
+                        <ui-property name="font.family" apply="on leave"></ui-property>
+                      </ui-property-group>
+                    </ui-property-editor>
+                  </script></ui-code
+                >
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li>
+                Left empty, the editor draws every property, in the schema's order, each with the control its type calls
+                for.
+              </li>
+              <li><code>as</code> picks a control; a dotted <code>name</code> reaches into a nested thing.</li>
+              <li>
+                <code>apply="on save"</code> holds the edits until Save; <code>validate="on leave"</code> checks a field
+                as you leave it.
+              </li>
+            </ul>
           </ui-section>
 
-          <ui-section id="the-parts" header="The parts" sticky collapsible dividing collapsed>
-            <ui-cards class="spell-flow" stackable>
-              <ui-card>
-                <ui-content>
-                  <ui-header>a part</ui-header>
-                  <ui-description>What it owns.</ui-description>
-                </ui-content>
-              </ui-card>
-              <ui-card>
-                <ui-content>
-                  <ui-header>another part</ui-header>
-                  <ui-description>What it leaves to the first.</ui-description>
-                </ui-content>
-              </ui-card>
-            </ui-cards>
+          <ui-section id="field-shell" header="The field" sticky collapsible dividing collapsed>
+            <p>
+              <code>&lt;ui-field&gt;</code> is the shell every field is drawn in, on every Spell UI form, not only the
+              property editor's.
+            </p>
+            <ul>
+              <li>
+                A label row:
+                <ul>
+                  <li><code>label</code>, which also names the control for screen readers</li>
+                  <li><code>description</code>: a tip behind an "i" icon</li>
+                  <li><code>output</code>: a value at the end of the row, "100%"</li>
+                  <li>an <code>actions</code> slot, for small buttons such as Reset</li>
+                </ul>
+              </li>
+              <li>The control, then the <code>hint</code> under it.</li>
+              <li>
+                The <code>error</code>: a plain line under the control, shown as you type.
+                <ul>
+                  <li>Every form's errors look like this now.</li>
+                </ul>
+              </li>
+              <li>Each text is an attribute, or a slot of the same name for a rich version.</li>
+              <li><code>rules</code>: validation rules of its own, added to the form's.</li>
+              <li>
+                <code>readonly</code>: shows the value, which can't be changed.
+                <ul>
+                  <li>
+                    It nests like <code>disabled</code>: on an editor or a group, it reaches every property inside.
+                  </li>
+                </ul>
+              </li>
+              <li>An <code>inline</code> field puts the label row beside the control.</li>
+              <li>A field that slots its own <code>&lt;label&gt;</code> keeps its old look.</li>
+              <li>
+                The brand pages' <code>&lt;brand-field&gt;</code> is gone: they use <code>&lt;ui-field&gt;</code> and
+                look the same, pixel for pixel.
+                <ul>
+                  <li>
+                    Their compact inspector look is a sheet of the brand's own,
+                    <a href="../packages/brand/src/inspector.css" target="src-packages-brand-src-inspector-css"
+                      ><code title="packages/brand/src/inspector.css">inspector.css</code></a
+                    >, reaching only a field in a <code>&lt;ui-panel&gt;</code> on those pages.
+                  </li>
+                </ul>
+              </li>
+            </ul>
           </ui-section>
 
-          <ui-section id="today-vs-proposed" header="Today vs proposed" sticky collapsible dividing collapsed>
+          <ui-section id="vocabulary" header="What the editor reads" sticky collapsible dividing collapsed>
+            <p>
+              The editor reads a SCHEMA: a name, and a list of attributes. It's the vocabulary every Spell UI element is
+              already declared with, grown, not a new shape.
+            </p>
+            <ul>
+              <li>
+                What an attribute can now say, all optional, so every existing vocabulary is unchanged:
+                <ul>
+                  <li><code>type</code>: text, number, boolean, date, choice, list, thing or data</li>
+                  <li><code>of</code>: a list's item type; <code>attributesOf</code>: a nested thing's attributes</li>
+                  <li><code>label</code>, and <code>tip</code>: what a person reads behind the field's info icon</li>
+                  <li>limits: a lowest and highest value (<code title="min, max">min</code> / <code>max</code>)</li>
+                  <li><code>step</code>: a step size</li>
+                  <li><code>pattern</code>: a regex the value must match</li>
+                  <li><code>ordered</code>: a scale, which may show as a slider or buttons</li>
+                  <li><code>choicesFrom</code>: a named, maybe async, source of choices ("every font")</li>
+                  <li><code>rules</code>, and <code>onChange</code>: named rules run after a write</li>
+                </ul>
+              </li>
+              <li>
+                The attribute's own <code>description</code> stays the developers' docs text; the person's text is
+                <code>tip</code>.
+              </li>
+              <li>
+                Where a schema comes from:
+                <ul>
+                  <li>a tag, <code>schema="ui-button"</code>: its vocabulary</li>
+                  <li>a name the page registered, <code>schema="Theme"</code></li>
+                  <li>an object, as a property or JSON</li>
+                </ul>
+              </li>
+              <li>
+                The readers:
+                <ul>
+                  <li>
+                    Spell UI's
+                    <a
+                      href="../packages/ui/src/property/PropertySchemas.ts"
+                      target="src-packages-ui-src-property-propertyschemas-ts"
+                      ><code title="packages/ui/src/property/PropertySchemas.ts">PropertySchemas</code></a
+                    >
+                    reads a vocabulary, a JSON Schema, or a JSON block's values (guessing their types).
+                    <ul>
+                      <li>It gives a label from a name too: <code>listsStartAt</code> shows as "Lists start at".</li>
+                    </ul>
+                  </li>
+                  <li>
+                    The spell editor's
+                    <a href="../packages/app/src/ui/ClassSchemas.ts" target="src-packages-app-src-ui-classschemas-ts"
+                      ><code title="packages/app/src/ui/ClassSchemas.ts">ClassSchemas</code></a
+                    >
+                    reads a running spell class: types, legal values, defaults, list item types, superclasses first.
+                  </li>
+                  <li>
+                    <a
+                      href="../packages/spaces/src/models/TypeSchemas.ts"
+                      target="src-packages-spaces-src-models-typeschemas-ts"
+                      ><code title="packages/spaces/src/models/TypeSchemas.ts">TypeSchemas</code></a
+                    >
+                    reads a type from the project's compiled declarations, with nothing running.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                What stays OUT of the schema is how one form shows it: groups, order, which control, hints, presets.
+                That's the page's (<a href="#editor-pages">Editor pages</a>).
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>A schema, as JSON · 9 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-json">{
+  "name": "Release",
+  "attributes": [
+    { "name": "name", "type": "text", "tip": "Shown in the list.", "rules": [{ "type": "empty" }] },
+    { "name": "version", "type": "text",
+      "rules": [{ "type": "regExp", "value": "/^\\d+\\.\\d+\\.\\d+$/", "prompt": "Write it like 1.2.3" }] },
+    { "name": "stars", "type": "number", "min": 1, "max": 5 }
+  ]
+}</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="binding" header="When values are written" sticky collapsible dividing collapsed>
+            <p>
+              The editor writes through <code>&lt;ui-form&gt;</code>'s binding, grown, so every form gets these. When a
+              value is written is split in two: each field says when it takes an edit, and the form says when edits
+              land.
+            </p>
             <ui-table celled compact striped unstackable>
               <table>
                 <tbody>
                   <tr>
-                    <th>case</th>
-                    <th>today</th>
-                    <th>proposed</th>
-                    <th class="num right aligned">ms</th>
+                    <th>Where</th>
+                    <th>Says</th>
+                    <th>Means</th>
                   </tr>
                   <tr>
-                    <td>an input</td>
-                    <td class="no negative">what goes wrong</td>
-                    <td class="yes positive">what should happen</td>
-                    <td class="num right aligned">1.2</td>
+                    <td>a field, <code>apply</code></td>
+                    <td><code>immediately</code></td>
+                    <td>every change is taken at once (the default)</td>
                   </tr>
                   <tr>
-                    <td>another</td>
-                    <td class="meh warning">works, but slowly</td>
-                    <td class="yes positive">fast</td>
-                    <td class="num right aligned">0.4</td>
+                    <td>a field, <code>apply</code></td>
+                    <td><code>delayed</code>, <code>delayed 100</code></td>
+                    <td>after a pause in typing, 300ms unless given; leaving the field takes it at once</td>
+                  </tr>
+                  <tr>
+                    <td>a field, <code>apply</code></td>
+                    <td><code>on leave</code></td>
+                    <td>only when the cursor leaves the field: an id, a version</td>
+                  </tr>
+                  <tr>
+                    <td>the form, <code>apply</code></td>
+                    <td><code>immediately</code></td>
+                    <td>each edit lands in the thing at once (the default)</td>
+                  </tr>
+                  <tr>
+                    <td>the form, <code>apply</code></td>
+                    <td><code>on save</code></td>
+                    <td>edits are held until Save; Cancel drops them</td>
+                  </tr>
+                  <tr>
+                    <td>the form, <code>validate</code></td>
+                    <td>
+                      <ul>
+                        <li><code>immediately</code></li>
+                        <li><code>on leave</code></li>
+                        <li><code>on save</code></li>
+                      </ul>
+                    </td>
+                    <td>when fields check their values (default on save); was <code>validate-on</code></td>
                   </tr>
                 </tbody>
               </table>
             </ui-table>
+            <ul>
+              <li>
+                Save and Cancel:
+                <ul>
+                  <li><code>save()</code> checks every field first, then writes the held edits.</li>
+                  <li><code>cancel()</code> drops them, and shows the thing as it is again.</li>
+                  <li>Events: <code>ui-saving</code> (cancelable), then <code>ui-saved</code>.</li>
+                  <li>And: <code>ui-cancelling</code> (cancelable), then <code>ui-cancelled</code>.</li>
+                  <li>While edits are held, the form shows <code>:state(changed)</code>.</li>
+                  <li>A field still waiting (<code>delayed</code>, <code>on leave</code>) is written first.</li>
+                </ul>
+              </li>
+              <li>
+                Many things: give the form a list as its <code>value</code>.
+                <ul>
+                  <li>A field shows the value they all agree on.</li>
+                  <li>Else it's blank and <code>mixed</code>; a text field shows a "Mixed" placeholder.</li>
+                  <li>Typing into it sets that property on all of them.</li>
+                </ul>
+              </li>
+              <li>A field showing an error checks again as it changes, whatever <code>validate</code> says.</li>
+              <li>A value that fails its rules is never written.</li>
+              <li>"On change" rules run after a write: setting the font family can change the weights offered.</li>
+            </ul>
           </ui-section>
 
-          <ui-section id="trade-offs" header="Trade-offs" sticky collapsible dividing collapsed>
-            <ui-grid class="spell-pros-cons" columns="2" stackable>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attached="top" color="green"><ui-icon name="thumbs up"></ui-icon> For</ui-label>
-                  <ul>
-                    <li>What this choice buys.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attached="top" color="red"><ui-icon name="thumbs down"></ui-icon> Against</ui-label>
-                  <ul>
-                    <li>What it costs, and who pays.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-            </ui-grid>
-          </ui-section>
-
-          <ui-section id="the-code" header="The code" sticky collapsible dividing collapsed>
-            <p>Prefer an excerpt from a real, runnable file; say which.</p>
+          <ui-section id="the-elements" header="The elements" sticky collapsible dividing collapsed>
+            <p>
+              Each new element is built on one Spell UI has, and PASSES THROUGH its words: write
+              <code>collapsed</code> on a group as on a <code>&lt;ui-section&gt;</code>.
+            </p>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>Element</th>
+                    <th>Is a</th>
+                    <th>Its own words</th>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;ui-property-editor&gt;</code></td>
+                    <td>
+                      <code>&lt;ui-form&gt;</code>; with a <code>label</code>, it draws a section around its properties
+                    </td>
+                    <td>
+                      <ul>
+                        <li><code>schema</code>: what it edits</li>
+                        <li><code>value</code>: a thing, or a list of things</li>
+                        <li><code>source</code>: its layout page; <code>select</code>: part of it</li>
+                        <li><code>readonly</code></li>
+                        <li>events: <code>ui-change</code></li>
+                        <li>events: <code>ui-loading</code>, then <code>ui-loaded</code></li>
+                        <li>methods: <code title="save(), cancel(), validate()">save()</code> and the rest</li>
+                      </ul>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;ui-property-group&gt;</code></td>
+                    <td><code>&lt;ui-section&gt;</code>, as <code>&lt;ui-panel&gt;</code> is</td>
+                    <td>
+                      <ul>
+                        <li><code>select</code>: its part of the editor's layout page</li>
+                        <li><code>readonly</code></li>
+                        <li>a property in it fails: <code>:state(error)</code> and <code>ui-invalid</code></li>
+                        <li>else: <code>ui-success</code></li>
+                        <li>one holds an edit: <code>:state(changed)</code></li>
+                      </ul>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>&lt;ui-property&gt;</code></td>
+                    <td><code>&lt;ui-field&gt;</code></td>
+                    <td>
+                      <ul>
+                        <li><code>name</code>: may be a dotted path</li>
+                        <li><code>as</code>: which control</li>
+                        <li><code>options</code>: where its choices come from</li>
+                        <li><code>readonly</code></li>
+                      </ul>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>
+                A property makes its own control, by <code>as</code>, else by its type:
+                <ul>
+                  <li>
+                    the usual ones:
+                    <code title="input, text, number, select, checkbox, toggle, color, color-set">input</code>,
+                    <code>select</code> and six more
+                  </li>
+                  <li><code>range</code>: a slider with named steps, for an ordered scale</li>
+                  <li><code>buttons</code>: a button group (radios, for now: <a href="#5-limits">Limits</a>)</li>
+                  <li><code>editor</code>: a whole editor, for a property whose value is a thing</li>
+                </ul>
+              </li>
+              <li>
+                <code>UI.propertyControls</code> is the page's registry:
+                <ul>
+                  <li>a control kind for <code>as</code>, and the types it's the default for</li>
+                  <li>a choice source for <code>options</code> or a schema's <code>choicesFrom</code>, maybe async</li>
+                  <li>an "on change" rule for a schema's <code>onChange</code></li>
+                  <li>a schema, by name</li>
+                </ul>
+              </li>
+              <li>The editor's <code>ui-change</code> carries <code>{ name, value, things }</code>.</li>
+              <li>It works in a side bar, in a modal with <code>apply="on save"</code>, and in a popup.</li>
+            </ul>
             <ui-accordion class="spell-code" styled>
-              <ui-title>example.ts · 6 lines</ui-title>
+              <ui-title>Registering controls, choices, rules and schemas · 6 lines</ui-title>
               <ui-content>
-                <pre><code class="language-ts">// every code block starts folded:  no `open`
-export function greet(name: string): string {
-  return `hello, ${name}`
-}
+                <pre><code class="language-js">UI.propertyControls.add("date", { tag: "ui-calendar", types: ["date"] })
+UI.propertyControls.addChoices("fonts", async () =&gt; (await fetch("/fonts.json")).json())
+UI.propertyControls.addRule("darkSetsContrast", ({ things, value }) =&gt; {
+  for (const theme of things) theme.contrast = value ? "high" : "normal"
+})
+UI.propertyControls.addSchema("Theme", themeSchema)</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
 
-const message = greet("spell")</code></pre>
-              </ui-content>
-            </ui-accordion>
-            <p>Variants of one snippet (before / after, TS / JS) go in tabs, one code block per tab.</p>
-            <ui-tabs class="spell-tabs" pointing secondary basic aria-label="Before and after">
-              <ui-tab label="Before">
-                <ui-accordion class="spell-code" styled>
-                  <ui-title>before.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return "hello, " + name
-}</code></pre>
-                  </ui-content>
-                </ui-accordion>
-              </ui-tab>
-              <ui-tab label="After">
-                <ui-accordion class="spell-code" styled>
-                  <ui-title>after.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return `hello, ${name}`
-}</code></pre>
-                  </ui-content>
-                </ui-accordion>
-              </ui-tab>
-            </ui-tabs>
-            <ui-message state="warning" header="Heads up">
-              <ul>
-                <li>A trap the reader will fall into, and how to avoid it.</li>
-              </ul>
-            </ui-message>
-            <ui-accordion class="spell-aside" styled>
-              <ui-title>Aside: why not the obvious approach?</ui-title>
+          <ui-section id="project-settings" header="Project Settings" sticky collapsible dividing collapsed>
+            <p>
+              The editor's first real use: the spell editor's Settings button, in its top bar, opens a dialog,
+              "&lt;project&gt; settings".
+            </p>
+            <ul>
+              <li>
+                It edits the project file's settings, held until Save:
+                <ul>
+                  <li>title</li>
+                  <li>version: must look like 1.2.0, written on leave</li>
+                  <li>also-compiles-to targets: a multiple dropdown, a control kind the app registers</li>
+                  <li>lists start at: 1 or 0, as buttons</li>
+                </ul>
+              </li>
+              <li>
+                A new server route writes them into the project file, keeping its imports and comments, and removing a
+                setting left empty.
+                <ul>
+                  <li>
+                    <a
+                      href="../packages/spaces/src/models/SpellProjectRoot.ts"
+                      target="src-packages-spaces-src-models-spellprojectroot-ts"
+                      ><code title="packages/spaces/src/models/SpellProjectRoot.ts">saveSettings()</code></a
+                    >
+                    calls it, and updates the loaded project.
+                  </li>
+                </ul>
+              </li>
+              <li>Not editable yet: <code>exports</code>, a list of names.</li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>The dialog's editor, from ProjectSettings.tsx · 6 lines</ui-title>
               <ui-content>
-                <p>A digression the main text can skip. Starts collapsed.</p>
+                <ui-code language="html"
+                  ><script type="text/plain">
+                    <ui-property-editor apply="on save" prop:schema={PROJECT_SETTINGS_SCHEMA}>
+                      <ui-property name="title" hint="Its folder's name, as words, when left empty."></ui-property>
+                      <ui-property name="version" apply="on leave"></ui-property>
+                      <ui-property name="targets" as={CHOICES}></ui-property>
+                      <ui-property name="listsStartAt" as="buttons"></ui-property>
+                    </ui-property-editor>
+                  </script></ui-code
+                >
               </ui-content>
             </ui-accordion>
+          </ui-section>
+
+          <ui-section id="editor-pages" header="Editor pages" sticky collapsible dividing collapsed>
+            <p>
+              An editor's layout can live in a page of its own, <code>Card.editor.html</code>: plain markup, which the
+              editor loads as it is, with no build.
+            </p>
+            <ul>
+              <li>
+                <code>&lt;ui-property-editor source="Card.editor.html"&gt;</code> loads it.
+                <ul>
+                  <li>Same origin only: inside the spell editor, it's handed a <code>/spaces/</code> address.</li>
+                  <li><code>select</code> takes part of it, and a group's <code>select</code> its own part.</li>
+                  <li>Events: <code>ui-loading</code>, then <code>ui-loaded</code>.</li>
+                </ul>
+              </li>
+              <li>
+                The page holds only the layout: groups, order, controls, hints, presets, each field's
+                <code>apply</code>. Everything else still comes from the schema, so the page stays short.
+              </li>
+              <li>
+                Writing one: the spell editor's file menu, New Property Editor..., after New File.
+                <ul>
+                  <li>Pick a type: it writes <code>Card.editor.html</code>, listing every property of the type.</li>
+                  <li>
+                    It never writes over a page: a second one is <code>Card2.editor.html</code>, since a page is for
+                    tweaking by hand.
+                  </li>
+                  <li>
+                    The type's schema: the running class, when the editor last ran THIS project; else the project's
+                    declarations.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Keeping it in step: <code>spell check</code> checks every <code>*.editor.html</code> in a project
+                against its types as they are now.
+                <ul>
+                  <li>a property the page names that the type dropped</li>
+                  <li>a property the type has that the page doesn't place</li>
+                  <li>a control that no longer fits (a list of choices became free text)</li>
+                  <li>Each problem is a line, <code>path:line:col</code>, like its other errors.</li>
+                </ul>
+              </li>
+              <li>
+                <code>spell check --fix</code> mends what it can, and lists each fix.
+                <ul>
+                  <li>Dropped properties go; new ones land in an "Other" group.</li>
+                  <li>It exits 0 when everything was fixed, else 1.</li>
+                  <li>
+                    With <code>--json</code>, the fix lines go to stderr, so stdout stays the JSON of what's left.
+                  </li>
+                  <li>It never writes into the frozen test projects.</li>
+                </ul>
+              </li>
+              <li>
+                The project's server lists <code>.editor.html</code> files, so the editor shows them, as plain text.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Theme.editor.html, Spell UI's example page · 7 lines</ui-title>
+              <ui-content>
+                <ui-code language="html"
+                  ><script type="text/plain">
+                    <ui-property-editor schema="Theme" label="Theme">
+                      <ui-property name="title" hint="Used for the file name."></ui-property>
+                      <ui-property-group label="Look" collapsible>
+                        <ui-property name="size" as="buttons"></ui-property>
+                        <ui-property name="dark" as="toggle"></ui-property>
+                      </ui-property-group>
+                    </ui-property-editor>
+                  </script></ui-code
+                >
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+
+          <ui-section id="compiled" header="Compiled editors" sticky collapsible dividing collapsed>
+            <p>
+              <code>spell compile</code> also turns each editor page into a javascript module, beside the program's own
+              output.
+            </p>
+            <ul>
+              <li><code>Card.editor.html</code> becomes <code>Card.editor.js</code>.</li>
+              <li>That module defines <code>&lt;card-editor&gt;</code>.</li>
+            </ul>
+            <ul>
+              <li>The page's layout and the type's schema are inlined.</li>
+              <li>It imports Spell UI's property editor, and nothing else: no page loading, no spell parser.</li>
+              <li>
+                The element's <code>value</code> and its methods (<code title="save(), cancel(), validate()"
+                  >save()</code
+                >
+                and the rest) reach the editor inside it.
+              </li>
+              <li>The rules come with the schema: there's no separate rules file.</li>
+              <li>
+                The code:
+                <a
+                  href="../packages/ui/src/property/PropertyEditorPages.ts"
+                  target="src-packages-ui-src-property-propertyeditorpages-ts"
+                  ><code title="packages/ui/src/property/PropertyEditorPages.ts">PropertyEditorPages.compile()</code></a
+                >, proven by a browser test that imports a module and draws it.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="the-pony" header="The pony" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="horse"></ui-icon>
+            <p>Sparkle, on the brand pages' pony page, gallops with her legs now, not by rocking the whole drawing.</p>
+            <ul>
+              <li>
+                Each leg is its own group, turning at its hip.
+                <ul>
+                  <li>The back and front pairs are half a stride apart, each pair's far leg a little behind.</li>
+                  <li>Her body bobs once a stride.</li>
+                </ul>
+              </li>
+              <li>
+                Back to front: the far legs, the near legs, then her body over the tops of all four.
+                <ul>
+                  <li>The far legs are a shade darker, and she has hooves.</li>
+                </ul>
+              </li>
+              <li>
+                Her settings are a property editor on her page: name, galloping, gallop speed, mane colour, wizard hat.
+                <ul>
+                  <li>
+                    Speed is a slider, 1 to 10, shown as <code>4 / 10</code>: her stride is 2 / (speed + 1) seconds.
+                  </li>
+                  <li>Her buttons and the editor change one object, so each shows what the other did.</li>
+                  <li>Her drawing stays in sight as the settings scroll.</li>
+                </ul>
+              </li>
+              <li>
+                <code>spell pony --gallop</code>: her legs gallop in place in a terminal for 6 strides, then she stands.
+                <ul>
+                  <li>No bob there: it would break the speech bubble's pointer.</li>
+                  <li>Piped, it prints one stride's four frames.</li>
+                </ul>
+              </li>
+            </ul>
           </ui-section>
         </ui-section>
 
-        <ui-section id="3-history" header="3. History" sticky collapsible dividing collapsed>
-          <p class="meta">What changed in the decision, newest first. Not every edit: only what a reader must know.</p>
+        <ui-section id="3-rules-in-spell" header="3. Rules in spell" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="list check"></ui-icon>
+          <p>
+            A spell type can say what a property's value MUST be, not only what kind it is. Written once on the type, a
+            rule is checked everywhere the type is edited or set.
+          </p>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>Card.spell · rules in all three places · 8 lines</ui-title>
+            <ui-content>
+              <ui-code language="spell"
+                ><script type="text/plain">
+                  a card is a thing where:
+                  	- it has a title as text
+                  	- its title must not be empty
+                  	- it has a name as text, which must be at most 40 letters long
+                  	- it has a rating as a number
+                  		- it must be between 1 and 5
+                  	- it has a version as text
+                  		- it must match "^\d+\.\d+\.\d+$" with suggestion "Write it like 1.2.3"
+                </script></ui-code
+              >
+            </ui-content>
+          </ui-accordion>
+
+          <ui-section id="rule-places" header="Where to write one" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                A line of its own: <code>- its title must not be empty</code>.
+                <ul>
+                  <li>The property must be declared above it, or the line warns and the declarations leave it out.</li>
+                </ul>
+              </li>
+              <li>On the property's own line: <code>- it has a title as text, which must not be empty</code>.</li>
+              <li>Indented under the property's line: <code>- it must not be empty</code>.</li>
+              <li>
+                Or as a kind: <code>as a url</code> and <code>as an email</code> are text that brings its rule with it.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="rule-words" header="The words" sticky collapsible dividing collapsed>
+            <p>After <code>must</code>, one of nine:</p>
+            <ul>
+              <li><code>not be empty</code></li>
+              <li>
+                <code>match "&lt;pattern&gt;"</code>: the text in quotes is read exactly as typed, so
+                <code>[a-z]</code> is a set of letters
+              </li>
+              <li><code>be at least N letters long</code>, <code>be at most N letters long</code></li>
+              <li><code>be between A and B</code></li>
+              <li><code>be at least N</code>, <code>be at most N</code></li>
+              <li><code>be an email</code>, <code>be a url</code></li>
+            </ul>
+            <p>
+              Then, if you like, its own message: <code>with suggestion "..."</code> or <code>saying "..."</code>.
+              Without one, a form says the rule with the label it shows: "Name must have a value".
+            </p>
+          </ui-section>
+
+          <ui-section id="rule-checks" header="Where it's checked" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Each rule compiles to the rule object Spell UI's form checks read:
+                <code>{ type: "minLength", value: "3", prompt: "..." }</code>.
+                <ul>
+                  <li>
+                    javascript: <code>declareProp("title", { type: "text", rules: [...] })</code>, or
+                    <code>Card.declareRules()</code> for a line of its own
+                  </li>
+                  <li>Python: <code>prop(type="text", rules=[...])</code> and <code>Card.declare_rules()</code></li>
+                </ul>
+              </li>
+              <li>
+                The property editor: the project's declarations record each property's <code>rules</code>, so the spell
+                editor checks them with nothing running; a running class's schema has them too.
+              </li>
+              <li>
+                VS Code: the type's JSON Schema gets the matching keywords, such as
+                <code title="minLength, pattern (with VS Code's patternErrorMessage), minimum / maximum, format"
+                  >minLength</code
+                >.
+              </li>
+              <li>
+                The running program: a value that breaks a rule is still set, and the console warns, in the same words
+                in javascript and Python.
+                <ul>
+                  <li><code>title must not be empty, got: </code></li>
+                  <li>or its own message: <code>version: Write it like 1.2.3, got: 1.x</code></li>
+                </ul>
+              </li>
+              <li>
+                The declarations' version stays 0.8.0: <code>rules</code> is a new optional field, and older readers
+                ignore it.
+              </li>
+              <li>Parser speed is unchanged: 129 ms on average, with this change and without.</li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="4-section-words" header="4. ui-section's new words" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="layer group"></ui-icon>
+          <p>
+            The editor and the group pass <code>&lt;ui-section&gt;</code>'s words through, so the section now says what
+            the field says. So do the elements built on it: <code>&lt;ui-panel&gt;</code>, the group and the editor.
+          </p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>Was</th>
+                  <th>Now</th>
+                </tr>
+                <tr>
+                  <td><code>header</code></td>
+                  <td><code>label</code>, attribute and slot</td>
+                </tr>
+                <tr>
+                  <td><code>subhead</code></td>
+                  <td><code>hint</code>, attribute and slot</td>
+                </tr>
+                <tr>
+                  <td><code>info</code></td>
+                  <td><code>description</code>, attribute and slot</td>
+                </tr>
+                <tr>
+                  <td><code>ui-open</code></td>
+                  <td><code>ui-opening</code>, then <code>ui-opened</code></td>
+                </tr>
+                <tr>
+                  <td><code>ui-close</code></td>
+                  <td><code>ui-closing</code> (cancelable), then <code>ui-closed</code></td>
+                </tr>
+                <tr>
+                  <td><code>ui-load</code></td>
+                  <td><code>ui-loading</code>, then <code>ui-loaded</code></td>
+                </tr>
+                <tr>
+                  <td><code>:state(in-section)</code></td>
+                  <td><code>:state(nested)</code>: any section around it, through a group too</td>
+                </tr>
+                <tr>
+                  <td><code>:state(in-sections)</code></td>
+                  <td><code>:state(in-group)</code>: directly inside <code>&lt;ui-sections&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ul>
+            <li>
+              The old words keep working:
+              <ul>
+                <li>old attributes, as aliases</li>
+                <li>old slots, inside the new</li>
+                <li>old events, sent just after the new</li>
+                <li>old states, set beside the new</li>
+              </ul>
+            </li>
+            <li>
+              <code>ui-opened</code> and <code>ui-closed</code> fire on every fold, whoever made it: the person, the
+              page, find-in-page. Only <code>ui-opening</code> / <code>ui-closing</code> are the person's.
+            </li>
+            <li>The shadow parts keep their names (<code>::part(header)</code>): they're a page's CSS hooks.</li>
+            <li>
+              This repo's pages are swept: 2,746 attributes in 222 files, in Spell UI's, the app's and the brand's docs,
+              examples and tests.
+            </li>
+            <li>
+              The shared pages (this one too) and spell-epic still write the old words, until the merge (<a
+                href="#5-limits"
+                >Limits</a
+              >).
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="5-limits" header="5. Limits" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="warning"></ui-icon>
+
+          <ui-section id="limits-before-merge" header="Until it merges" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b>On <code>main</code>, the Theme Creator and Color Set Chooser show no label rows, tips or outputs</b>
+                (<epic-link epic="property-editor" item="I1"></epic-link>). They're shared pages, written for this
+                branch's <code>&lt;ui-field&gt;</code>.
+              </li>
+              <li>
+                <b>On <code>main</code>, the pony page has no editor, and warns three times in the console</b>
+                (<epic-link epic="property-editor" item="J17"></epic-link>). Her buttons still work.
+              </li>
+              <li>
+                <b>Project Settings hasn't been saved on a real project by hand</b> (<epic-link
+                  epic="property-editor"
+                  item="V1"
+                ></epic-link
+                >): checked headlessly on Solitaire, not saved.
+              </li>
+              <li>
+                <b>The screenshot tests weren't run after the section renames</b>: Docker Desktop didn't start. The site
+                check passed on the section, panel, property editor and components pages.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-after-merge" header="The sweep after the merge" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                The shared pages and spell-epic keep ui-section's old words until <code>main</code> has them, and
+                spell-epic's bundles are rebuilt from it (<epic-link epic="property-editor" item="T10"></epic-link>).
+                <ul>
+                  <li>Rewritten sooner, every section title on them would go blank in every other checkout.</li>
+                  <li>
+                    The sweep script is beside the epic page,
+                    <a
+                      href="../epics/property-editor/sweep-section-words.mjs"
+                      target="src-epics-property-editor-sweep-section-words-mjs"
+                      ><code>sweep-section-words.mjs</code></a
+                    >.
+                  </li>
+                  <li>spell-epic's docs runtime still listens for <code>ui-open</code> / <code>ui-close</code>.</li>
+                </ul>
+              </li>
+              <li>Then the old words can go, in a later epic, once a search finds none.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-editor" header="The editor" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <b><code>as="buttons"</code> draws radios, not a button group</b> (<epic-link
+                  epic="property-editor"
+                  item="I3"
+                ></epic-link
+                >): Spell UI's segmented menu has no value a form can read. The fix is to make it a form control.
+              </li>
+              <li>
+                The colour pickers are the brand's, moved in with only their tags changed; their words get another pass
+                (<epic-link epic="property-editor" item="T4"></epic-link>).
+              </li>
+              <li>
+                <code>readonly</code> is read as each property connects: turning it on a group later doesn't reach
+                properties already there (<epic-link epic="property-editor" item="J8"></epic-link>).
+              </li>
+              <li>A select, slider or menu shows a mixed value as blank, with no placeholder of its own.</li>
+              <li>The editor's pages have no screenshot baselines yet.</li>
+              <li>
+                Labels from a spell class are its property names, in English: no words file has labels yet (<epic-link
+                  epic="property-editor"
+                  item="T3"
+                ></epic-link
+                >).
+              </li>
+              <li>
+                A page written from a running class starts with <code>id</code>, which spell's own
+                <code>Thing</code> declares (<epic-link epic="property-editor" item="I4"></epic-link>).
+              </li>
+              <li>The declarations can't tell worked-out properties from stored ones, so a page lists both.</li>
+              <li>Project Settings can't edit <code>exports</code> yet.</li>
+              <li>
+                The Theme Creator stays hand-wired, about 380 lines of script (<epic-link
+                  epic="property-editor"
+                  item="C4"
+                ></epic-link
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-rules" header="Rules not built yet" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                "When it changes" rules in spell, <code>when its title changes</code> (<epic-link
+                  epic="property-editor"
+                  item="T7"
+                ></epic-link
+                >). "On change" rules are TypeScript, registered by the page, for now.
+              </li>
+              <li>
+                Rules written in an <code>.editor.html</code> page, for one form only (<epic-link
+                  epic="property-editor"
+                  item="T8"
+                ></epic-link
+                >).
+              </li>
+              <li>
+                Rules comparing two properties, <code>its end must be after its start</code> (<epic-link
+                  epic="property-editor"
+                  item="T9"
+                ></epic-link
+                >).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="limits-later" header="Later, maybe" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                Reading a spell class through its JSON Schema, so one reader serves classes and JSON (<epic-link
+                  epic="property-editor"
+                  item="T6"
+                ></epic-link
+                >).
+              </li>
+              <li>
+                One <code>appearance</code> attribute for every Spell UI element's look words, in an epic of its own
+                (<epic-link epic="property-editor" item="T5"></epic-link>).
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="6-why" header="6. Why" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="gavel"></ui-icon>
+          <p>The calls that shaped it, each linked to its item on the epic page.</p>
+
+          <ui-section id="why-shape" header="Its shape" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <epic-link epic="property-editor" item="Q1"></epic-link>: new elements in Spell UI, and
+                <code>&lt;ui-field&gt;</code> grown into the field shell. One place for every Spell UI user; no second
+                field element to name.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q2"></epic-link>: a component vocabulary, grown, not a new
+                <code>PropertySpec</code>. It's already live at run time, and one shape is less to keep in step.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q3"></epic-link>: facts in the schema, layout in the page. A
+                second form on the same type gets its labels and rules for free.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q4"></epic-link>: grow <code>&lt;ui-form&gt;</code>'s binding,
+                not a second one. Its tests already cover the hard parts, and every form gains.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q8"></epic-link>: each element passes through the words of what
+                it's built on, so a word means the same everywhere.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q13"></epic-link>: control kinds come from a registry, so a date
+                or a time can be added without touching the editor.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q14"></epic-link>: no single <code>appearance</code> attribute
+                now. It's a good idea for all of Spell UI at once, not three elements.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q15"></epic-link>: a person's tip is its own field,
+                <code>tip</code>; <code>description</code> stays the developers' text.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q16"></epic-link>: a spell class is read in the app, since Spell
+                UI may never import spell's packages.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-words" header="Its words" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <epic-link epic="property-editor" item="Q9"></epic-link>: the form's <code>apply</code>,
+                <code>validate</code>, a list as its value, and Save / Cancel with their event pairs.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q10"></epic-link>: the editor's own words, such as
+                <code title="schema, value, source, select">schema</code> and <code>source</code>.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q11"></epic-link>: the field's words, approved before building.
+                Errors as a plain line on every form, so they look the same everywhere.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q12"></epic-link>: ui-section takes the field's words, so the
+                editor and the group, passing them through, say the same; the old words stay until a sweep.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-uses" header="Its uses and tools" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <epic-link epic="property-editor" item="Q5"></epic-link>: Project Settings first, not the Theme Creator.
+                A real form that was only a scaffold; the cost is no live preview.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q6"></epic-link>: a saved editor is plain markup, loaded as it
+                is or compiled. It runs with no build, and is easy to tweak and check.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q7"></epic-link>: the pony's legs gallop, layered right, with an
+                editor on her page, and the terminal pony gallops too.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q17"></epic-link>: no new command;
+                <code>spell check</code> checks editor pages, and <code>--fix</code> mends them.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q18"></epic-link>: a type's schema from the running class when
+                there is one, else from the declarations, which need nothing running.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q19"></epic-link>: every <code>spell compile</code> writes each
+                page's module, layout and schema only.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="why-rules" header="Its rules" sticky collapsible dividing collapsed>
+            <ul>
+              <li>
+                <epic-link epic="property-editor" item="Q20"></epic-link>: only rules on the type now; "when it changes"
+                and page rules wait for a later epic.
+              </li>
+              <li>
+                <epic-link epic="property-editor" item="Q21"></epic-link>: all three places, all nine words, an optional
+                message, and a console warning when a program breaks one, as a wrong type gets.
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="7-history" header="7. History" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="clock rotate left"></ui-icon>
+          <p class="meta">Each phase's commit on branch <code>property-editor</code>, newest first.</p>
           <ui-feed class="spell-history" size="small">
             <ui-event icon="check">
               <ui-content>
-                <ui-summary>Built, and the numbers re-measured <ui-date>2026-10-01</ui-date></ui-summary>
+                <ui-summary
+                  >P10: ui-section's new words, the old ones kept; this repo's pages swept
+                  <ui-date>2026-10-20</ui-date></ui-summary
+                >
               </ui-content>
             </ui-event>
-            <ui-event icon="gavel">
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary>P9: rules on a spell type <ui-date>2026-10-20</ui-date></ui-summary>
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary>P8: the pony gallops, with an editor of her own <ui-date>2026-10-20</ui-date></ui-summary>
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
               <ui-content>
                 <ui-summary
-                  >Decided: the proposed design, over the obvious one <ui-date>2026-09-30</ui-date></ui-summary
+                  ><code>spell compile</code> makes each editor page a module (P7)
+                  <ui-date>2026-10-20</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >P6: editor pages, loaded, written, checked and fixed <ui-date>2026-10-20</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary>P5: Project Settings, saved by a new route <ui-date>2026-10-20</ui-date></ui-summary>
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary>P4: the three elements, and the registry <ui-date>2026-10-19</ui-date></ui-summary>
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >P3: when a field writes, Save and Cancel, many things <ui-date>2026-10-19</ui-date></ui-summary
+                >
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary>P2: the vocabulary grown, and its readers <ui-date>2026-10-19</ui-date></ui-summary>
+              </ui-content>
+            </ui-event>
+            <ui-event icon="check">
+              <ui-content>
+                <ui-summary
+                  >P1: <code>&lt;ui-field&gt;</code> becomes the field shell; <code>&lt;brand-field&gt;</code> removed
+                  <ui-date>2026-10-19</ui-date></ui-summary
                 >
               </ui-content>
             </ui-event>
           </ui-feed>
         </ui-section>
 
-        <ui-section id="4-sources" header="4. Sources and experiments" sticky collapsible dividing collapsed>
-          <ul>
-            <li>Runnable scripts in <code>&lt;topic&gt;/experiments/</code>, each saying how to run it.</li>
-            <li>Tables quote medians of several runs, never a single run.</li>
-          </ul>
-          <ui-items class="spell-sources" divided>
-            <ui-item>
-              <ui-content>
-                <ui-header><code>experiments/measure.ts</code></ui-header>
-                <ui-meta>experiment · <code>yarn tsx &lt;topic&gt;/experiments/measure.ts</code></ui-meta>
-                <ui-description>What it measures, and which claim above it backs.</ui-description>
-              </ui-content>
-            </ui-item>
-            <ui-item>
-              <ui-content>
-                <ui-header><a href="https://example.com/" target="ext-example-com">An external reference</a></ui-header>
-                <ui-meta>reference · read 2026-10-01</ui-meta>
-                <ui-description>What it says that this doc relies on.</ui-description>
-              </ui-content>
-            </ui-item>
-          </ui-items>
-        </ui-section>
-
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
           <p class="meta">
-            Last checked 2026-10-01 against branch <code>main</code>: re-run the experiments to update.
+            Last checked 2026-10-20 against branch <code>property-editor</code> at <code>852d4003f</code>: P1-P10
+            committed, not merged; next, P11, the doc review. To update it, re-read the epic page and Spell UI's
+            Property Editor page.
           </p>
         </footer>
       </main>
