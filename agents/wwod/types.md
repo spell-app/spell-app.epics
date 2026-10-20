@@ -79,7 +79,7 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
     - Use `Prettify<>` for easier debugging in TypeScript:  a hover shows the flattened shape, not `A & Omit<B, "x">`.
   - Mix a framework's base type in at the boundary when it's used only once, rather than naming the combination.
   - NOTE:  declaration merging into a built-in needs `interface`, since `type` can't merge -- the one exception,
-    `interface Window` in `types/global.d.ts`.
+    `interface Window` (the app's `packages/app/src/types/window.d.ts`).
 
 - **Props types live with their class:**
   - Exception:  class constructor props (`XProps`) and component props live in the defining file.  Move to
@@ -224,7 +224,7 @@ From:  original WWOD §11, root `AGENTS.md` "Functions", "Types / Exports" (type
   export type ProjectRootPath = `@${string}:${string}`
   ```
 
-- **Ambient globals used bare**, no import:  the repo root's `types/` -- the list:  root `AGENTS.md` "Overview".
+- **Ambient globals used bare**, no import:  the toolchain's `@spell-app/toolchain/types` -- the list:  root `AGENTS.md` "Aliases and global types".
 
 - **Names assume the namespace:**
   - Assume references to types will be namespaced (WWOD §4), so don't repeat what the namespace already says:

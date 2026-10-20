@@ -194,19 +194,26 @@ Read the spoke(s) for what you're touching BEFORE writing code or text:
 
 Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `AGENTS.md` names its own.
 
+- **Package names across repos** (epic `repo-split` P6):
+  - Inside ONE future repo, a package's alias, `$/name`:  spell imports `$/parser` (both are spell-lang's).
+  - From ANOTHER repo, its npm name:  `@spell-app/ui/core`, an entry its `package.json` `exports` names.
+    - A Spell UI family by its published entry:  `@spell-app/ui/ui-code`.
+  - Lint fails a `$/` alias into another repo (`spell/no-cross-repo-alias`;  the repos are `REPO_OF` in the
+    toolchain's `lint.imports.ts`).
+  - A string that only NAMES a module (a `packModules` key) keeps its `$/` name.
 - **Package aliases, never `../`:**
   - ALWAYS import starting from a package alias, NEVER start import from `../`.  Every package's alias is `$/name`
     (`$/parser`, `$/core`, `$/ui` ...), `$` meaning `packages/`.  `ui` is no exception:  its test helpers are
-    `$/ui/test/...`.  The one table is `tsconfig.base.json`.
+    `$/ui/test/...`.  The one table is `tsconfig.base.json`, for inside a repo.
   - INSIDE a package, `$/name` is its barrel and `$/name/deep/path` any file in its `src/`, e.g. `$/app/ui`.
   - From ANOTHER package, import the BARREL only (`$/parser`, never `$/parser/rules/Rule`), except the entry points
     (opt-in side-effect imports, test helpers, node-only files ...) listed in `tsconfig.base.json`'s header comment.
   - Other aliases and exceptions are in the package's own "Imports".
   - NEVER a `../` path from one package into ANOTHER's folder, its tests' included (`tests/<name>/`):
-    lint fails it (`spell/no-cross-package-import`, the repo root's `vite.lint.imports.ts`).
+    lint fails it (`spell/no-cross-package-import`, the toolchain's `lint.imports.ts`).
     - A package and its tests count as one:  `tests/ui/` may reach `packages/ui/`.
-    - Where no alias reaches, the package's npm name:  `@spell-app/server/src/checkout.ts`,
-      or an entry its `package.json` `exports` names (`@spell-app/ui/vite.config.ts`).
+    - Where no alias reaches, the package's npm name:  an entry its `package.json` `exports` names
+      (`@spell-app/server/checkout`, `@spell-app/ui/vite.config.ts`).
       - E.g. a file Vite loads as a config:  Vite reads it with no alias table.
   - EXCEPTION:  when subclassing, import the extended class directly from its file, to avoid circular imports --
     SEE:  WWOD §4 › "Circular imports".
@@ -259,7 +266,7 @@ Examples use `parser`'s alias and namespace (`$/parser`, `P`);  each package's `
   - node_modules
   - (blank line)
   - `$/util` and other general utilities, general-to-specific
-  - other sub-system barrels
+  - other sub-system barrels (`@spell-app/...` sits where its `$/` name would)
   - own barrel
   - direct peer files, base classes first
   - (blank line)
