@@ -1030,6 +1030,13 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   resolved the panel with no changes, so no `POST` went out.  The panel read its fields on the modal's `ui-approve`
   event only. · It reads them on the Save button's own click too (`onClick={save}`), before anything can hide it
   (epic `people-and-orgs` P12). · app
+- 2026-10-20 · `spell run` (and the page server's `/element/`) ran a program on the app's PREBUILT element bundle,
+  `packages/app/dist-element/spell-runtime.js`, built the day before:  its core had no `early` starting values (P19),
+  so the outline Solitaire's piles weren't made with it, `the tableaus` was empty at the start, and the deal lost T1's
+  card -- while every test (which runs core's source) passed.  Looked like a P19-P23 bug for an hour. ·
+  `yarn build:element` in packages/app;  grep the bundle for a new core function to check it's current
+  (`grep -c withoutCreate dist-element/spell-runtime.js`).  Better:  `spell run` warns when the bundle is older than
+  core's source. · app (outline-spell P25)
 
 ## cli
 
