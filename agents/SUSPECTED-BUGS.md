@@ -360,6 +360,11 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   before their definitions) makes `to ...` methods callable early, but not quoted phrases (`a card "is the (rank) of
   (suits)" for ...`).  Prove:  that line in a test in Deck.spell, `spell test @spell/examples/outline-solitaire`.
   Found in epic `outline-spell` P22. · spell
+- 2026-10-20 · `it is black`, where `black` is one of a property's values (`- its color is red or black`), compiles
+  to `this == "black"`:  the thing itself against the text, always false, no warning.  The writer meant
+  `its color is black`.  Spell could say so:  a thing compared with a value one of its properties takes.
+  Prove:  `a joker is a card` / `- its color is red or black` / `- its value is 53 if it is black otherwise 54`.
+  Found in the outline Solitaire, epic `outline-spell`. · spell
 
 ## parser
 
