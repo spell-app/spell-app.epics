@@ -122,7 +122,7 @@
   - Vite 8.3, TypeScript 7.0
   - Vitest 5 browser mode (`@vitest/browser-playwright`, `toMatchScreenshot`)
   - axe-core 4.13, `@custom-elements-manifest/analyzer` 0.11
-  - Astro 7.3:  the docs site until 2026-10;  now plain HTML pages ([the site's README](../site/README.md))
+  - Astro 7.3:  the docs site until 2026-10;  now plain HTML pages ([spell-ui's README-site.md](../../../spell-ui/README-site.md))
 - Prior art:
   - Jack Lukic's pre-1.0 "Semantic UI Next":  signals web components + layers, stalled a year
   - Web Awesome 3.14:  Lit;  `--wa-*` tokens, `::part`, `:state()`, utilities, native styles
