@@ -22,7 +22,7 @@ The spell command:  compile, check, run and test spells from a terminal, and a h
 
 - **Where:**  `packages/cli` (Ink and commander);  installed by `yarn cli:install` as a link into the checkout.
 - **Branch:**  `worktree-cli-additions`:  phases P1-P10 done (`/Users/owen/www/spell-app/outstanding/cli-additions.md`).
-- **Still TODO** (`packages/cli/README.md`):  `spell lsp`, a single-file bundle, npm publishing.
+- **Still TODO** (the kit's `README-cli.md`):  `spell lsp`, a single-file bundle, npm publishing.
 
 ## Decisions (settled -- don't relitigate)
 

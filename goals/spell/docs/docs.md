@@ -25,7 +25,7 @@ Documentation for people who write spells, people who build spell, and agents, a
 - **In the app:**  a `@system:guides` root is configured, with no folder behind it.
 - **2020 vision** (`site-structure.md`):  guides are spell projects with inline playgrounds;  a "dictionary and
   phrase book" generated from rule descriptions and tests.
-- **Elsewhere:**  a DeepWiki link in `packages/spell/readme.md`.
+- **Elsewhere:**  a DeepWiki link in the old spell readme, dropped when it was folded into spell-lang's `README-spell.md`.
 
 ## Decisions (settled -- don't relitigate)
 
