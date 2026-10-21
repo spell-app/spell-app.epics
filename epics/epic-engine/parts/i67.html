@@ -1,21 +1,22 @@
 <!-- plan-doc part:  #i67's details in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>Seen running I66's check in a scratch kit worktree.</p>
+<p>Seen running I66's and P14's checks in a scratch kit worktree. The test is fine; the command it runs is slow.</p>
 <ul>
   <li>
     The test <code>worktree status: where a name stands, as JSON; --version: which code runs</code> hit vitest's
-    30-second limit once in a full <code>yarn test</code>: 1 failed, 1524 passed.
+    30-second limit in 2 of 3 full <code>yarn test</code> runs (1 failed, 1524 / 1534 passed). It passed alone, and in
+    the third full run.
   </li>
+  <li><code>epic worktree status no-such-name</code> by itself took 53 seconds (31 seconds once before).</li>
   <li>
-    It passed alone (its file's 13 tests took 31 seconds), and the next full run passed whole: 1525 passed, 2 skipped.
+    A profile of it: nearly all the time is in <code>Sessions.named()</code>, which asks
+    <code>EpicConfig.worktreeNameOf()</code> about the folder of every session record it reads. Each ask resolves real
+    paths on disk (<code>RealPath.of()</code>): 42 of the 53 seconds are in <code>realpathSync</code>.
   </li>
-  <li>
-    So it's close to the limit under load: it starts the <code>epic</code> command, and probably asks git about every
-    worktree.
-  </li>
+  <li>The fix: resolve each distinct folder once (a cache per run), or skip records whose folder can't match.</li>
 </ul>
 <epic-net-effect
   ><ul>
-    <li>A full run can fail on it now and then, with nothing wrong.</li>
-    <li>The fix is to make that test faster or give it a longer limit.</li>
+    <li>A full <code>yarn test</code> in spell-epic fails on this test more often than not, with nothing wrong.</li>
+    <li>Every <code>epic worktree status</code> takes half a minute or more, so do the skills that call it.</li>
   </ul></epic-net-effect
 >
