@@ -23,3 +23,220 @@
   header needs its tabs as data: from the page server's <code>SPELL_SERVER</code>, or from <code>defineSite()</code>'s
   caller.
 </p>
+<epic-reply from="Owen" at="2026-10-20 22:34" re="revisit soon"><p>fix it</p></epic-reply
+><epic-reply from="Claude" at="2026-10-20 22:56" re='Owen: "fix it"'>
+  <p>
+    Fixed, not committed. The site header's tabs are now data that the page hands it. spell-server's site code no longer
+    names any of spell-app's or spell-epic's parts.
+  </p>
+  <ul>
+    <li>
+      A served page gets its tabs from the page server's settings: <code>"siteTabs"</code> in spell-app's root
+      <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+      >, passed on as <code>SPELL_SERVER.siteTabs</code>. The epic server passes on its default repo's tabs the same
+      way.
+    </li>
+    <li>
+      A page with no server to name them, e.g. one opened from disk, shows what <code>defineSite({ tabs })</code> was
+      given. spell-epic's docs bundle gives the docs' own areas and Epic/UI (J70).
+    </li>
+    <li>
+      Served, the tabs are unchanged: same tabs, same order, lit on the same pages. I checked 10 pages headless on the
+      page server: the 5 docs areas, the 4 component sets and the home page.
+    </li>
+    <li>
+      One change in what lights: an old docs-package guide (<code>packages/docs/solid/...</code>) now lights no tab
+      (J71).
+    </li>
+  </ul>
+  <epic-code title="spell-app's package.json, &quot;pageServer&quot;: the header's tabs" language="ts">
+    <pre>
+"siteTabs": [
+  { name: "Guides", path: "guides/index.html", areas: ["guides"] },
+  { name: "Sagas", path: "sagas/index.html", areas: ["sagas", "goals"] },
+  { name: "Epics", path: "epics/index.html", areas: ["epics"] },
+  { name: "Epic/UI", path: "/components/epics/", serverOnly: true, sets: ["epics"],
+    paths: ["/packages/epics/docs/", "/spell-epic/src/docs/"] },
+  { name: "Spell/UI", path: "/components/ui/", serverOnly: true, sets: ["ui"],
+    paths: ["/packages/ui/docs/", "/packages/ui/site/"] },
+  { name: "App", path: "/editor/", serverOnly: true, ownTab: true, paths: ["^/editor(/|$)"] },
+  { name: "App/UI", path: "/components/app/", serverOnly: true, sets: ["app"], paths: ["/packages/app/docs/"] },
+  { name: "Brand", path: "brand/index.html", areas: ["brand"], sets: ["brand"], paths: ["/packages/brand/docs/"] },
+  { name: "Templates", path: "templates/index.html", areas: ["templates"] }
+]
+
+// spell-server, site.types.ts:  the shape, and which tab lights
+type SiteTab = { name; path; serverOnly?; ownTab?; sets?: string[]; paths?: string[]; areas?: string[] }
+litTab(tabs, location.pathname)   // first a tab whose sets / paths take the page, else the one whose areas do</pre>
+  </epic-code>
+  <ui-section header="What changed" collapsible collapsed>
+    <ul>
+      <li>
+        spell-server:
+        <ul>
+          <li>
+            <a
+              href="../../../spell-server/server/src/site/site.types.ts"
+              target="src-spell-server-server-src-site-site-types-ts"
+              ><code title="server/src/site/site.types.ts">site.types.ts</code></a
+            >: <code>PROPERTIES</code> is gone. <code>SiteTab</code> is the data shape, and <code>litTab()</code> says
+            which tab a page lights. <code>componentSet()</code> now reads only the
+            <code>/components/&lt;id&gt;/</code> address, and <code>docsArea()</code> takes its area names as an
+            argument.
+          </li>
+          <li>
+            <a
+              href="../../../spell-server/server/src/site/SiteHeader.ts"
+              target="src-spell-server-server-src-site-siteheader-ts"
+              ><code title="server/src/site/SiteHeader.ts">SiteHeader</code></a
+            >
+            takes its tabs from <code>SPELL_SERVER.siteTabs</code>, else from <code>SiteHeader.fallbackTabs</code>. It
+            still lights them with <code>litTab()</code>.
+          </li>
+          <li>
+            <a href="../../../spell-server/server/src/site/index.ts" target="src-spell-server-server-src-site-index-ts"
+              ><code title="server/src/site/index.ts">defineSite({ tabs })</code></a
+            >
+            sets the fallback tabs.
+          </li>
+          <li>
+            The page server reads <code>siteTabs</code> from its settings and passes it to every page. Files:
+            <a
+              href="../../../spell-server/server/src/page/page.types.ts"
+              target="src-spell-server-server-src-page-page-types-ts"
+              ><code title="server/src/page/page.types.ts">PageServerSettings.siteTabs</code></a
+            >,
+            <a
+              href="../../../spell-server/server/src/page/PageServer.ts"
+              target="src-spell-server-server-src-page-pageserver-ts"
+              ><code title="server/src/page/PageServer.ts">PageServer</code></a
+            >
+            and
+            <a href="../../../spell-server/server/src/liveClient.ts" target="src-spell-server-server-src-liveclient-ts"
+              ><code title="server/src/liveClient.ts">ServerConfig.siteTabs</code></a
+            >.
+          </li>
+          <li>
+            Tests: <code>site.types.test.ts</code> now runs generic tests on a made-up site.
+            <code>SiteHeader.test.ts</code> has 2 new headless tests: a served page shows the settings' tabs, and a page
+            opened from disk shows the fallback tabs, with server-only ones greyed out.
+          </li>
+          <li>AGENTS.md: added the tabs to the settings list and to the site section.</li>
+        </ul>
+      </li>
+      <li>
+        spell-app:
+        <ul>
+          <li>
+            <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+            >: the <code>siteTabs</code> list above.
+          </li>
+          <li>
+            <code title="tests/page-server/src/siteTabs.test.ts">siteTabs.test.ts</code> (new): checks Owen's order,
+            which tabs are server-only and which open in their own tab, plus the old 55-row table of which page lights
+            which tab.
+          </li>
+          <li>AGENTS.md: a note under the component sets.</li>
+        </ul>
+      </li>
+      <li>
+        spell-epic:
+        <ul>
+          <li>
+            The docs bundle's entry, <code title="src/tools/_assets/spell-ui.entry.js">spell-ui.entry.js</code>, now
+            calls <code>defineSite({ tabs: DOCS_TABS })</code>. I rebuilt <code>spell-ui.js</code> with
+            <code>--skip-ui-build</code>, because only the header's code changed. The bundle no longer contains
+            "Spell/UI".
+          </li>
+          <li>
+            The epic server, <code title="src/server/EpicServer.ts">EpicServer</code>, passes on the default repo's
+            <code>siteTabs</code>. Its test now checks this.
+          </li>
+          <li>Comments and docs: <code>index.js</code> and <code>src/AGENTS.md</code>.</li>
+        </ul>
+      </li>
+      <li>
+        The page server guide (<a href="../../../guides/server.html" target="src-guides-server-html"
+          ><code>guides/server.html</code></a
+        >): the header's tabs are data now.
+      </li>
+    </ul>
+  </ui-section>
+  <ui-section header="Checks" collapsible collapsed>
+    <ul>
+      <li>
+        spell-server: <code>yarn ts</code> passes. <code>yarn test</code>: server 189 passed in 17 files (was 219, net
+        -30), assembler 42 passed in 4 files.
+        <ul>
+          <li>
+            Why -30: <code>site.types.test.ts</code> went from 60 tests to 28, because the page-by-page table moved to
+            spell-app.
+          </li>
+          <li><code>SiteHeader.test.ts</code> went from 3 tests to 5.</li>
+          <li><code>yarn vp lint</code>: clean. <code>vp fmt --check</code>: clean.</li>
+        </ul>
+      </li>
+      <li>
+        spell-app: <code>yarn ts</code> passes. <code>yarn test</code>: page-server 69 (was 12, +57: the moved table's
+        55 rows and 2 tests), spaces 129, app 325, lsp 131, cli 231 passed and 5 skipped.
+        <ul>
+          <li>
+            One cli test failed in the full run: ExplorerScreen's "opens a node". It's a timing flake under load, and
+            passes 13/13 run alone.
+          </li>
+          <li>
+            <code>yarn vp lint</code>: 0 errors, 1 warning that was already there (<a
+              href="../../../spell-app/cli/src/ui/ProjectPrompt.tsx"
+              target="src-spell-app-cli-src-ui-projectprompt-tsx"
+              ><code>cli/src/ui/ProjectPrompt.tsx</code></a
+            >, exhaustive-deps).
+          </li>
+        </ul>
+      </li>
+      <li>
+        spell-epic: <code>yarn ts</code> passes. <code>yarn test</code>: 1521 passed, 2 skipped, 1 failed.
+        <ul>
+          <li>
+            The failure was already there: EpicProgram's "worktree status" test times out at 30s. On this machine the
+            command alone takes about 47s, and it doesn't touch the header.
+          </li>
+          <li>EpicServer: 13 passed, with the new <code>siteTabs</code> checks.</li>
+          <li>
+            <code>yarn vp lint</code>: clean. <code>vp fmt --check</code> flags 14 files, all already flagged before
+            this change. None of them are files I touched.
+          </li>
+        </ul>
+      </li>
+      <li>
+        Headless, page server on port 4747 (started, then stopped again: it wasn't running before):
+        <ul>
+          <li>
+            The right tab lights on <code>/guides/</code>, <code>/epics/</code>, <code>/templates/</code>,
+            <code>/sagas/</code>, <code>/brand/</code> and the four <code>/components/&lt;set&gt;/</code> pages. The
+            home page lights none.
+          </li>
+          <li>
+            A scratch page loading the rebuilt <code>spell-ui.js</code> from disk shows Guides · Sagas · Epics · Epic/UI
+            (greyed out) · Brand · Templates.
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </ui-section>
+  <epic-net-effect
+    ><ul>
+      <li>spell-server's site code names none of spell-app's or spell-epic's parts. Its tabs are data.</li>
+      <li>
+        Served pages show the tabs from spell-app's settings (<code>"siteTabs"</code>): same tabs, same order, lit on
+        the same pages as before.
+      </li>
+      <li>
+        A page opened from disk shows the docs bundle's own tabs (J70). Old docs-package guides light no tab (J71).
+      </li>
+      <li>
+        Docs opened from disk load no bundle at all right now, so they show no header. That was already true before this
+        change: I21.
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
