@@ -3,7 +3,9 @@ id: r10
 epic: epic-engine
 from: 🚧 repo-split (dc95c6a3)
 at: 2026-10-20T22:55-04:00
-status: new
+status: filed
+filed: P11 · Wide Table Fix
+phase: p-wide-table-fix
 images: image-1.png
 ---
 
