@@ -256,3 +256,328 @@
     </li>
   </ul></epic-field
 >
+
+<epic-reply
+  from="Claude"
+  at="2026-10-20 22:50"
+  re="Owen (M3): &quot;can this just use the &quot;spell-kit&quot; package.json etc?  It should e.g. have a shared version number with the rest of the kit.&quot;"
+>
+  <p>
+    Yes to one version and one place for everything the five share; no to literally one package. The recommendation (C
+    below): the kit's own <code title="~/www/spell/package.json">package.json</code> holds the version and every shared
+    setting, Yarn copies them into the five packages and fails a check when one drifts, and every import stays as it is.
+  </p>
+  <p>What's there today:</p>
+  <ul>
+    <li>
+      Five packages, each with its own <code>package.json</code>: util, toolchain, server, assembler and spell-element.
+    </li>
+    <li>Each says version <code>0.0.0</code>, and each is private (none is published).</li>
+    <li>Each repeats the same ten scripts (review, ts, lint, format, test ...), and the same tools in its devDependencies.</li>
+    <li>Each has its own TypeScript settings, Vite config and Vitest config.</li>
+    <li>
+      Spell UI, published later, needs two of them at run time: spell-element and util. So those two must be publishable
+      too; server, assembler and toolchain are only its build tools.
+    </li>
+  </ul>
+
+  <h4>What each option costs</h4>
+  <ui-table celled compact striped unstackable
+    ><table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>A · one package</th>
+          <th>B · five packages, a version tool</th>
+          <th>C · five packages, Yarn keeps them in step</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Imports renamed</td>
+          <td>641 lines in 582 files (622 of them outside the kit)</td>
+          <td>none</td>
+          <td>none</td>
+        </tr>
+        <tr>
+          <td>Other renames</td>
+          <td>47 dependency entries, 31 TypeScript settings lines, about 200 mentions in docs</td>
+          <td>none</td>
+          <td>none</td>
+        </tr>
+        <tr>
+          <td>Where the version lives</td>
+          <td>one <code>package.json</code></td>
+          <td>the kit's, copied into five by a tool we write</td>
+          <td>the kit's, copied into five by Yarn, checked on every <code>yarn ts</code></td>
+        </tr>
+        <tr>
+          <td>What a Spell UI user installs</td>
+          <td>all five, with Vite+, esbuild, parse5 and linkedom</td>
+          <td>spell-element and util</td>
+          <td>spell-element and util</td>
+        </tr>
+        <tr>
+          <td>Component packs</td>
+          <td>every page's shared-module name changes, every pack rebuilt</td>
+          <td>unchanged</td>
+          <td>unchanged</td>
+        </tr>
+        <tr>
+          <td>New code</td>
+          <td>the move, the renames, the pack keys</td>
+          <td>a version command and its check</td>
+          <td>a small Yarn config file, about 20 lines</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+
+  <epic-choices>
+    <epic-option letter="A" title="One package, @spell-app/kit"
+      ><ul>
+        <li>
+          One <code>package.json</code>, one version, one set of scripts; the five become sub-paths of it:
+          <code>@spell-app/kit/element</code>, <code>/server</code>, <code>/util</code> ...
+        </li>
+        <li>
+          Every import of the five is renamed, in every repo:
+          <ul>
+            <li>util: 318 lines in 308 files (262 of them in spell-lang)</li>
+            <li>spell-element: 152 lines in 152 files (103 in spell-ui)</li>
+            <li>server: 106 lines in 75 files (73 in spell-epic)</li>
+            <li>toolchain: 47 lines in 35 files, mostly the Vite configs</li>
+            <li>assembler: 18 lines in 16 files</li>
+            <li>641 in all; by repo, outside the kit: spell-lang 278, spell-ui 127, spell-epic 113, spell-app 82, spell-brand 22</li>
+            <li>plus 47 dependency entries, 19 TypeScript <code>extends</code> and 12 <code>types</code> lines</li>
+          </ul>
+        </li>
+        <li>
+          The <code>$/</code> names inside the kit can stay (<code>$/util</code>, <code>$/server</code>): they're only the
+          kit's own TypeScript paths.
+        </li>
+        <li>
+          What breaks, or needs working around:
+          <ul>
+            <li>
+              Browser and node code in one package: server and assembler are node only, element and util run in the
+              browser. One TypeScript setting for all five loses the check that keeps <code>document</code> out of the
+              server and <code>node:fs</code> out of the element, so it would keep one per folder anyway.
+            </li>
+            <li>
+              Spell UI's users would install everything the kit needs: Vite+ and esbuild (the toolchain's), parse5 (the
+              server's), linkedom (the assembler's). They'd be optional peers, each with a warning, to avoid that.
+            </li>
+            <li>
+              The toolchain is every repo's build tool, but spell-element is Spell UI's run-time code: one package is
+              both a devDependency and a dependency of the same repo.
+            </li>
+            <li>
+              spell-element asks for Solid as a peer, so the page server and spell-epic's tools, which never draw
+              anything, would be asked for Solid too.
+            </li>
+            <li>
+              Component packs name spell-element by <code>$/spell-element</code> on every page (the pack-module name,
+              made from the npm name by <code title="spell-ui/tools/packModules.ts">packModuleKey()</code>). It would
+              become <code>$/kit/element</code>, so every page's bundle and every built pack changes at once, or the old
+              name is kept by a special case.
+            </li>
+            <li>
+              The built declarations the repos above read (<code>spell-types</code>) are made per package today: one
+              build for all five instead.
+            </li>
+          </ul>
+        </li>
+        <li>
+          A bump and a publish: <code>yarn version 0.2.0</code> in the kit, build, <code>yarn npm publish</code>, once.
+          The simplest publish, but it publishes all five every time.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Five packages, one version, copied by a tool of ours"
+      ><ul>
+        <li>Each package keeps its name and its <code>package.json</code>, so no import changes.</li>
+        <li>The version lives in the kit's <code>package.json</code>; a new command copies it into the five.</li>
+        <li>
+          What all five share moves up to the kit: the scripts, the tools in devDependencies, the TypeScript base, the
+          lint and format settings.
+        </li>
+        <li>Each <code>package.json</code> shrinks to its name, its exports and what it needs at run time.</li>
+        <li>
+          A bump: the command writes the new version into the kit and the five. A publish: as in C.
+        </li>
+        <li>
+          The cost: a command and a check to write and keep; nothing stops a hand edit of one version until that check
+          runs.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Five packages, one version, kept in step by Yarn" recommended
+      ><ul>
+        <li>B's layout, but the copying and the check are Yarn's own: its constraints, built into the Yarn we use (4.18).</li>
+        <li>
+          One small config file at the kit's root says: every kit package's version, license, engines, module type,
+          repository and Yarn version are the kit's.
+          <ul>
+            <li><code>yarn constraints --fix</code> writes them into the five.</li>
+            <li><code>yarn constraints</code> fails when one differs: it joins the kit's <code>yarn ts</code>, and the CI planned in P11.</li>
+            <li>It can also hold the shared tools to one version (TypeScript, Vite+, Playwright) across every repo.</li>
+          </ul>
+        </li>
+        <li>
+          The kit's <code>package.json</code> holds the rest of what's shared:
+          <ul>
+            <li>the tools in devDependencies, once</li>
+            <li>the scripts, where one run can cover all five (lint, format, tests)</li>
+            <li>type-checking stays per package, since each builds its own declarations for the repos above</li>
+          </ul>
+        </li>
+        <li>
+          Each package keeps only what's its own: its name, its exports, its run-time dependencies, and a short
+          TypeScript setting saying browser or node.
+        </li>
+        <li>No import changes: the goal's "the package names stay" holds.</li>
+        <li>The pack-module names and the built declarations stay as they are.</li>
+        <li>
+          Why recommended: Owen gets the one version and the one place for settings he asked for, and none of A's
+          renames or its browser-and-node mix.
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+
+  <p>A concrete look at each, folded:</p>
+  <epic-code title="A · the kit's one package.json (sketch)" language="json"
+    ><pre>{
+  "name": "@spell-app/kit",
+  "version": "0.2.0",
+  "type": "module",
+  "sideEffects": ["./element/src/HotDefinitions.ts"],
+  "bin": { "spell-types": "./toolchain/bin/spell-types.ts" },
+  "exports": {
+    "./util": "./util/src/index.ts",
+    "./util/*": "./util/src/*.ts",
+    "./element": "./element/src/index.ts",
+    "./server": "./server/src/index.ts",
+    "./server/page": "./server/src/page/index.ts",
+    "./assembler": "./assembler/src/index.ts",
+    "./toolchain/lint": "./toolchain/src/lint.ts",
+    "./toolchain/tsconfig.base.json": "./toolchain/tsconfig.base.json"
+    // ... 37 entries in all, today's five lists merged
+  },
+  "dependencies": {
+    "chalk": "^5.6.0", "lodash": "^4.17.21", "json5": "^2.2.3",
+    "parse5": "^7.3.0", "linkedom": "^0.18.13",
+    "esbuild": "^0.28.2", "vite-plus": "catalog:"
+  },
+  "peerDependencies": { "solid-js": "2.0.0-rc.13", "@solidjs/web": "2.0.0-rc.13" }
+}</pre></epic-code
+  >
+  <epic-code title="A · imports before and after" language="ts"
+    ><pre>// before:  157 files say exactly this first line
+import { proto } from "@spell-app/util"
+import { E } from "@spell-app/spell-element"
+import type { RouteModule } from "@spell-app/server/page"
+
+// after
+import { proto } from "@spell-app/kit/util"
+import { E } from "@spell-app/kit/element"
+import type { RouteModule } from "@spell-app/kit/server/page"</pre></epic-code
+  >
+  <epic-code title="B and C · the kit's package.json (sketch)" language="json"
+    ><pre>{
+  "name": "spell-kit",
+  "version": "0.2.0",
+  "private": true,
+  "workspaces": ["util", "toolchain", "server", "assembler", "element", "spell-*"],
+  "scripts": {
+    "ts": "...",
+    "lint": "vp lint util toolchain server assembler element",
+    "test": "vp test run",
+    "check:versions": "yarn constraints"
+  },
+  "devDependencies": {
+    "@spell-app/toolchain": "workspace:*",
+    "@types/node": "^22.20.4",
+    "playwright": "1.63.0",
+    "typescript": "^7.0.2",
+    "vite-plus": "catalog:"
+  },
+  "engines": { "node": ">=24.11" },
+  "packageManager": "yarn@4.18.0"
+}</pre></epic-code
+  >
+  <epic-code title="B and C · element's package.json, shrunk (from 60 lines to about 25)" language="json"
+    ><pre>{
+  "name": "@spell-app/spell-element",
+  "version": "0.2.0",
+  "description": "What makes a custom element on Solid, for every component set",
+  "type": "module",
+  "sideEffects": ["./src/HotDefinitions.ts"],
+  "exports": {
+    ".": { "types": "./dist-types/src/index.d.ts", "default": "./src/index.ts" },
+    "./timing": { "types": "./dist-types/src/timing.d.ts", "default": "./src/timing.ts" }
+    // ... its five entries, as today
+  },
+  "dependencies": { "@spell-app/util": "workspace:*" },
+  "peerDependencies": { "solid-js": "2.0.0-rc.13", "@solidjs/web": "2.0.0-rc.13" }
+}
+// "version" (and license, engines ...) written by `yarn constraints --fix`, never by hand
+// the imports:  unchanged, `import { E } from "@spell-app/spell-element"`</pre></epic-code
+  >
+  <epic-code title="C · the Yarn config that keeps them in step (yarn.config.cjs, sketch)" language="js"
+    ><pre>const KIT = ["util", "toolchain", "server", "assembler", "element"]
+const SHARED = ["version", "license", "engines", "type", "repository", "packageManager"]
+
+module.exports = {
+  async constraints({ Yarn }) {
+    const kit = Yarn.workspace({ cwd: "." })
+    for (const folder of KIT) {
+      const pkg = Yarn.workspace({ cwd: folder })
+      for (const field of SHARED) pkg.set(field, kit.manifest[field])
+    }
+  }
+}</pre></epic-code
+  >
+
+  <h4>A version bump and a publish, in C</h4>
+  <ol>
+    <li>Set the kit's version: <code>yarn version 0.2.0</code> at the kit's root.</li>
+    <li><code>yarn constraints --fix</code> writes 0.2.0 into the five.</li>
+    <li>Commit, and tag the commit <code>kit-v0.2.0</code>.</li>
+    <li>
+      Publish what isn't private: <code>yarn workspaces foreach -A --no-private npm publish</code>.
+      <ul>
+        <li>At first that's util and spell-element, the two Spell UI needs.</li>
+        <li>
+          Yarn rewrites each <code>workspace:*</code> into the real version as it packs, so the published
+          spell-element asks for util 0.2.0.
+        </li>
+        <li>Server, assembler and toolchain stay private until something published needs them.</li>
+      </ul>
+    </li>
+  </ol>
+  <epic-aside title="what every option needs before a first publish"
+    ><ul>
+      <li>
+        Today all five point their exports at TypeScript source, which npm users can't run. A published package needs a
+        build to JavaScript and a <code>publishConfig</code> pointing at it, as Spell UI already has.
+      </li>
+      <li>The same work in A, B and C: in A one build with every entry, in B and C one build per published package.</li>
+      <li>
+        Spell UI keeps its own version (0.0.1 today). If it should share the kit's too, C's config can say so in one
+        line; that's a separate call.
+      </li>
+    </ul></epic-aside
+  >
+
+  <epic-net-effect option="C" recommended
+    ><ul>
+      <li>the kit's <code>package.json</code> gets a version: the one version of util, toolchain, server, assembler and element</li>
+      <li>a Yarn constraints file at the kit's root copies the version and the shared fields into the five, and fails a check on drift</li>
+      <li>the shared scripts, tools and settings move up to the kit; each package keeps its name, exports and dependencies</li>
+      <li>no import changes, so P9's "the package names stay" holds</li>
+      <li>written into P9's changes once Owen picks; nothing changed yet</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
