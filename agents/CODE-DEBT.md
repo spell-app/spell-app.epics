@@ -652,6 +652,21 @@ knowingly kept:
 
 ---
 
+### The local person is hard-coded, and a new checkout has no space for them
+
+- **Cost**:  every machine's own projects group is `owen@spell`, so a newcomer's projects get the maintainer's
+  address, and `spell new <name>` fails in a fresh checkout with `No such folder:  .../spell.spaces/@spell/owen@`
+  until they `mkdir -p ~/www/spell/spell.spaces/@spell/owen@` (spell-app's README-spaces says so, as a step).
+- **Cause**:  `LOCAL_PERSON = "owen"` in spell-app's `spaces/src/models/projectGroups.ts`;  `newCommand()` refuses a
+  missing parent folder (`environment.userFilesRoot`), and nothing makes the person's folder.  The people store
+  already reads git's name and email for a starter `__me.json5`, but only once the folder is there.
+- **Fix**:  derive the local person from git's name (as the people store does), or a setting;  make their space's
+  folder on first use (`spell new`, the editor's "Projects").
+- **Pinned at**:  epic `readme` I1;  `tests/spaces/src/models/projectGroups.test.ts` pins the five groups,
+  `owen@spell` first.
+
+---
+
 ## util
 
 ### `src/spell/constants.ts`:  a bare constants file of ALL-CAPS sentinels
