@@ -1,11 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>One import name, and the leftovers</title>
-    <meta name="description" content="Details:  One import name, and the leftovers">
-    <link rel="stylesheet" href="/_epic/assets/spell-doc.css">
+    <meta
+      name="description"
+      content="Details:  with every old worktree gone, what it takes to drop the $/ aliases for one way of naming a package everywhere (package names, #/ for files inside a package), and to clear out what the old monorepo layout left behind -- the census, the six things already broken, the size of it, and six calls for Owen"
+    />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page spell-details-page">
     <ui-root>
@@ -14,44 +17,1547 @@
       <div class="spell-doc">
         <main class="spell-doc-main">
           <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
-            <ui-breadcrumb-section href="../../../pages/index.html" target="src-packages-docs-index-html">Docs</ui-breadcrumb-section>
+            <ui-breadcrumb-section href="../../../pages/index.html" target="src-packages-docs-index-html"
+              >Docs</ui-breadcrumb-section
+            >
             <ui-breadcrumb-section active>One import name, and the leftovers</ui-breadcrumb-section>
           </ui-breadcrumb>
-          <ui-sticky class="spell-h1"><header class="spell-page-head">
+          <ui-sticky class="spell-h1"
+            ><header class="spell-page-head">
               <h1>One import name, and the leftovers</h1>
-              <epic-send></epic-send></header></ui-sticky>
-          <p class="lede">One sentence: what's being decided, and why it matters now.</p>
+              <epic-send></epic-send></header
+          ></ui-sticky>
+          <p class="lede">
+            You asked what we can clean up now that the old worktrees are gone, and what it takes to have ONE way to
+            name a package in every import, tests included, with no <code>$/</code> left. The short answer: it works, in
+            every tool we run, with one small catch for the type checker. About 4,200 imports change, by script, and
+            about 6,000 lines of old-layout code can go. Six calls are yours.
+          </p>
           <div class="spell-details-meta">
-            <epic-field label="Asked by" data-details-by>session <code>name</code>, while doing what</epic-field>
+            <epic-field label="Asked by" data-details-by
+              >session 🚧 <code>repo-split</code>, after merging P1-P12 into main</epic-field
+            >
             <epic-field label="Asked" data-details-asked>2026-10-21</epic-field>
           </div>
 
           <ui-message class="spell-where" state="info" header="Where we are">
-            <epic-field label="Epic"><code>name</code> -- what that work is for, in one line.</epic-field>
-            <epic-field label="Just now">what happened that led to this question.</epic-field>
-            <epic-field label="This decides">what changes for you, whichever you pick.</epic-field>
+            <epic-field label="Epic"
+              ><code>repo-split</code> -- the monorepo split into the kit (util, toolchain, server, assembler, element)
+              and five repos: spell-lang, spell-ui, spell-brand, spell-epic, spell-app.</epic-field
+            >
+            <epic-field label="Just now"
+              >Phases 1-12 merged into main, in the kit and the five child repos. The old spell-util, spell-server and
+              spell-element clones are deleted.</epic-field
+            >
+            <epic-field label="This page"
+              >What removing <code>$/</code> and the old-layout leftovers involves: three research passes (a census of
+              <code>$/</code>, a test of package-name imports in every tool, a census of leftovers).</epic-field
+            >
+            <epic-field label="This decides"
+              >How a deep import is written from now on, what happens to names baked into built files and to old epic
+              pages, what old tools to delete, and when the work happens.</epic-field
+            >
           </ui-message>
 
-          <ui-section id="context" header="1. Context" sticky collapsible dividing>
+          <ui-section id="context" header="1. Context" sticky collapsible dividing collapsed>
             <ui-icon slot="icon" name="lightbulb"></ui-icon>
+            <p>Words this page uses:</p>
             <ul>
-              <li>What's going on, in plain words; define every coined word.</li>
-              <li>The picture: a table, the real code, a diagram, a live example.</li>
+              <li>
+                <b><code>$/</code> alias:</b> today's short name for a package inside its own repo, e.g.
+                <code>$/ui/core</code>, <code>$/parser</code>. Each repo has its own table of them.
+              </li>
+              <li>
+                <b>Package name:</b> the name in a
+                <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+                >, e.g.
+                <a href="../../../../spell-ui/README.md" target="src-spell-ui-readme-md"><code>spell-ui</code></a
+                >, <code>spell-kit</code>. Another repo already imports by it: <code>spell-ui/core</code>.
+              </li>
+              <li>
+                <b>Entry:</b> one name a package's <code>exports</code> lists, e.g. <code>spell-ui/core</code>. Only
+                entries can be imported by package name.
+              </li>
+              <li>
+                <b>Deep import:</b> an import of a file that isn't an entry, e.g.
+                <code>$/ui/elements/ClassBuilder</code>.
+              </li>
+              <li>
+                <b>Barrel:</b> a package's or folder's <code>index.ts</code>, which re-exports the files under it.
+              </li>
+              <li>
+                <b>Subpath imports (<code>#/</code>):</b> node's own way for a package to name its OWN files, an
+                <code>imports</code> field in
+                <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+                >. Private: another package can't use it.
+              </li>
+              <li>
+                <b>Built declarations:</b> the <code>.d.ts</code> files <code>spell-types</code> builds into each
+                package's git-ignored
+                <a href="../../../../spell-ui/dist-types/" target="src-spell-ui-dist-types"><code>dist-types/</code></a>
+                folder. The type checker reads another repo's package through them.
+              </li>
+              <li>
+                <b>Condition:</b> a key in an <code>exports</code> entry that says which file a tool gets, e.g.
+                <code>types</code> for the type checker, <code>default</code> for everyone else.
+              </li>
             </ul>
-            <epic-text-box for="context"></epic-text-box>
+
+            <ui-section id="c-today" header="1.1 What $/ is today" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="map"></ui-icon>
+              <p>
+                <code>$/</code> is how a file names its own repo's packages. It's in every repo, and in tests, scripts,
+                configs and docs.
+              </p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Repo</th>
+                      <th class="num right aligned">Files with <code>$/</code> imports</th>
+                      <th class="num right aligned">Imports</th>
+                      <th>Names used</th>
+                      <th class="num right aligned">Uses as data</th>
+                      <th class="num right aligned">Docs mentions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>the kit</td>
+                      <td class="num right aligned">93</td>
+                      <td class="num right aligned">138</td>
+                      <td>
+                        <code>$/util</code>, <code>$/server</code>, <code>$/assembler</code>,
+                        <code>$/spell-element</code>
+                      </td>
+                      <td class="num right aligned">10</td>
+                      <td class="num right aligned">157</td>
+                    </tr>
+                    <tr>
+                      <td>spell-lang</td>
+                      <td class="num right aligned">459</td>
+                      <td class="num right aligned">844</td>
+                      <td>
+                        <code>$/parser</code> 369, <code>$/spell</code> 364, <code>$/core</code> 74,
+                        <code>$/markdown</code> 25, <code>$/py</code> 12
+                      </td>
+                      <td class="num right aligned">19</td>
+                      <td class="num right aligned">74</td>
+                    </tr>
+                    <tr>
+                      <td>spell-ui</td>
+                      <td class="num right aligned">729</td>
+                      <td class="num right aligned">1,995</td>
+                      <td><code>$/ui</code>, 551 different paths under it</td>
+                      <td class="num right aligned">44</td>
+                      <td class="num right aligned">93</td>
+                    </tr>
+                    <tr>
+                      <td>spell-brand</td>
+                      <td class="num right aligned">24</td>
+                      <td class="num right aligned">33</td>
+                      <td><code>$/brand</code></td>
+                      <td class="num right aligned">4</td>
+                      <td class="num right aligned">10</td>
+                    </tr>
+                    <tr>
+                      <td>spell-epic</td>
+                      <td class="num right aligned">334</td>
+                      <td class="num right aligned">784</td>
+                      <td><code>$/epics</code>, 207 different paths under it</td>
+                      <td class="num right aligned">19</td>
+                      <td class="num right aligned">41</td>
+                    </tr>
+                    <tr>
+                      <td>spell-app</td>
+                      <td class="num right aligned">193</td>
+                      <td class="num right aligned">417</td>
+                      <td>
+                        <code>$/app</code> 185, <code>$/cli</code> 100, <code>$/spaces</code> 74, <code>$/lsp</code> 51,
+                        <code>$/page-server</code> 5
+                      </td>
+                      <td class="num right aligned">20</td>
+                      <td class="num right aligned">109</td>
+                    </tr>
+                    <tr>
+                      <td><b>All</b></td>
+                      <td class="num right aligned"><b>1,832</b></td>
+                      <td class="num right aligned"><b>4,211</b></td>
+                      <td></td>
+                      <td class="num right aligned"><b>~116</b></td>
+                      <td class="num right aligned"><b>484</b> in 63 files</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>About 3,480 of the 4,211 are deep imports, into about 930 different files.</li>
+                <li>259 carry a Vite query, mostly <code>?inline</code> CSS: 206 in spell-ui, 53 in spell-epic.</li>
+                <li>The kit's count includes its tests: 45 of its 93 files. Every repo's does.</li>
+                <li>The content repo (epic pages and guides) has 1,149 more mentions, in 374 files.</li>
+                <li>For scale: imports by package name already number about 1,440, in 921 files.</li>
+              </ul>
+
+              <h4>Where it's defined</h4>
+              <ul>
+                <li>
+                  <b>Six alias tables,</b> one
+                  <a href="../../../tsconfig.base.json" target="src-tsconfig-base-json"
+                    ><code>tsconfig.base.json</code></a
+                  >
+                  per repo, plus a frozen copy of the old monorepo's for a test. Every package's tsconfig extends its
+                  repo's.
+                </li>
+                <li>
+                  <b>Vite and Vitest</b> read them through <code>resolve.tsconfigPaths</code>, in 18 configs. Five more
+                  files list the aliases by hand, because they sit outside any tsconfig.
+                </li>
+                <li>
+                  <b>The run-time alias hook</b> (<a
+                    href="../../../../toolchain/src/aliases.ts"
+                    target="src-toolchain-src-aliases-ts"
+                    ><code title="toolchain/src/aliases.ts">spell-kit/toolchain/aliases</code></a
+                  >), for <code>tsx</code> and node. 79 lines load it: about 20 places that start a child process, 20
+                  yarn scripts, three <code>bin</code> files ...
+                </li>
+                <li>
+                  <b
+                    ><a href="../../../../toolchain/src/declarations.ts" target="src-toolchain-src-declarations-ts"
+                      ><code title="toolchain/src/declarations.ts">spell-types</code></a
+                    ></b
+                  >
+                  rewrites every <code>$/</code> in the built declarations into a relative path, so another repo can
+                  read them.
+                </li>
+                <li>
+                  <b>About 12 hand-written resolvers:</b> esbuild plugins, the pack build's "may not import" check, the
+                  app's shared-module maps, a type check that writes its own <code>paths</code>, and
+                  <code>spell dev pack new</code>, which writes new <code>$/</code> aliases.
+                </li>
+              </ul>
+
+              <h4>Why it's the reason for the hook</h4>
+              <ul>
+                <li><code>tsx</code> reads ONE tsconfig for every file it runs.</li>
+                <li>
+                  spell-app's CLI runs spell-lang's and the kit's source. It meets <code>$/server/...</code> with
+                  spell-app's table, which hasn't got it: <code>Cannot find package '$'</code>.
+                </li>
+                <li>So the hook finds each importing file's own repo, and resolves by that repo's table.</li>
+                <li>
+                  Package names and <code>#/</code> resolve by the importing file's own
+                  <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+                  >, in node itself. With no <code>$/</code> left, the hook has nothing to do.
+                </li>
+              </ul>
+
+              <ui-accordion class="spell-code" styled>
+                <ui-title>The kit's alias table · tsconfig.base.json · 18 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-json">{
+  "extends": "./toolchain/tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "$/util": ["./util/src/index.ts"],
+      "$/util/*": ["./util/src/*"],
+      "$/server": ["./server/src/index.ts"],
+      "$/server/*": ["./server/src/*"],
+      "$/server/test/*": ["./server/test/*"],
+      "$/assembler": ["./assembler/src/index.ts"],
+      "$/assembler/*": ["./assembler/src/*"],
+      "$/spell-element": ["./element/src/index.ts"],
+      "$/spell-element/*": ["./element/src/*"],
+      "$/spell-element/test-helpers/*": ["./element/test-helpers/*"],
+      "$/spell-element/tools/*": ["./element/tools/*"]
+    }
+  }
+}</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>The run-time alias hook, its heart · aliases.ts · 10 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-ts">registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier.startsWith("$/") &amp;&amp; context.parentURL?.startsWith("file:")) {
+      const file = aliasedFile(specifier, fileURLToPath(context.parentURL))
+      if (file) return nextResolve(pathToFileURL(file).href, context)
+    }
+    return nextResolve(specifier, context)
+  }
+})</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>What loads it · spell-app's package.json · 3 of its scripts</ui-title>
+                <ui-content>
+                  <pre><code class="language-json">"start:server": "cd app &amp;&amp; tsx watch --import spell-kit/toolchain/aliases ../spaces/src/server/node/routes/cli.ts",
+"start:server:prod": "cd app &amp;&amp; tsx --import spell-kit/toolchain/aliases ../spaces/src/server/node/routes/cli.ts",
+"site:data": "cd app &amp;&amp; tsx --import spell-kit/toolchain/aliases scripts/site-data.ts",</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>What spell-types rewrites · declarations.ts · 1 line</ui-title>
+                <ui-content>
+                  <pre><code class="language-ts">const SPECIFIER = /(\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*|\bdeclare\s+module\s+)(["'])(\$\/[^"']+)\2/g</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <epic-text-box for="c-today"></epic-text-box>
+            </ui-section>
+
+            <ui-section
+              id="c-tools"
+              header="1.2 Package name everywhere, per tool"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <ui-icon slot="icon" name="terminal"></ui-icon>
+              <p>
+                "Package name everywhere" means a file in spell-ui imports <code>spell-ui/core</code>, as spell-app
+                does. That's a <b>self-import</b>: a package naming itself. It was tested with real files, in every tool
+                the repos run.
+              </p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tool</th>
+                      <th>Finds a self-import today?</th>
+                      <th>Gets</th>
+                      <th>Needs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Type checker, <code>tsc</code> 7.0.2 (and 6.0.3)</td>
+                      <td class="meh warning">yes, but wrong</td>
+                      <td>its OWN built declarations</td>
+                      <td>a condition per package (below)</td>
+                    </tr>
+                    <tr>
+                      <td>Vite 8.3.1</td>
+                      <td class="yes positive">yes</td>
+                      <td>source</td>
+                      <td>nothing</td>
+                    </tr>
+                    <tr>
+                      <td>Vitest 5.0.1, server and browser tests</td>
+                      <td class="yes positive">yes; tests passed</td>
+                      <td>source, the same module as a relative import</td>
+                      <td>nothing</td>
+                    </tr>
+                    <tr>
+                      <td><code>tsx</code> 4.20</td>
+                      <td class="yes positive">yes, no hook</td>
+                      <td>source</td>
+                      <td>nothing</td>
+                    </tr>
+                    <tr>
+                      <td>node 24.21</td>
+                      <td class="yes positive">yes</td>
+                      <td>source</td>
+                      <td>nothing; but node never adds <code>.ts</code> to a relative import</td>
+                    </tr>
+                    <tr>
+                      <td>oxlint 1.85</td>
+                      <td class="yes positive">yes</td>
+                      <td>lints clean</td>
+                      <td>nothing</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+
+              <h4>The type checker's catch</h4>
+              <ul>
+                <li>
+                  Every entry has a <code>types</code> condition pointing at the built declarations. That's how
+                  spell-app reads spell-ui today.
+                </li>
+                <li>So spell-ui naming itself gets its OWN built declarations, not its source.</li>
+                <li>Mixed with a relative import of the same file, one class has two types, and the check fails.</li>
+                <li>Building the declarations fails too: it would overwrite its own input.</li>
+                <li>
+                  A fresh clone (no
+                  <a href="../../../../spell-ui/dist-types/" target="src-spell-ui-dist-types"
+                    ><code>dist-types/</code></a
+                  >
+                  yet) passes by accident, so it would bite later.
+                </li>
+                <li><b>So no self-import by package name is safe for the type checker until the fix is in.</b></li>
+              </ul>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>The two errors, real · spell-ui and a scratch package</ui-title>
+                <ui-content>
+                  <pre><code class="language-text">src/__selfref_probe.ts(6,11): error TS2322: Type 'import(".../spell-ui/src/elements/ClassBuilder").ClassBuilder'
+  is not assignable to type 'import(".../spell-ui/dist-types/src/elements/ClassBuilder").ClassBuilder'.
+  Types have separate declarations of a private property 'specs'.
+
+error TS5055: Cannot write file '.../pkg-a/dist-types/src/core.d.ts' because it would overwrite input file.</code></pre>
+                </ui-content>
+              </ui-accordion>
+
+              <h4>The fix: a condition of its own per package</h4>
+              <ul>
+                <li>Each entry gets a <code>spell-ui-source</code> key FIRST, pointing at the source.</li>
+                <li>spell-ui's tsconfig lists only its own: <code>customConditions: ["spell-ui-source"]</code>.</li>
+                <li>So spell-ui reads its own source, and every other package's built declarations, as today.</li>
+                <li>Vite, Vitest, tsx and node ignore both keys, and take <code>default</code>, the source.</li>
+                <li>
+                  Published builds don't carry it: <code>publishConfig.exports</code> replaces
+                  <code>exports</code> whole.
+                </li>
+                <li>
+                  Why not one shared <code>source</code> key: spell-app would then type-check spell-ui's and
+                  spell-lang's source under ITS settings (JSX, <code>lib</code>, <code>types</code> differ), and a
+                  third-party package (<code>tar</code>) already uses that key.
+                </li>
+              </ul>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>The recommended shape · spell-ui's package.json and tsconfig</ui-title>
+                <ui-content>
+                  <pre><code class="language-json">// package.json
+{
+  "name": "spell-ui",
+  "exports": {
+    ".": { "spell-ui-source": "./src/index.ts", "types": "./dist-types/src/index.d.ts", "default": "./src/index.ts" },
+    "./core": { "spell-ui-source": "./src/core.ts", "types": "./dist-types/src/core.d.ts", "default": "./src/core.ts" },
+    "./ui-*": {
+      "spell-ui-source": "./components/ui-*/index.ts",
+      "types": "./dist-types/components/ui-*/index.d.ts",
+      "default": "./components/ui-*/index.ts"
+    }
+    // ... every entry today, the condition FIRST
+  },
+  // inside-only, mirroring today's $/ui/* table:  the longest prefix wins, as paths did
+  "imports": {
+    "#/*": "./src/*",
+    "#/components/*": "./components/*",
+    "#/test-helpers/*": "./test-helpers/*",
+    "#/tools/*": "./tools/*"
+  },
+  "publishConfig": { "exports": { /* the built shape, as now */ } }
+}
+
+// tsconfig.base.json:  no paths
+{
+  "extends": "spell-kit/toolchain/tsconfig.base.json",
+  "compilerOptions": { "customConditions": ["spell-ui-source"] }
+}</code></pre>
+                </ui-content>
+              </ui-accordion>
+
+              <h4>Not checked yet</h4>
+              <ol>
+                <li>Whether node 24.11, the oldest the repos allow, takes a bare <code>#/</code> (24.21 does).</li>
+                <li>
+                  The kit and spell-lang build each folder as its own type-check: a condition per folder
+                  (<code>spell-kit-util-source</code>), or unify those folders' settings first.
+                </li>
+                <li>
+                  Whether the published
+                  <a href="../../../../spell-ui/dist/" target="src-spell-ui-dist"><code>dist/</code></a> ends up with
+                  any <code>#/</code> in it, or <code>publishConfig</code> needs an <code>imports</code> too.
+                </li>
+                <li>Whether the type-aware lint honours <code>customConditions</code> as the type checker does.</li>
+                <li>The two <code>declare module</code> augmentations, by their new names.</li>
+              </ol>
+              <epic-text-box for="c-tools"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="c-deep" header="1.3 The deep-import problem" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="layer group"></ui-icon>
+              <p>
+                A package name only reaches a package's entries. Most <code>$/</code> imports reach files that aren't
+                one.
+              </p>
+              <ui-statistics class="spell-stats" size="mini">
+                <ui-statistic value="4,230" label="$/ imports"></ui-statistic>
+                <ui-statistic value="3,497" label="deep"></ui-statistic>
+                <ui-statistic value="2,434" label="to a file with no entry"></ui-statistic>
+                <ui-statistic value="818" label="such files"></ui-statistic>
+              </ui-statistics>
+              <ul>
+                <li>
+                  1,038 deep imports already reach an entry (<code>$/ui/core</code> is <code>spell-ui/core</code>). They
+                  just change name.
+                </li>
+                <li>
+                  2,434 reach a file with no entry: 818 different files, 475 of them in spell-ui and 208 in spell-epic.
+                </li>
+                <li>
+                  1,749 of all the imports are in tests; 88 are dynamic <code>import()</code>s; 411 import only for side
+                  effects.
+                </li>
+                <li>
+                  216 places say "Import directly to avoid circular import". 154 of those are a deep
+                  <code>$/</code> path: barrels alone can't say them.
+                </li>
+              </ul>
+
+              <h4>Four ways to name a deep file</h4>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>A · <code>#/</code> subpath imports</th>
+                      <th>B · wildcard <code>./*</code> export</th>
+                      <th>C · an entry per file</th>
+                      <th>D · barrels only</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Size</td>
+                      <td>1-5 lines a package</td>
+                      <td>1 line a package</td>
+                      <td>~818 new entries</td>
+                      <td>2,434 imports rewritten by hand</td>
+                    </tr>
+                    <tr>
+                      <td>What other repos can import</td>
+                      <td class="yes positive">unchanged: entries only</td>
+                      <td class="no negative">every file (an earlier call said no)</td>
+                      <td class="meh warning">every file anyone imports</td>
+                      <td class="yes positive">unchanged</td>
+                    </tr>
+                    <tr>
+                      <td>The 154 circular-import sites</td>
+                      <td class="yes positive">fine</td>
+                      <td class="yes positive">fine</td>
+                      <td class="yes positive">fine</td>
+                      <td class="no negative">impossible without <code>../</code></td>
+                    </tr>
+                    <tr>
+                      <td>Types for other repos</td>
+                      <td>not needed: private</td>
+                      <td class="no negative">reads SOURCE, not declarations</td>
+                      <td>per entry, as now</td>
+                      <td>--</td>
+                    </tr>
+                    <tr>
+                      <td>How it reads</td>
+                      <td><code>#/elements/ClassBuilder.ts</code></td>
+                      <td><code>spell-ui/elements/ClassBuilder.ts</code></td>
+                      <td><code>spell-ui/elements/ClassBuilder</code></td>
+                      <td><code>spell-ui/core</code></td>
+                    </tr>
+                    <tr>
+                      <td>One way to import?</td>
+                      <td class="meh warning">two: name for entries, <code>#/</code> inside</td>
+                      <td class="yes positive">yes</td>
+                      <td class="yes positive">yes</td>
+                      <td class="yes positive">yes, but breaks circular rules</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+
+              <h4>A <code>#/</code> import needs the file's real extension</h4>
+              <ul>
+                <li>
+                  Tested in every tool: <code>#/inner/deep.ts</code> works everywhere, <code>#/inner/deep</code> fails
+                  in the type checker and node.
+                </li>
+                <li>A folder is written out: <code>#/util/index.ts</code>.</li>
+                <li>A script adds them: each import resolves to exactly one file today.</li>
+                <li>
+                  A folder barrel that's already an entry goes by package name instead: <code>spell-ui/runtime</code>.
+                </li>
+              </ul>
+
+              <ui-tabs class="spell-tabs" pointing secondary basic>
+                <ui-tab label="Today">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>A Spell UI component, today · UIStep.tsx · 3 imports</ui-title>
+                    <ui-content>
+                      <pre><code class="language-ts">import { E, UIT } from "$/ui/core"
+import partsCSS from "$/ui/components/ui-parts/UIParts.css?inline"
+// Import directly to avoid circular import (Keyboard.ts)
+import { proto } from "$/ui/util"</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+                <ui-tab label="With #/">
+                  <ui-accordion class="spell-code" styled>
+                    <ui-title>The same, under the recommended way · 3 imports</ui-title>
+                    <ui-content>
+                      <pre><code class="language-ts">import { E, UIT } from "spell-ui/core" // an entry:  the name every repo uses
+import partsCSS from "#/components/ui-parts/UIParts.css?inline" // not an entry:  #/, real extension
+// Import directly to avoid circular import (Keyboard.ts)
+import { proto } from "#/util/index.ts"</code></pre>
+                    </ui-content>
+                  </ui-accordion>
+                </ui-tab>
+              </ui-tabs>
+              <epic-text-box for="c-deep"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="c-baked" header="1.4 Names baked into built files" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="cubes"></ui-icon>
+              <p>
+                Some old names aren't imports at all. They're strings a page and its bundles agree on at run time, so
+                renaming them means rebuilding everything that carries them, at once.
+              </p>
+              <h4>Pack-module keys</h4>
+              <ul>
+                <li>A component pack doesn't bundle Spell UI's core: it asks the page for it, by a name.</li>
+                <li>
+                  The names are still the old ones: <code>$/spell-element</code>, <code>$/ui/core</code>,
+                  <code>$/ui/forms</code>, <code>$/ui/components/ui-code</code> ...
+                </li>
+                <li>
+                  <a href="../../../../element/tools/packModules.ts" target="src-element-tools-packmodules-ts"
+                    ><code title="element/tools/packModules.ts">packModuleKey()</code></a
+                  >
+                  turns each npm name back into its <code>$/</code> name: <code>spell-kit/element</code> is
+                  <code>$/spell-element</code>, <code>spell-epic</code> is <code>$/epics</code>. We kept them on purpose
+                  in phase 9 [J72].
+                </li>
+                <li>
+                  Who offers them: spell-epic's docs bundle, Spell UI's site, the app's shared-module maps (9 strings).
+                </li>
+                <li>
+                  Who reads them: the committed packs (the brand's, the epics'), the app's built pages, and one guide's
+                  live-elements bundle in the content repo.
+                </li>
+                <li>Four tests pin them.</li>
+              </ul>
+              <ui-accordion class="spell-code" styled>
+                <ui-title>The keys, and the mapping back · packModules.ts · 13 lines</ui-title>
+                <ui-content>
+                  <pre><code class="language-ts">export const PACK_MODULES = ["solid-js", "@solidjs/web", "$/spell-element", "$/ui/core", "$/ui/forms"]
+
+export function packModuleKey(specifier: string): string {
+  const family = /^spell-ui\/(ui-[a-z-]+)$/.exec(specifier)
+  if (family) return `$/ui/components/${family[1]}`
+  const kit = /^spell-kit\/([^/]+)(.*)$/.exec(specifier)
+  if (kit) return `$/${kit[1] === "element" ? "spell-element" : kit[1]}${kit[2]}`
+  const folder = /^spell-(?:lang|app)\/(.+)$/.exec(specifier)
+  if (folder) return `$/${folder[1]}`
+  const flat = /^spell-(ui|brand|epic)((?:\/.*)?)$/.exec(specifier)
+  if (flat) return `$/${flat[1] === "epic" ? "epics" : flat[1]}${flat[2]}`
+  return specifier
+}</code></pre>
+                </ui-content>
+              </ui-accordion>
+              <h4>The rest</h4>
+              <ul>
+                <li>
+                  <b>Seven run-time keys</b> still say <code>@spell-app/...</code>:
+                  <code>Symbol.for("@spell-app/cells")</code>, <code>@spell-app/ui:runtime</code>,
+                  <code>@spell-app/element-tag</code> ... Kept on purpose in phase 11 [J102]. The last
+                  <code>@spell-app</code> names in source.
+                </li>
+                <li>
+                  <b
+                    ><a href="../../../../element/src/SpellSolid.ts" target="src-element-src-spellsolid-ts"
+                      ><code title="element/src/SpellSolid.ts">SpellSolid</code></a
+                    ></b
+                  >
+                  and <code>SpellSolidSettings</code>: a class named after the old package, in about 11 kit files and 4
+                  of spell-ui's [J31]. E.g. <code>ElementSettings</code>.
+                </li>
+                <li>
+                  <b>Test entry names:</b> spell-ui's <code>spell-ui/test/setup.ts</code> and
+                  <code>spell-ui/test/MemberClashes</code> point into its
+                  <a href="../../../../spell-ui/test-helpers/" target="src-spell-ui-test-helpers"
+                    ><code>test-helpers/</code></a
+                  >
+                  folder; about 6 imports use them [J68].
+                </li>
+                <li>
+                  <b>Test names and lists:</b> <code>describe("$/lsp barrel")</code>, a barrel test's list of 14
+                  <code>$/parser/...</code> modules, <code>freshBarrel("$/ui/static")</code>.
+                </li>
+                <li>
+                  <b>Messages people see:</b> "load ... Spell UI's <code>$/ui/core</code>", a pack build's "imports
+                  '$/ui/util', which the page can't share".
+                </li>
+                <li>
+                  <b>Lazy-load names</b> held in constants: spell-epic's command list
+                  (<code>"$/epics/tool/PlanDocCommands"</code>).
+                </li>
+                <li><b>Vocabulary text</b> and the docs data generated from it: a handful each.</li>
+                <li>
+                  <b>Three <code>declare module "$/..."</code></b> type augmentations.
+                </li>
+              </ul>
+              <epic-text-box for="c-baked"></epic-text-box>
+            </ui-section>
+
+            <ui-section
+              id="c-leftovers"
+              header="1.5 Leftovers from the old layout"
+              sticky
+              collapsible
+              dividing
+              collapsed
+            >
+              <ui-icon slot="icon" name="trash can"></ui-icon>
+              <p>
+                Code kept for old worktrees, old checkouts and the old monorepo paths. With every old worktree gone,
+                it's dead weight. Four groups, by what it takes.
+              </p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Group</th>
+                      <th>What</th>
+                      <th class="num right aligned">Size</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>A · delete outright</td>
+                      <td>fallbacks nothing reaches now</td>
+                      <td class="num right aligned">~6,000 lines, 23 links, 6.5 MB</td>
+                    </tr>
+                    <tr>
+                      <td>B · rename, then drop the mapping</td>
+                      <td>old names something still maps</td>
+                      <td class="num right aligned">~700 lines</td>
+                    </tr>
+                    <tr>
+                      <td>C · regenerate</td>
+                      <td>built files, fixtures, content pages</td>
+                      <td class="num right aligned">rebuilds</td>
+                    </tr>
+                    <tr>
+                      <td>D · docs</td>
+                      <td>prose naming old paths</td>
+                      <td class="num right aligned">~600 lines</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+
+              <ui-section id="c-group-a" header="A · Delete outright" sticky collapsible dividing collapsed>
+                <ui-icon slot="icon" name="trash can"></ui-icon>
+                <ul>
+                  <li>
+                    <b>spell-epic's old-layout fallbacks, ~3,300 lines:</b>
+                    <ul>
+                      <li>
+                        <a
+                          href="../../../spell-epic/src/tools/relocate.js"
+                          target="src-spell-epic-src-tools-relocate-js"
+                          ><code title="spell-epic/src/tools/relocate.js">relocate.js</code></a
+                        >, 1,146 lines: the content moves of 2026-10-04, 05 and 13, and their repairs.
+                        <code>epic shared commit</code> runs part of it every turn.
+                      </li>
+                      <li>
+                        <code>epic shared migrate</code>, 349 lines: for a worktree cut before the shared-content
+                        cutover.
+                      </li>
+                      <li>
+                        The engine's old asset paths (<code>/packages/epics/tools/_assets/...</code>), after the content
+                        migration below.
+                      </li>
+                      <li>
+                        Old epic-page names (<code>&lt;name&gt;.html</code> before <code>.plan.html</code>), the
+                        one-time rename script (103 lines), four forwarders "for callers on older code" (48 lines).
+                      </li>
+                      <li>
+                        The old <code>.json</code> data files, ~250 lines (none left). The old <code>cm3</code> comment
+                        ids, ~30 lines.
+                      </li>
+                      <li>
+                        Old worktree folders (<a href="../../../.claude/worktrees/" target="src-claude-worktrees"
+                          ><code>.claude/worktrees</code></a
+                        >), ~60 lines; the old main-checkout spellings, ~120 lines.
+                      </li>
+                    </ul>
+                  </li>
+                  <li>
+                    <b>spell-app, ~400 lines:</b> 15 hidden old command spellings (<code>spell epic ...</code>,
+                    <code>spell dev plan-doc</code>), 10 old yarn aliases, the cdnjs highlight swap (0 pages need it),
+                    "temporary until the merge" routes, monorepo fallbacks, ignore lines for links left behind.
+                  </li>
+                  <li>
+                    <b>The kit, spell-ui, spell-lang, spell-brand, ~150 lines:</b> the Linker's old
+                    <code>#name/...</code> form (0 uses), a server's fallbacks for "an older checkout", two dead
+                    exports, a one-time brand rename script (98 lines), stale generated files in spell-lang.
+                  </li>
+                  <li>
+                    <b>The content repo:</b> 23 old <code>content/</code> links (0 files), and the old
+                    <a href="../../../ui/" target="src-ui"><code>ui/</code></a> folder, 6.5 MB, with its brand assets
+                    (5.4 MB of it).
+                  </li>
+                </ul>
+                <epic-text-box for="c-group-a"></epic-text-box>
+              </ui-section>
+
+              <ui-section
+                id="c-group-b"
+                header="B · Rename, then drop the mapping"
+                sticky
+                collapsible
+                dividing
+                collapsed
+              >
+                <ui-icon slot="icon" name="arrows rotate"></ui-icon>
+                <ul>
+                  <li>
+                    The pack-module keys, the seven <code>@spell-app</code> run-time keys, <code>SpellSolid</code>, the
+                    test entry names: 1.4 above, and Q3.
+                  </li>
+                  <li>
+                    The brand's old addresses, <code>/packages/brand/...</code>: 99 content pages and the brand's own
+                    docs use them. A real address first, then drop the two routes.
+                  </li>
+                  <li>The site tabs' paths, still <code>/packages/ui/docs/</code> and friends.</li>
+                  <li>The page server's moved-folder map, after the content migration.</li>
+                  <li>
+                    The Linker's map from old <code>packages/&lt;name&gt;/...</code> code spans to the new repos, ~80
+                    lines: Q4.
+                  </li>
+                  <li>285 old yarn names in the commands page's data, beside 280 new, in 135 rows.</li>
+                  <li>
+                    Small ones: the design system's export writes <code>package: "packages/ui"</code>;
+                    <code>packagesDir</code>, a variable named for the old folder (20 uses).
+                  </li>
+                </ul>
+                <epic-text-box for="c-group-b"></epic-text-box>
+              </ui-section>
+
+              <ui-section id="c-group-c" header="C · Regenerate" sticky collapsible dividing collapsed>
+                <ui-icon slot="icon" name="cubes"></ui-icon>
+                <ul>
+                  <li>
+                    The docs bundle,
+                    <a
+                      href="../../../spell-epic/src/tools/_assets/spell-ui.js"
+                      target="src-spell-epic-src-tools-assets-spell-ui-js"
+                      ><code title="spell-epic/src/tools/_assets/spell-ui.js">spell-ui.js</code></a
+                    >
+                    (2.2 MB, 3 <code>@spell-app</code> strings), every component pack, the brand's and Spell UI's site
+                    assets, the app's built pages: ONE rebuild, after the renames in B.
+                  </li>
+                  <li>
+                    The content repo:
+                    <ul>
+                      <li>
+                        <code>epic migrate --all</code> for 69 pages still loading
+                        <code>/packages/epics/...</code> assets. This must run whatever you pick in Q4, or those pages
+                        break.
+                      </li>
+                      <li>The brand pages' old URLs, 99 pages.</li>
+                      <li>About 13,000 old <code>packages/&lt;name&gt;/</code> code spans in 1,941 pages: Q4.</li>
+                    </ul>
+                  </li>
+                  <li><code>spell dev pack new</code>'s frozen monorepo fixture, 7 files, 817 lines: Q5.</li>
+                  <li>Guides' live-element bundles, generated docs data headers, the favicon: rebuilt.</li>
+                </ul>
+                <epic-text-box for="c-group-c"></epic-text-box>
+              </ui-section>
+
+              <ui-section id="c-group-d" header="D · Docs" sticky collapsible dividing collapsed>
+                <ui-icon slot="icon" name="book"></ui-icon>
+                <ul>
+                  <li>
+                    spell-epic's engine guide,
+                    <a href="../../../spell-epic/src/AGENTS.md" target="src-spell-epic-src-agents-md"
+                      ><code title="spell-epic/src/AGENTS.md">src/AGENTS.md</code></a
+                    >
+                    (2,200 lines), the most stale: written inside spell-app, it still explains the moves, old content
+                    folders and old names.
+                  </li>
+                  <li>
+                    WWOD: ~140 old <code>packages/...</code> mentions, every example citing a real file by its old path.
+                    Its §4 "Imports" is built on <code>$/</code> and needs rewriting either way.
+                  </li>
+                  <li>
+                    spell-app: its <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> ("Old
+                    paths last until every checkout has merged the reorg"), the CLI's README, four skills, ~300
+                    <code>../../packages/app/</code> links in 35 docs pages (one script).
+                  </li>
+                  <li>spell-ui ~65 lines, spell-brand ~50, spell-lang ~15, the kit's guides and comments.</li>
+                  <li>
+                    spell-app's
+                    <a href="../../../.claude/settings.json" target="src-claude-settings-json"
+                      ><code>.claude/settings.json</code></a
+                    >
+                    names old paths too, but it's a permissions file: yours to change.
+                  </li>
+                </ul>
+                <epic-text-box for="c-group-d"></epic-text-box>
+              </ui-section>
+
+              <ui-section id="c-machine" header="On the machine:  compat links" sticky collapsible dividing collapsed>
+                <ui-icon slot="icon" name="laptop code"></ui-icon>
+                <p>Links and folders at old paths. Deleting them is one command, once you say so.</p>
+                <ui-table celled compact striped unstackable>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Link or folder</th>
+                        <th>Points at</th>
+                        <th>What it was for</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>~/www/spell-app/spell-app</code></td>
+                        <td>
+                          <a href="../../../" target="src-"><code>../spell/spell-app</code></a>
+                        </td>
+                        <td>the old checkout path</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell-app/spell-app.epics</code></td>
+                        <td>
+                          <a href="../../../../spell.epics/" target="src-spell-epics"
+                            ><code>../spell/spell.epics</code></a
+                          >
+                        </td>
+                        <td>the old content folder name</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell-app/spell-app-dev</code></td>
+                        <td><code>spell-app.epics</code></td>
+                        <td>the content folder's even older name</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell-app/spell-epic</code></td>
+                        <td>
+                          <a href="../../../../spell-epic/" target="src-spell-epic"><code>../spell/spell-epic</code></a>
+                        </td>
+                        <td>the old engine path</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell-app/spell-epic.worktrees</code></td>
+                        <td>
+                          <a href="../../../../spell-epic.worktrees/" target="src-spell-epic-worktrees"
+                            ><code>../spell/spell-epic.worktrees</code></a
+                          >
+                        </td>
+                        <td>the old engine worktrees path</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell-app/spell-spaces</code></td>
+                        <td>
+                          <a href="../../../../spell.spaces/" target="src-spell-spaces"
+                            ><code>../spell/spell.spaces</code></a
+                          >
+                        </td>
+                        <td>the old spaces folder name</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell-app/spell-app.worktrees/</code></td>
+                        <td>a folder</td>
+                        <td>5 old worktrees, and a content link</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell/spell-epic.worktrees/spell-app.epics</code></td>
+                        <td>nothing (broken)</td>
+                        <td>content beside the engine's worktrees</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell/spell-epic.worktrees/spell-app</code></td>
+                        <td>
+                          <a href="../../../" target="src-"><code>../spell-app</code></a>
+                        </td>
+                        <td>the engine's worktrees reaching spell-app</td>
+                      </tr>
+                      <tr>
+                        <td><code>~/www/spell-app.cutover-scratch/</code></td>
+                        <td>a folder</td>
+                        <td>scratch from the move: "delete after"</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ui-table>
+                <ul>
+                  <li>
+                    Also: about 20 links in Claude's session folders, from the new folder names to the old ones that
+                    hold the history. Harmless; leave them unless you want them moved.
+                  </li>
+                  <li>
+                    Not compat, so left alone: <code>~/www/spell-old/</code>, and your own folders in
+                    <code>~/www/spell-app/</code>.
+                  </li>
+                </ul>
+                <epic-text-box for="c-machine"></epic-text-box>
+              </ui-section>
+
+              <ui-section id="c-calm" header="Calls I'd make myself" sticky collapsible dividing collapsed>
+                <ui-icon slot="icon" name="gavel"></ui-icon>
+                <p>Small, and unsurprising. I'll do these unless you say otherwise in a comment here.</p>
+                <ol>
+                  <li>
+                    The epic engine's built-in defaults still describe spell-app's old layout
+                    (<code>../spell-app-dev</code>,
+                    <a href="../../../.claude/worktrees/" target="src-claude-worktrees"
+                      ><code>.claude/worktrees</code></a
+                    >): make them neutral.
+                  </li>
+                  <li>
+                    spell-app's epic settings name an engine folder through a link that's gone: set it to none, as the
+                    kit's do.
+                  </li>
+                  <li>
+                    <code>spell dev design sync</code> goes through that dead link: point it at the
+                    <code>epic</code> tool.
+                  </li>
+                  <li>
+                    Keep user-data compatibility, which has nothing to do with the layout: core's old method names for
+                    programs compiled earlier, old theme keys in browsers, <code>project.json</code> projects, the Solid
+                    1.9 smoke test.
+                  </li>
+                </ol>
+                <epic-text-box for="c-calm"></epic-text-box>
+              </ui-section>
+            </ui-section>
+
+            <ui-section id="c-broken" header="1.6 Already broken today" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="bug"></ui-icon>
+              <p>
+                Six old paths the census found that fail now, on main. Each is an issue on the epic page. They come
+                first, whatever you pick below.
+              </p>
+              <ol>
+                <li>
+                  <a href="../repo-split.plan.html#i41" target="repo-split">I41</a> · <code>yarn serve</code> in
+                  spell-app can't start the page server: its script runs the CLI from the old
+                  <a href="../../../cli/" target="src-cli"><code>packages/cli/</code></a> folder.
+                </li>
+                <li>
+                  <a href="../repo-split.plan.html#i42" target="repo-split">I42</a> · spell-app's
+                  <code>spell-epic</code> link is gone. What went through it is dead or falls back silently:
+                  <code>spell dev commands</code> misses every <code>epic</code> verb, and the CLI's epic tests always
+                  skip.
+                </li>
+                <li>
+                  <a href="../repo-split.plan.html#i43" target="repo-split">I43</a> · Blessing spell-lang's rule tests
+                  looks in a <a href="../../../packages/" target="src-packages"><code>packages/</code></a> folder
+                  spell-lang doesn't have.
+                </li>
+                <li>
+                  <a href="../repo-split.plan.html#i44" target="repo-split">I44</a> · The kit's favicon script writes
+                  beside the kit's server folder, not into spell-app's.
+                </li>
+                <li>
+                  <a href="../repo-split.plan.html#i45" target="repo-split">I45</a> · <code>epic</code> finds a checkout
+                  by a file no checkout has any more.
+                </li>
+                <li>
+                  <a href="../repo-split.plan.html#i27" target="repo-split">I27</a> ·
+                  <code>spell dev design changed</code> and <code>pushed</code> look for the design system's build in
+                  the old <a href="../../../../spell-ui/" target="src-spell-ui"><code>packages/ui/</code></a> folder.
+                </li>
+              </ol>
+              <epic-text-box for="c-broken"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="c-size" header="1.7 The size of it all" sticky collapsible dividing collapsed>
+              <ui-icon slot="icon" name="clock"></ui-icon>
+              <p>Rough, for an agent working with the scripts it writes; each chunk ends with every check passing.</p>
+              <ui-table celled compact striped unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Chunk</th>
+                      <th>What</th>
+                      <th class="num right aligned">Rough time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Fix the six broken</td>
+                      <td>1.6</td>
+                      <td class="num right aligned">1h</td>
+                    </tr>
+                    <tr>
+                      <td>Conditions</td>
+                      <td>
+                        a source condition on ~88 entries in 6
+                        <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+                        >s, <code>customConditions</code> in every repo (per folder in the kit and spell-lang)
+                      </td>
+                      <td class="num right aligned">1h</td>
+                    </tr>
+                    <tr>
+                      <td>The codemod</td>
+                      <td>
+                        ~4,200 imports: ~1,770 to package names as they stand, ~2,400 to <code>#/</code> with a real
+                        extension; plus the <code>imports</code> fields
+                      </td>
+                      <td class="num right aligned">3-4h</td>
+                    </tr>
+                    <tr>
+                      <td>Configs and tools</td>
+                      <td>
+                        6 alias tables, 18 Vite configs, 5 hand-written alias lists, ~12 resolvers, the run-time hook
+                        and the 79 lines loading it, <code>spell-types</code>' rewrite, the lint rule for
+                        <code>$/</code>
+                      </td>
+                      <td class="num right aligned">2-3h</td>
+                    </tr>
+                    <tr>
+                      <td>Baked names</td>
+                      <td>Q3: ~700 lines, then one rebuild of every pack and bundle</td>
+                      <td class="num right aligned">2-3h</td>
+                    </tr>
+                    <tr>
+                      <td>Leftovers</td>
+                      <td>
+                        group A (~6,000 lines, mostly whole files), the rest of B, C's content migration, Q5's deletes
+                      </td>
+                      <td class="num right aligned">3-4h</td>
+                    </tr>
+                    <tr>
+                      <td>Docs</td>
+                      <td>
+                        WWOD §4 rewritten, 484 <code>$/</code> mentions in 63 files, ~1,080 code comments, group D (~600
+                        lines), Q4's content rewrite
+                      </td>
+                      <td class="num right aligned">3-4h</td>
+                    </tr>
+                    <tr>
+                      <td><b>All</b></td>
+                      <td></td>
+                      <td class="num right aligned"><b>15-20h</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <h4>The order, so nothing is ever half-broken</h4>
+              <ui-steps class="spell-steps" ordered>
+                <ui-step
+                  header="Fix the six"
+                  description="Small, independent, and they block testing what follows."
+                ></ui-step>
+                <ui-step
+                  header="Conditions first"
+                  description="Until they're in, no self-import by package name is safe for the type checker."
+                ></ui-step>
+                <ui-step
+                  header="imports, then the codemod"
+                  description="Add each package's #/ table;  rewrite $/ to package names (entries) or #/ with a real extension (the rest)."
+                ></ui-step>
+                <ui-step
+                  header="Remove $/"
+                  description="The alias tables, tsconfigPaths, the run-time hook;  spell-types rewrites #/ instead of $/ in built declarations."
+                ></ui-step>
+                <ui-step
+                  header="Baked names, one rebuild"
+                  description="Rename the keys, rebuild every pack and bundle once."
+                ></ui-step>
+                <ui-step
+                  header="Migrate content, then delete"
+                  description="Run the content migrations, then delete group A and the mappings in B."
+                ></ui-step>
+                <ui-step
+                  header="Docs last"
+                  description="WWOD, every AGENTS.md and README, the engine's guide;  then Doc Review."
+                ></ui-step>
+              </ui-steps>
+              <epic-text-box for="c-size"></epic-text-box>
+            </ui-section>
           </ui-section>
 
-          <ui-section id="q1" header="Q1 · Short question" sticky collapsible dividing>
+          <ui-section id="q1" header="Q1 · Deep imports" sticky collapsible dividing collapsed>
             <ui-icon slot="icon" name="circle question"></ui-icon>
             <epic-ask>
-              <epic-question><p>The question in full, in one or two lines.</p></epic-question>
+              <epic-question
+                ><p>
+                  With <code>$/</code> gone, how does a file import a file of its OWN package that isn't an entry? 2,434
+                  imports, into 818 files, do that today (1.3).
+                </p></epic-question
+              >
               <epic-choices>
-                <epic-option letter="A" title="First option" recommended>
-                  <p>One line: what changes, and why it's recommended.</p>
-                  <epic-aside title="Details"><p>Anything longer: a table, code, a picture.</p></epic-aside>
+                <epic-option letter="A" title="#/ subpath imports" recommended>
+                  <p>
+                    Package name for entries, <code>#/</code> plus the real extension for the rest. Works in every tool,
+                    no hook; other repos still see only the entries.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>
+                        Each package gets an <code>imports</code> field of 1-5 lines, mirroring its
+                        <code>$/</code> table.
+                      </li>
+                      <li>The cost: two forms, not one. A name for an entry, <code>#/</code> for anything inside.</li>
+                      <li>And the extension: <code>#/util/index.ts</code>, not <code>#/util</code>.</li>
+                      <li>
+                        <code>spell-types</code> rewrites <code>#/</code> in built declarations, as it rewrites
+                        <code>$/</code> now.
+                      </li>
+                    </ul>
+                    <ui-accordion class="spell-code" styled>
+                      <ui-title>In a component · 3 imports</ui-title>
+                      <ui-content>
+                        <pre><code class="language-ts">import { E, UIT } from "spell-ui/core"
+import partsCSS from "#/components/ui-parts/UIParts.css?inline"
+import { proto } from "#/util/index.ts"</code></pre>
+                      </ui-content>
+                    </ui-accordion>
+                  </epic-aside>
                 </epic-option>
-                <epic-option letter="B" title="Second option">
-                  <p>One line: what changes, and its cost.</p>
+                <epic-option letter="B" title="Wildcard ./* export">
+                  <p>
+                    One line a package; truly one form. But every file becomes something other repos can import, which
+                    we said no to in phase 6 [J38].
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>
+                        The type checker reads another repo's deep file as SOURCE, not built declarations (tested): the
+                        same mixed-settings risk as one shared condition.
+                      </li>
+                      <li>Still needs the real extension.</li>
+                    </ul>
+                    <ui-accordion class="spell-code" styled>
+                      <ui-title>In a component · 3 imports</ui-title>
+                      <ui-content>
+                        <pre><code class="language-ts">import { E, UIT } from "spell-ui/core"
+import partsCSS from "spell-ui/components/ui-parts/UIParts.css?inline"
+import { proto } from "spell-ui/util/index.ts"</code></pre>
+                      </ui-content>
+                    </ui-accordion>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="C" title="An entry per file">
+                  <p>One form, no extensions; but ~818 new entries (475 in spell-ui), and each becomes public.</p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>
+                        Every new deep import means a
+                        <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> edit.
+                      </li>
+                      <li>307 of spell-ui's 550 paths are used once; 314 only by tests.</li>
+                    </ul>
+                    <ui-accordion class="spell-code" styled>
+                      <ui-title>In a component, and the entry it needs</ui-title>
+                      <ui-content>
+                        <pre><code class="language-ts">import { proto } from "spell-ui/util"
+// package.json:  "./util": { "spell-ui-source": "./src/util/index.ts", "types": "...", "default": "./src/util/index.ts" }</code></pre>
+                      </ui-content>
+                    </ui-accordion>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="D" title="Barrels only">
+                  <p>
+                    One form, nothing new; but 2,434 imports rewritten by hand, and the 154 circular-import sites can't
+                    be written at all.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>WWOD forbids <code>../</code>, the only other way to reach a file directly.</li>
+                      <li>Also cuts across spell-ui's rule never to import an element-core leaf by path.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q2" header="Q2 · The # prefix" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  If inside files are named with <code>#</code> (Q1 A), what follows the <code>#</code>? The same
+                  <code>#/</code> in every package, or one naming the package or folder?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="#/ everywhere" recommended>
+                  <p>
+                    Short, and the same in every package. Recommended IF node 24.11 takes it: 24.21 does, 24.11 is
+                    unchecked.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>
+                        24.11 is the oldest node the repos allow (<code>engines</code>). I'd check it before the
+                        codemod; if it fails, B, or raise the floor.
+                      </li>
+                      <li>
+                        A several-folder package says which folder after it: <code>#/parser/rules/Rule.ts</code> in
+                        spell-lang.
+                      </li>
+                    </ul>
+                    <ui-accordion class="spell-code" styled>
+                      <ui-title>Three repos</ui-title>
+                      <ui-content>
+                        <pre><code class="language-ts">import { proto } from "#/util/index.ts" // spell-ui
+import { Rule } from "#/parser/rules/Rule.ts" // spell-lang
+import { Formats } from "#/definitions/index.ts" // spell-epic</code></pre>
+                      </ui-content>
+                    </ui-accordion>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="B" title="A prefix per package">
+                  <p>
+                    <code>#ui/</code>, <code>#parser/</code>, <code>#epics/</code>: reads like today's <code>$/</code>,
+                    and works on any node.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>A line copied between repos fails loudly, instead of finding a same-named file.</li>
+                      <li>The cost: a name per package or folder to choose and remember.</li>
+                    </ul>
+                    <ui-accordion class="spell-code" styled>
+                      <ui-title>Three repos</ui-title>
+                      <ui-content>
+                        <pre><code class="language-ts">import { proto } from "#ui/util/index.ts" // spell-ui
+import { Rule } from "#parser/rules/Rule.ts" // spell-lang
+import { Formats } from "#epics/definitions/index.ts" // spell-epic</code></pre>
+                      </ui-content>
+                    </ui-accordion>
+                  </epic-aside>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section
+            id="q3"
+            header="Q3 · Pack-module keys and other baked names"
+            sticky
+            collapsible
+            dividing
+            collapsed
+          >
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Pages and component packs agree on old names at run time: <code>$/ui/core</code>,
+                  <code>$/spell-element</code>, seven <code>@spell-app/...</code> keys (1.4). Rename them to the package
+                  names now, or keep them as they are?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Rename, rebuild once" recommended>
+                  <p>
+                    Every key becomes its package name, <code>packModuleKey()</code> goes, and every pack and bundle is
+                    rebuilt once. No old name left.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>~700 lines over five repos, the group B renames.</li>
+                      <li>
+                        One rebuild: the docs bundle, every pack, the brand's and Spell UI's sites, the app's built
+                        pages, one guide's bundle.
+                      </li>
+                      <li>Safe now: the old names were kept only because old checkouts shared those bundles.</li>
+                      <li>
+                        Also fixes a bug in the guides' bundle build [T25], and covers two rebuild todos [T19, T24].
+                      </li>
+                      <li>
+                        With it: <code>SpellSolid</code> renamed (e.g. <code>ElementSettings</code>), and spell-ui's
+                        test entries pointed at
+                        <a href="../../../../spell-ui/test-helpers/" target="src-spell-ui-test-helpers"
+                          ><code>test-helpers/</code></a
+                        >.
+                      </li>
+                    </ul>
+                    <ui-accordion class="spell-code" styled>
+                      <ui-title>A pack reading Spell UI's core, before and after</ui-title>
+                      <ui-content>
+                        <pre><code class="language-js">globalThis.SpellUI.packModules[`$/ui/core`] // today
+globalThis.SpellUI.packModules[`spell-ui/core`] // after</code></pre>
+                      </ui-content>
+                    </ui-accordion>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="B" title="Keep them as data">
+                  <p>
+                    Nothing rebuilt; but <code>$/</code> and <code>@spell-app</code> stay alive as strings, and
+                    <code>packModuleKey()</code> stays to map them.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>WWOD keeps a rule saying a module's key keeps its <code>$/</code> name.</li>
+                      <li>A search for <code>$/</code> never comes back empty.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q4" header="Q4 · Old names in epic pages and guides" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  The content repo has ~1,149 <code>$/</code> mentions and ~13,000 old <code>packages/...</code> code
+                  spans, in epic pages and guides. Which do we rewrite?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="B" title="Live pages only" recommended>
+                  <p>
+                    Rewrite guides and open epics' pages by script; done epics stay as written, the record of what was
+                    true then.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>
+                        The Linker's ~80-line map from old paths goes, so a done epic's old code spans stop being links.
+                        They still read fine.
+                      </li>
+                      <li><code>$/</code> mentions are never links anyway: the Linker can't resolve one today.</li>
+                      <li>
+                        Separate, and done either way: the 69 pages loading old asset addresses and the 99 with old
+                        brand URLs. Those are migrations, or the pages break.
+                      </li>
+                    </ul>
+                    <ui-accordion class="spell-code" styled>
+                      <ui-title>A guide's code span, before and after</ui-title>
+                      <ui-content>
+                        <pre><code class="language-html">&lt;code&gt;packages/ui/tools/HotElements.ts&lt;/code&gt;  &lt;!-- before --&gt;
+&lt;code&gt;spell-kit/element/tools/HotElements.ts&lt;/code&gt;  &lt;!-- after:  where it lives now --&gt;</code></pre>
+                      </ui-content>
+                    </ui-accordion>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="A" title="Rewrite all once">
+                  <p>
+                    One script over every page, done epics too: every link works, but old pages no longer say what they
+                    said then.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>1,941 pages touched; the diff is large and mechanical.</li>
+                      <li>
+                        A done epic describing the monorepo then names files where they are now: history rewritten.
+                      </li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="C" title="Leave all, keep the map">
+                  <p>Nothing rewritten; the Linker keeps ~80 lines mapping old paths to the new repos, for good.</p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>Guides keep teaching <code>$/</code>, which would no longer exist.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q5" header="Q5 · Old tools to delete" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask multiple>
+              <epic-question
+                ><p>
+                  Tick the ones to DELETE. Each exists for old pages, old checkouts or the old monorepo, but could still
+                  have a use. Unticked ones stay, cleaned of old-layout bits.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="The old-markup converter">
+                  <p>
+                    Turns pre-<code>&lt;epic-*&gt;</code> epic pages into today's; ~2,700 lines, 18 files. Only for a
+                    page restored from an old backup.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>Every live page was converted at the switch (epic-components).</li>
+                      <li>Two REFACTOR notes elsewhere go with it.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="B" title="Old layout migrations">
+                  <p>
+                    The <code>epic migrate</code> steps that move old asset addresses and data files; after they've run
+                    over the content once, for old backups only.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>Part of 994 lines of steps, and the 534-line step list.</li>
+                      <li>The rule "a markup change adds its step" stays either way.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="C" title="Old markup migrations">
+                  <p>
+                    The steps that upgraded old page markup (ids, sections, tables, answer elements); history, not
+                    layout.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>The rest of those 994 lines.</li>
+                      <li>Without them, an old page from a backup can't be upgraded.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="D" title="spell dev pack new">
+                  <p>
+                    Makes a new component pack, but only knows the monorepo shape; ~1,700 lines with its templates and
+                    frozen fixture. Unticked: I retarget it to one repo per pack.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>608 lines of command, 17 template files, a 7-file fixture of 817 lines.</li>
+                      <li>It writes new <code>$/</code> aliases, so it changes anyway.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="E" title="spell dev docs">
+                  <p>
+                    A 23-line pass-through to <code>epic pages</code>. Three of spell-app's skills call it; they'd call
+                    <code>epic pages</code> instead.
+                  </p>
+                </epic-option>
+                <epic-option letter="F" title="epic shared rename">
+                  <p>
+                    Renames a content folder; 260 lines. Unticked: it stays, minus the step that leaves a link at the
+                    old name.
+                  </p>
+                </epic-option>
+                <epic-option letter="G" title="ui-section's old names">
+                  <p>
+                    Old attribute and event names on
+                    <code>&lt;ui-section&gt;</code> (<code>header</code>/<code>subhead</code>/<code>info</code>,
+                    <code>ui-open</code> ...); ~60 lines over ~10 files. Needs pages moved to the new names first.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q6" header="Q6 · When" sticky collapsible dividing collapsed>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Where does this work go? About 15-20 hours (1.7). The epic has two phases left: "CLI to the Kit" and
+                  "Doc Review".
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Two new phases" recommended>
+                  <p>
+                    "One Import Name", then "Leftovers Sweep", in repo-split before Doc Review: the review then reads
+                    the final shape.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>One Import Name: conditions, the codemod, removing <code>$/</code>, baked names, WWOD §4.</li>
+                      <li>Leftovers Sweep: the six broken first, the content migration, groups A-D, Q5's deletes.</li>
+                      <li>The six broken could also go first on their own, before CLI to the Kit.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="B" title="Fold into CLI to the Kit">
+                  <p>One big phase: fewer stops for you, but a 20-hour phase is hard to review.</p>
+                </epic-option>
+                <epic-option letter="C" title="A new epic">
+                  <p>
+                    repo-split ends sooner; the new epic starts from a shape Doc Review has already written up, then
+                    rewrites it.
+                  </p>
                 </epic-option>
               </epic-choices>
             </epic-ask>
