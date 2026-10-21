@@ -3,7 +3,9 @@ id: r12
 epic: epic-engine
 from: 🚧 repo-split (a286416d)
 at: 2026-10-21T08:32-04:00
-status: new
+status: filed
+filed: P13 · Blank Choice Boxes
+phase: p-blank-choice-boxes
 ---
 
 ## Owen's words

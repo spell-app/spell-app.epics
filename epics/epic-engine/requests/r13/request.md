@@ -3,7 +3,9 @@ id: r13
 epic: epic-engine
 from: spell-app-93 (fe93b5b4)
 at: 2026-10-21T09:45-04:00
-status: new
+status: filed
+filed: P14 · Reading Time Chip
+phase: p-reading-time-chip
 ---
 
 ## Owen's words

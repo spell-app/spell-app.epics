@@ -3,7 +3,9 @@ id: r11
 epic: epic-engine
 from: 🚧 repo-split (a286416d)
 at: 2026-10-21T08:27-04:00
-status: new
+status: filed
+filed: P12 · Quiet Worktree Entry
+phase: p-quiet-worktree-entry
 images: image-1.png
 ---
 
