@@ -25,7 +25,7 @@ yarn site:new getting-started --title "Getting started" --summary "One line."   
   - `<body>`:  ONE `<main id="main" class="site-main">`, nothing else.  The chrome -- `<spell-site-header>`, top bar,
     nav column, footer and `<ui-root class="site" stack-with="page" icons="fa7-brands, fomantic"
     display="when-ready">` -- is `site/_parts/layout.html`, written once, which the bundle wraps around the `main`
-    (epic ui-docs-rework, `site/README.md`).  `stack-with="page"` makes every `stackable` / `doubling` example
+    (epic ui-docs-rework;  spell-ui's `README-site.md` now).  `stack-with="page"` makes every `stackable` / `doubling` example
     (grid, cards, steps, form rows, items, statistics, token tables) stack by the SCREEN, as on fomantic-ui.com, not
     by the ~755px docs column (D40).  So keep Fomantic's markup:  no `unstackable` to stop a desktop stack, and no
     `stack-with` on an example unless it is ABOUT `stack-with`
