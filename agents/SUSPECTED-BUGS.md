@@ -609,6 +609,13 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- The dev editor draws nothing (2026-10-22, seen in the `spanish` worktree, epic `spanish` P13):  `app/index.html`'s
+  `<script src="../src/app/index.tsx">` is served as written, and from `/` the browser asks for `/src/app/index.tsx`,
+  which vite resolves inside its root, `app/`, and answers 404 ("Failed to load url /src/app/index.tsx", in
+  `.spell-server.editor.log` too).  Likely since repo-split P14 moved the source to `src/app/`.
+  `/@fs/<checkout>/spell-app/src/app/index.tsx` loads it (P13's screenshots routed the request there).
+  Not checked on `main`.
+
 - `src/solid/Markdown.browser.test.tsx` "draws markdown as HTML once $/markdown has loaded" (2026-10-10, epic
   `spell-element`):  fails when run with the other `src/solid` browser tests, passes alone (`yarn vitest run --project
   browser src/solid/Markdown.browser.test.tsx`).  Seen since P4 of `spell-element` (2026-10-09), every full
