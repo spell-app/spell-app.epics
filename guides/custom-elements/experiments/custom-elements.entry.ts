@@ -11,4 +11,4 @@
  */
 
 import "./ui-counter"
-import "$/ui/docs-components/ui-docs-inspector"
+import "spell-ui/docs-components/ui-docs-inspector"

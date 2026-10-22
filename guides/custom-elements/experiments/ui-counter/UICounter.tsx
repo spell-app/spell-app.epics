@@ -1,6 +1,6 @@
 import type { JSX } from "@solidjs/web"
 
-import { E } from "$/ui/core"
+import { E } from "spell-ui/core"
 import { counterVocabulary } from "./UICounter.en"
 
 import counterCSS from "./UICounter.css?inline"
