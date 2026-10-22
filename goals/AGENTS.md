@@ -41,7 +41,7 @@ waiting to be worked in, and the tools that keep it all consistent.  As the root
   - `goalsRoutes.ts` -- the pages' buttons, as a route module of the page server (below);  tests:
     `goalsRoutes.test.ts` (`yarn goals:test`)
 - The tools run under `tsx` (`goals.sh`, `spell dev goals`), with `spell-epic/tsconfig.json` for the repo's aliases:
-  they use the page server's code (`$/server`).
+  they use the page server's code (`spell-kit/server`).
 - packages/epics/tools/goals/skills/ (in the zip) -- the /goals skills:  `goals`, `goals-thought`, `goals-update`, `goals-open`,
   `goals-open-vs`.  `goals/scripts/goals.sh` there runs its checkout's tool:  every skill calls it.
 - Templates:  `templates/goals/`.  Look:  `spell-epic/src/tools/_assets/goals.css`.  Live buttons:
@@ -168,7 +168,7 @@ claude                                    is Claude Code installed and logged in
 
 ## The page server
 
-- Goals pages are served by the repo's PAGE SERVER (`packages/server`, `spell dev server`), one per checkout, which
+- Goals pages are served by the repo's PAGE SERVER (`src/server`, `spell server`), one per checkout, which
   serves docs, plans and Spell UI too.  Goals plug in as a ROUTE MODULE, packages/epics/tools/goals/goalsRoutes.ts (in the zip), listed in the
   root `package.json`'s `"pageServer"`.
 - `spell dev goals open` starts it in the background if need be (`spell dev goals server start|stop|status`;  `serve` runs
