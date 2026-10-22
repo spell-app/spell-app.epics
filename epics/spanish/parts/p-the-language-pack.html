@@ -2,7 +2,7 @@
 <epic-field name="symptom"
   ><p>
     English is scattered: eight word tables, about 62 rules reading English words in code, the registrations inline in
-    239 rule files, one global parser everything binds to.
+    239 rule files, one global parser everything binds to, and an English inflector every program pays for.
   </p></epic-field
 ><epic-field name="changes"
   ><p>
@@ -11,7 +11,8 @@
   </p>
   <p>The words rules read in code become small NAMED RULES each language registers; no new rulex features.</p>
   <p>
-    One <code>SP.Language</code> per language holds the inflector, tokenizer, word tables, module parsers and messages.
+    One <code>SP.Language</code> per language holds the inflector, tokenizer, word tables, module parsers and messages;
+    the English inflector lives in the English pack.
   </p></epic-field
 ><epic-field name="goal"
   ><ul>
@@ -57,16 +58,25 @@
       <code>es</code> / <code>no es</code> and <code>un</code> / <code>una</code> the same way.
     </li>
     <li>
-      One <code>SP.Language</code> per language (<code>spell/src/languages/</code>): <code>lang</code>, the inflector
-      (pluralize, singularize, plurality), the tokenizer (word characters, decimal separator: his comment M4), number
-      words, booleans, ordinals, the blacklist (slimmed in <a href="#p-blacklist-analysis">P2</a>), member stop words,
-      dangling words, the built-in types' words and members, spell's JSX words, messages, the parser and its root scope.
+      One <code>SP.Language</code> per language (<code>spell/src/languages/</code>): <code>lang</code>, the inflector,
+      the tokenizer (word characters, decimal separator: his comment M4), number words, booleans, ordinals, the
+      blacklist (slimmed in <a href="#p-blacklist-analysis">P2</a>), member stop words, dangling words, the built-in
+      types' words and members, spell's JSX words, messages, the parser and its root scope.
       <code>SP.languages.en</code> is today's grammar, unchanged in behaviour; the eight word tables move into
       <code>languages/en/</code>.
     </li>
     <li>
-      <code>pluralize()</code> and <code>singularize()</code> take the inflector from the parser (the parser's
-      <code>typeName(written, typeWords)</code> already takes the table); the parser carries its language.
+      THE INFLECTOR IS THE PACK'S (Owen's plan review): a <code>P.Inflector</code> interface on the parser
+      (<code>pluralize</code>, <code>singularize</code>, <code>plurality</code>). <code>singularize()</code>,
+      <code>pluralize()</code>, <code>getPlurality()</code>, <code>typeCase()</code> and
+      <code>instanceCase()</code> leave
+      <a href="../../../util/src/spell/string.ts" target="src-util-src-spell-string-ts"
+        ><code title="util/src/spell/string.ts">util's string</code></a
+      >
+      for the parser, taking the parser's inflector; the npm <code>pluralize</code> is imported by
+      <code>languages/en/inflector.ts</code> ONLY, so a Spanish program never loads it. The whole repo is grepped for
+      their users first (Spell UI declares its plurals by hand, so it shouldn't need them); <code>yarn measure</code> in
+      spell-ui if a bundle changes.
     </li>
     <li>
       The root scope is per language; the highlighter, the syntax table, the language server's scope explorer and
@@ -78,6 +88,10 @@
       case"): the phase ends uncommitted, the reply listing the word rules made and the rules that now use them.
     </li>
   </ul></epic-field
+><epic-update at="2026-10-21 22:32" summary="The inflector is the pack's (Owen)"
+  ><p>
+    Owen's plan review: make the English inflector part of the language pack, so a Spanish program never loads it.
+  </p></epic-update
 ><epic-field name="files"
   ><p>
     Every folder of
@@ -87,7 +101,10 @@
     (a <code>&lt;module&gt;.en.ts</code> each, the classes stay),
     <a href="../../../spell-lang/spell/src/rules/index.ts" target="src-spell-lang-spell-src-rules-index-ts"
       ><code title="spell-lang/spell/src/rules/index.ts">rules/index</code></a
-    >; <code title="spell-lang/spell/src/languages/Language.ts">Language</code> and <code>languages/en/</code>;
+    >; <code title="spell-lang/spell/src/languages/Language.ts">Language</code> and <code>languages/en/</code> (<code
+      >inflector.ts</code
+    >
+    with the npm <code>pluralize</code>);
     <a href="../../../spell-lang/spell/src/builtinTypes.ts" target="src-spell-lang-spell-src-builtintypes-ts"
       ><code title="spell-lang/spell/src/builtinTypes.ts">builtinTypes</code></a
     >,
@@ -129,15 +146,20 @@
       ><code title="spell-lang/spell/src/node/spellSyntax.ts">spellSyntax</code></a
     >;
     <a href="../../../util/src/spell/string.ts" target="src-util-src-spell-string-ts"
-      ><code title="util/src/spell/string.ts">string</code></a
+      ><code title="util/src/spell/string.ts">util's string</code></a
     >
-    (the inflector hook),
+    (the inflection helpers out),
     <a href="../../../spell-lang/parser/src/parser.types.ts" target="src-spell-lang-parser-src-parser-types-ts"
       ><code title="spell-lang/parser/src/parser.types.ts">parser.types</code></a
-    >,
+    >
+    (<code>Inflector</code>; <code>typeName</code>, <code>classCase</code> and <code>listOf</code> through it),
     <a href="../../../spell-lang/parser/src/Parser.ts" target="src-spell-lang-parser-src-parser-ts"
       ><code title="spell-lang/parser/src/Parser.ts">Parser</code></a
-    >;
+    >,
+    <a href="../../../spell-lang/parser/src/scope/RootScope.ts" target="src-spell-lang-parser-src-scope-rootscope-ts"
+      ><code title="spell-lang/parser/src/scope/RootScope.ts">RootScope</code></a
+    >
+    (<code>normalizeKey</code>);
     <a href="../../../spell-app/lsp/src/ScopeExplorer.ts" target="src-spell-app-lsp-src-scopeexplorer-ts"
       ><code title="spell-app/lsp/src/ScopeExplorer.ts">ScopeExplorer</code></a
     >; the module test runners in
@@ -149,6 +171,7 @@
   ><p>
     ZERO English change: the full spell-lang suite at the same counts (rules, fixtures, parser tests, the
     <code>ruleNames</code> snapshot with the new word rules added); <code>yarn spell:gen:syntax</code> regenerated, new
-    rows for the word rules and every existing row's example output identical; <code>yarn review</code>.
+    rows for the word rules and every existing row's example output identical; <code>yarn review</code>;
+    <code>pluralize</code> absent from a bundle built for a Spanish project (checked once P5 has one).
   </p></epic-field
 >
