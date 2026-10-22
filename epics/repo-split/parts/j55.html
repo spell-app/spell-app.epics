@@ -1,25 +1,44 @@
 <!-- plan-doc part:  #j55's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  The toolchain's <code>spell-types</code> (spell-util toolchain/src/declarations.ts, bin/spell-types.ts) runs tsc on a
-  package's own tsconfig.json, emitting declarations (and maps) into <code>&lt;package&gt;/dist-types/</code>,
-  incrementally, then rewrites every <code>$/</code> specifier in them to a relative path. tsc never rewrites path
-  aliases in .d.ts files, so without the rewrite a repo above would meet <code>$/spell-element/...</code> again.
+  The toolchain's <code>spell-types</code> builds a package's declarations, with the aliases rewritten:
 </p>
 <ul>
   <li>
-    A package's repo-mates come in through THEIR declarations (the alias table re-pointed in the generated tsconfig), so
-    a package's output holds only its own files; a repo builds its packages in dependency order (<code
-      >yarn workspaces foreach --topological-dev</code
-    >).
+    It's in spell-util:
+    <code title="toolchain/src/declarations.ts">declarations.ts</code> and its bin,
+    <code title="bin/spell-types.ts">spell-types.ts</code>.
   </li>
   <li>
-    Each TS <code>exports</code> entry is <code>{ "types": "./dist-types/...d.ts", "default": "./src/...ts" }</code>:
-    tsc takes <code>types</code>, Vite, Vitest, tsx and node the source, as before. Not built: TypeScript falls back to
-    the source.
+    It runs tsc on a package's own tsconfig.json, incrementally,
+    emitting declarations (and maps) into <code>&lt;package&gt;/dist-types/</code>.
+  </li>
+  <li>Then it rewrites every <code>$/</code> specifier in them to a relative path.</li>
+  <li>
+    tsc never rewrites path aliases in .d.ts files,
+    so without the rewrite a repo above would meet <code>$/spell-element/...</code> again.
+  </li>
+</ul>
+<ul>
+  <li>
+    A package's repo-mates come in through THEIR declarations:
+    the alias table is re-pointed in the generated tsconfig.
+    <ul>
+      <li>So a package's output holds only its own files.</li>
+      <li>
+        A repo builds its packages in dependency order
+        (<code>yarn workspaces foreach --topological-dev</code>).
+      </li>
+    </ul>
   </li>
   <li>
-    It IS the type check: a package's <code>yarn ts</code> runs <code>spell-types</code> in place of a bare
-    <code>tsc</code>.
+    Each TS <code>exports</code> entry is <code>{ "types": "./dist-types/...d.ts", "default": "./src/...ts" }</code>.
+    <ul>
+      <li>tsc takes the types, and Vite, Vitest, tsx and node the source, as before.</li>
+      <li>Not built: TypeScript falls back to the source.</li>
+    </ul>
+  </li>
+  <li>
+    It IS the type check: a package's <code>yarn ts</code> runs it in place of a bare <code>tsc</code>.
   </li>
   <li>
     Not built: the toolchain (no aliases inside, read as source) and spell-app's packages (nothing above reads them).
