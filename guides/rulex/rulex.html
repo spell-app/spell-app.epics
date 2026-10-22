@@ -8,6 +8,7 @@
       name="description"
       content="Rulex, the parser's regex-like rule syntax: every construct, what it compiles to, how it matches, its traps, and how markdown maps onto it."
     />
+    <meta name="spell-voice" content="readme 2026-10-22" />
     <meta name="spell-saga" content="spell-language" />
     <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
   </head>
@@ -25,13 +26,20 @@
           ><header class="spell-page-head"><h1>Rulex</h1></header></ui-sticky
         >
         <p class="lede">
-          Rulex is the regex-like syntax that writes <code>spell-lang/parser</code> rules:
-          <code>"give {thing:expression} (to {recipient})?"</code>. This page is its reference: every construct, what it
-          compiles to, how the result matches, the traps, and how markdown would be written in it.
+          One string, <code>"(operator:plus|+) {expression:simple_expression}"</code>, is the whole grammar of Spell's
+          <code>Plus</code> rule: with it, <code>price plus tax</code> and <code>price+tax</code> both compile to
+          <code>(price + tax)</code>.
+        </p>
+        <p>
+          That string is rulex: the regex-like syntax that writes
+          <a href="../../../spell-lang/parser/" target="src-spell-lang-parser"><code>spell-lang/parser</code></a> rules.
+          Unlike a parser generator, there's no grammar file and no build step: each rule carries its own syntax,
+          compiled when the rule is registered. Below: every construct, what it compiles to, how the result matches, the
+          traps, and how markdown would be written in it.
         </p>
         <ui-list class="spell-meta">
           <ui-item icon="user"
-            >Written for: anyone writing parser rules, spell's or a new language's (the <code>markdown</code> epic
+            >Written for: anyone writing parser rules, Spell's or a new language's (the <code>markdown</code> epic
             first)</ui-item
           >
           <ui-item icon="flag"
@@ -62,7 +70,7 @@
               </ul>
             </li>
             <li>
-              Seven constructs; spell uses all but numbers, in 133 registrations:
+              Seven constructs; Spell uses all but numbers, in 133 registrations:
               <ul>
                 <li>keywords</li>
                 <li>symbols (<code>\</code> escapes any)</li>
@@ -74,16 +82,22 @@
               </ul>
             </li>
             <li>
-              Three modifiers: <code title="?, +, *">? + *</code>. Plus counts (<code>{1,6}</code>) and <code>/i</code>.
+              Three modifiers: <code title="?, +, *">? + *</code>, as in a regex.
+              <ul>
+                <li>Plus counts (<code>{1,6}</code>) and <code>/i</code>.</li>
+              </ul>
             </li>
             <li>
               Every rulex special character escapes with <code>\</code>:
-              <code>\? \* \+ \( \) \[ \] \{ \} \| \: \\</code>. Nothing else needs escaping.
+              <code>\? \* \+ \( \) \[ \] \{ \} \| \: \\</code>.
+              <ul>
+                <li>Nothing else needs escaping.</li>
+              </ul>
             </li>
             <li>
               TWO tokenizers are involved, and only one is the language's.
               <ul>
-                <li>The rules MATCH the language's tokens (spell's, or a markdown tokenizer's).</li>
+                <li>The rules MATCH the language's tokens (Spell's, or a markdown tokenizer's).</li>
                 <li>
                   But rulex READS each syntax string with its own, <code>RulexTokenizer</code>: words, numbers, symbols
                   and whitespace only (since 2026-10-04).
@@ -93,7 +107,7 @@
                   a syntax.
                 </li>
                 <li>
-                  Before, spell's tokenizer turned them into comments, text and JSX (<a href="#6-traps">6. Traps</a>).
+                  Before, Spell's tokenizer turned them into comments, text and JSX (<a href="#6-traps">6. Traps</a>).
                 </li>
               </ul>
             </li>
@@ -144,9 +158,13 @@
                   <a href="../../spell-lang/src/parser/rulex/rulex.ts" target="src-spell-lang-src-parser-rulex-rulex-ts"
                     ><code>rulex.ts</code></a
                   >
-                  defines rulex's own grammar, built in code from plain parser rules (rulex can't define itself). The
-                  rules:
-                  <code title="P.Symbol / P.Word / P.Sequence">P.Symbol, P.Word, P.Sequence</code>.
+                  defines rulex's own grammar, built in code from plain parser rules, since rulex can't define itself.
+                  <ul>
+                    <li>
+                      The rules:
+                      <code title="P.Symbol / P.Word / P.Sequence">P.Symbol, P.Word, P.Sequence</code>.
+                    </li>
+                  </ul>
                 </li>
                 <li>
                   <a
@@ -167,8 +185,10 @@
             </li>
             <li>
               Rulex is itself a <code>P.Parser</code> (<code>RulexParser</code>), whose default rule is
-              <code>sequence</code>. That's why its own rules have tests in the same <code>[input, output]</code> form
-              as spell's.
+              <code>sequence</code>.
+              <ul>
+                <li>That's why its own rules have tests in the same <code>[input, output]</code> form as Spell's.</li>
+              </ul>
             </li>
           </ul>
 
@@ -191,24 +211,32 @@
             </ol>
             <ul>
               <li>
-                Eager, not lazy: a bad syntax fails at registration (import time for spell's modules), not at parse
-                time. No cache: each registration compiles afresh.
+                Eager, not lazy: a bad syntax fails at registration (import time for Spell's modules), not at parse
+                time.
               </li>
+              <li>The cost: there's no cache, so each registration compiles afresh.</li>
               <li>
                 A <code>Sequence</code> class whose syntax compiles to a single non-sequence rule wraps it:
-                <code>rules: [compiled]</code>. Any other mismatch throws "Syntax '…' compiles to a X, which Y does not
-                extend".
+                <code>rules: [compiled]</code>.
+                <ul>
+                  <li>Any other mismatch throws "Syntax '…' compiles to a X, which Y does not extend".</li>
+                </ul>
               </li>
               <li>
-                Several ways to write one rule: register the class again with another <code>syntax</code>. The instances
-                merge into a <code>P.Group</code> under the rule's name. No array form.
+                Several ways to write one rule: register the class again with another <code>syntax</code>.
+                <ul>
+                  <li>The instances merge into a <code>P.Group</code> under the rule's name.</li>
+                  <li>There's no array form.</li>
+                </ul>
               </li>
               <li>
-                <code>syntax</code>, <code>tests</code> and <code>ruleName</code> are NOT inherited; share a syntax
-                through a <code>const</code> (spell's <code>VARIABLE_SYNTAX</code>).
+                <code>syntax</code>, <code>tests</code> and <code>ruleName</code> are NOT inherited.
+                <ul>
+                  <li>Share a syntax through a <code>const</code> (Spell's <code>VARIABLE_SYNTAX</code>).</li>
+                </ul>
               </li>
               <li>
-                Rules built while parsing (spell's methods and enums) compile syntax the same way, from strings they
+                Rules built while parsing (Spell's methods and enums) compile syntax the same way, from strings they
                 assemble: <code>(expression:red|green|blue)</code>.
               </li>
             </ul>
@@ -245,10 +273,11 @@ math.addRule(Plus, {
         </ui-section>
 
         <ui-section id="3-syntax" label="3. Syntax reference" sticky collapsible dividing collapsed>
-          <p>
-            Every row was compiled by the probe script. "Compiles to" is the rule tree, written
-            <code>Class(literal)</code>; <code>?</code> after it means <code>optional</code>.
-          </p>
+          <p>Every row was compiled by the probe script, not typed from memory.</p>
+          <ul>
+            <li>"Compiles to" is the rule tree, written <code>Class(literal)</code>.</li>
+            <li><code>?</code> after it means <code>optional</code>.</li>
+          </ul>
           <ui-table celled compact striped unstackable>
             <table>
               <thead>
@@ -265,7 +294,7 @@ math.addRule(Plus, {
                   <td><code>1</code></td>
                   <td><code>Keyword(1)</code></td>
                   <td>
-                    Matches a number token of that value. Unused in spell. Digits only: <code>1.1</code> is
+                    Matches a number token of that value. Unused in Spell. Digits only: <code>1.1</code> is
                     <code>1</code> <code>.</code> <code>1</code>, <code>-1</code> is <code>-</code> <code>1</code>.
                     (Before 2026-10-04 both were ONE number, and <code>1.1.1</code> crashed the compile.)
                   </td>
@@ -496,13 +525,21 @@ math.addRule(Plus, {
               <li>
                 <code>tests: RuleTestBlock[]</code>: each block is
                 <code>{ title?, compileAs?, skip?, beforeEach?(scope), tests }</code>, where <code>tests</code> holds
-                <code>[input, expectedOutput]</code> pairs (arrays join with <code>\n</code>).
+                <code>[input, expectedOutput]</code> pairs.
+                <ul>
+                  <li>An array as input or output joins with <code>\n</code>.</li>
+                </ul>
               </li>
               <li>
-                <code>unitTestModuleRules(parser, module)</code> (<code>spell-lang/parser/test</code>) runs every testable rule
-                of a module, one <code>describe</code> per registration, titled with its syntax. It also snapshots each
-                rule's group spec, so the <code>Groups</code> type argument can be copied from
-                <code>__snapshots__</code>.
+                <code>unitTestModuleRules(parser, module)</code> (<code>spell-lang/parser/test</code>) runs every
+                testable rule of a module.
+                <ul>
+                  <li>One <code>describe</code> per registration, titled with its syntax.</li>
+                  <li>
+                    It also snapshots each rule's group spec, so the <code>Groups</code> type argument can be copied
+                    from <code>__snapshots__</code>.
+                  </li>
+                </ul>
               </li>
             </ul>
           </ui-section>
@@ -511,7 +548,7 @@ math.addRule(Plus, {
         <ui-section id="4-matching" label="4. How the rules match" sticky collapsible dividing collapsed>
           <p>
             Rulex only builds rules. What they match is up to the rule classes and the LANGUAGE's tokenizer, not
-            rulex's.
+            rulex's: the same syntax can match differently in Spell and in markdown.
           </p>
           <ui-table celled compact striped unstackable>
             <table>
@@ -584,20 +621,23 @@ math.addRule(Plus, {
           <ul>
             <li>
               A literal rule compares token <em>values</em>, whatever the token type: <code>Keyword("a")</code> would
-              match a symbol token <code>a</code>. Keyword vs Symbol only changes how a rule prints back to syntax.
+              match a symbol token <code>a</code>.
+              <ul>
+                <li>Keyword vs Symbol only changes how a rule prints back to syntax.</li>
+              </ul>
             </li>
             <li>
               <code>Choice</code> parses EVERY alternative, then keeps the best by precedence, then length, then order.
-              It is not a PEG-style first-match.
+              So it is not a PEG-style first-match: the order of alternatives only breaks ties.
             </li>
             <li>
               <code>Sequence.test()</code> checks that the sequence's own keywords and symbols appear in the tokens
-              before parsing any subrule. That makes a miss cheap.
+              before parsing any subrule. So a miss costs a scan of the tokens, not a parse.
             </li>
           </ul>
         </ui-section>
 
-        <ui-section id="5-spell" label="5. How spell uses it" sticky collapsible dividing collapsed>
+        <ui-section id="5-spell" label="5. How Spell uses it" sticky collapsible dividing collapsed>
           <ui-table celled compact striped unstackable>
             <table>
               <thead>
@@ -669,14 +709,14 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
           </ui-accordion>
           <ul>
             <li>
-              A trailing <code>{statement_body}?</code> / <code>{expression_body}?</code> (about 12 syntaxes) is a spell
+              A trailing <code>{statement_body}?</code> / <code>{expression_body}?</code> (about 12 syntaxes) is a Spell
               convention: <code>SpellStatement</code> strips it and parses the indented body separately.
             </li>
             <li>
               Spell's language rules for syntax (register with <code>{ syntax, tests }</code>, negatable
               <code>{operator:is}</code>, one test file per module) are in
               <a href="../../spell-lang/src/spell/AGENTS.md" target="src-spell-lang-src-spell-agents-md"
-                >spell's <code title="spell-lang/src/spell/AGENTS.md">AGENTS.md</code></a
+                >Spell's <code title="spell-lang/src/spell/AGENTS.md">AGENTS.md</code></a
               >, "Parser rules".
             </li>
           </ul>
@@ -695,12 +735,12 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
             </li>
             <li>
               <b>Syntax side</b>: until 2026-10-04 rulex read every syntax string with the DEFAULT
-              <code>P.Tokenizer</code>, which knows spell's comments, quotes and JSX.
+              <code>P.Tokenizer</code>, which knows Spell's comments, quotes and JSX.
               <ul>
                 <li>That's the column "Before" below.</li>
                 <li>Now it has its own plain <code>RulexTokenizer</code> (words, numbers, symbols, whitespace).</li>
                 <li>Every trap but <code>**{text}**</code> (rulex's own syntax) is gone.</li>
-                <li>No spell syntax used any of those characters, so spell didn't notice.</li>
+                <li>No Spell syntax used any of those characters, so Spell didn't notice.</li>
               </ul>
             </li>
           </ul>
@@ -787,35 +827,47 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
           <ui-message state="positive" header="Silent truncation: fixed 2026-10-04">
             <ul>
               <li>
-                Before, <code>rulex.compile()</code> never checked that it used every token: it threw only when NOTHING
-                parsed, else returned the rule built so far and dropped the rest.
+                Before, <code>rulex.compile()</code> never checked that it used every token.
+                <ul>
+                  <li>It threw only when NOTHING parsed, else returned the rule built so far and dropped the rest.</li>
+                </ul>
               </li>
               <li>
                 Now it throws, naming what it couldn't read: <code>(a|b</code> gives "rulex couldn't read
-                <code>|b</code> in <code>(a|b</code>". No spell syntax relied on the drop.
+                <code>|b</code> in <code>(a|b</code>".
+                <ul>
+                  <li>No Spell syntax relied on the drop.</li>
+                </ul>
               </li>
               <li>
                 And an unescaped <code>[</code>, <code>{</code> or <code>(</code> only ever OPENS a list, subrule or
-                choice. Before, one that didn't close quietly became a literal symbol (<code>[{sub}]</code> compiled to
-                literal brackets); now it throws. A literal one is <code>\[</code>, <code>\{</code>, <code>\(</code>.
+                choice.
+                <ul>
+                  <li>
+                    Before, one that didn't close quietly became a literal symbol (<code>[{sub}]</code> compiled to
+                    literal brackets); now it throws.
+                  </li>
+                  <li>A literal one is <code>\[</code>, <code>\{</code>, <code>\(</code>.</li>
+                </ul>
               </li>
             </ul>
           </ui-message>
           <ui-message state="positive" header="Printing back:  as written">
             <ul>
               <li>
-                <code>rule.toRulexSyntax()</code> prints a rule back as syntax. That's used for LSP descriptions and for
-                spell's <code>SPELL: DECLARES</code> comments.
+                <code>rule.toRulexSyntax()</code> prints a rule back as syntax, for LSP descriptions and for Spell's
+                <code>SPELL: DECLARES</code> comments.
               </li>
               <li>
                 It keeps escapes and spacing (2026-10-04): <code>\[{text}\]\({url}\)</code>, <code>--</code> vs
                 <code>- -</code>, <code>-{spaces}{text}</code>, <code>[{item},]</code> vs <code>[{item} ,]</code> all
                 print back unchanged.
               </li>
+              <li>All 472 of Spell's registered syntaxes print back exactly.</li>
               <li>
-                All 472 of spell's registered syntaxes print back exactly. What a rule doesn't keep can't print back:
-                redundant parens (<code>(of {x}?)</code>) and a space inside a subrule (<code>{value: expression}</code
-                >) come back without them, the same rule (spell's 5 such syntaxes were tidied). Checked by
+                The edge: what a rule doesn't keep can't print back. Redundant parens (<code>(of {x}?)</code>) and a
+                space inside a subrule (<code>{value: expression}</code>) come back without them, the same rule (Spell's
+                5 such syntaxes were tidied). Checked by
                 <a href="experiments/round-trip.mts" target="src-guides-rulex-experiments-round-trip-mts"
                   ><code title="experiments/round-trip.mts">round-trip.mts</code></a
                 >.
@@ -825,11 +877,14 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
         </ui-section>
 
         <ui-section id="7-markdown" label="7. Markdown in rulex" sticky collapsible dividing collapsed>
-          <p>
-            Each line kind of GitHub-flavoured markdown, two ways. "Today" is rulex as built, run through the probe.
-            "Planned" assumes the rulex changes in <a href="#8-open">8.</a> and a markdown tokenizer for the input
-            (every punctuation character its own symbol; no comments, quotes, JSX or negative numbers).
-          </p>
+          <p>Each line kind of GitHub-flavoured markdown, two ways.</p>
+          <ul>
+            <li>"Today" is rulex as built, run through the probe.</li>
+            <li>
+              "Planned" assumes the rulex changes in <a href="#8-open">8.</a> and a markdown tokenizer for the input
+              (every punctuation character its own symbol; no comments, quotes, JSX or negative numbers).
+            </li>
+          </ul>
           <ui-table celled compact striped unstackable>
             <table>
               <thead>
@@ -950,12 +1005,17 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
         </ui-section>
 
         <ui-section id="8-open" label="8. Planned changes" sticky collapsible dividing collapsed>
-          <p>
-            Decided with Owen on 2026-10-03, after reviewing this page. Built in the <code>markdown</code> epic's P2,
-            one at a time; this page is updated as each one lands. Built so far (2026-10-04): the plain rulex tokenizer,
-            throw on leftovers (and on an unclosed <code>[</code> <code>{</code> <code>(</code>), spacing as written
-            with <code>{space}</code> / <code>{spaces}</code>, intervals, <code>/i</code>.
-          </p>
+          <p>Decided with Owen on 2026-10-03, after reviewing this page.</p>
+          <ul>
+            <li>
+              Built in the <code>markdown</code> epic's P2, one at a time; this page is updated as each one lands.
+            </li>
+            <li>
+              Built so far (2026-10-04): the plain rulex tokenizer, throw on leftovers (and on an unclosed
+              <code>[</code> <code>{</code> <code>(</code>), spacing as written with <code>{space}</code> /
+              <code>{spaces}</code>, intervals, <code>/i</code>.
+            </li>
+          </ul>
           <ui-table celled compact striped unstackable>
             <table>
               <thead>
@@ -976,7 +1036,7 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
                   </td>
                   <td><code>#</code>, <code>---</code>, <code>"</code>, <code>&lt;b&gt;</code> as plain symbols</td>
                   <td>
-                    None: no spell syntax contains <code>#</code>, <code>--</code>, <code>//</code>, quotes or tags
+                    None: no Spell syntax contains <code>#</code>, <code>--</code>, <code>//</code>, quotes or tags
                   </td>
                 </tr>
                 <tr>
@@ -1009,7 +1069,7 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
                     >: exactly one space / one or more, between two parts (replaced the planned <code>\s</code>)
                   </td>
                   <td><code>-{spaces}{text}</code> takes <code>- item</code>, refuses <code>-item</code></td>
-                  <td>None: no spell syntax uses them</td>
+                  <td>None: no Spell syntax uses them</td>
                 </tr>
                 <tr>
                   <td>
@@ -1038,9 +1098,10 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
               </tbody>
             </table>
           </ui-table>
+          <p>And for markdown: line kinds in rulex as much as possible.</p>
           <p>
-            And for markdown: line kinds in rulex as much as possible; what rulex can't say ("any token but a backtick")
-            is a rule built in code, used as a <code>{subrule}</code>.
+            What rulex can't say ("any token but a backtick") is a rule built in code, used as a
+            <code>{subrule}</code>.
           </p>
         </ui-section>
 
@@ -1060,7 +1121,7 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
                   ></ui-meta
                 >
                 <ui-description
-                  >Lists every spell syntax with parts written touching, and every multi-symbol run. Backs the "spacing
+                  >Lists every Spell syntax with parts written touching, and every multi-symbol run. Backs the "spacing
                   as written" row of section 8.</ui-description
                 >
               </ui-content>
@@ -1088,7 +1149,9 @@ add {thing:expression} to (the (method:start|front|top|end|back|bottom) of)? {li
             <ui-item>
               <ui-content>
                 <ui-header
-                  ><a href="../../spell-lang/src/parser/rulex/rulex.ts" target="src-spell-lang-src-parser-rulex-rulex-ts"
+                  ><a
+                    href="../../spell-lang/src/parser/rulex/rulex.ts"
+                    target="src-spell-lang-src-parser-rulex-rulex-ts"
                     ><code title="spell-lang/src/parser/rulex/rulex.ts">rulex.ts</code></a
                   ></ui-header
                 >
