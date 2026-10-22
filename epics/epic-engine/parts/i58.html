@@ -16,3 +16,163 @@
   <li>The demo check stubs it (<code>check-comments-epic-ui.mjs --set app</code>).</li>
   <li>A fix: a page-server setting for such a mount, or the epic server loading the repo's app routes.</li>
 </ul>
+<epic-reply from="Owen" at="2026-10-21 19:48" re="revisit now"
+  ><p>will this be fixed when repo-split is done?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-21 21:37" re="owen's note"
+  ><blockquote>
+    <p>will this be fixed when repo-split is done?</p>
+  </blockquote>
+  <p>
+    <b>No.</b> Repo-split never touches this: nothing in it makes the epic server serve the app's built element files,
+    so App UI's pages on 4848 keep their 404 after it lands.
+  </p>
+  <ul>
+    <li>
+      Its phases still open are P13 (CLI to the Kit, underway), P14 (One Import Name, underway) and P15 (Doc Review).
+    </li>
+    <li>
+      They change imports, move each repo's code under
+      <a href="../../../spell-ui/src/" target="src-spell-ui-src"><code>src/</code></a> and fix the docs. None names the
+      epic server, <code>/element/</code>, the pack or the app's route module. I searched the epic page and all its
+      parts for those words: nothing.
+    </li>
+    <li>
+      It is not a leftover of the split either. Main already has the split's layout, and the epic server running there
+      (4848) answers 404 today. Its server code is identical to this worktree's.
+    </li>
+    <li>
+      P14 moves the app's route module under
+      <a href="../../../spell-ui/src/" target="src-spell-ui-src"><code>src/</code></a
+      >, but keeps the app's build folder where it is (J168: the Vite root, with <code>dist-element/</code>, stays at
+      <a href="../../../spell-app/app/" target="src-spell-app-app"><code>app/</code></a
+      >). The folder a fix needs to serve doesn't move.
+    </li>
+  </ul>
+
+  <p><b>Who serves the file today</b>, and why the epic server can't:</p>
+  <ul>
+    <li>
+      Only spell-app's app route module (<a
+        href="../../../spell-app/spaces/src/server/node/routes/appRoutes.ts"
+        target="src-spell-app-spaces-src-server-node-routes-approutes-ts"
+        ><code title="spell-app/spaces/src/server/node/routes/appRoutes.ts">appRoutes.ts</code></a
+      >) serves <code>/element/</code>, from the app's built <code>dist-element/</code>. It is one line of its setup.
+    </li>
+    <li>
+      spell-app's own page server (4747) loads that module, because spell-app's
+      <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> lists it under
+      <code>pageServer</code> <code>routes</code>.
+    </li>
+    <li>
+      The epic server (4848) loads only spell-epic's ten route modules, a fixed list (<a
+        href="../../../spell-epic/src/server/EpicServer.ts"
+        target="src-spell-epic-src-server-epicserver-ts"
+        ><code title="spell-epic/src/server/EpicServer.ts">ROUTE_MODULES</code></a
+      >). Spell-app runs spell-epic's modules; the epic server never runs spell-app's.
+    </li>
+    <li>
+      The epic server's mounts are the engine's folders, each repo's content folder and checkout, and the component
+      sets. Nothing mounts <code>/element/</code>.
+    </li>
+    <li>
+      Its fallback to the default repo's checkout root doesn't find it either: the built files are in
+      <code>app/dist-element/</code>, and spell-app's root has no
+      <a href="../../../element/" target="src-element"><code>element/</code></a> folder.
+    </li>
+    <li>
+      The whole <code>/element/</code> folder is missing there, not just the pack: <code>spell-app.js</code> and
+      <code>spell-language.js</code> answer 404 too, while the App UI page itself answers 200 on both servers.
+    </li>
+  </ul>
+
+  <epic-code title="live check, 2026-10-21 21:33 · both servers up" language="sh">
+    <pre>
+$ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4848/element/spell.pack.js
+404
+$ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4747/element/spell.pack.js
+200
+
+# the 404's body is  Not found:  /element/spell.pack.js
+# the same pair for spell-app.js and spell-language.js:  4848 gives 404, 4747 gives 200
+# /components/app/index.html:  200 on both
+
+$ ls -l /Users/owen/www/spell/spell-app/app/dist-element/spell.pack.js
+-rw-r--r--  1 owen  wheel  1219 Oct 20 19:39 spell.pack.js     # built, in the epic server's default repo's checkout</pre>
+  </epic-code>
+
+  <epic-code title="the one line that serves it · appRoutes.ts" language="ts">
+    <pre>router.use(new SRV.StaticHandler({ mounts: [{ prefix: "/element", dir: ELEMENT_DIR }] }).handle)</pre>
+  </epic-code>
+
+  <p><b>The smallest fix</b> is two small changes, one in each repo. This reply doesn't make either.</p>
+  <ul>
+    <li>
+      spell-app: one line in its page server's <code>engineRoutes</code> setting, which already holds "a URL prefix
+      served from a folder of the checkout" (the epic assets and the brand pack use it):
+      <code>"/element/": "app/dist-element"</code>.
+    </li>
+    <li>
+      spell-epic: the epic server reads the default repo's <code>engineRoutes</code> as mounts, the way
+      <a href="../../../spell-epic/src/server/EpicServer.ts" target="src-spell-epic-src-server-epicserver-ts"
+        ><code title="spell-epic/src/server/EpicServer.ts">componentSetMounts()</code></a
+      >
+      already reads its <code>componentSets</code>. A few lines in
+      <a href="../../../spell-epic/src/server/EpicServer.ts" target="src-spell-epic-src-server-epicserver-ts"
+        ><code title="spell-epic/src/server/EpicServer.ts">mounts()</code></a
+      >; the kit's server code needs nothing, since it already exports the reader (<code>engineRoutes()</code>).
+    </li>
+    <li>Nothing is added to the kit, and no other repo changes.</li>
+  </ul>
+  <epic-code title="spell-app/package.json · pageServer.engineRoutes, one added line" language="json">
+    <pre>
+"engineRoutes": {
+  "/_epic/assets/": "../spell-epic/src/tools/_assets",
+  ...
+  "/element/": "app/dist-element"
+}</pre>
+  </epic-code>
+
+  <p>
+    <b>Why not load the app's route module into the epic server:</b> that was I49's other option, and it costs more.
+  </p>
+  <ul>
+    <li>
+      That module starts the editor (a Vite server) as the epic server's child, and compiles the built-in projects in
+      the background.
+    </li>
+    <li>
+      It mounts <code>/api</code> and <code>/spaces</code>, where the epic route modules already answer
+      <code>/api/...</code>, and they read one repo's checkout as they load.
+    </li>
+    <li>I49 already gave the App tab its own route on the epic server (<code>RepoApp</code>) instead.</li>
+  </ul>
+
+  <p><b>What to know before choosing:</b></p>
+  <ul>
+    <li>
+      The epic server's default repo is the main checkout. It would serve main's build of <code>dist-element/</code>
+      (built 20 October), not a worktree's. 4747 serves the same folder today.
+    </li>
+    <li>
+      4747 would then serve <code>/element/</code> twice, from its engine route and its app route module. That is
+      harmless, and the module's own mount stays: <code>yarn start:server</code> (port 3001, behind Vite) needs it.
+    </li>
+    <li>
+      The demo check that stubs the pack (<code>check-comments-epic-ui.mjs --set app</code>) could then drop its stub.
+    </li>
+  </ul>
+
+  <epic-net-effect>
+    <ul>
+      <li>
+        I58 stays open: repo-split's remaining phases (P13, P14, P15) don't fix it, and nothing in them is meant to.
+      </li>
+      <li>No code or setting changed with this reply.</li>
+      <li>
+        If you want it fixed: one line in spell-app's <code>engineRoutes</code> setting, and a few lines in spell-epic's
+        <code>EpicServer</code> to mount the default repo's engine routes. App UI's pages on 4848 then load the app's
+        pack.
+      </li>
+    </ul>
+  </epic-net-effect></epic-reply
+>
