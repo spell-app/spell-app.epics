@@ -1,0 +1,39 @@
+<!-- plan-doc part:  #i1's details in solid-17.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Opening a file whose name holds <code>%25</code> (an encoded <code>%</code>) in the editor may break after the router
+  upgrade.
+</p>
+<ul>
+  <li>The router next.40 now decodes route parameters itself.</li>
+  <li>
+    spell-app hands the decoded <code>/edit/*address</code> parameter to
+    <a href="../../../spell-lang/src/spell/SpellLocation.ts" target="src-spell-lang-src-spell-spelllocation-ts"
+      ><code title="spell-lang/src/spell/SpellLocation.ts:192">SpellLocation.addressForUrl()</code></a
+    >
+    (from
+    <a href="../../../spell-app/src/app/pages/followRoute.ts" target="src-spell-app-src-app-pages-followroute-ts"
+      ><code title="spell-app/src/app/pages/followRoute.ts:24">followRoute()</code></a
+    >), which decodes each part again.
+  </li>
+  <li>Decoding twice turns <code>%2541</code> into <code>%41</code>, then into <code>A</code>: the wrong file.</li>
+</ul>
+<epic-code title="followRoute.ts:24 and SpellLocation.ts:189 · the second decode" language="ts">
+  <pre>
+// spell-app's followRoute.ts:  tail is the router's /edit/*address parameter
+path = SP.SpellUrls.withoutPage(SP.SpellLocation.addressForUrl(tail))
+
+// spell-lang's SpellLocation.ts
+static addressForUrl(tail: string): string {
+  return tail
+    .split("/")
+    .map((part) =&gt; decodeURIComponent(part))
+    .join("/")
+}</pre></epic-code
+><epic-net-effect
+  ><ul>
+    <li>
+      Checked in <a href="#p-fix-breaks">P2</a>: if the router decodes, the address is decoded once only, with a test
+      for a <code>%25</code> name.
+    </li>
+  </ul></epic-net-effect
+>
