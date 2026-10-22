@@ -12,7 +12,7 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 ## Before building:  suggest
 
 1. Look the operation up:  `commands.json` (grep its `op` words and `names`), or the page's filter
-   (`spell dev docs open dev/commands/commands.html`).  Does something already do it, under another name, or nearly?
+   (`epic pages open dev/commands/commands.html`).  Does something already do it, under another name, or nearly?
 2. Then tell Owen, in a numbered list, BEFORE building it:
    - where it belongs (see "Layers"):  usually a `spell dev <noun> <verb>`, with a skill or yarn alias on top
    - its name (see "Names")
@@ -28,21 +28,21 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 - `spell` CLI:  every repo action.  Repo tools live under `spell dev`;  each finds the NEAREST checkout from the
   cwd (`CLI.findCheckout()`), so it works in a worktree.
 - The epic tools live under their own command, `epic`:  `epic <verb> <epic>#<id>` (`epic add-phase seo "Name"`,
-  `epic close seo#J3`, `epic update seo#P3 --estimate 2h`), from `packages/cli/src/epicProgram.ts`.  A new epic
+  `epic close seo#J3`, `epic update seo#P3 --estimate 2h`), from `spell-epic/src/cli/epicProgram.ts`.  A new epic
   tool is an `epic` verb, not a `spell dev` noun;  the old spellings (`spell dev plan-doc` ...) are aliases.
 - yarn:  a package's tool-native scripts stay (`build`, `ts`, `lint`, `format`, `test`, `gen:*`, vite, astro);
   repo actions are one-line aliases of a `spell dev` call (`"commands:check": "node packages/cli/bin/spell.mjs dev
   commands check"`).
-- Package-local tool CLIs stay (`packages/ui/tools/cli.ts`).  Claude-only steps stay in skills (`EnterWorktree`,
+- Package-local tool CLIs stay (`spell-ui/src/tools/cli.ts`).  Claude-only steps stay in skills (`EnterWorktree`,
   `SendMessage`, modals).
-- One language:  tools are TypeScript (`packages/cli/src/dev/` for `spell dev`) or node JS (`packages/epics/tools`),
+- One language:  tools are TypeScript (`packages/cli/src/dev/` for `spell dev`) or node JS (`spell-epic/src/tools`),
   never python or shell scripts.
 
 ## Names
 
-- Noun then verb, everywhere:  `spell dev server start` = yarn `server:start`;  dashes inside a word
+- Noun then verb, everywhere:  `spell server start` = yarn `server:start`;  dashes inside a word
   (`add-phase`, `merge-check`), colons only between yarn's noun and verb.
-- Spell-LANGUAGE commands stay bare:  `spell compile`, `spell check`.
+- Spell-LANGUAGE commands stay bare:  `spell compile`, `spell lint`.
 - Skills keep short workflow names (`/isolate`, `/park`).
 - The `spell dev` nouns, and their verbs:  the page's "5.2 Names".  Reuse a noun before inventing one.
 
@@ -50,8 +50,8 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 
 - `commands.json`:  every command sits in some row's `cli` / `skill` / `yarn` `names` (`spell dev x`, `/name`,
   `epic x`, `<package> <script>`, `root` for the repo root).  A new operation gets a new row (`op`, marks, `runs`,
-  `target`);  the JSON's shape:  `packages/epics/tools/_assets/commands.js`'s header.
-- `spell dev commands check` must pass (root `yarn commands:check`:  exits 1 on a command the page lacks, or a name
+  `target`);  the JSON's shape:  `spell-epic/src/tools/_assets/commands.js`'s header.
+- `spell commands check` must pass (root `yarn commands:check`:  exits 1 on a command the page lacks, or a name
   no command has).
 - A new noun or verb, or a roadmap change:  edit the page's "5. Target" / "6. Roadmap" too.
 - Building a roadmap move:  update the affected rows' marks and `target`.
