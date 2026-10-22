@@ -1,0 +1,21 @@
+<!-- plan-doc part:  #i3's details in solid-17.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>The first test run at rc.17 failed 270 tests in five repos; nearly all from ONE new check.</p>
+<ul>
+  <li>
+    Solid inserts our elements from inside an effect's callback, and the browser runs the element's
+    <code>connectedCallback()</code> right there. It builds the component in a fresh <code>createRoot()</code>, with no
+    owner.
+  </li>
+  <li>
+    rc.17's dev build throws for that:
+    <code
+      >[PRIMITIVE_IN_EFFECT_CALLBACK] Cannot create a memo, effect or root with no owner inside an effect callback</code
+    >
+    (4596 times in the log).
+  </li>
+</ul>
+<p>
+  Fix: one owner of our own, <code>ELEMENT_ROOTS</code> in <code>UIComponent.tsx</code>, made once as the file loads;
+  every element's root is made under it. The element still lives until <code>dispose()</code>, and an app's context
+  still doesn't reach inside. The kit's element tests: 154 of 154 pass.
+</p>
