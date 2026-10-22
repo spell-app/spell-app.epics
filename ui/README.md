@@ -7,14 +7,14 @@ gap in the library, recorded in the epic page of epic `spell-ui-pages` (`epics/s
 
 - No build step to VIEW a page:  pages are static files loading ONE bundle, which the page server builds when it
   starts, if it's stale (not committed since 2026-10-07).
-- Served at `/ui/` by the repo's page server (`packages/server`, `UI_SITE`), live-reloading.
+- Served at `/ui/` by the repo's page server (`src/server`, `UI_SITE`), live-reloading.
 
 ## Two halves (since 2026-10-05, epic `claude-design` P6)
 
 - The HAND-WRITTEN half is this folder, `ui/`:  SHARED content, in `spell-app-dev`, linked at the root of every
   checkout (root `AGENTS.md` "Shared content").  Edit a page from any checkout;  every checkout sees it at once, and
   the shared repo commits it by itself (never commit it in `spell-app`).
-- The BUILT half stays in each branch of `spell-app`, `packages/ui/site/`:  `_src/` (the bundle's entry), `_assets/`
+- The BUILT half stays in each branch of `spell-app`, `spell-ui/site/`:  `_src/` (the bundle's entry), `_assets/`
   (the bundle) and `_data/` (the data, and the hand-kept `pages.json`), built from that branch's code.
 - The page server lays the build's `_assets/` and `_data/` over this folder at `/ui/`, so a page's
   `_assets/site.js` and `_data/...` links resolve unchanged;  a worktree's pages at `/worktrees/<w>/ui/` get THAT
@@ -27,12 +27,12 @@ gap in the library, recorded in the epic page of epic `spell-ui-pages` (`epics/s
 From the repo root:
 
 ```sh
-spell dev server start --all                 # starts the page server (and the editor);  prints its URL
-spell dev server url "$PWD/ui/index.html"    # the URL of one page (starts the server if needed)
+spell server start all                 # starts the page server (and the editor);  prints its URL
+spell server url "$PWD/ui/index.html"    # the URL of one page (starts the server if needed)
 ```
 
 Pages are `<base>/ui/`, `<base>/ui/components/ui-button.html` ...  The page server reloads an open page when it, its
-parts, its data or the bundle changes.  `spell dev server stop` stops it.  Old `packages/ui/site/<page>` URLs
+parts, its data or the bundle changes.  `spell server stop` stops it.  Old `spell-ui/site/<page>` URLs
 redirect here.
 
 ## Layout
@@ -50,7 +50,7 @@ ui/                     (shared:  this folder)
   examples/             files the pages' examples load (`<ui-include source>`, `<ui-markdown source>`, an icon pack)
   images/               Fomantic's docs images, same paths as fomantic-ui.com's `/images/...`
 
-packages/ui/site/       (tracked, per branch)
+spell-ui/site/       (tracked, per branch)
   _src/                 site.ts (the bundle's entry:  what's in it and why), snapshot.ts, SiteShell.ts (mounts the
                         layout), SiteRouter.ts (swaps pages), SiteSections.ts (sticky offsets, folds, landing on a
                         hash), site.types.ts (their shared constants, which `tools/SiteCheck.ts` reads too), site.css
@@ -61,7 +61,7 @@ packages/ui/site/       (tracked, per branch)
                         committed);  pages.json (hand-kept)
 ```
 
-Every page loads (`../` from `components/`), served from `packages/ui/site/_assets/`:
+Every page loads (`../` from `components/`), served from `spell-ui/site/_assets/`:
 
 ```html
 <link rel="stylesheet" href="_assets/site.css" />
@@ -77,7 +77,7 @@ A page's `<body>` is ONE `<main id="main" class="site-main">`, nothing else:
   swaps only the `main` through a `<ui-include select="main#main">` and `pushState`s its real URL;  the chrome stays.
   Back / forward, deep links and reloads work as with plain pages.
 - So:  inline scripts in `main` run again on every visit (the router re-runs them), and `<head>` styles DON'T follow
-  a swap:  put page styles in `main` or `packages/ui/site/_src/site.css`.
+  a swap:  put page styles in `main` or `spell-ui/site/_src/site.css`.
 - A page opened from disk (`file://`) has no bundle beside it:  view pages through the page server.
 
 `<ui-root>` lazy-loads every other family, the doc-only `<ui-docs-*>` elements included (`src/docs-components/`), on
@@ -92,7 +92,7 @@ The source of a page:  the site header's "open in VS Code" button (pages left Gi
 
 ## Making a page
 
-From `packages/ui`:
+From `spell-ui`:
 
 ```sh
 yarn site:new ui-card                                         # => ui/components/ui-card.html
@@ -120,7 +120,7 @@ yarn site:new getting-started --title "Getting started" --summary "One line."   
 
 ## Building
 
-From `packages/ui`:
+From `spell-ui`:
 
 - `yarn site:build` -- after changing a vocabulary, a family sheet, an example or any source the site shows;  commit
   `packages/ui/site/_data/` (the bundle, `_assets/`, is git-ignored).  It runs:
@@ -139,7 +139,7 @@ From `packages/ui`:
 
 ## Checking
 
-From `packages/ui`:  `yarn site:check <page...>` or `yarn site:check --all` (`scripts/site-check.ts`, on `tools/SiteCheck.ts`) loads pages from
+From `spell-ui`:  `yarn site:check <page...>` or `yarn site:check --all` (`scripts/site-check.ts`, on `tools/SiteCheck.ts`) loads pages from
 the page server in Playwright, at desktop, phone and dark, and fails on console errors, 404s, undefined or
 unrendered `ui-*` tags, missing tabs, an empty "On this page", phone-width overflow, a nav flyout that won't open,
 a section id that doesn't follow its nesting, a flat level 2 header, a deep link that doesn't land.
@@ -147,6 +147,6 @@ Screenshots go to `tools/results/site-check/`:  LOOK at them.
 
 ## Deploying
 
-Not deployed yet.  A static host serves both halves in one folder:  this folder, with `packages/ui/site/_assets/`
+Not deployed yet.  A static host serves both halves in one folder:  this folder, with `spell-ui/site/_assets/`
 and `_data/` copied in beside it, copying through the `icon-packs` link (`cp -RL`).  Every bundle URL is relative
 (`base: "./"`), so the site works under any path.
