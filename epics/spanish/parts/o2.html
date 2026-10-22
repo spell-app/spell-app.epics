@@ -6,7 +6,7 @@
 </p>
 <p>What a pack holds:</p>
 <ul>
-  <li>which characters make a word, and how words inflect (singular and plural, with irregulars)</li>
+  <li>which characters make a word, the decimal separator, and how words inflect (singular and plural, with irregulars)</li>
   <li>
     the small words: articles, the subject words (<code>it</code> / <code>its</code>), booleans, number words, ordinals,
     the identifier blacklist, member stop words, dangling prepositions
@@ -15,29 +15,39 @@
     the built-in types' words (<code>texto</code>, <code>número</code>, <code>lista</code>, <code>cosa</code>) and their
     members' (<code>largo</code>, <code>año</code>, <code>caracteres</code>), onto the same core calls
   </li>
-  <li>every rule's syntax and its tests, registered on the SAME rule classes as English</li>
+  <li>every rule's syntax and its tests, registered on the SAME rule classes as English (below)</li>
   <li>
-    the messages an author reads: the warnings and the "Don't understand" fallback, with examples in that language
+    the messages an author reads: the warnings (an article that doesn't agree among them) and the "Don't understand" fallback, with examples in that language
   </li>
   <li>spell's own JSX words (<code>children</code>, <code>in</code>)</li>
 </ul>
-<p>How one rule serves both languages, illustrative:</p>
-<epic-code title="IsEqual, registered twice · illustrative" language="ts">
-  <pre>
-// the English module, today's registration (rules/expressions/IsEqual.ts)
+<p>Where a language's words live (Owen's shape, from his comment M5):</p>
+<ul>
+  <li>a rule file holds its CLASS and nothing else:  what the rule compiles to</li>
+  <li>a <code>&lt;module&gt;.en.ts</code> per rules folder (<code>expressions.en.ts</code>, <code>assignment.en.ts</code> …) registers every rule of that folder with its English syntax and tests</li>
+  <li>a <code>&lt;module&gt;.es.ts</code> beside it does the same in Spanish;  a third language is a third file per folder</li>
+  <li>the small words a rule used to test in code (<code>is not</code>, <code>a</code> / <code>an</code>, <code>it</code>) are WORD RULES each language registers:  <code>definite_article</code>, <code>indefinite_article</code>, <code>is_or_is_not</code>, <code>is_or_is_not_a</code> (singular and plural, so <code>cards in the hand which are not a face card</code> parses), <code>has_or_has_not</code>, <code>can_or_cannot</code>, <code>it</code> / <code>its</code>, <code>and_or</code> …;  a rule's code reads their match, never a word</li>
+</ul>
+<epic-code title="IsEqual in both languages · illustrative" language="ts"><pre>// rules/expressions/IsEqual.ts:  the class, nothing else
+export class IsEqual extends InfixOperatorSuffix {
+  getOperator(operator: P.Match) {
+    return Negatable.isNegated(operator) ? "not equals" : "equals"   // a match, never the word "not"
+  }
+}
+
+// rules/expressions/expressions.en.ts:  the folder's rules, in English
+expressions.addRule(Negatable.specialize({ ruleName: "is_or_is_not" }), { syntax: "(is|(negated:is not|isn't))" })
 expressions.addRule(IsEqual, {
-  syntax: "{lhs:operand} (operator:is|(negated:is not|isn't)) {rhs:operand}",
-  tests: [["the card is the ace", "card === ace"]]
+  syntax: "{operator:is_or_is_not} {expression:operand}",
+  tests: [["thing is other", "(thing == other)"], ["thing is not other", "(thing != other)"]]
 })
 
-// the Spanish module (languages/es/expressions.ts)
+// rules/expressions/expressions.es.ts:  the same rules, in Spanish
+expressions.addRule(Negatable.specialize({ ruleName: "is_or_is_not" }), { syntax: "(es|está|(negated:no es|no está))" })
 expressions.addRule(IsEqual, {
-  syntax: "{lhs:operand} (operator:es|está|(negated:no es|no está)) {rhs:operand}",
-  tests: [["la carta es el as", "carta === as"]]
-})
-
-// IsEqual.compile() reads match.groups.negated, never the word "not"</pre>
-</epic-code>
+  syntax: "{operator:is_or_is_not} {expression:operand}",
+  tests: [["cosa es otra", "(cosa == otra)"], ["cosa no es otra", "(cosa != otra)"]]
+})</pre></epic-code>
 <p>How a project picks its pack:</p>
 <ul>
   <li>
@@ -76,3 +86,6 @@ expressions.addRule(IsEqual, {
     already names a few attributes in Spanish.
   </p>
 </epic-aside>
+<epic-update at="2026-10-21 21:58" summary="Per-folder .en.ts / .es.ts files, and the word rules (Owen's M1, M5)">
+  <p>Owen's comments while reviewing the plan:  the rule folders define classes only and a <code>&lt;module&gt;.en.ts</code> / <code>.es.ts</code> per folder registers them (M5), and the small words become translatable rules, <code>definite_article</code>, <code>indefinite_article</code>, <code>is_or_is_not_a</code> with plurals (M1).  The illustrative example now shows that shape.</p>
+</epic-update>
