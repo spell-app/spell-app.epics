@@ -1,0 +1,277 @@
+diff --git a/src/core/drawing.ts b/src/core/drawing.ts
+index 3bde1b1..e9d4c88 100644
+--- a/src/core/drawing.ts
++++ b/src/core/drawing.ts
+@@ -69,8 +69,8 @@ export const drawingMethods = defineCoreModule({
+     if (tag) {
+       // a drawable list's items are its element's children:  shown in its drawing's `<slot>`
+       const items = thing instanceof DrawableList ? [() => core.drawItems(thing)] : []
+-      // made NOW:  the thing is a plain value, set once
+-      return (h(tag, { "prop:thing": thing }, ...items) as unknown as () => Drawing)()
++      // made NOW:  the thing is a plain value, set once;  an object, so the element takes it as its property
++      return (h(tag, { thing }, ...items) as unknown as () => Drawing)()
+     }
+     return core.drawOwn(thing)
+   },
+diff --git a/src/parser/writers/JSWriter.ts b/src/parser/writers/JSWriter.ts
+index 3be9e0a..11bda4d 100644
+--- a/src/parser/writers/JSWriter.ts
++++ b/src/parser/writers/JSWriter.ts
+@@ -1415,7 +1415,7 @@ export class JSWriter extends ProgramWriter {
+     const props = (node.attrs ?? [])
+       .map((attribute) => {
+         const value = attribute.propValue
+-        const key = attributeName(node.tagName, attribute.name, value instanceof P.ASTJSXLiveValue)
++        const key = attributeName(node.tagName, attribute.name)
+         const error = attribute.error ? ` ${this.write(attribute.error)}` : ""
+         return `${jsText.isLegalIdentifier(key) ? key : JSON.stringify(key)}: ${this.write(value)}${error}`
+       })
+diff --git a/src/parser/writers/TSWriter.ts b/src/parser/writers/TSWriter.ts
+index b571848..9135c79 100644
+--- a/src/parser/writers/TSWriter.ts
++++ b/src/parser/writers/TSWriter.ts
+@@ -937,7 +937,7 @@ export class TSWriter extends JSWriter {
+   /**
+    * Each drawable type's tag, declared for the program's JSX (epic `drawable-thing` I7):
+    * so a tag written by hand, e.g. `<solitaire-pile>`, type-checks.
+-   * - Loose, as app types `<ui-*>` tags:  HTML attributes, plus any attribute or `prop:` its element defines.
++   * - Loose, as app types `<ui-*>` tags:  HTML attributes, plus any attribute its element defines, any value.
+    */
+   private elementTagsDeclaration(): string {
+     const tags = [...this.elementTags].map(
+@@ -1223,7 +1223,7 @@ export class TSWriter extends JSWriter {
+ 
+   /**
+    * `name="text"` or `name={value}`, by the page's names, as compiled javascript's `h()` calls name them:
+-   * - `class`, `for`, `colspan`;  `prop:value={...}` on a `<ui-*>` tag, for a value that can change:
++   * - `class`, `for`, `colspan`;  on a `<ui-*>` tag, every name as it is, `value={card}`:
+    *   see `attributeName()`, which both writers share
+    * - a handler as an arrow, `onClick={() => autoPlay()}`;  one the drawing shares by its name, `onClick={click}`
+    * - no value:  bare on an HTML tag (`hidden`), `{true}` on a `<ui-*>` tag
+@@ -1232,7 +1232,7 @@ export class TSWriter extends JSWriter {
+   jsxAttribute(tag: string, attribute: P.ASTJSXAttribute): string | undefined {
+     const { name, value } = attribute
+     if (!value && attribute.error) return undefined
+-    const key = attributeName(tag, name, !!value && !isFixedValue(value))
++    const key = attributeName(tag, name)
+ 
+     // bare, as HTML writes it (`hidden`);  a `<ui-*>` tag's bare attribute would ask for an icon called `true`
+     if (!value) return tag.includes("-") ? `${key}={true}` : key
+diff --git a/src/parser/writers/jsShapes.ts b/src/parser/writers/jsShapes.ts
+index 54fb34f..f5f08ef 100644
+--- a/src/parser/writers/jsShapes.ts
++++ b/src/parser/writers/jsShapes.ts
+@@ -134,30 +134,23 @@ export const TEMPLATE_TAGS = new Set(["css"])
+ 
+ /**
+  * The page's name for attribute `name` of element `tag`, as both writers write it.
+- * - `changes`:  is its value one that can change, or an object?
+  * - `className` => `class`, `htmlFor` => `for`
+  * - a camelCase attribute of an HTML tag, lowercased:  `colSpan` => `colspan`
+- * - on a tag with a dash (`<ui-form>`), a value that can change, or an object, is a PROPERTY, `prop:value`:
+- *   an attribute holds only text.
+- *   A handler (`onClick`), a dashed name (`aria-label`) and `ATTRIBUTES_ONLY` stay attributes.
++ * - on a tag with a dash (`<ui-form>`), the name as it is, whatever its value:  `<ui-form value={app}>`.
++ *   Our elements take a function or object given to an attribute as their property
++ *   (`spell-kit/element`'s `RichAttributes`), so no `prop:` (epic `solid-17`, P8).
+  * - Decided when it compiles.
+  *   Before epic `output-targets` P20, compiled javascript drew with `@spell/core`'s `element()` (now deprecated),
+  *   which decided it as it drew.
+  */
+-export function attributeName(tag: string, name: string, changes: boolean): string {
++export function attributeName(tag: string, name: string): string {
+   if (name === "className") return "class"
+   if (name === "htmlFor") return "for"
+-  if (tag.includes("-")) {
+-    const isProperty = !name.startsWith("on") && !name.includes("-") && !ATTRIBUTES_ONLY.has(name)
+-    return isProperty && changes ? `prop:${name}` : name
+-  }
++  if (tag.includes("-")) return name
+   if (!name.startsWith("on") && /[a-z][A-Z]/.test(name)) return name.toLowerCase()
+   return name
+ }
+ 
+-/** What stays an attribute on a tag with a dash, whatever its value:  see `attributeName()`. */
+-export const ATTRIBUTES_ONLY = new Set(["class", "className", "style", "id", "slot", "part"])
+-
+ ////////////////
+ // ## Modules
+ ////////////////
+diff --git a/src/py/PyBaseWriter.ts b/src/py/PyBaseWriter.ts
+index 5e400f4..eb9adcd 100644
+--- a/src/py/PyBaseWriter.ts
++++ b/src/py/PyBaseWriter.ts
+@@ -1049,7 +1049,7 @@ export class PyBaseWriter extends P.ProgramWriter {
+       .map((attribute) => {
+         const value = attribute.propValue
+         // by the page's names, `class` first, as javascript draws them:  the core contract compares the HTML
+-        const key = attributeName(node.tagName, attribute.name, value instanceof P.ASTJSXLiveValue)
++        const key = attributeName(node.tagName, attribute.name)
+         return `${this.quoted(key)}: ${value ? this.bare(value) : "True"}`
+       })
+       .sort((a, b) => Number(b.startsWith('"class"')) - Number(a.startsWith('"class"')))
+diff --git a/src/py/core/spell_core/drawing.py b/src/py/core/spell_core/drawing.py
+index 1ec2a1a..cc709a3 100644
+--- a/src/py/core/spell_core/drawing.py
++++ b/src/py/core/spell_core/drawing.py
+@@ -108,6 +108,8 @@ def h(tag: str, props: Mapping[str, object] | object = None, *children: object)
+     - `props`:  a dict, or `None`;  anything else is the first child.  Each prop is an attribute, except:
+       - an event handler (`"onClick"`, any `on...`) or a Solid property (`"prop:thing"`, `"ref"` ...):
+         left out, as the page shows no handler
++      - on a tag with a dash (`ui-form`), a value that isn't text, a number or a boolean (a thing, a list):
++        left out, as the element takes it as its property, not an attribute
+       - a function is called for its value:  `{"class": lambda: class_name}`
+       - `True` is the attribute with no value (`hidden`);  `False` and `None` leave it out
+       - a number is written as JavaScript writes it:  `3.0` is `3`
+@@ -121,20 +123,23 @@ def h(tag: str, props: Mapping[str, object] | object = None, *children: object)
+         props = None
+     attributes = {}
+     for name, value in (props or {}).items():
+-        written = attribute_value(name, value)
++        written = attribute_value(name, value, tag)
+         if written is not None:
+             attributes[name] = written
+     return Element(tag, attributes, drawn_children(children))
+ 
+ 
+-def attribute_value(name: str, value: object) -> str | None:
+-    """What prop `name` set to `value` puts on the page:  its attribute's text, or `None` for none -- see `h()`."""
++def attribute_value(name: str, value: object, tag: str = "") -> str | None:
++    """What prop `name` set to `value` puts on element `tag`:  its attribute's text, or `None` for none -- see `h()`."""
+     if (name.startswith("on") and ":" not in name) or name.startswith("prop:") or name in ELEMENT_PROPERTIES:
+         return None
+     if callable(value):
+         value = value()
+     if value is None or value is False:
+         return None
++    # on a tag with a dash, the element takes anything but text, a number or a boolean as its property
++    if "-" in tag and not isinstance(value, (str, int, float, bool)):
++        return None
+     if value is True:
+         return ""
+     text = js_string(value)
+diff --git a/src/spell/rules/JSX/SpellJSX.ts b/src/spell/rules/JSX/SpellJSX.ts
+index 8e81bb0..a70fd88 100644
+--- a/src/spell/rules/JSX/SpellJSX.ts
++++ b/src/spell/rules/JSX/SpellJSX.ts
+@@ -15,7 +15,7 @@ import { SpellJSXContent } from "./SpellJSXContent"
+  * - Compiles to `h(tag, props, ...children)` in javascript, JSX in TypeScript:  see `P.JSWriter`, `P.TSWriter`.
+  *   - Both write the page's own attribute names, decided when it compiles (`attributeName()`):
+  *     `className` => `class`, `colSpan` => `colspan`.
+- *   - On a `ui-*` tag, a value that can change is a property, `prop:value`.
++ *   - On a `ui-*` tag, every name as it is (`value={the card}`):  the element takes an object as its property.
+  * - A dotted tag, `<UI.Form>`, is an error:  `P.ASTJSXElement.tagError()`.
+  * - Spell's own words become the web's as the AST is built, so both writers write the web's:
+  *   - `<children/>` => `h("slot")`
+@@ -206,11 +206,11 @@ JSX.addRule(SpellJSX, {
+           'h("td", { class: "suit", colspan: 2, for: "x" })',
+           '<td class="suit" colspan={2} for="x" />'
+         ],
+-        // on a `ui-*` tag, a value that can change is a property;  text, a dashed name and `class` stay attributes
++        // on a `ui-*` tag, every name as it is:  the element takes an object as its property (no `prop:`)
+         [
+           `<ui-form value={the card} debug aria-label="Done" className={the card}/>`,
+-          'h("ui-form", { class: () => card, "prop:value": () => card, debug: true, "aria-label": "Done" })',
+-          '<ui-form class={card} prop:value={card} debug={true} aria-label="Done" />'
++          'h("ui-form", { class: () => card, value: () => card, debug: true, "aria-label": "Done" })',
++          '<ui-form class={card} value={card} debug={true} aria-label="Done" />'
+         ],
+         // a dotted tag is a compile error:  `h()` would draw a `<UI>` with class `Form`
+         [
+diff --git a/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.declarations.json5 b/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.declarations.json5
+index 9d15802..cfb39ba 100644
+--- a/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.declarations.json5
++++ b/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.declarations.json5
+@@ -121,6 +121,6 @@
+     35,
+     41,
+     47,
+-    103
++    101
+   ]
+ }
+diff --git a/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.js b/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.js
+index 9ef53e3..05a34f9 100644
+--- a/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.js
++++ b/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.js
+@@ -52,19 +52,17 @@ export class TodosApp extends App {
+           h("ui-item", { type: "header" }, "To Do:"),
+           h("ui-menu", { position: "right" },
+             h("ui-item", "Show:"),
+-            h("ui-item", { onClick: () => (app.filter = "all"), "prop:selected": () => app.filter == "all" },
+-              "All"
+-            ),
+-            h("ui-item", { onClick: () => (app.filter = "active"), "prop:selected": () => app.filter == "active" },
++            h("ui-item", { onClick: () => (app.filter = "all"), selected: () => app.filter == "all" }, "All"),
++            h("ui-item", { onClick: () => (app.filter = "active"), selected: () => app.filter == "active" },
+               "Active"
+             ),
+-            h("ui-item", { onClick: () => (app.filter = "completed"), "prop:selected": () => app.filter == "completed" },
++            h("ui-item", { onClick: () => (app.filter = "completed"), selected: () => app.filter == "completed" },
+               "Completed"
+             )
+           )
+         ),
+-        h("ui-form", { debug: true, "prop:value": () => app },
+-          h("ui-repeat", { "prop:items": () => app.shownTasks },
++        h("ui-form", { debug: true, value: () => app },
++          h("ui-repeat", { items: () => app.shownTasks },
+             h("ui-fields",
+               h("ui-field", { width: "1" }, h("ui-checkbox", { name: "completed", "aria-label": "Done" })),
+               h("ui-field", { width: "10" }, h("ui-input", { name: "title", "aria-label": "Task" }))
+@@ -75,7 +73,7 @@ export class TodosApp extends App {
+               h("ui-input", { name: "newTaskName", placeholder: "New task name", label: "New task:" })
+             ),
+             h("ui-field",
+-              h("ui-button", { "prop:disabled": () => app.newTaskName === "", onClick: () => createANewTask() },
++              h("ui-button", { disabled: () => app.newTaskName === "", onClick: () => createANewTask() },
+                 "Add Task"
+               )
+             )
+diff --git a/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.tsx b/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.tsx
+index 375ed93..a7b55e3 100644
+--- a/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.tsx
++++ b/tests/spaces/@spell/test/todos-form-based/todos-form-based.snapshot.tsx
+@@ -50,15 +50,13 @@ export class TodosApp extends App {
+             <ui-item type="header">To Do:</ui-item>
+             <ui-menu position="right">
+               <ui-item>Show:</ui-item>
+-              <ui-item onClick={() => (app.filter = "all")} prop:selected={app.filter == "all"}>All</ui-item>
+-              <ui-item onClick={() => (app.filter = "active")} prop:selected={app.filter == "active"}>Active</ui-item>
+-              <ui-item onClick={() => (app.filter = "completed")} prop:selected={app.filter == "completed"}>
+-                Completed
+-              </ui-item>
++              <ui-item onClick={() => (app.filter = "all")} selected={app.filter == "all"}>All</ui-item>
++              <ui-item onClick={() => (app.filter = "active")} selected={app.filter == "active"}>Active</ui-item>
++              <ui-item onClick={() => (app.filter = "completed")} selected={app.filter == "completed"}>Completed</ui-item>
+             </ui-menu>
+           </ui-menu>
+-          <ui-form debug={true} prop:value={app}>
+-            <ui-repeat prop:items={app.shownTasks}>
++          <ui-form debug={true} value={app}>
++            <ui-repeat items={app.shownTasks}>
+               <ui-fields>
+                 <ui-field width="1">
+                   <ui-checkbox name="completed" aria-label="Done" />
+@@ -73,7 +71,7 @@ export class TodosApp extends App {
+                 <ui-input name="newTaskName" placeholder="New task name" label="New task:" />
+               </ui-field>
+               <ui-field>
+-                <ui-button prop:disabled={app.newTaskName === ""} onClick={() => createANewTask()}>Add Task</ui-button>
++                <ui-button disabled={app.newTaskName === ""} onClick={() => createANewTask()}>Add Task</ui-button>
+               </ui-field>
+             </ui-fields>
+           </ui-form>
+diff --git a/tests/spell/parserTests/outline.test.ts b/tests/spell/parserTests/outline.test.ts
+index 31b875a..56eeb88 100644
+--- a/tests/spell/parserTests/outline.test.ts
++++ b/tests/spell/parserTests/outline.test.ts
+@@ -793,7 +793,7 @@ describe("outline style", () => {
+       '\t- to "draw its back": <span>[rank] of [suit], [[face down]]</span>'
+     ]
+     const js = compile(lines)
+-    expect(js).toContain('{ "prop:source": () => `images/${this.rank}-of-${this.suit}.png` }')
++    expect(js).toContain('{ source: () => `images/${this.rank}-of-${this.suit}.png` }')
+     expect(js).toContain("return `the ${this.rank} of ${this.suit}`")
+     expect(js).toContain("`${this.rank} of ${this.suit}, [face down]`")
+     expect(runSpell([...lines, 'the card is a new card with rank = 2, suit = "spades"'])("card")).toMatchObject({

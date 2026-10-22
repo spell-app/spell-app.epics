@@ -1,0 +1,58 @@
+<!-- plan-doc part:  #j12's details in solid-17.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  You picked plain props for compiled spell too (<a href="#j7">J7</a> A). I built it, and every test of the language
+  passed, but the server-rendered HTML went wrong, so it's NOT committed.
+</p>
+<p>What happened, from spell-app's core contract (the same program printed by every target):</p>
+<epic-code title="todos-form-based, rendered on the server" language="html">
+  <pre>
+before:  &lt;ui-form debug=""&gt;&lt;ui-repeat&gt;...
+after:   &lt;ui-form debug="" value="[object Object]"&gt;&lt;ui-repeat items="[object Object], [object Object], ..."&gt;
+         &lt;ui-item selected&gt;All&lt;/ui-item&gt;   &lt;ui-button disabled&gt;</pre>
+</epic-code>
+<ul>
+  <li>
+    <code>prop:</code> is how Solid's SERVER renderer knows to leave a property out of the HTML. A plain name becomes an
+    attribute, so an object prints as text.
+  </li>
+  <li>
+    In a browser it's fine (<code>RichAttributes</code> takes the object), but an element upgrading over that server
+    HTML would read <code>value="[object Object]"</code>.
+  </li>
+  <li>The compiler can't tell an object from text when it writes the name: it only knows the value can change.</li>
+  <li>
+    One thing got BETTER: booleans (<code>selected</code>, <code>disabled</code>) now show in the server HTML, which
+    <code>prop:</code> left out.
+  </li>
+  <li>
+    The change is saved, not lost:
+    <a
+      href="../details/p8-plain-props.spell-lang.patch"
+      target="src-epics-solid-17-details-p8-plain-props-spell-lang-patch"
+      ><code>details/p8-plain-props.spell-lang.patch</code></a
+    >
+    and <code>.spell-app.patch</code> beside this page (<code>git apply</code> in each repo).
+  </li>
+</ul>
+<epic-choices>
+  <epic-option letter="A" title="Plain props, and teach the server to leave objects out" recommended
+    ><p>
+      Apply the patch, then make server rendering drop a non-text value on a dashed tag: core's <code>h()</code> on the
+      server for the JavaScript target, and a shape the TypeScript target's JSX keeps out of the HTML. Best of both:
+      booleans show, objects don't. ~3-4h.
+    </p></epic-option
+  >
+  <epic-option letter="B" title="Type-aware names"
+    ><p>
+      The compiler writes <code>prop:</code> only where spell's types say the value is an object (<code>app</code>, a
+      list), a plain name for text, numbers and booleans. Needs the writers to see types. ~3h.
+    </p></epic-option
+  >
+  <epic-option letter="C" title="Leave compiled spell on prop:"
+    ><p>As tonight: hand-written JSX is plain, compiled spell keeps <code>prop:</code>.</p></epic-option
+  > </epic-choices
+><epic-net-effect option="A" recommended
+  ><ul>
+    <li>Tonight: compiled spell unchanged (C). A or B is a phase of its own.</li>
+  </ul></epic-net-effect
+>
