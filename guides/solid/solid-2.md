@@ -313,7 +313,9 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
   are unowned -- create effects in the factory, not the callback.
 - `render(() => <App />, el)` returns `dispose`.  A ShadowRoot works as the container.
 - `<Portal>` defaults to `document.body`:  inside a shadow root ALWAYS pass `mount`.
-- JSX types for `<ui-*>`:  augment `"@solidjs/web/types/jsx.js"`, NOT `"@solidjs/web"`.
+- JSX types for `<ui-*>`:  Spell UI's, exact, generated from its vocabularies:
+  `import type {} from "spell-ui/jsx"` once in the program.
+  - A tag of your own:  augment `"@solidjs/web/types/jsx.js"`, NOT `"@solidjs/web"` (which only re-exports `JSX`).
 - `@spell-app/ui` controllers keep their state in REACTIVE MEMBERS, not bare signals (`spell-ui` `Reactive.ts`,
   P14):  a record per instance plus a notifier signal per member ("N" in `solid-2.html` §2), and `@derived` as a
   self-tracking cache over the record (spell cells' idea, "X", without `enableExternalSource`).  So
