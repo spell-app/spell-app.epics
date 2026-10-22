@@ -26,7 +26,7 @@ Plan doc:  `epics/ui-docs-rework/ui-docs-rework.plan.html`.  Branch `ui-docs-rew
 ## 2. Phases
 
 ### P1 · Spell Theme — `1318641d`
-- `spell` theme (`packages/ui/src/styles/themes/spell.css` + brand P052 fonts), default on Spell UI docs AND
+- `spell` theme (`spell-ui/src/styles/themes/spell.css` + brand P052 fonts), default on Spell UI docs AND
   packages/docs (plan docs, goals, docs);  theme menu:  Spell, Plain, Classic, Fomantic's
 - favicon on every site:  page server injects it, `<spell-site-header>` adds it on `file://`, the app has it
 - checks:  ui `yarn review` passed (4480 browser tests);  server 84 tests;  `docs:update` passed
