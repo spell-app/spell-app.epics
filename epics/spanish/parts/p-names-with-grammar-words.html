@@ -24,6 +24,158 @@
     <li>Works the same in Spanish (<code>carta en juego</code>), from the pack's stop words.</li>
     <li>Owen: "I know it's random": an investigation first; what's built depends on what it finds.</li>
   </ul></epic-field
+><epic-update
+  at="2026-10-22 02:34"
+  summary="investigated; types, quoted members, member reads and variable reads fixed; unquoted property declarations left"
+  ><p>
+    Investigated and built (uncommitted). A name of several words may now hold a grammar word in most roles, in both
+    languages. The ledger is
+    <a
+      href="../../../spell-lang/tests/spell/namesWithGrammarWords.probes.test.ts"
+      target="src-spell-lang-tests-spell-nameswithgrammarwords-probes-test-ts"
+      ><code title="spell-lang/tests/spell/namesWithGrammarWords.probes.test.ts"
+        >namesWithGrammarWords.probes.test.ts</code
+      ></a
+    >: one inline snapshot per case, what works and what's left both pinned.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Role</th>
+        <th>Example</th>
+        <th>Before</th>
+        <th>Now</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Type, declared</td>
+        <td>
+          <code>a card in play is a thing</code>, <code>una carta de juego es una cosa</code>,
+          <code>a box of the year aka box is a thing</code>
+        </td>
+        <td>Don't understand</td>
+        <td>
+          <b>Fixed:</b> the name runs up to <code>is</code> / <code>aka</code> (<code>CardInPlay</code>,
+          <code>CartaDeJuego</code>)
+        </td>
+      </tr>
+      <tr>
+        <td>Type, in quotes</td>
+        <td><code>a "card in play" is a thing</code>, <code>una "cuenta de ahorro" es una cosa</code></td>
+        <td>Don't understand: one word only</td>
+        <td><b>Fixed:</b> several words, also found from another file</td>
+      </tr>
+      <tr>
+        <td>Type, mentioned</td>
+        <td><code>a new card in play</code>, <code>a list of cards in play</code>, <code>cartas de juego</code></td>
+        <td>Don't understand</td>
+        <td><b>Fixed:</b> a declared name, whole, longest first; plural by its first word</td>
+      </tr>
+      <tr>
+        <td>Property, in quotes</td>
+        <td>
+          <code>its "side of play" is a number</code>, <code>a card has a "side of play" as ...</code>,
+          <code>su "fecha de nacimiento" es texto</code>, <code>"what if"</code>
+        </td>
+        <td>Don't understand</td>
+        <td><b>Fixed:</b> stop words after the first word</td>
+      </tr>
+      <tr>
+        <td>Property, read</td>
+        <td>
+          <code>the side of play of c</code>, <code>its side of play</code>,
+          <code>la fecha de nacimiento de (la) p</code>
+        </td>
+        <td>Don't understand; Spanish misread as <code>p.nacimiento.fecha</code></td>
+        <td><b>Fixed:</b> a member some type declares, whole, longest first</td>
+      </tr>
+      <tr>
+        <td>Property, declared WITHOUT quotes</td>
+        <td>
+          <code>a card has side of play as a number</code>,
+          <code>una persona tiene una fecha de nacimiento como texto</code>
+        </td>
+        <td>Error after <code>side</code></td>
+        <td>
+          <b>Left:</b> <code>member_words</code> can't tell a declaration from a read (<code>the rank of c as text</code
+          >). Next step if wanted: a declaration-only rule reading up to <code>as</code> / <code>como</code>, as
+          <code>type_words</code> reads up to <code>is</code>
+        </td>
+      </tr>
+      <tr>
+        <td>Getter, both <code>of</code>s</td>
+        <td><code>the side of play of a card is: 1</code></td>
+        <td>Don't understand</td>
+        <td>
+          <b>Left:</b> two <code>of</code>s are ambiguous; quoting works: <code>the "side of play" of a card is:</code>
+        </td>
+      </tr>
+      <tr>
+        <td>Variable, declared with dashes, read with spaces</td>
+        <td><code>set way-to-go to 3</code>, then <code>way to go + 1</code>; <code>poner carta-de-juego a 3</code></td>
+        <td>Don't understand</td>
+        <td><b>Fixed:</b> a known name, whole, longest first</td>
+      </tr>
+      <tr>
+        <td>Variable, declared with spaces</td>
+        <td><code>set way to go to 3</code></td>
+        <td>Don't understand</td>
+        <td><b>Left:</b> which <code>to</code> starts the value is a guess. Dashes say it</td>
+      </tr>
+      <tr>
+        <td>Name starting with a grammar word</td>
+        <td><code>no more</code></td>
+        <td><code>no</code>, then <code>more</code></td>
+        <td><b>Left:</b> <code>no</code> is the value; first words stay the language's</td>
+      </tr>
+      <tr>
+        <td>A loop's item named for one</td>
+        <td><code>for each card in play in h</code></td>
+        <td>Don't understand</td>
+        <td>
+          <b>Left:</b> the same for any type of several words (<code>for each bank account in h</code>), not this
+          phase's
+        </td>
+      </tr>
+      <tr>
+        <td>Method names, quoted phrases</td>
+        <td>
+          <code>to open the point of sale</code>, <code>put (a card) in play</code>,
+          <code>a card "is in play" if ...</code>, <code>para abrir la cuenta de ahorro</code>
+        </td>
+        <td>Already fine</td>
+        <td>Unchanged, pinned in the ledger</td>
+      </tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>
+      Only a name someone declared is read whole: <code>if c is in the deck</code> stays <code>card</code>, then
+      <code>in</code>. With no such name declared, nothing changes: every fixture and English rule test compiles as
+      before.
+    </li>
+    <li>
+      How:
+      <a
+        href="../../../spell-lang/src/spell/rules/rules.types.ts"
+        target="src-spell-lang-src-spell-rules-rules-types-ts"
+        ><code title="spell-lang/src/spell/rules/rules.types.ts">namesWithGrammarWords()</code></a
+      >
+      lists the declared names holding a grammar word, cached per scope list; <code>SpellType</code>,
+      <code>member_words</code> and <code>words_identifier</code> try them first. <code>type_words</code> and
+      <code>quoted_type</code> declare them; each pack's declaration scan finds quoted names.
+    </li>
+    <li>
+      Checked: spell 2450 passed / 22 skipped (was 2411 / 22, +39: 20 ledger probes, 19 rule tests);
+      <code>yarn ts</code>, <code>yarn lint</code> clean; <code>spell lang packs check es</code> complete. Parser speed:
+      155 against HEAD's 158 (-2%).
+    </li>
+    <li>
+      Blacklist analysis rerun: the same 7 words needed as P2 found (<code>in</code> now also guards the new tests);
+      <code>to</code> alone still changes nothing, kept for P2's reason.
+    </li>
+  </ul></epic-update
 ><epic-field name="files"
   >spell-lang/spell/src/rules/types/SpellType.ts, TypeWords.ts, variables/WordsIdentifier.ts, properties/MemberWords.ts,
   properties/properties.shared.ts, the pack's stop words (languages/en, languages/es)</epic-field
