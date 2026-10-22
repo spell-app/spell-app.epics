@@ -1,58 +1,107 @@
 <!-- plan-doc part:  #j30's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  spell-epic reads spell-app's main checkout through its <code>.spell-app</code> link: its elements import
-  <code>$/spell-solid</code> (25 files), and it links <code>@spell-app/spell-solid</code> by <code>portal:</code>. So
-  the old name stays usable, each stand-in marked REFACTOR (T6 lists them):
+  spell-epic reads spell-app's main checkout through its <code>.spell-app</code> link, so the old name stays usable,
+  each stand-in marked REFACTOR (T6 lists them).
 </p>
 <ul>
+  <li>Its elements import <code>$/spell-solid</code> (25 files).</li>
+  <li>It links <code title="@spell-app/spell-solid, by portal:">spell-solid</code> by a portal.</li>
+</ul>
+<p>The stand-ins:</p>
+<ul>
   <li>
-    <a href="../../../src/element/" target="src-src-element"><code>packages/spell-solid/</code></a
-    >: a <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> (the portal needs one),
-    a
-    <a href="../../../spell-ui/tsconfig.json" target="src-spell-ui-tsconfig-json"><code>tsconfig.json</code></a>
-    extending the alias table, and three one-line files re-exporting <code>$/spell-element</code>,
-    <code>/vocabulary.types</code> and <code>/elements.types</code>: the only paths spell-epic imports. Re-exports, so a
-    page still has ONE copy of the element bases. Not a workspace: nothing in spell-app imports it. Chose this over a
-    folder symlink to spell-element: a link makes the same files reachable by two paths, which is how the docs bundle
-    once held two copies of the element bases (epic <code>epic-engine</code> I18).
+    <a href="../../../src/element/" target="src-src-element"
+      ><code title="packages/spell-solid/">spell-solid</code></a
+    >, re-exports only, so a page still has ONE copy of the element bases:
+    <ul>
+      <li>a <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> (the portal needs one)</li>
+      <li>
+        a
+        <a href="../../../spell-ui/tsconfig.json" target="src-spell-ui-tsconfig-json"><code>tsconfig.json</code></a>
+        extending the alias table
+      </li>
+      <li>
+        three one-line files re-exporting the only paths spell-epic imports:
+        <code title="$/spell-element, /vocabulary.types and /elements.types">$/spell-element</code> and two of its
+        types files
+      </li>
+      <li>Not a workspace: nothing in spell-app imports it.</li>
+      <li>
+        Chose this over a folder symlink to spell-element:
+        a link makes the same files reachable by two paths.
+        That's how the docs bundle once held two copies of the element bases (epic <code>epic-engine</code> I18).
+      </li>
+    </ul>
   </li>
   <li>
-    At run time the old name is a key of <code>SpellUI.packModules</code>: the epics pack (every set's layout loads it)
-    reads <code>packModules["$/spell-solid"]</code>. So Spell UI's site bundle offers both keys
-    (<code>SitePacks.ts</code>), and the pack build still leaves <code>$/spell-solid</code> external
-    (<code>PACK_MODULES</code>).
+    At run time the old name is a key of <code>SpellUI.packModules</code>:
+    the epics pack, which every set's layout loads, reads <code>packModules["$/spell-solid"]</code>.
+    <ul>
+      <li>So Spell UI's site bundle offers both keys (<code>SitePacks.ts</code>).</li>
+      <li>And the pack build still leaves <code>$/spell-solid</code> external (<code>PACK_MODULES</code>).</li>
+    </ul>
   </li>
   <li>
-    The other way round, spell-epic's docs bundle names only <code>$/spell-solid</code>, so the app's
-    <a
-      href="../../../spell-app/app/dist-page/spell-solid-shared.js"
-      target="src-spell-app-app-dist-page-spell-solid-shared-js"
-      ><code>spell-solid-shared.js</code></a
-    >
-    no longer asks the page for <code>$/spell-element</code> (<code>SHARED_SPECIFIERS</code>): the page's
-    <code>$/ui/core</code> carries every name of it. Otherwise a <code>&lt;spell-app&gt;</code> on an epic page would
-    load a second Solid.
+    The other way round, spell-epic's docs bundle names only <code>$/spell-solid</code>.
+    <ul>
+      <li>
+        So the app's
+        <a
+          href="../../../spell-app/app/dist-page/spell-solid-shared.js"
+          target="src-spell-app-app-dist-page-spell-solid-shared-js"
+          ><code>spell-solid-shared.js</code></a
+        >
+        no longer asks the page for <code title="SHARED_SPECIFIERS">$/spell-element</code>.
+        The page's <code>$/ui/core</code> carries every name of it.
+      </li>
+      <li>Otherwise a <code>&lt;spell-app&gt;</code> on an epic page would load a second Solid.</li>
+    </ul>
   </li>
 </ul>
 <p>
-  The one thing no stand-in can cover: spell-epic's <code>tsc</code> type-checks Spell UI's SOURCE through the link with
-  spell-epic's own alias table, and that source now imports <code>$/spell-element</code>. So T6's first step, two path
-  lines in spell-epic's
-  <a href="../../../src/toolchain/tsconfig.base.json" target="src-src-toolchain-tsconfig-base-json"
-    ><code>tsconfig.base.json</code></a
-  >, has to land BEFORE P3 merges into main (harmless before). Without it only spell-epic's <code>yarn ts</code> fails;
-  its tests, pack check and pack build pass (tried in a scratch clone against this worktree).
+  The one thing no stand-in can cover:
+  spell-epic's <code>tsc</code> type-checks Spell UI's SOURCE through the link, with spell-epic's own alias table.
 </p>
-<p>
-  Done in P6, once spell-epic switched (efc85d8, T6): the stand-in <code>packages/spell-solid/</code> deleted, and every
-  <code>$/spell-solid</code> key (<code>PACK_MODULES</code> and <code>SHARED_IMPORT</code>, <code>SitePacks.ts</code>,
-  <a href="../../../packages/cli/src/dev/packNew.ts" target="src-packages-cli-src-dev-packnew-ts"
-    ><code>packNew.ts</code></a
-  >'s <code>CORE_PACKAGES</code>). The app's <code>SHARED_SPECIFIERS</code> names <code>$/spell-element</code> again (<a
-    href="../../../spell-app/tests/app/runner/element.build.test.ts"
-    target="src-spell-app-tests-app-runner-element-build-test-ts"
-    ><code>element.build.test.ts</code></a
-  >
-  pins it); <code>dist-element</code>, <code>dist-runner</code>, <code>dist-page</code> and the page server's bundles
-  rebuilt: none names <code>$/spell-solid</code>.
-</p>
+<ul>
+  <li>That source now imports <code>$/spell-element</code>.</li>
+  <li>
+    So T6's first step, two path lines in spell-epic's
+    <a href="../../../src/toolchain/tsconfig.base.json" target="src-src-toolchain-tsconfig-base-json"
+      ><code>tsconfig.base.json</code></a
+    >, has to land BEFORE P3 merges into main (harmless before).
+  </li>
+  <li>
+    Without it only spell-epic's <code>yarn ts</code> fails:
+    its tests, pack check and pack build pass (tried in a scratch clone against this worktree).
+  </li>
+</ul>
+<p>Done in P6, once spell-epic switched (efc85d8, T6):</p>
+<ul>
+  <li>the stand-in <code title="packages/spell-solid/">spell-solid</code> deleted</li>
+  <li>
+    every <code>$/spell-solid</code> key deleted:
+    <ul>
+      <li><code>PACK_MODULES</code> and <code>SHARED_IMPORT</code></li>
+      <li><code>SitePacks.ts</code></li>
+      <li>
+        <a href="../../../packages/cli/src/dev/packNew.ts" target="src-packages-cli-src-dev-packnew-ts"
+          ><code>packNew.ts</code></a
+        >'s <code>CORE_PACKAGES</code>
+      </li>
+    </ul>
+  </li>
+  <li>
+    The app's <code>SHARED_SPECIFIERS</code> names <code>$/spell-element</code> again.
+    <a
+      href="../../../spell-app/tests/app/runner/element.build.test.ts"
+      target="src-spell-app-tests-app-runner-element-build-test-ts"
+      ><code>element.build.test.ts</code></a
+    >
+    pins it.
+  </li>
+  <li>
+    Rebuilt, and none names <code>$/spell-solid</code>:
+    the app's three dist folders (<code title="dist-element, dist-runner, dist-page">dist-*</code>)
+    and the page server's bundles.
+  </li>
+</ul>

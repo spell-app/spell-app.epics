@@ -1,53 +1,92 @@
 <!-- plan-doc part:  #j33's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  The rule (<a href="../../../vite.lint.imports.ts" target="src-vite-lint-imports-ts"
-    ><code>vite.lint.imports.ts</code></a
-  >
-  at the root, plugin <code>spell</code>) fails a <code>../</code> module path that lands in another package:
-  <code>packages/&lt;a&gt;</code> or <code>tests/&lt;a&gt;</code> into <code>packages/&lt;b&gt;</code> or
-  <code>tests/&lt;b&gt;</code>, a package and its own tests counting as one. It reads import, export-from,
-  <code>import()</code>, import types, <code>require()</code>, <code>vi.mock()</code> and friends, and
-  <code>import.meta.glob()</code>. Choices:
+  The rule fails a <code>../</code> module path that lands in another package,
+  a package and its own tests counting as one.
 </p>
+<ul>
+  <li>
+    Where:
+    <a href="../../../vite.lint.imports.ts" target="src-vite-lint-imports-ts"><code>vite.lint.imports.ts</code></a> at
+    the root, plugin <code>spell</code>
+  </li>
+  <li>
+    What fails:
+    <code title="packages/&lt;a&gt; or tests/&lt;a&gt; into packages/&lt;b&gt; or tests/&lt;b&gt;">&lt;a&gt;</code>
+    into <code>&lt;b&gt;</code>, each a package's folder or its tests'
+  </li>
+  <li>
+    What it reads: import, export-from, <code>import()</code>, import types,
+    and calls like <code title="require(), vi.mock() and friends, import.meta.glob()">require()</code>
+  </li>
+</ul>
+<p>Choices:</p>
 <ul>
   <li>
     Its own plugin file, not
     <a href="../../../vite.lint.patterns.ts" target="src-vite-lint-patterns-ts"><code>vite.lint.patterns.ts</code></a
-    >: that plugin is Spell UI's component patterns (<code>spell-ui/*</code>), on in component folders only. oxlint has
-    no built-in that fits (no <code>import/no-relative-packages</code>).
+    >.
+    That plugin is Spell UI's component patterns (<code>spell-ui/*</code>), on in component folders only.
+    oxlint has no built-in that fits (no <code>import/no-relative-packages</code>).
   </li>
   <li>
-    In <code>lintBase</code>, which both <code>rootLint()</code> and every <code>packageLint()</code> spread, rather
-    than in <code>rootLint()</code>'s overrides: the root AGENTS.md's overrides advice is for a rule some packages get;
-    this one holds everywhere.
+    In <code>lintBase</code>, which every config spreads, rather than in <code>rootLint()</code>'s overrides.
+    <ul>
+      <li>Every config: <code>rootLint()</code> and every <code>packageLint()</code>.</li>
+      <li>The root AGENTS.md's overrides advice is for a rule some packages get;  this one holds everywhere.</li>
+    </ul>
   </li>
   <li>
     Module paths only: a file path read or spawned (<code>resolve(import.meta.dirname, ...)</code>) has no alias to
     switch to.
   </li>
   <li>
-    Vite loads a config file with no alias table, so <code>$/server</code> fails there: configs and what they load reach
-    another package by its npm name. spaces'
-    <a
-      href="../../../spell-app/src/spaces/server/node/environment.ts"
-      target="src-spell-app-src-spaces-server-node-environment-ts"
-      ><code>environment.ts</code></a
-    >
-    takes <code>@spell-app/server/src/checkout.ts</code>; the app's and the brand's configs
-    <code>@spell-app/ui/vite.config.ts</code> and <code>@spell-app/spaces/src/server/node/environment.ts</code>; their
-    <code>setupFiles</code> <code>@spell-app/ui/test/setup.ts</code>. Spell UI's
-    <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> <code>exports</code> gained
-    those two SOURCE files. A side effect: Vite now treats them as dependencies, so the brand's or the app's dev server
-    no longer restarts by itself when ui's
-    <a href="../../../vite.config.ts" target="src-vite-config-ts"><code>vite.config.ts</code></a> changes.
+    Vite loads a config file with no alias table, so <code>$/server</code> fails there:
+    configs and what they load reach another package by its npm name.
+    <ul>
+      <li>
+        spaces'
+        <a
+          href="../../../spell-app/src/spaces/server/node/environment.ts"
+          target="src-spell-app-src-spaces-server-node-environment-ts"
+          ><code>environment.ts</code></a
+        >
+        takes <code>@spell-app/server/src/checkout.ts</code>.
+      </li>
+      <li>
+        The app's and the brand's configs take Spell UI's Vite config and spaces' environment
+        (<code title="@spell-app/ui/vite.config.ts, @spell-app/spaces/src/server/node/environment.ts">by npm name</code
+        >).
+      </li>
+      <li>Their <code>setupFiles</code> take <code>@spell-app/ui/test/setup.ts</code>.</li>
+      <li>
+        Spell UI's
+        <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> <code>exports</code>
+        gained those two SOURCE files.
+      </li>
+      <li>
+        A side effect: Vite now treats them as dependencies.
+        So the brand's or the app's dev server no longer restarts by itself when ui's
+        <a href="../../../vite.config.ts" target="src-vite-config-ts"><code>vite.config.ts</code></a> changes.
+      </li>
+    </ul>
   </li>
 </ul>
+<p>Found and fixed:</p>
+<ul>
+  <li>
+    spaces' climb into
+    <a href="../../../src/server/checkout.ts" target="src-src-server-checkout-ts"
+      ><code title="server/src/checkout.ts">checkout.ts</code></a
+    >
+  </li>
+  <li>the app's and the brand's configs into ui and spaces</li>
+  <li>the pack template's vitest config</li>
+  <li>No cli import climbed into ui.</li>
+</ul>
 <p>
-  Found and fixed: spaces' climb into
-  <a href="../../../src/server/checkout.ts" target="src-src-server-checkout-ts"><code>server/src/checkout.ts</code></a
-  >; the app's and the brand's configs into ui and spaces; the pack template's vitest config. No cli import climbed into
-  ui. Tests:
+  Tests:
   <a href="../../../tests/ui/tools/LintImports.test.ts" target="src-tests-ui-tools-lintimports-test-ts"
-    ><code>tests/ui/tools/LintImports.test.ts</code></a
-  >, 21 cases. WWOD §4 says it.
+    ><code title="tests/ui/tools/LintImports.test.ts">LintImports.test.ts</code></a
+  >, 21 cases.
+  WWOD §4 says it.
 </p>
