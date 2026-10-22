@@ -611,11 +611,6 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## app
 
-- A project copied to a folder of another name breaks on its words file (2026-10-22, found by epic `readme`
-  P9 while checking README-examples):  `calculator.en.js` in a folder named `calc2` is read as Spell source by
-  `spell compile` and `spell test`, which print 19 "Don't understand" errors;  moving the file out fixes it.
-  Likely the project's file list knows its words file only by the folder's name (`<folder>.en.js`).  Not looked for.
-
 ### 1. Behavior bugs
 
 - The dev editor draws nothing (2026-10-22, seen in the `spanish` worktree, epic `spanish` P13):  `app/index.html`'s
