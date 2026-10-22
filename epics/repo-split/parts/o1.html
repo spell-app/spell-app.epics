@@ -1,24 +1,51 @@
 <!-- plan-doc part:  #o1's body in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  What goes where once the monorepo is split, who uses whom, how you set it up, and the order the work happens in. The
-  most current picture, with every repo's insides, the tests and the cost, is the
-  <a href="../details/layout.html" target="src-epics-repo-split-details-layout-html">layout page</a>. This part becomes
-  the epic's guide in the last phase.
-</p>
-<h4 id="o1-meta">The top repo, spell</h4>
-<p>
-  A new repo, <code>spell</code>, checked out at <code>~/www/spell</code>, holds every other repo on disk and the ONE
-  install for all of them, and nothing else (<a href="#q15">Q15</a>).
+  What goes where now the monorepo is split, who uses whom, how you set it up, and the order the work happened in. This
+  part becomes the epic's guide in the last phase.
 </p>
 <ul>
-  <li>No package lives in it: nothing anyone imports. So no lower repo ever needs it, and there's no repo loop.</li>
-  <li>The child repos are cloned inside it, git-ignored: each still its own git repo, with its own history.</li>
   <li>
-    Its <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> names every
-    <code>spell-*</code> folder as a workspace, and each child repo names its own packages.
+    The <a href="../details/layout.html" target="src-epics-repo-split-details-layout-html">layout page</a> has every
+    repo's insides, the tests and the cost, as planned before the cut.
   </li>
   <li>
-    The content repo and your projects move inside it too, as data folders, so one VS Code folder covers everything (<a
+    It still shows spell-util, spell-server and spell-element as repos, and a folder per package: the kit (<a
+      href="#p-the-kit"
+      >P9</a
+    >) and one <code>src/</code> per repo (<a href="#p-one-import-name">P14</a>) came later.
+  </li>
+</ul>
+<h4 id="o1-meta">The kit, spell-kit</h4>
+<p>
+  The repo at <code>~/www/spell</code> is the kit: the bottom of every repo, and always there (<a href="#q31">Q31</a>).
+  It holds:
+</p>
+<ul>
+  <li>
+    the code every repo stands on, under ONE <code>src/</code>: util, toolchain, server (with the assembler, <a
+      href="#q43"
+      >Q43</a
+    >), element, element-tools, test-helpers and cli
+  </li>
+  <li>
+    all of it ONE npm package, <code>spell-kit</code>, with one version (<a href="#q35">Q35</a>):
+    every file imported by the package's name plus its path, <code>spell-kit/server/page</code>
+  </li>
+  <li>the house style, WWOD, in its <code>agents/</code> folder</li>
+  <li>
+    the glue: the ONE install for every repo, the list of repos, and the commands over every repo (clone, pull, status,
+    the checks)
+  </li>
+</ul>
+<ul>
+  <li>
+    It started as glue only, holding no package (<a href="#q15">Q15</a>, <a href="#p-meta-root">P7</a>).
+    <a href="#p-the-kit">P9</a> merged spell-util, spell-server and spell-element into it, each with its history;
+    <a href="#p-cli-to-the-kit">P13</a> added the <code>spell</code> command's base.
+  </li>
+  <li>The child repos are cloned inside it, git-ignored: each still its own git repo, with its own history.</li>
+  <li>
+    The content repo and your projects live inside it too, as data folders, so one VS Code folder covers everything (<a
       href="#j5"
       >J5</a
     >).
@@ -26,106 +53,126 @@
 </ul>
 <epic-code title="~/www/spell · after the split" language="text">
   <pre>
-~/www/spell/                 the spell repo:  ONLY the glue
-  package.json               "workspaces": ["spell-*"];  scripts:  clone, pull, status
+~/www/spell/                 the kit, spell-kit:  ONE npm package, and the glue
+  package.json               the package spell-kit;  "workspaces": ["spell-*"];  scripts:  clone, pull, status, checks
   yarn.lock  .yarnrc.yml     one install, one Solid, one set of tool versions
   repos.json5                the child repos:  name, git URL, which repos each needs
-  spell-util/      util (with its node-only util/json5), toolchain, agents/ (WWOD + the logs)
-  spell-server/    server (with the site header), assembler
-  spell-element/   flat:  IS @spell-app/spell-element (was spell-solid)
-  spell-ui/        flat:  IS @spell-app/ui;  &lt;ui-code&gt; on highlight.js, &lt;ui-markdown&gt; on marked
-  spell-brand/     flat:  IS @spell-app/brand
-  spell-lang/      parser, markdown, core, py, spell;  &lt;spell-code&gt;, &lt;spell-markdown&gt;
-  spell-epic/      flat, as today:  the epic engine, with its own VS Code extension (the Review tab)
-  spell-app/       app, spaces, lsp, cli, vscode, page-server:  the editor and its servers
+  src/                       util, toolchain, server (with the assembler), element, element-tools, test-helpers, cli
+  tests/                     the kit's tests, at the same paths as the code under src/
+  bin/                       spell, spell-pack, spell-types
+  agents/                    WWOD;  links to the three logs, which stay in spell.epics
+  tools/                     the glue:  repos.ts (clone, pull, status, links), readme-check ...
+  spell-lang/      parser, markdown, core, py, spell:  ONE package, spell-lang
+  spell-ui/        ONE package, spell-ui;  &lt;ui-code&gt; on highlight.js, &lt;ui-markdown&gt; on marked
+  spell-brand/     ONE package, spell-brand
+  spell-epic/      ONE package, spell-epic:  the epic engine, with its own VS Code extension (the Review tab)
+  spell-app/       app, spaces, lsp, cli, page-server:  ONE package, spell-app (and vscode);  &lt;spell-code&gt;, &lt;spell-markdown&gt;
   spell.epics/     the content repo (was spell-app.epics), git-ignored
   spell.spaces/    your projects (was spell-spaces), git-ignored
-~/www/spell.worktrees/&lt;epic&gt;/    an epic's worktree:  of spell, with each child's inside it
+~/www/spell.worktrees/&lt;epic&gt;/    an epic's worktree:  of the kit, with each child's inside it
 </pre>
 </epic-code>
-<h4 id="o1-repos">The eight code repos, bottom to top</h4>
-<p>Every package lives in one of eight child repos, in layers: a repo uses only the repos below it.</p>
+<h4 id="o1-repos">The child repos, bottom to top</h4>
+<p>Five child repos sit on the kit, in layers: a repo uses only the kit and the repos below it.</p>
 <epic-code title="who uses whom · every arrow points down" language="text">
   <pre>
-spell-app     -&gt;  spell-lang, spell-brand, spell-ui, spell-server, spell-util
+spell-app     -&gt;  spell-lang, spell-brand, spell-ui, the kit
                   (spell-epic by the page server's settings only, never imported)
-spell-epic    -&gt;  spell-brand, spell-ui, spell-server, spell-element, spell-util
-spell-brand   -&gt;  spell-ui, spell-element
-spell-ui      -&gt;  spell-element, spell-util, spell-server (its site tools and tests only)
-spell-lang    -&gt;  spell-util
-spell-element -&gt;  spell-util
-spell-server  -&gt;  spell-util (the assembler's data files read util's json5)
-spell-util    -&gt;  nothing
+spell-epic    -&gt;  spell-ui, the kit
+spell-brand   -&gt;  spell-ui, the kit
+spell-ui      -&gt;  the kit
+spell-lang    -&gt;  the kit
+spell-kit     -&gt;  nothing:  the bottom
 </pre>
 </epic-code>
 <ul>
   <li>
-    spell-util is at the bottom: util kept whole (<a href="#q22">Q22</a>), plus JSON5 (<a href="#q18">Q18</a>), the
-    shared toolchain, and the house style and logs (<a href="#q6">Q6</a>).
+    The kit is at the bottom: util kept whole (<a href="#q22">Q22</a>), plus JSON5 (<a href="#q18">Q18</a>), the
+    shared toolchain, the house style (<a href="#q6">Q6</a>), the server and the element framework.
+    <ul>
+      <li>
+        Planned first as three repos at the bottom, spell-util, spell-server and spell-element;
+        <a href="#p-the-kit">P9</a> made them one.
+      </li>
+      <li>The three logs stay in the content repo (<a href="#q31">Q31</a>).</li>
+    </ul>
   </li>
   <li>The parser and the language are one repo, spell-lang (<a href="#q20">Q20</a>, <a href="#j2">J2</a>).</li>
   <li>brand is its own repo, so spell-epic never points up to spell-app (<a href="#j3">J3</a>).</li>
   <li>spell-app keeps the editor and its servers (<a href="#j4">J4</a>).</li>
   <li>
-    Inside each repo, every package is a folder at its root, and a one-package repo IS its package: no
-    <a href="../../../packages/" target="src-packages"><code>packages/</code></a> folder anywhere (<a href="#q16">Q16</a
-    >).
+    Every repo is ONE npm package, named after the repo, unscoped (<a href="#p-one-package-per-repo">P11</a>,
+    <a href="#q36">Q36</a>).
+    <ul>
+      <li>Its code is under ONE <code>src/</code>, its folders right inside it (<a href="#q47">Q47</a>).</li>
+      <li>Its tests are in <code>tests/</code>, at the same paths as the code.</li>
+      <li>
+        Planned first as flat repos, a package per folder at the root (<a href="#q16">Q16</a>);
+        <a href="#p-one-import-name">P14</a> moved the code under <code>src/</code>.
+      </li>
+    </ul>
   </li>
   <li>
-    Tests go to <code>tests/&lt;name&gt;/</code> at the repo's root, or straight to
-    <a href="../../../tests/" target="src-tests"><code>tests/</code></a
-    >, mirroring the code, in a flat repo.
-  </li>
-  <li>
-    One repo names another's code by package name (<a href="../../../spell-ui/README.md" target="src-spell-ui-readme-md"
-      ><code>@spell-app/ui</code></a
-    >); <code>$/</code> stays inside a repo (<a href="#q8">Q8</a>).
+    Every file has ONE name, the same in every repo: the package's name plus its path under <code>src/</code>
+    (<code>spell-ui/components/ui-button</code>).
+    <ul>
+      <li>Inside its own repo too: no <code>$/</code> alias, no <code>../</code> (<a href="#q47">Q47</a>).</li>
+      <li>
+        <a href="#q8">Q8</a> first kept <code>$/</code> inside a repo; <a href="#p-one-import-name">P14</a> retired it.
+      </li>
+    </ul>
   </li>
 </ul>
 <h4 id="o1-plugins">Spell's code and markdown in Spell UI</h4>
 <p>
-  Spell UI has no spell in it. It keeps its own code and markdown elements, and spell-lang subclasses them for spell (<a
+  Spell UI has no spell in it. It keeps its own code and markdown elements, and spell's elements subclass them (<a
     href="#q19"
     >Q19</a
   >).
 </p>
 <ul>
-  <li><code>&lt;ui-code&gt;</code> stays on highlight.js, with its language registry, as today.</li>
-  <li><code>&lt;ui-markdown&gt;</code> stays on marked.</li>
+  <li><code>&lt;ui-code&gt;</code> stays on highlight.js, with its language registry, as before.</li>
+  <li><code>&lt;ui-markdown&gt;</code> stays on marked: kept for now, and the slimming of spell's markdown bundle is a
+    todo (<a href="#q21">Q21</a>).</li>
   <li>
-    <code>&lt;spell-code&gt;</code>, in spell-lang: loading it registers spell with Spell UI's code registry, so a spell
-    block in any markdown is coloured.
+    <code>&lt;spell-code&gt;</code>, in spell-app (<a href="#q24">Q24</a>): loading it registers spell with Spell UI's
+    code registry, so a spell block in any markdown is coloured.
   </li>
-  <li><code>&lt;spell-markdown&gt;</code>, in spell-lang: spell's own markdown engine, plain and editable.</li>
+  <li><code>&lt;spell-markdown&gt;</code>, in spell-app too: spell's own markdown engine, plain and editable.</li>
+  <li>
+    Docs pages get them from spell-app's page server, which adds them to the pages it serves;
+    spell-epic imports nothing of spell-app (<a href="#q23">Q23</a>).
+  </li>
   <li>No plugin system: that was the first plan for <a href="#p-ui-plugins">P2</a>, replaced.</li>
-  <li>Whether marked goes, once spell's markdown bundle is slimmed, is still open (<a href="#q21">Q21</a>).</li>
 </ul>
 <h4 id="o1-setup">Setting up</h4>
-<p>Two yarn commands in the top repo, and nothing else (<a href="#q17">Q17</a>).</p>
+<p>Two yarn commands in the kit, and nothing else (<a href="#q17">Q17</a>).</p>
 <epic-code title="set up · and just Spell UI" language="sh">
   <pre>
-git clone &lt;spell's URL&gt; ~/www/spell &amp;&amp; cd ~/www/spell
-yarn install            # quick:  no child repos yet, so nothing to link
+git clone &lt;spell-kit's URL&gt; ~/www/spell &amp;&amp; cd ~/www/spell
+yarn install            # the kit alone:  no child repos yet
 yarn clone              # clones every child repo, then installs again:  one install for all
-yarn clone spell-ui     # or just Spell UI and what it needs:  spell-element, spell-server, spell-util
+yarn clone spell-ui     # or just Spell UI and what it needs:  nothing but the kit, always there
 yarn pull               # git pull in every child repo
 yarn status             # each child repo's git status
 </pre>
 </epic-code>
 <ul>
-  <li>Checks at <code>~/www/spell</code> cover every package of every repo; inside a repo, just its own.</li>
+  <li>
+    The checks at <code>~/www/spell</code> cover the kit, then every repo, lowest first; inside a repo, just its own.
+  </li>
   <li>
     A change across repos is a commit in each, merged lowest first (<a href="#c5">C5</a>). No publish, no version bump
     while developing.
   </li>
   <li>
-    Once the packages are on npm (<a href="#q4">Q4</a>'s later step), a repo works with no <code>spell</code> at all.
+    Once the packages are on npm (<a href="#q4">Q4</a>'s later step), a repo works with no kit checkout around it.
   </li>
 </ul>
 <h4 id="o1-order">The order of the work</h4>
 <ol>
   <li>
-    The seams, inside today's one repo (<a href="#p-util-split">P1</a> to <a href="#p-imports-and-toolchain">P6</a>):
+    The seams, inside the one repo (<a href="#p-util-split">P1</a> to <a href="#p-imports-and-toolchain">P6</a>):
     cut every import that points the wrong way.
     <ul>
       <li>util stops reaching into spell, and takes JSON5 in.</li>
@@ -156,8 +203,23 @@ yarn status             # each child repo's git status
     </ul>
   </li>
   <li>
-    The tooling (<a href="#p-multi-repo-tooling">P12</a>): worktrees at <code>~/www/spell.worktrees</code>, merging
-    main, <code>/isolate done</code>, the VS Code window (folder 1 is <code>~/www/spell</code>), the extension and CI.
+    The kit (<a href="#p-the-kit">P9</a>, <a href="#p-generic-element-tools">P10</a>): spell-util, spell-server and
+    spell-element merge into the top repo, now spell-kit; the generic element tools and test helpers go with them.
+  </li>
+  <li>One package per repo (<a href="#p-one-package-per-repo">P11</a>), named after the repo.</li>
+  <li>
+    The tooling (<a href="#p-multi-repo-tooling">P12</a>):
+    <ul>
+      <li>worktrees at <code>~/www/spell.worktrees</code></li>
+      <li>merging main, and <code>/isolate done</code></li>
+      <li>the VS Code window, its folder 1 the kit</li>
+      <li>the extension, and CI</li>
+    </ul>
+  </li>
+  <li>The <code>spell</code> command's base moves to the kit's cli (<a href="#p-cli-to-the-kit">P13</a>).</li>
+  <li>
+    One import name (<a href="#p-one-import-name">P14</a>): one <code>src/</code> per repo, every import by package
+    name plus path, the assembler into the server.
   </li>
   <li>The text pass and the guide (<a href="#p-doc-review">P15</a>).</li>
 </ol>
