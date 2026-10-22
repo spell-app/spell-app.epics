@@ -38,6 +38,18 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- With Owen's outline card (`it "is the (rank) of (suit)"`), `the card is the queen of spades` compiles to
+  `card == "spades".queen`, not `card.isTheRankOfSuit("queen", "spades")`:  silently false at run time.
+  drawable-solitaire's `"is the (rank) of (suits)" for its ranks and its suits` works.  Seen 2026-10-21 (epic `readme`
+  P11).  Prove:  the card in the kit's `docs/drafts/card-example/Card.spell`, plus a line using it;  read the output.
+
+- A copied or renamed project (drawable-solitaire copied to a folder `argued`):  its generated `<old name>.en.js` is
+  read as Spell, `spell lint` reports 59 errors from `Don't understand "/*! SPELL: WORDS ..."`, and `spell test` then
+  crashes with a raw tsx `Parse error ... argued.spell.mjs:712:80`.  Seen 2026-10-21 (epic `readme` P11).
+
+- `spell test @spell/library/cards`:  "test deck with jokers" fails with `threw:  Invalid left-hand side in
+  assignment` (2 passed, 1 failed).  Seen 2026-10-21 (epic `readme` P11).
+
 - `expect 1 to be 1` as a line of a `to test ...` method throws while compiling:
   `Error creating ASTStringLiteral:  expected property 'value' to be string ... Actual value: 1`,
   then `text.replace is not a function` in `jsText.inQuotes()`.
@@ -394,6 +406,14 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## ui
 
+- `$fetch()` (the kit's `src/util/spell/`):  (1) `error.status` is `undefined` on every error it throws:  the
+  `status` getter reads `props.response`, which `$fetch()` never passes (it passes `props.status`);  (2) a request that
+  never connects leaves an unhandled rejection even when the caller catches the `OfflineError` (`void promise.finally(...)`
+  in `abortableFetch.ts`;  under node it ended the process).  Both run against a local server, 2026-10-21 (epic
+  `readme` P11).
+
+- `yarn measure` exits 0 even when it prints a CHECK line (today it flags two `src/property/` files outside core).
+
 2026-10-11 (python-target):  `<ui-steps>` on a docs page doesn't wrap its steps' descriptions once its folded section
 is opened:  they run off the right edge (the targets guide's "What happens, in order", `guides/targets/targets.html`).
 `check-spell.js` can't see it inside a folded section.  Spell UI's steps, or `spell-doc.css`?  Unchecked.
@@ -685,6 +705,13 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## cli
 
+- `spell design <verb> --help` RUNS the verb:  `pushed --help` recorded a push (it rewrote the content folder's
+  `brand/design-system.json` with `files: {}`;  restored by hand from c0ffcdbd on 2026-10-21);  `build --help` and
+  `bundle --help` crash with `ERR_PARSE_ARGS_UNKNOWN_OPTION`;  `check --help` reads `--help` as a bundle path.
+  spell-ui's `designCommand.ts` passes every argument to the tools.  Seen in epic `readme` P11.
+
+- `spell app create --help` (and its code's comment) say "your space in spell-spaces";  the folder is `spell.spaces`.
+
 ### 1. Behavior bugs
 
 - (the CLI's spell-side suspicions -- `SpellDiskWorkspace.diskChanged(uri, "created")`, `ScopeExplorer`
@@ -779,6 +806,11 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## server
 
+- `spell server url <file>` names a worktree by its folder alone (`checkoutOf()` uses `basename(root)`):  a file at
+  `~/www/spell.worktrees/<epic>/spell-app/README.md` gets `/worktrees/spell-app/README.md`, which the catch-all content
+  mount answers with the content folder's README.md;  the right address `/worktrees/<epic>/spell-app/...` answers 200.
+  From spell-app's checkout, a kit worktree's file gets a `/../..` address (403).  Seen 2026-10-21 (epic `readme` P11).
+
 ### 1. Behavior bugs
 
 - The page editor's save (`PUT /_server/page`) writes ANY text file in the checkout it's handed:  `.spell`, `.ts`,
@@ -799,6 +831,18 @@ every entry below that date was fixed or disproven;  what's left:
   `.../packages/server/packages/docs/index.html`.  An absolute path works.
 
 ## vscode
+
+- spell-app's `vscode/src/spellAppRoot.ts` `findSpellApp()` searches a window's folders first folder LAST;  epic
+  windows now list the worktree first, so in an epic's window the extension runs the MAIN checkout's server and runner
+  (confirmed by running it on a window's folder list, 2026-10-21, epic `readme` P11).  `spell.parserRoot` set to the
+  worktree's absolute path works around it.
+
+- `spell.showLineTree` is declared in spell-app's `vscode/package.json` (command and right-click menu) but nothing
+  registers it since commit b38aff683:  "Show Tree for This Line" answers command-not-found.
+
+- `spell.compileOnSave`'s description says "to its .output.js";  the server writes `<Project>.spell.js` into `build/`.
+
+- `epic open` and `epic window show` help still say "Spell Docs";  the view is "Epic Docs".
 
 ### 1. Behavior bugs
 
