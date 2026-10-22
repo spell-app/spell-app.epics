@@ -1,70 +1,102 @@
 <!-- plan-doc part:  #o2's body in intellisense.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  The proposal: generate each element set's JSX types from its vocabularies, so VS Code's own TypeScript completes,
-  explains and checks every custom tag, with no extension.
+  Spell UI generates its JSX types from its vocabularies, so VS Code's own TypeScript completes, explains and checks
+  every <code>&lt;ui-*&gt;</code> tag, with no extension.
 </p>
 <ul>
   <li>
-    <b>One generator, in the kit</b>, beside the root catalog: it loads every vocabulary the way the root catalog does,
-    and writes one declarations file per set.
+    <b>Where they come from</b>: Spell UI's
+    <code title="spell-ui/src/tools/ElementManifests.ts">ElementManifests</code>, the class that already wrote the HTML
+    data and the Custom Elements Manifest (<a href="#j1">J1</a>).
     <ul>
-      <li>Spell UI's 104 <code>&lt;ui-*&gt;</code> tags first (<a href="#q3">Q3</a>)</li>
       <li>
-        its docs components, Spell Epic's <code>&lt;epic-*&gt;</code>, Spell Brand's <code>&lt;brand-*&gt;</code> and
-        the app's four: a todo (<a href="#t1">T1</a>)
+        It writes one file, <code title="spell-ui/src/jsx.ts">spell-ui/jsx</code>, as part of
+        <code>yarn site:data</code>.
       </li>
-      <li>run by the pack build and <code>yarn site:data</code>, so it never goes stale; a test fails when it has</li>
+      <li>A test fails while the file is stale.</li>
+      <li>Not a new generator in the kit, as first planned: the shared value sets (hues, sizes) are Spell UI's.</li>
+      <li>About 23,700 lines, types only: nothing at run time.</li>
+    </ul>
+  </li>
+  <li>
+    <b>Who uses them</b>: every program that writes <code>&lt;ui-*&gt;</code> JSX, by importing the file once.
+    <ul>
+      <li>Spell UI itself, its docs elements and tests</li>
+      <li>the app, whose loose hand-written stand-in for <code>ui-*</code> tags is gone</li>
+      <li>Spell Epic</li>
+      <li>the spell compiler's type check of compiled spell</li>
+      <li>The first run caught 21 errors, one a real accessibility bug; each fix is in <a href="#j10">J10</a>.</li>
     </ul>
   </li>
   <li>
     <b>What you get, typing <code>&lt;ui-button </code></b> in a <code>.tsx</code> file:
     <ul>
       <li>
-        completion of every attribute the button has, and then of its values (<code>size="</code> offers
-        <code>mini</code> ... <code>massive</code>)
+        completion of every attribute, then of its values: <code>size="</code> offers <code>mini</code> ...
+        <code>massive</code>
       </li>
-      <li>hover docs: the vocabulary's description, its values, its default, a link to its docs page</li>
-      <li>a red squiggle on a misspelt attribute or a value it doesn't take (how strict: <a href="#q2">Q2</a>)</li>
-      <li>rich properties as <code>prop:options</code>, typed</li>
+      <li>hover docs: the vocabulary's description, its values, its default</li>
       <li>
-        events: typed through the event map, so <code>addEventListener("ui-change", ...)</code> knows its
-        <code>detail</code>; the JSX event prop (<code>onUIChange</code>) is <epic-link epic="solid-17"></epic-link>'s
-        to make work, and this epic types it (<a href="#q4">Q4</a>)
+        a red squiggle on a misspelt attribute or a value it doesn't take (<a href="#q2">Q2</a>), except a name with a
+        dash in it (<a href="#i2">I2</a>)
       </li>
-      <li>a bonus outside JSX: <code>document.querySelector("ui-button")</code> returns a <code>UIButton</code></li>
+      <li>
+        rich properties by their plain name, and as <code>prop:options</code> until epic solid-17 lands (<a href="#j5"
+          >J5</a
+        >)
+      </li>
     </ul>
   </li>
   <li>
-    <b>Each package ships its own</b>, one import name: <code>spell-ui/jsx</code> first. The app's hand-written loose
-    stand-in for <code>ui-*</code> tags goes.
+    <b>Events</b> (<a href="#p-typed-events">P3</a>):
+    <ul>
+      <li>
+        in JSX, one <code>on-ui-change</code> prop per event, its <code>event.detail</code> typed per tag; Solid calls
+        it once <epic-link epic="solid-17"></epic-link> lands (<a href="#j11">J11</a>)
+      </li>
+      <li>
+        in plain code, <code>querySelector("ui-input")</code> gives an element whose
+        <code>addEventListener()</code> knows its events; on the document, each name completes with an
+        <code>unknown</code> detail (<a href="#j12">J12</a>)
+      </li>
+    </ul>
   </li>
 </ul>
-<epic-code title="generated, shortened · spell-ui's jsx.d.ts" language="ts">
+<epic-code title="generated, shortened · spell-ui/src/jsx.ts" language="ts">
   <pre>
 declare module "@solidjs/web/types/jsx.js" {
   namespace JSX {
     interface IntrinsicElements {
-      /**
-       * A button people press to act.
-       * - [Docs](https://.../ui-button.html)
-       */
-      "ui-button": UIButtonJSX
+      "ui-button": UIButtonJSXAttributes
     }
   }
 }
 
-interface UIButtonJSX extends UIHostAttributes {
-  /** Its size;  default `medium`. */
+export interface UIButtonAttributes {
+  /**
+   * Size, `mini` ... `massive`;  `medium` is the default.
+   * - takes:  `mini` · `tiny` · `small` · `medium` · `large` · `big` · `huge` · `massive`
+   */
   size?: "mini" | "tiny" | "small" | "medium" | "large" | "big" | "huge" | "massive"
-  /** Where its icon's label sits. */
-  labeled?: boolean | "left" | "right"
-  /** Floats `left` or `right`. */
-  floated?: "left" | "right"
+  /** `size`, as the DOM element's property. */
+  "prop:size"?: "mini" | "tiny" | "small" | "medium" | "large" | "big" | "huge" | "massive"
+}
+
+export interface UIInputEventMap {
+  /** `ui-input`:  The value changed as someone typed (every keystroke). */
+  "ui-input": CustomEvent&lt;{ value: string; originalEvent?: Event }&gt;
 }</pre>
 </epic-code>
 <epic-update at="2026-10-22 01:15" summary="Spell UI first;  the JSX event prop is solid-17's"
   ><p>
     Q3 picked Spell UI first, the other sets a todo (T1). Q4: the typed <code>on()</code> helper is dropped; solid-17
     makes <code>onUIChange</code> work, and this epic types it.
+  </p></epic-update
+>
+<epic-update at="2026-10-22 02:36" summary="Rewritten as what was built" phase="6"
+  ><p>
+    Doc Review: this part was the proposal (one generator in the kit, a docs link in each hover). Now it says what P1 to
+    P3 built: Spell UI's ElementManifests writes the types (J1), there's no docs link (J4), and the events are typed
+    props plus a per-tag event map.
   </p></epic-update
 >
