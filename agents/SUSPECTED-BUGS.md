@@ -717,6 +717,10 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## cli
 
+- `spell compile <file>.spell --stdout --target py` on a LOOSE file ignores `--target` (2026-10-22, found by epic
+  `readme` P9):  it prints the JavaScript, without its import line.  On a project folder `--target` works as
+  documented.
+
 - `spell design <verb> --help` RUNS the verb:  `pushed --help` recorded a push (it rewrote the content folder's
   `brand/design-system.json` with `files: {}`;  restored by hand from c0ffcdbd on 2026-10-21);  `build --help` and
   `bundle --help` crash with `ERR_PARSE_ARGS_UNKNOWN_OPTION`;  `check --help` reads `--help` as a bundle path.
@@ -893,6 +897,12 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
   `epic worktree merge` (epic `commands`).
 
 ## epics
+
+- A kit worktree made without its `spell.epics` link (2026-10-22, epic `readme`'s worktree, made 2026-10-21):  the
+  kit tracks `agents/PAPERCUTS.md`, `SUSPECTED-BUGS.md` and `CODE-DEBT.md` as links to `../spell.epics/agents/`,
+  which dangle in a worktree with no `spell.epics` at its root (the kit's AGENTS.md says an epic's worktree has one).
+  Linked by hand there (`ln -s ../../spell/spell.epics spell.epics`).  Likely the worktree hook stopped making it when
+  epic-eject P12 stopped linking content at checkout roots;  check `hooks/worktree.mjs` and `Shared.link()`.
 
 - Guides that still fetch their data at pre-split paths (2026-10-22, found by epic `readme` P14's voice pass;  already
   failing before it):
