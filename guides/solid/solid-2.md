@@ -20,11 +20,27 @@ or reviewing Solid code, JSX, `core` rendering, `spell-kit/util` reactivity (spe
   - React is GONE from `app`, `core` and `util`:  no React kits, no `view()`, no `@vitejs/plugin-react`.
     Only the `spell` CLI keeps it, for its terminal screens (Ink).
   - Items still marked (planned) below wait on an open todo:  they are NOT in code.
-- Target `solid-js` / `@solidjs/web` / `@solidjs/h` `2.0.0-rc.13` (current, 2026-09-30), pinned EXACTLY.
-  - Every package is on rc.13 (2026-10-02):  ONE copy at the repo root, pinned in the root `resolutions`;  upgrade
-    them all together (one Solid per page).
-  - Re-verified on rc.13:  every experiment behaves as on rc.11 (`solid-2.html`, "rc.11 vs rc.13").  rc.13's
-    `CHEATSHEET.md` is identical to rc.11's -- trust it first;  v2.solidjs.com tracks rc.13.
+- Target Solid `2.0.0-rc.17` (2026-10-22, epic `solid-17`), every package pinned EXACTLY:
+
+  ```text
+  solid-js, @solidjs/web, @solidjs/h, @solidjs/signals,
+  @solidjs/compiler, @solidjs/babel-plugin         2.0.0-rc.17
+  @solidjs/vite-plugin                             3.0.0-next.51
+  @solidjs/router                                  2.0.0-next.41
+  seroval, seroval-plugins                         1.6.7   (solid-js pins them:  1.6.8 changed the stream format)
+  ```
+
+  - every repo is on them:  ONE copy at the kit's root, pinned in the root `resolutions`;
+    upgrade them all together (one Solid per page)
+  - what changed since rc.13, and bit us, is in the rules below, marked with the release (rc.14 ... rc.17)
+- Solid's own docs for agents ship IN `solid-js` since rc.16:  trust them first.
+  They're in its folder, `node_modules/solid-js/`:
+  - the 2.0 primer:  `skills/solid-2.0/`
+  - the cheatsheet, as a skill:  `skills/solid-2.0-cheatsheet/`
+  - every dev diagnostic code, and how to fix it:  `skills/reactivity-diagnostics/`
+  - the same codes as data, each with its fix and docs link:  `diagnostics.json`
+  - v2.solidjs.com is the 2.0 reference;  a dev console message links its code's page there
+- Re-verified on rc.13:  every experiment behaved as on rc.11 (`solid-2.html`, "rc.11 vs rc.13").
   - rc.13 moved `createErrorBoundary`, `createLoadingBoundary`, `createRevealOrder`, `sharedConfig` and `$DEVCOMP`
     out of `solid-js` into `solid-js/internal`.  NEVER import from `solid-js/internal`:  use `<Errored>` /
     `<Loading>` / `<Reveal>` (callable as functions, `children` as a getter -- see `UIComponent.mount()` in `spell-ui`).
@@ -82,7 +98,8 @@ count() // 1
   - `setProp` ignores `===` writes:  nobody is notified
   - a memoized derived value bumps its version only when its value really changes (clean / check / dirty push-pull),
     so readers of an unchanged derived value don't re-run
-  - Solid's DOM bindings skip equal text / attribute writes (input `value` / `checked` are always re-applied)
+  - Solid's DOM bindings skip equal text / attribute writes, except input `value` / `checked`:
+    they're written again whenever their binding re-runs (SEE "Form inputs" below)
 - Derived properties:  plain getter by default;  `this.derive(name, fn)` ONLY when the parser proves it pure AND
   worth it (loops, list aggregates).  Memoizing a cheap getter is ~2x SLOWER.  `derive()` is BUILT;  the parser's
   pure / worth-it analysis is (planned, epic page T6):  today every compiled JAVASCRIPT derived property is a plain
@@ -151,10 +168,14 @@ count() // 1
   - the WRITER writes the page's spellings:  `class`, `for`, `colspan`;  on a tag with a dash, a live value or an
     object as `"prop:value"`
   - a dotted tag (`<UI.Form>`) is a compile error:  Spell UI's elements go by their own tags
-  - each drawn thing in its own ERROR BOUNDARY, `drawInBoundary()`:  `<Errored>` + a memo running `draw()` + a
-    `try/catch` for a stand-in made once (rc.13's `<Errored>` makes its fallback again on any change under it).
-    A throw:  one console line, a cancelable `ui-error`, a stand-in;  the rest keeps drawing.
-    `drawThing()` for javascript, `@drawn` for TypeScript:  ONE boundary
+  - each drawn thing in its own ERROR BOUNDARY, `drawInBoundary()`:
+    `<Errored>` + a memo running `draw()`, the stand-in its fallback.
+    - a throw:  one console line, a cancelable `ui-error`, a stand-in;  the rest keeps drawing
+    - `drawThing()` for javascript, `@drawn` for TypeScript:  ONE boundary
+    - `<Errored>` builds its fallback ONCE per showing since rc.15, so the stand-in is made once
+      (`drawing.test.ts` pins it).
+    - rc.13 rebuilt it on any change under it:
+      the drawing's own `try/catch` for that is gone (epic `solid-17`).
   - `draw()` runs in a memo:  again only for what IT read, redrawing that thing alone
   - `drawItems()` is `<For>` by identity;  `mountApp()` is `render()` in a root of its own (`runWithOwner(null)`), left
     on the element as `spellRoot`
@@ -235,6 +256,7 @@ draw() {
   - NEVER write a signal / store in a component body, memo, effect compute or `createRoot` body -- dev throws
     `REACTIVE_WRITE_IN_OWNED_SCOPE`.  `untrack` does NOT exempt it.
   - write from event handlers, `onSettled`, effect APPLY functions, or `action`s
+  - cleanups may write too (rc.16):  an `onCleanup` / `onSettled` cleanup is teardown, not the computation
   - `{ ownedWrite: true }` only for a signal that is internal state by design
 - Reads:
   - read reactive values in JSX, a memo or an effect compute -- a component body or `<For>` / `<Show>` callback body
@@ -244,21 +266,58 @@ draw() {
 - Effects:
   - `createEffect(compute, apply)` -- two functions, always
   - the apply's RETURN VALUE IS ITS CLEANUP:  use braces, NEVER an expression body that returns a value (halts the page)
+  - the apply runs (after the last cleanup) EVERY time the compute re-runs, even when it returned an equal value:
+    effects never compare (documented in rc.17)
+    - to skip an unchanged value, read a memo in the compute:  its `equals` (default `===`) stops the re-run
+    - `const isActive = createMemo(() => status() === "active")`, then `createEffect(isActive, ...)`
+  - NEVER create a memo, effect or root in the apply (or its cleanup) with no owner:
+    rc.17's dev build THROWS `PRIMITIVE_IN_EFFECT_CALLBACK`.  It's easy to do without seeing it:
+    - a custom element's `connectedCallback()`, when Solid inserts the element from an effect:
+      the browser runs the callback right there
+    - a detached `createRoot()` in code an effect's apply calls
+    - a CONDITIONAL prop (`layout={isWide() ? a : b}`):  the compiler makes it a memo on its first read,
+      so reading it first inside an apply throws
+    - the fixes:
+      - a detached root:  `E.Reactive.ownRoot(fn)`, from `spell-kit/element`.
+        It's `createRoot` under a module owner that's never disposed:  safe anywhere, and no context reaches in.
+      - work that should live with the component:
+        `const owner = getOwner()` in the body, then `runWithOwner(owner, () => ...)` in the apply
+  - a cleanup that throws no longer stops the rest (rc.17):
+    every cleanup runs, then `dispose()` (or `flush()`, inside a flush) rethrows the FIRST error
   - many React `useEffect`s should be a memo or an event handler instead
   - component setup + teardown:  `onSettled(() => { ...; return cleanup })`, not `onMount`
 - Memos:  eager by default;  create them inside a component / owner, NEVER at module scope (unowned memos recompute
   forever).  `lazy: true` autodisposes when unobserved.
-- Stores:  draft setters only.  A direct `store.x = 1` is SILENTLY IGNORED.
+- Stores:  draft setters only.  A direct `store.x = 1` is IGNORED:
+  dev warns `STORE_WRITE_OUTSIDE_SETTER` once per store and key (rc.17), production says nothing.
+  - a derived store needs no seed (rc.16):  `createStore(fn)`, `createProjection(fn)`
+    - its `fn` returns the whole value:  sync, a promise, or an async iterable
+  - a seed, when you give one, is a COMPLETE `T` (rc.16):
+    its type is `NoFn<T>`, was `Partial<T>`
+    a `{}` seed on a derive that returns its value is a type error -- drop it;
+    a derive that fills an empty draft needs `{} as T`
 - Errors:  wrap app roots in an error boundary (`<Errored>`);  it heals itself when the data recovers.  The app
   wraps it:  SEE WWOD §17 › "`<ErrorBoundary>` around every region that can fail alone".
   - NOTE: an error thrown by a `createEffect` COMPUTE is NOT caught by an enclosing `<Errored>`:  it goes to the
     console, and the fallback never shows (measured, P6:  `app`'s `ASTViewer` / `MatchViewer`).  Read the value in
     JSX (a render expression) where a throw must show the fallback, or give the effect an `{ effect, error }`
     bundle.
+    - Not re-measured on rc.17:  no release note from rc.14 to rc.17 says this changed.
+      Solid's own docs still name the two ways:  `<Errored>`, or the effect's `error` option.
+  - an uncaught error still halts the page;
+    since rc.17 the dev `REACTIVITY_HALTED` message names where it escaped (`in <App> › <Composer> › effect`)
 - Lists:  `<For each>` keys by identity (item = value, index = accessor);  `keyed={false}` by position (item =
   accessor);  `keyed={(t) => t.id}` by key.  `<Repeat count>` for windowing.  No `.map()` in JSX.
 - Context:  the context IS the provider.  No default => a missing provider throws.
+  - `undefined` counts as "not provided":  as a default, or from a provider
+  - for a context that may be empty, use `null`:  `createContext<T | null>(null)`
 - Dynamic components:  `dynamic(() => source())`, created once outside JSX.
+  - `dynamicComponent` is in `solid-js` since rc.15;  `@solidjs/web` re-exports it, and keeps `dynamic`
+- New since rc.13, for when you need them:
+  - `createDeferred(fn)` (rc.16):  an async memo that may lag, never lead;
+    after its first answer, readers keep the old one until the new one lands, and `isPending` reports it
+  - `lazyModule()` (rc.15):  `lazy()` for a module that isn't a component, preloaded and hydrated by module id
+  - `onHydrationEnd(callback)` (rc.15):  public again, `@experimental`, for tests and markers
 - More, as house style with this repo's examples (read once with `untrack`, `onCleanup`, load states, `<Show keyed>`,
   `useContext` needs an owner, the `ClassBuilder` exception):  WWOD §17, `agents/wwod/solid.md`.
 
@@ -298,17 +357,30 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
 ## DOM and `@spell-app/ui` elements
 
 - `class`, not `className`;  array / object form, NEVER built class strings.  No `classList`.
-- NEVER an inline `style={{ [A]: x, [B]: y }}` with two or more COMPUTED keys:  the server compile (rc.11) drops the
-  `;` between them (`--a:1px--b:2`) and the browser ignores both.  Return the object from a method or variable
-  (`style={this.titleStyle()}`);  literal keys and single computed keys are fine.  (Found by `spell-ui/server`, 2026-10-02.)
-- Attributes are HTML:  lowercase built-in names, boolean = presence.  `attr:` / `bool:` / `on:` / `use:` are gone.
+- Attributes are HTML:  lowercase built-in names, boolean = presence.
+  - The 1.x forms are COMPILE ERRORS since rc.17, on native elements and dashed tags alike:
+    `on:`, `oncapture:`, `attr:`, `bool:`, `use:`, `classList`.  The message names the 2.0 replacement.
 - On a tag with a dash, a plain prop is a STRING ATTRIBUTE:  rich data MUST be `prop:options={...}`.
+  - a valueless `prop:active` is `prop:active={true}` (rc.17;  before, it was dropped)
+- Solid clones a dashed tag's template with `document.importNode()`:
+  a DEFINED custom element is upgraded BEFORE Solid sets its props, an undefined one isn't.
 - Events:
   - `onClick` etc. are camelCase, delegated per render root.  The binding is NOT reactive:  put the choice inside
     the handler.
+  - ONLY `on` + an UPPERCASE letter is an event (rc.14).
+    Lowercase `onclick={fn}` is a plain attribute:  dev warns `LOWERCASE_EVENT_ATTRIBUTE`
   - `onChange` is the native change event -- use `onInput` per keystroke
-  - `onUiChange` listens for `uichange`, NOT `ui-change`:  hyphenated custom events need a ref directive
+  - the event's name is the rest, LOWERCASED:  `onUIChange` listens for `uichange`, NOT `ui-change`
+    - so a hyphenated event can't be bound by a JSX prop yet:  use a ref directive (below)
+    - (planned, epic `solid-17` P5) `on-ui-change={f}`, through our elements' own `setAttribute()`
   - native options (capture, passive):  a ref directive too
+- Form inputs:  `value={x()}` writes the input only when its binding re-runs,
+  and a change to ANY other dynamic attribute in the same template re-runs it.
+  - so typed text can be overwritten:  dev warns `UNCOMMITTED_INPUT_OVERWRITTEN` (rc.17)
+  - keep typing in a draft signal (`onInput`), commit on `onChange` / submit
+  - a handler that rejects input writes the accepted value back, as an unchanged signal won't revert the DOM:
+    `e.currentTarget.value = next`, NOT `equals: false`
+  - uncontrolled:  `defaultValue` / `defaultChecked`
 - Refs are callbacks or directive factories, composable as arrays.  No `.current`, no `forwardRef`.  Ref callbacks
   are unowned -- create effects in the factory, not the callback.
 - `render(() => <App />, el)` returns `dispose`.  A ShadowRoot works as the container.
@@ -351,6 +423,10 @@ const modal = (
 
 - Nothing is reactive unless it's a FUNCTION.
 - `h()` returns a thunk:  `render(() => h(App), el)`.  Fragments are arrays.
+  - its type is `HyperElement`, the thunk alone (rc.17):  it was a union with `ExpandableNode[]`
+  - so a cast to `JSX.Element` needs `as unknown as JSX.Element`
+- A function on a lowercase `onclick` is wrapped in a getter, like any attribute (rc.14):
+  only `onXxx` and `ref` are exempt.
 - ARITY TRAP:  on a COMPONENT, a zero-arg function prop becomes a getter.  Handlers MUST take a parameter:
   `onPick: e => go()`, never `onPick: () => go()`.  Element `on*` props and `ref` are exempt.
 - It imports `@solidjs/web` by bare specifier:  keep it inside bundled code, never in blob-loaded compiled spell.
@@ -369,6 +445,9 @@ h(Picker, { onPick: () => go() }) // WRONG:  becomes a getter, passes go()'s res
   `await resolve(() => x())` for async.
 - Under Node, `@solidjs/web` resolves to the SERVER build (no DOM `render`):  component tests need the
   `browser` + `development` conditions plus jsdom or vitest browser mode.  An SSR test project needs its own `solid()`.
+  - `@solidjs/vite-plugin` next.51 no longer sets Vitest's `environment: "jsdom"`:  a project that needs jsdom says so
+  - it appends `export const $$moduleUrl` to every module it transforms for SSR, Vitest's node projects too:
+    a test listing a module's exports sees it
   - `app` runs both, a node project and a browser one (Vitest browser mode, chromium through Playwright):  SEE
     `packages/app/AGENTS.md` "Overview".
   - `app`'s component tests `render()` from `@solidjs/web` into a fixture and `await uiReady` for the `<ui-*>` tags.
@@ -397,7 +476,13 @@ expect(button.textContent).toBe("Clicks: 1")
 
 ## Router (`@solidjs/router@next`)
 
-- `2.0.0-next.35` runs on rc.13, pinned exactly (`app`, P8).  Config objects, no `<Route>` / `<A>` components.
+- `2.0.0-next.41` runs on rc.15 and later, pinned exactly (was next.35 on rc.13).
+  Config objects, no `<Route>` / `<A>` components.
+- Since next.35:
+  - params are DECODED, per segment (next.40):
+    never decode them again (spell-app's `/edit/*address` stopped doing so in epic `solid-17`)
+  - `action` is renamed `formAction` (the old name is an alias)
+  - preloading a link's route on hover is opt-in (next.38)
 - `createRouter({ routes })` once, at module scope:  the instance IS the provider;  its render-prop child is the root
   layout, which stays mounted.
 - It ships Solid JSX SOURCE (`dist/*.jsx`):  the bundler's Solid plugin must compile it out of `node_modules`.
@@ -411,7 +496,11 @@ expect(button.textContent).toBe("Clicks: 1")
 ## When something breaks
 
 - A dev diagnostic code:  read `node_modules/solid-js/skills/reactivity-diagnostics/SKILL.md` (Solid's own repair
-  guide;  hoisted to the repo root's `node_modules`).  Codes are also in `cheatsheet.html`.
+  guide;  hoisted to the kit's root `node_modules`).
+  - the same codes as data:  `solid-js`'s `diagnostics.json`;  and in `cheatsheet.html`
+  - the dev console message links the code's page on v2.solidjs.com
+- `PRIMITIVE_IN_EFFECT_CALLBACK` thrown from a `connectedCallback()` or a prop read:
+  SEE "Effects" above (rc.17).
 - Nothing updates after an error:  the scheduler halted -- find the first thrown error, not the last symptom.
 - A value reads stale right after a write:  that's staging -- use a cell, or `flush()` in tests.
 - A write is invisible even after `flush()`:  it's entangled with a held async write in the same batch.
