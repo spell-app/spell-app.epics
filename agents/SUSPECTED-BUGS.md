@@ -889,6 +889,13 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
 
 ## epics
 
+- `epic worktree merge-main` with a checkout patch's file in place (2026-10-22, epic `readme`):  the kit's `.ignore`,
+  which main's epic-engine P17 tracks AND copies untracked (git-excluded) into each checkout behind main.  The merge of
+  main into `readme` (ced7b43, which also stopped on a `.epic/config.json5` conflict and was finished with
+  `--continue`) came out WITHOUT `.ignore`:  fast-forwarding main to it deleted the file.  Put back on main (73c65b9).
+  Likely the untracked copy blocking git's checkout of the file mid-merge, and the resolution step then staging its
+  absence.  Not reproduced.
+
 - `node spell-epic/src/demo/check-review-epics.mjs` (the review sample, 2026-10-13, epic `people-and-orgs` P16):  every
   flow passes but one, "j1's chip, skipped, unsent:  dashed grey":  the chip has `data-fill="dashed"` and no
   `data-color`, where the check wants `grey`.  `<epic-item>`'s `chipMark()` gives a skip no colour, or the check is
