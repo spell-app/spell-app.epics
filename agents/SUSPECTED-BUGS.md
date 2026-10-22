@@ -895,6 +895,11 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
   `--continue`) came out WITHOUT `.ignore`:  fast-forwarding main to it deleted the file.  Put back on main (73c65b9).
   Likely the untracked copy blocking git's checkout of the file mid-merge, and the resolution step then staging its
   absence.  Not reproduced.
+  - It happened AGAIN, the same day, epic `spanish`:  the merge of main into `spanish` (baa3263, a clean merge, no
+    conflict, no `--continue`) said "untracked 1 file(s) now git-ignored (kept on disk)" and came out without
+    `.ignore`;  fast-forwarding main deleted it.  Put back on main (334bd2a).  So it's the merge itself, not the
+    conflict path:  likely the "untrack what's now git-ignored" step taking `.ignore` (excluded in the checkout's
+    `.git/info/exclude` by the patch) for a git-ignored file.
 
 - `node spell-epic/src/demo/check-review-epics.mjs` (the review sample, 2026-10-13, epic `people-and-orgs` P16):  every
   flow passes but one, "j1's chip, skipped, unsent:  dashed grey":  the chip has `data-fill="dashed"` and no
