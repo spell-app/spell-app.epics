@@ -1,2 +1,135 @@
 <!-- plan-doc part:  #o1's body in spanish.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>What goes where: the part that becomes the epic's guide in the last phase.</p>
+<p>
+  English is built into spell in six layers, from which characters make a word up to the docs. Each layer has a fix of
+  its own shape; none is a rewrite of the parser.
+</p>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>English today</th>
+        <th>How much</th>
+        <th>What changes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Word characters</td>
+        <td>
+          The tokenizer takes ASCII letters only, so <code>año</code> is three tokens (<code>a</code>, a symbol
+          <code>ñ</code>, <code>o</code>). The same ASCII patterns sit in the rulex tokenizer, the identifier and type
+          patterns, the writers' "is this a legal name" checks, the language server's word patterns and VS Code's
+          <code>wordPattern</code>.
+        </td>
+        <td>about 12 regexes</td>
+        <td>Unicode letters everywhere, as the markdown tokenizer already does.</td>
+      </tr>
+      <tr>
+        <td>Plurals</td>
+        <td>
+          One util file wraps the English-only npm <code>pluralize</code>; every type lookup goes through
+          <code>singularize</code>. <code>corazón</code> pluralizes to <code>corazóns</code>, and
+          <code>reyes</code> singularizes to <code>reye</code>.
+        </td>
+        <td>1 file, 14 callers</td>
+        <td>An inflector per language, handed to the parser.</td>
+      </tr>
+      <tr>
+        <td>Rule syntax</td>
+        <td>
+          Every rule's words live in its <code>syntax</code> string: <code>the {property} of {expression}</code>. The
+          most used: <code>a</code> 80, <code>an</code> 68, <code>of</code> 59, <code>is</code> 42, <code>the</code> 28.
+        </td>
+        <td>217 of 245 syntaxes</td>
+        <td>The same rule classes registered again, with Spanish syntax and Spanish tests.</td>
+      </tr>
+      <tr>
+        <td>Rule code</td>
+        <td>
+          Some rules read the English word they matched: <code>=== "is not"</code>, <code>.includes("not")</code>,
+          <code>["a", "an"]</code>, <code>"it"</code> / <code>"its"</code>. Plus the word tables: the identifier
+          blacklist (about 115 words), booleans, number words, ordinals, member stop words, dangling prepositions, the
+          built-in types' words and members.
+        </td>
+        <td>about 62 rules, 8 tables</td>
+        <td>Named groups (<code>negated</code>) instead of word tests; the tables become the pack's.</td>
+      </tr>
+      <tr>
+        <td>One global parser</td>
+        <td>
+          Importing a rule file registers its English syntax on one global parser; the root scope, the language server,
+          the highlighter, Monaco and the syntax table are all bound to it.
+        </td>
+        <td>6 bindings</td>
+        <td>A parser per language; a project's scope picks its language's.</td>
+      </tr>
+      <tr>
+        <td>Around the language</td>
+        <td>
+          The words file is <code>&lt;Project&gt;.en.js</code>, its <code>en</code> hard-coded in three places. VS
+          Code's grammar lists English keywords; its indent rule knows <code>otherwise|else</code>. About 14 warnings
+          and the "Don't understand" fallback are English sentences with English examples. The docs teach English spell.
+        </td>
+        <td>3 tools, 15 messages, 2 docs pages</td>
+        <td>Per language where it reaches an author; the docs later (1.4).</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>Some of it is ready for a second language already:</p>
+<ul>
+  <li>
+    A rule class and its syntax are separate: <code>addRule(Class, { syntax, tests })</code>. The docs say so, "the
+    class is the rule, reusable by other languages' parsers with their own <code>syntax</code>".
+  </li>
+  <li>
+    Negation has a translation hook, <code>Negatable.specialize({ ruleName: "es" })</code> with
+    <code>(es|(negated:no es))</code>, shown in spell's own AGENTS.md.
+  </li>
+  <li>
+    The built-in types' words are data,
+    <a href="../../../spell-lang/spell/src/builtinTypes.ts" target="src-spell-lang-spell-src-builtintypes-ts"
+      ><code title="spell-lang/spell/src/builtinTypes.ts:509">TYPE_WORDS</code></a
+    >, documented "a translation brings its own"; the parser's <code>typeName()</code> takes the table as a parameter.
+  </li>
+  <li>
+    The words file reader accepts any language code (<code>es</code>, <code>pt-BR</code>); the app's
+    <a
+      href="../../../spell-app/app/components/spell-code/SpellLanguage.ts"
+      target="src-spell-app-app-components-spell-code-spelllanguage-ts"
+      ><code title="spell-app/app/components/spell-code/SpellLanguage.ts:60">TRANSLATIONS</code></a
+    >
+    has a <code>spell/&lt;lang&gt;</code> slot, "a translation will bring its own parser".
+  </li>
+  <li>
+    Spell UI's vocabularies are the house model: canonical English names, a dictionary per language, a miss falling back
+    to English.
+  </li>
+  <li>
+    A Spanish card exists,
+    <a
+      href="../../../spell-app/spaces/@spell/examples/outline-solitaire/Card.spell-es"
+      target="src-spell-app-spaces-spell-examples-outline-solitaire-card-spell-es"
+      ><code title="spell-app/spaces/@spell/examples/outline-solitaire/Card.spell-es">Card.spell-es</code></a
+    >, 118 lines, hand-translated in 2025 and never parsed. It is the first target.
+  </li>
+</ul>
+<epic-code title="Card.spell-es · the first lines" language="spell" open>
+  <pre>
+una carta es una cosa
+
+las cartas tienen un rango como uno de as, 2, 3, 4, 5, 6, 7, 8, 9, 10, jota, reina o rey
+las cartas tienen un palo como uno de tréboles, diamantes, corazones o espadas
+
+el color de una carta es rojo si su palo es diamantes o corazones de lo contrario es negro
+una carta tiene una dirección como arriba o abajo
+
+una carta "está boca arriba" si su dirección es arriba
+una carta "es un (palo)" para sus palos
+el nombre de una carta es: su rango + "-de-" + su palo</pre>
+</epic-code>
+<p>
+  The counts above come from five read-only surveys of the code (2026-10-21): the tokenizer and generic parser, the rule
+  modules, the words and plural machinery, the tooling around the language, and the prior notes.
+</p>

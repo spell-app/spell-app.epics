@@ -1,0 +1,78 @@
+<!-- plan-doc part:  #o2's body in spanish.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A language is a set of rules, not a fork of the parser. Everything the table in 1.1 says "changes" is gathered into
+  one thing, a LANGUAGE PACK: English is the first pack, Spanish the second, and a project names the one it's written
+  in.
+</p>
+<p>What a pack holds:</p>
+<ul>
+  <li>which characters make a word, and how words inflect (singular and plural, with irregulars)</li>
+  <li>
+    the small words: articles, the subject words (<code>it</code> / <code>its</code>), booleans, number words, ordinals,
+    the identifier blacklist, member stop words, dangling prepositions
+  </li>
+  <li>
+    the built-in types' words (<code>texto</code>, <code>número</code>, <code>lista</code>, <code>cosa</code>) and their
+    members' (<code>largo</code>, <code>año</code>, <code>caracteres</code>), onto the same core calls
+  </li>
+  <li>every rule's syntax and its tests, registered on the SAME rule classes as English</li>
+  <li>
+    the messages an author reads: the warnings and the "Don't understand" fallback, with examples in that language
+  </li>
+  <li>spell's own JSX words (<code>children</code>, <code>in</code>)</li>
+</ul>
+<p>How one rule serves both languages, illustrative:</p>
+<epic-code title="IsEqual, registered twice · illustrative" language="ts">
+  <pre>
+// the English module, today's registration (rules/expressions/IsEqual.ts)
+expressions.addRule(IsEqual, {
+  syntax: "{lhs:operand} (operator:is|(negated:is not|isn't)) {rhs:operand}",
+  tests: [["the card is the ace", "card === ace"]]
+})
+
+// the Spanish module (languages/es/expressions.ts)
+expressions.addRule(IsEqual, {
+  syntax: "{lhs:operand} (operator:es|está|(negated:no es|no está)) {rhs:operand}",
+  tests: [["la carta es el as", "carta === as"]]
+})
+
+// IsEqual.compile() reads match.groups.negated, never the word "not"</pre>
+</epic-code>
+<p>How a project picks its pack:</p>
+<ul>
+  <li>
+    <code>language: "es"</code> in the project's settings file, beside <code>listsStartAt</code>; the Project Settings
+    panel edits it. Files stay <code>.spell</code>.
+  </li>
+  <li>the project's scope clones the Spanish parser instead of the English one</li>
+  <li>its words file is <code>&lt;Project&gt;.es.js</code> (and <code>.py.es.json5</code> for Python)</li>
+  <li>the highlighter and the language server read the parser off the scope, so colours and completions follow</li>
+</ul>
+<p>Names stay the author's:</p>
+<ul>
+  <li>
+    <code>para "mover (una carta) a (una pila)"</code> compiles to <code>moverAPila</code>, as
+    <code>move (a card) to (a pile)</code> compiles to <code>moveToPile</code>
+  </li>
+  <li>an accent stays: <code>corazón</code> is a legal name in JavaScript and Python (question Q2)</li>
+  <li>
+    the core's own names (<code>itemCountOf</code>, <code>randomItemOf</code>) stay English: compiled code calls them,
+    nobody reads them
+  </li>
+</ul>
+<epic-aside title="the model:  Spell UI's dictionaries">
+  <p>
+    Spell UI gives every component an English vocabulary (<a
+      href="../../../spell-ui/components/ui-button/UIButton.en.ts"
+      target="src-spell-ui-components-ui-button-uibutton-en-ts"
+      ><code>UIButton.en.ts</code></a
+    >) and a <code>Dictionary</code> per language mapping those canonical names to local ones, a miss falling back to
+    English. A rule class is the canonical name; its syntax string is the dictionary entry. Spell UI's
+    <a
+      href="../../../spell-ui/src/vocabulary/SharedVocabulary.es.ts"
+      target="src-spell-ui-src-vocabulary-sharedvocabulary-es-ts"
+      ><code>SharedVocabulary.es.ts</code></a
+    >
+    already names a few attributes in Spanish.
+  </p>
+</epic-aside>
