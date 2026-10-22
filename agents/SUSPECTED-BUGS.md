@@ -889,6 +889,17 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
 
 ## epics
 
+- Guides that still fetch their data at pre-split paths (2026-10-22, found by epic `readme` P14's voice pass;  already
+  failing before it):
+  - the core reference page (`guides/targets/core-reference.html`):  its data at `../../packages/core/...`, so its
+    tables don't draw;  `check-spell.js` reports 12 not-found errors
+  - the spell syntax guide (`guides/spell-syntax/spell-syntax.html`):  `data-choices-rows="../../packages/spell/
+    spellSyntax.json"` (likely the cause of its two 404s;  not verified)
+  - and `doc-links.js --check` reports old-layout links (`packages/...`, `../spell-lang/...`) on about 40 guides
+- `doc-links.js` gives one target name to two different files when the kit's `spell-ui/` and a second copy under
+  `spell-app/spell-ui/` both match (solid-migration's `src-spell-ui-readme-md`, spell-ui-pages' `ThemeFamilies.ts` and
+  `SiteCheck.ts`), so `--check` fails on those pages.  Why spell-app has a `spell-ui` inside it isn't known.
+
 - `epic worktree merge-main` with a checkout patch's file in place (2026-10-22, epic `readme`):  the kit's `.ignore`,
   which main's epic-engine P17 tracks AND copies untracked (git-excluded) into each checkout behind main.  The merge of
   main into `readme` (ced7b43, which also stopped on a `.epic/config.json5` conflict and was finished with
