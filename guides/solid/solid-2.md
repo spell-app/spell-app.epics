@@ -162,7 +162,7 @@ count() // 1
   `@solidjs/h`).  It draws with `h()` directly (BUILT, `output-targets` P20, `core`'s `drawing.ts`;  before it,
   `core.element()`, gone since P22):
   - `h()` returns a THUNK:  `draw()` returns it as is, and the error boundary makes it (`madeOnce()`), once, inside its
-    `try`, so a throw while it's made shows the stand-in.  Only `h()`'s own thunks:  any other function stays a live
+    memo, so a throw while it's made shows the stand-in (`<Errored>`'s fallback).  Only `h()`'s own thunks:  any other function stays a live
     value.  Nested `h()` calls are made by their parent.
   - the parser emits a FUNCTION for every value that can change (`() => this.shortSuit`, an `ASTJSXLiveValue`)
   - the WRITER writes the page's spellings:  `class`, `for`, `colspan`;  on a tag with a dash, a live value or an
@@ -360,7 +360,10 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
 - Attributes are HTML:  lowercase built-in names, boolean = presence.
   - The 1.x forms are COMPILE ERRORS since rc.17, on native elements and dashed tags alike:
     `on:`, `oncapture:`, `attr:`, `bool:`, `use:`, `classList`.  The message names the 2.0 replacement.
-- On a tag with a dash, a plain prop is a STRING ATTRIBUTE:  rich data MUST be `prop:options={...}`.
+- On a tag with a dash, Solid sets a plain prop with `setAttribute(name, value)`, the value as it is.
+  - On OUR elements that's enough:  a function or object reaches the element as itself (`options={[...]}`),
+    through `spell-kit/element`'s `RichAttributes`;  text stays an attribute.
+  - On anyone else's, the browser turns it into text:  rich data there is `prop:options={...}`.
   - a valueless `prop:active` is `prop:active={true}` (rc.17;  before, it was dropped)
 - Solid clones a dashed tag's template with `document.importNode()`:
   a DEFINED custom element is upgraded BEFORE Solid sets its props, an undefined one isn't.
@@ -371,8 +374,11 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
     Lowercase `onclick={fn}` is a plain attribute:  dev warns `LOWERCASE_EVENT_ATTRIBUTE`
   - `onChange` is the native change event -- use `onInput` per keystroke
   - the event's name is the rest, LOWERCASED:  `onUIChange` listens for `uichange`, NOT `ui-change`
-    - so a hyphenated event can't be bound by a JSX prop yet:  use a ref directive (below)
-    - (planned, epic `solid-17` P5) `on-ui-change={f}`, through our elements' own `setAttribute()`
+    - so on OUR elements (`ui-*`, `epic-*` ...), write the event's own name after `on-`:  `on-ui-change={f}`
+      - our elements take it in their own `setAttribute()` (`spell-kit/element`'s `RichAttributes`, epic `solid-17`)
+      - data the same way, a plain prop:  `options={[...]}` arrives as the array itself;  no `prop:`
+      - Solid's dev build warns `LOWERCASE_EVENT_ATTRIBUTE` once per such name:  expected, harmless
+    - any other element's hyphenated event:  a ref directive (below)
   - native options (capture, passive):  a ref directive too
 - Form inputs:  `value={x()}` writes the input only when its binding re-runs,
   and a change to ANY other dynamic attribute in the same template re-runs it.
@@ -407,8 +413,8 @@ const row = <li class={["todo", props.class, { done: done(), error: !!error() }]
 const picker = (
   <ui-dropdown
     value={selected()}
-    prop:options={projects()}
-    ref={on("ui-change", (event) => setSelected((event as CustomEvent<{ value: string }>).detail.value))}
+    options={projects()}
+    on-ui-change={(event: CustomEvent<{ value: string }>) => setSelected(event.detail.value)}
   />
 )
 
