@@ -5,7 +5,7 @@ For people:  `spell-docs.html` beside this explains the concept and `/epic`;  th
 How to WRITE a page (headings, widgets, code, links):  `../AGENTS.md`.  The scripts are the truth where this drifts.
 
 @spell-app/ui is unfinished, and these pages are also a test of it.  Work around a UI problem here when that's
-reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it either way in `spell-ui-findings.md`.
+reasonable, fix it in `spell-ui` when it's a real `ui` bug, and record it either way in `spell-ui-findings.md`.
 
 ## History
 
@@ -30,9 +30,9 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 
 | File | What |
 |---|---|
-| `scripts/update.js` (`spell dev docs update`) | bundle, `docs index`, `doc-links.js --check`, `check-spell.js` on every page |
+| `scripts/update.js` (`epic pages update`) | bundle, `docs index`, `doc-links.js --check`, `check-spell.js` on every page |
 | `scripts/bundle-spell-ui.js` | builds UI (fork + `yarn build`), then bundles `_assets/spell-ui.entry.js` -> `_assets/spell-ui.js` |
-| `scripts/index.js` (`spell dev docs index`) | rewrites the lists in `index.html` from every page's title and description |
+| `scripts/index.js` (`epic pages index`) | rewrites the lists in `index.html` from every page's title and description |
 | `scripts/pages.js` | where the docs are, `findPages()`, `tidy()` (link targets + oxfmt) -- shared by the scripts |
 | `scripts/check-spell.js` | Playwright checks + four screenshots of one page |
 | `scripts/doc-links.js` | links `<code>path</code>` references;  `--check` verifies every link |
@@ -52,7 +52,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Short Title</title>
     <meta name="description" content="One sentence:  shown on its list page." />
-    <link rel="stylesheet" href="../../packages/epics/tools/_assets/spell-doc.css" />
+    <link rel="stylesheet" href="../../spell-epic/src/tools/_assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page">
     <div class="spell-doc">
@@ -73,7 +73,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
       </main>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="../../packages/epics/tools/_assets/spell-ui.js"></script>
+    <script src="../../spell-epic/src/tools/_assets/spell-ui.js"></script>
   </body>
 </html>
 ```
@@ -111,7 +111,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
   - a page without a sticky page header:  the last row of its filter bar, else a sticky bar of its own
   - an epic page's (`buildToolbar()`):  icons only, in `<epic-page>`'s header
   - it can run again (a page updated in place):  it replaces what it built first
-- The site header (`<spell-site-header>`, `$/server/site`):  fixed on top of every page, its height
+- The site header (`<spell-site-header>`, `spell-kit/server/site`):  fixed on top of every page, its height
   `--spell-site-header-height` on `:root` (`siteHeaderHeight()`).  Everything that sticks or lands starts below it:
   the page header and its toolbar, the filter bar, the titles.
 - Sticky titles (`trackStickyHeights()`):  an optional page header (`ui-sticky.spell-h1`) just below the site header,
@@ -160,7 +160,7 @@ reasonable, fix it in `packages/ui` when it's a real `ui` bug, and record it eit
 
 ## Verification
 
-- `spell dev docs update` must pass;  `--skip-ui-build` reuses `../ui/dist`, `--no-check` skips the browser checks.
+- `epic pages update` must pass;  `--skip-ui-build` reuses `../ui/dist`, `--no-check` skips the browser checks.
 - `node scripts/check-spell.js <page> [outDir]` checks one page and writes four screenshots -- look at them.
   - fails on:  console errors, undefined or unrendered `ui-*`, a toolbar that doesn't list every top-level section or
     isn't stuck at the top at phone width, phone-width overflow, a top-level title that doesn't stick (a `<ui-section>` must

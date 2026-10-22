@@ -1,6 +1,6 @@
 # @spell-app/ui findings from the `.html` docs
 
-Problems in @spell-app/ui (`packages/ui`) met while building the `.html` docs with `ui-*` widgets:
+Problems in @spell-app/ui (`spell-ui`) met while building the `.html` docs with `ui-*` widgets:
 `yarn docs:update` bundles UI into one classic script (`_assets/spell-ui.js`), and the pages open from file://.
 Each finding:  component, symptom, repro, the workaround used here, a suggested fix.  Workarounds live in
 `_assets/spell-doc.css`, `_assets/spell-doc-runtime.js` and `scripts/bundle-spell-ui.js`.
@@ -188,7 +188,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
     - workaround:  the rail slots a `<ui-icon name>` into the item instead (`buildRail()` in `spell-doc-runtime.js`)
     - suggest:  `agents/SUSPECTED-BUGS.md`, `## ui`;  measure the shorthand's svg in a menu example
 
-22. **`ui-sticky` covered what Page Down scrolled to** -- fixed in `packages/ui` (2026-10-01)
+22. **`ui-sticky` covered what Page Down scrolled to** -- fixed in `spell-ui` (2026-10-01)
     - symptom:  Page Down / Space scrolled a full viewport, so the lines that ended under the stuck headers were
       never seen
     - fix:  a stuck `<ui-sticky>` sets its scroll container's `scroll-padding-top` (`-bottom` at the bottom edge) to
