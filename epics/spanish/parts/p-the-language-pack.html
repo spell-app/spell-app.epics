@@ -1,0 +1,154 @@
+<!-- plan-doc part:  #p-the-language-pack's body in spanish.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    English is scattered: eight word tables, about 62 rules reading English words in code, the registrations inline in
+    239 rule files, one global parser everything binds to.
+  </p></epic-field
+><epic-field name="changes"
+  ><p>
+    Rule files define CLASSES only; a <code>&lt;module&gt;.en.ts</code> per folder registers its rules with English
+    syntax and tests.
+  </p>
+  <p>The words rules read in code become small NAMED RULES each language registers; no new rulex features.</p>
+  <p>
+    One <code>SP.Language</code> per language holds the inflector, tokenizer, word tables, module parsers and messages.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Per rules folder, a <code>&lt;module&gt;.en.ts</code> (<code>assignment.en.ts</code> …) holding every
+      <code>addRule(Class, { syntax, tests })</code> of that folder; the rule files keep only the classes;
+      <a href="../../../spell-lang/spell/src/rules/index.ts" target="src-spell-lang-spell-src-rules-index-ts"
+        ><code title="spell-lang/spell/src/rules/index.ts">rules/index</code></a
+      >
+      assembles the English parser from the <code>.en.ts</code> files. Owen's shape, from his comment on 1.4 (M5).
+    </li>
+    <li>
+      Translatable WORD RULES, after
+      <a
+        href="../../../spell-lang/spell/src/rules/expressions/Negatable.ts"
+        target="src-spell-lang-spell-src-rules-expressions-negatable-ts"
+        ><code title="spell-lang/spell/src/rules/expressions/Negatable.ts">Negatable</code></a
+      >'s pattern (<code>specialize({ ruleName })</code>, a <code>negated</code> group, <code>isNegated()</code>):
+      <code>definite_article</code>, <code>indefinite_article</code>, <code>is_or_is_not</code>,
+      <code>is_or_is_not_a</code> (singular AND plural: <code>is a</code>, <code>are</code>, <code>is not a</code>,
+      <code>aren't</code>, so <code>cards in the hand which are not a face card</code> parses; his comment M1),
+      <code>has_or_has_not</code>, <code>can_or_cannot</code>, <code>does_or_does_not</code>, <code>it</code> /
+      <code>its</code>, <code>and_or</code>, <code>is_or_are</code>, <code>has_or_have</code> …
+    </li>
+    <li>
+      Every rule that inspected a word in code (<code>=== "is not"</code>, <code>.includes("not")</code>,
+      <code>["a", "an"]</code>, <code>"it"</code>) uses the word rule in its syntax (<code>{is_or_is_not}</code>) and
+      reads its match, never the word: the ~62 rules, module by module, English tests green throughout. No new rulex
+      features (<a href="#q4">Q4</a>).
+    </li>
+    <li>
+      The inferred-phrase path (<code>- it "is a (suit)"</code>:
+      <a
+        href="../../../spell-lang/spell/src/rules/classes/QuotedPropertyFormula.ts"
+        target="src-spell-lang-spell-src-rules-classes-quotedpropertyformula-ts"
+        ><code title="spell-lang/spell/src/rules/classes/QuotedPropertyFormula.ts">QuotedPropertyFormula</code></a
+      >,
+      <a
+        href="../../../spell-lang/spell/src/rules/methods/QuotedTypeExpression.ts"
+        target="src-spell-lang-spell-src-rules-methods-quotedtypeexpression-ts"
+        ><code title="spell-lang/spell/src/rules/methods/QuotedTypeExpression.ts">QuotedTypeExpression</code></a
+      >) builds its syntax from those same rules, with a test, so a Spanish <code>- "es un (palo)"</code> infers
+      <code>es</code> / <code>no es</code> and <code>un</code> / <code>una</code> the same way.
+    </li>
+    <li>
+      One <code>SP.Language</code> per language (<code>spell/src/languages/</code>): <code>lang</code>, the inflector
+      (pluralize, singularize, plurality), the tokenizer (word characters, decimal separator: his comment M4), number
+      words, booleans, ordinals, the blacklist (slimmed in <a href="#p-blacklist-analysis">P2</a>), member stop words,
+      dangling words, the built-in types' words and members, spell's JSX words, messages, the parser and its root scope.
+      <code>SP.languages.en</code> is today's grammar, unchanged in behaviour; the eight word tables move into
+      <code>languages/en/</code>.
+    </li>
+    <li>
+      <code>pluralize()</code> and <code>singularize()</code> take the inflector from the parser (the parser's
+      <code>typeName(written, typeWords)</code> already takes the table); the parser carries its language.
+    </li>
+    <li>
+      The root scope is per language; the highlighter, the syntax table, the language server's scope explorer and
+      formatter, and Monaco's tokens provider take a parser instead of the global one.
+    </li>
+    <li>A guard test greps rule code for English word literals, so they don't creep back.</li>
+    <li>
+      Owen reviews this phase's diff BEFORE <a href="#p-spanish-core">P5</a> ("this will want careful review in any
+      case"): the phase ends uncommitted, the reply listing the word rules made and the rules that now use them.
+    </li>
+  </ul></epic-field
+><epic-field name="files"
+  ><p>
+    Every folder of
+    <a href="../../../spell-lang/spell/src/rules/" target="src-spell-lang-spell-src-rules"
+      ><code title="spell-lang/spell/src/rules">rules/</code></a
+    >
+    (a <code>&lt;module&gt;.en.ts</code> each, the classes stay),
+    <a href="../../../spell-lang/spell/src/rules/index.ts" target="src-spell-lang-spell-src-rules-index-ts"
+      ><code title="spell-lang/spell/src/rules/index.ts">rules/index</code></a
+    >; <code title="spell-lang/spell/src/languages/Language.ts">Language</code> and <code>languages/en/</code>;
+    <a href="../../../spell-lang/spell/src/builtinTypes.ts" target="src-spell-lang-spell-src-builtintypes-ts"
+      ><code title="spell-lang/spell/src/builtinTypes.ts">builtinTypes</code></a
+    >,
+    <a
+      href="../../../spell-lang/spell/src/rules/lists/Ordinal.ts"
+      target="src-spell-lang-spell-src-rules-lists-ordinal-ts"
+      ><code title="spell-lang/spell/src/rules/lists/Ordinal.ts">Ordinal</code></a
+    >,
+    <a
+      href="../../../spell-lang/spell/src/rules/core/BooleanLiteral.ts"
+      target="src-spell-lang-spell-src-rules-core-booleanliteral-ts"
+      ><code title="spell-lang/spell/src/rules/core/BooleanLiteral.ts">BooleanLiteral</code></a
+    >,
+    <a
+      href="../../../spell-lang/spell/src/rules/core/NumberAsString.ts"
+      target="src-spell-lang-spell-src-rules-core-numberasstring-ts"
+      ><code title="spell-lang/spell/src/rules/core/NumberAsString.ts">NumberAsString</code></a
+    >,
+    <a
+      href="../../../spell-lang/spell/src/rules/core/NumberLiteral.ts"
+      target="src-spell-lang-spell-src-rules-core-numberliteral-ts"
+      ><code title="spell-lang/spell/src/rules/core/NumberLiteral.ts">NumberLiteral</code></a
+    >, the tokenizer's
+    <a
+      href="../../../spell-lang/parser/src/tokenizer/Tokenizer.ts"
+      target="src-spell-lang-parser-src-tokenizer-tokenizer-ts"
+      ><code title="spell-lang/parser/src/tokenizer/Tokenizer.ts">NUMBER</code></a
+    >
+    per language;
+    <a href="../../../spell-lang/spell/src/SpellParser.ts" target="src-spell-lang-spell-src-spellparser-ts"
+      ><code title="spell-lang/spell/src/SpellParser.ts">SpellParser</code></a
+    >,
+    <a
+      href="../../../spell-lang/spell/src/highlight/SpellHighlighter.ts"
+      target="src-spell-lang-spell-src-highlight-spellhighlighter-ts"
+      ><code title="spell-lang/spell/src/highlight/SpellHighlighter.ts">SpellHighlighter</code></a
+    >,
+    <a href="../../../spell-lang/spell/src/node/spellSyntax.ts" target="src-spell-lang-spell-src-node-spellsyntax-ts"
+      ><code title="spell-lang/spell/src/node/spellSyntax.ts">spellSyntax</code></a
+    >;
+    <a href="../../../util/src/spell/string.ts" target="src-util-src-spell-string-ts"
+      ><code title="util/src/spell/string.ts">string</code></a
+    >
+    (the inflector hook),
+    <a href="../../../spell-lang/parser/src/parser.types.ts" target="src-spell-lang-parser-src-parser-types-ts"
+      ><code title="spell-lang/parser/src/parser.types.ts">parser.types</code></a
+    >,
+    <a href="../../../spell-lang/parser/src/Parser.ts" target="src-spell-lang-parser-src-parser-ts"
+      ><code title="spell-lang/parser/src/Parser.ts">Parser</code></a
+    >;
+    <a href="../../../spell-app/lsp/src/ScopeExplorer.ts" target="src-spell-app-lsp-src-scopeexplorer-ts"
+      ><code title="spell-app/lsp/src/ScopeExplorer.ts">ScopeExplorer</code></a
+    >; the module test runners in
+    <a href="../../../spell-lang/tests/spell/src/rules/" target="src-spell-lang-tests-spell-src-rules"
+      ><code title="spell-lang/tests/spell/src/rules">tests/spell/src/rules/</code></a
+    >.
+  </p></epic-field
+><epic-field name="verify"
+  ><p>
+    ZERO English change: the full spell-lang suite at the same counts (rules, fixtures, parser tests, the
+    <code>ruleNames</code> snapshot with the new word rules added); <code>yarn spell:gen:syntax</code> regenerated, new
+    rows for the word rules and every existing row's example output identical; <code>yarn review</code>.
+  </p></epic-field
+>
