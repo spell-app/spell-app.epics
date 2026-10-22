@@ -4,7 +4,7 @@ Tested on throwaway copies moved into a `www/spell/` layout with compat links at
 
 Three facts behind most rows:
 - git gives REAL paths (`git rev-parse --git-common-dir`), so `Git.mainRoot()` is the real path.
-- Without git, the main checkout is what a worktree's `.git` file says (`checkoutOf()`, spell-app server/src/checkout.ts):  the OLD path until `git worktree repair`.
+- Without git, the main checkout is what a worktree's `.git` file says (`checkoutOf()`, spell-app src/server/checkout.ts):  the OLD path until `git worktree repair`.
 - Claude Code keys sessions by `realpathSync(process.cwd())`;  the Bash tool records a `cd` through a link as the old path.
 
 | What | Breaks? | Fix |
