@@ -64,7 +64,7 @@ Places where today's code disagrees with a rule the merged WWOD adopts (D3:  rul
 
 - `vscode/src/WindowBridge.ts` `BridgeError`:  no `prototype.name`;  `process.env` (`SPELL_WINDOWS_DIR`)
 - `docs/scripts/*.js`:  `process.env` reads
-- `lsp/src/SpellLanguageServer.ts:228`:  `{ ok: false }` result (WWOD §5 / §7);  also in vscode, ui/tools (8 in all)
+- `spell-app/src/lsp/SpellLanguageServer.ts:228`:  `{ ok: false }` result (WWOD §5 / §7);  also in vscode, ui/tools (8 in all)
 
 ## Every package
 
