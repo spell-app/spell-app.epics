@@ -367,6 +367,9 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
   - a valueless `prop:active` is `prop:active={true}` (rc.17;  before, it was dropped)
 - Solid clones a dashed tag's template with `document.importNode()`:
   a DEFINED custom element is upgraded BEFORE Solid sets its props, an undefined one isn't.
+  - `<ui-root>` defines every Spell UI tag up front (epic `solid-17` P7), so ours are always defined:
+    PENDING (`:state(pending)`) until their family loads, then `:state(ready)` once drawn.
+  - "Its family has loaded" is `E.DOMElement.isAttached(tag)` / `whenAttached(tag)`, NEVER `:defined`.
 - Events:
   - `onClick` etc. are camelCase, delegated per render root.  The binding is NOT reactive:  put the choice inside
     the handler.
