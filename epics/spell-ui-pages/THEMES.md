@@ -1,11 +1,11 @@
 # spell-ui-pages -- themes contract (P6)
 
-Read `BRIEF.md` beside this first, then `packages/ui/notes/theming.md` IN FULL, and `packages/ui/src/styles/themes/classic.css`.
+Read `BRIEF.md` beside this first, then `packages/ui/notes/theming.md` IN FULL, and `spell-ui/src/styles/themes/classic.css`.
 
 ## The contract (every theme agent codes to it)
 
-- One sheet per Fomantic theme:  `packages/ui/src/styles/themes/<name>.css`, everything inside `@layer ui.theme { ... }`.
-  Assets (fonts, images) a theme needs:  `packages/ui/src/styles/themes/<name>/`, referenced relatively.
+- One sheet per Fomantic theme:  `spell-ui/src/styles/themes/<name>.css`, everything inside `@layer ui.theme { ... }`.
+  Assets (fonts, images) a theme needs:  `spell-ui/src/styles/themes/<name>/`, referenced relatively.
 - Fomantic's themes are DELTAS on Fomantic's default look.  Ours equivalent of that default look is the existing
   `classic.css`.  So a Fomantic theme is applied ON TOP of `classic`:  the loader registers `classic` + `<name>`.
   Don't copy classic's tokens into your sheet;  only the theme's own differences.
@@ -32,11 +32,11 @@ Read `BRIEF.md` beside this first, then `packages/ui/notes/theming.md` IN FULL, 
 
 ## Verify (each agent, for each of its themes)
 
-- A browser test `packages/ui/src/styles/themes/themes.test.ts` (T1 creates it;  others ADD cases -- append, don't
+- A browser test `spell-ui/tests/styles/themes/themes.test.ts` (T1 creates it;  others ADD cases -- append, don't
   rewrite):  apply the theme, render the touched components, assert at least one computed style per touched
   component INSIDE the shadow root (e.g. github button background, material button text-transform).
 - `yarn ts`, then the theme tests (`yarn vitest run --project browser src/styles/themes` or the package's way),
-  in `packages/ui`.  Don't run the whole `yarn review` concurrently with other agents unless last.
+  in `spell-ui`.  Don't run the whole `yarn review` concurrently with other agents unless last.
 - Screenshot one page per theme (Playwright, scratch script in the session scratchpad
   `/private/tmp/claude-501/-Users-owen-www-spell-app-spell-app--claude-worktrees-ui-import/2ae3516d-0bd8-43bf-bea9-0bb84f2b93a2/scratchpad/`),
   showing the touched components, and LOOK at it vs fomantic-ui.com with that theme (their themes page,

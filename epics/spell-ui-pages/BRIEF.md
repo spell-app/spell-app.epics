@@ -13,15 +13,15 @@ decide, record, go on.
 
 ## What we're building
 
-Spell UI's docs site (`packages/ui/site`, today Astro + MDX) is being REPLACED by hand-authored, plain `.html`
+Spell UI's docs site (`spell-ui/site`, today Astro + MDX) is being REPLACED by hand-authored, plain `.html`
 pages in Fomantic UI's docs style (fomantic-ui.com), built ONLY from `<ui-*>` widgets, to show where the widgets
 have gaps.
 
-- Pages:  `packages/ui/site/*.html` and `packages/ui/site/components/ui-<name>.html`, served by the page server
+- Pages:  `spell-ui/site/*.html` and `packages/ui/site/components/ui-<name>.html`, served by the page server
   at `/ui/` (`/ui/components/ui-button.html`).  Static files;  no build step to VIEW a page.
 - Template:  `templates/spell-ui-docs.html`.
-- Script:  ONE committed ESM bundle in `packages/ui/site/_assets/` (built from `packages/ui` source by
-  `yarn site:build` in `packages/ui`, committed like docs' `spell-ui.js`), loaded by every page as
+- Script:  ONE committed ESM bundle in `spell-ui/site/_assets/` (built from `spell-ui` source by
+  `yarn site:build` in `spell-ui`, committed like docs' `spell-ui.js`), loaded by every page as
   `<script type="module" src="<rel>/_assets/site.js">`.  It defines `<ui-root>` (which lazy-loads every other
   family on first use), the doc-only elements' catalog, `<spell-site-header>`, every icon pack.
 - Shared header / footer:  `packages/ui/site/_parts/*.html`, pulled in with `<ui-include>`.
@@ -29,7 +29,7 @@ have gaps.
   family sheets by `yarn site:data` (part of `yarn site:build`), committed.  The doc-only elements fetch it;  they
   NEVER import vocabularies (that would drag ~325 KB of source into every bundle).
 - Doc-only elements:  `packages/ui/src/docs-components/ui-docs-<name>/`, written exactly like a component family
-  (`packages/ui/AGENTS.md` "Solid authoring":  controller class, vocabulary with `topics` + `aka`, fallback, css,
+  (`spell-ui/AGENTS.md` "Solid authoring":  controller class, vocabulary with `topics` + `aka`, fallback, css,
   tests, examples), but NOT listed in the normal component docs.  `<ui-root>` knows them (its catalog + loader).
   - `<ui-docs-example>`:  Fomantic's example block:  header + description, the live children, and their SOURCE
     (read from its own light-DOM markup, normalised + indented) in a `<ui-code language="html">`, shown / hidden by a
@@ -41,7 +41,7 @@ have gaps.
     (Owen prefers this to Fomantic's per-group menus), A-Z / Topics switch, search `<ui-input>`, favourites;  built
     from `<ui-menu vertical>` / `<ui-item>` etc.
   - `<ui-docs-themes>`:  theme `<ui-dropdown>` (every sheet in `src/styles/themes/`) + light / dark / system.
-- Themes:  each Fomantic theme becomes `packages/ui/src/styles/themes/<name>.css`, a token sheet in
+- Themes:  each Fomantic theme becomes `spell-ui/src/styles/themes/<name>.css`, a token sheet in
   `@layer ui.theme` (`packages/ui/notes/theming.md`).
 
 ## Fomantic sources (read-only, git-ignored)
@@ -59,11 +59,11 @@ have gaps.
 - A widget can't do what a Fomantic example / the chrome needs:  that's a GAP.  Record it as a plan-doc issue
   (below), title `Gap:  <ui-tag> <what's missing>`, details:  the Fomantic example, what you did instead.  Fix it in
   the widget ONLY if < ~15 min and local to that one widget (then also note it in the issue and close it).
-- Root `AGENTS.md`, `packages/ui/AGENTS.md`, `guides/solid/solid-2.md` (Solid 2 is neither React nor
+- Root `AGENTS.md`, `spell-ui/AGENTS.md`, `guides/solid/solid-2.md` (Solid 2 is neither React nor
   Solid 1) apply.  Docstrings per the root's "Documentation".
 - Suspected bugs:  `agents/SUSPECTED-BUGS.md` (repo root, `## ui`);  tooling papercuts:  `agents/PAPERCUTS.md`.
 
-## Plan doc commands (run from the WORKTREE ROOT:  `packages/ui` has no `plan-doc` script)
+## Plan doc commands (run from the WORKTREE ROOT:  `spell-ui` has no `plan-doc` script)
 
 ```
 yarn plan-doc add spell-ui-pages issue|caveat|decision|todo "title" --details "<p>html</p>"   prints the id

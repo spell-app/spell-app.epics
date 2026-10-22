@@ -1,12 +1,12 @@
 # spell-ui-pages -- writing a component page (P4)
 
-Read `BRIEF.md` beside this first.  The pilot, `packages/ui/site/components/ui-button.html`, is the model:  open it
+Read `BRIEF.md` beside this first.  The pilot, `spell-ui/docs/ui-button.html`, is the model:  open it
 beside this file and copy its patterns.  One agent = one or a few families;  write ONLY your pages, never the
 template, `site/_src/`, `site/_parts/` or another agent's page.
 
 ## 1. Make the page
 
-From `packages/ui`:
+From `spell-ui`:
 
 ```
 yarn site:new ui-card                  # => site/components/ui-card.html  (any tag of the family works:  ui-cards too)
@@ -75,7 +75,7 @@ so `#examples-types-emphasis` deep-links to it (its tab shown, the sections arou
 </ui-section>
 ```
 
-- Easiest:  write it FLAT and let `yarn site:sections` (in `packages/ui`, `scripts/site-sections.ts`) nest it:
+- Easiest:  write it FLAT and let `yarn site:sections` (in `spell-ui`, `scripts/site-sections.ts`) nest it:
   `<ui-header level="2" dividing>Types</ui-header>`, then `<ui-docs-example header="Emphasis" description>` blocks
   (and, rarely, `<ui-header level="3">` sub-sections).  It wraps each header and what follows it in a section, each
   headed example in a section of its own (the example loses its `header`:  the section shows it), and writes the
@@ -189,7 +189,7 @@ needs hand CSS -- is a GAP:
 
 ## 7. Checks (all before you report)
 
-From `packages/ui`:
+From `spell-ui`:
 
 1. `yarn site:check ui-<name>` -- must print `OK`.  Fails on console errors, 404s, undefined / unrendered `ui-*`, a
    missing tab, an empty toc on the Examples tab, phone-width overflow (it names the offenders:  usually an example;
