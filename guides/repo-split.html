@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Repos and the Kit</title>
+    <meta
+      name="description"
+      content="How Spell's code is split into repos:  the kit at the bottom, five child repos cloned inside it, one import name per file, the commands, worktrees and CI."
+    />
+    <meta name="spell-saga" content="tooling" />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page">
+    <spell-site-header root=".."></spell-site-header>
+    <div class="spell-doc">
+      <main class="spell-doc-main">
+        <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
+          <ui-breadcrumb-section href="../pages/index.html" target="src-packages-docs-index-html"
+            >Docs</ui-breadcrumb-section
+          >
+          <ui-breadcrumb-section active>The Repos and the Kit</ui-breadcrumb-section>
+        </ui-breadcrumb>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>The Repos and the Kit</h1></header></ui-sticky
+        >
+        <p class="lede">
+          How Spell's code is laid out since the monorepo was split: what each repo holds, how they fit together, how
+          one file imports another, and how you work across them.
+        </p>
+        <ui-list class="spell-meta">
+          <ui-item icon="map"
+            ><b>Epic page:</b>
+            <a href="../epics/repo-split/repo-split.plan.html" target="repo-split">epic repo-split</a></ui-item
+          >
+          <ui-item icon="user"
+            >Written for: anyone new to the layout, about to clone it, change code in one repo, or make a change across
+            several</ui-item
+          >
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="green">built</ui-label> P1-P14 merged into <code>main</code> in every
+            repo, 2026-10-20 to 10-21</ui-item
+          >
+          <ui-item icon="flask"
+            >Checked against: the kit's and each child repo's files on <code>main</code>, 2026-10-22. What nobody has
+            tried by hand yet is under <a href="#8-limits">Limits</a>.</ui-item
+          >
+        </ui-list>
+
+        <ui-section id="1-summary" label="1. Summary" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <ui-statistics class="spell-stats" size="mini">
+            <ui-statistic value="6" label="repos"></ui-statistic>
+            <ui-statistic value="1" label="install"></ui-statistic>
+            <ui-statistic value="1" label="name per file"></ui-statistic>
+            <ui-statistic value="15" label="phases"></ui-statistic>
+          </ui-statistics>
+          <ul>
+            <li>
+              <b>The kit, spell-kit</b>, is the bottom of everything, checked out at <code>~/www/spell</code>.
+              <ul>
+                <li>
+                  It holds the code every repo stands on: util, the toolchain, the server, the element framework, the
+                  CLI.
+                </li>
+                <li>It holds the house style (WWOD) and the one install for every repo.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Five child repos</b> are cloned inside it, each its own git repo: spell-lang, spell-ui, spell-brand,
+              spell-epic, spell-app.
+            </li>
+            <li>
+              <b>Every arrow points down:</b> a repo uses only the kit and the repos below it.
+              <ul>
+                <li>A fix to Spell UI is one commit in spell-ui.</li>
+                <li><code>yarn clone spell-ui</code> needs nothing but the kit.</li>
+              </ul>
+            </li>
+            <li>
+              <b>Every repo is ONE npm package</b>, named after the repo, with its code under one
+              <a href="../src/" target="src-src"><code>src/</code></a
+              >.
+            </li>
+            <li>
+              <b>Every file has ONE name</b>, the same everywhere: the package's name plus its path under
+              <a href="../src/" target="src-src"><code>src/</code></a
+              >, like <code>spell-ui/components/ui-button</code>.
+            </li>
+          </ul>
+          <ui-message state="info" header="The one rule to remember">
+            <ul>
+              <li>
+                Run <code>yarn install</code> in the kit, never in a child repo; run git in the child repo you mean.
+              </li>
+            </ul>
+          </ui-message>
+        </ui-section>
+
+        <ui-section id="2-the-repos" label="2. The repos" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="layer group"></ui-icon>
+          <p>Six repos in layers, the kit at the bottom, with the content and your projects beside them as data.</p>
+
+          <ui-section id="the-layout" label="On disk" sticky collapsible dividing collapsed>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>~/www/spell · the kit, with everything inside it</ui-title>
+              <ui-content>
+                <pre><code class="language-text">~/www/spell/                 the kit, spell-kit:  ONE npm package, and the glue
+  package.json               the package;  scripts for the kit's checks and over every repo
+  yarn.lock  .yarnrc.yml     one install, one Solid, one set of tool versions
+  repos.json5                the child repos:  name, git URL, which repos each needs
+  src/                       util, toolchain, server, element, element-tools, test-helpers, cli
+  tests/                     the kit's tests, at the same paths as the code under src/
+  bin/                       spell, spell-pack, spell-types
+  agents/                    WWOD, and links to the three logs in the content repo
+  tools/                     the glue:  repos.ts (clone, pull, status, links), the README check ...
+
+  spell-lang/                the language:  parser, markdown, core, py, spell
+  spell-ui/                  Spell UI, the component library
+  spell-brand/               the brand's elements and design system
+  spell-epic/                the epic engine, with its VS Code extension
+  spell-app/                 the editor:  app, spaces, lsp, cli, page-server (and vscode)
+
+  spell.epics/               the content repo:  epic pages, guides, the logs
+  spell.spaces/              your projects
+
+~/www/spell.worktrees/&lt;epic&gt;/  an epic's worktree:  of the kit, with each child repo's inside it</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li>
+                The child repos, the content repo and your projects are git-ignored by the kit: so one VS Code folder
+                covers everything.
+              </li>
+              <li>Git at the kit's root sees only the kit's own files.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="who-uses-whom" label="Who uses whom" sticky collapsible dividing collapsed>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>Each repo, and the repos its code may import</ui-title>
+              <ui-content>
+                <pre><code class="language-text">spell-app     -&gt;  spell-lang, spell-brand, spell-ui, the kit
+                  (and RUNS spell-epic, by its page server's settings:  never imports it)
+spell-epic    -&gt;  spell-ui, the kit
+spell-brand   -&gt;  spell-ui, the kit
+spell-ui      -&gt;  the kit
+spell-lang    -&gt;  the kit
+spell-kit     -&gt;  nothing:  the bottom</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li>
+                <a href="../../repos.json5" target="src-repos-json5"><code title="repos.json5">repos.json5</code></a>
+                lists the child repos lowest first, with what each one <code>needs</code>.
+              </li>
+              <li>The kit is always there, so no repo lists it.</li>
+              <li>
+                A wrong import shows up early: <code>yarn clone &lt;repo&gt;</code> clones only what that repo needs, so
+                an import of anything else fails there.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="the-kit" label="The kit's folders" sticky collapsible dividing collapsed>
+            <p>All of it is one package, <code>spell-kit</code>, with one version.</p>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>folder</th>
+                    <th>imported as</th>
+                    <th>what it is</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="../../src/util/AGENTS.md" target="src-src-util-agents-md"
+                        ><code title="src/util/AGENTS.md">util</code></a
+                      >
+                    </td>
+                    <td><code>spell-kit/util</code></td>
+                    <td>the helpers every package shares, and the reactive engine</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="../../src/toolchain/AGENTS.md" target="src-src-toolchain-agents-md"
+                        ><code title="src/toolchain/AGENTS.md">toolchain</code></a
+                      >
+                    </td>
+                    <td><code>spell-kit/toolchain/...</code></td>
+                    <td>
+                      what every repo's configs share: lint and format settings, the base tsconfig, the declarations
+                      build
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="../../src/server/AGENTS.md" target="src-src-server-agents-md"
+                        ><code title="src/server/AGENTS.md">server</code></a
+                      >
+                    </td>
+                    <td><code>spell-kit/server</code></td>
+                    <td>serving pages locally, and assembling them (it took in the old assembler)</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="../../src/element/AGENTS.md" target="src-src-element-agents-md"
+                        ><code title="src/element/AGENTS.md">element</code></a
+                      >
+                    </td>
+                    <td><code>spell-kit/element</code></td>
+                    <td>what makes a custom element on Solid 2, for every set of elements</td>
+                  </tr>
+                  <tr>
+                    <td>element-tools</td>
+                    <td><code>spell-kit/element-tools/...</code></td>
+                    <td>the pack build and the elements' Vite settings, node only</td>
+                  </tr>
+                  <tr>
+                    <td>test-helpers</td>
+                    <td><code>spell-kit/test-helpers/...</code></td>
+                    <td>the helpers every set's tests use</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="../src/cli/AGENTS.md" target="src-src-cli-agents-md"
+                        ><code title="src/cli/AGENTS.md">cli</code></a
+                      >
+                    </td>
+                    <td><code>spell-kit/cli</code></td>
+                    <td>the <code>spell</code> command's base; every repo adds its own commands</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>Nothing in the kit imports a child repo.</li>
+              <li>
+                Each folder has its own agents' notes beside its code; the kit's
+                <a href="../../AGENTS.md" target="src-agents-md">AGENTS.md</a> holds what's about the kit and what's
+                across repos.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="the-children" label="The child repos" sticky collapsible dividing collapsed>
+            <ui-table celled compact striped unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>repo</th>
+                    <th>holds</th>
+                    <th>needs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="../../spell-lang/AGENTS.md" target="src-spell-lang-agents-md">spell-lang</a></td>
+                    <td>the parser, markdown, core, the Python target and the language</td>
+                    <td>the kit</td>
+                  </tr>
+                  <tr>
+                    <td><a href="../../spell-ui/AGENTS.md" target="src-spell-ui-agents-md">spell-ui</a></td>
+                    <td>Spell UI, with its own code and markdown elements</td>
+                    <td>the kit</td>
+                  </tr>
+                  <tr>
+                    <td><a href="../../spell-brand/AGENTS.md" target="src-spell-brand-agents-md">spell-brand</a></td>
+                    <td>the brand's elements and the design system's bundle</td>
+                    <td>spell-ui</td>
+                  </tr>
+                  <tr>
+                    <td><a href="../../spell-epic/AGENTS.md" target="src-spell-epic-agents-md">spell-epic</a></td>
+                    <td>the epic engine, its pages and its VS Code extension</td>
+                    <td>spell-ui</td>
+                  </tr>
+                  <tr>
+                    <td><a href="../../spell-app/AGENTS.md" target="src-spell-app-agents-md">spell-app</a></td>
+                    <td>the editor, spaces, the language server, its commands, the page server</td>
+                    <td>spell-lang, spell-brand, spell-ui</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>
+                Spell UI has no spell in it: <code>&lt;spell-code&gt;</code> and <code>&lt;spell-markdown&gt;</code> are
+                spell-app's, subclasses of Spell UI's own code and markdown elements.
+              </li>
+              <li>Docs pages get them from spell-app's page server; spell-epic imports nothing of spell-app.</li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="3-imports" label="3. How imports work" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="route"></ui-icon>
+          <p>
+            One name per file, in every repo and inside its own repo too: the package's name, then its path under
+            <a href="../src/" target="src-src"><code>src/</code></a
+            >.
+          </p>
+          <ui-table celled compact striped unstackable>
+            <table>
+              <thead>
+                <tr>
+                  <th>file</th>
+                  <th>imported as</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>the kit's string helpers</td>
+                  <td>
+                    <a href="../../src/util/string.ts" target="src-src-util-string-ts"
+                      ><code title="src/util/string.ts">spell-kit/util/string</code></a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>spell-lang's parser, a folder's barrel (its <code>index.ts</code>)</td>
+                  <td>
+                    <a href="../../spell-lang/src/parser/index.ts" target="src-spell-lang-src-parser-index-ts"
+                      ><code title="spell-lang/src/parser/index.ts">spell-lang/parser</code></a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>Spell UI's button</td>
+                  <td>
+                    <a href="../../spell-ui/src/components/ui-button/" target="src-spell-ui-src-components-ui-button"
+                      ><code title="spell-ui/src/components/ui-button/">spell-ui/components/ui-button</code></a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ul>
+            <li>
+              <b>Never an alias or a climb up the tree:</b>
+              <ul>
+                <li>no <code>$/</code> alias, no <code>#</code> subpath</li>
+                <li>no <code>../</code> into a package</li>
+                <li>Lint fails a <code>../</code> import, and its message names the import to write.</li>
+                <li>Same-folder peers stay <code>./Peer</code>.</li>
+              </ul>
+            </li>
+            <li>
+              No extension, the way a bundler resolves it; plain node is the exception, and writes <code>.ts</code>.
+            </li>
+            <li>
+              A repo's tests sit in its <code>tests/</code> folder, at the same paths as its code: the kit's router test
+              is
+              <a href="../../tests/server/Router.test.ts" target="src-tests-server-router-test-ts"
+                ><code title="tests/server/Router.test.ts">Router.test.ts</code></a
+              >.
+            </li>
+          </ul>
+
+          <ui-section id="who-reads-what" label="What each tool reads" sticky collapsible dividing collapsed>
+            <p>
+              Each package lists its files in one wildcard entry of its
+              <a href="../package.json" target="src-package-json"><code>package.json</code></a
+              >, read three ways.
+            </p>
+            <ul>
+              <li><b>A package's own type check</b> reads its own source.</li>
+              <li>
+                <b>Another repo's type check</b> reads the package's built declarations, in its
+                <a href="../../dist-types/" target="src-dist-types"><code>dist-types/</code></a
+                >.
+                <ul>
+                  <li><code>spell-types</code> builds them.</li>
+                  <li>Each repo's <code>yarn ts</code> rebuilds the ones below it first, where stale.</li>
+                </ul>
+              </li>
+              <li><b>Vite, Vitest, tsx, lint and node</b> read the source, as it is.</li>
+              <li>
+                <b>esbuild used directly</b> (the docs and design bundles) finds the names through the toolchain's
+                <code>sourceNames()</code> plugin.
+              </li>
+            </ul>
+            <ui-accordion class="spell-code" styled>
+              <ui-title>The kit's exports · 8 lines</ui-title>
+              <ui-content>
+                <pre><code class="language-json">"./*": {
+  "spell-kit-source": ["./src/*.ts", "./src/*.tsx", "./src/*/index.ts", "./src/*/index.tsx", "./src/*"],
+  "types": ["./dist-types/src/*.d.ts", "./dist-types/src/*/index.d.ts"],
+  "default": "./src/*"
+},
+"./*.ts": { "spell-kit-source": "./src/*.ts", "types": "./dist-types/src/*.d.ts", "default": "./src/*.ts" }</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="4-commands" label="4. Setting up, and the commands" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="terminal"></ui-icon>
+          <p>Clone the kit, install, clone the child repos: one install covers them all.</p>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>Setting up · 6 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-sh">git clone git@github.com:spell-app/spell-kit.git ~/www/spell &amp;&amp; cd ~/www/spell
+yarn install            # the kit alone:  no child repos yet
+yarn clone              # every child repo, then installs again
+yarn clone spell-ui     # or one repo, and only what it needs
+yarn pull               # git pull in every child repo
+yarn status             # each child repo's git status</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ui-accordion class="spell-code" styled>
+            <ui-title>The checks · 9 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-sh"># at the kit's root:  the kit first, then each child repo, lowest first
+yarn ts    yarn test    yarn lint    yarn review
+
+# the kit's own only
+yarn kit:ts    yarn kit:test    yarn kit:lint    yarn kit:review
+
+# in a child repo:  just its own
+cd spell-ui &amp;&amp; yarn ts
+yarn cli:install        # puts `spell` on your PATH</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ul>
+            <li>
+              <b>The <code>spell</code> command</b> is the kit's base, plus each repo's own commands.
+              <ul>
+                <li>
+                  A repo names them in its
+                  <a href="../package.json" target="src-package-json"><code>package.json</code></a
+                  >; their code is in its <a href="../src/cli/" target="src-src-cli"><code>src/cli/</code></a
+                  >.
+                </li>
+                <li><code>spell help</code> lists them all, grouped by repo.</li>
+                <li>
+                  A word two repos both want goes under each one's short name: <code>spell lang check</code>,
+                  <code>spell app check</code>.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <b>A change across repos</b> is a commit in each, merged lowest first. Nothing is published or
+              version-bumped while developing.
+            </li>
+            <li>
+              Tool versions are bumped in the kit only: one yarn release, one copy of each package, above all Solid.
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="5-worktrees" label="5. Worktrees" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="code branch"></ui-icon>
+          <p>An epic's worktree covers every repo at once, on one branch name.</p>
+          <ul>
+            <li>
+              <code>/isolate &lt;name&gt;</code> makes one, in <code>~/www/spell.worktrees/&lt;name&gt;/</code>
+              (and so does starting an epic):
+              <ul>
+                <li>a worktree of the kit, on branch <code>&lt;name&gt;</code></li>
+                <li>inside it, a worktree of each child repo, on the same branch</li>
+                <li>one install for all of them</li>
+              </ul>
+            </li>
+            <li>Its VS Code window shows the kit's root, the worktree and the content repo.</li>
+            <li>Merge main in with <code>epic worktree merge-main</code>, never a bare git merge.</li>
+            <li>Leave with <code>/isolate done</code>: it offers to merge into main, and to open a pull request.</li>
+            <li>
+              The content repo is shared, not branched: an epic page or guide changed in a worktree is the same file
+              everywhere.
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="6-ci" label="6. CI" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="check circle"></ui-icon>
+          <p>Every repo has one GitHub Actions workflow, run on a push to main, a pull request, or by hand.</p>
+          <ul>
+            <li>The kit's checks the kit alone: its type check, lint and tests, with no child repo cloned.</li>
+            <li>
+              A child repo's builds the layout it's worked on:
+              <ul>
+                <li>the kit at the root, on the branch under test if the kit has one, else main</li>
+                <li>the repo itself inside it, at the commit under test</li>
+                <li>the repos it needs, each on the branch under test if it has one, else its default branch</li>
+                <li>then its own checks: type check, lint and tests</li>
+              </ul>
+            </li>
+            <li>So a change across repos is checked together when every repo's branch has the same name.</li>
+            <li>The repos are public, so CI needs no token.</li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="7-why" label="7. Why" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="gavel"></ui-icon>
+          <p>The decisions that shaped the layout, one line each.</p>
+          <ul>
+            <li><b>Layers, no cycles:</b> each repo uses only the ones below it (Q1).</li>
+            <li>
+              <b>One kit at the bottom:</b> planned as three small repos (util, server, element) under a top repo of
+              glue only; merged into one, spell-kit, so the bottom is always there (Q15, Q31).
+            </li>
+            <li>
+              <b>Cut the seams first:</b> every wrong-way import was cut inside the one repo, merged, then the repos
+              split (Q12).
+            </li>
+            <li>
+              <b>Spell out of Spell UI:</b> spell's code and markdown elements subclass Spell UI's, no plugin system
+              (Q19).
+            </li>
+            <li><b>The parser and the language</b> are one repo, spell-lang (Q20).</li>
+            <li><b>Setting up</b> is <code>yarn install</code>, then <code>yarn clone</code> (Q17).</li>
+            <li><b>One npm package per repo</b>, named after it and unscoped (Q35, Q36).</li>
+            <li>
+              <b>The <code>spell</code> command's base</b> is the kit's; each repo hands it its commands (Q33, Q42).
+            </li>
+            <li><b>The assembler</b> joined the server (Q43).</li>
+            <li>
+              <b
+                >One <a href="../src/" target="src-src"><code>src/</code></a> per repo, one name per file</b
+              >, with no aliases (Q47).
+            </li>
+            <li><b>WWOD</b> lives in the kit; the three logs stay in the content repo (Q6, Q31).</li>
+            <li>
+              <b>npm at release:</b> while developing, the kit's checkout is the meta repo; nothing is published (Q4).
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="8-limits" label="8. Limits" sticky collapsible dividing collapsed>
+          <ui-icon slot="icon" name="triangle exclamation"></ui-icon>
+          <ul>
+            <li>
+              <b>The hand checks are open on the epic page:</b> CI green in two repos, <code>spell app serve</code>, the
+              page servers starting and stopping, <code>spell</code> on your PATH, the extension build and install, the
+              Claude panel's session list.
+            </li>
+            <li><b>A change across three repos is three commits</b>, three pushes and three CI runs (C5).</li>
+            <li><b>The generic server</b> still knows the docs content's layout and a few spell-epic names (C9).</li>
+            <li>
+              <b>spell-lang looks up once:</b> its type check of compiled spell reads the editor's types, and skips
+              itself when spell-app isn't there (C12).
+            </li>
+            <li>
+              <b>A partial clone</b> rewrites the kit's
+              <a href="../../yarn.lock" target="src-yarn-lock"><code>yarn.lock</code></a> (C16).
+            </li>
+            <li>
+              <b>Nothing is on npm yet:</b> the six names aren't reserved, and publishing the kit needs a build of its
+              TypeScript (T13, T18).
+            </li>
+            <li>
+              <b>Old names in old pages:</b> content pages written before the split still name spell-util, spell-server,
+              spell-element or <code>@spell-app/...</code> packages (T20); the epic page's layout page is the plan from
+              before the cut.
+            </li>
+            <li><b>Docs opened from disk</b> load no bundle: their scripts are served paths, so serve them (I21).</li>
+          </ul>
+        </ui-section>
+
+        <footer class="spell-doc-footer">
+          <ui-divider></ui-divider>
+          <p class="meta">Last checked 2026-10-22 against <code>main</code> in every repo, at the doc review (P15).</p>
+        </footer>
+      </main>
+    </div>
+    <script src="/_epic/assets/highlight.min.js"></script>
+    <script src="/_epic/assets/spell-ui.js"></script>
+  </body>
+</html>
