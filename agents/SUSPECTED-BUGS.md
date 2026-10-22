@@ -38,10 +38,6 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
-- A Spanish project's lint warnings suggest an ENGLISH line (2026-10-22, found by epic `readme` P9 on `cartas`):
-  `A pila never says it has a nombre:  declare it, e.g. "a pila has a nombre as text"`.  The suggestion won't parse in
-  Spanish:  the warning's wording (and its example) should come from the project's language pack (epic `spanish`).
-
 - With Owen's outline card (`it "is the (rank) of (suit)"`), `the card is the queen of spades` compiles to
   `card == "spades".queen`, not `card.isTheRankOfSuit("queen", "spades")`:  silently false at run time.
   drawable-solitaire's `"is the (rank) of (suits)" for its ranks and its suits` works.  Seen 2026-10-21 (epic `readme`
