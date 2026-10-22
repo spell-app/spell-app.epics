@@ -20,7 +20,7 @@ Documentation for people who write spells, people who build spell, and agents, a
 ### Today
 
 - **Developer docs:**  `pages/index.html`:  precedence, Solid 2, how the docs work, epic pages.
-- **@spell-app/ui docs:**  plain HTML pages on `<ui-*>` widgets in `packages/ui/site` (66 pages, Fomantic's docs
+- **@spell-app/ui docs:**  plain HTML pages on `<ui-*>` widgets in `spell-ui/site` (66 pages, Fomantic's docs
   style), not deployed.
 - **In the app:**  a `@system:guides` root is configured, with no folder behind it.
 - **2020 vision** (`site-structure.md`):  guides are spell projects with inline playgrounds;  a "dictionary and
@@ -73,6 +73,6 @@ _None yet._
 
 ## Pointers
 
-- `packages/epics/AGENTS.md` -- how docs pages are written;  `templates/`
-- `packages/ui/site/` -- ui's docs site (plain HTML pages)
-- `packages/spell/thoughts/site-structure.md` -- 2020 notes on guides and the phrase book
+- `spell-epic/AGENTS.md` -- how docs pages are written;  `templates/`
+- `spell-ui/site/` -- ui's docs site (plain HTML pages)
+- `spell-lang/docs/spell/thoughts/site-structure.md` -- 2020 notes on guides and the phrase book

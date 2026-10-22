@@ -20,8 +20,8 @@ Spell on any web page:  <spell-app> runs a spell, <spell-editor> edits one, for 
 ### Today
 
 - **Code:**  `packages/app/src/runner/SpellAppElement.tsx`, `packages/app/src/spellEditor/SpellEditorElement.tsx`;
-  built with `yarn build:element` in `packages/app`.
-- **Demos:**  `demo/spell-app.html`, `demo/spell-editor.html` in `packages/app`.
+  built with `yarn build:element` in `spell-app/app`.
+- **Demos:**  `demo/spell-app.html`, `demo/spell-editor.html` in `spell-app/app`.
 - **Static-friendly:**  `<spell-app src>` can run compiled JavaScript with no server.
 
 ## Decisions (settled -- don't relitigate)

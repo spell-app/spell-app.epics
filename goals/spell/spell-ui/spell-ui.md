@@ -20,14 +20,14 @@ Fomantic UI reborn as ui-* web components on Solid 2:  the parts the app, the do
 
 ### Today
 
-- **Where:**  `packages/ui`;  status in `packages/ui/notes/status.md`;  plan in `packages/ui/notes/plan.md`
+- **Where:**  `spell-ui`;  status in `packages/ui/notes/status.md`;  plan in `packages/ui/notes/plan.md`
   (phases A-C done, D is site and release).
-- **Built on:**  Solid 2 and its own custom-element core, `DOMElement` and `UIComponent` (`packages/ui/src/elements`).
+- **Built on:**  Solid 2 and its own custom-element core, `DOMElement` and `UIComponent` (`spell-ui/src/elements`).
 - **Branch:**  `worktree-ui-component-creation`:  changelog, publish dry-run (2.5 MB), cross-browser run with
   four WebKit failures waiting on Owen.
 - **Translation:**  a contract is designed (`<ie-tarjeta color="rojo">` ~== `<ui-card color="red">`), not built
   (`packages/ui/notes/translation.md`).
-- **Docs:**  `packages/ui/site` (plain HTML pages, 58 component pages), not deployed.
+- **Docs:**  `spell-ui/site` (plain HTML pages, 58 component pages), not deployed.
 
 ## Decisions (settled -- don't relitigate)
 
@@ -81,6 +81,6 @@ _None yet._
 
 ## Pointers
 
-- `packages/ui/AGENTS.md`, `packages/ui/README.md`, `packages/ui/notes/`
+- `spell-ui/AGENTS.md`, `spell-ui/README.md`, `packages/ui/notes/`
 - `guides/solid/solid-2.md` -- Solid 2 rules:  read before touching ui
 - `/Users/owen/www/spell-app/outstanding/ui-component-build.md`

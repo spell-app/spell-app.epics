@@ -78,5 +78,5 @@ _None yet._
 ## Pointers
 
 - `packages/spell/projects/system/examples/Solitaire/Card.spell-es`
-- `packages/spell/src/rules/` -- where keywords live
+- `spell-lang/src/spell/rules/` -- where keywords live
 - `packages/ui/notes/translation.md` -- ui's translation contract

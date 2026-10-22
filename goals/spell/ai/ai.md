@@ -68,6 +68,6 @@ AI inside the spell app, and AI that helps people write spells.
 
 ## Pointers
 
-- `packages/lsp` -- completion, quick fixes, the expecting mode
+- `spell-app/src/lsp` -- completion, quick fixes, the expecting mode
 - `packages/cli/README.md` -- `explain`, `parse`, `check` (some on the cli branch)
 - `AGENTS.md` and `.claude/skills/` -- how agents build spell today

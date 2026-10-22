@@ -31,8 +31,8 @@ to turn (a card) over:
 	otherwise: turn it face up
 ```
 
-- **How it's built:**  about 190 rules in TypeScript (`packages/spell/src/rules/`), on a general rule-based
-  parser (`packages/parser`) whose rule syntax reads like regular expressions for words.
+- **How it's built:**  about 190 rules in TypeScript (`spell-lang/src/spell/rules/`), on a general rule-based
+  parser (`spell-lang/src/parser`) whose rule syntax reads like regular expressions for words.
 - **Spells grow the language:**  methods, quoted phrases and enumerations become new syntax, recorded in the
   compiled JavaScript so other projects can import them.
 - **What's missing:**  while/until loops, text with values inside, dates, money, maps;  `alert` / `ask` /
@@ -100,7 +100,7 @@ _None yet._
 
 ## Pointers
 
-- `packages/spell/PARSING.md`, `packages/spell/AGENTS.md`, `packages/parser/AGENTS.md`
+- `spell-lang/src/spell/PARSING.md`, `spell-lang/src/spell/AGENTS.md`, `spell-lang/src/parser/AGENTS.md`
 - `guides/precedence/precedence.html` and `/Users/owen/www/spell-app/outstanding/precedence-and-types/plan.md`
 - `packages/spell/projects/system/examples/` -- the examples
 - `agents/CODE-DEBT.md` (`## spell`) -- what bites, and why

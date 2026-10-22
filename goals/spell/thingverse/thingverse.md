@@ -75,6 +75,6 @@ _None yet._
 ## Pointers
 
 - `packages/spell/projects/system/library/cards`, `examples/Solitaire-import`
-- `packages/core/src` -- the runtime's types and collections
+- `spell-lang/src/core` -- the runtime's types and collections
 - `/Users/owen/www/spell-app/_thoughts/aspects/Registered.md` -- keyed registries that add phrases
 - `packages/spell/thoughts/non-working-examples/product/` -- older commerce sketches

@@ -31,7 +31,7 @@ Why spell exists, and how it could change who gets to make software.
   - talking interfaces are coming, and semicolons won't cut it
 - **What spell fixes about HyperCard** (the talk's slide):  Mac only, no network, an impenetrable binary format,
   only seven kinds of data, and hard for a layperson to extend.
-- **What is spell** (`packages/spell/thoughts/WhatIsSpell.md`):  drag-and-drop layout plus an English language;
+- **What is spell** (`spell-lang/docs/spell/thoughts/WhatIsSpell.md`):  drag-and-drop layout plus an English language;
   runs anywhere JavaScript runs;  open source and "always free for personal use".
 - **The lineage:**  HyperCard ("programming for the rest of us"), SuperCard, Oracle Media Objects (which Owen worked on), Inform, literate programming, Bret Victor.
 
@@ -75,6 +75,6 @@ Why spell exists, and how it could change who gets to make software.
 ## Pointers
 
 - `packages/spell/thoughts/FOP presentation.txt` -- the 2017 talk's outline
-- `packages/spell/thoughts/WhatIsSpell.md` -- what spell is, what people might make, SpellCo
+- `spell-lang/docs/spell/thoughts/WhatIsSpell.md` -- what spell is, what people might make, SpellCo
 - `/Users/owen/www/spell-app/_thoughts/` -- older notes (2009-2019):  background, not canonical
 - Related:  [audience](../audience/audience.md), [goals](../goals/goals.md), [brand](../brand/brand.md)

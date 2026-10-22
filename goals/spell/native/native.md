@@ -21,7 +21,7 @@ Spell as an app you download and double-click:  Mac first, then Windows.
 
 ### Today
 
-- **2020 plan:**  "Install as local app via Electron" (`packages/spell/thoughts/site-structure.md`).
+- **2020 plan:**  "Install as local app via Electron" (`spell-lang/docs/spell/thoughts/site-structure.md`).
 - **The server:**  express `/api` over `packages/spell/src/node/project-utils.ts`.
 - **Projects:**  `environment.ts` puts them inside the source tree (`packages/spell/projects`).
 - **Docker:**  removed on 2026-09-30.
@@ -74,4 +74,4 @@ _None yet._
 
 - `packages/app/src/server/` -- the file API the shell replaces
 - `packages/spell/src/node/project-utils.ts`, `environment.ts` -- where projects live
-- `packages/spell/thoughts/site-structure.md` -- 2020 notes on local installs and versions
+- `spell-lang/docs/spell/thoughts/site-structure.md` -- 2020 notes on local installs and versions

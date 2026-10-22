@@ -19,10 +19,10 @@ How spell looks and sounds everywhere:  a visual language made with Claude Desig
 
 ### Today
 
-- **Theming:**  `packages/ui/notes/theming.md`;  tokens in `packages/ui/src/styles/tokens.css` and
+- **Theming:**  `packages/ui/notes/theming.md`;  tokens in `spell-ui/src/styles/tokens.css` and
   `colors.css` (OKLCH, `light-dark()`).
-- **Docs pages:**  system fonts and UI tokens (`packages/epics/tools/_assets/spell-doc.css`);  this master plan adds a
-  stacked-card look (`packages/epics/tools/_assets/goals.css`).
+- **Docs pages:**  system fonts and UI tokens (`spell-epic/src/tools/_assets/spell-doc.css`);  this master plan adds a
+  stacked-card look (`spell-epic/src/tools/_assets/goals.css`).
 - **Names we hold:**  the GitHub org `spell-app`, the npm scope `@spell-app` (nothing published).  Old notes
   imagine `spell.app`.
 
@@ -67,6 +67,6 @@ _None yet._
 
 ## Pointers
 
-- `packages/ui/notes/theming.md`, `packages/ui/src/styles/` -- how a theme plugs in
-- `packages/epics/tools/_assets/goals.css` -- this site's look:  a first sketch, not the brand
+- `packages/ui/notes/theming.md`, `spell-ui/src/styles/` -- how a theme plugs in
+- `spell-epic/src/tools/_assets/goals.css` -- this site's look:  a first sketch, not the brand
 - Related:  [spell-ui](../spell-ui/spell-ui.md), [docs](../docs/docs.md), [native](../native/native.md)

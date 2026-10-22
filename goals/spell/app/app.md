@@ -20,13 +20,13 @@ The editor where people write and run spells, and, soon, build them by dragging 
 
 ### Today
 
-- **Where:**  `packages/app`:  routes `/` (projects), `/edit/...`, `/run/...`;  the editor page is
-  `packages/app/src/pages/SpellEditor.tsx`.
+- **Where:**  `spell-app/app`:  routes `/` (projects), `/edit/...`, `/run/...`;  the editor page is
+  `spell-app/src/app/pages/SpellEditor.tsx`.
 - **Editor page:**  Monaco and a console on the left;  the running app, an AST viewer and a match viewer on the
   right;  files from a dropdown.  Compiles two seconds after you stop typing.
-- **Serving:**  a vite dev server (:3000) plus an express file API (:3001);  `yarn start` in `packages/app`.
+- **Serving:**  a vite dev server (:3000) plus an express file API (:3001);  `yarn start` in `spell-app/app`.
 - **Stubs:**  log in, publish, docs, about, help and project settings only log a TODO
-  (`packages/app/src/editor.ts`).
+  (`spell-app/src/app/editor.ts`).
 - **UI stack:**  React 18 and semantic-ui-react;  a move to Solid and @spell-app/ui is planned but paused.
 - **Explorers:**  the Type and Thing explorers exist, but only in `<spell-app>`'s debug pane and the VS Code runner.
 - **Server safety:**  fine on localhost, not beyond it (`agents/SUSPECTED-BUGS.md`:  no file locking, stack traces sent
@@ -85,6 +85,6 @@ _None yet._
 ## Pointers
 
 - `packages/app/AGENTS.md` -- how the app is built
-- `packages/app/src/pages/SpellEditor.tsx`, `packages/app/src/editor.ts`, `packages/app/src/server/`
+- `spell-app/src/app/pages/SpellEditor.tsx`, `spell-app/src/app/editor.ts`, `packages/app/src/server/`
 - `/Users/owen/www/spell-app/outstanding/solid-migration.md` -- the paused React-to-Solid plan
 - `/Users/owen/www/spell-app/_thoughts/editor needs to.md` -- 2019 editor wishes

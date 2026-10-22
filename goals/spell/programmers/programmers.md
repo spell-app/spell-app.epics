@@ -22,7 +22,7 @@ Spell for developers:  why they'd care, how they'll extend and embed it, and out
 
 - **Output:**  `<Project>.compiled.js`, a readable ES module on the `spellCore` runtime.
 - **"Show Compiled JavaScript":**  in VS Code, the spell beside its JavaScript.
-- **The parser is general:**  `packages/parser` knows no language;  rulex rules read like regular expressions
+- **The parser is general:**  `spell-lang/src/parser` knows no language;  rulex rules read like regular expressions
   for words.
 - **VS Code extension:**  needs the checkout (it runs the repo's `tsx` on the language server);  not on the
   Marketplace.
@@ -71,6 +71,6 @@ _None yet._
 
 ## Pointers
 
-- `packages/parser/AGENTS.md`, `packages/spell/PARSING.md`
-- `packages/vscode/` -- the extension;  `spell dev vscode` at the root
-- `packages/core/` -- the runtime a second target would mirror
+- `spell-lang/src/parser/AGENTS.md`, `spell-lang/src/spell/PARSING.md`
+- `spell-app/vscode/` -- the extension;  `spell app vscode` at the root
+- `spell-lang/src/core/` -- the runtime a second target would mirror

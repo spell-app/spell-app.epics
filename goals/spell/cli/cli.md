@@ -20,7 +20,7 @@ The spell command:  compile, check, run and test spells from a terminal, and a h
 
 ### Today
 
-- **Where:**  `packages/cli` (Ink and commander);  installed by `yarn cli:install` as a link into the checkout.
+- **Where:**  `spell-app/src/cli` (Ink and commander);  installed by `yarn cli:install` as a link into the checkout.
 - **Branch:**  `worktree-cli-additions`:  phases P1-P10 done (`/Users/owen/www/spell-app/outstanding/cli-additions.md`).
 - **Still TODO** (the kit's `README-cli.md`):  `spell lsp`, a single-file bundle, npm publishing.
 
@@ -51,7 +51,7 @@ _None yet._
 - **Now → December 2026:**
   - **G1 · Merge the cli branch** -- after a review
   - **G2 · Install with npm** -- `npm i -g @spell-app/cli`:  a real bundle
-  - **G3 · `spell new` and `spell serve`** -- a programmer's getting started
+  - **G3 · `spell app create` and `spell app serve`** -- a programmer's getting started
   - **G4 · `spell lsp`** -- for editors other than VS Code
 - **2027:**
   - **G5 · Made for agents** -- JSON output everywhere;  an MCP server (see ai)
@@ -65,5 +65,5 @@ _None yet._
 
 ## Pointers
 
-- `packages/cli/AGENTS.md`, `packages/cli/README.md`
+- `spell-app/src/cli/AGENTS.md`, `packages/cli/README.md`
 - `/Users/owen/www/spell-app/outstanding/cli-additions.md`

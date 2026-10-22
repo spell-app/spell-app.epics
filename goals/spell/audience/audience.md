@@ -60,6 +60,6 @@ _None yet._
 
 ## Pointers
 
-- `packages/spell/thoughts/WhatIsSpell.md` -- the kinds of apps people might make
+- `spell-lang/docs/spell/thoughts/WhatIsSpell.md` -- the kinds of apps people might make
 - `packages/spell/projects/system/examples/` -- today's examples
 - Related:  [motivation](../motivation/motivation.md), [thingverse](../thingverse/thingverse.md)

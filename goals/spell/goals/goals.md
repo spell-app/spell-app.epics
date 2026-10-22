@@ -91,4 +91,4 @@ _None yet._
 - `/Users/owen/www/spell-app/outstanding/` -- paused plans:  solid migration, precedence and types, ui build,
   cli additions
 - `agents/CODE-DEBT.md`, `agents/SUSPECTED-BUGS.md`, `agents/PAPERCUTS.md` at the repo root
-- `packages/spell/thoughts/site-structure.md` -- 2020 notes on versions, guides, publishing
+- `spell-lang/docs/spell/thoughts/site-structure.md` -- 2020 notes on versions, guides, publishing
