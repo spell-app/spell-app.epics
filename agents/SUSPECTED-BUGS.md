@@ -30,7 +30,7 @@ fixed, or disproven, delete it (note a disproof in a line at the top if the reas
   parts/p1.htm ..."), in one window and not another.  Chrome allows 6 HTTP/1.1 connections per host, and EVERY VS
   Code window shares them (one network process:  `lsof` showed exactly 6 to `127.0.0.1:4747`);  each live page held
   one for good (its live-reload `EventSource`, plus one more for a plan doc's review inbox).  Live reload is now a
-  websocket (`packages/server/src/webSocket.ts`), which doesn't count toward the 6;  the inbox listens through the
+  websocket (`src/server/webSocket.ts`), which doesn't count toward the 6;  the inbox listens through the
   live client.
 `[V]` = checked against the code by hand.  Everything else is unverified.
 
@@ -134,10 +134,10 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 - [V] `src/rules/lists.ts` `list_range_iteration`: only iteration rule that doesn't pass `mapItTo` --
   `it` not aliased inside `for each number from 1 to 10:` bodies.
 
-- [V] `core/src/ui.ts`: `notify` / `alert` / `confirm` / `prompt` statements (`rules/UI.ts`) compile to `spellCore.notify()` etc,
+- [V] `spell-lang/src/core/ui.ts`: `notify` / `alert` / `confirm` / `prompt` statements (`rules/UI.ts`) compile to `spellCore.notify()` etc,
   but no such methods exist anywhere in `spellCore`.
 
-- [V] `core/src/SpellEvent.ts` instance `trigger`: calls `SpellEvent.trigger(this, event, props)` without `return`; typed `unknown[]`, results dropped.
+- [V] `spell-lang/src/core/SpellEvent.ts` instance `trigger`: calls `SpellEvent.trigger(this, event, props)` without `return`; typed `unknown[]`, results dropped.
 
 - [V] `core/src/classes/List.tsx` `_getZeroIndex`: `if (oneIndex === 0) return 1 // ???` -- returns second item.
 
@@ -228,7 +228,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 - `packages/spell/src/rules/expressions.ts` `is_a`:  its operand is `{expression:type}`, and `type` accepts ANY word --
   so `print the card is a foo` compiles to `spellCore.isOfType(card, 'Foo')`, no error.  Probably wants
   `known_type`.  (Its worst case, `the card is a new card`, was fixed in P3:  see the top.)  Run:
-  `spell parse --in @test/Solitaire "print the card is a foo"` (`packages/cli`).  Found 2026-09-30;  still so
+  `spell parse --in @test/Solitaire "print the card is a foo"` (`spell-app/src/cli`).  Found 2026-09-30;  still so
   2026-10-04.  Epic `precedence-and-types` P4 (one type vocabulary) should fix it.
   FIXED 2026-10-04 (epic `precedence-and-types` P4, probe T1):  `is_a` takes `{expression:known_type}`, so
   `print the card is a crad` is a parse error;  types declared later in the project count (P5's pre-scan, probe T3).
@@ -240,7 +240,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   FIXED 2026-10-04 (epic `precedence-and-types` P3, probe P1f):  `list_length` has a second syntax ending
   `where {inline_expression}?`, compiling to `itemCountOf(filter(deck, ...))`.
 
-- `packages/parser/src/scope/TypeScope.ts` `declareProperty()` (and `define_property_has` / getters in `classes.ts`):
+- `spell-lang/src/parser/scope/TypeScope.ts` `declareProperty()` (and `define_property_has` / getters in `classes.ts`):
   a property declared on a BUILT-IN type (`the size of a thing is: ...`, `things have a tag as text`) or an IMPORTED
   one is recorded on that type's shared `TypeScope` -- the root scope's, or the import layer's -- which every project
   in the process shares and no project's journal records.  So it outlives the edit that made it, and another project
@@ -252,7 +252,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   (`refuseBuiltInType()` in `classes.ts`).  Still open for an IMPORTED type.
 
 - [V] `packages/spell/src/rules/math.ts` `absolute_value` / `round_number`:  compile to `spellCore.absoluteValue()`,
-  `spellCore.round()`, `spellCore.roundUp()`, `spellCore.roundDown()` -- none of which `packages/core` defines (each
+  `spellCore.round()`, `spellCore.roundUp()`, `spellCore.roundDown()` -- none of which `spell-lang/src/core` defines (each
   marked `TODO: implement in spellCore`).  So `the absolute value of x` or `round x` throws a TypeError when it RUNS,
   though it compiles.  Prove:  run `print round 1.5`.  Found 2026-10-04 (P7 of `precedence-and-types`, which left
   them out of `BUILT_IN_TYPE_TABLE`:  its test reads every member off a real helper).
@@ -285,7 +285,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 - `src/rules/UI.ts` `end_print_group` test: input `` `end print group"` `` has the same stray trailing `"`. Same as above.
 
-- `core/src/collection-other.test.ts` `includes` test "returns false if one thing present, one not" expects
+- `spell-lang/tests/core/collection-other.test.ts` `includes` test "returns false if one thing present, one not" expects
   `true` -- both values are in `{ a: 1, b: 3 }`.  Probably meant to check `1, 2`.
 
 - `lsp/ScopeExplorer.ts` property names:  a type's property members come out as their JS names -- `short_suit`,
@@ -321,9 +321,9 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   to match its likely original intent.  No behavior change since nothing calls the rule either way
   (found 2026-09-20 converting `core.ts` to rule classes).
 
-- `core/src/core.ts`: `repeat()` has no compiling rule; `get()` / `set()` are stubs with no callers.
+- `spell-lang/src/core/core.ts`: `repeat()` has no compiling rule; `get()` / `set()` are stubs with no callers.
 
-- `core/src/string.ts` `doubleQuote()`: no callers.
+- `spell-lang/src/core/string.ts` `doubleQuote()`: no callers.
 
 - `server/response-utils.ts`: `sendText`, `sendJavascript`, `sendTextFile`, `sendJSFile`, `sendJSONFile`, `convertNumericId`, `getIdParams` -- no callers.
 
@@ -335,7 +335,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ### 5. Structure / AGENTS.md conformance (your call)
 
-- `core/src/index.ts` header claims `assert` is global for compiled spell; only `global.spellCore` assignment found.
+- `spell-lang/src/core/index.ts` header claims `assert` is global for compiled spell; only `global.spellCore` assignment found.
 
 - `util/DOM.ts` uses ambient `global`; `abortableFetch.ts` imports `global` polyfill.
 
@@ -370,7 +370,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ### 1. Behavior bugs
 
-- [V] `packages/parser/src/rules/Literals.ts` `matchAtStart()`: a multi-symbol literal like `**` also matches `* *`
+- [V] `spell-lang/src/parser/rules/Literals.ts` `matchAtStart()`: a multi-symbol literal like `**` also matches `* *`
   (whitespace between), though `Symbols`' docs say "no space in-between" -- it never checks
   `token.whitespace` / `end` vs `next`.  Prove:  parse `* *` against a `Symbols("**")` rule.  Found planning the
   `markdown` epic (P4 there fixes it if confirmed).
@@ -390,7 +390,7 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   `AttributeError: 'dict' object has no attribute 'title'`.
   Seen 2026-10-13 (epic `people-and-orgs` P11), running the new `TodosFormBased` fixture (a copy of the
   `Todos - Form Based` example) under Python in the core contract;  so it's left out of `PYTHON_FIXTURES`.
-  Prove:  add `TodosFormBased` to `PYTHON_FIXTURES`, then `yarn vp test run contract` in `packages/cli`.
+  Prove:  add `TodosFormBased` to `PYTHON_FIXTURES`, then `yarn vp test run contract` in `spell-app/src/cli`.
 
 ## ui
 
@@ -415,7 +415,7 @@ every entry below that date was fixed or disproven;  what's left:
 
 - `yarn measure` (2026-10-04, markdown epic P8) prints three `CHECK` lines its docs say should be empty:
   `entriesMissingCore: [ 'ui-flyout' ]`, `runtimeChunks: [ 'rolldown-runtime-B72Djju_.js' ]` and a long
-  `coreOutsideCore` list (`$/util`'s `decorators.ts` / `dom.ts` / `string.ts`, `vocabulary/`, `icons/`,
+  `coreOutsideCore` list (`spell-kit/util`'s `decorators.ts` / `dom.ts` / `string.ts`, `vocabulary/`, `icons/`,
   `docs-components/SiteData.ts`, `runtime/load.ts` ...).  None of them names a markdown file, and the `dist/` built
   before P8 already holds that same `rolldown-runtime-B72Djju_.js`, so they look older than the markdown branch.
   Not checked on `main`.  (2026-10-20, epic `repo-split` P2:  `md.bundle.js` left Spell UI, so `own ui-markdown` reads
@@ -592,13 +592,13 @@ every entry below that date was fixed or disproven;  what's left:
 - `src/solid/Markdown.browser.test.tsx` "draws markdown as HTML once $/markdown has loaded" (2026-10-10, epic
   `spell-element`):  fails when run with the other `src/solid` browser tests, passes alone (`yarn vitest run --project
   browser src/solid/Markdown.browser.test.tsx`).  Seen since P4 of `spell-element` (2026-10-09), every full
-  `yarn test` in `packages/app`.  Likely test isolation:  `$/markdown`'s lazy load already done by an earlier test, so
+  `yarn test` in `spell-app/app`.  Likely test isolation:  `spell-lang/markdown`'s lazy load already done by an earlier test, so
   "the plain text until then" never shows.  Not checked on a tip before P4.
 - `src/runner/element.build.test.ts` "one Solid per page" fails on `main` (2026-10-07, found merging outline-spell;
   the same in the main checkout):  the built runner's `ui/customElement.js` imports Solid itself, where only
   `spell-solid.js` should (`expected [ 'spell-solid.js', 'ui/customElement.js' ] to deeply equal [ 'spell-solid.js' ]`).
-  So a page may load two copies of Solid.  Prove:  `yarn vp test run src/runner/element.build.test.ts` in `packages/app`.
-- `/demo/spell-app.html` on the editor's dev server (`spell dev server start --all`, e.g. `localhost:61858`) draws
+  So a page may load two copies of Solid.  Prove:  `yarn vp test run src/runner/element.build.test.ts` in `spell-app/app`.
+- `/demo/spell-app.html` on the editor's dev server (`spell server start all`, e.g. `localhost:61858`) draws
   nothing:  `<spell-app>` is never defined, because `/element/spell-app.js` comes back as the HTML page (vite's
   fallback).  Only the app's own server (`packages/app/src/server/index.ts`, `{ prefix: "/element", dir:
   "dist-element" }`) serves `dist-element/`, and the editor started by the page server doesn't go through it.
@@ -607,17 +607,17 @@ every entry below that date was fixed or disproven;  what's left:
   `curl -s localhost:<editor port>/element/spell-app.js | head -c 100`.
   - FIXED on branch `output-targets` (`d3eae46a`, 2026-10-06):  `appRoutes.ts` serves `dist-element/` at
     `/element`, and `vite.config.ts` proxies `/element` to the page server.  Drop this entry once it's on `main`.
-- `packages/app/src/runner/RunnerConsole.tsx` `RunnerConsole()`:  `const console = props.console` reads a prop in the
+- `spell-app/src/app/runner/RunnerConsole.tsx` `RunnerConsole()`:  `const console = props.console` reads a prop in the
   component BODY, an untracked scope:  Solid 2's `STRICT_READ_UNTRACKED` should warn in dev, and a later
   `console` prop change is never seen.  Prove:  dev build, open a runner, look for the diagnostic;  fix with
   `untrack(() => props.console)` if it's deliberately read once (`solid-2.md` "Reads").  Found by `/epic wwod` P2.
 - [V] `src/runner/element.build.test.ts` "one Solid per page":  Solid is found in `ui/customElement.js` as well as
   `spell-solid.js`, so the test fails -- with or without the `markdown` epic's changes (checked 2026-10-04 by
   reverting `Markdown.tsx`;  likely from `main`'s merge that day).  Prove:  `yarn vitest run --project node
-  src/runner/element.build.test.ts` in `packages/app`.
+  src/runner/element.build.test.ts` in `spell-app/app`.
 - `src/runner/element.build.test.ts` "one Solid per page" fails on `main` (2026-10-04, plain vite) and on
   `vite-plus` alike:  the element build puts Solid code in `ui/customElement.js` as well as `spell-solid.js`, so a
-  page may load a second Solid.  Prove:  `yarn vitest run src/runner/element.build.test.ts` in `packages/app`.
+  page may load a second Solid.  Prove:  `yarn vitest run src/runner/element.build.test.ts` in `spell-app/app`.
   Likely from `ui`'s newer `customElement` chunk, not the toolchain.  (found merging epic `vite-plus`;  unverified)
 
 - `package.json` `clean`:  removes `.cache` and `build`, but the builds write `dist/`, `dist-runner/`,
@@ -626,13 +626,13 @@ every entry below that date was fixed or disproven;  what's left:
 
 - `packages/spell/src/node/response-utils.ts` `sendJSFile` / `request_getCompiled` / `request_getScopes` [V]: the content-type is set
   to `text/javascript` BEFORE the existence check, so a not-found 404 carries a JSON `{errors}` body labelled `text/javascript`.
-- `packages/app/src/runner/element.build.test.ts` "one Solid per page":  fails on branch `precedence-and-types`
+- `spell-app/tests/app/runner/element.build.test.ts` "one Solid per page":  fails on branch `precedence-and-types`
   (2026-10-04), whose changes are parser-only -- the element build's `ui/customElement.js` also holds Solid, beside
   `spell-solid.js`.  Prove:  run it on `main`.  (The same root run's `*.browser.test.tsx` failures all passed alone.)
-- `packages/app/src/ui/ConsoleLines.tsx` (and its Solid twin `src/solid/ConsoleLines.tsx`) `<ConsoleObject>`:  a logged `true`,
+- `spell-app/src/app/solid/ConsoleLines.tsx` (and its Solid twin `src/solid/ConsoleLines.tsx`) `<ConsoleObject>`:  a logged `true`,
   `false` or `undefined` shows as an EMPTY value -- it's handed to JSX as is, which draws no text for them (React and
   Solid alike).  Probably wants `String(thing)`;  kept as is in the Solid port (P6b) to keep behaviour.
-- `packages/app/src/editor.ts` `showingMatchRuleNames` [V]:  named backwards.  `<MatchRoot>` passes it as `compact`, and
+- `spell-app/src/app/editor.ts` `showingMatchRuleNames` [V]:  named backwards.  `<MatchRoot>` passes it as `compact`, and
   `MatchViewer.css`'s `.compact .name { display: none }` HIDES the names, so `true` (the default) means names hidden;
   `Actions.toggleMatchRuleNames` agrees with the CSS ("Show Rule Names" while it's `true`), not with the docstring.
   Kept as is in the Solid port (P6c, `src/solid/MatchViewer.tsx`;  pinned by its browser test).  Fix:  rename to
@@ -641,18 +641,18 @@ every entry below that date was fixed or disproven;  what's left:
   `getEventValue()` does `parseFloat` for `type="number"`), though `editor.promptForNumber()` says
   `Promise<string | undefined>`.  The Solid port (P6f, `src/solid/modals/dialogs.ts`) resolves the string, as typed.
   Callers (only `ConsoleViewer`'s demo) don't care;  decide whether it should be `number | undefined`.
-- `packages/app/src/solid/modals/modals.browser.test.tsx`:  ONE cold run (fresh vite optimize) printed
+- `spell-app/tests/app/solid/modals/modals.browser.test.tsx`:  ONE cold run (fresh vite optimize) printed
   `STRICT_READ_UNTRACKED` for `constructor.isLoaded` / `createProps.get` while the first `<Chooser>` rendered
   `<ui-radio>`s inside Solid's `render()`;  three warm runs printed nothing.  Probably `solid-element` reading signals
   while an element upgrades inside an owner.  Prove:  clear `node_modules/.vite` / vitest's cache, rerun once.
   - P8 (2026-10-02):  the dev server prints them on EVERY page load, with stacks:  `constructor.isLoaded` /
-    `createProps.get` from `packages/ui/components/ui-button/UIButton.tsx` `hasNativeInvokers()` (`invokers()` until
-    epic `wwod-spell-ui` P5) / `resolveInvoker()` (~lines 379-396, read in an effect's APPLY), and an unnamed one from `packages/ui/src/elements/RootSettings.ts`
+    `createProps.get` from `spell-ui/src/components/ui-button/UIButton.tsx` `hasNativeInvokers()` (`invokers()` until
+    epic `wwod-spell-ui` P5) / `resolveInvoker()` (~lines 379-396, read in an effect's APPLY), and an unnamed one from `spell-ui/src/elements/RootSettings.ts`
     `set()` via `UIRoot.applySettings()` (`UIRoot.tsx` ~242-275).  So `ui`'s, not the app's:  those reads belong in
     the effects' compute (or `untrack()`).
   - 2026-10-09:  `createProps` and `constructor.isLoaded` are gone:  epic `spell-element` folded solid-element into
     `ui`'s `DOMElement` (one attribute store, P3).  Recheck on the dev server before chasing it.
-- `packages/app/src/solid/ProjectDropdown.tsx` `<ProjectDropdown>`:  the dev server warns `[WIDE_SCOPE_DEPS] memo
+- `spell-app/src/app/solid/ProjectDropdown.tsx` `<ProjectDropdown>`:  the dev server warns `[WIDE_SCOPE_DEPS] memo
   "computed" is subscribed to 30 sources` -- `createProps.get` x ~29 -- at `<ProjectDropdown> › children › computed ›
   computed`, i.e. the `<For>` drawing its `<ui-item>`s.  Our code reads no props there;  probably each `<ui-item>`
   upgrading synchronously as the `<For>` makes it, and the fork's `createProps` reads landing in OUR computation
@@ -670,7 +670,7 @@ every entry below that date was fixed or disproven;  what's left:
   request.  React's `ProjectMenu` left the rejection unhandled;  the Solid one (P8) says "Couldn't load Guides".
   Fix:  the API answers an empty list for a root whose folder doesn't exist (or commit `projects/system/guides/`).
 - GONE (P11, 2026-10-02:  `tracked()` is a Solid memo on spell cells, whose `Reaction` ignores its own writes;
-  pinned by `tracked.browser.test.ts`).  Was:  `packages/app/src/solid/tracked.ts` `tracked()` [V]:  THROWS `Cannot access 'observer' before initialization` when
+  pinned by `tracked.browser.test.ts`).  Was:  `spell-app/src/app/solid/tracked.ts` `tracked()` [V]:  THROWS `Cannot access 'observer' before initialization` when
   `read()`, on its FIRST run, changes an `easy-state` value it has just read.  easy-state's `autoEffect()` is
   `const observer = observe(fn, { scheduler: () => scheduler.add(observer) })`, and `observe()` runs `fn` at once:  the
   self-trigger calls the scheduler while `observer` is still in its TDZ.  Hit by spell programs' computed properties,
@@ -678,9 +678,9 @@ every entry below that date was fixed or disproven;  what's left:
   `state` cell showing that error;  `src/solid/ThingExplorer.tsx` works around it with its own `trackedProgram()`
   (observer-util `observe()` + a scheduler that takes the reaction as its ARGUMENT).  Fix:  the same in `tracked()`.
   Prove:  `tracked(() => { const list = store.list;  list.push(1);  return list.length })`.
-- `packages/app/src/solid/loadUI.ts` `uiReady`:  its docstring says under node (the `node` test project) it "defines
-  the tags only", but importing it there throws `customElements is not defined` (from `$/ui`'s families'
-  `define()`).  So a Solid component a `node` test renders can't import `./loadUI` or the `$/app/solid` barrel
+- `spell-app/src/app/solid/loadUI.ts` `uiReady`:  its docstring says under node (the `node` test project) it "defines
+  the tags only", but importing it there throws `customElements is not defined` (from `spell-ui`'s families'
+  `define()`).  So a Solid component a `node` test renders can't import `./loadUI` or the `spell-app/app/solid` barrel
   (P6d's explorers don't, and say so).  Prove:  import `./loadUI` in any `src/**/*.test.tsx`.
 
 ## cli
@@ -693,7 +693,7 @@ every entry below that date was fixed or disproven;  what's left:
   changes -- `yarn plan-doc summary unified-server` exits 1 with `no .plan-items[data-kind="judgement"] in the doc`.
   Either `unified-server.html` lost its judgement list or `plan-doc` now requires one.  Prove:  run it on `main`.
 - `[V]` `src/main.ts` `.version(globalThis.__PACKAGE_VERSION__)`:  `spell --version` prints `@spell-app/spell`'s
-  version, not the CLI's (`0.8.0`):  `$/spell/node/packageVersion.node` reads the `package.json` three folders up
+  version, not the CLI's (`0.8.0`):  `spell-lang/spell/node/packageVersion.node` reads the `package.json` three folders up
   from ITSELF.  Prove:  `spell --version` vs `packages/cli/package.json`.  (found by epic `commands`, P2)
   NOTE: `main.ts`'s comment calls this deliberate ("the PARSER's, which `spell --version` prints"), so maybe not a
   bug -- but then the CLI's own `0.8.0` is shown nowhere.
@@ -701,8 +701,8 @@ every entry below that date was fixed or disproven;  what's left:
   time), until the caller's timeout, instead of exiting with the error.  Seen once (epic `output-targets` P16,
   2026-10-10):  `contract.test.ts`'s old-names test, with the deprecated aliases removed, timed out at 60s.
   Prove:  `spell run` a project whose code calls `spellCore.nope()`.
-- `package.json` `spell` script (`node bin/spell.mjs`):  yarn runs it with the cwd at `packages/cli`, so a relative
-  target or `@workspace` resolves there, not where you typed it.  Prove:  `yarn workspace @spell-app/cli spell check .`
+- `package.json` `spell` script (`node bin/spell.mjs`):  yarn runs it with the cwd at `spell-app/src/cli`, so a relative
+  target or `@workspace` resolves there, not where you typed it.  Prove:  `yarn workspace @spell-app/cli spell lint .`
   from `packages/spell/projects/...`.  Nothing references the script;  drop it or document `INIT_CWD`.
 
 ## docs
@@ -714,7 +714,7 @@ every entry below that date was fixed or disproven;  what's left:
   wrong `data-phase` on the Updated lines of P6 and P8 (a reopened done phase).  Fixed by hand in the doc;  the cause
   not looked for.  Same family as the papercut "links pointing one folder too high" (`agents/PAPERCUTS.md`, docs):
   the part-file rebase seems to run on text that's already relative to `parts/`.  Check the TypeScript port
-  (`packages/epics/src/tool`) for the same once it's on `main`.
+  (`spell-epic/src/tool`) for the same once it's on `main`.
 - A running epic's plan doc shown at its WORKTREE address never updates live:  `spell dev plan-doc open <name>`, run
   in worktree `<name>`, shows `/worktrees/<name>/epics/<name>/<name>.plan.html` (main server, port 4747) in the side
   bar, and no edit to the doc ever reaches that page;  the same doc at `/epics/<name>/<name>.plan.html` (either
@@ -722,15 +722,15 @@ every entry below that date was fixed or disproven;  what's left:
   Proven:  two headless pages, one at each address, then `plan-doc estimate <name> 9 "1h"`:  P9's badge changed on
   the `/epics/` page only.  Likely mechanism (not read):  the page server names a change by the shared file's
   `/epics/...` path, and the worktree-address page waits for its own.  Also:  `plan-doc open` (`DocView.show()`)
-  never reloads a page already in view, so re-running it doesn't help.  Workaround:  `spell dev docs link
+  never reloads a page already in view, so re-running it doesn't help.  Workaround:  `epic pages link
   <main checkout>/epics/<name>/<name>.plan.html --show`.  Fix:  show plan docs (shared content) at their `/epics/`
   address from any checkout, or have the server announce a shared file's change under every address that serves it.
 
-- `spell dev docs update` (check-spell over every page) skips any page whose TEXT mentions
+- `epic pages update` (check-spell over every page) skips any page whose TEXT mentions
   `ui/site/_assets/site.js` -- meant to skip Spell UI site pages, it also drops `server.html`, `design-system.plan.html`,
   `review-review.plan.html` and others that merely name the file, so they're never checked.  Prove:  list the pages
   it checks;  `server.html` is missing, yet `node tools/check-spell.js content/server.html` runs and passes.  Fix:
-  skip by the page's own `<script src>`, or by path (`packages/ui/site/`), not by text.  (Found in epic
+  skip by the page's own `<script src>`, or by path (`spell-ui/site/`), not by text.  (Found in epic
   `design-system` P9, 2026-10-05.)
 
 - `scripts/plan-rename.js`, re-run in a worktree after merging `main` (as its header says to):  it rewrites EVERY
@@ -741,7 +741,7 @@ every entry below that date was fixed or disproven;  what's left:
   (Found in epic `design-system`, 2026-10-04;  reverted there by hand.)
 
 - [V] `scripts/plan-doc.js` `summary`:  throws "no .plan-items[data-kind="judgement"] in the doc" on a plan doc from
-  before the Judgement calls section (`epics/unified-server`), so `packages/cli/src/cli.test.ts` "summarizes a plan
+  before the Judgement calls section (`epics/unified-server`), so `spell-app/tests/cli/cli.test.ts` "summarizes a plan
   doc" fails -- on `main` too (checked 2026-10-04, `markdown` epic).  Fix:  `summary` treats a missing list as
   empty, or `migrate` the doc.
 
@@ -750,30 +750,30 @@ every entry below that date was fixed or disproven;  what's left:
   tags).  Escape them as text -- or document that they're HTML, as `--details` is.  Prove:
   `yarn plan-doc add-phase x "A" --goal "write <Project>.js"`, then look at the `#p1` body.
 - `scripts/doc-links.js` `resolve()`:  the alias form is still `#name/...` (from before the `$/` aliases), and `$`
-  isn't in the path character class, so `<code>$/util/index.ts</code>` never links;  `cli.html`, `server.html`,
+  isn't in the path character class, so `<code>spell-kit/util/index.ts</code>` never links;  `cli.html`, `server.html`,
   `solid-migration.html` list dozens of `$/...` spans as unresolved.  Kept as-is in the python port (P10, epic
-  `commands`) to stay byte-identical.  Prove:  `node scripts/doc-links.js server.html`, see `'$/server'` in the
+  `commands`) to stay byte-identical.  Prove:  `node scripts/doc-links.js server.html`, see `'spell-kit/server'` in the
   unresolved list.
 - `scripts/plan-doc.js` `summary` (and likely other commands) fails on a plan doc made before judgement calls became
   their own item kind (`195ab6a4`):  "no .plan-items[data-kind="judgement"] in the doc:  is it a plan doc?".  Breaks
-  `packages/cli`'s `spell plan-doc > summarizes a plan doc` test (`unified-server`).  Prove:
+  `spell-app/src/cli`'s `spell plan-doc > summarizes a plan doc` test (`unified-server`).  Prove:
   `yarn plan-doc summary unified-server`.  Fix:  treat a missing list as empty, or have `migrate` add it.
 - Every plan doc's phase "Estimate" line has a blank icon:  `PHASE_FIELDS` in `scripts/plan-doc.js` gives it
   `clock`, which isn't in `ICONS` in `scripts/bundle-spell-ui.js` (only `clock rotate left` is).  Prove:
   `node scripts/check-spell.js epics/isolate-changes/isolate-changes.plan.html` notes "5 icon(s) with no <svg> drawn",
   all `ui-item[clock]`.  Fix:  add `solid/clock` to `ICONS`, then `yarn docs:update`.
-- `../spell-app-dev/.gitignore` (written by `spell dev shared init`):  ignores `details/`, `*.lock`, `*.tmp`, but
-  NOT plan docs' review inboxes, `epics/*/*.inbox.json` -- which `packages/epics/AGENTS.md` ("Review inbox") calls
+- `../spell-app-dev/.gitignore` (written by `epic shared init`):  ignores `details/`, `*.lock`, `*.tmp`, but
+  NOT plan docs' review inboxes, `epics/*/*.inbox.json` -- which `spell-epic/AGENTS.md` ("Review inbox") calls
   git-ignored, per-machine state.  spell-app's `.gitignore` still ignores them, but they now live in the shared
   repo, so the `Stop` hook's auto commit would commit Owen's pending marks.  Prove:  mark an item on a plan doc,
-  end a turn, `git -C ../spell-app-dev log --stat -1`.  Fix:  add the pattern to `spell dev shared init`'s ignore
+  end a turn, `git -C ../spell-app-dev log --stat -1`.  Fix:  add the pattern to `epic shared init`'s ignore
   list and to the shared repo's `.gitignore`.
 - spell-app's `.gitignore` comments still say an epic's details pages and plan docs are "committed" (with the
   branch);  harmless, but stale since `shared-content`.
 - `packages/epics/src/convert/ConvertRun.test.ts` "the real windows-and-review doc":  fails since P12 of
   `epic-components` (`8a9ede10`) converted every shared plan doc:  the converter now skips the already-converted real
   doc, so `result.conversion` is `undefined` ("Cannot read properties of undefined (reading 'problems')").  Prove:
-  `yarn vp test run --project node src/convert/ConvertRun.test.ts` in `packages/epics`.  Fix:  run it on a copy of
+  `yarn vp test run --project node src/convert/ConvertRun.test.ts` in `spell-epic`.  Fix:  run it on a copy of
   the doc from before the switch (git history of `spell-app-dev`), or drop it now the switch is done.  (Found
   2026-10-08 merging `skillz`.)
 
@@ -793,7 +793,7 @@ every entry below that date was fixed or disproven;  what's left:
   Prove:  save "a", then "b" with the first `ETag` within the same ms:  both answer 200.
 
 
-- `[V]` `src/page/cli.ts` `url`:  a RELATIVE `<file>` resolves against `packages/server`, not the folder `yarn
+- `[V]` `src/page/cli.ts` `url`:  a RELATIVE `<file>` resolves against `src/server`, not the folder `yarn
   server` ran in -- the root's `yarn server` runs `yarn workspace ... server`, whose nested yarn resets `INIT_CWD`.
   Prove:  `yarn server url pages/index.html` at the repo root prints
   `.../packages/server/packages/docs/index.html`.  An absolute path works.
@@ -815,11 +815,11 @@ every entry below that date was fixed or disproven;  what's left:
 - `src/DocView.ts` `restartServer()`:  when the page server is already DOWN, "Restart Page Server" can't bring it
   back.  It finds the checkout by asking the server itself (`serverRoot()`, `/_server/ping`), so a dead server gets
   "isn't a page server, so there's nothing to restart" (read from the code, epic `airplane`, 2026-10-10:  Owen found
-  the server down after a merge).  Prove:  `spell dev server stop` in the main checkout, then press the button.
+  the server down after a merge).  Prove:  `spell server stop` in the main checkout, then press the button.
   Fix:  fall back to the window's checkout (its first folder) when the ping fails;  needs a window reload once.
   Why it went down:  `PidFile.stop()` waited only until the old server stopped ANSWERING, so the restart after a merge
   started the new one while the old still held port 4747;  the new one took another port (the log shows 54516).
-  Fixed in `$/server` the same day;  this button's gap remains.
+  Fixed in `spell-kit/server` the same day;  this button's gap remains.
 
 ## claude-code
 
@@ -834,11 +834,11 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
   stash.  Fix:  `push -u -m <tag>`, find its sha, `stash apply <sha>`, then drop it by sha.  (found by epic `commands`, P2)
 - `[V]` `.claude/skills/whassup/scripts/whassup.py` `merge()`:  `git merge --no-edit` (a merge commit), while its
   docstring says "as `/isolate done` would", which is `git merge --ff-only`.  One policy, one command:  roadmap
-  `spell dev worktree merge` (epic `commands`).
+  `epic worktree merge` (epic `commands`).
 
 ## epics
 
-- `node packages/epics/demo/check-review-epics.mjs` (the review sample, 2026-10-13, epic `people-and-orgs` P16):  every
+- `node spell-epic/src/demo/check-review-epics.mjs` (the review sample, 2026-10-13, epic `people-and-orgs` P16):  every
   flow passes but one, "j1's chip, skipped, unsent:  dashed grey":  the chip has `data-fill="dashed"` and no
   `data-color`, where the check wants `grey`.  `<epic-item>`'s `chipMark()` gives a skip no colour, or the check is
   older than the "own mark in flight keeps the state colour" rule (`EpicItem.css`, about line 377).  Not looked for;

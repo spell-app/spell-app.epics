@@ -44,12 +44,12 @@ One `###` heading per item, under its package's `##` section, `---` between item
 
 ## spell
 
-### Circular imports through the `$/parser` barrel
+### Circular imports through the `spell-lang/parser` barrel
 
-- **Cost**: six sub-paths of `$/parser` cannot be imported before `$/parser` itself without
+- **Cost**: six sub-paths of `spell-lang/parser` cannot be imported before `spell-lang/parser` itself without
   silently corrupting the barrel.  Latent rather than live: every consumer outside the barrel
-  enters via `$/parser`, which is always safe.  It is a trap for new code and for test authors.
-- **Cause**: nearly every leaf under `$/parser` does `import { P } from "$/parser"` -- a VALUE
+  enters via `spell-lang/parser`, which is always safe.  It is a trap for new code and for test authors.
+- **Cause**: nearly every leaf under `spell-lang/parser` does `import { P } from "spell-lang/parser"` -- a VALUE
   import of its own barrel.  Entering at a sub-path starts the
   `index` -> sub-barrel -> leaf -> `index` cycle before the leaf's bindings exist.  Damage takes
   two shapes: a leaf throws outright (`Literal extends Rule` extends `undefined`), or a sub-barrel
@@ -60,15 +60,15 @@ One `###` heading per item, under its package's `##` section, `---` between item
   NOTE: the obvious partial fixes do not work.  `AST.ts` needs `P.Match` and three `Scope`
   subclasses at runtime, but `Match.ts` and the scope files import the barrel as a value
   themselves, so importing them directly only relocates the cycle.  This is all-or-nothing.
-- **Pinned at**: `BROKEN_ENTRIES` in `packages/parser/src/barrel.test.ts` -- `$/parser/rules`,
-  `$/parser/rules/Rule`, `$/parser/rules/Literal`, `$/parser/tokenizer`, `$/parser/scope`,
-  `$/parser/ast`.
+- **Pinned at**: `BROKEN_ENTRIES` in `spell-lang/tests/parser/barrel.test.ts` -- `spell-lang/parser/rules`,
+  `spell-lang/parser/rules/Rule`, `spell-lang/parser/rules/Literal`, `spell-lang/parser/tokenizer`, `spell-lang/parser/scope`,
+  `spell-lang/parser/ast`.
 
 #### Sub-item: `export *` makes the truncation permanent
 
 - **Cost**: flattening a namespaced sub-barrel to `export *` costs a safe entry point.
-  `$/parser/ast` moved into `BROKEN_ENTRIES` exactly this way, when its AST classes were
-  flattened out of `export * as AST`.  (`$/parser/tokenizer` was already listed, for the
+  `spell-lang/parser/ast` moved into `BROKEN_ENTRIES` exactly this way, when its AST classes were
+  flattened out of `export * as AST`.  (`spell-lang/parser/tokenizer` was already listed, for the
   parent reason above.)
 - **Cause**: a named re-export (`export { X } from "./X"`) compiles to a LAZY getter, so the key
   exists on the sub-barrel even while the leaf is mid-body.  `export *` must read the leaf's key
@@ -91,32 +91,32 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 - **Fix**:  review each area below;  fix, or record here what's knowingly left.
 - **Pinned at** -- by area, with the files each touched:
   - **Language server + VS Code extension** (commits `762b1dd`..`4c27a34`)
-    - `packages/lsp/src/`:  `SpellLanguageService.ts` (+ test, `__snapshots__`), `SpellLanguageServer.ts`, `server.ts`,
+    - `spell-app/src/lsp/`:  `SpellLanguageService.ts` (+ test, `__snapshots__`), `SpellLanguageServer.ts`, `server.ts`,
       `stdioGuard.ts`, `lsp.types.ts`, `index.ts`, `server.test.ts`
-    - `packages/vscode/` (whole project), `.vscode/launch.json` + `tasks.json`, root `package.json` `vscode*` scripts
-    - parser support:  `Rule.declares` / `getDeclaration()`, `highlightAs` (`packages/parser/src/rules/Rule.ts`,
+    - `spell-app/vscode/` (whole project), `.vscode/launch.json` + `tasks.json`, root `package.json` `vscode*` scripts
+    - parser support:  `Rule.declares` / `getDeclaration()`, `highlightAs` (`spell-lang/src/parser/rules/Rule.ts`,
       `rules.types.ts`, and `@proto static highlightAs` on `Keyword` / `Symbol` / spell base rules),
-      `TypeScope.getOrStub()` / `claim()` / `declareProperty()`, `P.TokenFormatter` (`packages/parser/src/tokenizer/`)
-    - docstrings:  `Block.getDocComments()`, `ASTDocComment` / `ASTBannerComment` (`packages/parser/src/ast/AST.ts`),
+      `TypeScope.getOrStub()` / `claim()` / `declareProperty()`, `P.TokenFormatter` (`spell-lang/src/parser/tokenizer/`)
+    - docstrings:  `Block.getDocComments()`, `ASTDocComment` / `ASTBannerComment` (`spell-lang/src/parser/ast/AST.ts`),
       `Block.ts` + `Block.test.ts`
   - **Scripts** (`eab5832`):  `start:*` renames, `yarn stop` (`package.json`, `Dockerfile.*`, `DOCKER.md`,
     `CODEBASE_INDEX.md`).  NOTE: `yarn stop` also kills the language server VS Code started.
-  - **Browser-safe `$/lsp` + editing on `SpellProject`** (in `bdc9610`)
+  - **Browser-safe `spell-app/lsp` + editing on `SpellProject`** (in `bdc9610`)
     - `packages/lsp/src/SpellWorkspace.ts` removed => `LSP.FileAddresses` (`lsp.types.ts`) + node-only
-      `packages/lsp/src/SpellDiskWorkspace.ts`;  `packages/lsp/src/barrel.test.ts`
+      `spell-app/src/lsp/SpellDiskWorkspace.ts`;  `spell-app/tests/lsp/barrel.test.ts`
     - `SpellProject.spellFiles` / `parseError` / `updateText()`, `SpellFile.isActive`
-      (`packages/spell/src/SpellProject.ts`, `SpellFile.ts`, `SpellProject.editing.test.ts`)
+      (`spell-lang/src/spell/SpellProject.ts`, `SpellFile.ts`, `SpellProject.editing.test.ts`)
   - **CodeMirror => Monaco** (in `bdc9610`)
-    - new `packages/app/src/ui/monaco/`:  `monaco.ts`, `SpellMonaco.ts`, `SpellTokensProvider.ts`, `MonacoEditor.tsx` (+ `.less`),
+    - new `spell-app/src/app/ui/monaco/`:  `monaco.ts`, `SpellMonaco.ts`, `SpellTokensProvider.ts`, `MonacoEditor.tsx` (+ `.less`),
       `SpellModels.ts`, `SpellLanguageFeatures.ts`, `LspToMonaco.ts` (+ test), `AppAddresses.ts`, `index.ts`
-    - `packages/app/src/editor.ts` (Monaco outside the store, `onInputCursor`, `onInputEffect`, `onFileEdited`, `showFileAt`),
+    - `spell-app/src/app/editor.ts` (Monaco outside the store, `onInputCursor`, `onInputEffect`, `onFileEdited`, `showFileAt`),
       `InputEditor.tsx`, `OutputEditor.tsx`, `ui/index.ts`, `ui.types.ts`, `pages/SpellEditor.tsx`, `debug.ts`
     - `src/types/monaco-internals.d.ts`, `src/util/Observable.ts` (`raw()`), `package.json` / `yarn.lock` (deps)
     - removed:  `packages/app/src/ui/CodeMirror*`, `codemirror-classes.txt`, `SpellFile.offsetForPosition` / `positionForOffset`
     - its store-proxy workarounds (`raw()` ...) went with `easy-state` (solid-migration P11)
   - **Expecting mode:  what can come next** (in `95cbc54`, plus what's staged after it)
-    - new `packages/parser/src/Expectations.ts` (+ test), `P.Expectation` (`parser.types.ts`), `Parser.expectedAfter()`
-    - hooks in `packages/parser/src/rules/Sequence.ts` (incl. `allowRunOut`, `within`), `Choice.ts`, `Repeat.ts`, `Subrule.ts`
+    - new `spell-lang/src/parser/Expectations.ts` (+ test), `P.Expectation` (`parser.types.ts`), `Parser.expectedAfter()`
+    - hooks in `spell-lang/src/parser/rules/Sequence.ts` (incl. `allowRunOut`, `within`), `Choice.ts`, `Repeat.ts`, `Subrule.ts`
     - cost:  ~+1% normal parsing per round of hooks (twice);  `Expectations.memoized()` SHARES matches -- only safe
       because expecting-mode matches are thrown away
   - **Completion, signature help, quick fixes** (staged)
@@ -134,13 +134,13 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
     completion (`set y `, `a thingy is a `, `move the card `), signature help (`move `), the quick fix (an unknown
     line), code lens.  Reload the window after `yarn vscode`.
   - **Lazy Monaco + `yarn stop`** (staged)
-    - `packages/app/src/ui/LazyMonaco.tsx`, `packages/app/src/ui/monaco/FileEditor.tsx`;  `$/app/ui/monaco` out of the `UI` barrel;
+    - `spell-app/src/app/solid/LazyMonaco.tsx`, `spell-app/src/app/solid/monaco/FileEditor.tsx`;  `spell-app/app/ui/monaco` out of the `UI` barrel;
       `editor.ts` (`onInputDidMount(editor, api)`, `inputEditorPath`), `InputEditor.tsx`, `OutputEditor.tsx`,
       `debug.ts` (globals now set by `LazyMonaco`), `MonacoEditor.tsx` (`onMount` gets `monaco`)
     - `scripts/stop.mjs`:  `yarn stop` spares the language server an editor started
   - **Code lens + semantic token deltas** (staged)
     - `SpellLanguageService.ts`:  `codeLens()`, `resolveCodeLens()`, `semanticTokensDelta()`, `tokensBuilderFor()`,
-      `pushTokens()`;  `SpellLanguageServer.ts`;  `packages/vscode/src/extension.ts` (`spell.showReferences`);
+      `pushTokens()`;  `SpellLanguageServer.ts`;  `spell-app/vscode/src/extension.ts` (`spell.showReferences`);
       `SpellLanguageFeatures.ts` + `LspToMonaco.ts` (`semanticTokens()`);  their tests
     - needs `yarn vscode` to rebuild + reinstall the extension, for the lens command
   - Docs touched throughout:  `PARSING.md` ("Rules and matching", "Language server"), `AGENTS.md` (Overview),
@@ -158,7 +158,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 - **Fix**:  `runCompiled()` already links imports, given `loadImport(projectId)` -- `<spell-app>` does it:  each
   imported project's JS onto its own `blob:` URL, deepest first.  The VS Code runner just needs to pass a
   `loadImport` that asks the extension for that project's `<Project>.compiled.js`.
-- **Pinned at**:  `runCompiled()` in `packages/app/src/runner/runCompiled.ts` -- its "imports another" message.
+- **Pinned at**:  `runCompiled()` in `spell-app/src/app/runner/runCompiled.ts` -- its "imports another" message.
 
 ---
 
@@ -187,7 +187,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   a module `import()` would need it too.  Scope packs are classic scripts, loaded with a `<script>` tag.
 - **Fix**:  compiled output that needs no rewriting -- e.g. its imports as bare names an import map per app could
   resolve, if browsers get scoped import maps -- or a same-origin proxy.
-- **Pinned at**:  `runProgram()` in `packages/app/src/runner/SpellAppRunner.tsx`.
+- **Pinned at**:  `runProgram()` in `spell-app/src/app/runner/SpellAppRunner.tsx`.
 
 ---
 
@@ -201,7 +201,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   POSTs it beside the compiled JS -- `ScopeExplorer.exportPack()` is browser-safe.
   `<spell-editor>` does the first half already:  it hands a fresh pack to the apps it feeds (`SpellCompiled.scopes`),
   but writes none either -- so an app NOT linked to it still shows the stale one.
-- **Pinned at**:  `SpellDiskWorkspace.writeScopes()`;  `packages/lsp/src/scopes.ts`;  `SpellEditorElement.scopesOf()`.
+- **Pinned at**:  `SpellDiskWorkspace.writeScopes()`;  `spell-app/src/lsp/scopes.ts`;  `SpellEditorElement.scopesOf()`.
 
 ---
 
@@ -227,7 +227,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   and hid the hover before it showed.  So we stop those moves at the shadow root.
 - **Fix**:  Monaco's `MouseHandler` checking `event.composedPath()` instead of `event.target` -- upstream.  Then
   delete the HACK.  NOTE: not reported to Monaco yet.
-- **Pinned at**:  `keepMouseMovesInShadowRoot()` in `packages/app/src/ui/monaco/MonacoEditor.tsx`.
+- **Pinned at**:  `keepMouseMovesInShadowRoot()` in `spell-app/src/app/solid/monaco/MonacoEditor.tsx`.
 
 ---
 
@@ -251,9 +251,9 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   stale if the project was edited in the web app, and missing (a 404) for a project that never had one.
 - **Cause**:  `scopesOf()` needs a `LSP.SpellLanguageService`, and takes `SpellMonaco`'s -- so it has none until
   Monaco loads, which is AFTER the first compile, on purpose, so apps run straight away.  The service itself needs
-  no Monaco:  just an `LSP.FileAddresses`, and ours, `AppAddresses`, lives in `$/app/ui/monaco`, which NOTHING
+  no Monaco:  just an `LSP.FileAddresses`, and ours, `AppAddresses`, lives in `spell-app/app/ui/monaco`, which NOTHING
   outside it may import statically.
-- **Fix**:  move `AppAddresses` out of `$/app/ui/monaco` -- it imports no Monaco -- and give the editor its own
+- **Fix**:  move `AppAddresses` out of `spell-app/app/ui/monaco` -- it imports no Monaco -- and give the editor its own
   service from the start.
 - **Pinned at**:  `SpellEditorElement.scopesOf()` in `packages/app/src/spellEditor/SpellEditorElement.tsx`.
 
@@ -307,7 +307,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 - **Cause**:  each element imports its own copy from a new `blob:` URL (see `loadRuntime()`), and a page never
   drops a module it's imported.  Restart re-uses the SAME copy, so restarting doesn't add to it.
 - **Fix**:  reuse copies -- a pool of released ones -- or run each app in an iframe, which a page CAN drop.
-- **Pinned at**:  `loadRuntime()` in `packages/app/src/runner/loadRuntime.ts`.
+- **Pinned at**:  `loadRuntime()` in `spell-app/src/app/runner/loadRuntime.ts`.
 
 ---
 
@@ -322,7 +322,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 - **Fix**:  have compiled top-level assignments say so, e.g. a `spellCore.things.changed()` after each write
   to a top-level variable -- or compile top-level state into an observable store instead of bare `let`s.
   Either is a compiler change touching every top-level assignment, and every fixture snapshot.
-- **Pinned at**:  `ThingRegistry.setTopLevel()` docstring, `packages/core/src/things.ts`.
+- **Pinned at**:  `ThingRegistry.setTopLevel()` docstring, `spell-lang/src/core/things.ts`.
 
 ---
 
@@ -345,7 +345,7 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
   NOTE: a plain `List` loses its type's members, which a program may read off a result -- `the state of
   cards-to-move` above -- so a range or `where` result probably keeps its type, scratch.
 - **Pinned at**:  `spellCore.newThingLike()` (`core.ts`);  test "NOT a collection helper's result" in
-  `packages/core/src/things.test.ts`;  "scratch results own nothing" in `packages/core/src/classes/List.test.ts`.
+  `spell-lang/tests/core/things.test.ts`;  "scratch results own nothing" in `spell-lang/tests/core/classes/List.test.ts`.
 
 ---
 
@@ -361,23 +361,23 @@ parser speed test) but NOT yet reviewed line by line.  Check each area, then del
 - **Fix**:  in `link()`, import each project's module ourselves (same `blob:` URL, so the program shares it) and
   hand its exports over too, under its project id -- `setTopLevel()` taking several, and the explorer showing a
   "Top level" per project.  Mind the order:  a project's module MUST have run before the program's.
-- **Pinned at**:  `ThingRegistry.setTopLevel()` (`packages/core/src/things.ts`) and `runCompiled()`
-  (`packages/app/src/runner/runCompiled.ts`).
+- **Pinned at**:  `ThingRegistry.setTopLevel()` (`spell-lang/src/core/things.ts`) and `runCompiled()`
+  (`spell-app/src/app/runner/runCompiled.ts`).
 
 ---
 
 ### Phase 4 package split:  compromises (2026-09-30)
 
-The split of the old `packages/spell` (`scripts/move-packages.mjs`) moved files as they were.  Four shapes it
+The split of the old `spell-lang/src/spell` (`scripts/move-packages.mjs`) moved files as they were.  Four shapes it
 knowingly kept:
 
-- **`util/src/spell/` is the old `~/util`, whole.**
+- **`src/util/spell/` is the old `~/util`, whole.**
   - **Cost**:  `parser` and `core` depend on lodash, `chalk`, `pluralize`, `query-string` and the React-era
     state code (spell cells, and React for `view()` -- `easy-state` went in P11) for a handful of helpers each;  a
     published `@spell-app/parser` would drag them in.  They sit in `util`'s `package.json`, beside the generic helpers
     `ui` bundles, and `ui`'s util barrel must import the generic files one by one to keep them out.
   - Partly done on branch `output-targets` (P10-P11, not merged yet):  the cells, records, `Schema` and decorators
-    moved to `util/src/reactive/`, with no lodash and no Solid;  `view()` and React are gone.  `Observable`, `@thing`
+    moved to `src/util/reactive/`, with no lodash and no Solid;  `view()` and React are gone.  `Observable`, `@thing`
     and the rest stay in `src/spell/`.
   - **Cause**:  `~/util` mixed generic helpers (`string`, `assert`, `paths`) with reactive state (`Observable`,
     `extend`), browser fetch (`$fetch`, `Loadable`) and app prefs (`AppPrefStore`, `prefs`).  The split moved it
@@ -385,7 +385,7 @@ knowingly kept:
   - **Fix**:  generic, dependency-free helpers => beside `util`'s generic files;  reactive state => `core`;
     fetch / loadable / prefs => `app` or `spell/node`;  then `src/spell/` and its dependencies go.  Watch `ui`'s
     bundle size (`yarn measure`).
-  - **Pinned at**:  `packages/util/package.json` `dependencies`, and `packages/ui/src/util/index.ts`' file-by-file
+  - **Pinned at**:  `packages/util/package.json` `dependencies`, and `spell-ui/src/util/index.ts`' file-by-file
     imports.
 - **The server's request handlers live in `spell`.**
   - **Cost**:  `packages/spell/src/node/project-utils.ts` holds express `request_*` handlers next to the
@@ -395,17 +395,17 @@ knowingly kept:
     files;  leaving them in `app` made `spell` <-> `app` a cycle.  express is imported as types only.
   - **Fix**:  split `project-utils.ts` into disk functions (stay in `spell/node`) and `request_*` handlers (back to
     `app/src/server`, with `response-utils.ts`).
-  - **Pinned at**:  `packages/spell/src/node/{project-utils,response-utils}.ts`.
+  - **Pinned at**:  `spell-lang/src/spell/node/{project-utils,response-utils}.ts`.
 - **`spell`'s `environment` holds the app's settings.**
   - **Cost**:  `vitePort`, `expressPort`, `api_server`, `staticDir` (`app`'s) live in
     `packages/spell/src/node/environment.ts`, which `app`'s vite configs import by relative path.
   - **Cause**:  one `environment.ts` served the single package;  splitting it was out of scope for a move.
-  - **Fix**:  a `app/src/server/environment.ts` for the app's;  `spell`'s keeps `projectsDir` and the roots.
+  - **Fix**:  a `spell-app/src/spaces/server/node/environment.ts` for the app's;  `spell`'s keeps `projectsDir` and the roots.
   - **Pinned at**:  `packages/spell/src/node/environment.ts`.
-- **`$/app` points at the app's entry, not a barrel.**
-  - **Cost**:  `import "$/app"` would boot the app (`src/index.tsx`).  Nothing does today.
+- **`spell-app/app` points at the app's entry, not a barrel.**
+  - **Cost**:  `import "spell-app/app"` would boot the app (`src/index.tsx`).  Nothing does today.
   - **Cause**:  the app never had a barrel;  the codemod mapped `#name` to `src/index.*` for every package.
-  - **Fix**:  drop the bare `$/app` entry from `tsconfig.base.json`, or add a real barrel.
+  - **Fix**:  drop the bare `spell-app/app` entry from `tsconfig.base.json`, or add a real barrel.
   - **Pinned at**:  `tsconfig.base.json`.
 
 ---
@@ -414,7 +414,7 @@ knowingly kept:
 
 - **Cost**:  WWOD §10:  a caller mistake answers its own status, and ONE error-body shape per server.  The app's API
   answers `SRV.HttpError` (and every other throw) with 500 and `{ errors: [{ message, trace }] }`, the stack
-  included;  `$/server`'s listener answers `{ error }`.  The client parses two shapes, and a 404 reads as a 500.
+  included;  `spell-kit/server`'s listener answers `{ error }`.  The client parses two shapes, and a 404 reads as a 500.
 - **Cause**:  `respondWithJSON()` / `sendError()` (`src/node/response-utils.ts`) predate `SRV.HttpError`.
 - **Fix**:  `respondWithJSON()` rethrows mapped errors to the listener (or maps them itself) and answers
   `{ error }`;  no `trace` in a response.  Part of the planned `ApiTransaction` (epic `wwod` T10).
@@ -427,7 +427,7 @@ knowingly kept:
 - **Cost**:  WWOD §8 / §10:  every file that runs on the server ends `.server.ts`;  file names are PascalCase (one
   class) or camelCase (a family).  `spell`'s `src/node/` has `response-utils.ts`, `file-utils.ts`,
   `project-utils.ts`, `disk-fetch.ts`, `packageVersion.node.ts`, `environment.ts`.
-- **Cause**:  the folder predates both rules;  `$/spell/node/...` is an alias every server imports.
+- **Cause**:  the folder predates both rules;  `spell-lang/spell/node/...` is an alias every server imports.
 - **Fix**:  rename when next touched (`responseUtils.server.ts` ...), with the alias table and imports in the same
   commit (WWOD §1 "Grep the whole repo BEFORE renaming").
 - **Pinned at**:  WWOD §8 "File naming", §10 "Server code stays out of the browser bundle".
@@ -448,7 +448,7 @@ knowingly kept:
 
 ### The "generic" parser holds spell's tree and its writers
 
-- **Cost**:  `packages/parser` is meant to know no language, but `src/ast/AST.ts` is spell's tree (nodes like
+- **Cost**:  `spell-lang/src/parser` is meant to know no language, but `src/ast/AST.ts` is spell's tree (nodes like
   `ASTSpellCoreExpression`, `ASTJSXElement`, `ASTReactiveProperty`), and `src/writers/` (`P.JSWriter`, from epic
   `output-targets` P2, 2026-10-05) writes it as javascript.  Markdown, the second language on the parser, uses
   none of it.
@@ -488,7 +488,7 @@ knowingly kept:
   (Before epic `output-targets` P20, `spellCore.element()` did that;  it's gone since P22.)
 - **Fix**:  once Solid's `<Errored>` keeps its children and its fallback, the boundary is `<Errored>` alone, and
   it can hand Solid the thunk.  Re-measure on every RC bump.
-- **Pinned at**:  `drawInBoundary()` / `drawOrStandIn()` / `madeOnce()` in `packages/core/src/drawing.ts`;  caveats C13,
+- **Pinned at**:  `drawInBoundary()` / `drawOrStandIn()` / `madeOnce()` in `spell-lang/src/core/drawing.ts`;  caveats C13,
   C14 of `epics/output-targets/`.
 
 ---
@@ -505,7 +505,7 @@ knowingly kept:
   still loading hasn't exported yet.
 - **Fix**:  ids and references (JSON-LD's `"@id"`) for saving a whole game;  the CLI's runner hands its modules over
   as the app's runners do.  Fine as it is for a debug view, or saving one list.
-- **Pinned at**:  `packages/core/src/json.ts`;  caveat C26 and judgement J51 of `epics/output-targets/`.
+- **Pinned at**:  `spell-lang/src/core/json.ts`;  caveat C26 and judgement J51 of `epics/output-targets/`.
 
 ---
 
@@ -519,7 +519,7 @@ knowingly kept:
   `output-targets` P14).  Changing what `starting with` means is a change to spell itself.
 - **Fix**:  decide spell's rule first (an empty list would be safer), then change the twin, and both targets follow.
   Reserve the list methods' names, or warn on a member named like one.
-- **Pinned at**:  `packages/core/src/classes/List.ts`;  caveat C24 of `epics/output-targets/`.
+- **Pinned at**:  `spell-lang/src/core/classes/List.ts`;  caveat C24 of `epics/output-targets/`.
 
 ---
 
@@ -530,7 +530,7 @@ knowingly kept:
 - **Cost**:  a derived value sees only its own side's members.  A Spell UI `@derived` getter reading a spell thing's
   prop never recomputes when the prop changes, nor a spell `@derived` reading a Spell UI `@state`.  Nobody hits it
   yet;  mixed hand-written code (a Spell UI component reading a spell Thing) would.  Plain getters are fine.
-- **Cause**:  spell's engine (`$/util/reactive`, epic `output-targets` P10) and Spell UI's reactive members
+- **Cause**:  spell's engine (`spell-kit/util/reactive`, epic `output-targets` P10) and Spell UI's reactive members
   (`Reactive.ts`) are separate:  Spell UI's cache checks only its own record members, and its writes set only a
   Solid signal, which spell cells never hear.
 - **Fix**:  move Spell UI's members onto spell cells, as the SAME decorators (Owen, Q20 of `output-targets`), after
@@ -556,15 +556,15 @@ knowingly kept:
 
 ### `<ui-flyout>` builds on the modal family, not on the element core
 
-- **Cost** -- the flyout family imports `$/ui/components/ui-modal` (a cross-family barrel import:  loading a flyout defines
+- **Cost** -- the flyout family imports `spell-ui/components/ui-modal` (a cross-family barrel import:  loading a flyout defines
   `<ui-modal>`, the content parts and `<ui-button>`, and the `flyout` lib entry depends on the `modal` one);
   `DialogComponent` is generic over its vocabulary but reads its attributes, events, parts and texts through casts
   (`dialogAttrs`, `fire()`), so a subclass vocabulary missing one of them fails at run time, not in `tsc`.
 - **Cause** -- the brief (2026-09-30) put the shared modal logic IN the modal family ("a shared base or helper in the
-  modal family, NOT a copy");  the plan's home for it is `src/elements/OverlayElement.ts` (via `$/ui/core`).  Typing
+  modal family, NOT a copy");  the plan's home for it is `src/elements/OverlayElement.ts` (via `spell-ui/core`).  Typing
   "this vocabulary has at least these names" isn't expressible with the vocabulary types as they are.
 - **Fix** -- move `DialogComponent` to `src/elements/` as the plan's
-  `OverlayElement`, exported through `$/ui/core`, once a third dialog element (a page `<ui-dimmer>` could be one) wants
+  `OverlayElement`, exported through `spell-ui/core`, once a third dialog element (a page `<ui-dimmer>` could be one) wants
   it;  give it a `DialogVocabulary` constraint type checked with a conditional type.
 - **Pinned at** -- `src/components/ui-modal/DialogComponent.tsx` (class docs), `src/components/ui-flyout/UIFlyout.tsx`,
   `docs/grammar.md` "Flyouts".
@@ -587,7 +587,7 @@ knowingly kept:
   does the markup), migrate `cli-additions`, then delete the HEADINGS branch of `spell-doc-runtime.js`
   (`readHeadings()`, `wireHeadingFolds()`, `headingSection()` ...), the old-markup CSS, and the old-markup paths in
   `plan-doc.js` / `index.js` / `check-spell.js` (and the old-layout fixture's tests, or migrate them).
-- **Pinned at** -- `packages/epics/tools/_assets/spell-doc-runtime.js` (header:  SECTIONS / HEADINGS), `_assets/spell-doc.css`
+- **Pinned at** -- `spell-epic/src/tools/_assets/spell-doc-runtime.js` (header:  SECTIONS / HEADINGS), `_assets/spell-doc.css`
   ("The goals pages' markup"), `scripts/plan-doc.js` ("Sections, either markup"), `scripts/fixtures/plan-2026-09-30.html`,
   `AGENTS.md` "Writing a page" / "Templates".
 
@@ -598,12 +598,12 @@ knowingly kept:
 - **Cost** -- a branch that adds a `spell` command and its row in `commands.json` makes `yarn commands:check` on
   `main` (and every other branch) fail until that branch merges:  the row names a command their CLI doesn't have.
 - **Cause** -- `guides/dev/commands/commands.json` and `commands.md` live in the shared content repo
-  (`../spell-app-dev`, epic `shared-content`):  ONE copy, the same in every checkout.  `spell dev commands check`
+  (`../spell-app-dev`, epic `shared-content`):  ONE copy, the same in every checkout.  `spell commands check`
   (`yarn commands:check`) checks that one JSON against the CLI source of the checkout it runs in, which is
   versioned per branch.
 - **Fix** -- open:  Owen accepted it for now, "revisit later" (epic `shared-content`).  E.g. rows marked with the
   branch that adds them, skipped by other checkouts' checks;  or the JSON tracked per branch, beside the CLI.
-- **Pinned at** -- `spell dev commands check` (`yarn commands:check`);  the root's `AGENTS.md`, "Commands";  the
+- **Pinned at** -- `spell commands check` (`yarn commands:check`);  the root's `AGENTS.md`, "Commands";  the
   `shared-content` plan doc.
 
 ---
@@ -621,8 +621,8 @@ knowingly kept:
   imports from `@spell/core`.  Built Solid TypeScript also hears clicks only once its module has loaded (C20).
 - **Fix**:  build the `.tsx` where the runner gets its code (the page server, or esbuild-wasm plus Solid's compiler in
   the browser), and have `spellRuntime.ts` re-export what `@spell/core` exports.
-- **Pinned at**:  `TARGETS` in `packages/spell/src/targets.ts` ("never run as is");
-  `packages/app/src/runner/spellRuntime.ts`;  `packages/cli/src/contract.test.ts`;  epic `output-targets`, P14's Done
+- **Pinned at**:  `TARGETS` in `spell-lang/src/spell/targets.ts` ("never run as is");
+  `spell-app/src/app/runner/spellRuntime.ts`;  `spell-app/tests/cli/contract.test.ts`;  epic `output-targets`, P14's Done
   list.
 
 ---
@@ -642,8 +642,8 @@ knowingly kept:
 
 ### `UIT` names two different things
 
-- **Cost**:  `packages/app/src/editor.ts` imports `import type * as UIT from "$/app/ui/ui.types"`, while `UIT` is also
-  `@spell-app/ui`'s own namespace (`packages/ui/src/index.ts`).  WWOD §4 wants one name per type;  a reader of
+- **Cost**:  `spell-app/src/app/editor.ts` imports `import type * as UIT from "spell-app/app/ui/ui.types"`, while `UIT` is also
+  `@spell-app/ui`'s own namespace (`spell-ui/src/index.ts`).  WWOD §4 wants one name per type;  a reader of
   `UIT.X` can't tell which package's types it is.
 - **Cause**:  the app's types-only import predates WWOD's `<NS>T` rule (`<NS>` = the package's namespace:  `app`'s
   is `UI`).
@@ -655,14 +655,14 @@ knowingly kept:
 ### The local person is hard-coded, and a new checkout has no space for them
 
 - **Cost**:  every machine's own projects group is `owen@spell`, so a newcomer's projects get the maintainer's
-  address, and `spell new <name>` fails in a fresh checkout with `No such folder:  .../spell.spaces/@spell/owen@`
+  address, and `spell app create <name>` fails in a fresh checkout with `No such folder:  .../spell.spaces/@spell/owen@`
   until they `mkdir -p ~/www/spell/spell.spaces/@spell/owen@` (spell-app's README-spaces says so, as a step).
-- **Cause**:  `LOCAL_PERSON = "owen"` in spell-app's `spaces/src/models/projectGroups.ts`;  `newCommand()` refuses a
+- **Cause**:  `LOCAL_PERSON = "owen"` in spell-app's `spell-app/src/spaces/models/projectGroups.ts`;  `newCommand()` refuses a
   missing parent folder (`environment.userFilesRoot`), and nothing makes the person's folder.  The people store
   already reads git's name and email for a starter `__me.json5`, but only once the folder is there.
 - **Fix**:  derive the local person from git's name (as the people store does), or a setting;  make their space's
-  folder on first use (`spell new`, the editor's "Projects").
-- **Pinned at**:  epic `readme` I1;  `tests/spaces/src/models/projectGroups.test.ts` pins the five groups,
+  folder on first use (`spell app create`, the editor's "Projects").
+- **Pinned at**:  epic `readme` I1;  `spell-app/tests/spaces/models/projectGroups.test.ts` pins the five groups,
   `owen@spell` first.
 
 ---
@@ -713,13 +713,13 @@ Where code knowingly doesn't follow a WWOD rule yet (`agents/wwod/`, epic `wwod`
 
 - **Cost**:  WWOD §5 sets an error's name ONE way:  `X.prototype.name = "X"` after the class, details in a typed
   `cause`.  Today it's three ways, so `error.name` and logs differ by package:
-  - `$/util`'s `CustomError`:  `get name()` from `this.constructor.name` (mangled by a minifier), details in
+  - `spell-kit/util`'s `CustomError`:  `get name()` from `this.constructor.name` (mangled by a minifier), details in
     `props.error`;  `getDier()` throws `UIError` with `props.error`
   - `ui`'s `ApiError`, `SourceError`:  `this.name =` in the constructor (fixed on branch `wwod-spell-ui`, P3:  drop
     this line when it merges)
   - `server`'s `HttpError`, `FileLockError`, `cli`'s `CliError`, `vscode`'s `BridgeError`:  no name at all
 - **Cause**:  written per package, before WWOD.
-- **Fix**:  the system errors move to `$/util/errors` (epic `wwod` todo T6), renamed (`NotFoundError`,
+- **Fix**:  the system errors move to `spell-kit/util/errors` (epic `wwod` todo T6), renamed (`NotFoundError`,
   `CanceledRequestError`, `CanceledError`:  T7), each with `prototype.name` and a typed cause;  package errors follow.
 - **Pinned at**:  WWOD §5 "Error classes:  body usually empty, named AFTER the class";  epic `wwod` T6-T8.
 
@@ -738,7 +738,7 @@ Where code knowingly doesn't follow a WWOD rule yet (`agents/wwod/`, epic `wwod`
 
 ### Bare `console.*` instead of a `Logger`
 
-- **Cost**:  ~430 bare `console.*` calls can't be turned up or down per subsystem;  `$/util`'s `Logger` is used ONCE
+- **Cost**:  ~430 bare `console.*` calls can't be turned up or down per subsystem;  `spell-kit/util`'s `Logger` is used ONCE
   (`parser`'s `Tokenizer`).  `SPELL_DEBUG` / `SPELL_<PKG>_DEBUG` (WWOD §19) aren't read anywhere yet.
 - **Cause**:  `Logger` existed but was never adopted.
 - **Fix**:  epic `logger-everywhere` (epic `wwod` T28).
@@ -753,7 +753,7 @@ Where code knowingly doesn't follow a WWOD rule yet (`agents/wwod/`, epic `wwod`
   `PageServer.ts` / `page/cli.ts`, `cli`'s runner and `goalsCommand.ts`, `vscode`'s `WindowBridge.ts`, `docs`
   tools), parsed inline (`Number(...) ||`), and `spell`'s `environment.ts` logs on import.  Names without
   `SPELL_`:  `VITE_PORT`, `API_SERVER`, `GOALS_DIR`, `BENCH`, `INCREMENTAL_FULL`.
-  - `ui` is done (epic `wwod-spell-ui`, P9):  ONE `packages/ui/tools/environment.ts` with its parse helpers, the
+  - `ui` is done (epic `wwod-spell-ui`, P9):  ONE `spell-ui/src/tools/environment.ts` with its parse helpers, the
     variables renamed `SPELL_UI_*` with no fallback to the old names;  its helpers are `ui`'s own, not promoted.
 - **Cause**:  no rule before WWOD.
 - **Fix**:  the parse helpers (epic `wwod` T13), then one `environment.server.ts` per package;  renamed variables
@@ -770,7 +770,7 @@ Where code knowingly doesn't follow a WWOD rule yet (`agents/wwod/`, epic `wwod`
   - `debounce()` (§12):  hand-rolled timers, `EditorStore.compileAppSoon()` + `compileAppSoonTimer`
   - `safelyCall()` / `safelyCallAll()`, `makeErrorWrapper()` (§5):  hand-written `try` / `catch`
 - **Cause**:  WWOD came from `construct-app`, which had them;  Owen deferred building them (epic `wwod` D24).
-- **Fix**:  build them in `$/util` (epic `wwod` T4, T5, T15), then replace the hand-written forms.
+- **Fix**:  build them in `spell-kit/util` (epic `wwod` T4, T5, T15), then replace the hand-written forms.
 - **Pinned at**:  WWOD §1, §5, §12;  epic `wwod` todos.
 
 ---
