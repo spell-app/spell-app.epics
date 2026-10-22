@@ -1,55 +1,109 @@
 <!-- plan-doc part:  #t7's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Each step was tried in a fresh scratch clone of spell-epic (efc85d8) against this worktree:</p>
+<ul>
+  <li><code>yarn install</code> and <code>yarn ts</code> pass</li>
+  <li><code>yarn pack:check</code> current, and <code>yarn pack:build</code> byte for byte the same</li>
+  <li><code>yarn test</code>: 143 files / 1498 tests passing (2 skipped)</li>
+  <li>
+    <code>yarn lint</code> and format no worse than on main: main already has the vscode tsconfig error and 14 format
+    issues
+  </li>
+</ul>
 <p>
-  Each step was tried in a fresh scratch clone of spell-epic (efc85d8) against this worktree: <code>yarn install</code>,
-  <code>yarn ts</code>, <code>yarn pack:check</code> current and <code>yarn pack:build</code> byte for byte the same,
-  <code>yarn test</code> 143 files / 1498 tests passing (2 skipped), <code>yarn lint</code> and format no worse than on
-  main (main already has the vscode tsconfig error and 14 format issues).
-</p>
-<p>
-  <b>BEFORE P6 merges</b>. Both are harmless before: tried in a clone against spell-app's main checkout, where install,
-  ts and pack:check still pass.
+  <b>BEFORE P6 merges</b>.
+  Both are harmless before: tried in a clone against spell-app's main checkout, where install, ts and pack:check still
+  pass.
 </p>
 <ol>
   <li>
-    <a href="../../../package.json" target="src-package-json"><code>package.json</code></a> <code>resolutions</code>:
-    <code>"@spell-app/toolchain@workspace:*": "portal:./.spell-app/packages/toolchain"</code>. The assembler now depends
-    on the toolchain, and without this line the install fails ("Workspace not found"), as I6 was for util.
+    Its package file's <code>resolutions</code>:
+    <code>"@spell-app/toolchain@workspace:*": "portal:./.spell-app/packages/toolchain"</code>.
+    <ul>
+      <li>The assembler now depends on the toolchain.</li>
+      <li>Without this line the install fails ("Workspace not found"), as I6 was for util.</li>
+    </ul>
   </li>
   <li>
-    <a href="../../../src/toolchain/tsconfig.base.json" target="src-src-toolchain-tsconfig-base-json"
-      ><code>tsconfig.base.json</code></a
-    >
-    paths: <code>"@spell-app/util"</code>, <code>"@spell-app/util/*"</code>, <code>"@spell-app/spell-element"</code>,
-    <code>"@spell-app/spell-element/*"</code> to <code>./.spell-app/packages/&lt;name&gt;/src/...</code>, through the
-    link as its aliases are. Spell UI's source names them by npm name now, and through <code>node_modules</code> tsc
-    reads their real paths: 66 errors from two copies of <code>UIComponent</code>, <code>ComponentVocabulary</code> ...
+    Its <code title="spell-epic/tsconfig.base.json">tsconfig.base.json</code> paths, to
+    <code>./.spell-app/packages/&lt;name&gt;/src/...</code>, through the link as its aliases are:
+    <ul>
+      <li><code>"@spell-app/util"</code>, <code>"@spell-app/util/*"</code></li>
+      <li><code>"@spell-app/spell-element"</code>, <code>"@spell-app/spell-element/*"</code></li>
+      <li>
+        Why: Spell UI's source names them by npm name now, and through <code>node_modules</code> tsc reads their real
+        paths.
+      </li>
+      <li>That's 66 errors, from two copies of <code>UIComponent</code>, <code>ComponentVocabulary</code> ...</li>
+    </ul>
   </li>
 </ol>
 <p><b>AFTER the merge</b>:</p>
 <ol>
   <li><code>yarn install</code> (yarn.lock gains the toolchain portal and the assembler's dependency on it).</li>
   <li>
-    Drop the copied toolchain.
-    <a href="../../../vite.config.ts" target="src-vite-config-ts"><code>vite.config.ts</code></a> imports
-    <code>@spell-app/toolchain/lint</code> (which now has <code>patternLintIn()</code>). Delete
-    <code>vite.lint.ts</code>, <code>vite.lint.patterns.ts</code> and <code>types/app.d.ts</code>. Add devDependency
-    <code>"@spell-app/toolchain": "portal:./.spell-app/packages/toolchain"</code>.
-    <a href="../../../spell-ui/tsconfig.json" target="src-spell-ui-tsconfig-json"><code>tsconfig.json</code></a>
-    extends <code>["@spell-app/toolchain/tsconfig.base.json", "./tsconfig.base.json"]</code>, drops the 12 settings now
-    shared, and takes <code>"types": ["vite/client", "node", "@spell-app/toolchain/types"]</code> (include without
-    <code>./types/app.d.ts</code>, likewise
-    <a href="../../../spell-ui/tests/tsconfig.json" target="src-spell-ui-tests-tsconfig-json"
-      ><code>tests/tsconfig.json</code></a
-    >). Fix the word in <code>src/tool/planDoc.types.ts</code>:11. The catalog pins and the second alias table stay
-    until P8's one install.
+    Drop the copied toolchain:
+    <ul>
+      <li>
+        <code title="spell-epic/vite.config.ts">vite.config.ts</code> imports
+        <code>@spell-app/toolchain/lint</code>, which now has <code>patternLintIn()</code>.
+      </li>
+      <li>
+        Delete the copies: <code title="spell-epic/vite.lint.ts">the lint config</code>,
+        <code title="spell-epic/vite.lint.patterns.ts">its patterns</code> and
+        <code title="spell-epic/types/app.d.ts">the app types</code>.
+      </li>
+      <li>Add devDependency <code>"@spell-app/toolchain": "portal:./.spell-app/packages/toolchain"</code>.</li>
+      <li>
+        Its <code title="spell-epic/tsconfig.json">tsconfig.json</code>:
+        <ul>
+          <li>extends <code>["@spell-app/toolchain/tsconfig.base.json", "./tsconfig.base.json"]</code></li>
+          <li>drops the 12 settings now shared</li>
+          <li>takes <code>"types": ["vite/client", "node", "@spell-app/toolchain/types"]</code></li>
+          <li>
+            its include drops the app types; likewise its tests'
+            <code title="spell-epic/tests/tsconfig.json">tsconfig.json</code>
+          </li>
+        </ul>
+      </li>
+      <li>Fix the word in <code title="spell-epic/src/tool/planDoc.types.ts:11">planDoc.types.ts</code>, line 11.</li>
+      <li>The catalog pins and the second alias table stay until P8's one install.</li>
+    </ul>
   </li>
   <li>
-    By-path imports to the new entries plain node loads: <code>@spell-app/server/src/page/settings.ts</code> becomes
-    <code>@spell-app/server/page/settings</code> (src/tools/ComponentSetFolders.ts, check-spell.js:52, index.js:60);
-    <code>.../src/page/prune.ts</code> becomes <code>/page/prune</code> (src/command/CheckoutServers.ts,
-    tests/command/CheckoutServers.test.ts); <code>.../src/checkout.ts</code> becomes
-    <code>/checkout</code> (src/config/EpicConfig.ts); <code>@spell-app/assembler/src/DataFile.ts</code> becomes
-    <code>@spell-app/assembler/DataFile</code> (src/data/DataFile.ts).
+    By-path imports become the new entries plain node loads:
+    <ul>
+      <li>
+        <code>@spell-app/server/src/page/settings.ts</code> becomes <code>@spell-app/server/page/settings</code>
+        <ul>
+          <li>
+            in <code title="spell-epic/src/tools/ComponentSetFolders.ts">ComponentSetFolders</code>,
+            <code title="spell-epic/src/tools/check-spell.js:52">check-spell</code>,
+            <code title="spell-epic/src/tools/index.js:60">tools index</code>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <code>.../src/page/prune.ts</code> becomes <code>/page/prune</code>
+        <ul>
+          <li>
+            in <code title="spell-epic/src/command/CheckoutServers.ts">CheckoutServers</code> and its
+            <code title="spell-epic/tests/command/CheckoutServers.test.ts">test</code>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <code>.../src/checkout.ts</code> becomes <code>/checkout</code>
+        <ul>
+          <li>in <code title="spell-epic/src/config/EpicConfig.ts">EpicConfig</code></li>
+        </ul>
+      </li>
+      <li>
+        <code>@spell-app/assembler/src/DataFile.ts</code> becomes <code>@spell-app/assembler/DataFile</code>
+        <ul>
+          <li>in spell-epic's own <code title="spell-epic/src/data/DataFile.ts">DataFile</code></li>
+        </ul>
+      </li>
+    </ul>
   </li>
   <li>
     Then in spell-app: delete the <code>"./src/*"</code> stand-ins from server's and assembler's
