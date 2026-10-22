@@ -1,0 +1,310 @@
+<!-- plan-doc part:  #j10's details in intellisense.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Every program that writes <code>&lt;ui-*&gt;</code> JSX now uses Spell UI's generated types: Spell UI's own (the loose
+  <code>DocsJSXTags</code> keeps only <code>&lt;ui-docs-search&gt;</code>), the app (its
+  <code>[tag: `ui-${string}`]</code> index is gone), spell-epic (its per-family <code>ui-*</code> lines are gone), and
+  spell-lang's check of compiled spell. spell-brand writes no <code>&lt;ui-*&gt;</code> JSX. They caught 21 errors, in
+  15 kinds of place:
+</p>
+<ul>
+  <li>5 real mistakes in our JSX, fixed there</li>
+  <li>6 types of ours looser than the values they hold: narrowed (one, a hue read from JSON, typed where it's used)</li>
+  <li>3 gaps in the generated types, filled in the generator</li>
+  <li>1 left as a typed cast with a <code>HACK:</code> comment, in 3 files (issue filed)</li>
+</ul>
+<table>
+  <thead>
+    <tr>
+      <th>Where</th>
+      <th>What was wrong</th>
+      <th>Fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>spell-app <code>ProjectSettings.tsx</code></td>
+      <td>
+        <code>&lt;ui-modal label="..."&gt;</code>: the modal has no <code>label</code>, so the settings dialog had no
+        name for screen readers
+      </td>
+      <td><code>aria-label</code>, which the dialog takes as its name</td>
+    </tr>
+    <tr>
+      <td>
+        spell-ui
+        <a
+          href="../../../spell-ui/src/docs-components/ui-docs-themes/UIDocsThemes.tsx"
+          target="src-spell-ui-src-docs-components-ui-docs-themes-uidocsthemes-tsx"
+          ><code>UIDocsThemes.tsx</code></a
+        >
+      </td>
+      <td><code>basic</code> on the theme <code>&lt;ui-dropdown&gt;</code>: no such attribute, it did nothing</td>
+      <td>removed; it looks the same</td>
+    </tr>
+    <tr>
+      <td>spell-epic <code>EpicFold.tsx</code></td>
+      <td>
+        <code>offset={String(this.offset)}</code> on <code>&lt;ui-section&gt;</code>, whose <code>offset</code> is a
+        number
+      </td>
+      <td><code>offset={this.offset}</code></td>
+    </tr>
+    <tr>
+      <td>spell-epic <code>EpicTestRun.tsx</code></td>
+      <td><code>&lt;ui-progress value={answered()}&gt;</code>: a number for a text attribute (a comma list of bars)</td>
+      <td><code>String(answered())</code></td>
+    </tr>
+    <tr>
+      <td>spell-lang <code>Cards.sample.tsx</code></td>
+      <td><code>&lt;ui-button prop:value={this.score}&gt;</code>: a number for a text property</td>
+      <td><code>String(this.score)</code></td>
+    </tr>
+    <tr>
+      <td>spell-ui <code>UIDocsApi</code> (2), <code>UIDocsExample</code>, <code>UIDocsTokens</code></td>
+      <td>
+        <code>level={String(n)}</code> on <code>&lt;ui-header&gt;</code>: any text, where it takes <code>"1"</code> ...
+        <code>"6"</code>
+      </td>
+      <td>new <code>HeadingLevels.attributeFor(level)</code>: rounded, clamped, typed</td>
+    </tr>
+    <tr>
+      <td>
+        spell-ui
+        <a
+          href="../../../spell-ui/src/docs-components/ui-docs-tokens/UIDocsTokens.tsx"
+          target="src-spell-ui-src-docs-components-ui-docs-tokens-uidocstokens-tsx"
+          ><code>UIDocsTokens.tsx</code></a
+        >
+      </td>
+      <td>
+        <code>COLOR_TYPE</code> typed as every token type (<code>length</code> ...), passed as an input's
+        <code>type</code>
+      </td>
+      <td><code>"color" satisfies SiteTokenType</code></td>
+    </tr>
+    <tr>
+      <td>
+        spell-ui
+        <a
+          href="../../../spell-ui/src/docs-components/ui-docs-api/UIDocsApi.tsx"
+          target="src-spell-ui-src-docs-components-ui-docs-api-uidocsapi-tsx"
+          ><code>UIDocsApi.tsx</code></a
+        >
+      </td>
+      <td>a swatch's hue, from the site data, as <code>&lt;ui-label color&gt;</code></td>
+      <td>typed at that one place: the data is JSON</td>
+    </tr>
+    <tr>
+      <td>spell-app <code>Actions.tsx</code></td>
+      <td><code>ActionProps.color</code> was any text</td>
+      <td>the hues (<code>UIButtonAttributes["color"]</code>)</td>
+    </tr>
+    <tr>
+      <td>spell-epic <code>EpicCard.tsx</code></td>
+      <td><code>EpicState.color</code> was any text</td>
+      <td><code>EpicStateColor</code>: the four hues it uses (the file may import nothing)</td>
+    </tr>
+    <tr>
+      <td>spell-epic <code>EpicTestRun.tsx</code></td>
+      <td><code>STATE_COLORS</code> was <code>Record&lt;string, string&gt;</code></td>
+      <td>its values typed as hues</td>
+    </tr>
+    <tr>
+      <td>spell-ui generator</td>
+      <td>
+        <code>prop:value</code> / <code>prop:open</code> (the controlled value: the smoke host, the app's dropdowns,
+        spell-epic): only rich data had a <code>prop:</code> form
+      </td>
+      <td>every attribute gets <code>prop:&lt;property&gt;</code> too, typed the same</td>
+    </tr>
+    <tr>
+      <td>spell-ui generator</td>
+      <td><code>&lt;ui-root prop:appContext&gt;</code> (the smoke host declared it itself, and would clash)</td>
+      <td>
+        properties no vocabulary names, by kind of tag: <code>appContext</code> on <code>&lt;ui-root&gt;</code>. NOT a
+        vocabulary attribute: that would observe an <code>app-context</code> attribute and shadow
+        <code>UIComponent.appContext</code>
+      </td>
+    </tr>
+    <tr>
+      <td>spell-ui generator</td>
+      <td><code>&lt;ui-code prop:content&gt;</code> (<code>UIDocsExample</code>)</td>
+      <td>
+        <code>content</code> (text) on every source element: <code>&lt;ui-code&gt;</code>,
+        <code>&lt;ui-markdown&gt;</code>, <code>&lt;ui-include&gt;</code>
+      </td>
+    </tr>
+    <tr>
+      <td>spell-ui <code>UIDocsThemes</code>, <code>UIDocsToc</code> (2); spell-epic <code>EpicOption</code></td>
+      <td>
+        a component's <code>size</code> / <code>badge-color</code> passed on to a <code>&lt;ui-*&gt;</code>: read as
+        <code>string</code>
+      </td>
+      <td><code>HACK:</code> typed cast (the issue beside this)</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  Also: the JSX types now type-check in Spell UI's main program and its tests' (no <code>tsconfig.jsx.json</code>, no
+  <code>tests/jsx/tsconfig.json</code>); the app's wrapper props (<code>MenuProps</code>,
+  <code>MoreMenuProps</code> ...) are the exact tag types instead of <code>UIElementAttributes</code>; spell-epic's
+  loose type is <code>EpicJSXAttributes</code>, for its own tags only.
+</p>
+<epic-original
+  ><epic-version
+    ><p>
+      Every program that writes <code>&lt;ui-*&gt;</code> JSX now uses Spell UI's generated types: Spell UI's own (the
+      loose <code>DocsJSXTags</code> keeps only <code>&lt;ui-docs-search&gt;</code>), the app (its
+      <code>[tag: `ui-${string}`]</code> index is gone), spell-epic (its per-family <code>ui-*</code> lines are gone),
+      and spell-lang's check of compiled spell. spell-brand writes no <code>&lt;ui-*&gt;</code> JSX. They caught 22
+      errors in 15 places:
+    </p>
+    <ul>
+      <li>5 real mistakes in our JSX, fixed there</li>
+      <li>8 types of ours that were looser than the values they hold, narrowed</li>
+      <li>3 gaps in the generated types, filled in the generator</li>
+      <li>3 left as a typed cast, with a <code>HACK:</code> comment (issue filed)</li>
+    </ul>
+    <table>
+      <thead>
+        <tr>
+          <th>Where</th>
+          <th>What was wrong</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>spell-app <code>ProjectSettings.tsx</code></td>
+          <td>
+            <code>&lt;ui-modal label="..."&gt;</code>: the modal has no <code>label</code>, so the settings dialog had
+            no name for screen readers
+          </td>
+          <td><code>aria-label</code>, which the dialog takes as its name</td>
+        </tr>
+        <tr>
+          <td>
+            spell-ui
+            <a
+              href="../../../spell-ui/src/docs-components/ui-docs-themes/UIDocsThemes.tsx"
+              target="src-spell-ui-src-docs-components-ui-docs-themes-uidocsthemes-tsx"
+              ><code>UIDocsThemes.tsx</code></a
+            >
+          </td>
+          <td><code>basic</code> on the theme <code>&lt;ui-dropdown&gt;</code>: no such attribute, it did nothing</td>
+          <td>removed; it looks the same</td>
+        </tr>
+        <tr>
+          <td>spell-epic <code>EpicFold.tsx</code></td>
+          <td>
+            <code>offset={String(this.offset)}</code> on <code>&lt;ui-section&gt;</code>, whose <code>offset</code> is a
+            number
+          </td>
+          <td><code>offset={this.offset}</code></td>
+        </tr>
+        <tr>
+          <td>spell-epic <code>EpicTestRun.tsx</code></td>
+          <td>
+            <code>&lt;ui-progress value={answered()}&gt;</code>: a number for a text attribute (a comma list of bars)
+          </td>
+          <td><code>String(answered())</code></td>
+        </tr>
+        <tr>
+          <td>spell-lang <code>Cards.sample.tsx</code></td>
+          <td><code>&lt;ui-button prop:value={this.score}&gt;</code>: a number for a text property</td>
+          <td><code>String(this.score)</code></td>
+        </tr>
+        <tr>
+          <td>spell-ui <code>UIDocsApi</code> (2), <code>UIDocsExample</code>, <code>UIDocsTokens</code></td>
+          <td>
+            <code>level={String(n)}</code> on <code>&lt;ui-header&gt;</code>: any text, where it takes
+            <code>"1"</code> ...
+            <code>"6"</code>
+          </td>
+          <td>new <code>HeadingLevels.attributeFor(level)</code>: rounded, clamped, typed</td>
+        </tr>
+        <tr>
+          <td>
+            spell-ui
+            <a
+              href="../../../spell-ui/src/docs-components/ui-docs-tokens/UIDocsTokens.tsx"
+              target="src-spell-ui-src-docs-components-ui-docs-tokens-uidocstokens-tsx"
+              ><code>UIDocsTokens.tsx</code></a
+            >
+          </td>
+          <td>
+            <code>COLOR_TYPE</code> typed as every token type (<code>length</code> ...), passed as an input's
+            <code>type</code>
+          </td>
+          <td><code>"color" satisfies SiteTokenType</code></td>
+        </tr>
+        <tr>
+          <td>
+            spell-ui
+            <a
+              href="../../../spell-ui/src/docs-components/ui-docs-api/UIDocsApi.tsx"
+              target="src-spell-ui-src-docs-components-ui-docs-api-uidocsapi-tsx"
+              ><code>UIDocsApi.tsx</code></a
+            >
+          </td>
+          <td>a swatch's hue, from the site data, as <code>&lt;ui-label color&gt;</code></td>
+          <td>typed at that one place: the data is JSON</td>
+        </tr>
+        <tr>
+          <td>spell-app <code>Actions.tsx</code></td>
+          <td><code>ActionProps.color</code> was any text</td>
+          <td>the hues (<code>UIButtonAttributes["color"]</code>)</td>
+        </tr>
+        <tr>
+          <td>spell-epic <code>EpicCard.tsx</code></td>
+          <td><code>EpicState.color</code> was any text</td>
+          <td><code>EpicStateColor</code>: the four hues it uses (the file may import nothing)</td>
+        </tr>
+        <tr>
+          <td>spell-epic <code>EpicTestRun.tsx</code></td>
+          <td><code>STATE_COLORS</code> was <code>Record&lt;string, string&gt;</code></td>
+          <td>its values typed as hues</td>
+        </tr>
+        <tr>
+          <td>spell-ui generator</td>
+          <td>
+            <code>prop:value</code> / <code>prop:open</code> (the controlled value: the smoke host, the app's dropdowns,
+            spell-epic): only rich data had a <code>prop:</code> form
+          </td>
+          <td>every attribute gets <code>prop:&lt;property&gt;</code> too, typed the same</td>
+        </tr>
+        <tr>
+          <td>spell-ui generator</td>
+          <td><code>&lt;ui-root prop:appContext&gt;</code> (the smoke host declared it itself, and would clash)</td>
+          <td>
+            properties no vocabulary names, by kind of tag: <code>appContext</code> on <code>&lt;ui-root&gt;</code>. NOT
+            a vocabulary attribute: that would observe an <code>app-context</code> attribute and shadow
+            <code>UIComponent.appContext</code>
+          </td>
+        </tr>
+        <tr>
+          <td>spell-ui generator</td>
+          <td><code>&lt;ui-code prop:content&gt;</code> (<code>UIDocsExample</code>)</td>
+          <td>
+            <code>content</code> (text) on every source element: <code>&lt;ui-code&gt;</code>,
+            <code>&lt;ui-markdown&gt;</code>, <code>&lt;ui-include&gt;</code>
+          </td>
+        </tr>
+        <tr>
+          <td>spell-ui <code>UIDocsThemes</code>, <code>UIDocsToc</code> (2); spell-epic <code>EpicOption</code></td>
+          <td>
+            a component's <code>size</code> / <code>badge-color</code> passed on to a <code>&lt;ui-*&gt;</code>: read as
+            <code>string</code>
+          </td>
+          <td><code>HACK:</code> typed cast (the issue beside this)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Also: the JSX types now type-check in Spell UI's main program and its tests' (no <code>tsconfig.jsx.json</code>,
+      no <code>tests/jsx/tsconfig.json</code>); the app's wrapper props (<code>MenuProps</code>,
+      <code>MoreMenuProps</code> ...) are the exact tag types instead of <code>UIElementAttributes</code>; spell-epic's
+      loose type is <code>EpicJSXAttributes</code>, for its own tags only.
+    </p></epic-version
+  ></epic-original
+>
