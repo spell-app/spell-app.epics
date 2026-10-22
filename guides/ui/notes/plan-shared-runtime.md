@@ -77,7 +77,7 @@
     - Solid:  `/^solid-js(\/|$)|^@solidjs\//` + the fork
   - A new `core` lib entry, so component entries import it instead of inlining it.
     It exports the spike element core AND the foundation it uses:
-    `$/ui/elements`, `$/ui/vocabulary`, `$/ui/util`, the `$/ui/runtime` loader, `Icons`.
+    `spell-ui/elements`, `spell-ui/vocabulary`, `spell-ui/util`, the `spell-ui/runtime` loader, `Icons`.
   - Keep the `UIRuntime` chunk and icon data as lazy dynamic chunks (unchanged).
 - One shared measurer, so numbers are comparable:
   `spike/shared/SpikeMeasure.ts` (a class), used by both spikes' `measure` scripts.

@@ -111,18 +111,18 @@ At the promotion (2026-09-29):
     - `src/core.ts` -- the element core AND the foundation it uses:
       - the element core:  `DOMElement`, `UIComponent`, `ElementDefinition`, `PartComponent` + `PartContext`,
         `Controlled`, `Cell`, `SlotContent`, `HostAttribute`, `IconGlyph`
-      - `$/ui/util`, `$/ui/vocabulary`
-      - from `$/ui/elements`:  `ClassBuilder` / `Shorthand` / `OwnerContext` / `NativeFallback`
-      - `$/ui/runtime` (the eager loader only), `$/ui/icons` (`IconName`, `BuiltInPacks`)
-      - `$/ui/components/components.types`
+      - `spell-ui/util`, `spell-ui/vocabulary`
+      - from `spell-ui/elements`:  `ClassBuilder` / `Shorthand` / `OwnerContext` / `NativeFallback`
+      - `spell-ui/runtime` (the eager loader only), `spell-ui/icons` (`IconName`, `BuiltInPacks`)
+      - `spell-ui/components/components.types`
     - `src/forms.ts` -- `FormComponent`, `DOMFormControl`, `Validator`, `MenuOptions`;  imported by `dropdown` only.
       - `ui-button` is form-associated through the fork's `formAssociated` option alone, so it stays on `core`.
-  - Every component file (classes AND native fallback) imports shared code through ONE path, `$/ui/core`
-    (and `$/ui/forms` where needed).
+  - Every component file (classes AND native fallback) imports shared code through ONE path, `spell-ui/core`
+    (and `spell-ui/forms` where needed).
     - The vocabulary and the sheet are the family's own.
     - Two chunking rules:
-      - `core.ts` / `forms.ts` re-export `$/ui/elements` LEAVES, never the barrel:  the barrel holds the `forms` files.
-      - `DOMFormControl` / `FormComponent` import the element core through the `$/ui/core` ENTRY.
+      - `core.ts` / `forms.ts` re-export `spell-ui/elements` LEAVES, never the barrel:  the barrel holds the `forms` files.
+      - `DOMFormControl` / `FormComponent` import the element core through the `spell-ui/core` ENTRY.
         Importing its leaves made Rolldown hoist everything `core` and `forms` share into a third chunk,
         and `core.js` became a facade.
   - `styles` is its own entry (`dist/styles.js`).
@@ -133,7 +133,7 @@ At the promotion (2026-09-29):
     - `UIButton.css` + the button vocabulary land in a shared `button-<hash>.js` (the dropdown adopts `UIButton.css`).
   - The `E` / `V` namespaces are their own entry, `api` (`src/api.ts`, `@spell-app/ui/api`);  `index.js` is flat.
     - Why:  namespacing a module that `core` also reaches
-      (as `index.ts` once did, with `export * as V from "$/ui/vocabulary"`)
+      (as `index.ts` once did, with `export * as V from "spell-ui/vocabulary"`)
       made Rolldown move its runtime module (`__name`, `__exportAll`) out of `core.js`,
       into a shared `rolldown-runtime-<hash>.js` that `core.js` and every family imported.
       That was one more request per page (0.19 kB min+gz).

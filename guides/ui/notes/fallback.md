@@ -92,7 +92,7 @@ Everywhere:
 How it was measured:  esbuild, minify, `target es2022`, gzip level 9.
 - "Net" excludes what the real element already ships:
   - the lowered-decorator helpers (about 2046 min / 1188 gzip, shared once per bundle)
-  - shared code:  `$/ui/util`, `$/ui/vocabulary`, `ClassBuilder`, the family's vocabulary
+  - shared code:  `spell-ui/util`, `spell-ui/vocabulary`, `ClassBuilder`, the family's vocabulary
 - Measured before P15 dropped the non-form fallbacks.
 
 | Piece                       | min (B) | gzip (B) | net gzip (B) |
@@ -101,6 +101,6 @@ How it was measured:  esbuild, minify, `target es2022`, gzip level 9.
 | button                      |    3553 |     1863 |          675 |
 | dropdown                    |    4845 |     2434 |         1246 |
 
-Bundled standalone, with everything it needs (base, `ClassBuilder`, `$/ui/util`, vocabulary):
+Bundled standalone, with everything it needs (base, `ClassBuilder`, `spell-ui/util`, vocabulary):
 - button is 6.7 kB gzip
 - dropdown is 8.3 kB

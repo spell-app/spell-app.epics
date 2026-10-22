@@ -157,8 +157,8 @@ modal, flyout, popup, dropdown menu, calendar popup, sidebar, dimmer, toast.
 
 ```ts
 // components/ui-modal/examples/elements/types.visual.ts
-import { VisualOpen } from "$/ui/test-helpers/VisualOpen"
-import type { VisualHooks } from "$/ui/test-helpers/test.types"
+import { VisualOpen } from "spell-ui/test-helpers/VisualOpen"
+import type { VisualHooks } from "spell-ui/test-helpers/test.types"
 
 /**
  * Open states of `types.html` for `yarn test:visual`:  each modal shown.
@@ -185,8 +185,8 @@ export default {
 - `mask`:  selectors (Playwright CSS, piercing shadow roots) painted over in every capture of the example.
   - Prefer fixing the source (frozen time, disabled animation) over a mask.
 - The node side IMPORTS the hook file for its state names, so:
-  - no value imports besides `$/ui/test-helpers/VisualOpen`
-  - runtime code is imported INSIDE `open()`:  `const { UI } = await import("$/ui/runtime")` (see the toast hooks)
+  - no value imports besides `spell-ui/test-helpers/VisualOpen`
+  - runtime code is imported INSIDE `open()`:  `const { UI } = await import("spell-ui/runtime")` (see the toast hooks)
 - State names are kebab case:  they become part of the file name.
 
 ## Tolerances
@@ -226,7 +226,7 @@ using Parity's comparison and tolerances:
 yarn test:visual --static [--grep <family>] [--browsers chrome]
 ```
 
-- The static render:  `$/ui/static`, its `StaticRender` + `StaticStylesheet`
+- The static render:  `spell-ui/static`, its `StaticRender` + `StaticStylesheet`
   ([the seo epic page](../../spell.epics/epics/seo/seo.plan.html)).
 - The report:  `static-parity.md`, in the visual tests' results.
   - most different first, with diff images
@@ -246,7 +246,7 @@ yarn test:visual --static [--grep <family>] [--browsers chrome]
   - It links `/static/ui.css`, with NO script, so no `ui-*` element is ever defined.
   - Open one while a run is going, or start the same server with `StaticPages` to look at it.
 - Rendering runs in node, through a second, SSR-only Vite server, [`StaticRenderer`](../tools/StaticRenderer.ts).
-  - `spell static` uses it too.
+  - `spell ssr` uses it too.
   - It's in vitest's `ssr` posture (`mode: "test"`, `test.environment: "node"`):
     only then does the Solid plugin compile JSX for the server.
   - `StaticFixture.verify()` fails a page with:

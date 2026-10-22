@@ -9,7 +9,7 @@ One shared runtime per page coordinates everything components can't do alone:
 ## Loading
 
 ```ts
-import { UI } from "$/ui/runtime"
+import { UI } from "spell-ui/runtime"
 
 class UIThing extends HTMLElement {
   async connectedCallback() {
@@ -35,9 +35,9 @@ class UIThing extends HTMLElement {
   - Reach services through the instance, e.g. `UI.keyboard.chord("Mod+K")` or `UI.focus.roving(...)`.
   - Tests import leaf files directly.
 - `UI.ready` currently resolves as soon as the runtime is constructed.
-  - Construction registers the foundation sheets (`$/ui/styles`, by name) with `UI.styles`.
+  - Construction registers the foundation sheets (`spell-ui/styles`, by name) with `UI.styles`.
   - And it makes the `Vocabulary` registry (`UI.vocabulary`).
-  - `$/ui/styles` and `$/ui/vocabulary` stay plain data.
+  - `spell-ui/styles` and `spell-ui/vocabulary` stay plain data.
 
 ## `<ui-root>`:  loading and settings for a subtree
 

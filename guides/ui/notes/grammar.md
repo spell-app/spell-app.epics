@@ -3,7 +3,7 @@
 How a component's attributes become Fomantic's class string inside its shadow root.
 - Built by [`ClassBuilder`](../src/elements/ClassBuilder.ts).
 - Driven by the component's vocabulary, `UI<Name>.en.ts`.
-  Its schema:  [vocabulary.types.ts](../../spell-element/src/vocabulary.types.ts) (`$/spell-element`'s).
+  Its schema:  [vocabulary.types.ts](../../../src/element/vocabulary.types.ts) (`spell-kit/element`'s).
 
 ## Why keep the grammar
 
@@ -179,7 +179,7 @@ Enumerated values are checked against shared sets in `ValueSets` (or an inline l
 - `booleans` -- `true false yes no`
 
 Unknown values are dropped, with a dev-time "did you mean" warning.
-- That's `Converters.enumValue()`:  Levenshtein, through `suggest()` in `$/ui/util`.
+- That's `Converters.enumValue()`:  Levenshtein, through `suggest()` in `spell-ui/util`.
 
 ## Forms:  `<ui-form>` and the native `<form>`
 
@@ -600,7 +600,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
     the six events, naming, `UI.overlays` (kind `flyout`).
 - The split:  `DialogComponent` (modal family) is the component base;
   `UIModal` / `UIFlyout` add vocabulary, sheet, `rootPart` and `overlayKind`.
-  - The flyout family imports `$/ui/components/ui-modal`, so loading it defines `<ui-modal>` too.
+  - The flyout family imports `spell-ui/components/ui-modal`, so loading it defines `<ui-modal>` too.
 - The dialog is a column:  header, a content that grows, actions at the bottom (Fomantic's `min-height` calcs).
   The dialog itself scrolls.
 - `width`:

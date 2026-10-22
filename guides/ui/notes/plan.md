@@ -174,8 +174,8 @@
   - A `<folder>.types.ts` per folder where it makes sense, runtime-light:
     `runtime.types.ts`, `elements.types.ts`, `components.types.ts`.
   - Barrels per folder.  The namespaces:
-    - `UI`:  the runtime singleton (from `$/ui/runtime`)
-    - `E`:  the element bases (`$/ui/elements`)
+    - `UI`:  the runtime singleton (from `spell-ui/runtime`)
+    - `E`:  the element bases (`spell-ui/elements`)
     - the components barrel exports classes (`UIButton`, `UIDropdown`)
   - `$/` imports only.
     Import order:  node_modules → utils → barrels → peers → side-effects → css.

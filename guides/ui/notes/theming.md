@@ -20,7 +20,7 @@ How the CSS foundation fits together:  tokens, remaps, layers, the app styleshee
 | `themes/classic.css` | Fomantic's original look | `ui.theme` |
 | `themes/dark.css` | force the dark scheme page-wide | `ui.theme` |
 | `themes/<name>.css` | a Fomantic theme (`github`, `material` ...), on top of `classic`;  see "Themes" | `ui.theme` |
-| `src/runtime/Themes.ts` | `UI.themes`:  loads and applies the theme sheets (a runtime service, not in `$/ui/styles`) | -- |
+| `src/runtime/Themes.ts` | `UI.themes`:  loads and applies the theme sheets (a runtime service, not in `spell-ui/styles`) | -- |
 | `media.css` | `@custom-media --ui-mobile` ... (build-time only) | -- |
 | `ui.css` | one `@import` entry of the page set, for pages without the runtime | -- |
 
@@ -29,7 +29,7 @@ How the CSS foundation fits together:  tokens, remaps, layers, the app styleshee
 - The generated files are committed, so consumers need no build step.
 - [The styles test](../tests/src/styles/styles.test.ts) fails when they're stale.
 
-`$/ui/styles` exports each sheet as text (`tokensCSS` ...), plus two sets:
+`spell-ui/styles` exports each sheet as text (`tokensCSS` ...), plus two sets:
 - `foundationCSS`:  in adoption order, for the document AND every shadow root
 - `pageCSS`:  foundation + typography + native, for the document only
 
@@ -546,8 +546,8 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
   - shadows:  `--spell-shadow-xs` ... `-lg`
   - type roles:  `--spell-type-eyebrow`, `-lede`, `-spell` ...
   - the Polished Ivory ladder
-  - They're read by `packages/brand`'s `<brand-*>` elements and `.spell.html` pages, never by `<ui-*>` elements.
-- The brand pages load it through `packages/brand`'s bundle (`brand-ui.js`, in its `_assets/ui/`).
+  - They're read by `spell-brand`'s `<brand-*>` elements and `.spell.html` pages, never by `<ui-*>` elements.
+- The brand pages load it through `spell-brand`'s bundle (`brand-ui.js`, in its `_assets/ui/`).
 
 ### Fomantic themes
 
@@ -570,7 +570,7 @@ Every other sheet in [the themes folder](../src/styles/themes/) is a port of one
 ### Applying a theme:  `UI.themes`
 
 ```ts
-import { UI } from "@spell-app/ui/core" // `$/ui/core` in the package
+import { UI } from "@spell-app/ui/core" // `spell-ui/core` in the package
 
 const { themes } = await UI.load() // the runtime:  `UI.themes` exists once it has loaded
 themes.names // ["fomantic-classic", "github", "material" ...]:  the Fomantic themes, A-Z
@@ -589,7 +589,7 @@ await themes.apply(undefined) // our own look
 
   - So a new sheet in `themes/` is a theme, with no registry edit.
   - Each sheet is its own LAZY chunk, loaded on first `apply()`.
-  - None is in `$/ui/styles`, which holds no code.
+  - None is in `spell-ui/styles`, which holds no code.
     Code there split Rolldown's helpers into an extra chunk every page fetched (epic `wwod-spell-ui`, I13).
 - `UI.themes.sheets`:  every sheet, `classic` and `dark` included.
 - `UI.themes.names`:  the Fomantic themes, i.e. without `classic`, `dark` and `own` (`spell`, `spell-brand`, above).

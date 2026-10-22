@@ -259,7 +259,7 @@ yarn icons:pack path/to/folder --id my-icons [--label "My icons"] [--license "â€
 
 [`IconPackBuilder`](../tools/IconPackBuilder.ts) does TWO things only, and by default NEVER modifies an SVG.
 - It's a class, so the `spell` CLI can drive it:
-  `import { IconPackBuilder } from "$/ui/tools/IconPackBuilder"`, from any package, node only.
+  `import { IconPackBuilder } from "spell-ui/tools/IconPackBuilder"`, from any package, node only.
 
 1. **Index:**  every `**/*.svg`, sized from its `viewBox`.
    - The order:  files at the top first, then each sub-folder, alphabetically.
@@ -370,7 +370,7 @@ The experiment behind this section:  `spike/icons/`, removed from the tree.
 
 ### Candidates
 
-1. **Today**:  `Icons.get()` from `$/ui/icons`:  23 chunked JS files Vite emits from the JSON.
+1. **Today**:  `Icons.get()` from `spell-ui/icons`:  23 chunked JS files Vite emits from the JSON.
 2. **One ES module per icon**:  `icons/<style>/<name>.js` = `export default [w, h, "path"]`.
    - Generated from the same metadata `gen-icons.ts` uses.
    - The loader computes the URL from the canonical name.
