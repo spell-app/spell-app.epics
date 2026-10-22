@@ -5,10 +5,10 @@
  *   spaces collapsed);  `stable` when compiling the printed syntax prints the same again;  else `CHANGED`.
  * - `--all` lists every non-exact rule, not just the first 25.
  */
-import { P } from "$/parser"
-import { SP } from "$/spell"
+import { P } from "spell-lang/parser"
+import { SP } from "spell-lang/spell"
 
-import "$/parser/rulex"
+import "spell-lang/parser/rulex"
 
 const showAll = process.argv.includes("--all")
 const parser = SP.spellParser
