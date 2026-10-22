@@ -13,9 +13,9 @@ import { createRequire } from "node:module"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
-import { MD } from "$/markdown"
+import { MD } from "spell-lang/markdown"
 
-import { comparableHTML } from "$/markdown/spec/spec.types"
+import { comparableHTML } from "spell-lang/markdown/spec/spec.types"
 
 const ROOT = resolve(import.meta.dirname, "../../../..")
 const uiRequire = createRequire(resolve(ROOT, "packages/ui/package.json"))

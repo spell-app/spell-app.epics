@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
-import { MD } from "$/markdown"
+import { MD } from "spell-lang/markdown"
 
 const ROOT = resolve(import.meta.dirname, "../../../..")
 const files = execFileSync("git", ["ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" }).trim().split("\n")
