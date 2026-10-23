@@ -27,3 +27,654 @@
     <li>A: ~3.5 KB more on a page with a root.</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Owen" at="2026-10-22 20:01" re="revisit now"><p>What's the impact of B on performance?</p></epic-reply
+><epic-reply from="Claude" at="2026-10-22 23:46" re>
+  <blockquote><p>What's the impact of B on performance?</p></blockquote>
+  <p>
+    B saves 1.5 KB gzipped, and costs a little on every page view instead: in Chrome, about 1 µs more per element as it
+    starts up, about 1 MB more memory, and 1 ms more defining the tags. A stays the recommendation.
+  </p>
+
+  <p>What B saves:</p>
+  <ul>
+    <li>The catalog as it ships, minified and gzipped: 4.4 KB with A, 2.9 KB with B (1.3 KB before P7).</li>
+    <li>So A's real cost over before P7 is 3.1 KB gzipped, not 3.5: J9's numbers were the source before minifying.</li>
+    <li>
+      B's one list has 353 names. Today a tag observes 5 to 48 names, 13 for a typical tag (with the four shared ones
+      and <code>hidden</code>).
+    </li>
+    <li>Reading the catalog's script is about 0.07 ms quicker with B.</li>
+    <li>
+      Writing A's names as numbers into one shared list doesn't save anything: 4.9 KB gzipped, more than A, because gzip
+      already shrinks the repeated names.
+    </li>
+  </ul>
+
+  <p>What B costs, measured in real browsers:</p>
+  <ul>
+    <li>
+      <b>Starting up each element, Chrome only:</b>
+      what Chrome spends upgrading an element grows with the tag's observed list. That's 0.85 µs more per element: 1,000
+      plain elements take 0.84 ms with 13 names, 1.7 ms with 353.
+    </li>
+    <li>
+      With real elements (the kit's
+      <a href="../../../src/element/DOMElement.ts" target="src-src-element-domelement-ts"
+        ><code title="src/element/DOMElement.ts">DOMElement</code></a
+      >, rendering), 1,000 take 16.5 ms with A and 17.6 ms with B: about 1 ms, 6%, more.
+    </li>
+    <li>
+      Most <code>&lt;ui-*&gt;</code> elements are upgraded, so most pay it:
+      <ul>
+        <li>a page's markup, parsed before the root defines the tags</li>
+        <li>Solid's templates, which it clones (measured too: 0.7 ms becomes 1.5 ms per 1,000)</li>
+        <li>NOT an element made with <code>createElement()</code>, once its tag is defined: the same either way</li>
+      </ul>
+    </li>
+    <li>Firefox and Safari showed no clear difference here (at most 0.2 ms per 1,000).</li>
+    <li>
+      <b>Memory, Chrome:</b>
+      Chrome keeps a copy of the list for each tag: with B, about 10 KB more a tag, so about 1.1 MB for the 112 tags
+      (measured on 1,120 tags, then divided by 10).
+    </li>
+    <li>
+      <b>Defining the 112 tags, once a page:</b>
+      Chrome 0.3 ms with A, 1.4 ms with B; Firefox and Safari about 0 and 1 ms. Through
+      <a href="../../../src/element/DOMElement.ts" target="src-src-element-domelement-ts"
+        ><code title="src/element/DOMElement.ts">DOMElement.defineEarly()</code></a
+      >, 0.5 ms and 1.6 to 2.0 ms.
+    </li>
+    <li>
+      <b>The extra callbacks you asked about:</b>
+      writing a name the tag lacks but another tag has (<code>size</code> on <code>&lt;ui-container&gt;</code>) now
+      calls the element, which returns at once. That's 255 ns more a write through
+      <a href="../../../src/element/DOMElement.ts" target="src-src-element-domelement-ts"
+        ><code title="src/element/DOMElement.ts">DOMElement</code></a
+      >
+      (65 ns becomes 320 ns); Firefox about 260 ns, Safari about 100 ns.
+    </li>
+    <li>
+      They're rare. None of the attributes any element can carry is in the list (class, style, id, slot, title, role,
+      tabindex, the aria and data ones), except <code>inputmode</code>, which only
+      <code>&lt;ui-input&gt;</code> declares.
+    </li>
+    <li>
+      In real markup: 9 such attributes on 24,133 <code>&lt;ui-*&gt;</code> elements in Spell UI's docs and examples,
+      and 167 on 11,257 in the docs and epic pages.
+    </li>
+    <li>
+      161 of those 167 are <code>header</code> on <code>&lt;ui-section&gt;</code>, mostly in the changelog: an old word
+      the tag dropped in the repo split, so it does nothing today, with A or B.
+    </li>
+    <li>
+      <b>Firefox only:</b>
+      every attribute write on any <code>&lt;ui-*&gt;</code> element, even class and style, takes about 40 ns more (120
+      ns becomes 160 ns), since Firefox searches the list name by name. Chrome and Safari don't change.
+    </li>
+  </ul>
+
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>A (today)</th>
+        <th>B</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Catalog, source</td>
+        <td>31,248 bytes</td>
+        <td>14,505 bytes</td>
+      </tr>
+      <tr>
+        <td>Catalog, source gzipped</td>
+        <td>5,211 bytes</td>
+        <td>3,318 bytes</td>
+      </tr>
+      <tr>
+        <td>Catalog, minified</td>
+        <td>20,629 bytes</td>
+        <td>10,960 bytes</td>
+      </tr>
+      <tr>
+        <td>Catalog, minified and gzipped (before P7: 1,301)</td>
+        <td>4,389 bytes</td>
+        <td>2,880 bytes</td>
+      </tr>
+      <tr>
+        <td>Names each tag observes</td>
+        <td>5 to 48, typically 13</td>
+        <td>353</td>
+      </tr>
+      <tr>
+        <td>Names observed, all 112 tags</td>
+        <td>1,703</td>
+        <td>39,536</td>
+      </tr>
+      <tr>
+        <td>Defining the 112 tags (Chrome)</td>
+        <td>0.3 ms</td>
+        <td>1.4 ms</td>
+      </tr>
+      <tr>
+        <td>Starting up 1,000 plain elements (Chrome)</td>
+        <td>0.84 ms</td>
+        <td>1.7 ms</td>
+      </tr>
+      <tr>
+        <td>Starting up 1,000 real elements (Chrome)</td>
+        <td>16.5 ms</td>
+        <td>17.6 ms</td>
+      </tr>
+      <tr>
+        <td>Memory for the lists (Chrome)</td>
+        <td></td>
+        <td>+1.1 MB</td>
+      </tr>
+      <tr>
+        <td>Writing <code>size</code> on a tag without it (Chrome)</td>
+        <td>65 ns, no call</td>
+        <td>320 ns, a call that returns at once</td>
+      </tr>
+      <tr>
+        <td>Writing <code>class</code> (Firefox)</td>
+        <td>120 ns</td>
+        <td>160 ns</td>
+      </tr>
+      <tr>
+        <td>Extra calls in real markup</td>
+        <td>none</td>
+        <td>176 attributes in 35,390 elements</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    Why A stays: B's saving is 1.5 KB, downloaded once and then cached. Its costs come back on every page view, and grow
+    with the page.
+  </p>
+  <ul>
+    <li>
+      A Chrome page with 1,000 <code>&lt;ui-*&gt;</code> elements: about 1 ms more starting them up, 1 ms more defining
+      the tags, and 1 MB more memory.
+    </li>
+    <li>Each cost is small; none is worth 1.5 KB.</li>
+  </ul>
+
+  <p>
+    How I measured: the catalogs, then three scripts in headless Chrome, Firefox and Safari's WebKit (through
+    Playwright), then the kit's own element tests with a throwaway test file, since deleted.
+  </p>
+  <epic-code title="the commands · 11 lines" language="sh">
+    <pre>
+# from the kit's root;  the scripts and the copies of both catalogs in a scratch folder
+git -C spell-ui show 1dacaec1~1:src/components/ui-root/UIRoot.catalog.ts &gt; before-P7.catalog.ts
+cp spell-ui/src/components/ui-root/UIRoot.catalog.ts A.catalog.ts
+yarn tsx sizes.mts       # bytes, names per tag, B's catalog (formatted with yarn vp fmt)
+node scan.mts spell-ui/docs spell-ui/src/components      # undeclared-but-observed attributes in real markup
+node scan.mts spell.epics/guides spell.epics/epics spell.epics/pages
+node engines.mts         # plain custom elements:  Chrome, Firefox, WebKit (run twice)
+node memory.mts          # Chrome renderer memory, 1,120 tags each way (run twice)
+yarn tsx extra.mts       # reading the catalog's script;  the numbers-into-one-list shape
+# the kit's DOMElement:  a throwaway tests/element/J9Bench.test.tsx, run 4 times, then deleted
+yarn vp test run --project element tests/element/J9Bench.test.tsx</pre>
+  </epic-code>
+  <epic-code title="sizes.mts · catalog bytes and names per tag · 73 lines" language="ts">
+    <pre>
+// J9:  option A (each tag its own attribute names) vs B (one shared list):  catalog bytes and names per tag.
+// Run from the kit's root:  yarn tsx &lt;scratch&gt;/j9/sizes.ts
+import { execSync } from "node:child_process"
+import { readFileSync, writeFileSync } from "node:fs"
+import path from "node:path"
+
+import { createRequire } from "node:module"
+
+// The install's esbuild, found from the kit's root
+const { transformSync } = createRequire(path.join(process.cwd(), "package.json"))("esbuild")
+
+const HERE = path.dirname(new URL(import.meta.url).pathname)
+const { ROOT_CATALOG } = await import(path.join(HERE, "A.catalog.ts"))
+
+// What the root adds to every tag (`RootLoader.defineEarly()`):  the shared attributes and `hidden`
+const SHARED = ["disabled", "loading", "visible", "animation", "hidden"]
+
+// Names each tag observes today (A), and the union every tag would observe under B
+const observed = new Map&lt;string, Set&lt;string&gt;&gt;()
+for (const [tag, { attributes }] of Object.entries&lt;any&gt;(ROOT_CATALOG)) {
+  if (attributes) observed.set(tag, new Set([...attributes, ...SHARED]))
+}
+const union = new Set([...observed.values()].flatMap((names) =&gt; [...names]))
+const counts = [...observed.values()].map((names) =&gt; names.size).sort((a, b) =&gt; a - b)
+const median = counts[Math.floor(counts.length / 2)]
+const total = counts.reduce((sum, n) =&gt; sum + n, 0)
+
+// B's catalog:  the union once, then each tag's folder, skeleton and formControl (no attributes)
+const lines = Object.keys(ROOT_CATALOG)
+  .sort()
+  .map((tag) =&gt; {
+    const { attributes, ...rest } = ROOT_CATALOG[tag]
+    return `  ${JSON.stringify(tag)}: ${JSON.stringify(rest)}`
+  })
+const B = `/* GENERATED -- do not edit, run \`yarn gen:root\` (source:  every \`UI&lt;Name&gt;.en.ts\`) */
+
+import type { RootCatalogEntry } from "./UIRoot.types"
+
+/** Every attribute name any tag has (aliases too):  every tag observes all of them. */
+export const ROOT_ATTRIBUTES: readonly string[] = ${JSON.stringify([...union].sort())}
+
+/** Every component tag =&gt; what \`&lt;ui-root&gt;\` needs before its family loads. */
+export const ROOT_CATALOG: Readonly&lt;Record&lt;string, RootCatalogEntry&gt;&gt; = {
+${lines.join(",\n")}
+}
+`
+writeFileSync(path.join(HERE, "B.catalog.ts"), B)
+execSync(`yarn vp fmt ${path.join(HERE, "B.catalog.ts")}`, { stdio: "ignore" })
+
+/** Bytes of `file`:  source, minified (esbuild), and each gzipped (`gzip -c`, level 6). */
+function sizes(file: string) {
+  const source = readFileSync(file, "utf8")
+  const minified = transformSync(source, { loader: "ts", minify: true, format: "esm" }).code
+  const minFile = file.replace(/\.ts$/, ".min.js")
+  writeFileSync(minFile, minified)
+  const gzip = (f: string) =&gt; Number(execSync(`gzip -c ${f} | wc -c`).toString().trim())
+  return { raw: Buffer.byteLength(source), rawGzip: gzip(file), min: Buffer.byteLength(minified), minGzip: gzip(minFile) }
+}
+
+const table = {
+  "before P7": sizes(path.join(HERE, "before-P7.catalog.ts")),
+  "A (today)": sizes(path.join(HERE, "A.catalog.ts")),
+  B: sizes(path.join(HERE, "B.catalog.ts"))
+}
+console.table(table)
+console.log(`tags defined early:  ${observed.size} (of ${Object.keys(ROOT_CATALOG).length} in the catalog)`)
+console.log(`names per tag (A, with shared + hidden):  min ${counts[0]}, median ${median}, max ${counts.at(-1)}`)
+console.log(`union (B):  ${union.size} names;  names observed in all, A ${total} vs B ${union.size * observed.size}`)
+writeFileSync(path.join(HERE, "union.json"), JSON.stringify([...union].sort()))
+writeFileSync(
+  path.join(HERE, "observed.json"),
+  JSON.stringify(Object.fromEntries([...observed].map(([tag, names]) =&gt; [tag, [...names]])))
+)</pre>
+  </epic-code>
+  <epic-code title="scan.mts · how often real markup sets another tag's attribute · 45 lines" language="ts">
+    <pre>
+// J9:  in real markup, how often does a &lt;ui-*&gt; tag carry an attribute it doesn't declare but ANOTHER tag does?
+// Those are the only extra `attributeChangedCallback()` calls option B adds.
+// Run:  node scan.mts &lt;folder...&gt;
+import { readdirSync, readFileSync, statSync } from "node:fs"
+import path from "node:path"
+
+const HERE = path.dirname(new URL(import.meta.url).pathname)
+const observed: Record&lt;string, string[]&gt; = JSON.parse(readFileSync(path.join(HERE, "observed.json"), "utf8"))
+const union = new Set&lt;string&gt;(JSON.parse(readFileSync(path.join(HERE, "union.json"), "utf8")))
+
+const TAG = /&lt;(ui-[\w-]+)((?:\s+[^\s=&gt;/"']+(?:\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\}|[^\s&gt;"']+))?)*)\s*\/?&gt;/g
+const ATTRIBUTE = /([^\s=&gt;/"']+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\}|[^\s&gt;"']+))?/g
+const SKIP = /node_modules|__pack|_assets|dist|\.git|results|__snapshots__/
+
+function* files(folder: string): Generator&lt;string&gt; {
+  for (const name of readdirSync(folder)) {
+    const file = path.join(folder, name)
+    if (SKIP.test(file)) continue
+    if (statSync(file).isDirectory()) yield* files(file)
+    else if (/\.(html|tsx|md)$/.test(name)) yield file
+  }
+}
+
+let elements = 0
+const counts = { own: 0, unionOnly: 0, neither: 0 }
+const unionOnly = new Map&lt;string, number&gt;()
+for (const folder of process.argv.slice(2)) {
+  for (const file of files(folder)) {
+    for (const [, tag, attributeText] of readFileSync(file, "utf8").matchAll(TAG)) {
+      const own = observed[tag]
+      if (!own) continue
+      elements++
+      for (const [, name] of attributeText.matchAll(ATTRIBUTE)) {
+        if (own.includes(name)) counts.own++
+        else if (union.has(name)) {
+          counts.unionOnly++
+          const key = `${name} on &lt;${tag}&gt;`
+          unionOnly.set(key, (unionOnly.get(key) ?? 0) + 1)
+        } else counts.neither++
+      }
+    }
+  }
+}
+console.log({ elements, ...counts })
+console.log([...unionOnly].sort((a, b) =&gt; b[1] - a[1]).slice(0, 25))</pre>
+  </epic-code>
+  <epic-code title="engines.mts · plain custom elements in three engines · 125 lines" language="ts">
+    <pre>
+// J9:  the platform's side of A vs B in three engines, on plain custom elements (no Spell UI):
+// define time, attribute writes, parsing.  Run from the kit's root:  node &lt;scratch&gt;/j9/engines.mts
+import { readFileSync } from "node:fs"
+import { createRequire } from "node:module"
+import path from "node:path"
+
+const HERE = path.dirname(new URL(import.meta.url).pathname)
+const { chromium, firefox, webkit } = createRequire(path.join(process.cwd(), "package.json"))("playwright")
+const UNION: string[] = JSON.parse(readFileSync(path.join(HERE, "union.json"), "utf8"))
+const OWN = ["text", "fluid", "wide", "grid", "relaxed", "text-align", "scrolling", "resizable",
+  "disabled", "loading", "visible", "animation", "hidden"]
+
+function bench({ UNION, OWN }: { UNION: string[]; OWN: string[] }) {
+  const median = (xs: number[]) =&gt; [...xs].sort((a, b) =&gt; a - b)[Math.floor(xs.length / 2)]
+  let count = 0
+  // one tag:  observes `observed`, and (like DOMElement) returns at once for a name it doesn't know
+  const define = (observed: string[]) =&gt; {
+    const name = `x-j9-${++count}`
+    const known = new Set(OWN)
+    const Class = class extends HTMLElement {
+      static observedAttributes = observed
+      values: Record&lt;string, string | null&gt; = {}
+      attributeChangedCallback(attribute: string, _old: string | null, text: string | null) {
+        if (!known.has(attribute)) return
+        this.values[attribute] = text
+      }
+    }
+    const t0 = performance.now()
+    customElements.define(name, Class)
+    return { name, ms: performance.now() - t0 }
+  }
+  const B = [...new Set([...UNION, ...OWN])]
+  // 112 defines (the catalog's count) timed as one block, alternated, median of 9
+  const block = (observed: string[]) =&gt; {
+    const t0 = performance.now()
+    for (let i = 0; i &lt; 112; i++) define(observed)
+    return performance.now() - t0
+  }
+  const da: number[] = []
+  const db: number[] = []
+  for (let r = 0; r &lt; 9; r++) {
+    if (r &amp; 1) { db.push(block(B)); da.push(block(OWN)) } else { da.push(block(OWN)); db.push(block(B)) }
+  }
+  const a = define(OWN).name
+  const b = define(B).name
+  const ea = document.body.appendChild(document.createElement(a))
+  const eb = document.body.appendChild(document.createElement(b))
+  const ns = (element: Element, attribute: string, n = 50_000) =&gt; {
+    const times: number[] = []
+    for (let r = 0; r &lt; 9; r++) {
+      const t0 = performance.now()
+      for (let i = 0; i &lt; n; i++) element.setAttribute(attribute, i &amp; 1 ? "a" : "b")
+      times.push(((performance.now() - t0) * 1e6) / n)
+    }
+    return Math.round(median(times))
+  }
+  const out: Record&lt;string, unknown&gt; = {}
+  for (let warm = 0; warm &lt; 2; warm++) {
+    out.size = { A: ns(ea, "size"), B: ns(eb, "size") }
+    out.class = { A: ns(ea, "class"), B: ns(eb, "class") }
+    out.text = { A: ns(ea, "text"), B: ns(eb, "text") }
+  }
+  const parse = (name: string) =&gt; {
+    const html = Array.from({ length: 5000 }, (_, i) =&gt; `&lt;${name} text="t${i}" class="c" id="p${i}"&gt;&lt;/${name}&gt;`).join("")
+    const box = document.createElement("div")
+    const t0 = performance.now()
+    box.innerHTML = html
+    document.body.append(box)
+    const ms = performance.now() - t0
+    box.remove()
+    return ms
+  }
+  const pa: number[] = []
+  const pb: number[] = []
+  for (let r = 0; r &lt; 21; r++) {
+    if (r &amp; 1) { pb.push(parse(b)); pa.push(parse(a)) } else { pa.push(parse(a)); pb.push(parse(b)) }
+  }
+  // the same 5,000 elements cloned from a template (Solid's way), and made one by one (`createElement()`)
+  const clone = (name: string) =&gt; {
+    const template = document.createElement("template")
+    template.innerHTML = Array.from({ length: 5000 }, (_, i) =&gt; `&lt;${name} text="t${i}" class="c" id="q${i}"&gt;&lt;/${name}&gt;`).join("")
+    const box = document.createElement("div")
+    const t0 = performance.now()
+    box.append(document.importNode(template.content, true))
+    document.body.append(box)
+    const ms = performance.now() - t0
+    box.remove()
+    return ms
+  }
+  const create = (name: string) =&gt; {
+    const box = document.createElement("div")
+    document.body.append(box)
+    const t0 = performance.now()
+    for (let i = 0; i &lt; 5000; i++) {
+      const element = document.createElement(name)
+      element.setAttribute("text", `t${i}`)
+      element.setAttribute("class", "c")
+      element.setAttribute("id", `r${i}`)
+      box.append(element)
+    }
+    const ms = performance.now() - t0
+    box.remove()
+    return ms
+  }
+  for (const [label, run] of [["clone1000", clone], ["create1000", create]] as const) {
+    const xa: number[] = []
+    const xb: number[] = []
+    for (let r = 0; r &lt; 21; r++) {
+      if (r &amp; 1) { xb.push(run(b)); xa.push(run(a)) } else { xa.push(run(a)); xb.push(run(b)) }
+    }
+    out[label] = { A_ms: +(median(xa) / 5).toFixed(2), B_ms: +(median(xb) / 5).toFixed(2) }
+  }
+  out.define112 = { A_ms: +median(da).toFixed(2), B_ms: +median(db).toFixed(2) }
+  // 5,000 elements a round, reported per 1,000
+  out.parse1000 = { A_ms: +(median(pa) / 5).toFixed(2), B_ms: +(median(pb) / 5).toFixed(2) }
+  return out
+}
+
+for (const engine of [chromium, firefox, webkit]) {
+  const browser = await engine.launch()
+  const page = await browser.newPage()
+  await page.goto("about:blank")
+  console.log(engine.name(), JSON.stringify(await page.evaluate(bench, { UNION, OWN })))
+  await browser.close()
+}</pre>
+  </epic-code>
+  <epic-code title="memory.mts · Chrome's memory for the lists · 44 lines" language="ts">
+    <pre>
+// J9:  renderer memory for 112 tags x 10 defined with A's 13 names vs B's 353 (Chromium), RSS of the renderer process.
+// Run from the kit's root:  node &lt;scratch&gt;/j9/memory.mts
+import { execSync } from "node:child_process"
+import { readFileSync } from "node:fs"
+import { createRequire } from "node:module"
+import path from "node:path"
+
+const HERE = path.dirname(new URL(import.meta.url).pathname)
+const { chromium } = createRequire(path.join(process.cwd(), "package.json"))("playwright")
+const UNION: string[] = JSON.parse(readFileSync(path.join(HERE, "union.json"), "utf8"))
+const OWN = ["text", "fluid", "wide", "grid", "relaxed", "text-align", "scrolling", "resizable",
+  "disabled", "loading", "visible", "animation", "hidden"]
+
+const TAGS = 1120
+const browser = await chromium.launch()
+async function rssKB(): Promise&lt;number&gt; {
+  const session = await browser.newBrowserCDPSession()
+  const { processInfo } = await session.send("SystemInfo.getProcessInfo")
+  const renderers = processInfo.filter((p: any) =&gt; p.type === "renderer").map((p: any) =&gt; p.id)
+  return renderers.reduce((sum: number, pid: number) =&gt; sum + Number(execSync(`ps -o rss= -p ${pid}`).toString().trim()), 0)
+}
+for (const [label, list] of [["A", OWN], ["B", [...new Set([...UNION, ...OWN])]], ["A", OWN], ["B", [...new Set([...UNION, ...OWN])]]] as const) {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  await page.goto("about:blank")
+  const cdp = await context.newCDPSession(page)
+  await cdp.send("HeapProfiler.collectGarbage")
+  const before = await rssKB()
+  const heapBefore = (await cdp.send("Runtime.getHeapUsage")).usedSize
+  await page.evaluate(({ list, TAGS }) =&gt; {
+    for (let i = 0; i &lt; TAGS; i++) {
+      customElements.define(`x-m-${i}`, class extends HTMLElement {
+        static get observedAttributes() { return list }
+        attributeChangedCallback() {}
+      })
+    }
+  }, { list, TAGS })
+  await cdp.send("HeapProfiler.collectGarbage")
+  const after = await rssKB()
+  const heapAfter = (await cdp.send("Runtime.getHeapUsage")).usedSize
+  console.log(label, `${list.length} names x ${TAGS} tags:  renderer RSS +${after - before} KB;  JS heap +${Math.round((heapAfter - heapBefore) / 1024)} KB`)
+  await context.close()
+}
+await browser.close()</pre>
+  </epic-code>
+  <epic-code title="J9Bench.test.tsx · the kit's DOMElement, A vs B (deleted) · 113 lines" language="ts">
+    <pre>
+// TEMPORARY (epic solid-17 J9):  option A vs B, timed on the real DOMElement.  DELETE after the run.
+import { flush } from "solid-js"
+import { type JSX } from "@solidjs/web"
+import { expect, test } from "vite-plus/test"
+
+import { E, UIComponent, type AttributeSpec, type ComponentVocabulary, type DOMElementClass } from "spell-kit/element"
+import { ElementFixture } from "spell-kit/test-helpers/ElementFixture"
+import { Fixture } from "spell-kit/test-helpers/Fixture"
+
+/** Every attribute name any catalog tag has, plus the shared ones and `hidden`:  B's one list. */
+const UNION: string[] = [/* the 353 names, inlined */]
+
+/** `&lt;ui-container&gt;`'s own attributes:  a median tag (13 names observed, with the shared ones). */
+const OWN = ["text", "fluid", "wide", "grid", "relaxed", "text-align", "scrolling", "resizable"]
+
+class Plain extends UIComponent&lt;any&gt; {
+  render(): JSX.Element {
+    return &lt;span /&gt;
+  }
+}
+
+let count = 0
+function tag(observedFor: (own: string[]) =&gt; string[]) {
+  const name = `x-j9-${++count}`
+  const Class = class extends Plain {}
+  const attributes: AttributeSpec[] = OWN.map((n) =&gt; ({ name: n, kind: "string", description: n }))
+  const vocabulary: ComponentVocabulary = { tag: name, noun: name, attributes, events: [], slots: [], parts: [], states: [], texts: [] }
+  Object.defineProperty(Class.prototype, "vocabulary", { value: vocabulary })
+  const own = E.DOMElement.observedAttributesFor(new E.ElementDefinition(vocabulary, {}))
+  const observed = observedFor(own)
+  const t0 = performance.now()
+  E.DOMElement.defineEarly(name, { attributes: observed, isAFormControl: false })
+  const defineMs = performance.now() - t0
+  UIComponent.define.call(Class as never) as DOMElementClass
+  return { name, observed, defineMs }
+}
+const A = (own: string[]) =&gt; own
+const B = (own: string[]) =&gt; [...new Set([...UNION, ...own])]
+
+function median(xs: number[]) {
+  const s = [...xs].sort((a, b) =&gt; a - b)
+  return s[Math.floor(s.length / 2)]
+}
+
+/** ns per `setAttribute(name, ...)` on `element`, `n` writes, median of `rounds`. */
+function nsPerWrite(element: Element, name: string, n = 20_000, rounds = 7) {
+  const times: number[] = []
+  for (let r = 0; r &lt; rounds; r++) {
+    const t0 = performance.now()
+    for (let i = 0; i &lt; n; i++) element.setAttribute(name, i &amp; 1 ? "a" : "b")
+    times.push(((performance.now() - t0) * 1e6) / n)
+    flush()
+  }
+  return Math.round(median(times))
+}
+
+test("J9 bench", async () =&gt; {
+  const out: Record&lt;string, unknown&gt; = {}
+
+  // 1. define time:  112 tags (the catalog's count), 13 names vs the union, alternated, 3 rounds
+  const defineA: number[] = []
+  const defineB: number[] = []
+  for (let r = 0; r &lt; 3; r++) {
+    for (let i = 0; i &lt; 112; i++) {
+      defineA.push(tag(A).defineMs)
+      defineB.push(tag(B).defineMs)
+    }
+  }
+  const sum = (xs: number[]) =&gt; xs.reduce((a, b) =&gt; a + b, 0)
+  out.defineEarly112 = { A_ms: +(sum(defineA) / 3).toFixed(2), B_ms: +(sum(defineB) / 3).toFixed(2) }
+
+  // 2. writes on ONE attached, rendered element of each
+  const a = tag(A)
+  const b = tag(B)
+  out.observed = { A: a.observed.length, B: b.observed.length }
+  const host = Fixture.render&lt;HTMLElement&gt;(`&lt;div&gt;&lt;${a.name} id="ea"&gt;&lt;/${a.name}&gt;&lt;${b.name} id="eb"&gt;&lt;/${b.name}&gt;&lt;/div&gt;`)
+  await ElementFixture.settle(host)
+  const ea = host.querySelector("#ea")!
+  const eb = host.querySelector("#eb")!
+  for (let warm = 0; warm &lt; 2; warm++) {
+    out.size_undeclared = { A_notObserved: nsPerWrite(ea, "size"), B_observedIgnored: nsPerWrite(eb, "size") }
+    out.class_neither = { A: nsPerWrite(ea, "class"), B: nsPerWrite(eb, "class") }
+    out.dataX_neither = { A: nsPerWrite(ea, "data-x"), B: nsPerWrite(eb, "data-x") }
+    out.text_declared = { A: nsPerWrite(ea, "text", 5_000), B: nsPerWrite(eb, "text", 5_000) }
+  }
+
+  // 3. parse + upgrade 1,000 elements with three attributes each (one declared, class, id)
+  const parse = (name: string) =&gt; {
+    const html = Array.from({ length: 1000 }, (_, i) =&gt; `&lt;${name} text="t${i}" class="c" id="p${i}"&gt;&lt;/${name}&gt;`).join("")
+    const box = document.createElement("div")
+    const t0 = performance.now()
+    box.innerHTML = html
+    document.body.append(box)
+    const ms = performance.now() - t0
+    box.remove()
+    return ms
+  }
+  const parseA: number[] = []
+  const parseB: number[] = []
+  for (let r = 0; r &lt; 15; r++) {
+    if (r &amp; 1) {
+      parseB.push(parse(b.name))
+      parseA.push(parse(a.name))
+    } else {
+      parseA.push(parse(a.name))
+      parseB.push(parse(b.name))
+    }
+  }
+  out.parse1000 = { A_ms: +median(parseA).toFixed(2), B_ms: +median(parseB).toFixed(2) }
+
+  console.log("J9-RESULT " + JSON.stringify(out))
+  expect("J9-RESULT " + JSON.stringify(out)).toBe("")
+}, 120_000)</pre>
+  </epic-code>
+  <epic-code title="extra.mts · reading the catalog;  names as numbers · 30 lines" language="ts">
+    <pre>
+// J9:  (1) compile + run time of each minified catalog in V8 (node);  (2) a third shape for size only:
+// A's per-tag lists written as numbers into one shared list.
+import { execSync } from "node:child_process"
+import { readFileSync, writeFileSync } from "node:fs"
+import path from "node:path"
+import vm from "node:vm"
+
+const HERE = path.dirname(new URL(import.meta.url).pathname)
+for (const name of ["before-P7", "A", "B"]) {
+  const code = readFileSync(path.join(HERE, `${name}.catalog.min.js`), "utf8").replace(/export\s*\{[^}]*\};?/, "")
+  const times: number[] = []
+  for (let r = 0; r &lt; 200; r++) {
+    const t0 = performance.now()
+    new vm.Script(code, { filename: `${name}-${r}.js` }).runInNewContext({})
+    times.push(performance.now() - t0)
+  }
+  times.sort((a, b) =&gt; a - b)
+  console.log(`${name}:  compile + run ${(times[100] * 1000).toFixed(0)} µs (median of 200, V8 in node)`)
+}
+
+const { ROOT_CATALOG } = await import(path.join(HERE, "A.catalog.ts"))
+const union: string[] = JSON.parse(readFileSync(path.join(HERE, "union.json"), "utf8"))
+const index = new Map(union.map((n, i) =&gt; [n, i]))
+const entries = Object.keys(ROOT_CATALOG).sort().map((tag) =&gt; {
+  const { attributes, ...rest } = ROOT_CATALOG[tag]
+  return `${JSON.stringify(tag)}:${JSON.stringify({ ...rest, attributes: attributes.map((n: string) =&gt; index.get(n)) })}`
+})
+const file = path.join(HERE, "A-indexed.catalog.min.js")
+writeFileSync(file, `const N=${JSON.stringify(union)};export const ROOT_CATALOG={${entries.join(",")}};`)
+console.log(`A, indexed:  ${readFileSync(file).length} B minified, ${execSync(`gzip -c ${file} | wc -c`).toString().trim()} B gzipped`)</pre>
+  </epic-code>
+  <epic-net-effect>
+    <ul>
+      <li>
+        B: 1.5 KB smaller gzipped, but slower in Chrome on every page: ~1 µs per element, ~1 MB memory, ~1 ms to define.
+      </li>
+      <li>The extra callbacks themselves are rare and cheap: 176 in 35,390 elements of real markup, ~0.3 µs each.</li>
+      <li>A stays recommended; nothing to change.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
