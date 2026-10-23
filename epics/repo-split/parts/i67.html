@@ -1,0 +1,32 @@
+<!-- plan-doc part:  #i67's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The worktree hook's install timeout (<code>installTimeout</code>) stops only the shell the install runs in, not what
+  that shell started.
+</p>
+<ul>
+  <li>
+    What the shell started keeps running, and keeps the hook's error output open: so whatever ran the hook (Claude Code,
+    or a test) waits until it ends anyway.
+  </li>
+  <li>
+    When it bites:
+    <ul>
+      <li>
+        on Linux, every time: Ubuntu's <code>sh</code> (dash) runs even a lone command as a child (Ubuntu's own patch
+        turns off the shortcut);
+      </li>
+      <li>
+        on your Mac, only for a command with more than one step (<code>yarn install &amp;&amp; ...</code>): its
+        <code>sh</code> hands a lone command like <code>yarn install</code>, the default, the whole process.
+      </li>
+    </ul>
+  </li>
+  <li>
+    So it doesn't bite today. It made spell-epic's CI red: the hook's test timed a <code>sleep 5</code> out after 1s,
+    and waited the whole 5s (<a href="#i65">I65</a>).
+  </li>
+  <li>
+    Not fixed in the hook: the test now runs <code>exec sleep 5</code>, so the sleep IS the shell. A real fix would stop
+    the install's whole process group; the hook runs it with a blocking call that can only stop the one process.
+  </li>
+</ul>
