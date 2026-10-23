@@ -3,7 +3,9 @@ id: r18
 epic: epic-engine
 from: 🚧 spanish (140edfa8)
 at: 2026-10-23T15:20-04:00
-status: new
+status: filed
+filed: P23 · Command-Fed Choice Pages
+phase: p-command-fed-choice-pages
 ---
 
 ## Owen's words
