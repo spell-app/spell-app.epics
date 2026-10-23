@@ -1,3 +1,58 @@
 <!-- plan-doc part:  #i69's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>Owen's test run, 2026-10-22 20:38: <a href="#v4">V4</a> failed.</p>
 <p><img src="../tests/v4-20261022-2038-2.png" alt="Owen's screenshot of V4" /></p>
+<epic-reply from="Claude" at="2026-10-22 20:50">
+  <p>Found and fixed in the repo-split worktree. It's uncommitted, with the CI fixes.</p>
+  <ul>
+    <li>
+      What broke: every Spell command that draws live progress in a terminal crashed with
+      <code>React is not defined</code>.
+      <ul>
+        <li>
+          <code>spell app serve</code>, <code>lint</code>, <code>compile</code>, <code>parse</code> and
+          <code>speedtest</code> all do.
+        </li>
+        <li>Tests and CI never saw it: they aren't a terminal, so they print plain lines instead.</li>
+      </ul>
+    </li>
+    <li>
+      Why: the <code>spell</code> command runs every repo's code through <code>tsx</code>, with the kit's node settings.
+      <ul>
+        <li><code>tsx</code> applies a settings file only to the files that settings file lists.</li>
+        <li>The kit's node settings list only the kit's own folders.</li>
+        <li>
+          So spell-app's screens got no JSX setting, and compiled the old way, which needs a
+          <code>React</code> variable.
+        </li>
+        <li>That started when the command moved into the kit (P13).</li>
+      </ul>
+    </li>
+    <li>
+      The fix: a settings file just for <code>tsx</code>,
+      <a href="../../../tsconfig.tsx.json" target="src-tsconfig-tsx-json"><code>tsconfig.tsx.json</code></a
+      >. It's the kit's node settings, over every repo's files, and the <code>spell</code> bin now hands it to
+      <code>tsx</code>.
+    </li>
+    <li>
+      Checked:
+      <ul>
+        <li>
+          In a real terminal, <code>spell lint @spell/examples/fizzbuzz</code> now draws its spinner and ticks, and
+          exits 0.
+        </li>
+        <li>
+          A new kit test compiles a stand-in child repo's JSX under those settings. It passes, and it fails against the
+          old settings.
+        </li>
+        <li><code>kit:ts</code> and <code>kit:lint</code> are clean.</li>
+        <li><code>kit:test</code>: 705 passed, 39 skipped.</li>
+        <li><code>readme:check</code>: 35 pages clean.</li>
+      </ul>
+    </li>
+  </ul>
+  <epic-net-effect
+    ><ul>
+      <li>V4 should pass on your next run. The fix stays uncommitted until you say.</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
