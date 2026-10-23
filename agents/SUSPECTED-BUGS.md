@@ -377,6 +377,27 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   `its color is black`.  Spell could say so:  a thing compared with a value one of its properties takes.
   Prove:  `a joker is a card` / `- its color is red or black` / `- its value is 53 if it is black otherwise 54`.
   Found in the outline Solitaire, epic `outline-spell`. · spell
+- 2026-10-23 · `spell-app/src/lsp/SpellLanguageService.ts` `jsxSpans()`:  a JSX attribute on a line of its own
+  is coloured from its token's start, which is the whitespace before its name:
+  the `property` span covers `"\n\t\t\t\t"`, and the name (`color`, `size`, `onClick`) gets none.
+  One-line JSX is fine.  Prove:  semantic tokens of Solitaire's `Card.spell`, its `- to draw it:`.
+  Found in epic `spanish` P22. · lsp
+- 2026-10-23 · `spell-app/src/lsp`, semantic tokens:  a quoted phrase with no `if` is coloured as ONE plain string,
+  blanks included:  `it "is a (suit)"`, `it "is the (rank) of (suit)"`, `it "is the (color) joker"`.
+  `it "is a face card" if ...` is coloured as a function.  Prove:  semantic tokens of Solitaire's `Card.spell`.
+  Found in epic `spanish` P22. · lsp
+- 2026-10-23 · `spell-app/src/lsp`, references to the card's `name` aren't type-aware in two cases:
+  - from the card's own declaration, they include every `a new ... pile with name = "stock"` (a pile's named argument)
+  - from Deck's `the name of the top card of the deck`:  the pile's `name` declaration and Solitaire's
+    `the name of start pile`.  There `the top card of the deck` has no type:  hover shows only `ordinal`.
+  - Those lines are older than Owen's new card.  Prove:  references at each, in Solitaire.
+  Found in epic `spanish` P22. · lsp
+- 2026-10-23 · `spell-app/src/lsp`, folding ranges:  a `<css>` block in a type's body folds TWICE, once as a line
+  with a body and once from `css.regionsIn()`.  Harmless in an editor.  Prove:  folding ranges of Solitaire's
+  `Card.spell`, its `<css>`.  Found in epic `spanish` P22. · lsp
+- 2026-10-23 · `its "suit" is a suit`, where no type `Suit` is declared anywhere, compiles to
+  `declareProp("suit", { type: "Suit" })` with no error or warning.  Prove:  that line in a type's outline, alone.
+  Found in epic `spanish` P22. · spell
 
 ## parser
 
