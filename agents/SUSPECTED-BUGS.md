@@ -870,6 +870,11 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## vscode
 
+- 2026-10-23, epic `spanish` I7 (spell-app's `src/lsp/`):  completion after a SPACE on the LAST line of a file finds the
+  file's scope, not the method's:  `SpellLanguageService.scopeAt()` takes the deepest match at the offset, and the
+  method's match ends before the trailing space.  So at the file's end, `si la carta de arriba del mazo ` offers names
+  ranked as if the line were a new statement, and nothing that continues it;  the same line with a line after it is fine.
+
 - spell-app's `vscode/src/spellAppRoot.ts` `findSpellApp()` searches a window's folders first folder LAST;  epic
   windows now list the worktree first, so in an epic's window the extension runs the MAIN checkout's server and runner
   (confirmed by running it on a window's folder list, 2026-10-21, epic `readme` P11).  `spell.parserRoot` set to the
