@@ -3,7 +3,8 @@ id: r15
 epic: epic-engine
 from: 🚧 repo-split (1c6fb846)
 at: 2026-10-22T20:03-04:00
-status: new
+status: filed
+filed: I74:  fixed in epic-engine's worktree (the prompt hook, the move's worktree record, the worktree hook's dead-folder check)
 ---
 
 ## Owen's words
