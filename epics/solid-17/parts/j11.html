@@ -10,3 +10,81 @@
     tests updated).
   </li>
 </ul>
+<epic-reply from="Owen" at="2026-10-22 19:59" re="revisit soon"
+  ><p>Maybe a parent element with descendants that aren't :ready isn't ready either?</p></epic-reply
+>
+<epic-reply from="Claude" at="2026-10-22 23:38" re>
+  <blockquote>"Maybe a parent element with descendants that aren't :ready isn't ready either?"</blockquote>
+  <p>
+    It could work that way. Today <code>:state(ready)</code> means "this element has drawn with its styles", and only
+    <code>&lt;ui-root&gt;</code> means "everything inside is ready".
+  </p>
+  <ul>
+    <li>
+      An element turns ready when its own first styled draw is done (<a
+        href="../../../src/element/DOMElement.ts"
+        target="src-src-element-domelement-ts"
+        ><code title="src/element/DOMElement.ts">markReady()</code></a
+      >). It doesn't look at the elements inside it.
+    </li>
+    <li>
+      <code>&lt;ui-root&gt;</code> is the one that waits for every element inside, nested roots included, with a timeout
+      (5s by default) so one broken element can't hold the page back.
+    </li>
+    <li>
+      So a <code>&lt;ui-card&gt;</code> can show <code>:state(ready)</code> while a <code>&lt;ui-dropdown&gt;</code> in
+      it is still loading its family. The dropdown shows <code>:state(pending)</code> meanwhile.
+    </li>
+    <li>
+      CSS can already ask about one case today: <code>ui-card:has(:state(pending))</code> matches a card holding an
+      element whose family hasn't loaded. It can't ask "loaded but not drawn yet".
+    </li>
+  </ul>
+  <p>What "deep" ready (B) would take:</p>
+  <ul>
+    <li>
+      On its first styled draw, an element would wait for each of our elements inside it (light DOM) before turning
+      ready. Those already drawn count at once.
+    </li>
+    <li>
+      It would happen once only. An element added later, a new row in a list, wouldn't make its parent un-ready, so
+      nothing flickers.
+    </li>
+    <li>
+      The catch is a child that never gets ready, because its family failed to load. Its parents would then wait
+      forever, so the deep wait needs the root's timeout, or "failed counts as ready".
+    </li>
+    <li>
+      The <code>ready</code> promise would change meaning too. The root, the test fixtures and the docs pages await it,
+      so they would all wait longer. That's harmless, but every test that awaits one element would now wait for its
+      whole subtree.
+    </li>
+    <li>About 20 lines in the element base, plus tests: under an hour.</li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Keep it:  ready is the element itself" recommended>
+      <p>
+        <code>:state(ready)</code> stays about the element alone, and <code>&lt;ui-root&gt;</code> stays the "everything
+        inside" one. Wrap a part of a page in its own root to wait for that part.
+      </p>
+    </epic-option>
+    <epic-option letter="B" title="Deep ready:  waits for the elements inside">
+      <p>
+        An element turns ready once it, and every one of our elements inside it at that moment, has drawn. This happens
+        once only. A child that failed to load counts as ready, so a parent never waits forever.
+      </p>
+    </epic-option>
+    <epic-option letter="C" title="Both:  a second state for the subtree">
+      <p>
+        <code>:state(ready)</code> stays about the element alone. A new state, say <code>:state(all-ready)</code>, means
+        the elements inside are ready too. The meaning is exact, at the cost of one more name to learn.
+      </p>
+    </epic-option>
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>Nothing changes: per-element ready, and the root for a whole subtree.</li>
+      <li>B or C: a small change in the element base, which I'd build as a new phase of this epic.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
