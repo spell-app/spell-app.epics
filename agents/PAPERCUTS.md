@@ -1705,6 +1705,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `ensure` started a second server on a free port beside it. · Killed the old pid by hand;  `PidFile.ensure()` now
   stops this checkout's pid-file server when it holds its port but doesn't answer `/api/server`, so the merge into
   `main` doesn't strand main's server the same way. · server
+- 2026-10-23 · After `epic merge debut` fast-forwarded spell-ui's `main`, Owen reloaded the Spell UI site on the main
+  checkout's page server (`127.0.0.1:4747/components/ui/`) and saw none of the merged changes:  the site's bundle
+  (`spell-ui/site/_assets/`, git-ignored) is built only when the server starts or by hand, so main kept serving its
+  17:32 build;  the worktree's address (`/worktrees/debut/...`) was fresh. · `spell bundle --stale` in the main
+  checkout after the merge.  Better:  `epic merge` (or the server's file watch) rebuilds a stale bundle in the checkout
+  it fast-forwards. · server
 
 ## brand
 
