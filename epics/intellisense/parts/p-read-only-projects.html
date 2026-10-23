@@ -1,0 +1,114 @@
+<!-- plan-doc part:  #p-read-only-projects's body in intellisense.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Spell's language server writes a project file into any folder of loose spell files it opens, even a folder that
+    never had one.
+  </p>
+  <ul>
+    <li>
+      It kept rewriting one in a drafts folder of the kit's main checkout, so main looked dirty and other sessions'
+      merges refused.
+    </li>
+    <li>Owen called it urgent, 2026-10-23.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>The language server reads such a folder's project without ever saving a project file there.</p>
+  <ul>
+    <li>The kit's stopgap ignore rule (main 9334360) can then go, or stay as a guard.</li>
+  </ul></epic-field
+><epic-field name="requests"
+  ><epic-field label="r1 · 🚧 epic-engine"
+    ><blockquote>
+      <p>
+        Spell's language server writes a __project.json5 into any folder of loose .spell files it opens: it kept
+        rewriting docs/drafts/card-example/__project.json5 in the kit's main checkout (and repo-split's worktree), so
+        main looked dirty and other sessions' merges refused (Owen, 2026-10-23: 'urgent: something is continually
+        writing docs/drafts/card-example/__project.json5 which is messing up merging in other sessions'). The server
+        should never write a project file into a folder that has none -- the CLI already refuses to (resolveProject.ts:
+        'loading it would WRITE a project file there').
+      </p>
+    </blockquote>
+    <p>
+      Looking at: Found by epic-engine: SpellDiskWorkspace.fileFor() -&gt; locationForDiskPath() (disk-fetch.ts) falls
+      back to the file's own folder when no project file is above it (findProjectDir); parseOnce() loads that project's
+      index through projectUtils.getIndex(), whose imports sync saves the project file (project-utils.ts ~393); deleted,
+      diskChanged() refreshes the project and getIndex() writes it again. Stopgap on main: the kit's .gitignore ignores
+      /docs/**/__project.json5 (9334360). Likely fix: a read-only index for the language server (no saveProjectFile when
+      the folder had no project file).
+    </p>
+    <p>
+      Sent 2026-10-23 00:11-04:00;
+      <a href="../requests/r1/request.md" target="src-epics-intellisense-requests-r1-request-md">request.md</a>
+    </p></epic-field
+  ></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen (<a href="../requests/r1/request.md" target="src-epics-intellisense-requests-r1-request-md">r1</a>):
+      “something is continually writing docs/drafts/card-example/__project.json5 which is messing up merging in other
+      sessions”; the server should never write a project file into a folder that has none.
+    </li>
+    <li>
+      Likely fix: a read-only index for the language server -- no project-file save when the folder had none.
+      <ul>
+        <li>
+          Today the editor's disk workspace falls back to the file's own folder when no project file is above it, and
+          loading that project's index saves the project file; deleting it only brings it back on the next change.
+        </li>
+        <li>The CLI already refuses to do this, in its project resolver: the server should match it.</li>
+      </ul>
+    </li>
+    <li>
+      A test: opening loose spell files in the language server leaves the folder unchanged -- no project file, before or
+      after a change.
+    </li>
+    <li>Then decide whether the kit's ignore rule for drafts' project files goes or stays as a guard.</li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="../../../spell-app/src/lsp/SpellDiskWorkspace.ts" target="src-spell-app-src-lsp-spelldiskworkspace-ts"
+        ><code>spell-app/src/lsp/SpellDiskWorkspace.ts</code></a
+      >
+    </li>
+    <li>
+      <a
+        href="../../../spell-app/src/spaces/server/node/projects/disk-fetch.ts"
+        target="src-spell-app-src-spaces-server-node-projects-disk-fetch-ts"
+        ><code>spell-app/src/spaces/server/node/projects/disk-fetch.ts</code></a
+      >
+    </li>
+    <li>
+      <a
+        href="../../../spell-app/src/spaces/server/node/projects/project-utils.ts"
+        target="src-spell-app-src-spaces-server-node-projects-project-utils-ts"
+        ><code>spell-app/src/spaces/server/node/projects/project-utils.ts</code></a
+      >
+    </li>
+    <li>
+      <a href="../../../spell-app/src/cli/resolveProject.ts" target="src-spell-app-src-cli-resolveproject-ts"
+        ><code>spell-app/src/cli/resolveProject.ts</code></a
+      >
+      (the CLI's refusal, to match)
+    </li>
+    <li>
+      <a href="../../../spell-app/tests/lsp/" target="src-spell-app-tests-lsp"><code>spell-app/tests/lsp/</code></a
+      >,
+      <a
+        href="../../../spell-app/tests/spaces/server/node/projects/"
+        target="src-spell-app-tests-spaces-server-node-projects"
+        ><code>spell-app/tests/spaces/server/node/projects/</code></a
+      >
+    </li>
+    <li>
+      the kit's <a href="../../../.gitignore" target="src-gitignore"><code>.gitignore</code></a>
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      Open a folder of loose spell files in the editor, edit one: no project file appears, and git status stays clean.
+    </li>
+    <li>spell-app's <code>yarn review</code> passes, with the new test.</li>
+  </ul></epic-field
+>

@@ -3,7 +3,9 @@ id: r1
 epic: intellisense
 from: 🚧 epic-engine
 at: 2026-10-23T00:11-04:00
-status: new
+status: filed
+filed: P8 · Read-Only Projects
+phase: p-read-only-projects
 ---
 
 ## Owen's words
