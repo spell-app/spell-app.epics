@@ -1784,3 +1784,8 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   deep, pointing outside the checkout, so `epic check` flagged them as missing. · Put back by hand to the three-level
   form the other parts use (`../../../...`);  the tool should write links relative to the part's own folder
   (`parts/`), as the page's other parts do. · epics (outline-spell P19)
+- 2026-10-23 · `epic commit <epic>#P2 <sha>` and `epic commits --backfill` only look in the kit's root repo:  a phase
+  committed in a child repo (spell-ui `a0f4acc0`, epic `debut` P2) can't be listed ("no commit ... in
+  spell.worktrees/debut"). · Named the commit in the phase's Done list instead. · epics
+- 2026-10-23 · `epic agents wait` exits 3 ("no agents running") while an agent registered with `epic agents add`
+  is still running (`epic agents` says none too), so it never waits for redirects. · Ignored it. · epics (debut)
