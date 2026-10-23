@@ -48,7 +48,7 @@ yarn scripts do.  READ this before adding, renaming or removing a CLI command, a
 - Noun then verb, everywhere:  `spell server start` = yarn `server:start`;
   dashes inside a word (`add-phase`, `merge-check`), colons only between yarn's noun and verb.
 - Spell-LANGUAGE commands stay bare:  `spell compile`, `spell lint`.
-- A word two repos both want goes under each one's short name:  `spell lang check`, `spell app check`.
+- A word two repos both want goes under each one's short name:  `spell parser check`, `spell app check`.
 - Skills keep short workflow names (`/isolate`, `/park`).
 - The nouns, and their verbs:  the page's "5.2 Names".  Reuse a noun before inventing one.
 
