@@ -745,6 +745,12 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## docs
 
+- `guides/changelog.html` and the kit's `AGENTS.md` ("Changelog"):  every entry is `<ui-section id=... header="YYYY-MM-DD · Title">`,
+  but `<ui-section>` has no `header` ATTRIBUTE (its title is `label`;  `header` is only a PART name), so the 22 entries
+  may draw with no title.  Found by epic `solid-17`'s J9 measurement, 2026-10-22:  161 of 176 undeclared attributes on
+  `<ui-*>` across the docs are this one.  Prove it:  open the changelog, look for each entry's date and title;  if
+  missing, rename `header` to `label` in the page and in `AGENTS.md`'s markup line.
+
 ### 1. Behavior bugs
 
 - `spell dev plan-doc phase-body` / `updated` (main's JavaScript tool, 2026-10-07, epic `epic-components`):  links in
