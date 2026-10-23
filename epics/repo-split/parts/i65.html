@@ -17,3 +17,91 @@
   </li>
   <li>spell-epic: <code>yarn test</code></li>
 </ul>
+<epic-reply from="Claude">
+  <p>
+    Fixed in the repo-split worktree, uncommitted. I found each red in its own CI log. Each repo's checks ran the way
+    its CI runs them: the kit alone, or the kit and only the repos that repo needs.
+  </p>
+  <ul>
+    <li>
+      <b>spell-kit</b>
+      <ul>
+        <li>
+          Cause: the import-lint tests named files in spell-ui, spell-app and spell-lang, and the kit's CI clones none
+          of them, so the rule found no package for those files.
+        </li>
+        <li>
+          Fix: the tests build a made-up kit of their own (<a href="#j189">J189</a>), in
+          <a href="../../../tests/toolchain/lint.imports.test.ts" target="src-tests-toolchain-lint-imports-test-ts"
+            ><code title="tests/toolchain/lint.imports.test.ts">lint.imports.test.ts</code></a
+          >; the rule is unchanged.
+        </li>
+        <li>
+          Checks: <code>kit:ts</code> and <code>kit:lint</code> clean; <code>kit:test</code> 642 passed, 77 skipped, in
+          63 files (CI: 635 passed, 7 failed).
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>spell-lang</b>
+      <ul>
+        <li>
+          Cause: spell_core's Solitaire test read Solitaire's compiled program from the frozen test projects, which have
+          moved to spell-app.
+        </li>
+        <li>
+          Fix: none needed on this branch. <code>main</code> already has the fix (spanish P18: the test keeps a frozen
+          copy beside it), but it isn't pushed yet: GitHub's <code>main</code> is 10 commits behind.
+        </li>
+        <li>
+          Checks: ts and lint clean (oxlint and ruff); test 3547 passed and 6 expected to fail, in 122 files; pytest 383
+          passed (CI: 374 passed, 7 errors).
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>spell-app</b>
+      <ul>
+        <li>
+          Cause: React's lint warning in the CLI's project prompt (<a href="#t32">T32</a>), and lint allows no warnings.
+        </li>
+        <li>
+          Fix: its key handler is a <code>useCallback</code>, which the effect lists (<a href="#j190">J190</a>), in
+          <code title="spell-app src/cli/ui/ProjectPrompt.tsx">ProjectPrompt.tsx</code>.
+        </li>
+        <li>
+          Checks: ts and lint clean; test 930 passed, 18 skipped, in 93 files; pytest 5 passed. CI never got as far as
+          the tests.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>spell-epic</b>
+      <ul>
+        <li>
+          Cause: the worktree hook's test timed out on Linux. Ubuntu's <code>sh</code> runs <code>sleep 5</code> as a
+          child, and that child outlives the hook's 1s timeout (<a href="#i67">I67</a>, the hook's own issue).
+        </li>
+        <li>
+          Fix: the test runs <code>exec sleep 5</code>, in
+          <code title="spell-epic tests/command/WorktreeHook.test.ts">WorktreeHook.test.ts</code>. The cause is checked
+          against Ubuntu's dash source, but the fix can only be proven on Linux, by CI.
+        </li>
+        <li>Checks: ts and lint clean; test 1521 passed, 1 failed, 15 skipped, in 146 files.</li>
+        <li>
+          <b
+            >The 1 failure is new, and not one of I65's: the epics pack has been stale on <code>main</code> since
+            epic-engine I76</b
+          >
+          (<a href="#j191">J191</a>). I left it to epic-engine. It needs <code>yarn install</code> in its worktree
+          (Solid rc.13 there, rc.17 on <code>main</code>), then <code>yarn pack:build</code>.
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <p>
+    <b>Still red after these commits are pushed: spell-epic, until its pack is rebuilt.</b>
+    <code>main</code> is also ahead of GitHub in spell-lang, spell-ui, spell-brand and spell-app, so their CI runs again
+    on the push.
+  </p>
+</epic-reply>
