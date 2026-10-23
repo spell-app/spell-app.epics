@@ -23,3 +23,110 @@
     <li>I65 waits on this.</li>
   </ul></epic-net-effect
 >
+<epic-reply from="Claude">
+  <p>
+    <b>The hang: only one file, spell-app's <code>tests/cli/cli.test.ts</code>.</b> The browser tests weren't part of
+    it.
+  </p>
+  <ul>
+    <li>
+      In the cancelled run (39905557803), all 25 <code>app:browser</code> files passed between 05:25:42 and 05:26:29.
+      The same 94 files reported as in the run before, except <code>cli.test.ts</code>, which never reported.
+    </li>
+    <li>
+      When GitHub cleaned up, what was still running fits a test waiting on a <code>spell</code> command that never
+      ended:
+      <ul>
+        <li>yarn, <code>vp</code> and Vitest, with its chromium and esbuild</li>
+        <li>the Vitest worker that had been running <code>cli.test.ts</code> since the start</li>
+        <li>one more node process, started much later, with nothing running under it</li>
+      </ul>
+    </li>
+    <li>
+      Why it hung silently: that file runs <code>spell</code> and waits for it synchronously (<code>spawnSync</code>,
+      with no time limit). Vitest's test timeout can't interrupt a synchronous wait. So a run that never ends holds the
+      file, and <code>yarn test</code>, forever, with nothing printed.
+    </li>
+  </ul>
+
+  <p><b>Not reproduced on Linux</b>, in CI's exact layout:</p>
+  <ul>
+    <li>
+      The layout: the kit cloned from GitHub at main (be2e6cf), spell-app at 91cf8830f inside it, the siblings by
+      <code>yarn clone</code> (spell-lang 16663b0, spell-ui 54c3de0, spell-brand 1bdf43e, spell-epic c6e2727).
+    </li>
+    <li>
+      It ran in Playwright's 1.63.0 image as its non-root user, with <code>yarn ts</code> first, then the whole Vitest
+      suite:
+      <ul>
+        <li><code>cli.test.ts</code> alone, arm64: 61 passed, 108s</li>
+        <li>the whole suite, arm64, 4 cores: 95 files passed, 1 skipped; 978 tests passed, 20 skipped; 140s</li>
+        <li>
+          the whole suite, arm64, capped at 1.3 cores to run as slowly as GitHub's runner: the same, 361s (CI took 389s)
+        </li>
+        <li>
+          the whole suite, x86_64 under Rosetta: no hang, 448s. Five failures that CI didn't have: three 5s timeouts
+          from the slowness, and two TypeScript snapshot differences, now in the suspected-bugs log
+        </li>
+      </ul>
+    </li>
+    <li>
+      What still differs from CI: GitHub's own machines and network, a real x86 CPU rather than Rosetta, and timing. My
+      guess is a race that hits only sometimes, but nothing I saw shows which <code>spell</code> command it was.
+    </li>
+    <li>
+      <b>Docker Desktop doesn't start on this Mac:</b> 4.42.1 crashes as it starts on the M5 Pro (in
+      <code>go-m1cpu</code>), so it needs an update. I used colima, a Linux VM from Homebrew, instead (J193). Both VMs
+      are deleted.
+    </li>
+  </ul>
+
+  <p><b>The fix, uncommitted:</b> a hang now fails fast, and says which command hung.</p>
+  <ul>
+    <li>
+      <a href="../../../spell-app/tests/cli/cli.test.ts" target="src-spell-app-tests-cli-cli-test-ts"
+        ><code title="spell-app/tests/cli/cli.test.ts">cli.test.ts</code></a
+      >'s <code>spell()</code> gives each run the test timeout, 30s (J194).
+      <ul>
+        <li>
+          A run still going at 30s is stopped (<code>SIGTERM</code>). The test then fails, naming the command and
+          showing what it printed.
+        </li>
+        <li>
+          The piped <code>spell repl</code> test goes through <code>spell()</code> too. It was the file's other
+          synchronous run.
+        </li>
+        <li>
+          Checked: <code>spell icon bell --open</code>, which serves until stopped, came back after 8s of an 8s limit
+          (<code>ETIMEDOUT</code>).
+        </li>
+      </ul>
+    </li>
+    <li>
+      Each of the six workflows' <code>checks</code> job now has <code>timeout-minutes: 30</code>: the kit's,
+      spell-lang's, spell-ui's, spell-brand's, spell-epic's and spell-app's.
+    </li>
+  </ul>
+
+  <p><b>The checks:</b></p>
+  <ul>
+    <li>spell-app: <code>yarn ts</code> 0 errors, <code>yarn lint</code> clean, the changed file formatted.</li>
+    <li><code>cli.test.ts</code> with the guard: 61 passed on macOS (161s), and 61 passed on x86_64 Linux (272s).</li>
+    <li>The other repos changed only their workflow file.</li>
+  </ul>
+
+  <p><b>Next:</b> if it hangs again, the next CI run fails within 30 seconds of the stuck command, and names it.</p>
+
+  <epic-net-effect>
+    <ul>
+      <li>
+        A <code>spell</code> command that never ends fails its test in 30 seconds, naming the command, instead of
+        hanging spell-app's CI.
+      </li>
+      <li>Every repo's CI job stops after 30 minutes, not GitHub's 6 hours.</li>
+      <li>
+        The root cause isn't found: it didn't reproduce on Linux, arm64 or x86_64, at full speed or at CI's speed.
+      </li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
