@@ -1,0 +1,121 @@
+<!-- plan-doc part:  #q49's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    How the kit is cut into packages so that every import reads <code>@spell/...</code>, with no folder moved. On npm a
+    scoped name such as <code>@spell/element</code> is always a package of its own, so the kit can't stay ONE package
+    (the one-package decision, <a href="#q35">Q35</a>) and still be imported as <code>@spell/element</code> and
+    <code>@spell/util</code>. Owen would notice it in every import line, and in seven small package files inside the
+    kit's folders.
+  </p></epic-question
+>
+<p><b>What Owen said (2026-10-23):</b></p>
+<ul>
+  <li>"all imports everywhere should be <code>@spell/...</code> like I said"</li>
+  <li>"do NOT move the stuff in the base repo to <code>packages</code>"</li>
+  <li>"Whatever is the most straightforward way to do that is fine."</li>
+</ul>
+<epic-code title="imports today, and with A · 12 lines" language="ts">
+  <pre>
+// today
+import { proto } from "spell-kit/util"
+import { E } from "spell-kit/element"
+import type { RouteModule } from "spell-kit/server/page"
+import { SP } from "spell-lang/spell"
+import { UIRoot } from "spell-ui/core"
+// with A
+import { proto } from "@spell/util"
+import { E } from "@spell/element"
+import type { RouteModule } from "@spell/server/page"
+import { SP } from "@spell/lang/spell"
+import { UIRoot } from "@spell/ui/core"</pre></epic-code
+><epic-code title="A:  the package file A adds in place, src/util/package.json (a sketch)" language="jsonc">
+  <pre>
+{
+  "name": "@spell/util",
+  "version": "0.1.0",          // the same in every package, bumped together
+  "type": "module",
+  "exports": {
+    ".":   { "spell-source": "./index.ts", "types": "./dist-types/index.d.ts", "default": "./index.ts" },
+    "./*": { "spell-source": ["./*.ts", "./*/index.ts", "./*"],
+             "types": ["./dist-types/*.d.ts", "./dist-types/*/index.d.ts"], "default": "./*" }
+  },
+  "dependencies": { "lodash": "^4.17.21", "query-string": "^6.12.1" }
+}</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="A package file in each kit folder, in place" recommended
+    ><ul>
+      <li>
+        Seven small package files, one in each folder of <a href="../../../src/" target="src-src"><code>src/</code></a
+        >: <code>@spell/util</code>, <code>@spell/toolchain</code>, <code>@spell/server</code>, <code>@spell/cli</code>,
+        <code>@spell/element</code>, <code>@spell/element-tools</code>, <code>@spell/test-helpers</code>.
+      </li>
+      <li>
+        They're workspaces of the kit's one install, so yarn links each one into node_modules: nothing moves, and the
+        link the install makes by hand today (<a href="#j77">J77</a>) goes.
+      </li>
+      <li>
+        One version in all of them, bumped together: Owen's "shared version number with the rest of the kit" stays.
+      </li>
+      <li>The kit's root package is named <code>spell</code>: the workspace root, the scripts, the commands.</li>
+      <li>
+        The child repos stay one package each: <code>@spell/ui</code>, <code>@spell/lang</code>,
+        <code>@spell/brand</code>, <code>@spell/epic</code>, <code>@spell/app</code>.
+      </li>
+      <li>
+        Cost: each folder lists its own dependencies; each folder's declarations live inside it (<a href="#c18">C18</a
+        >); the import lint rule, the esbuild resolver and the declarations build learn a package that is a folder of
+        <a href="../../../src/" target="src-src"><code>src/</code></a
+        >.
+      </li>
+      <li>
+        Why recommended: it's exactly the names Owen asked for, and the only shape that gives them without moving
+        folders.
+      </li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="The kit stays one package, named spell"
+    ><ul>
+      <li>
+        The kit's imports read <code>spell/element</code>, <code>spell/util</code>; the child repos are still
+        <code>@spell/ui</code> ...
+      </li>
+      <li>The least work: the one-package decision (<a href="#q35">Q35</a>) stands, and the tools barely change.</li>
+      <li>But it's not what Owen asked: the kit's own imports aren't <code>@spell/...</code>.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="One scoped kit package, @spell/kit"
+    ><ul>
+      <li>Imports read <code>@spell/kit/element</code>, <code>@spell/kit/util</code>.</li>
+      <li>Still one package, and scoped.</li>
+      <li>But every kit import is longer, and it isn't the <code>@spell/element</code> Owen wrote.</li>
+    </ul></epic-option
+  >
+</epic-choices>
+<p><b>Smaller choices that come with A</b> (no answer needed unless Owen disagrees):</p>
+<ul>
+  <li>
+    The "read my own source" condition stays one per REPO: the kit's seven share one, renamed
+    <code>spell-source</code>; <code>spell-ui-source</code> and the rest stay, so each repo reads its own source and
+    every other repo's declarations, as today.
+  </li>
+  <li>
+    The names a page's packs share at run time follow the imports: <code>spell-kit/element</code> becomes
+    <code>@spell/element</code>, <code>spell-ui/core</code> becomes <code>@spell/ui/core</code>.
+  </li>
+  <li>Spell UI's short published names follow too: <code>@spell/ui/ui-button</code>.</li>
+</ul>
+<epic-net-effect option="A" recommended
+  ><ul>
+    <li>
+      seven package files inside the kit's <a href="../../../src/" target="src-src"><code>src/</code></a> folders, named
+      <code>@spell/&lt;folder&gt;</code>, one shared version
+    </li>
+    <li>the kit's root package renamed <code>spell</code></li>
+    <li>
+      the child repos renamed <code>@spell/ui</code>, <code>@spell/lang</code>, <code>@spell/brand</code>,
+      <code>@spell/epic</code>, <code>@spell/app</code>
+    </li>
+    <li>the one-package decision (<a href="#q35">Q35</a>) partly reversed: one version kept, seven packages</li>
+    <li>every import in every repo renamed in <a href="#p-spell-names">@spell Names</a></li>
+  </ul></epic-net-effect
+>
