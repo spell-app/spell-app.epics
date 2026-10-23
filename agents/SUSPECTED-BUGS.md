@@ -38,6 +38,14 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- Solitaire's and Solitario's TypeScript snapshots came out with return types on some getters
+  (`get value(): number`, `get picture(): string`, `get name(): string`, `get state(): string`) where the snapshot has
+  none:  `tests/spell/test/fixtures.test.ts`, "Solitaire as TypeScript" and "Solitario as TypeScript".
+  Seen 2026-10-23 once, in spell-app's whole `yarn vp test run` on x86_64 Linux under Rosetta (Playwright's Docker
+  image, spell-app 91cf8830f), with the kit and its siblings at GitHub main;  passed on Linux arm64 and on macOS,
+  and in GitHub's CI.  Looks like the TypeScript writer's types depend on timing or on test order
+  (epic `repo-split` I73).
+
 - With Owen's outline card (`it "is the (rank) of (suit)"`), `the card is the queen of spades` compiles to
   `card == "spades".queen`, not `card.isTheRankOfSuit("queen", "spades")`:  silently false at run time.
   drawable-solitaire's `"is the (rank) of (suits)" for its ranks and its suits` works.  Seen 2026-10-21 (epic `readme`
