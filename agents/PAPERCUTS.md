@@ -1789,3 +1789,5 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   spell.worktrees/debut"). · Named the commit in the phase's Done list instead. · epics
 - 2026-10-23 · `epic agents wait` exits 3 ("no agents running") while an agent registered with `epic agents add`
   is still running (`epic agents` says none too), so it never waits for redirects. · Ignored it. · epics (debut)
+
+- 2026-10-23 · spell-app's `tests/app/build.test.ts` ("production build > keeps rule class names ...") times out at 60 s, alone and in the full run, on main and in the `spanish` worktree · not fixed:  re-run, or raise its timeout · app

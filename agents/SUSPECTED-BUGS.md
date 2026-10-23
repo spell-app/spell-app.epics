@@ -38,6 +38,18 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- A Spanish loop's own variable can vanish from its compile:  in a cold `spell lang translate` of Solitaire,
+  `para índice de fila a 7` (for `for column from row to 7`, Solitaire.spell:74) compiled to
+  `await core.forEachSequential(core.getRange(fila, 7), async () => {...})`, no `índice` in the arrow, while the
+  English is `for (const column of core.getRange(row, 7))`.  `para lugar ...` compiles right in the same project, and
+  `para índice de 1 a 7` compiles right in a one-file project:  so it's something else `índice` is in that project
+  (it's also a variable in Carta.es.spell:49 and a test's in Solitario.es.spell:264).  Seen 2026-10-23 (epic `spanish`
+  P26):  the shape check names it, and the fix-up renames the variable.
+- `match.compile()` of one statement writes a loop by what the writer last saw:  after a project was updated in place
+  (`project.updateText()`), Spanish `para lugar desde fila a 7` compiled to `forEachSequential(...)` where a fresh
+  load writes `for (const lugar of ...)`.  Same program, so harmless when run;  the shape check compiles through
+  `P.JSWriter.instance.writeMatch()` instead, which is stable.  Seen 2026-10-23 (epic `spanish` P26).
+
 - Solitaire's and Solitario's TypeScript snapshots came out with return types on some getters
   (`get value(): number`, `get picture(): string`, `get name(): string`, `get state(): string`) where the snapshot has
   none:  `tests/spell/test/fixtures.test.ts`, "Solitaire as TypeScript" and "Solitario as TypeScript".
