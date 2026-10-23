@@ -2,3 +2,90 @@
 <p>Owen's test run, 2026-10-22 20:48: <a href="#v4">V4</a> failed.</p>
 <p><b>Owen:</b> opened a window this time, but no page</p>
 <p><img src="../tests/v4-20261022-2048.png" alt="Owen's screenshot of V4" /></p>
+<epic-reply from="Claude" at="2026-10-22 21:10"
+  ><p>Found and fixed in the repo-split worktree, uncommitted.</p>
+  <ul>
+    <li>
+      What broke: the editor's page loaded, but its one script didn't, so nothing drew.
+      <ul>
+        <li>The browser asked for <code>/src/app/index.tsx</code>, and the editor's dev server said 404.</li>
+        <li>
+          <b>Main has the same bug:</b> main's editor on port 3000 gives the same 404, so it's blank there too, until
+          this fix merges.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Why: the editor's dev server serves only what's inside spell-app's
+      <a href="../../../spell-app/app/" target="src-spell-app-app"><code>app/</code></a> folder.
+      <ul>
+        <li>P14 moved the app's code out of that folder, into <code>src/app/</code> beside it.</li>
+        <li>
+          The page's script tag became <code>../src/app/index.tsx</code>, a path that climbs out of the folder. A
+          browser can't climb above the server's root, so it asks for <code>/src/app/index.tsx</code>, which isn't
+          there.
+        </li>
+        <li>
+          Tests didn't catch it: the serve test fetched the page, never its script. Asked without a browser's headers,
+          the dev server even answers a missing script with the page itself, and a 200.
+        </li>
+        <li>Nothing to do with running from the kit's root: it's blank from any folder.</li>
+      </ul>
+    </li>
+    <li>
+      The fix: the page loads the app by its package name, <code>import "spell-app/app"</code>, in a small inline
+      script, as every other import in the repo does (J192).
+      <ul>
+        <li>
+          <a href="../../../spell-app/app/index.html" target="src-spell-app-app-index-html"
+            ><code title="spell-app/app/index.html">index.html</code></a
+          >: the script tag
+        </li>
+        <li>
+          <a href="../../../spell-app/tests/cli/cli.test.ts" target="src-spell-app-tests-cli-cli-test-ts"
+            ><code title="spell-app/tests/cli/cli.test.ts">cli.test.ts</code></a
+          >: the serve test now asks for every script the page loads, and what each imports, as a browser asks. It also
+          always stops the <code>spell app serve</code> it started: before, a failed check left it running.
+        </li>
+        <li>
+          <a href="../../../spell-app/src/app/AGENTS.md" target="src-spell-app-src-app-agents-md"
+            ><code title="spell-app/src/app/AGENTS.md">app's AGENTS.md</code></a
+          >: its line about the page's script
+        </li>
+      </ul>
+    </li>
+    <li>
+      How I checked it:
+      <ul>
+        <li>
+          From the worktree's root, <code>node bin/spell.mjs app serve @spell/examples/Solitaire --headless</code>: the
+          page and its script answer 200, and the app's entry with them.
+        </li>
+        <li>
+          In a headless browser, the editor drew Solitaire: the code, the cards, the output. No console errors, no
+          failed requests. Then Ctrl-C stopped it.
+        </li>
+        <li>
+          With the old script tag put back for a moment, the new test fails: <code>/src/app/index.tsx</code>, 404. With
+          the fix, it passes.
+        </li>
+        <li>
+          Your worktree's page server and editor (ports 61671 and 61672) were already running from before. I left them
+          running, so your next run says "already running".
+        </li>
+      </ul>
+    </li>
+    <li>
+      The checks, in spell-app: <code>yarn ts</code> clean; <code>yarn lint</code> clean, no warnings;
+      <code>yarn test</code>: 934 passed, 19 skipped, in 93 files (1 skipped), and the 5 Python tests passed. No test
+      added or removed: the serve test only got more checks. Solitaire's one Python type error is already in its
+      snapshot, not new.
+    </li>
+  </ul>
+  <epic-net-effect
+    ><ul>
+      <li>V4 should pass on your next run: the editor opens on Solitaire, not a blank page.</li>
+      <li>Main's editor stays blank until this merges.</li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
