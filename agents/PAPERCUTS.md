@@ -1711,6 +1711,13 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   17:32 build;  the worktree's address (`/worktrees/debut/...`) was fresh. · `spell bundle --stale` in the main
   checkout after the merge.  Better:  `epic merge` (or the server's file watch) rebuilds a stale bundle in the checkout
   it fast-forwards. · server
+- 2026-10-23 · After repo-split P17 renamed the kit `spell-kit` -> `spell` and spell-lang -> spell-parser, `epic worktree
+  merge-main` in the debut worktree merged every repo but left its `spell-lang/` folder (the same repo, now spell-parser,
+  on its branch) unmerged, and `yarn install` failed:  `spell-kit@workspace:*: Workspace not found`, from the old
+  spell-lang's `package.json`. · `git -C ~/www/spell/spell-parser worktree move <worktree>/spell-lang
+  <worktree>/spell-parser`, then `epic worktree merge-main` and `yarn install` again.  Still to do:  epic-engine,
+  intellisense, outline-spell, readme, solid-17 and spanish keep a `spell-lang/` folder (`git -C spell-parser worktree
+  list`);  better, `merge-main` (or a checkout patch) moves it. · epics
 
 ## brand
 
