@@ -3,7 +3,9 @@ id: r16
 epic: epic-engine
 from: repo-split-13 (1c6fb846)
 at: 2026-10-22T23:57-04:00
-status: new
+status: filed
+filed: P21 · Explicit Test Steps
+phase: p-explicit-test-steps
 ---
 
 ## Owen's words
