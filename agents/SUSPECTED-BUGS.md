@@ -2,6 +2,10 @@
 
 Things that look like bugs but haven't been confirmed.  Add to the right section, under its package;  when one is confirmed and
 fixed, or disproven, delete it (note a disproof in a line at the top if the reasoning is worth keeping).
+- Fixed 2026-10-23 (spanish P28, branch `spanish`, not yet merged):  a Spanish loop's own variable vanished from its
+  compile (`para índice de fila a 7` => `async () => {...}`, no `índice`).  Not the loop rule, nor `de`:  the javascript
+  writer drops an arrow's trailing parameters its body never uses, and looked for them with `\b`, which is ASCII only,
+  so it never found a name starting or ending in an accented letter (`índice`, `está`).  Now `P.jsText.mentions()`.
 - Fixed 2026-10-06 (outline-spell P2, value kinds;  branch `outline-spell`, not yet merged):  `its suit is diamonds or
   hearts` compiled to `(this.suit == 'diamonds') || 'hearts'`, always true (now `spellCore.includes(...)`, rule
   `value_choices`);  `the color of a suit is ...` / `a rank "is ..." if ...` on a type nobody declared compiled against
@@ -38,13 +42,6 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
-- A Spanish loop's own variable can vanish from its compile:  in a cold `spell lang translate` of Solitaire,
-  `para índice de fila a 7` (for `for column from row to 7`, Solitaire.spell:74) compiled to
-  `await core.forEachSequential(core.getRange(fila, 7), async () => {...})`, no `índice` in the arrow, while the
-  English is `for (const column of core.getRange(row, 7))`.  `para lugar ...` compiles right in the same project, and
-  `para índice de 1 a 7` compiles right in a one-file project:  so it's something else `índice` is in that project
-  (it's also a variable in Carta.es.spell:49 and a test's in Solitario.es.spell:264).  Seen 2026-10-23 (epic `spanish`
-  P26):  the shape check names it, and the fix-up renames the variable.
 - `match.compile()` of one statement writes a loop by what the writer last saw:  after a project was updated in place
   (`project.updateText()`), Spanish `para lugar desde fila a 7` compiled to `forEachSequential(...)` where a fresh
   load writes `for (const lugar of ...)`.  Same program, so harmless when run;  the shape check compiles through
