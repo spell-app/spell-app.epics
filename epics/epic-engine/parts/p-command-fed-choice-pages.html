@@ -7,14 +7,11 @@
 ><epic-field name="changes"
   ><ul>
     <li>
-      A command can make a choice page from its own rows, wait until Owen sends it, and read his answers back as data,
-      then carry on.
+      A new kind of page, the <b>review page for a command</b>: a command fills it with rows, Owen answers each row on
+      it, and the command reads his answers back and carries on.
     </li>
-    <li>
-      A row can be accepted, typed over, or answered by picking one of a few alternatives, and can carry a tick box such
-      as "use for every project".
-    </li>
-    <li>The page says which command is waiting on it, and can show the run's progress lines.</li>
+    <li>The kit holds the protocol, as a library any repo's command calls; spell-epic draws the page and serves it.</li>
+    <li>Choice pages don't change.</li>
   </ul></epic-field
 ><epic-field name="requests"
   ><epic-field label="r18 · 🚧 spanish (140edfa8)"
@@ -61,109 +58,156 @@
   ><ul>
     <li>
       A command, not just Claude, can ask Owen on a page and go on with his answers. The first one is the Spanish
-      translator, <code title="spell-lang/src/cli/translateProject.ts">spell lang translate</code>: after its names
-      pass, before it writes the lines, it can stop and show every name it drafted.
+      translator, <code>spell lang translate</code>: after its names pass, before it writes the lines, it stops and
+      shows every name it drafted.
+    </li>
+    <li>
+      A page of its own kind, a command's review page, not a choice page:
       <ul>
         <li>
-          Built on the choice pages Owen already uses (<a
-            href="../../../spell-epic/src/tools/choices.js"
-            target="src-spell-epic-src-tools-choices-js"
-            ><code title="spell-epic/src/tools/choices.js">epic choices</code></a
-          >): a table of rows, each with a box Claude pre-filled, and "Do it" at the bottom.
+          one row per thing to review (a drafted name): the command's own columns (English, Spanish, gender, where it
+          came from), and the lines it appears in, folded
         </li>
         <li>
-          Today those pages are made, waited on and read only by a Claude session, and the answer comes back as text
-          written for Claude to read.
+          per row: accept it as it is, type over it, or pick one of a few alternatives; and a tick box with the
+          command's own label ("use for every project")
+        </li>
+        <li>
+          its header says which command is waiting on it ("spell lang translate is waiting"), or that nobody is, once
+          the run stopped
+        </li>
+        <li>progress lines under the header as the run writes them ("names: 41 drafted in 6 s")</li>
+        <li>one "Send" at the bottom, like the other pages Owen answers on</li>
+        <li>choice pages (the syntax guide's, an epic's) stay exactly as they are</li>
+      </ul>
+    </li>
+    <li>
+      Who does what (Q9), every arrow pointing down:
+      <ul>
+        <li>
+          <b>The kit</b>, <code>spell-kit/server</code> (node only, beside the page server and the content folder it
+          already knows): a class a command makes for its run, which writes the run's files into the content folder,
+          waits for answers, and reads them back. It owns the file format and the waiting; it names no element and no
+          child repo.
+        </li>
+        <li>
+          <b>spell-epic</b>: the page's elements, its template, and the routes that serve the page and take its answers,
+          declared in its <code>pageServer</code> settings like its other routes.
+        </li>
+        <li>
+          <b>The command</b> (spell-lang's translator): calls the kit's class; acts on the answers itself. "Use for
+          every project" comes back as a tick, and the translator adds that name to the shared glossary, as its
+          <code>--learn</code> does today.
         </li>
       </ul>
     </li>
     <li>
-      Four steps a command can take, each a command of its own (so any tool can call them, whatever it's written in):
+      A run's steps, in the kit's class:
       <ol>
         <li>
-          Make the page from rows it writes as JSON, or update it while it's open: the rows Owen already answered keep
-          what he typed.
+          Open a run: the command's name, the page's title, the rows. It writes the run's folder in the content repo and
+          gives back the page's link (and opens it in the side bar).
+        </li>
+        <li>Update the rows while the page is open: rows Owen already answered keep what he typed.</li>
+        <li>Add progress lines.</li>
+        <li>
+          Wait for the answers, with a time limit. While it waits, a heartbeat in the run's folder makes the page say
+          the command is waiting; when the wait ends, by answer or time limit, the page stops saying so.
         </li>
         <li>
-          Wait until Owen presses "Do it", with a time limit. While it waits, the page says who is waiting: "spell lang
-          translate is waiting", as a page now says "repo-split is listening" for a Claude session.
+          Read the answers back as data: per row, accepted, typed over (and what was typed), or the alternative picked,
+          plus its tick.
         </li>
-        <li>
-          Read the answers back as JSON: per row, accepted as it was, typed over (and what he typed), or the alternative
-          he picked, plus its tick box.
-        </li>
-        <li>Optionally, add progress lines to the page as the run goes ("names: 41 drafted in 6 s").</li>
       </ol>
+      Answers are saved per row as Owen gives them, not only at Send, so P24's steering reads the same files.
     </li>
     <li>
-      What a row can hold, beyond today's "current" and "recommended" boxes:
-      <ul>
-        <li>a few alternatives to pick one from (the translator's other drafts for a name)</li>
-        <li>a per-row tick box with the command's own label ("use for every project")</li>
-        <li>
-          more columns of the command's own (the Spanish name's gender, where it came from: the shared glossary, a
-          reviewed dictionary, or drafted now) and the lines it appears in, folded
-        </li>
-      </ul>
-    </li>
-    <li>
-      The page never acts on an answer itself: the command does. "Use for every project" comes back as a tick in the
-      answer, and the translator adds that name to the shared glossary itself, as its
-      <code>--learn</code> does today.
-    </li>
-    <li>
-      Which of the translator's five asks this is enough for (request r18):
-      <ul>
-        <li>the names review, the main one: approve, edit or pick each drafted name; yes</li>
-        <li>the fix-up review: each line Claude fixed, accepted, edited, or "always say it this way"; yes</li>
-        <li>drift: keep the project's name or adopt the glossary's, a pick of two; yes</li>
-        <li>leftovers: lines still needing a person, typed in, then checked again by the run; yes</li>
-        <li>
-          steering: the run as a background job, answering marks as they come, its effort picked on the page; NO, it
-          needs more: a run that keeps going while the page is open, and a page that talks to it as it runs (the
-          steering question, <a href="#q10">Q10</a>)
-        </li>
-      </ul>
+      Enough for four of the translator's five asks (request r18): the names review, the fix-up review, drift (a pick of
+      two), leftovers (typed in, then checked again). The fifth, steering, is P24.
     </li>
     <li>
       Out of this phase: the translator's side (where it stops, the rows it writes, what it does with the answers) is
-      epic spanish's to build, on these commands.
+      epic spanish's to build, on this class. It hooks in at spell-lang's <code>src/cli/translateProject.ts</code>,
+      between the names pass and the lines pass (on epic spanish's branch, not main yet).
     </li>
     <li>
       From Owen's request:
-      <a href="../requests/r18/request.md" target="src-epics-epic-engine-requests-r18-request-md">r18</a>
+      <a href="../requests/r18/request.md" target="src-epics-epic-engine-requests-r18-request-md">r18</a>; his answers:
+      <a href="#q8">Q8</a>, <a href="#q9">Q9</a>, <a href="#q10">Q10</a>
     </li>
   </ul></epic-field
+><epic-update at="2026-10-23 17:08" summary="New page kind, kit protocol, steering split to P24"
+  ><p>Owen answered Q8-Q10 on 2026-10-23, each against the recommendation, so the plan is new:</p>
+  <ul>
+    <li>
+      Q8: a NEW kind of page for a command's questions, with its own elements, routes and template. Choice pages stay
+      exactly as they are.
+    </li>
+    <li>
+      Q9: the protocol lives in the kit, as a library: writing the page's data, waiting for answers (heartbeat, time
+      limit), reading them back, progress lines. spell-lang's translator calls it straight from TypeScript; spell-epic
+      only draws the page and serves its routes.
+    </li>
+    <li>
+      Q10: steering is in: the run keeps going while Owen answers, the page shows live progress, and he picks the effort
+      on the page.
+    </li>
+  </ul>
+  <p>That is too much for one phase, so it splits in two:</p>
+  <ul>
+    <li>
+      P23, this one: the kit's protocol and the page, enough for a command to stop, ask, and carry on with the answers
+      (the translator's names review).
+    </li>
+    <li>
+      P24 · Live Run Steering: the run in the background, answers taken as they come, live progress, the effort picker.
+    </li>
+  </ul>
+  <p>
+    P23 still shapes the protocol for P24 from the start: answers are kept per row as they arrive, so steering adds no
+    new file format.
+  </p></epic-update
 ><epic-field name="files"
   ><ul>
     <li>
-      spell-epic, the choice pages: <code>src/tools/choices.js</code> (the commands, the rows' shape, the answer),
-      <code>src/tools/choicesRoutes.ts</code> (the page server's side), <code>src/tools/answerPages.js</code> (how a row
-      is written into the page)
+      the kit, the protocol: a new folder <code>src/server/runs/</code> in
+      <code>spell-kit/server</code> (<code>SRV</code>): <code>CommandRun.ts</code> (open, update rows, progress, wait,
+      answers), <code>runs.types.ts</code> (a row, an answer, the run's state); built on
+      <code>contentFolder.ts</code> (<code>contentFolderOf()</code>), <code>DataFile.ts</code> and
+      <code>FileLock.ts</code>; exported from
+      <a href="../../../src/server/index.ts" target="src-src-server-index-ts"><code>src/server/index.ts</code></a>
     </li>
     <li>
-      spell-epic, waiting: <code>src/tools/details.js</code> (<code>waitForAnswer()</code>, the time limit, a JSON
-      answer), <code>src/tools/AskListeners.ts</code> (the heartbeat, with the waiter's name),
-      <code>src/tools/detailsRoutes.ts</code> (who is waiting)
+      the kit, docs:
+      <a href="../../../README-server.md" target="src-readme-server-md"><code>README-server.md</code></a> (a section on
+      command runs),
+      <a href="../../../src/server/AGENTS.md" target="src-src-server-agents-md"><code>src/server/AGENTS.md</code></a>
+      ("What's in it")
+    </li>
+    <li>the kit, tests: <code>tests/server/runs/CommandRun.test.ts</code></li>
+    <li>
+      spell-epic, the page: new elements under
+      <a href="../../../spell-ui/src/components/" target="src-spell-ui-src-components"><code>src/components/</code></a>
+      (<code>epic-run</code>, the page; <code>epic-run-row</code>, a row's accept / type / pick-one and tick box),
+      reusing <code>epic-text-box</code>; the template <code>templates/run.html</code>
     </li>
     <li>
-      spell-epic, the page: <code>src/components/epic-choice-rows/</code> (a row's pick-one and tick box, the progress
-      lines), <code>src/answers/ChoicesForm.ts</code> and <code>answers.types.ts</code> (the draft and the answer)
+      spell-epic, serving it: a new route module <code>src/tools/runRoutes.ts</code> (the page, a row's answer, Send,
+      the "waiting" state from the heartbeat), added to
+      <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+      >'s <code>pageServer.routes</code>; the side-bar opener in <code>src/tools/open.js</code>
     </li>
     <li>
-      tests: <code>tests/tools/choices.test.js</code>, <code>choicesRoutes.test.ts</code>,
-      <code>AskListeners.test.ts</code>
+      spell-epic, tests: <code>tests/tools/runRoutes.test.ts</code>, <code>tests/components/epic-run.test.ts</code>
     </li>
     <li>
-      docs: the choice pages guide (<a
+      docs: a guide for command review pages, beside the choice pages guide (<a
         href="../../../guides/syntax-choices.html"
         target="src-guides-syntax-choices-html"
         ><code>guides/syntax-choices.html</code></a
-      >), the commands page (<a
-        href="../../../guides/dev/commands/commands.json5"
-        target="src-guides-dev-commands-commands-json5"
-        ><code>guides/dev/commands/commands.json5</code></a
-      >), the details skill's notes on choice pages
+      >); the page kinds list in spell-epic's <code>src/AGENTS.md</code> and the root
+      <a href="../../../AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a
+      >'s "Words" (a new page kind's name)
     </li>
     <li>
       the translator, ONLY to find where it would call in (epic spanish builds it): spell-lang's
@@ -173,13 +217,17 @@
 ><epic-field name="verify"
   ><ul>
     <li>
-      A script standing in for the translator: writes 5 name rows (one with 3 alternatives, one ticked "use for every
-      project"), makes the page, waits; the page says the script is waiting; "Do it" wakes it, and the JSON it reads
-      names each row's outcome.
+      A script standing in for the translator: opens a run with 5 name rows (one with 3 alternatives, one ticked "use
+      for every project"), waits; the page opens in the side bar and says the script is waiting; Send wakes it, and the
+      answers it reads name each row's outcome.
     </li>
     <li>The same page updated while open: rows already answered keep what was typed.</li>
-    <li>The time limit: the wait ends with its own exit code, and the page stops saying anyone is waiting.</li>
+    <li>The time limit: the wait ends and says so, and the page stops saying anyone is waiting.</li>
     <li>Progress lines written during the wait show on the open page without a reload.</li>
-    <li>Today's choice pages (the syntax guide's, an epic's) work as before; the spell-epic tests pass.</li>
+    <li>
+      The kit's tests run with no child repo installed (<code>yarn kit:test</code>); <code>yarn review</code> in the kit
+      and spell-epic.
+    </li>
+    <li>Choice pages (the syntax guide's, an epic's) work as before.</li>
   </ul></epic-field
 >
