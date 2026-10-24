@@ -1,48 +1,218 @@
 <!-- plan-doc part:  #o5's body in prefs-and-undo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Five building phases, about 10-14 hours: one pref store, the one-off stores moved onto it, an undo stack, then both
-  wired into the runtime. The spell syntax (<code>remembered</code>,
-  <code>undone as "Turn Card"</code>) waits for elemental-spell.
+  Nine phases, about 16-24 hours. First one pref store and the places it keeps values, then every one-off store moved
+  onto it, then an undo stack and its use in the runtime, then typed defaults and remembered properties. The spell
+  syntax (<code>remembered</code>, <code>undone as "Turn Card"</code>, a declared default) waits for elemental-spell.
 </p>
+
+<h4 id="o5-folder">One folder: util's <code>persist</code></h4>
+<ul>
+  <li>
+    The pref store, its backends, <code>defaultFor()</code> and the undo stack live in the kit's util, in a folder of
+    their own (<a href="#q11">Q11</a>).
+  </li>
+  <li>
+    Generic: nothing Spell-specific, so Spell UI imports the pref store, and Spell's runtime and spell-app build on the
+    undo stack.
+  </li>
+</ul>
+
+<h4 id="o5-phases">The phases</h4>
 <ol>
   <li>
-    <b>Pref Store</b>: ONE store in the kit's generic util, with nothing to import, so Spell UI can use it.
+    <a href="#p-pref-store"><b>Pref Store</b></a
+    >: ONE store, with three places to keep values to start.
     <ul>
-      <li>Three places to keep values: lasting (per site), per tab, and in memory.</li>
-      <li>In memory is for servers and tests, and the fallback when the browser blocks storage.</li>
-      <li>Read with a default, save, forget; the keys under a prefix, forget a prefix, forget all.</li>
-      <li>A waited-on form of each, and "read, change, save" as one step.</li>
-      <li>It never throws on a storage failure: it logs it.</li>
+      <li>
+        Lasting (per site), per tab, and in memory: for servers and tests, and the fallback when the browser blocks
+        storage.
+      </li>
+      <li>Values readable as they are: JSON only when they look like it (<a href="#q12">Q12</a>).</li>
+      <li>Declared prefs, with defaults (<a href="#q13">Q13</a>).</li>
+      <li>A waited-on form of everything, for the next phase's stores.</li>
+      <li>It never throws when storage fails: it logs, and answers the default.</li>
       <li>The editor moves onto it; the two old stores go.</li>
     </ul>
   </li>
-  <li><b>Stores Move Over</b>: the one-off stores in the table above, keys byte for byte the same.</li>
   <li>
-    <b>Undo Stack</b>: the stack in the kit's generic util, reactive, so a menu shows "Undo Change Margin" by itself.
+    <a href="#p-database-and-server-stores"><b>Database and Server Stores</b></a
+    >: two waited-on places.
     <ul>
-      <li>Records, two stacks, folding a run of the same change into one step, a limit, clearing.</li>
+      <li>
+        The browser's database: big values, and file handles, kept as the browser copies them (<a href="#q8">Q8</a>).
+      </li>
+      <li>The page server: in the person's space, through spaces (<a href="#q9">Q9</a>).</li>
     </ul>
   </li>
   <li>
-    <b>Undo in the Runtime</b>: one history per app, cleared on a new run and when the app opens a document.
+    <a href="#p-stores-move-over"><b>Stores Move Over</b></a
+    >: the kit's, Spell UI's and the editor's stores, keys byte for byte; the editor's static files onto the database.
+  </li>
+  <li>
+    <a href="#p-epic-pages-stores"><b>Epic Pages' Stores</b></a
+    >: the epic pages' folds, drafts, filters and read marks (<a href="#q5">Q5</a>).
+  </li>
+  <li>
+    <a href="#p-undo-stack"><b>Undo Stack</b></a
+    >: the generic stack, with transactions (<a href="#q6">Q6</a>, <a href="#q14">Q14</a>).
+  </li>
+  <li>
+    <a href="#p-undo-in-the-runtime"><b>Undo in the Runtime</b></a
+    >: Spell's recorder on it.
     <ul>
-      <li>An action marked undoable records ONE step, under its name, whatever it changes.</li>
-      <li>Every app has undo and redo, with live titles, and ⌘Z / ⇧⌘Z while focus is in it.</li>
+      <li>One history per app, cleared on a new run and when the app loads saved state (<a href="#q18">Q18</a>).</li>
+      <li>An action marked undoable is ONE step, whatever it changes and however long it waits.</li>
+      <li>Some changes and actions opt out (<a href="#q10">Q10</a>).</li>
+      <li>Every app has undo and redo, live titles, and ⌘Z / ⇧⌘Z while focus is in it (<a href="#q16">Q16</a>).</li>
     </ul>
   </li>
   <li>
-    <b>Remembered Properties</b>: a property declared remembered reads and saves through the app's pref store, under its
-    project's id.
+    <a href="#p-typed-defaults"><b>Typed Defaults</b></a
+    >: every spell property defaults by its type (<a href="#q13">Q13</a>).
   </li>
-  <li><b>Doc Review</b>.</li>
+  <li>
+    <a href="#p-remembered-properties"><b>Remembered Properties</b></a
+    >: saved through the app's pref store, under its project's id (<a href="#q7">Q7</a>, <a href="#q17">Q17</a>).
+  </li>
+  <li>
+    <a href="#p-doc-review"><b>Doc Review</b></a
+    >.
+  </li>
 </ol>
-<epic-code title="The undo stack, as code would use it · 7 lines" language="ts">
+
+<h4 id="o5-places">Four places to keep values</h4>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Place</th>
+        <th>Lasts</th>
+        <th>Waited on</th>
+        <th>For</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>quick: lasting, or per tab</td>
+        <td>per site, or until the tab closes</td>
+        <td>no</td>
+        <td>small values: a theme, a panel's width</td>
+      </tr>
+      <tr>
+        <td>the browser's database</td>
+        <td>per site</td>
+        <td>yes</td>
+        <td>big values, file handles</td>
+      </tr>
+      <tr>
+        <td>memory</td>
+        <td>until the page goes</td>
+        <td>no</td>
+        <td>servers, tests, and when the browser blocks storage</td>
+      </tr>
+      <tr>
+        <td>the page server</td>
+        <td>in the person's space</td>
+        <td>yes</td>
+        <td>anything that should follow a person</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<epic-code title="A store, as code would use it · 8 lines" language="ts">
   <pre>
-const history = new UndoStack({ limit: 100 })
-history.record({ title: "Change Margin", target: box, undo: () =&gt; (box.margin = 4), redo: () =&gt; (box.margin = 8) })
-history.undoTitle   // "Undo Change Margin"
-history.undo()      // box.margin is 4 again
-history.redoTitle   // "Redo Change Margin"
-// In the runtime, a marked action records its own step:
-static { this.declareAction("turnOver", { undoneAs: "Turn Card" }) }</pre>
+const site = new PrefStore("spell-site")                     // keys start "spell-site:"
+site.declare("scheme", { oneOf: ["light", "dark", "auto"] })
+site.get("scheme")             // "light":  nothing saved, so the first choice
+site.set("scheme", "dark")     // writes  spell-site:scheme  =  dark
+site.set("width", 240)         // writes  spell-site:width   =  240
+
+const files = new PrefStore("spell-static", { place: "database" })
+await files.save("@owen/solitaire/cards.png", blob)    // waited on:  kept as the browser copies it</pre>
 </epic-code>
+
+<h4 id="o5-transactions">Undo as transactions</h4>
+<ul>
+  <li>An undoable action opens a transaction, which stays open until its work finishes, waits included.</li>
+  <li>Undoable work that starts meanwhile joins it: a person sees ONE step.</li>
+  <li>Undo and redo put back what was recorded, at once: redoing a deal doesn't animate it again.</li>
+</ul>
+<epic-code title="A deal that waits, as one step · 9 lines" language="js">
+  <pre>
+static { this.declareAction("deal", { undoneAs: "Deal" }) }
+
+async deal() {
+  for (const card of this.deck) await this.moveCard(card, this.tableau)   // moveCard is undoable too:  it joins
+}
+
+app.undoTitle   // "Undo Deal"
+app.undo()      // every card back in the deck, at once
+app.redo()      // dealt again, at once:  no waiting</pre>
+</epic-code>
+
+<h4 id="o5-defaults">Typed defaults</h4>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>A property that's</th>
+        <th>Reads, when unset, today</th>
+        <th>After Typed Defaults</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>a number</td>
+        <td>nothing</td>
+        <td><code>0</code></td>
+      </tr>
+      <tr>
+        <td>a choice (yes / no)</td>
+        <td>nothing</td>
+        <td><code>false</code></td>
+      </tr>
+      <tr>
+        <td>text</td>
+        <td>nothing</td>
+        <td>empty text</td>
+      </tr>
+      <tr>
+        <td>one of a list</td>
+        <td>nothing</td>
+        <td>its first value</td>
+      </tr>
+      <tr>
+        <td>a list</td>
+        <td>a new list</td>
+        <td>a new list</td>
+      </tr>
+      <tr>
+        <td>a thing</td>
+        <td>nothing</td>
+        <td>nothing</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>A declared default, or a starting value, wins.</li>
+</ul>
+
+<epic-update at="2026-10-24 18:50" summary="Rewritten for nine phases, after Owen's answers and plan comments"
+  ><p>
+    This section first planned five building phases, about 10-14 hours. It was rewritten after Owen's planning answers
+    and his comments on the plan:
+  </p>
+  <ul>
+    <li>the epic pages' stores move too (<a href="#q5">Q5</a>): a phase of their own</li>
+    <li>
+      the database and server stores are built now (<a href="#q8">Q8</a>, <a href="#q9">Q9</a>): a phase of their own
+    </li>
+    <li>undo is transactions (<a href="#q6">Q6</a>), the stack generic (<a href="#q14">Q14</a>)</li>
+    <li>values JSON only when they look like it (<a href="#q12">Q12</a>), not a format option</li>
+    <li>
+      defaults: declared prefs, and every spell property by its type (<a href="#q13">Q13</a>): a phase of their own
+    </li>
+    <li>everything in util's <code>persist</code> folder (<a href="#q11">Q11</a>), not Spell's corner of util</li>
+  </ul></epic-update
+>
