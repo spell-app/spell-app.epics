@@ -415,6 +415,19 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 - 2026-10-23 · `its "suit" is a suit`, where no type `Suit` is declared anywhere, compiles to
   `declareProp("suit", { type: "Suit" })` with no error or warning.  Prove:  that line in a type's outline, alone.
   Found in epic `spanish` P22. · spell
+- 2026-10-23 · JSX text loses the spaces beside a `{...}`:  `<h1>{its greeting}, {its name}!</h1>` draws
+  `Hello,Maya!`, and `<p>{its waves} waves so far</p>` draws `0waves so far` (`h("p", () => this.waves, "waves so far")`).
+  And the TypeScript writer collapses a double space in JSX text that javascript keeps (`Your hand:  click` =>
+  `Your hand: click`), so the core contract's targets disagree.  Prove:  `spell parse 'return <p>{its waves} waves</p>'`.
+  Found in epic `debut` P10, worked around in the guides (I-items there). · spell
+- 2026-10-23 · A value word in a `with` clause resolves to a same-named variable or parameter, silently:
+  `a new card with rank = queen` after `set the queen to ...` passes the CARD as its rank;  in Flash Cards'
+  `to add (front as text) meaning (back as text)`, `side = front` passed the word.  Only a run-time warning
+  (`Expected rank to be one of ...`).  Prove:  either line in a test.  Found in epic `debut` P10. · spell
+- 2026-10-23 · An unclosed quote (`set the name of hello sign to "Maya`) runs the string to the end of the file, so
+  the app goes blank and Program Output says only `Guide failed with error:  Invalid or unexpected token` --
+  a javascript error, not a parse error on that line.  Prove:  delete a closing quote in any example, in the editor.
+  Found in epic `debut` P10. · spell
 
 ## parser
 

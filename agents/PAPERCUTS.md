@@ -1130,6 +1130,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   the element bases (+40 KB), and `spell dev pack check` still said current (it compares hashes).  Same cause as above:
   the PATH's `spell` is main's.  Fix:  `node packages/cli/bin/spell.mjs dev pack build <pack>` from the worktree, and
   look at the pack's size.  (repo-split P3, I8)
+- 2026-10-23 · spell-app's `spell app serve --headless` test (`tests/cli/cli.test.ts`) failed with no code change:
+  the running editor's page names its script `../src/app/index.tsx?t=<time>` once Vite has hot-reloaded an edit,
+  and the test wants it to END with `/src/app/index...`.  Fix:  `spell server stop all`, then `spell server start`,
+  and run it again.  (debut P10)
 
 
 ## docs
@@ -1711,6 +1715,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   17:32 build;  the worktree's address (`/worktrees/debut/...`) was fresh. · `spell bundle --stale` in the main
   checkout after the merge.  Better:  `epic merge` (or the server's file watch) rebuilds a stale bundle in the checkout
   it fast-forwards. · server
+- 2026-10-24 · spell-epic's `CheckoutServers.test.ts` ("stop():  the checkout's page and vite servers stop") failed
+  twice while every repo's `yarn test` ran at the same time (epic `debut`'s merge checks), and passed alone both times:
+  it looks for the checkout's servers by process, and the parallel runs' own Vite servers trip it. · Run it alone
+  (`yarn vp test run tests/command/CheckoutServers.test.ts`) before calling it a failure. · epics
 - 2026-10-23 · After repo-split P17 renamed the kit `spell-kit` -> `spell` and spell-lang -> spell-parser, `epic worktree
   merge-main` in the debut worktree merged every repo but left its `spell-lang/` folder (the same repo, now spell-parser,
   on its branch) unmerged, and `yarn install` failed:  `spell-kit@workspace:*: Workspace not found`, from the old
@@ -1732,6 +1740,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## epics
 
+- 2026-10-24 · `epic window launch elemental-spell --move`, run from the broken `solid-17` worktree's session
+  (its git records are gone), made the worktree, the branch and the window file, but no window opened and the
+  session never moved.  `epic window open <name>` opened the window, but `epic window handoff <name> --prompt ...`
+  then never moved the session either.  Fix:  `epic window launch <name>` (no `--move`) from inside the new worktree,
+  which starts a new session in the open window.  Project:  spell-epic.
 - 2026-10-23 · `spell pack add epics <tag>` scaffolds a family whose test imports `spell-epics/...` (no such package:
   it's `spell-epic/...`) and whose vocabulary is typed `E.ComponentVocabulary` (spell-epic's are `EpicVocabulary`, from
   `spell-epic/definitions`);  epic `epic-engine` P23's two new families failed until fixed by hand. · Fixed both by
