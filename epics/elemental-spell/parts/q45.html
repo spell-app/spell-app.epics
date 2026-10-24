@@ -1,0 +1,534 @@
+<!-- plan-doc part:  #q45's details in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question>
+  <p>
+    Is <code>.spellx</code> its own, friendlier markup that compiles into JSX and HTML, rather than HTML with prefixed
+    tags? Tags lose their <code>spell-</code> prefix, may hold spell phrases with spaces, close with
+    <code>&lt;/&gt;</code>, and say <code>&lt;button&gt;</code> for Spell UI's button.
+  </p>
+</epic-question>
+<p>
+  <b>Now:</b> may a tag's head be a spell phrase, with spaces in it: <code>&lt;on mouse down&gt;</code>,
+  <code>&lt;if the mouse is down&gt;</code>, <code>&lt;for each card in its cards&gt;</code>?
+</p>
+<p>Most of Owen's proposal is settled since this was asked:</p>
+<ul>
+  <li>Prefixes: only the template tags keep one, everything inside is a short word (<a href="#q37">Q37</a>).</li>
+  <li><code>&lt;button&gt;</code> is always a pack's button, never HTML's (<a href="#q46">Q46</a>).</li>
+  <li>Our own reader reads it, and the JSX reader may be rewritten (<a href="#q5">Q5</a>, <a href="#q8">Q8</a>).</li>
+  <li>Self-closing <code>/&gt;</code> (<a href="#q47">Q47</a>); accents kept (<a href="#q49">Q49</a>).</li>
+  <li>What <code>&lt;/&gt;</code> closes: its own question, <a href="#q40">Q40</a>.</li>
+</ul>
+<p>
+  <b>
+    With spaces, a tag's head is the code-spell line in brackets: <code>&lt;on mouse down&gt;</code> is
+    <code>- on mouse down:</code>, and its <code>&lt;/&gt;</code> is the end of the indented body.
+  </b>
+</p>
+<epic-code title="Card.spellx, the parts it changes · 17 lines" language="html">
+  <pre>
+&lt;spell-view "playing card" aka="card" template="two sided view"&gt;
+	&lt;property "suit" one-of="clubs, diamonds, hearts, spades" phrase="is a (suit)" /&gt;
+
+	&lt;on mouse down&gt;
+		if it is face down
+			turn it over
+		otherwise
+			pass event
+	&lt;/&gt;
+
+	&lt;draw section="front"&gt;
+		&lt;text part="face" color={its color}&gt;{its rank} {its symbol}&lt;/&gt;
+		&lt;if it is a face card&gt;
+			&lt;image part="portrait" src="{its rank}.svg" /&gt;
+		&lt;/&gt;
+	&lt;/draw&gt;
+&lt;/spell-view&gt;</pre></epic-code
+><epic-code title="Carta.es.spellx, the same lines · 8 lines" language="html">
+  <pre>
+&lt;encanto-vista "carta de la baraja" alias="carta" plantilla="vista de dos caras"&gt;
+	&lt;al presionar el ratón&gt;
+		si está boca abajo
+			voltearla
+		de lo contrario
+			pasar evento
+	&lt;/&gt;
+&lt;/encanto-vista&gt;</pre>
+</epic-code>
+<p>
+  Dropped: the old C, "keep o1's prefixed shape", went with <a href="#q37">Q37</a>; the old B's real markup names
+  (<code>&lt;ui-button&gt;</code>) went with <a href="#q46">Q46</a>. B is now only "no spaces".
+</p>
+<epic-choices>
+  <epic-option letter="A" title="Spell phrases in heads, with spaces" recommended>
+    <ul>
+      <li>
+        Control and handler heads are spell: <code>&lt;on mouse down&gt;</code>, <code>&lt;if it is face up&gt;</code>.
+      </li>
+      <li>
+        A declaration's head is its word, a quoted name, then fields: <code>&lt;property "suit" one-of="…"&gt;</code>.
+      </li>
+      <li>
+        The head ends at the first <code>&gt;</code> outside quotes, parentheses or braces:
+        <code>&lt;if (its rank &gt; 10)&gt;</code> works, a bare <code>&lt;if its rank &gt; 10&gt;</code> is an error
+        that says what to write.
+      </li>
+      <li>
+        Hyphenated habits (<code>&lt;on-mouse-down&gt;</code>) are read too; <code>spell lint --fix</code> writes the
+        spaced form.
+      </li>
+      <li>Costs: no HTML or JSX tool reads it; we ship its colouring (the language server already colours spell).</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="No spaces:  hyphens, and {…} for spell">
+    <ul>
+      <li><code>&lt;on-mouse-down&gt;</code>, <code>&lt;if test={it is face up}&gt;</code>.</li>
+      <li>HTML-ish highlighters half-work; a novice meets hyphens and braces where they'd say words.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>
+      Handler and control tags say what they mean in words: <code>&lt;on mouse down&gt;</code>,
+      <code>&lt;si es una figura&gt;</code>.
+    </li>
+    <li><code>.spellx</code> to <code>.spell</code> gets simpler: those heads are copied as they are.</li>
+    <li>
+      <a href="#q42">Q42</a> (on or a phrase) and <a href="#q43">Q43</a> (<code>&lt;if&gt;</code> tags in drawings)
+      build on it.
+    </li>
+  </ul> </epic-net-effect
+><epic-original
+  ><epic-version
+    ><p>Owen, 2026-10-24, after reading <a href="#o1">o1</a>'s settled card:</p>
+    <blockquote>
+      "So I want to lean into the idea that "spellx" is NOT JSX or HTML exactly, but rather a friendlier alternative
+      that COMPILES into JSX/HTML. So <code>&lt;spell-xxxx&gt;</code> could just be <code>&lt;xxx&gt;</code>,
+      <code>&lt;/&gt;</code> could end the relevant tag, <code>&lt;ui-button&gt;</code> just becomes
+      <code>&lt;button&gt;</code> (with the component packs specified up front from the package.json5). This means that
+      "regular JSX/HTML parsers" can't necessarily read spellx, which is maybe good, because we can have our own
+      conventions? e.g. <code>&lt;on mouse down&gt;....&lt;/&gt;</code>,
+      <code>&lt;view "boo" template="@x/y/z"&gt;</code>, <code>&lt;if the mouse is down&gt;</code> are so much nicer to
+      read, and would not surprise a naieve user, although they would probably annoy the shit out of a programmer. Think
+      about the proposal in relation to this, make a question with the analysis."
+    </blockquote>
+    <h4 data-original-id="own-card">The card, in this form</h4>
+    <p>
+      The same playing card as <a href="#o1">o1</a>'s <code>Card.spellx</code>, line for line, so the two can be read
+      side by side.
+    </p>
+    <epic-code title="Card.spellx -- its own language · 67 lines" language="html">
+      <pre>
+&lt;view "playing card" aka="card" template="two sided view"&gt;
+	A playing card has a suit and a rank.
+	Face up it shows them;  face down, the back every card shares.
+
+	## Suit and color
+
+	&lt;property "suit" one-of="clubs, diamonds, hearts, spades"
+		description="Which of the four suits it belongs to"
+		phrase="is a (suit)"
+	/&gt;
+	&lt;property "color" one-of="red, black" phrase="is (color)" phrase="is a (color) card"&gt;
+		red if it is a diamond or it is a heart
+		black otherwise
+	&lt;/&gt;
+	&lt;property "symbol" description="Its suit's sign, for drawing"&gt;
+		"♣" if it is a club
+		"♦" if it is a diamond
+		"♥" if it is a heart
+		"♠" if it is a spade
+	&lt;/&gt;
+
+	## Rank
+
+	&lt;property "rank" one-of="ace, 2 ... 10, jack, queen, king"
+		description="Ace is low:  ace = 1 ... king = 13"
+		phrase="is a (rank)"
+	/&gt;
+	&lt;phrase "is the (rank) of (suit)" /&gt;
+	&lt;phrase "is a face card"&gt;if its rank is jack, queen or king&lt;/&gt;
+	&lt;phrase "is a number card"&gt;if it is not a face card&lt;/&gt;
+
+	## Playing it
+
+	&lt;action "show it"&gt;
+		&lt;description&gt;
+			Turns it face up, if it isn't already.
+			A pile shows its top card each time a card leaves it.
+		&lt;/&gt;
+		if it is face down
+			turn it over
+	&lt;/&gt;
+
+	&lt;on mouse down&gt;
+		&lt;comment&gt;Face down:  turn it over.  Face up:  pass the press on, so its game can move it.&lt;/&gt;
+		if it is face down
+			turn it over
+		otherwise
+			pass event
+	&lt;/&gt;
+
+	## Drawing it
+
+	&lt;draw section="front"&gt;
+		&lt;comment&gt;One line of text, the size of the text around it:  its pile scales it to fit.&lt;/&gt;
+		&lt;text part="face" color={its color}&gt;{its rank} {its symbol}&lt;/&gt;
+		&lt;if it is a face card&gt;
+			&lt;image part="portrait" src="{its rank}.svg" alt="the {its rank}" /&gt;
+		&lt;/&gt;
+	&lt;/&gt;
+	&lt;draw section="back"&gt;
+		&lt;image part="back" src="card-back.svg" alt="the back of a card" /&gt;
+	&lt;/&gt;
+
+	&lt;test "card setup"&gt;
+		get a new card whose rank is queen, suit is spades and direction is down
+		echo "testing the " + its rank + " of " + its suit
+	&lt;/&gt;
+&lt;/view&gt;</pre></epic-code
+    ><epic-code title="Carta.es.spellx -- the same card, in Spanish · 42 lines, shortened" language="html">
+      <pre>
+&lt;vista "carta de la baraja" alias="carta" plantilla="vista de dos caras"&gt;
+	Una carta tiene un palo y un rango.
+	Boca arriba los muestra;  boca abajo, el dorso que comparten todas las cartas.
+
+	## Palo y color
+
+	&lt;propiedad "palo" uno-de="tréboles, diamantes, corazones, espadas"
+		descripción="A cuál de los cuatro palos pertenece"
+		frase="es un (palo)"
+	/&gt;
+	&lt;propiedad "color" uno-de="rojo, negro" frase="es (color)" frase="es una carta (color)"&gt;
+		rojo si es un diamante o es un corazón
+		negro de lo contrario
+	&lt;/&gt;
+
+	## Rango
+
+	&lt;frase "es una figura"&gt;si su rango es jota, dama o rey&lt;/&gt;
+
+	## Jugarla
+
+	&lt;al presionar el ratón&gt;
+		&lt;comentario&gt;Boca abajo:  voltearla.  Boca arriba:  pasar el clic, para que su juego la mueva.&lt;/&gt;
+		si está boca abajo
+			voltearla
+		de lo contrario
+			pasar evento
+	&lt;/&gt;
+
+	## Dibujarla
+
+	&lt;dibujar sección="frente"&gt;
+		&lt;texto part="cara" color={su color}&gt;{su rango} {su símbolo}&lt;/&gt;
+		&lt;si es una figura&gt;
+			&lt;imagen part="retrato" src="{su rango}.svg" alt="el {su rango}" /&gt;
+		&lt;/&gt;
+	&lt;/&gt;
+
+	&lt;probar "preparación de la carta"&gt;
+		obtener una nueva carta cuyo rango es dama, palo es espadas y dirección es abajo
+	&lt;/&gt;
+&lt;/vista&gt;</pre>
+    </epic-code>
+    <ul>
+      <li>
+        No <code>spell-</code> or <code>encanto-</code> prefix anywhere: every tag word is the file's own language.
+      </li>
+      <li>
+        Accents stay (<code>sección=</code>, <code>&lt;al presionar el ratón&gt;</code>), unlike <a href="#j4">J4</a>'s
+        plain-ASCII tags: spellx words never reach the browser, only what they compile to
+        (<code>&lt;es-texto&gt;</code>) does.
+      </li>
+      <li>The last line closes with <code>&lt;/view&gt;</code>, by name: an optional named closer, checked (below).</li>
+    </ul>
+    <h4 data-original-id="own-idea">The idea</h4>
+    <p>
+      <b>
+        A spellx tag's head can be a spell phrase, so <code>&lt;on mouse down&gt;</code> is just the code-spell line
+        <code>on mouse down:</code> in brackets, and <code>&lt;/&gt;</code> is the end of its indented body.
+      </b>
+    </p>
+    <ui-table celled compact striped unstackable>
+      <table>
+        <thead>
+          <tr>
+            <th>Tag head in <code>Card.spellx</code></th>
+            <th>
+              Line in
+              <a
+                href="../../../spell-app/spaces/@spell/examples/Solitaire/Card.spell"
+                target="src-spell-app-spaces-spell-examples-solitaire-card-spell"
+                ><code>Card.spell</code></a
+              >
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>&lt;view "playing card" template="two sided view"&gt;</code></td>
+            <td><code>a "playing card" is a two sided view:</code></td>
+          </tr>
+          <tr>
+            <td><code>&lt;property "color" one-of="red, black"&gt;</code></td>
+            <td><code>- its "color" is one of red, black:</code></td>
+          </tr>
+          <tr>
+            <td><code>&lt;action "show it"&gt;</code></td>
+            <td><code>- to show it:</code></td>
+          </tr>
+          <tr>
+            <td><code>&lt;on mouse down&gt;</code></td>
+            <td><code>- on mouse down:</code></td>
+          </tr>
+          <tr>
+            <td><code>&lt;if it is face up&gt;</code>, in a drawing</td>
+            <td><code>if it is face up</code></td>
+          </tr>
+          <tr>
+            <td><code>&lt;/&gt;</code></td>
+            <td>the end of the indented body: nothing is written</td>
+          </tr>
+        </tbody>
+      </table>
+    </ui-table>
+    <p>
+      So <code>.spellx</code> to <code>.spell</code> (<a href="#q10">Q10</a>) gets <b>simpler</b>: a control or event
+      head is copied as it is, a declaration head is a quoted name plus fields, and the body is copied one indent in.
+    </p>
+    <h4 data-original-id="own-gains">What it gains</h4>
+    <ul>
+      <li>
+        <b>It reads like what a novice would say:</b> <code>&lt;on mouse down&gt;</code>, not
+        <code>&lt;spell-on-mouse-down&gt;</code>.
+      </li>
+      <li>
+        <b>Translation is natural:</b> <code>&lt;propiedad "palo"&gt;</code>,
+        <code>&lt;al presionar el ratón&gt;</code>. No prefix in any language, so the Encanto prefix (<a href="#q36"
+          >Q36</a
+        >) and which tags carry it (<a href="#q37">Q37</a>) stop mattering.
+      </li>
+      <li><b>Fewer characters:</b> almost every line of the card above is shorter than in <a href="#o1">o1</a>.</li>
+      <li>
+        <b>Nothing new to parse with:</b> our own parser reads it already (<a href="#q5">Q5</a>), and rewriting the JSX
+        reader is fine (<a href="#q8">Q8</a>).
+      </li>
+      <li>
+        <b>Less rope for agents than HTML:</b> the words are a closed set, so an unknown tag or attribute is an error
+        the moment it's written, not a silently ignored element.
+      </li>
+    </ul>
+    <h4 data-original-id="own-costs">What it costs, and the guardrail for each</h4>
+    <ul>
+      <li>
+        <b>A bare name needs a lookup.</b> <code>&lt;button&gt;</code> could be this app's own template named button, a
+        pack's <code>ui-button</code>, or HTML's native button.
+        <ul>
+          <li>
+            The order: this app's own templates (and the ones it imports), then each pack in the order the project lists
+            them, then HTML.
+          </li>
+          <li>A real name always works too: <code>&lt;ui-button&gt;</code> is always Spell UI's.</li>
+          <li>Reaching HTML's own element past a pack: its own question, <a href="#q44">Q44</a>.</li>
+          <li>
+            The real collisions, Spell UI components whose bare name is an HTML element: <code>button</code>,
+            <code>code</code>, <code>embed</code>, <code>form</code>, <code>input</code>, <code>label</code>,
+            <code>menu</code>, <code>progress</code>, <code>search</code>, <code>section</code>, <code>select</code>,
+            <code>table</code>; and SVG's <code>image</code> and <code>text</code>.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <b>Structure words are reserved:</b> view, thing, page, app, template, property, phrase, action, draw, section,
+        test, event, on, if, otherwise, for each, description, comment. None of them can name a template.
+        <ul>
+          <li>
+            Three clash with something that exists: <code>section</code> (HTML, and Spell UI's <code>ui-section</code>),
+            <code>template</code> (HTML's <code>&lt;template&gt;</code>), <code>comment</code> (Spell UI's
+            <code>ui-comment</code>). The structure word wins; the others are reached by their real name.
+          </li>
+          <li>
+            The context rule: outside a drawing a tag is a declaration; inside one it's markup, except the control words
+            (<code>&lt;if&gt;</code>, <code>&lt;otherwise&gt;</code>, <code>&lt;for each&gt;</code>) and
+            <code>&lt;section&gt;</code>.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <b>Where a tag head ends.</b> A declaration's head is a quoted name, then <code>key=value</code> fields; a
+        control or event head is a spell phrase.
+        <ul>
+          <li>
+            The rule: the head ends at the first <code>&gt;</code> outside quotes, parentheses or braces. So
+            <code>&lt;if (its rank &gt; 10)&gt;</code> works, and so does
+            <code>&lt;if its rank is more than 10&gt;</code>; a bare <code>&lt;if its rank &gt; 10&gt;</code> is an
+            error that says which to write.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <b><code>&lt;/&gt;</code> closes the innermost open tag,</b> so a wrong closer has no name to check.
+        <ul>
+          <li>A named closer (<code>&lt;/view&gt;</code>) is allowed anywhere, and checked.</li>
+          <li>The editor shows what each <code>&lt;/&gt;</code> closes, as a faint label after it.</li>
+          <li>
+            JSX uses <code>&lt;&gt;…&lt;/&gt;</code> for a fragment: spellx has no fragments (a drawing may draw several
+            things), and <code>&lt;group&gt;</code> if one is ever needed.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <b>No outside tool understands it:</b> no HTML or JSX highlighter, formatter or GitHub preview.
+        <ul>
+          <li>We ship its grammar; the language server already colours spell.</li>
+          <li>
+            Agents and programmers fall into HTML habits (<code>&lt;ui-button&gt;</code>, <code>&lt;/view&gt;</code>,
+            <code>on-click=</code>): each is accepted as an alias, and <code>spell lint --fix</code> rewrites it in the
+            friendly form, so a habit never fails.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <b>Where the packs are named.</b> Owen said package.json5; today a project's settings are its
+        <a
+          href="../../../spell-app/spaces/@spell/examples/Solitaire/__project.json5"
+          target="src-spell-app-spaces-spell-examples-solitaire-project-json5"
+          ><code title="spell-app/spaces/@spell/examples/Solitaire/__project.json5">__project.json5</code></a
+        >
+        (title, description, imports), so the pack list goes there (<code>packs: ["spell-ui"]</code>), or in the
+        package's json5 if that's the file meant.
+      </li>
+      <li>
+        <b>Programmers read the output:</b> <code>.spellx</code> to <code>.spell</code> to JSX and HTML, so the compiled
+        drawing says <code>&lt;ui-button&gt;</code>, and <code>.spell</code> stays the programmer's form.
+      </li>
+    </ul>
+    <h4 data-original-id="own-effects">What A does to the answers so far</h4>
+    <p>None of these items is changed here: Owen decides.</p>
+    <ui-table celled compact striped unstackable>
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Today</th>
+            <th>With A</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="#q25">Q25</a></td>
+            <td>closed tags named in the file's language</td>
+            <td>closed <b>words</b> in the file's language, no prefix</td>
+          </tr>
+          <tr>
+            <td><a href="#q36">Q36</a></td>
+            <td>Encanto is the Spanish tag prefix</td>
+            <td>Encanto stays Spell's Spanish name; no tag carries it</td>
+          </tr>
+          <tr>
+            <td><a href="#q37">Q37</a></td>
+            <td>which tags carry the prefix</td>
+            <td>moot</td>
+          </tr>
+          <tr>
+            <td><a href="#q39">Q39</a></td>
+            <td>bare quoted names</td>
+            <td>on every named tag: <code>&lt;view "boo"&gt;</code></td>
+          </tr>
+          <tr>
+            <td><a href="#q40">Q40</a></td>
+            <td><code>&lt;/&gt;</code> closes the nearest Spell tag</td>
+            <td><code>&lt;/&gt;</code> closes <b>any</b> innermost tag, markup too</td>
+          </tr>
+          <tr>
+            <td><a href="#q42">Q42</a></td>
+            <td><code>&lt;on-mouse-down&gt;</code></td>
+            <td><code>&lt;on mouse down&gt;</code>, with spaces; <code>&lt;al presionar el ratón&gt;</code></td>
+          </tr>
+          <tr>
+            <td><a href="#q14">Q14</a></td>
+            <td>spell lines decide what a drawing draws</td>
+            <td><code>&lt;if&gt;</code> tags, spell lines, or both: its own question, <a href="#q43">Q43</a></td>
+          </tr>
+          <tr>
+            <td><a href="#q15">Q15</a></td>
+            <td><code>&lt;spell-section name="front"/&gt;</code></td>
+            <td><code>&lt;section "front"/&gt;</code>: our word, not HTML's</td>
+          </tr>
+          <tr>
+            <td><a href="#q16">Q16</a></td>
+            <td>
+              <code>&lt;spell-thing&gt;</code>, <code>&lt;spell-view&gt;</code>,
+              <code>&lt;spell-page-template&gt;</code> ...
+            </td>
+            <td>
+              <code>&lt;thing&gt;</code>, <code>&lt;view&gt;</code>, <code>&lt;page template&gt;</code>?,
+              <code>&lt;app template&gt;</code>?, <code>&lt;page&gt;</code>, <code>&lt;app&gt;</code>. Care needed:
+              <code>&lt;page template "landing"&gt;</code> declares one;
+              <code>&lt;page "home" template="landing"&gt;</code> uses one. The runtime
+              <code>&lt;spell-viewer&gt;</code> rename is unaffected.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </ui-table>
+    <h4 data-original-id="own-choice">The choice</h4>
+    <div>
+      <p><b>Choices</b></p>
+      <div>
+        <p><b>A · Its own language, compiled to JSX and HTML (recommended)</b></p>
+        <ul>
+          <li>
+            <code>&lt;on mouse down&gt;…&lt;/&gt;</code>, <code>&lt;view "card"&gt;</code>, <code>&lt;button&gt;</code>
+          </li>
+          <li>
+            Gains: reads like plain words in every language; no prefixes; a closed vocabulary our parser enforces.
+          </li>
+          <li>
+            Costs: a name lookup, reserved words, our own grammar and tools; every guardrail above, and HTML habits
+            accepted and rewritten.
+          </li>
+        </ul>
+      </div>
+      <div>
+        <p><b>B · Halfway: no prefixes, but no spaces and real markup names</b></p>
+        <ul>
+          <li>
+            <code>&lt;on-mouse-down&gt;…&lt;/&gt;</code>, <code>&lt;if test={…}&gt;</code>,
+            <code>&lt;ui-button&gt;</code>
+          </li>
+          <li>Gains: HTML-ish highlighters and tokenizers half-work; no name lookup.</li>
+          <li>Costs: hyphens and <code>{…}</code> where a novice expects words; markup names stay English.</li>
+        </ul>
+      </div>
+      <div>
+        <p><b>C · Keep o1's prefixed shape</b></p>
+        <ul>
+          <li><code>&lt;spell-property name="suit"&gt;</code>, <code>&lt;encanto-propiedad nombre="palo"&gt;</code></li>
+          <li>
+            Gains: what's settled stands (<a href="#q25">Q25</a>, <a href="#q37">Q37</a>); plain HTML tools can read it.
+          </li>
+          <li>Costs: the longest form, prefixes in every language, and HTML's rope.</li>
+        </ul>
+      </div>
+    </div>
+    <epic-net-effect option="A" recommended>
+      <ul>
+        <li>
+          <code>.spellx</code> is Spell's own markup: plain words for tags, spell phrases in heads,
+          <code>&lt;/&gt;</code> to close
+        </li>
+        <li>
+          it still compiles <code>.spellx</code> to <code>.spell</code> to JSX and HTML; that first step gets simpler
+        </li>
+        <li>
+          bare markup names (<code>&lt;button&gt;</code>) resolve to this app's templates, then its packs, then HTML
+        </li>
+        <li>a closed set of words per language; HTML habits are accepted and rewritten by lint</li>
+        <li>
+          Q37 is moot; Q25, Q36, Q39, Q40, Q42, Q15 and Q16 read as the table above says; Q43 and Q44 settle the rest
+        </li>
+      </ul>
+    </epic-net-effect></epic-version
+  ></epic-original
+>
