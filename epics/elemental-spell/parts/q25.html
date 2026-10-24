@@ -1,0 +1,544 @@
+<!-- plan-doc part:  #q25's details in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question>
+  <p>
+    If a <code>.spellx</code> file isn't tags, what shape is it? Four shapes, the same playing card written in each, and
+    what each one does to the answers already given.
+  </p>
+</epic-question>
+<p>Owen, 2026-10-24, on <a href="#q15">Q15</a>:</p>
+<blockquote>
+  "I'm kinda leaning away from <code>.spellx</code> being HTML -- it's too much rope to hand an agent creating a spell,
+  and HTML tags can't be translatable. Let's dig into this now before making the plan."
+</blockquote>
+<ul>
+  <li>
+    <b>Rope:</b> everything an agent could write that looks right and isn't. HTML invites a whole language of habits:
+    <code>class=</code>, <code>style=</code>, a stray <code>&lt;div&gt;</code>, a property tag nested inside a drawing,
+    quotes and escapes inside attributes.
+  </li>
+  <li>
+    <b>Translatable:</b> a Spanish author writes <code>.es.spell</code> today, every word Spanish. A tag like
+    <code>&lt;spell-property one-of="..."&gt;</code> is English whatever the file's language.
+  </li>
+</ul>
+<p>The yardstick is the kickoff prompt's four goals, plus Owen's two worries:</p>
+<ol>
+  <li>a novice can read it</li>
+  <li>a notebook: prose and spell side by side, like Jupyter's or Observable's</li>
+  <li>each chunk gets its own editor (a property's is a <code>&lt;ui-property&gt;</code> form)</li>
+  <li>an agent can walk the chunks one by one, and find one by name</li>
+</ol>
+<p>
+  The cards below use <b>phrase</b> where round 1 said "alias" (Owen's comment on <a href="#q17">Q17</a>: "Let's use
+  phrase for this").
+</p>
+<h4 id="shape-score">The four shapes, side by side</h4>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>A · closed tags</th>
+        <th>B · markdown notebook</th>
+        <th>C · no second form</th>
+        <th>D · keyword blocks</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>A novice reads it</td>
+        <td>if they know HTML</td>
+        <td><b>yes:</b> it's a document with headings</td>
+        <td>yes, as sentences</td>
+        <td>yes</td>
+      </tr>
+      <tr>
+        <td>Notebook</td>
+        <td>yes: loose text is prose</td>
+        <td><b>yes:</b> it IS a markdown page; GitHub draws it</td>
+        <td>a view the editor draws</td>
+        <td>poor: prose only under <code>about:</code></td>
+      </tr>
+      <tr>
+        <td>Per-chunk editors</td>
+        <td>yes: attributes are fields</td>
+        <td>yes: <code>- key: value</code> lines are fields</td>
+        <td>partly: the editor rewrites a sentence</td>
+        <td>yes: keyword lines are fields</td>
+      </tr>
+      <tr>
+        <td>Agents walk the chunks</td>
+        <td>yes: by selector</td>
+        <td><b>yes:</b> by heading; markdown is what agents write best</td>
+        <td>through a <code>spell chunks</code> command</td>
+        <td>yes, but indentation must be exact</td>
+      </tr>
+      <tr>
+        <td>Translatable</td>
+        <td>partly: <code>&lt;spell-propiedad&gt;</code></td>
+        <td><b>yes:</b> <code>## propiedad: palo</code></td>
+        <td>yes: it's code spell</td>
+        <td>yes</td>
+      </tr>
+      <tr>
+        <td>Rope: what an agent gets wrong</td>
+        <td>HTML habits: <code>class=</code>, <code>&lt;div&gt;</code>, nesting, escaping</td>
+        <td>a misspelled kind or key (lint catches it)</td>
+        <td>all of Spell's grammar, as today</td>
+        <td>indentation; where prose goes</td>
+      </tr>
+      <tr>
+        <td>New work</td>
+        <td>a tag reader, per-language tag names</td>
+        <td>a heading-and-field reader on the markdown parser we have; per-language kind words</td>
+        <td>least: a notebook view and a chunks command</td>
+        <td>a new block grammar</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<h4 id="shape-a">A · closed tags, named in the file's language</h4>
+<ul>
+  <li>
+    The tags of round 1, but a CLOSED set: only Spell's tags and attributes, and <code>spell lint</code> rejects any
+    other.
+  </li>
+  <li>Their names come from the language's words file, as code spell's keywords do.</li>
+  <li>
+    Both worries are only half met: it still looks like HTML, so agents (and people) bring HTML habits, and lint has to
+    catch them after the fact.
+  </li>
+</ul>
+<epic-code title="Card.spellx -- A, English · 37 lines" language="html">
+  <pre>
+&lt;spell-view name="playing card" aka="card" template="two sided view"&gt;
+	A playing card has a suit and a rank.
+	It shows its front when it's face up, and its back when it's face down.
+
+	&lt;spell-property name="suit" one-of="clubs, diamonds, hearts, spades"
+		description="Which of the four suits it belongs to"
+		phrase="is a (suit)"
+	/&gt;
+	&lt;spell-property name="color" one-of="red, black"
+		phrase="is (color)"
+		phrase="is a (color) card"
+	&gt;
+		red if it is a diamond or it is a heart
+		black otherwise
+	&lt;/spell-property&gt;
+	&lt;spell-property name="rank" one-of="ace, 2 ... 10, jack, queen, king"
+		description="Ace is low:  ace = 1 ... king = 13"
+		phrase="is a (rank)"
+	/&gt;
+
+	&lt;spell-phrase name="is the (rank) of (suit)" /&gt;
+	&lt;spell-phrase name="is a face card"&gt;if its rank is jack, queen or king&lt;/spell-phrase&gt;
+	&lt;spell-phrase name="is a number card"&gt;if it is not a face card&lt;/spell-phrase&gt;
+
+	&lt;spell-action name="turn it over"&gt;
+		&lt;description&gt;Flips the card:  face up becomes face down, and back.&lt;/description&gt;
+		if it is face up
+			turn it face down
+		otherwise
+			turn it face up
+	&lt;/spell-action&gt;
+
+	&lt;spell-draw section="front"&gt;
+		&lt;ui-text color={its color}&gt;{its picture}&lt;/ui-text&gt;
+	&lt;/spell-draw&gt;
+	&lt;spell-draw section="back"&gt;
+		&lt;ui-image src="card-back.svg" /&gt;
+	&lt;/spell-draw&gt;
+&lt;/spell-view&gt;</pre></epic-code
+><epic-code title="Carta.es.spellx -- A, Spanish · 22 lines, shortened" language="html">
+  <pre>
+&lt;spell-vista nombre="carta de la baraja" alias="carta" plantilla="vista de dos caras"&gt;
+	Una carta tiene un palo y un rango.
+
+	&lt;spell-propiedad nombre="palo" uno-de="tréboles, diamantes, corazones, espadas"
+		descripción="A cuál de los cuatro palos pertenece"
+		frase="es un (palo)"
+	/&gt;
+	&lt;spell-propiedad nombre="color" uno-de="rojo, negro"
+		frase="es (color)"
+		frase="es una carta (color)"
+	&gt;
+		rojo si es un diamante o es un corazón
+		negro de lo contrario
+	&lt;/spell-propiedad&gt;
+
+	&lt;spell-frase nombre="es una figura"&gt;si su rango es jota, dama o rey&lt;/spell-frase&gt;
+
+	&lt;spell-acción nombre="voltearla"&gt;
+		si está boca arriba
+			voltearla boca abajo
+		de lo contrario
+			voltearla boca arriba
+	&lt;/spell-acción&gt;
+&lt;/spell-vista&gt;</pre>
+</epic-code>
+<h4 id="shape-b">B · a markdown notebook</h4>
+<p>The file is an ordinary markdown page. Spell reads three things in it:</p>
+<ul>
+  <li>
+    <b>A heading that starts with a kind</b> names a chunk: <code># view: playing card</code>,
+    <code>## property: suit</code>, <code>## phrase: is a face card</code>, <code>## action: turn it over</code>,
+    <code>## draw: front</code>.
+    <ul>
+      <li>A template is a <code>#</code> heading; its members are <code>##</code> headings under it.</li>
+      <li>Any other heading (<code>## Suits and ranks</code>) is a prose heading: a section title in the notebook.</li>
+    </ul>
+  </li>
+  <li>
+    <b>A list of <code>- key: value</code> lines</b>, right under the heading, holds the chunk's fields:
+    <code>- aka: card</code>, <code>- template: two sided view</code>,
+    <code>- one of: clubs, diamonds, hearts, spades</code>, <code>- phrase: is a (suit)</code> (a key may repeat).
+  </li>
+  <li>
+    <b>A <code>```spell</code> fence</b> holds the chunk's body: a property's value lines, an action's steps, a
+    drawing's markup. A field holds one value; anything that takes lines of spell goes in a fence.
+  </li>
+  <li>
+    Everything else is prose: the paragraphs right under a chunk's fields are its description; prose before the first
+    member is the template's.
+  </li>
+</ul>
+<epic-code title="Card.spellx -- B, English · 62 lines" language="markdown">
+  <pre>
+# view: playing card
+- aka: card
+- template: two sided view
+
+A playing card has a suit and a rank.
+It shows its front when it's face up, and its back when it's face down.
+
+## property: suit
+- one of: clubs, diamonds, hearts, spades
+- phrase: is a (suit)
+
+Which of the four suits it belongs to.
+
+## property: color
+- one of: red, black
+- phrase: is (color)
+- phrase: is a (color) card
+
+```spell
+red if it is a diamond or it is a heart
+black otherwise
+```
+
+## property: rank
+- one of: ace, 2 ... 10, jack, queen, king
+- phrase: is a (rank)
+
+Ace is low:  ace = 1 ... king = 13.
+
+## phrase: is the (rank) of (suit)
+
+## phrase: is a face card
+```spell
+if its rank is jack, queen or king
+```
+
+## phrase: is a number card
+```spell
+if it is not a face card
+```
+
+## action: turn it over
+Flips the card:  face up becomes face down, and back.
+
+```spell
+if it is face up
+	turn it face down
+otherwise
+	turn it face up
+```
+
+## draw: front
+```spell
+&lt;ui-text color={its color}&gt;{its picture}&lt;/ui-text&gt;
+```
+
+## draw: back
+```spell
+&lt;ui-image src="card-back.svg" /&gt;
+```</pre></epic-code
+><epic-code title="Carta.es.spellx -- B, Spanish · 30 lines, shortened" language="markdown">
+  <pre>
+# vista: carta de la baraja
+- alias: carta
+- plantilla: vista de dos caras
+
+Una carta tiene un palo y un rango.
+
+## propiedad: palo
+- uno de: tréboles, diamantes, corazones, espadas
+- frase: es un (palo)
+
+A cuál de los cuatro palos pertenece.
+
+## propiedad: color
+- uno de: rojo, negro
+- frase: es (color)
+- frase: es una carta (color)
+
+```spell
+rojo si es un diamante o es un corazón
+negro de lo contrario
+```
+
+## frase: es una figura
+```spell
+si su rango es jota, dama o rey
+```
+
+## acción: voltearla
+```spell
+si está boca arriba
+	voltearla boca abajo
+de lo contrario
+	voltearla boca arriba
+```</pre>
+</epic-code>
+<ul>
+  <li>
+    <b>Equal to code spell as before</b> (<a href="#q10">Q10</a>): each heading and its fields become one declaration
+    line, each fence is copied word for word under it, each paragraph becomes <code>//</code> lines.
+  </li>
+  <li>
+    <b>Little rope:</b> the only shapes are a heading, a <code>key: value</code> line and a fence. The kind words and
+    keys are a closed list per language; lint names a misspelled one and the words it expected.
+  </li>
+  <li>
+    The only markup left is what a drawing puts on the page (<code>&lt;ui-text&gt;</code>), inside its fence. Those tags
+    are English too; translating them is epic <epic-link epic="spellify-components"></epic-link>'s todo T2.
+  </li>
+  <li>
+    What it costs: the markdown parser we already have (Spell's <code>MD</code> package) finds the headings, lists and
+    fences, with their positions; the new part is reading a heading's kind and its fields, per language.
+  </li>
+  <li>
+    The catch: a kind word at the start of a heading is reserved. A prose heading "Property: a note" would be read as a
+    property; lint would say so.
+  </li>
+</ul>
+<h4 id="shape-c">C · no second form: the notebook is a view of code spell</h4>
+<ul>
+  <li>The file stays <code>.spell</code>, outline style. The editor draws it as a notebook:</li>
+  <li>
+    a <code>##</code> heading is a section title; <code>//</code> lines with a blank line after them are a prose cell;
+  </li>
+  <li>
+    each <code>- </code> member line, with its body, is a code cell; the <code>//</code> lines right above it are its
+    description.
+  </li>
+  <li>Agents get the chunks from a command: <code>spell chunks Card.spell --json</code>.</li>
+  <li>
+    Nothing to keep equal, so the least work. But the declarations stay sentences, not fields: a property's editor has
+    to rewrite <code>- its "suit" is one of ...</code>, and the shape isn't the one Owen typed (<a href="#q2">Q2</a>).
+  </li>
+</ul>
+<epic-code title="Card.spell, as the notebook draws it · 16 lines, shortened" language="spell">
+  <pre>
+// A playing card has a suit and a rank.                 &lt;- prose cell
+// It shows its front when it's face up, and its back when it's face down.
+
+a playing card aka card is a two sided view where:       &lt;- the template's cell
+	// Which of the four suits it belongs to                &lt;- the next cell's description
+	- its "suit" is one of clubs, diamonds, hearts, spades  &lt;- a property cell
+		- it "is a (suit)"
+	- its "color" is one of red, black:                     &lt;- a property cell
+		red if it is a diamond or it is a heart
+		black otherwise
+		- it "is (color)"
+
+	// Flips the card:  face up becomes face down, and back.
+	- to turn it over:                                      &lt;- an action cell
+		if it is face up
+			turn it face down
+		otherwise</pre></epic-code
+><epic-code title="spell chunks Card.spell --json · 6 lines, shortened" language="json5">
+  <pre>
+[
+  { kind: "view", name: "playing card", aka: "card", template: "two sided view", lines: "4-30" },
+  { kind: "property", name: "suit", oneOf: ["clubs", "diamonds", "hearts", "spades"],
+    phrases: ["is a (suit)"], description: "Which of the four suits it belongs to", lines: "6-7" },
+  ...
+]</pre>
+</epic-code>
+<h4 id="shape-d">D · indented keyword blocks, no markdown</h4>
+<ul>
+  <li>Each chunk is a keyword line, its fields indented under it (like Pug, or Marko's concise syntax, or YAML).</li>
+  <li>Translatable and closed, like B. But prose has no home of its own: it goes under an <code>about:</code> key.</li>
+  <li>It renders as plain text everywhere; only our editor draws it as a notebook.</li>
+</ul>
+<epic-code title="Card.spellx -- D · 34 lines, shortened" language="text">
+  <pre>
+view playing card
+	aka card
+	template two sided view
+	about:
+		A playing card has a suit and a rank.
+		It shows its front when it's face up, and its back when it's face down.
+
+	property suit
+		one of clubs, diamonds, hearts, spades
+		phrase is a (suit)
+		about: Which of the four suits it belongs to
+	property color
+		one of red, black
+		phrase is (color)
+		phrase is a (color) card
+		value:
+			red if it is a diamond or it is a heart
+			black otherwise
+
+	phrase is a face card
+		if its rank is jack, queen or king
+
+	action turn it over
+		about: Flips the card:  face up becomes face down, and back.
+		do:
+			if it is face up
+				turn it face down
+			otherwise
+				turn it face up
+
+	draw front
+		&lt;ui-text color={its color}&gt;{its picture}&lt;/ui-text&gt;
+	draw back
+		&lt;ui-image src="card-back.svg" /&gt;</pre>
+</epic-code>
+<h4 id="shape-effects">What each shape does to the answers already given</h4>
+<p>
+  <a href="#q10">Q10</a> (<code>.spellx</code> is written into <code>.spell</code>, then compiled),
+  <a href="#q11">Q11</a> (exact one way, a fresh layout the other) and <a href="#q13">Q13</a> (a property's phrases
+  indented under it, in code spell) stand under every shape.
+</p>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Answer</th>
+        <th>A · closed tags</th>
+        <th>B · markdown notebook</th>
+        <th>C and D</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="#q12">Q12</a> descriptions</td>
+        <td>as picked: <code>description=</code> when short, a <code>&lt;description&gt;</code> child when long</td>
+        <td>the paragraphs right under a chunk's fields</td>
+        <td>C: <code>//</code> lines above (today's docstring); D: an <code>about:</code> key</td>
+      </tr>
+      <tr>
+        <td><a href="#q14">Q14</a> a drawing's body, and notes inside it</td>
+        <td>as picked, with <code>&lt;description&gt;</code> / <code>&lt;comment&gt;</code> blocks inside</td>
+        <td>
+          the fence holds it; notes inside are <code>//</code> lines, as in code spell; prose above the fence describes
+          it
+        </td>
+        <td><code>//</code> lines</td>
+      </tr>
+      <tr>
+        <td><a href="#q15">Q15</a> the parts a subclass draws</td>
+        <td>
+          <code>&lt;spell-draw section="front"&gt;</code>; the parent places it with
+          <code>&lt;spell-section name="front"/&gt;</code>
+        </td>
+        <td>
+          <code>## draw: front</code>; the parent places it with a spell line, <code>draw its front</code>, which
+          translates (<code>dibujar su frente</code>)
+        </td>
+        <td>C: <code>- to draw its front:</code>; D: <code>draw front</code></td>
+      </tr>
+      <tr>
+        <td><a href="#q16">Q16</a> Owen's kinds of template</td>
+        <td>
+          <code>&lt;spell-thing&gt;</code>, <code>&lt;spell-view&gt;</code>, <code>&lt;spell-page-template&gt;</code>,
+          <code>&lt;spell-app-template&gt;</code>, <code>&lt;spell-page&gt;</code>, <code>&lt;spell-app&gt;</code>
+        </td>
+        <td>
+          <code># thing:</code>, <code># view:</code>, <code># page template:</code>, <code># app template:</code>,
+          <code># page:</code>, <code># app:</code>; the parent in <code>- template: ...</code>
+        </td>
+        <td>C: today's <code>is a</code> sentences; D: the same words as B, without <code>#</code></td>
+      </tr>
+      <tr>
+        <td>Owen's test, on <a href="#q11">Q11</a></td>
+        <td><code>&lt;spell-test "card setup"&gt;</code></td>
+        <td><code>## test: card setup</code>, then a fence</td>
+        <td>C: <code>to test card setup:</code>; D: <code>test card setup</code></td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    In every shape, an instance is still made by its element in a drawing: <code>&lt;game-card&gt;</code>, as Owen wrote
+    on <a href="#q16">Q16</a>. And today's runtime <code>&lt;spell-app&gt;</code> still becomes
+    <code>&lt;spell-viewer&gt;</code>.
+  </li>
+</ul>
+<h4 id="shape-shape">The shape</h4>
+<epic-choices>
+  <epic-option letter="A" title="Closed tags, named in the file's language">
+    <ul>
+      <li>Closest to what Owen typed; round 1's answers stand as they are.</li>
+      <li>Cost: still HTML-shaped, so the rope is still there; lint catches it after the fact.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="A markdown notebook" recommended>
+    <ul>
+      <li>Meets both worries: three shapes only (heading, field, fence), every word from the file's language.</li>
+      <li>The notebook comes free: it IS a markdown page, readable on GitHub and in any editor.</li>
+      <li>Agents read and write markdown better than anything else, and split it by heading.</li>
+      <li>Cost: kind words are reserved at the start of a heading; per-language words for kinds and keys.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="C" title="No second form:  a notebook view of code spell">
+    <ul>
+      <li>Least work, nothing to keep equal.</li>
+      <li>Cost: declarations stay sentences, not fields; not the shape Owen asked for.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="D" title="Indented keyword blocks">
+    <ul>
+      <li>Fields as plain keyword lines, translatable.</li>
+      <li>Cost: prose has no natural home, and it's only a notebook in our own editor.</li>
+    </ul>
+  </epic-option>
+</epic-choices>
+<h4 id="shape-ext">The file's extension, if B</h4>
+<p>
+  Recommended: <code>.spell.md</code>, so GitHub, VS Code's preview and every markdown tool show it as a page with no
+  setup; the compiler knows it by its double extension, as it knows <code>.es.spell</code>.
+</p>
+<epic-choices>
+  <epic-option letter="A" title=".spell.md" recommended>
+    <ul>
+      <li>Every markdown tool renders it; the name says what it is.</li>
+      <li>Spanish: <code>Carta.es.spell.md</code>.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title=".spellx, as decided in Q9">
+    <ul>
+      <li>Short; but tools see an unknown file, and "spellx" was named for a flavour of JSX that B doesn't have.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect option="B" recommended>
+  <ul>
+    <li>elemental spell is a markdown page: <code># view: playing card</code>, <code>## property: suit</code>, ...</li>
+    <li>
+      fields are <code>- key: value</code> lines under a heading; bodies are <code>```spell</code> fences; the rest is
+      prose
+    </li>
+    <li>kind words and keys come from each language's words file, a closed list lint checks</li>
+    <li>files are <code>Card.spell.md</code> (Q9's <code>.spellx</code> changes, if Owen agrees)</li>
+    <li>still written into code spell, then compiled (Q10); the reader is built on the markdown parser we have</li>
+    <li>round 1's tag answers (Q12, Q14, Q15, Q16) carry over as the table above says</li>
+  </ul>
+</epic-net-effect>

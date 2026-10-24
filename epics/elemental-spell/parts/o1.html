@@ -1,2 +1,206 @@
 <!-- plan-doc part:  #o1's body in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>What goes where: the part that becomes the epic's guide in the last phase.</p>
+<p>
+  Elemental spell is a second way to write the same Spell program: each piece of a template (a property, a phrase, an
+  action, a drawing) wrapped in its own tag, with plain markdown between them.
+</p>
+<ul>
+  <li>Code spell, today's form, reads like an essay; it stays, in <code>.spell</code> files.</li>
+  <li>
+    Elemental spell is the same program cut into chunks, in <code>.spellx</code> files ("spellx" is our flavour of JSX;
+    <a href="#q9">Q9</a>).
+  </li>
+  <li>The two must be 100% equivalent, and switching between them must be instant.</li>
+</ul>
+
+<h4 id="o1-why">Why</h4>
+<ul>
+  <li>A novice who knows a little HTML can read it: each chunk says what it is in its tag.</li>
+  <li>
+    A notebook editor, like Jupyter's or Observable's, can show it:
+    <ul>
+      <li>the markdown between tags is a prose cell</li>
+      <li>each tag is a code cell</li>
+    </ul>
+  </li>
+  <li>
+    Each kind of chunk can get its own editor: a property's tag is a natural fit for a <code>&lt;ui-property&gt;</code>.
+  </li>
+  <li>An agent can walk the chunks one by one, and find one by a selector: <code>spell-property[name=color]</code>.</li>
+</ul>
+
+<h4 id="o1-card">The playing card, in both forms</h4>
+<p>Owen's card from the kickoff prompt, tidied a little.</p>
+<ul>
+  <li>
+    It has one drawing per side: its parent, the library's <a href="#q1">two sided view (Q1)</a>, draws the front when
+    it's face up and the back when it's face down.
+  </li>
+  <li>The prompt's card had "is a face card" twice; this has it once.</li>
+  <li>The prompt's <code>is the (rank) of (suits)</code> is <code>(suit)</code> here: a blank names a property.</li>
+  <li>The prompt's <code>alias="it is a (suit)"</code> drops its "it", like the other phrases.</li>
+</ul>
+<epic-code title="Card.spellx -- elemental spell · 43 lines" language="html">
+  <pre>
+&lt;spell-view name="playing card" aka="card" template="two sided view"&gt;
+	A playing card has a suit and a rank.
+	It shows its front when it's face up, and its back when it's face down.
+
+	&lt;spell-property name="suit" one-of="clubs, diamonds, hearts, spades"
+		description="Which of the four suits it belongs to"
+		alias="is a (suit)"
+	/&gt;
+	&lt;spell-property name="color" one-of="red, black"
+		alias="is (color)"
+		alias="is a (color) card"
+	&gt;
+		red if it is a diamond or it is a heart
+		black otherwise
+	&lt;/spell-property&gt;
+	&lt;spell-property name="rank" one-of="ace, 2 ... 10, jack, queen, king"
+		description="Ace is low:  ace = 1 ... king = 13"
+		alias="is a (rank)"
+	/&gt;
+
+	&lt;spell-alias name="is the (rank) of (suit)" /&gt;
+	&lt;spell-alias name="is a face card"&gt;
+		if its rank is jack, queen or king
+	&lt;/spell-alias&gt;
+	&lt;spell-alias name="is a number card"&gt;
+		if it is not a face card
+	&lt;/spell-alias&gt;
+
+	&lt;spell-action name="turn it over"&gt;
+		&lt;description&gt;Flips the card:  face up becomes face down, and back.&lt;/description&gt;
+		if it is face up
+			turn it face down
+		otherwise
+			turn it face up
+	&lt;/spell-action&gt;
+
+	&lt;spell-draw section="front"&gt;
+		&lt;ui-text color={its color}&gt;{its picture}&lt;/ui-text&gt;
+	&lt;/spell-draw&gt;
+	&lt;spell-draw section="back"&gt;
+		&lt;ui-image src="card-back.svg" /&gt;
+	&lt;/spell-draw&gt;
+&lt;/spell-view&gt;</pre>
+</epic-code>
+<epic-code title="Card.spell -- the code spell it equals · 30 lines" language="spell">
+  <pre>
+// A playing card has a suit and a rank.
+// It shows its front when it's face up, and its back when it's face down.
+a playing card aka card is a two sided view where:
+	// Which of the four suits it belongs to
+	- its "suit" is one of clubs, diamonds, hearts, spades
+		- it "is a (suit)"
+	- its "color" is one of red, black:
+		red if it is a diamond or it is a heart
+		black otherwise
+		- it "is (color)"
+		- it "is a (color) card"
+	// Ace is low:  ace = 1 ... king = 13
+	- its "rank" is one of ace, 2 ... 10, jack, queen, king
+		- it "is a (rank)"
+
+	- it "is the (rank) of (suit)"
+	- it "is a face card" if its rank is jack, queen or king
+	- it "is a number card" if it is not a face card
+
+	// Flips the card:  face up becomes face down, and back.
+	- to turn it over:
+		if it is face up
+			turn it face down
+		otherwise
+			turn it face up
+
+	- to draw its front:
+		&lt;ui-text color={its color}&gt;{its picture}&lt;/ui-text&gt;
+	- to draw its back:
+		&lt;ui-image src="card-back.svg" /&gt;</pre>
+</epic-code>
+<p>
+  <b>Only the declaration lines change shape.</b>
+  Every body -- a property's value lines, an action's steps, a drawing's markup -- is the same code spell, word for
+  word, in both forms.
+</p>
+
+<h4 id="o1-map">Each tag, and the code spell line it stands for</h4>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Elemental spell</th>
+        <th>Code spell</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>&lt;spell-view name="playing card" aka="card" template="two sided view"&gt;</code></td>
+        <td><code>a playing card aka card is a two sided view where:</code></td>
+      </tr>
+      <tr>
+        <td><code>&lt;spell-property name="suit" one-of="clubs, ..."&gt;</code></td>
+        <td><code>- its "suit" is one of clubs, ...</code></td>
+      </tr>
+      <tr>
+        <td>its body: <code>red if ...</code>, <code>black otherwise</code></td>
+        <td>the same lines, indented under <code>is one of red, black:</code></td>
+      </tr>
+      <tr>
+        <td><code>alias="is a (suit)"</code> on a property</td>
+        <td><code>- it "is a (suit)"</code>, indented under the property</td>
+      </tr>
+      <tr>
+        <td><code>&lt;spell-alias name="is a face card"&gt;</code></td>
+        <td><code>- it "is a face card" if ...</code></td>
+      </tr>
+      <tr>
+        <td><code>&lt;spell-action name="turn it over"&gt;</code></td>
+        <td><code>- to turn it over:</code></td>
+      </tr>
+      <tr>
+        <td><code>&lt;spell-draw&gt;</code></td>
+        <td><code>- to draw it:</code></td>
+      </tr>
+      <tr>
+        <td><code>&lt;spell-draw section="front"&gt;</code></td>
+        <td><code>- to draw its front:</code></td>
+      </tr>
+      <tr>
+        <td><code>description="..."</code>, or a <code>&lt;description&gt;</code> child</td>
+        <td><code>//</code> lines right above the declaration (today's docstring)</td>
+      </tr>
+      <tr>
+        <td>markdown text between tags</td>
+        <td><code>//</code> lines, then a blank line</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+
+<h4 id="o1-new">What code spell has to grow</h4>
+<p>
+  Owen's call (<a href="#q2">Q2</a>): where the elemental form says something code spell can't, code spell grows. For
+  this card, five things:
+</p>
+<ol>
+  <li>
+    A property that has a list of choices AND works out its value: <code>- its "color" is one of red, black:</code> with
+    value lines under it.
+  </li>
+  <li>A property's own phrases, indented under it (today they're separate lines beside it).</li>
+  <li>
+    A drawing per side, <code>- to draw its front:</code> and <code>- to draw its back:</code>, for a two sided view.
+    Front and back drawings were taken out on 2026-10-22 (epic <epic-link epic="spanish"></epic-link>); they come back
+    only for views whose template is two sided (<a href="#q15">Q15</a>).
+  </li>
+  <li>
+    A drawing whose body is just markup lines, with no <code>return</code> and no quotes around
+    <code>"draw it"</code> (<a href="#q14">Q14</a>).
+  </li>
+  <li>The two sided view itself: a template in Spell's library.</li>
+</ol>
+<p>
+  Today's grammar already has the rest: <code>aka</code> on a multi-word name, <code>one of ... 2 ... 10 ...</code>,
+  phrases with blanks, <code>to turn it over:</code>.
+</p>

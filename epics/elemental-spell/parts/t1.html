@@ -1,0 +1,523 @@
+<!-- plan-doc part:  #t1's details in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>A phase of its own, later in the plan, for events: handlers are actions that take the thing and the event.</p>
+<ul>
+  <li>
+    Words and rules, settled:
+    <ul>
+      <li><a href="#q26">Q26</a> <code>target</code> and <code>the original target</code></li>
+      <li><a href="#q27">Q27</a> <code>cancel &lt;event&gt;</code> / <code>cancel event</code></li>
+      <li><a href="#q28">Q28</a> <code>send</code> returns a promise you can await</li>
+      <li><a href="#q29">Q29</a> an event nobody catches is dropped silently</li>
+      <li>
+        <a href="#q30">Q30</a> <code>on right click</code>, <code>on center click</code>, <code>context-menu</code>
+      </li>
+      <li><a href="#q31">Q31</a> <code>the meta key</code></li>
+      <li><a href="#q32">Q32</a> mouse buttons, <code>mouse still down</code>, enter / leave</li>
+      <li><a href="#q33">Q33</a> an action is a described command</li>
+      <li><a href="#q34">Q34</a> menus and toolbars built from actions</li>
+    </ul>
+  </li>
+  <li>Still open: <a href="#q35">Q35</a>, which action gets a shared key first.</li>
+  <li>For the phase: <a href="#t2">T2</a>, a table of every event.</li>
+  <li>
+    Also from before, in the Original Discussion below:
+    <ul>
+      <li><code>send</code> rather than <code>trigger</code></li>
+      <li><code>send closing</code> (can be cancelled) then <code>send closed</code></li>
+      <li>events swallowed unless passed on with <code>pass event</code></li>
+      <li>the keys and the mouse readable anywhere</li>
+      <li><code>sender</code>, and parameters as <code>with foo=... and bar=...</code></li>
+      <li>events declared on the view</li>
+    </ul>
+  </li>
+</ul>
+<epic-choices chosen="A">
+  <epic-option letter="A" title="the original target, beside target">
+    <ul>
+      <li>The thing the event first happened to: the card.</li>
+      <li><code>if the original target is a face card: turn the original target over</code></li>
+      <li>The DOM's split, <code>target</code> vs <code>currentTarget</code>, with friendlier names.</li>
+      <li>For a sent event it's whatever it was sent to, which isn't always the sender.</li>
+    </ul>
+  </epic-option>
+  <epic-option
+    letter="B"
+    title="No new word:  the thing under the mouse is a global, like the mouse button"
+    recommended
+  >
+    <ul>
+      <li>
+        For mouse and key events, <code>the clicked thing</code> / <code>the thing under the mouse</code> is readable
+        anywhere, as <code>the mouse button</code> is.
+      </li>
+      <li><code>if the clicked thing is a face card: turn the clicked thing over</code></li>
+      <li>For a sent event, <code>sender</code> already says who started it.</li>
+      <li>
+        So a handler knows <code>target</code> (where it runs), <code>sender</code> (who sent it) and the input globals,
+        and nothing else.
+      </li>
+    </ul>
+  </epic-option>
+  <epic-option letter="C" title="the path:  the things the event passed through">
+    <ul>
+      <li>A list, first to last: card, pile, game, app.</li>
+      <li><code>the first item of the path</code> is the card.</li>
+      <li>Complete, but a list where a name would do; hardly ever needed.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-reply from="Owen" at="2026-10-24 16:11" re="revisit now"
+  ><p>
+    FWIW: these should be additional questions, not a long discourse in a todo. `the clicked thing` -- I think `original
+    target` is sufficient for this and isn't click specific. Let me know if you still think we need something like `the
+    clicked thing`. Your open questions: 1. `cancel closing| event` 2. `send` returns a promise which you can await 3.
+    silently dropped. Would be nice to have a debug mode much much later to catch these / track event passing, but not
+    now. Also want `on right click` and `on center click` for e.g. showing context menus, and a `context-menu` prop on
+    elements to link to a context menu easily. In the phase where you're dealing with this event stuff, make a table
+    with the events.
+  </p></epic-reply
+><epic-original
+  ><epic-version
+    ><p>
+      Owen, 2026-10-24: "event handlers are just functions which take thing, event parameters -- add a phase to explore
+      this but don't stop for it now".
+    </p>
+    <div>
+      <p><b>More Details</b></p>
+      <h4>Ideas from Owen's action manager, for Spell's events and actions</h4>
+      <p>
+        Owen's action manager from another project already does much of what his event model asks for. These are its
+        ideas, in our words, for the events phase to start from.
+      </p>
+
+      <h4>1. The keys and the mouse, readable anywhere</h4>
+      <ul>
+        <li>This is his HyperCard point: any code can ask "is shift down?", not only an event handler.</li>
+        <li>
+          What's tracked:
+          <ul>
+            <li>the modifier keys: shift, option, control and command</li>
+            <li>"the platform key": command on a Mac, control everywhere else</li>
+            <li>whether the focus is in a text field</li>
+            <li>whether a modal is open</li>
+          </ul>
+        </li>
+        <li>How: every key press and mouse press is read early, before any handler sees it, and the state is kept.</li>
+        <li>
+          All of it is cleared when the window gains or loses focus, so a key let go in another window doesn't stay
+          "down".
+        </li>
+        <li>
+          It's mirrored as classes on the page's root element, so CSS can react: a copy cursor while option is held,
+          say.
+        </li>
+        <li>
+          The limit: ordinary keys can't be tracked reliably.
+          <ul>
+            <li>A Mac never reports a letter key being let go while command is held.</li>
+            <li>So only an opt-in list of extra keys is tracked, e.g. space for panning.</li>
+          </ul>
+        </li>
+        <li>
+          Spell words this suggests:
+          <epic-code title="spell · input state as words" language="spell">
+            <pre>
+if the shift key is down:
+	add the card to the selection
+if the platform key is down ...      // command on a Mac, control elsewhere
+if the mouse button is down ...
+if the focus is in a text field ...</pre>
+          </epic-code>
+        </li>
+      </ul>
+
+      <h4>2. An action is a described command, not just a function</h4>
+      <ul>
+        <li>
+          Besides its steps, an action carries:
+          <ul>
+            <li>
+              a stable id, from its name. It never changes when the title is reworded, because tours and analytics key
+              off it.
+            </li>
+            <li>a title, defaulted from the id</li>
+            <li>an icon</li>
+            <li>a tooltip, in markdown</li>
+            <li>"enabled when": may it run right now?</li>
+            <li>"selected when": does it show a checkmark?</li>
+            <li>
+              its keyboard shortcuts, listed per operating system with a fallback. Every key it accepts is listed, e.g.
+              the number pad's twin of a number key.
+            </li>
+            <li>the key caps, worked out once for display: ⌘S on a Mac, Ctrl+S elsewhere</li>
+            <li>
+              two switches, both off by default: does it still work while typing in a text field? While a modal is open?
+            </li>
+          </ul>
+        </li>
+        <li>
+          What that could mean for <code>&lt;spell-action&gt;</code> (the tag spelling follows whatever shape Q25
+          picks):
+          <epic-code title="Card.spellx · a described action (sketch)" language="html">
+            <pre>
+&lt;spell-action name="turn it over" icon="rotate" shortcut="Space"
+              enabled-when="it is in a pile" selected-when="it is face up"&gt;
+	&lt;description&gt;Turns the card face up, or face down.&lt;/description&gt;
+	if it is face up:
+		turn it face down
+	otherwise:
+		turn it face up
+&lt;/spell-action&gt;</pre>
+          </epic-code>
+          <ul>
+            <li>The description doubles as the tooltip.</li>
+            <li>The name is the stable id; a <code>title=</code> only when the menu should read differently.</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h4>3. One definition, many places</h4>
+      <ul>
+        <li>The same action drives a menu item, a button, a key shortcut and a hint.</li>
+        <li>A menu is just a list of actions, with separators between groups.</li>
+        <li>
+          So the title, icon, enabled state and checkmark are written once, and every place shows them the same way.
+        </li>
+      </ul>
+
+      <h4>4. Actions switch in and out with their view</h4>
+      <ul>
+        <li>A view switches its set of actions in when it appears, and out when it goes.</li>
+        <li>
+          The key bindings are rebuilt from every set in play, batched, so a burst of views appearing rebuilds them
+          once.
+        </li>
+      </ul>
+
+      <h4>5. Several actions on one key: the first enabled one wins</h4>
+      <ul>
+        <li>The newest set is asked first.</li>
+        <li>The first ENABLED action runs, and CONSUMES the key: nothing after it sees it.</li>
+        <li>A disabled action lets the key fall through to the next one.</li>
+        <li>
+          That is his "events are swallowed unless passed" rule, already proven in practice. In Spell,
+          <code>pass</code> is the fall-through.
+        </li>
+      </ul>
+
+      <h4>6. One choke point for running anything</h4>
+      <ul>
+        <li>Every way of running an action (a key, a click, a menu, a hint) goes through one "run it" step.</li>
+        <li>That step answers: it ran, it was disabled, or it failed.</li>
+        <li>
+          Observers hear "the person did X", and whether it was by key or by click:
+          <ul>
+            <li>guided tours advance on it</li>
+            <li>analytics count it</li>
+          </ul>
+        </li>
+        <li>A failing observer never breaks the action. A failing "enabled when" counts as disabled.</li>
+        <li>A tour can claim a key to block it for one step, or hand it back by being disabled.</li>
+      </ul>
+
+      <h4>7. Modals</h4>
+      <ul>
+        <li>A modal claims the focus while it's open, and most shortcuts sleep until it closes.</li>
+        <li>A stack of modals (one opening over another) was a known to-do there.</li>
+      </ul>
+
+      <h4>What this suggests for Spell</h4>
+      <ul>
+        <li>
+          <code>send</code> runs through one choke point, so <code>when the person does ...</code> observers, guided
+          tours and undo all hook in there.
+        </li>
+        <li>
+          Events and actions share one rule: enabled runs and consumes; disabled, or <code>pass</code>, falls through.
+        </li>
+        <li>
+          The input state is a set of properties of the app, readable anywhere: <code>the shift key</code>,
+          <code>the mouse button</code>, <code>the focus is in a text field</code>.
+        </li>
+        <li>
+          An action's description, icon, shortcut and "enabled when" are part of declaring it, so a menu, a button and a
+          shortcut all come from the one <code>&lt;spell-action&gt;</code>.
+        </li>
+      </ul>
+
+      <epic-net-effect>
+        <ul>
+          <li>The events phase starts from these seven ideas, not from a blank page.</li>
+          <li>Nothing changes now: T1 stays a todo for its own phase.</li>
+        </ul>
+      </epic-net-effect>
+    </div>
+    <div>
+      <p><b>Owen · 2026-10-24 15:19 · re: revisit soon</b></p>
+      <p>
+        `&lt;on-mouse-down&gt;...spell...&lt;/on-mouse-down&gt;` or `&lt;when-mouse-is-down&gt;` should be how we
+        capture events in spellx. A short attribute form `&lt;game-card on-mouse-down={turn it over}...&gt;` is a
+        shorthand for this. Rather than `trigger mouse down`, we should use `send`. E.g. when a dialog is closing, it
+        does - `send closing` (which something could cancel, including itself) then - `send closed` (not cancellable)
+        that would be caught by `on-closing` and `on-closed` `send &lt;message&gt; to &lt;target&gt;` should work as
+        well. The current JS paradigm is that you can only figure out the state of the option key, which mouse button is
+        down, etc during a particular event. Hypercard had it that `the button` etc were globally accessible properties,
+        e.g. you can access them outside of an event handler. I want to do events this way. I'm going to present some
+        code for an `ActionManager` I wrote for another project, digest that (without saving it in our repo) to see what
+        I mean. So we will not be dependent on a JS `event` to carry this browser state data. If an event handler is
+        asynchronous, and you need to capture the initial state of the mouse button, you must capture that state
+        manually before awaiting the asynchronous bit. Also, unlike JS, events are swallowed when an event handler
+        catches them, and must be explicitly be bubbled with `pass &lt;event name&gt;` or simply `pass event` to skip
+        having to type the event name. Inside an event handler: Target, Source and parameters: - The `target` is the
+        current element the event handler is defined in. At the root level this would be the app. e.g. `&lt;game-card
+        on-mouse-down={some_function_defined_on_game}&gt;` - `target` inside some_function... is the card - We may also
+        need an `original target`, digest the above and present some options. - The `sender` is the object that
+        originally called "send" for the event. Event handlers can have parameterized arguments as well. So with: `send
+        some-message with foo=&lt;thing1&gt; and bar=&lt;thing2&gt;` in the event handler which catches it, `foo` and
+        `bar` refer to the thing1 and thing2. If it makes things simpler to define event handers on the views, I'm good
+        with that and it helps with documentation, maybe: &lt;spell-view name="card"&gt; &lt;event name="card flipped"
+        side="direction" /&gt; &lt;/spell-view&gt;
+      </p>
+    </div>
+    <div>
+      <p>
+        <b
+          >Claude · 2026-10-24 15:40 · re: on-mouse-down blocks, send / pass, the mouse and keys readable anywhere,
+          target / sender, parameters</b
+        >
+      </p>
+      <epic-aside title="Owen's note, in full">
+        <p>
+          "<code>&lt;on-mouse-down&gt;...spell...&lt;/on-mouse-down&gt;</code> or
+          <code>&lt;when-mouse-is-down&gt;</code> should be how we capture events in spellx. A short attribute form
+          <code>&lt;game-card on-mouse-down={turn it over}...&gt;</code> is a shorthand for this.
+        </p>
+        <p>
+          Rather than <code>trigger mouse down</code>, we should use <code>send</code>. E.g. when a dialog is closing,
+          it does <code>send closing</code> (which something could cancel, including itself) then
+          <code>send closed</code> (not cancellable), that would be caught by <code>on-closing</code> and
+          <code>on-closed</code>. <code>send &lt;message&gt; to &lt;target&gt;</code> should work as well.
+        </p>
+        <p>
+          The current JS paradigm is that you can only figure out the state of the option key, which mouse button is
+          down, etc during a particular event. Hypercard had it that <code>the button</code> etc were globally
+          accessible properties, e.g. you can access them outside of an event handler. I want to do events this way.
+        </p>
+        <p>
+          I'm going to present some code for an <code>ActionManager</code> I wrote for another project, digest that
+          (without saving it in our repo) to see what I mean. So we will not be dependent on a JS <code>event</code> to
+          carry this browser state data.
+        </p>
+        <p>
+          If an event handler is asynchronous, and you need to capture the initial state of the mouse button, you must
+          capture that state manually before awaiting the asynchronous bit.
+        </p>
+        <p>
+          Also, unlike JS, events are swallowed when an event handler catches them, and must be explicitly be bubbled
+          with
+          <code>pass &lt;event name&gt;</code> or simply <code>pass event</code>.
+        </p>
+        <p>
+          Inside an event handler: the <code>target</code> is the current element the event handler is defined in. At
+          the root level this would be the app. E.g.
+          <code>&lt;game-card on-mouse-down={some_function_defined_on_game}&gt;</code>: <code>target</code> inside
+          some_function... is the card. We may also need an <code>original target</code>, digest the above and present
+          some options. The <code>sender</code> is the object that originally called "send" for the event.
+        </p>
+        <p>
+          Event handlers can have parameterized arguments as well. So with
+          <code>send some-message with foo=&lt;thing1&gt; and bar=&lt;thing2&gt;</code>, in the event handler which
+          catches it, <code>foo</code> and <code>bar</code> refer to the thing1 and thing2.
+        </p>
+        <p>
+          If it makes things simpler to define event handlers on the views, I'm good with that and it helps with
+          documentation, maybe
+          <code
+            >&lt;spell-view name="card"&gt; &lt;event name="card flipped" side="direction" /&gt;
+            &lt;/spell-view&gt;</code
+          >"
+        </p>
+      </epic-aside>
+
+      <p>Noted for the events phase. Your model, beside what Spell does today:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>What</th>
+            <th>Today</th>
+            <th>Your way</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sending</td>
+            <td><code>trigger</code>, <code>fire</code> and <code>send</code> all mean the same</td>
+            <td><code>send</code> only; <code>send &lt;message&gt; to &lt;target&gt;</code> picks who hears it</td>
+          </tr>
+          <tr>
+            <td>Before / after pairs</td>
+            <td>none</td>
+            <td>
+              <code>send closing</code> (any handler may cancel it, the sender too), then
+              <code>send closed</code> (can't be cancelled); caught by <code>on-closing</code> / <code>on-closed</code>
+            </td>
+          </tr>
+          <tr>
+            <td>Catching, in .spellx</td>
+            <td><code>on card click with a card:</code>, and <code>on-click={...}</code> on a tag in a drawing</td>
+            <td>
+              a block, <code>&lt;on-mouse-down&gt;…&lt;/on-mouse-down&gt;</code> or
+              <code>&lt;when-mouse-is-down&gt;</code>; <code>on-mouse-down={turn it over}</code> on the tag is its short
+              form
+            </td>
+          </tr>
+          <tr>
+            <td>Who else hears it</td>
+            <td>every handler runs, then the event goes on up to the parent, always</td>
+            <td>
+              a handler that catches it SWALLOWS it; <code>pass mouse down</code> (or just <code>pass event</code>)
+              sends it on up
+            </td>
+          </tr>
+          <tr>
+            <td>Mouse and keys</td>
+            <td>only on the event the handler is handed</td>
+            <td>
+              readable anywhere, as HyperCard did: <code>the mouse button</code>, <code>the option key</code>,
+              <code>the mouse position</code>; no JS <code>event</code> carries them
+            </td>
+          </tr>
+          <tr>
+            <td>Async handlers</td>
+            <td>not addressed</td>
+            <td>
+              a handler that waits copies what it needs first (<code>the mouse button</code>), before its first
+              <code>await</code>
+            </td>
+          </tr>
+          <tr>
+            <td><code>target</code></td>
+            <td>the second argument of the JS callback</td>
+            <td>
+              the thing whose handler is running: the card, for <code>&lt;game-card on-mouse-down={…}&gt;</code>, even
+              when the handler is the game's; the app, at the root
+            </td>
+          </tr>
+          <tr>
+            <td><code>sender</code></td>
+            <td>none</td>
+            <td>whoever called <code>send</code></td>
+          </tr>
+          <tr>
+            <td>Parameters</td>
+            <td><code>fire event card click with card = it</code>, read as <code>on card click with a card</code></td>
+            <td>
+              <code>send some-message with foo=&lt;thing1&gt; and bar=&lt;thing2&gt;</code>; <code>foo</code> and
+              <code>bar</code> are names in the handler
+            </td>
+          </tr>
+          <tr>
+            <td>Declaring</td>
+            <td>none: an event exists when something fires it</td>
+            <td>on the view, so the docs list it: <code>&lt;event name="card flipped" side="direction" /&gt;</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>
+          The block and attribute spellings (<code>&lt;on-mouse-down&gt;</code>, <code>&lt;event&gt;</code>) follow
+          whatever shape .spellx takes: that's <a href="#q15">Q15</a>, being written up now.
+        </li>
+        <li>
+          Today's code:
+          <a
+            href="../../../spell-parser/src/spell/rules/events/events.en.ts"
+            target="src-spell-parser-src-spell-rules-events-events-en-ts"
+            ><code title="spell-parser/src/spell/rules/events/events.en.ts">the events rules</code></a
+          >,
+          <a href="../../../spell-parser/src/core/SpellEvent.ts" target="src-spell-parser-src-core-spellevent-ts"
+            ><code title="spell-parser/src/core/SpellEvent.ts">SpellEvent</code></a
+          >
+          (every handler runs, then <code>eventParent</code>'s), and
+          <a
+            href="../../../spell-parser/src/spell/rules/classes/DragHandler.ts"
+            target="src-spell-parser-src-spell-rules-classes-draghandler-ts"
+            ><code title="spell-parser/src/spell/rules/classes/DragHandler.ts">when a card is dropped on it</code></a
+          >, which is already an event caught on the view.
+        </li>
+      </ul>
+
+      <h4>The original target</h4>
+      <p>
+        The example for each option: a card sits in a pile, in the game. You press the mouse on the card. No handler on
+        the card catches it, so it reaches the pile's <code>on-mouse-down</code>. Inside that handler,
+        <code>target</code> is the pile. How does the pile's handler say "the card that was pressed"?
+      </p>
+      <div>
+        <p><b>Choices</b></p>
+        <div>
+          <p><b>A · the original target, beside target, chosen</b></p>
+          <ul>
+            <li>The thing the event first happened to: the card.</li>
+            <li><code>if the original target is a face card: turn the original target over</code></li>
+            <li>The DOM's split, <code>target</code> vs <code>currentTarget</code>, with friendlier names.</li>
+            <li>For a sent event it's whatever it was sent to, which isn't always the sender.</li>
+          </ul>
+        </div>
+        <div>
+          <p><b>B · No new word: the thing under the mouse is a global, like the mouse button (recommended)</b></p>
+          <ul>
+            <li>
+              For mouse and key events, <code>the clicked thing</code> / <code>the thing under the mouse</code> is
+              readable anywhere, as <code>the mouse button</code> is.
+            </li>
+            <li><code>if the clicked thing is a face card: turn the clicked thing over</code></li>
+            <li>For a sent event, <code>sender</code> already says who started it.</li>
+            <li>
+              So a handler knows <code>target</code> (where it runs), <code>sender</code> (who sent it) and the input
+              globals, and nothing else.
+            </li>
+          </ul>
+        </div>
+        <div>
+          <p><b>C · the path: the things the event passed through</b></p>
+          <ul>
+            <li>A list, first to last: card, pile, game, app.</li>
+            <li><code>the first item of the path</code> is the card.</li>
+            <li>Complete, but a list where a name would do; hardly ever needed.</li>
+          </ul>
+        </div>
+      </div>
+      <p>
+        Why B: it's your HyperCard model carried one step further. The mouse's state is already global, and what it's
+        over is part of that state. B also adds no third "target" word for a novice to tell apart.
+      </p>
+      <epic-net-effect option="B" recommended>
+        <ul>
+          <li>A handler has two names of its own: <code>target</code> and <code>sender</code>.</li>
+          <li>
+            Mouse and keyboard state, including the thing under the mouse, is read anywhere:
+            <code>the mouse button</code>, <code>the option key</code>, <code>the clicked thing</code>.
+          </li>
+          <li>Nothing needs <code>original target</code>. It can be added later if a case turns up.</li>
+        </ul>
+      </epic-net-effect>
+
+      <h4>What the note leaves open</h4>
+      <ol>
+        <li>
+          How a handler cancels <code>closing</code>: <code>cancel closing</code> / <code>cancel event</code>, or does
+          <code>send closing</code> give back yes / no (<code>if send closing is cancelled: stop</code>)?
+        </li>
+        <li>
+          Does <code>send</code> wait for a handler that awaits something? <code>closing</code> has to, if a handler may
+          ask "save first?" before it decides to cancel.
+        </li>
+        <li>An event nobody catches: silently dropped at the app, or noted in the console while you're developing?</li>
+      </ol>
+      <p>
+        Waiting on your <code>ActionManager</code> code: paste it when you're ready, and I'll digest it here, without
+        saving it in the repo.
+      </p>
+    </div></epic-version
+  ></epic-original
+>

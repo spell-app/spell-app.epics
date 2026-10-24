@@ -1,0 +1,123 @@
+<!-- plan-doc part:  #q13's details in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question>
+  <p>
+    A <code>&lt;spell-property&gt;</code> can carry its own phrases, <code>alias="is (color)"</code>, even several (<a
+      href="#q6"
+      >Q6</a
+    >). How does code spell write a property's own phrases, so the round trip knows which phrases fold back into their
+    property?
+  </p>
+</epic-question>
+<p>
+  A <b>phrase</b> (the tag calls it an alias) is a new way to say something about a card:
+  <code>it "is a (color) card"</code> lets a later line say "if the card is a red card". The <code>(color)</code> blank
+  stands for one of the property's choices.
+</p>
+<epic-code title="Card.spellx:  phrases on a property, and on their own · 12 lines" language="html">
+  <pre>
+&lt;spell-property name="color" one-of="red, black"
+	alias="is (color)"
+	alias="is a (color) card"
+&gt;
+	red if it is a diamond or it is a heart
+	black otherwise
+&lt;/spell-property&gt;
+
+&lt;spell-alias name="is the (rank) of (suit)" /&gt;      &lt;- two properties:  stands alone
+&lt;spell-alias name="is a face card"&gt;                  &lt;- has its own body:  stands alone
+	if its rank is jack, queen or king
+&lt;/spell-alias&gt;</pre>
+</epic-code>
+<ul>
+  <li>
+    A phrase whose only blank is one property's belongs with that property: it can be an <code>alias=</code> on its tag.
+  </li>
+  <li>
+    A phrase with its own body, or with blanks for two properties, stands alone as a <code>&lt;spell-alias&gt;</code>.
+  </li>
+  <li>Today, code spell writes every phrase as a line of its own, beside the property, with no tie between them.</li>
+</ul>
+<p>Three ways code spell could write the tie:</p>
+<epic-choices chosen="A">
+  <epic-option letter="A" title="Indented under the property" recommended>
+    <epic-code title="indented under it · 5 lines" language="spell">
+      <pre>
+- its "color" is one of red, black:
+	red if it is a diamond or it is a heart
+	black otherwise
+	- it "is (color)"
+	- it "is a (color) card"</pre>
+    </epic-code>
+    <ul>
+      <li>Reads as "and these are its phrases"; the writer knows exactly which fold into <code>alias=</code>.</li>
+      <li>Matches how a property's value lines already sit under it.</li>
+      <li>Cost: new grammar: a phrase line inside a property's body.</li>
+      <li>Cost: value lines and phrase lines share one body; the <code>- </code> bullet tells them apart.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="Lines right after the property">
+    <epic-code title="right after it · 5 lines" language="spell">
+      <pre>
+- its "color" is one of red, black:
+	red if it is a diamond or it is a heart
+	black otherwise
+- it "is (color)"
+- it "is a (color) card"</pre>
+    </epic-code>
+    <ul>
+      <li>No new grammar: today's code spell already reads it.</li>
+      <li>
+        Cost: the tie is a guess: a phrase about color right after the color property folds in, one elsewhere doesn't.
+        Moving a line changes the <code>.spellx</code>.
+      </li>
+    </ul>
+  </epic-option>
+  <epic-option letter="C" title="On the property's own line">
+    <epic-code title="on its line · 3 lines" language="spell">
+      <pre>
+- its "color" is one of red, black, aka "is (color)" or "is a (color) card":
+	red if it is a diamond or it is a heart
+	black otherwise</pre>
+    </epic-code>
+    <ul>
+      <li>One line per property, like the tag.</li>
+      <li>Cost: long lines, hard to read with two phrases; new grammar too.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>new code spell: <code>- it "..."</code> phrase lines inside a property's body, the property's own</li>
+    <li>
+      <code>.spell</code> → <code>.spellx</code>: those become <code>alias=</code> on its tag; every other phrase
+      becomes a <code>&lt;spell-alias&gt;</code>
+    </li>
+    <li>
+      a phrase line beside a property (today's way) stays a <code>&lt;spell-alias&gt;</code>: nothing in today's files
+      changes meaning
+    </li>
+  </ul>
+</epic-net-effect>
+<epic-answer title="Indented under the property"></epic-answer>
+<epic-reply from="Claude" at="2026-10-24 15:27" re="willing to consider phrase for this, not 100% sure yet">
+  <p>
+    Settled on Q17 (M9: "Let's use phrase for this"), recorded as <a href="#q22">Q22</a>. So this question's tags and
+    attribute are <code>&lt;spell-phrase&gt;</code> and <code>phrase=</code>.
+  </p>
+  <epic-code title="the color property, with phrases · 9 lines" language="html">
+    <pre>
+&lt;spell-property name="color" one-of="red, black"
+	phrase="is (color)"
+	phrase="is a (color) card"&gt;
+	red if it is a diamond or it is a heart
+	black otherwise
+&lt;/spell-property&gt;
+
+&lt;spell-phrase name="is a face card"&gt;
+	if its rank is jack, queen or king
+&lt;/spell-phrase&gt;</pre>
+  </epic-code>
+  <ul>
+    <li>It matches what the docs already say ("Phrases become rules") and the parser's messages.</li>
+    <li>Inside the parser, "alias" stays the grammar's own word, for a rule's other names.</li>
+  </ul>
+</epic-reply>

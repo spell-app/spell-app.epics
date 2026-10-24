@@ -1,0 +1,115 @@
+<!-- plan-doc part:  #q10's details in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question>
+  <p>
+    The two forms must say exactly the same program, always. Which of them does the compiler read, and how does the
+    other one get there?
+  </p>
+</epic-question>
+<p>
+  Owen, 2026-10-24: "it might make sense to have the compile path for elemental spell be: .spellx =&gt; .spell =&gt;
+  JS/TS/etc". That is option A below, now the recommended one.
+</p>
+<ul>
+  <li>
+    Either way, only the declaration lines differ between the forms; every body is the same code spell (<a href="#o1"
+      >1.1</a
+    >).
+  </li>
+  <li>
+    The other direction, <code>.spell</code> to <code>.spellx</code>, is rare (<a href="#q19">Q19</a>): a one-off
+    conversion, the same in A and B. It goes over the Match tree rule by rule and writes each declaration as its tag, as
+    the Spanish translator writes each line in Spanish (<a href="#o2">1.2</a>).
+  </li>
+</ul>
+<h4>A: a .spellx file is written into code spell, then compiled as today</h4>
+<p>
+  A small <code>.spellx</code> reader finds the tags and their raw bodies, and writes the <code>.spell</code> text, in
+  memory.
+</p>
+<epic-code title="Card.spellx · 6 lines" language="html">
+  <pre>
+ 1  &lt;spell-view name="playing card" aka="card" template="two sided view"&gt;
+ 2  	&lt;spell-property name="color" one-of="red, black" alias="is (color)"&gt;
+ 3  		red if it is a diamond or it is a heart
+ 4  		black otherwise
+ 5  	&lt;/spell-property&gt;
+ 6  &lt;/spell-view&gt;</pre></epic-code
+><epic-code title="the .spell text it becomes, in memory · 8 lines" language="spell">
+  <pre>
+ 1  a playing card aka card is a two sided view where:     &lt;- written from line 1's tag
+ 2  	- its "color" is one of red, black:                  &lt;- written from line 2's tag
+ 3  		red if it is a diamond or it is a heart          &lt;- line 3, copied
+ 4  		black otherwise                                  &lt;- line 4, copied
+ 5  		- it "is (color)"                                &lt;- written from line 2's alias=
+
+the position map:  .spell line 3 = .spellx line 3, same column
+                   .spell line 5 = .spellx line 2, the alias="..." attribute</pre>
+</epic-code>
+<ul>
+  <li>Bodies are copied word for word, so the position map is just a shift in indent, line by line.</li>
+  <li>
+    Errors, hover and completion land on the right <code>.spellx</code> line, as Vue and Svelte do for the code in their
+    blocks (<a href="#o3">1.3</a>).
+  </li>
+</ul>
+<epic-code title="an error, shown on the .spellx line · 2 lines" language="text">
+  <pre>
+Card.spellx, line 3:  "diamond" isn't a suit:  did you mean "diamonds"?
+	&lt;- the compiler found it on line 3 of the .spell text, the map sent it to line 3 of Card.spellx</pre>
+</epic-code>
+<h4>B: one parser reads both</h4>
+<ul>
+  <li>
+    Each declaration rule (template, property, phrase, action, drawing, event, css, markdown: about a dozen of the 472)
+    gets a tag form beside its English and Spanish ones.
+  </li>
+  <li>
+    A rewritten tokenizer (<a href="#q8">Q8</a>) reads a <code>&lt;spell-*&gt;</code> tag as a line with an indented
+    body, instead of one piece of markup.
+  </li>
+  <li>Positions are the file's own: no map.</li>
+</ul>
+<h4>C: a new chunk model in the middle</h4>
+<ul>
+  <li>A tree of chunks (template, property, phrase, action, drawing, prose), each holding its fields and raw body.</li>
+  <li>Both forms are read into it, and printed from it; the compiler reads it too, or it writes code spell.</li>
+</ul>
+<epic-choices chosen="A">
+  <epic-option letter="A" title=".spellx is written into .spell, then compiled" recommended>
+    <ul>
+      <li>Equal by construction: the compiler only ever sees code spell, so the two can't drift apart.</li>
+      <li>The compiler is untouched; the new code is a small reader plus a position map.</li>
+      <li>
+        Incremental parsing works as today, on the <code>.spell</code> text: an edit in one tag re-writes that tag's
+        lines.
+      </li>
+      <li>Cost: the language server maps every position through the map, both ways (Vue's and Svelte's precedent).</li>
+      <li>
+        A <code>.spellx</code> file may still hold a raw <code>&lt;spell&gt;</code> chunk: copied into the
+        <code>.spell</code> text as it is (<a href="#q11">Q11</a>).
+      </li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="One parser reads both">
+    <ul>
+      <li>Buys over A: no position map; errors and hover are on the file's own lines.</li>
+      <li>Cost: a dozen rules get a second syntax, and the tokenizer is rewritten for tags with bodies.</li>
+      <li>Cost: "the same program" is held up by tests (compiled output compared), not by construction.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="C" title="A chunk model both forms go through">
+    <ul>
+      <li>Buys over A: the notebook and the per-chunk editors get a tree of chunks to edit directly.</li>
+      <li>Cost: a third representation to keep true to the other two; most work of the three.</li>
+      <li>A already gives the editors their chunks: the <code>.spellx</code> tags themselves.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>new: a <code>.spellx</code> reader that writes <code>.spell</code> text and a position map</li>
+    <li>new: a one-off <code>.spell</code> to <code>.spellx</code> converter, rule by rule over the Match tree</li>
+    <li>the compiler and the output targets don't change</li>
+    <li>the language server learns to map positions for <code>.spellx</code> files</li>
+  </ul>
+</epic-net-effect>
+<epic-answer title=".spellx is written into .spell, then compiled"></epic-answer>

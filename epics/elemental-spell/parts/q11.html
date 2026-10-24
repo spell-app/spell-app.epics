@@ -1,0 +1,244 @@
+<!-- plan-doc part:  #q11's details in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question>
+  <p>
+    Switching between the forms: what must come back exactly, and what may be laid out afresh? And what happens to a
+    line that has no tag?
+  </p>
+</epic-question>
+<p>
+  Owen, 2026-10-24: ".spell =&gt; .spellx will be very rare. It would be OK if that lost formatting/etc." (<a
+    href="#q19"
+    >Q19</a
+  >). So the two directions are different jobs:
+</p>
+<ul>
+  <li>
+    <b>A <code>.spellx</code> file is the source.</b> Its <code>.spell</code> form is a view of it, made on demand, and
+    what the compiler reads (<a href="#q10">Q10</a>).
+  </li>
+  <li>
+    <b><code>.spellx</code> → <code>.spell</code> is exact.</b> Bodies are copied byte for byte; each tag's header is
+    written in its one code spell wording. A span map pairs the two texts, so edits made in the <code>.spell</code> view
+    map back.
+  </li>
+  <li>
+    <b><code>.spell</code> → <code>.spellx</code> is a one-off conversion.</b> It may lay the file out afresh: one
+    wording per declaration, its own spacing. It must give the same program, and a test checks that by compiling both.
+  </li>
+</ul>
+<h4>The span map</h4>
+<p>
+  Owen asked whether a code map, like a source map, could solve the back and forth. It carries the
+  <code>.spell</code> view: a <b>span map</b> pairs each piece of one text with the piece of the other that says the
+  same thing.
+</p>
+<ul>
+  <li>Each tag's header pairs with its declaration line.</li>
+  <li>Each body pairs with its body: the same bytes, its indent shifted.</li>
+</ul>
+<p>For the color property:</p>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>.spellx span</th>
+        <th>.spell span</th>
+        <th>When it changes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>&lt;spell-property name="color" one-of="red, black"</code></td>
+        <td><code>- its "color" is one of red, black:</code></td>
+        <td>rewritten when edited</td>
+      </tr>
+      <tr>
+        <td><code>alias="is (color)"</code></td>
+        <td><code>- it "is (color)"</code></td>
+        <td>rewritten when edited</td>
+      </tr>
+      <tr>
+        <td><code>alias="is a (color) card"</code></td>
+        <td><code>- it "is a (color) card"</code></td>
+        <td>rewritten when edited</td>
+      </tr>
+      <tr>
+        <td><code>red if it is a diamond or it is a heart</code></td>
+        <td>the same</td>
+        <td>copied: same bytes</td>
+      </tr>
+      <tr>
+        <td><code>black otherwise</code></td>
+        <td>the same</td>
+        <td>copied: same bytes</td>
+      </tr>
+    </tbody>
+  </table> </ui-table
+><epic-code title="editing in the .spell view of a .spellx file · 9 lines" language="text">
+  <pre>
+Owen has Card.spellx open, and switches to its .spell view.
+
+He edits a body line in the .spell view:
+	black otherwise   -&gt;   blue otherwise
+	the same span in Card.spellx changes;  nothing else is rewritten
+
+He edits a declaration line in the .spell view:
+	- its "color" is one of red, black:   -&gt;   - its "color" is one of red, black, blue:
+	that tag's header in Card.spellx is rewritten:  one-of="red, black, blue"</pre>
+</epic-code>
+<ul>
+  <li>
+    A map alone can't write the other form: the reader writes the <code>.spell</code> text once, and the map follows
+    each edit after.
+  </li>
+  <li>
+    With the map:
+    <ul>
+      <li>the cursor and the selection stay where they were when Owen switches forms</li>
+      <li>an edit inside a body goes into the same span of the other text, with nothing rewritten</li>
+      <li>only an edited header is rewritten, the way recast reprints only what changed (<a href="#o3">1.3</a>)</li>
+      <li>errors, hover and completion land on the right line</li>
+    </ul>
+  </li>
+  <li>Whether the compiled JavaScript gets a source map too is its own question (<a href="#q18">Q18</a>).</li>
+</ul>
+<h4>Lines with no tag</h4>
+<p>
+  Some code spell has no tag form: a sentence-style declaration (<code>cards have a value as a number</code>), a
+  top-level test. The conversion puts it in a raw <code>&lt;spell&gt;</code> chunk, word for word, as MakeCode keeps
+  code it has no block for (<a href="#o3">1.3</a>).
+</p>
+<epic-code title="Card.spell · 6 lines" language="spell">
+  <pre>
+a card is a two sided view where:
+	- its "suit" is one of clubs, diamonds, hearts, spades
+cards have a value as a number          // sentence style:  no tag form
+
+to test card setup:                      // a top-level test:  no tag form
+	expect the first card to be face down</pre></epic-code
+><epic-code title="Card.spellx:  the untagged lines in spell chunks · 11 lines" language="html">
+  <pre>
+&lt;spell-view name="card" template="two sided view"&gt;
+	&lt;spell-property name="suit" one-of="clubs, diamonds, hearts, spades" /&gt;
+	&lt;spell&gt;
+		cards have a value as a number          // sentence style:  no tag form
+	&lt;/spell&gt;
+&lt;/spell-view&gt;
+
+&lt;spell&gt;
+	to test card setup:                      // a top-level test:  no tag form
+		expect the first card to be face down
+&lt;/spell&gt;</pre></epic-code
+><epic-choices chosen="A">
+  <epic-option letter="A" title=".spellx is the source:  exact one way, a fresh layout the other" recommended>
+    <ul>
+      <li>
+        <code>.spellx</code> → <code>.spell</code>: exact, with a span map, so the <code>.spell</code> view can be read
+        and edited.
+      </li>
+      <li>
+        <code>.spell</code> → <code>.spellx</code>: once per file, laid out afresh; the same program, checked by
+        comparing the compiled output.
+      </li>
+      <li>Matches Owen's "very rare ... OK if that lost formatting".</li>
+      <li>
+        Cost: converting a <code>.spell</code> file may reword its declarations ("is either" comes back as "is one of").
+      </li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="The same bytes both ways">
+    <ul>
+      <li>Either file could be the source, and switching never changes a byte.</li>
+      <li>
+        Cost: every declaration needs exactly one wording, and sentence-style files come over as mostly raw chunks; more
+        work for a direction Owen says is rare.
+      </li>
+    </ul>
+  </epic-option>
+  <epic-option letter="C" title="No .spell view">
+    <ul>
+      <li>The <code>.spell</code> text is made only to compile; nobody reads or edits it.</li>
+      <li>Cost: Owen loses "switch back and forth instantly" for reading a <code>.spellx</code> file as code spell.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>
+      <code>.spellx</code> is the source; its <code>.spell</code> view is made on demand, with a span map kept up to
+      date as either is edited
+    </li>
+    <li>a one-off <code>.spell</code> → <code>.spellx</code> conversion, laid out afresh</li>
+    <li>new chunk: <code>&lt;spell&gt;</code>, for code spell with no tag form</li>
+    <li>new test: every example project converted, both forms compiled, the JavaScript compared</li>
+  </ul>
+</epic-net-effect>
+<epic-answer title=".spellx is the source:  exact one way, a fresh layout the other"></epic-answer>
+<epic-reply
+  from="Claude"
+  at="2026-10-24 15:25"
+  re="sentence declaration MUST map to a property, same as if it was in outline mode"
+>
+  <p>Agreed: recorded as <a href="#q20">Q20</a>. Both wordings come over as the same property chunk.</p>
+  <epic-code title="two wordings, one chunk · 4 lines" language="spell">
+    <pre>
+cards have a suit as one of clubs, diamonds, hearts, spades        &lt;- sentence style
+- its "suit" is one of clubs, diamonds, hearts, spades             &lt;- outline style
+                    both become:
+&lt;spell-property name="suit" one-of="clubs, diamonds, hearts, spades" /&gt;</pre>
+  </epic-code>
+  <ul>
+    <li>
+      Why it works: the parser records the same pieces for both (the type, the property's name, its choices), and the
+      .spell to .spellx writer reads those pieces, not the words around them.
+    </li>
+    <li>
+      Since .spell to .spellx may lay a file out afresh (<a href="#q19">Q19</a>), the sentence-style wording isn't kept:
+      coming back, it's the outline line.
+    </li>
+    <li>So the raw <code>&lt;spell&gt;</code> chunk shrinks to what truly has no chunk of its own.</li>
+  </ul>
+  <epic-net-effect>
+    <ul>
+      <li>every declaration, in either wording, is a chunk; <code>&lt;spell&gt;</code> is rare</li>
+    </ul>
+  </epic-net-effect> </epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-24 15:25"
+  re='top-level test:  these are "special" view/app/page actions;  in Card.spellx, to test card setup is <spell-test "card setup">..</>'
+>
+  <p>Agreed: recorded as <a href="#q21">Q21</a>. A test is one more action of the template its file declares.</p>
+  <epic-code title="a test in both forms · 7 lines" language="html">
+    <pre>
+&lt;spell-test "card setup"&gt;                         Card.spellx
+	set the card to a new card with rank king, suit hearts
+	expect the card to be a face card
+&lt;/&gt;
+
+to test card setup:                                 Card.spell
+	set the card to ...</pre>
+  </epic-code>
+  <ul>
+    <li>
+      Two of our own conventions, both fine under <a href="#q4">Q4</a>:
+      <ul>
+        <li>a bare quoted string is the tag's name (no <code>name=</code>)</li>
+        <li><code>&lt;/&gt;</code> closes the nearest open tag</li>
+      </ul>
+    </li>
+    <li>
+      Worth deciding once for every tag, not just tests: if <code>&lt;spell-test "card setup"&gt;</code> is right,
+      <code>&lt;spell-action "turn it over"&gt;</code> and <code>&lt;spell-property "suit"&gt;</code> would be too.
+    </li>
+    <li>
+      The exact shape holds whatever form the follow-up to <a href="#q15">Q15</a> picks; in the markdown form it would
+      be a heading, <code>## test: card setup</code>.
+    </li>
+  </ul>
+  <epic-net-effect>
+    <ul>
+      <li>no top-level test needs a raw <code>&lt;spell&gt;</code> chunk</li>
+      <li>open: bare-string names on every tag, or just on tests</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>

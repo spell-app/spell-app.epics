@@ -1,0 +1,170 @@
+<!-- plan-doc part:  #o2's body in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  What today's parser already gives a two-way conversion, and what it doesn't. From the survey of the language at the
+  start of this epic.
+</p>
+
+<h4 id="o2-match">The parse keeps every word: the Match tree</h4>
+<p>
+  Parsing a file builds a tree of <b>matches</b>, one per line and one per piece of a line. It is faithful to the
+  source: nothing the author wrote is dropped.
+</p>
+<epic-code title="What a match keeps · 11 lines" language="text">
+  <pre>
+- its "color" is:                         &lt;- rule define_property_has, its outline form
+    red if its suit is diamonds or hearts &lt;- rule value_if
+    black otherwise                       &lt;- rule value_otherwise
+
+Each line's match keeps:
+  rule        which wording matched (outline or sentence, "is one of" or "is either")
+  tokens      every word, each with the spaces after it
+  start, end  where it is in the file
+  comments    their own matches:  the "//", the gap before it, the text
+  blank lines their own matches
+  the "- "    kept as a token of the line</pre>
+</epic-code>
+<ul>
+  <li>
+    The class:
+    <a href="../../../spell-parser/src/parser/Match.ts" target="src-spell-parser-src-parser-match-ts"
+      ><code title="spell-parser/src/parser/Match.ts">Match</code></a
+    >.
+  </li>
+  <li>
+    One catch: a body's line breaks aren't in a match's own text. The exact source comes from the file, by the match's
+    start and end.
+  </li>
+</ul>
+
+<h4 id="o2-ast">The AST does NOT keep the wording</h4>
+<p>
+  After the matches, the compiler builds an <b>AST</b>, a tree shaped like JavaScript: classes, getters, methods. It is
+  what every output target writes from.
+</p>
+<ul>
+  <li>It forgets which wording was used: outline or sentence, <code>is one of</code> or <code>is either</code>.</li>
+  <li>It moves a type's members into its class, even from another file.</li>
+  <li>Every AST node links back to its match, so the words are still reachable from it.</li>
+  <li>
+    So the kickoff's "elemental spell =&gt; AST =&gt; code spell" has to mean the Match tree (or a chunk model built
+    from it), not today's AST. Writing from the AST would lose the author's words.
+  </li>
+  <li>
+    The class:
+    <a href="../../../spell-parser/src/parser/ast/AST.ts" target="src-spell-parser-src-parser-ast-ast-ts"
+      ><code title="spell-parser/src/parser/ast/AST.ts">ASTNode</code></a
+    >, 84 node classes.
+  </li>
+</ul>
+
+<h4 id="o2-writer">Nothing writes Spell back out yet, except the Spanish translator</h4>
+<ul>
+  <li>No pretty-printer, no "Spell writer". The formatter changes only spaces and tabs.</li>
+  <li>
+    The
+    <a
+      href="../../../spell-parser/src/spell/translate/Translator.ts"
+      target="src-spell-parser-src-spell-translate-translator-ts"
+      ><code title="spell-parser/src/spell/translate/Translator.ts">Translator</code></a
+    >
+    is the precedent: it writes each line again with the SAME rule's syntax in the other language, line for line, layout
+    kept.
+  </li>
+</ul>
+<epic-code title="What the translator does · 7 lines" language="text">
+  <pre>
+// What the Spanish translator does today, line by line (Translator.ts):
+// the same rule's syntax in the other language, its blanks filled from the match
+a card is a thing where:                     -&gt;  una carta es una cosa donde:
+	- its "rank" is one of ace, 2 ... 10      -&gt;  	- su "valor" es uno de as, 2 ... 10
+	- it "is a face card" if ...              -&gt;  	- "es una figura" si ...
+// indent, bullet and the gap before a comment are kept;
+// a line it can't write keeps its source, marked "// TODO: translate"</pre>
+</epic-code>
+<ul>
+  <li>
+    Code spell to elemental spell can be written the same way: each declaration line, rule by rule, as its tag (<a
+      href="#q10"
+      >Q10</a
+    >).
+  </li>
+</ul>
+
+<h4 id="o2-tokens">Tags in Spell today</h4>
+<ul>
+  <li>
+    The
+    <a
+      href="../../../spell-parser/src/parser/tokenizer/Tokenizer.ts"
+      target="src-spell-parser-src-parser-tokenizer-tokenizer-ts"
+      ><code title="spell-parser/src/parser/tokenizer/Tokenizer.ts">tokenizer</code></a
+    >
+    reads any <code>&lt;tag&gt;...&lt;/tag&gt;</code> as one piece of markup, even across lines.
+    <ul>
+      <li>
+        So today a <code>&lt;spell-view&gt;</code> wrapper would be swallowed as markup, and the spell inside it would
+        not be read as spell lines.
+      </li>
+      <li>Owen: rewriting it is fine (<a href="#q8">Q8</a>).</li>
+    </ul>
+  </li>
+  <li>
+    Only <code>&lt;css&gt;</code> and <code>&lt;markdown&gt;</code> keep their insides as raw text (the parser's
+    <a href="../../../spell-parser/src/spell/SpellParser.ts" target="src-spell-parser-src-spell-spellparser-ts"
+      ><code title="spell-parser/src/spell/SpellParser.ts">rawTextTags</code></a
+    >).
+  </li>
+  <li>
+    A <code>&lt;markdown&gt;</code> block inside a type is already its description (<a
+      href="../../../spell-parser/src/spell/rules/classes/MarkdownDescription.ts"
+      target="src-spell-parser-src-spell-rules-classes-markdowndescription-ts"
+      ><code title="spell-parser/src/spell/rules/classes/MarkdownDescription.ts">MarkdownDescription</code></a
+    >).
+  </li>
+  <li>
+    Named places in a drawing are <code>&lt;children name="header"/&gt;</code>, filled by a child written
+    <code>&lt;h3 in="header"&gt;</code>.
+  </li>
+  <li>
+    Spell's own tags already start with <code>spell-</code>: <code>&lt;spell-app&gt;</code> runs an app on a page, and a
+    <code>&lt;spell&gt;</code> block holds spell inside a page's markup.
+  </li>
+  <li>
+    The property editor's elements are <code>&lt;ui-property-editor&gt;</code>,
+    <code>&lt;ui-property-group&gt;</code> and <code>&lt;ui-property&gt;</code> (epic
+    <epic-link epic="property-editor"></epic-link>).
+  </li>
+</ul>
+
+<h4 id="o2-equal">Two forms that compile the same already exist</h4>
+<ul>
+  <li>
+    The outline style (<code>- its "rank" is ...</code>) and the sentence style (<code>cards have a rank ...</code>)
+    compile to identical JavaScript.
+  </li>
+  <li>
+    A test checks it, by comparing the compiled output, not the source (<a
+      href="../../../spell-parser/tests/spell/parserTests/outline.test.ts"
+      target="src-spell-parser-tests-spell-parsertests-outline-test-ts"
+      ><code title="spell-parser/tests/spell/parserTests/outline.test.ts">outline.test.ts</code></a
+    >).
+  </li>
+  <li>Hovering an outline line shows its sentence form, "Reads as".</li>
+</ul>
+
+<h4 id="o2-edit">How the editor and language server read a file</h4>
+<ul>
+  <li>
+    One
+    <a href="../../../spell-parser/src/spell/SpellFile.ts" target="src-spell-parser-src-spell-spellfile-ts"
+      ><code title="spell-parser/src/spell/SpellFile.ts">SpellFile</code></a
+    >
+    per file holds its matches, its AST and its compiled code.
+  </li>
+  <li>
+    An edit re-parses only the top-level item it touched: a whole outline type is one item. About 1-2 ms for a comment,
+    110 ms for all of Solitaire.
+  </li>
+  <li>The language server never parses again: hover, outline, completion and folding all read the matches.</li>
+  <li>The outline view knows types, properties, methods, functions, variables and events; phrases show as methods.</li>
+</ul>
