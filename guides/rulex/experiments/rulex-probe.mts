@@ -7,9 +7,9 @@
  * - NOTE: MUST be `.mts`:  a `.ts` script outside `src/` is compiled as CommonJS and trips the `$/parser`
  *   circular-import trap -- see agents/PAPERCUTS.md.
  */
-import { P } from "spell-lang/parser"
+import { P } from "spell-parser/parser"
 
-import "spell-lang/parser/rulex"
+import "spell-parser/parser/rulex"
 
 const rulex = P.Parser.rulexParser!
 

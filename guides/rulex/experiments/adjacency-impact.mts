@@ -11,9 +11,9 @@
  */
 import { readFileSync, readdirSync } from "node:fs"
 
-import { P } from "spell-lang/parser"
+import { P } from "spell-parser/parser"
 
-import "spell-lang/parser/rulex"
+import "spell-parser/parser/rulex"
 
 const rulex = P.Parser.rulexParser!
 const RULES = new URL("../../../spell/src/rules/", import.meta.url).pathname
