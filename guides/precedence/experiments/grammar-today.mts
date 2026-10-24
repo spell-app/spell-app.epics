@@ -7,7 +7,7 @@
  * - NOTE: MUST be `.mts`:  a `.ts` script outside `src/` is compiled as CommonJS and trips the `$/parser`
  *   circular-import trap (`Class extends value undefined`) -- see PAPERCUTS.md.
  */
-import { parseSpellProject, loadFixtureProject } from "spell-lang/spell/test"
+import { parseSpellProject, loadFixtureProject } from "spell-parser/spell/test"
 
 /**
  * Parse `lines` as one spell file, after `setup`, and print what they compiled to.
