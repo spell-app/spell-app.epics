@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prefs and Undo: analysis</title>
+    <meta name="description" content="Details:  Prefs and Undo:  analysis" />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page spell-details-page">
+    <ui-root>
+      <ui-components source="/_epic/pack/epics.pack.js"></ui-components>
+      <spell-site-header root="../../.."></spell-site-header>
+      <div class="spell-doc">
+        <main class="spell-doc-main">
+          <ui-breadcrumb class="spell-crumbs" size="small" aria-label="Breadcrumb">
+            <ui-breadcrumb-section href="../../../pages/index.html" target="src-packages-docs-index-html"
+              >Docs</ui-breadcrumb-section
+            >
+            <ui-breadcrumb-section active>Prefs and Undo: analysis</ui-breadcrumb-section>
+          </ui-breadcrumb>
+          <ui-sticky class="spell-h1"
+            ><header class="spell-page-head">
+              <h1>Prefs and Undo: analysis</h1>
+              <epic-send></epic-send></header
+          ></ui-sticky>
+          <p class="lede">
+            Four big choices that shape remembered preferences and undo in Spell apps. Nothing is built yet: your
+            answers shape the plan, whenever this epic is started.
+          </p>
+          <div class="spell-details-meta">
+            <epic-field label="Asked by" data-details-by
+              >session <code>elemental-spell</code>, writing down ideas from another project</epic-field
+            >
+            <epic-field label="Asked" data-details-asked>2026-10-24</epic-field>
+          </div>
+
+          <ui-message class="spell-where" state="info" header="Where we are">
+            <epic-field label="Epic"
+              ><code>prefs-and-undo</code> -- a FUTURE epic: preferences that last for each person, and undo / redo, for
+              Spell apps.</epic-field
+            >
+            <epic-field label="Just now"
+              >You showed the elemental-spell session a preference store and an undo stack you built in another project,
+              and asked for their ideas to be kept, without their code. The ideas are in the epic page's
+              Overview.</epic-field
+            >
+            <epic-field label="This decides"
+              >how much Spell does for an app by itself: where its preferences are kept, and whether undo needs any code
+              at all.</epic-field
+            >
+          </ui-message>
+
+          <ui-section id="context" label="1. Context" sticky collapsible dividing>
+            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+            <h4>The problem</h4>
+            <ul>
+              <li>
+                A Spell app forgets everything on reload: a person's theme, a panel's size, the last thing they opened.
+              </li>
+              <li>A Spell app has no undo. A person who drags the wrong card has to put it back by hand.</li>
+            </ul>
+            <h4>What exists today</h4>
+            <ul>
+              <li>Spell's runtime keeps nothing between visits, and records no undo.</li>
+              <li>
+                Spell UI has a few one-off stores, each for one job:
+                <ul>
+                  <li>
+                    <code title="spell-ui/src/components/ui-nag/DismissalStore.ts">DismissalStore</code>: a nag
+                    remembers it was dismissed
+                  </li>
+                  <li>
+                    <code title="spell-ui/src/components/ui-theme-editor/SavedTheme.ts">SavedTheme</code>: the theme a
+                    viewer made and chose to use
+                  </li>
+                  <li>the docs site's theme and navigation preferences</li>
+                </ul>
+              </li>
+              <li>Each guards its own storage access and picks its own keys.</li>
+            </ul>
+            <h4>The shape proposed</h4>
+            <p>A property marked remembered, and undo that records itself (the epic page's Overview, 1.3, has more):</p>
+            <epic-code title="A card game with a remembered theme and undo · 9 lines" language="text">
+              <pre>
+a "solitaire" is an app where:
+	- its remembered "theme" is one of light or dark  // kept for each person, across visits
+	- to deal the cards, undone as "Deal":               // ONE undo step, however many cards move
+		...
+
+a "card" is a view where:
+	- to turn it over, undone as "Turn Card":
+		...
+// Edit &gt; Undo Turn Card   (⌘Z)   -- every app has undo and redo, with live titles</pre>
+            </epic-code>
+            <h4>What goes away</h4>
+            <ul>
+              <li>Spell UI's one-off stores could move onto the one preference store, each keeping its own keys.</li>
+            </ul>
+            <h4>The catch</h4>
+            <ul>
+              <li>
+                Undo that records itself has to know where one step ends. Dragging a card changes its pile, its position
+                and its direction: that should undo as ONE step.
+              </li>
+              <li>A preference kept on the server needs a signed-in person, and Spell apps have no sign-in today.</li>
+              <li>The browser's storage can be missing, blocked or full: every read and write has to survive that.</li>
+            </ul>
+            <h4>Rough size</h4>
+            <p>
+              About 1-2 days for both, once the words are settled: most of it is wiring into actions and properties.
+            </p>
+            <epic-text-box for="context"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="q1" label="Q1 · Where preferences live" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>Where does a remembered property keep its value, unless the app says otherwise?</p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="In the browser;  the app may move them to the server" recommended>
+                  <p>
+                    Works today with no sign-in. An app with signed-in people names a server store, and nothing else in
+                    it changes.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>One namespace per app, so apps on one site never share keys (the Overview, 1.1).</li>
+                      <li>
+                        A value too big for the browser's quick storage goes to its database, which has to be waited on.
+                      </li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="B" title="On the server, for each person, always">
+                  <p>Follows a person to any device, but needs sign-in before any app can remember anything.</p>
+                </epic-option>
+                <epic-option letter="C" title="No default:  every app picks">
+                  <p>Nothing hidden, but every app has to say it before its first remembered property works.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q2" label="Q2 · Automatic undo, or asked for" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Does every property change record its own undo, or only the actions that ask for it?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Every change, folded;  an action names the step" recommended>
+                  <p>
+                    Undo works with no code. Changes made inside an action are one step under the action's name; typing
+                    into one field is one step.
+                  </p>
+                  <epic-aside title="Details">
+                    <ul>
+                      <li>A change outside any action is named after its property: "Change Title".</li>
+                      <li>A change can opt out: a selection, a hover, a scroll position.</li>
+                    </ul>
+                  </epic-aside>
+                </epic-option>
+                <epic-option letter="B" title="Only actions marked undoable">
+                  <p>Nothing is recorded by surprise, but an app has no undo until each action is marked.</p>
+                </epic-option>
+                <epic-option letter="C" title="By hand only:  the app records each step">
+                  <p>Full control, and the most code: what the other project did, before Spell's reactive things.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q3" label="Q3 · Where undo lives" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>Is there one undo history for the whole app, or one per document or view?</p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="One per app, cleared when its document changes" recommended>
+                  <p>What a person expects from ⌘Z in most apps. Simplest to build and to explain.</p>
+                </epic-option>
+                <epic-option letter="B" title="One per document">
+                  <p>Each open document keeps its own history. Needed once an app holds several documents at once.</p>
+                </epic-option>
+                <epic-option letter="C" title="One per view">
+                  <p>
+                    Each editor on the page has its own, like text fields in a browser. ⌘Z then depends on what's
+                    focused.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q4" label="Q4 · When it's built" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Does this wait for epic elemental-spell to settle its words (Template, Action) and its event model?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Wait:  plan it after elemental-spell" recommended>
+                  <p>
+                    The syntax (<code>remembered</code>, <code>undone as</code>) and the place undo is recorded both
+                    come from elemental-spell's actions and events.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Build the runtime now, the wording later">
+                  <p>
+                    The preference store and the undo stack don't depend on words: they could land in the runtime first,
+                    and Spell UI's one-off stores move onto them.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <epic-text-box type="notes"></epic-text-box>
+          <!-- no footer:  the notes are the page's bottom;  the date is up top ("Asked") -->
+        </main>
+      </div>
+    </ui-root>
+    <script src="/_epic/assets/highlight.min.js"></script>
+    <script src="/_epic/assets/spell-ui.js"></script>
+  </body>
+</html>

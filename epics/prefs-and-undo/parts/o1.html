@@ -1,0 +1,48 @@
+<!-- plan-doc part:  #o1's body in prefs-and-undo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  A preference is something a person sets once and expects the app to remember: a theme, a panel's width, the last
+  folder they opened. These are the ideas Owen proved in another project, written so they can be rebuilt here.
+</p>
+
+<h4 id="o1-one-way">One way to remember, several places to keep it</h4>
+<p>The app always asks the same way. Where the value lives is the store's business:</p>
+<ul>
+  <li>the browser's lasting storage: per site, it survives a reload</li>
+  <li>the browser's per-tab storage: gone when the tab closes</li>
+  <li>a larger database in the browser, for big values: it has to be waited on</li>
+  <li>a stand-in on the server that lasts for one request, so the same code runs when a page is drawn on the server</li>
+</ul>
+
+<h4 id="o1-namespace">Every key belongs to its app</h4>
+<ul>
+  <li>Each store is made for one app, and every key it writes is prefixed with that app's name.</li>
+  <li>So two apps on one site never share a pool, and "forget everything" wipes only the app's own keys.</li>
+  <li>
+    A lesson learned the hard way: once, the app's name got lost by mistake. Every app shared one pool, and one app's
+    "forget everything" wiped another app's preferences.
+  </li>
+</ul>
+
+<h4 id="o1-values">Values, defaults and forgetting</h4>
+<ul>
+  <li>Values go through a serializer that keeps dates and other rich values, not plain JSON.</li>
+  <li>Reading takes a default, returned when nothing was saved.</li>
+  <li>Saving "nothing" forgets the key.</li>
+</ul>
+
+<h4 id="o1-sync-async">A quick way and a waiting way</h4>
+<ul>
+  <li>Every store can check, read and save quickly (no waiting), and also in a way that's waited on.</li>
+  <li>
+    The waited-on way adds a read-modify-write: "give me the value, I'll hand back the new one", done as one step.
+  </li>
+  <li>Each store says whether it has to be waited on.</li>
+  <li>The browser database does: it refuses a quick read, with a message saying to use the waited-on one.</li>
+  <li>A quick save to it still works, but fire-and-forget: a failure is logged, never thrown.</li>
+</ul>
+
+<h4 id="o1-prefixes">Keys as folders</h4>
+<ul>
+  <li>Keys with a shared prefix act like a folder, e.g. every key starting <code>layout/</code>.</li>
+  <li>The store can list the keys under a prefix, forget a prefix, or forget all of the app's keys.</li>
+</ul>
