@@ -1,0 +1,48 @@
+<!-- plan-doc part:  #o5's body in prefs-and-undo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Five building phases, about 10-14 hours: one pref store, the one-off stores moved onto it, an undo stack, then both
+  wired into the runtime. The spell syntax (<code>remembered</code>,
+  <code>undone as "Turn Card"</code>) waits for elemental-spell.
+</p>
+<ol>
+  <li>
+    <b>Pref Store</b>: ONE store in the kit's generic util, with nothing to import, so Spell UI can use it.
+    <ul>
+      <li>Three places to keep values: lasting (per site), per tab, and in memory.</li>
+      <li>In memory is for servers and tests, and the fallback when the browser blocks storage.</li>
+      <li>Read with a default, save, forget; the keys under a prefix, forget a prefix, forget all.</li>
+      <li>A waited-on form of each, and "read, change, save" as one step.</li>
+      <li>It never throws on a storage failure: it logs it.</li>
+      <li>The editor moves onto it; the two old stores go.</li>
+    </ul>
+  </li>
+  <li><b>Stores Move Over</b>: the one-off stores in the table above, keys byte for byte the same.</li>
+  <li>
+    <b>Undo Stack</b>: the stack in the kit's generic util, reactive, so a menu shows "Undo Change Margin" by itself.
+    <ul>
+      <li>Records, two stacks, folding a run of the same change into one step, a limit, clearing.</li>
+    </ul>
+  </li>
+  <li>
+    <b>Undo in the Runtime</b>: one history per app, cleared on a new run and when the app opens a document.
+    <ul>
+      <li>An action marked undoable records ONE step, under its name, whatever it changes.</li>
+      <li>Every app has undo and redo, with live titles, and ⌘Z / ⇧⌘Z while focus is in it.</li>
+    </ul>
+  </li>
+  <li>
+    <b>Remembered Properties</b>: a property declared remembered reads and saves through the app's pref store, under its
+    project's id.
+  </li>
+  <li><b>Doc Review</b>.</li>
+</ol>
+<epic-code title="The undo stack, as code would use it · 7 lines" language="ts">
+  <pre>
+const history = new UndoStack({ limit: 100 })
+history.record({ title: "Change Margin", target: box, undo: () =&gt; (box.margin = 4), redo: () =&gt; (box.margin = 8) })
+history.undoTitle   // "Undo Change Margin"
+history.undo()      // box.margin is 4 again
+history.redoTitle   // "Redo Change Margin"
+// In the runtime, a marked action records its own step:
+static { this.declareAction("turnOver", { undoneAs: "Turn Card" }) }</pre>
+</epic-code>

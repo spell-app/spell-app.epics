@@ -1,0 +1,217 @@
+<!-- plan-doc part:  #o4's body in prefs-and-undo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Two pref stores already sit in the kit, a dozen one-off ones are spread around the repos, and there is no undo
+  anywhere. A running Spell app has no name, and no one place that every action goes through.
+</p>
+
+<h4 id="o4-prefs">Preferences</h4>
+<ul>
+  <li>
+    The kit has two pref stores, both in Spell's own corner of its util folder, which Spell UI may not import:
+    <ul>
+      <li>
+        <a href="../../../src/util/spell/prefs.ts" target="src-src-util-spell-prefs-ts"
+          ><code title="src/util/spell/prefs.ts">getPref()</code></a
+        >
+        /
+        <a href="../../../src/util/spell/prefs.ts" target="src-src-util-spell-prefs-ts"
+          ><code title="src/util/spell/prefs.ts">setPref()</code></a
+        >, with one prefix for the whole page: the editor app uses them.
+      </li>
+      <li>
+        They break importing ALL of Spell's util when the browser blocks storage: the file reads storage as it loads,
+        outside any guard.
+      </li>
+      <li>
+        <a href="../../../src/util/spell/AppPrefStore.ts" target="src-src-util-spell-appprefstore-ts"
+          ><code title="src/util/spell/AppPrefStore.ts">AppPrefStore</code></a
+        >, a class with a prefix per app: nothing uses it.
+      </li>
+      <li>Neither has a test.</li>
+    </ul>
+  </li>
+  <li>The one-off stores each pick their own keys and guard their own storage:</li>
+</ul>
+<ui-table celled compact striped unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Where</th>
+        <th>What it keeps</th>
+        <th>In this epic</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <a href="../../../src/server/site/SiteHeader.ts" target="src-src-server-site-siteheader-ts"
+            ><code title="src/server/site/SiteHeader.ts">SiteHeader</code></a
+          >
+          (the kit)
+        </td>
+        <td>light or dark, edit mode</td>
+        <td>moves</td>
+      </tr>
+      <tr>
+        <td>
+          Spell UI's
+          <a
+            href="../../../spell-ui/src/docs-components/ThemePreference.ts"
+            target="src-spell-ui-src-docs-components-themepreference-ts"
+            ><code title="spell-ui/src/docs-components/ThemePreference.ts">ThemePreference</code></a
+          >
+        </td>
+        <td>the docs site's theme</td>
+        <td>moves; its head script stays</td>
+      </tr>
+      <tr>
+        <td>
+          Spell UI's
+          <a
+            href="../../../spell-ui/src/docs-components/ui-docs-nav/NavPreferences.ts"
+            target="src-spell-ui-src-docs-components-ui-docs-nav-navpreferences-ts"
+            ><code title="spell-ui/src/docs-components/ui-docs-nav/NavPreferences.ts">NavPreferences</code></a
+          >
+        </td>
+        <td>favourites, open topics, closed groups</td>
+        <td>moves</td>
+      </tr>
+      <tr>
+        <td>
+          Spell UI's
+          <a
+            href="../../../spell-ui/src/components/ui-theme-editor/SavedTheme.ts"
+            target="src-spell-ui-src-components-ui-theme-editor-savedtheme-ts"
+            ><code title="spell-ui/src/components/ui-theme-editor/SavedTheme.ts">SavedTheme</code></a
+          >
+        </td>
+        <td>a theme a viewer made</td>
+        <td>moves</td>
+      </tr>
+      <tr>
+        <td>Spell UI's site sections</td>
+        <td>which sections are open</td>
+        <td>moves</td>
+      </tr>
+      <tr>
+        <td>
+          Spell UI's
+          <a
+            href="../../../spell-ui/src/components/ui-nag/DismissalStore.ts"
+            target="src-spell-ui-src-components-ui-nag-dismissalstore-ts"
+            ><code title="spell-ui/src/components/ui-nag/DismissalStore.ts">DismissalStore</code></a
+          >
+        </td>
+        <td>that a nag was dismissed</td>
+        <td>stays: its keys are the page author's, Fomantic's way, with a cookie mode</td>
+      </tr>
+      <tr>
+        <td>the editor's mode, tabs and panel sizes</td>
+        <td>through <code>getPref()</code></td>
+        <td>moves</td>
+      </tr>
+      <tr>
+        <td>the editor's type explorer</td>
+        <td>what's open in it</td>
+        <td>moves</td>
+      </tr>
+      <tr>
+        <td>the editor's static files</td>
+        <td>whole files</td>
+        <td>moves (big values: <a href="#q8">Q8</a>)</td>
+      </tr>
+      <tr>
+        <td>the epic pages: their runtime, forms and lists</td>
+        <td>folds, drafts, filters, read marks</td>
+        <td><a href="#q5">Q5</a></td>
+      </tr>
+      <tr>
+        <td>the page server's live reload (the kit)</td>
+        <td>the scroll position, across a reload</td>
+        <td>stays: it's sent to the page as text, so it can't import anything</td>
+      </tr>
+      <tr>
+        <td>the head scripts in pages</td>
+        <td>light or dark, read before the page draws</td>
+        <td>stay: they run before any module loads</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    So the keys can't change: head scripts and plain scripts read them raw.
+    <ul>
+      <li>e.g. <code>spell-site:scheme</code> holds <code>dark</code>, not <code>"dark"</code>.</li>
+      <li>
+        The new store's name is everything before the key's first colon, so it writes the same bytes: the store
+        <code>spell-site</code> keeps <code>scheme</code> at <code>spell-site:scheme</code>.
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="o4-undo">Undo</h4>
+<ul>
+  <li>Nothing in the repos has undo.</li>
+  <li>
+    The runtime has a seed:
+    <a href="../../../spell-parser/src/core/core.ts" target="src-spell-parser-src-core-core-ts"
+      ><code title="spell-parser/src/core/core.ts">recordingSettings()</code></a
+    >
+    runs a function, notes each property's value before it changes, and hands back what puts them all back.
+    <ul>
+      <li>A <code>while</code> handler uses it, e.g. a card lit only while the mouse is over it.</li>
+      <li>It misses what's set after the function first waits, and a list's items (a card added to a pile).</li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="recordingSettings(), in the runtime's core.ts · 15 lines" language="ts">
+  <pre>
+export function recordingSettings(run: () =&gt; unknown): () =&gt; void {
+  const outer = recording
+  const changes: NonNullable&lt;typeof recording&gt; = []
+  recording = changes
+  try {
+    run()
+  } finally {
+    recording = outer
+  }
+  return () =&gt; {
+    for (const { target, property, was } of changes.reverse()) (target as Record&lt;string, unknown&gt;)[property] = was
+  }
+}</pre>
+</epic-code>
+
+<h4 id="o4-runtime">The runtime</h4>
+<ul>
+  <li>
+    A compiled app imports ONE library, <code>@spell/core</code>, which the editor's runner builds from the runtime
+    (spell-parser's <code>core</code>).
+  </li>
+  <li>
+    An app is a thing with a <code>start()</code>. At run time it has no name; the runner knows its project's id, e.g.
+    <code>@owen/solitaire</code>.
+  </li>
+  <li>
+    An action is a plain method call: <code>onClick: () =&gt; this.increment()</code>.
+    <ul>
+      <li>Nothing sits between a click and the action it runs.</li>
+      <li>
+        Epic <epic-link epic="elemental-spell"></epic-link>'s T1 plans that one place, where undo would hook in later.
+      </li>
+    </ul>
+  </li>
+  <li>Every property write goes through one place (<code>noteSetting()</code>); a list's items don't.</li>
+  <li>
+    A running app has no keyboard shortcuts.
+    <ul>
+      <li>Spell UI has a registry for them, <code>UI.keyboard</code>, with ⌘Z-style chords.</li>
+      <li>The runtime's view of the page's Spell UI doesn't include it yet.</li>
+    </ul>
+  </li>
+  <li>
+    Epic elemental-spell is still in design talk: no phases, no code. The words (Template, Action) and the syntax wait
+    for it (<a href="#q4">Q4</a>).
+  </li>
+</ul>

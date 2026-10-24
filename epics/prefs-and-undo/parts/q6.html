@@ -1,0 +1,46 @@
+<!-- plan-doc part:  #q6's details in prefs-and-undo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    When an undoable action waits partway (an animation, a fetch), which of its changes belong to its ONE undo step?
+  </p>
+  <ul>
+    <li>Spell actions can wait: Solitaire's "turn it over" waits for its flip, and dealing waits between cards.</li>
+    <li>The browser can't tell which waiting action a change came from, so the runtime has to pick a rule.</li>
+    <li>Today's <code>recordingSettings()</code> keeps only what's set before the first wait.</li>
+  </ul></epic-question
+><epic-code title="An action that waits, as compiled today · 5 lines" language="js">
+  <pre>
+async deal() {
+  for (const card of this.deck) {
+    await this.moveCard(card, this.tableau)   // waits for the card to slide
+  }
+}</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="Everything until the action finishes, waits included" recommended>
+    <ul>
+      <li>"Undo Deal" puts every card back.</li>
+      <li>
+        The cost: a change something ELSE makes while it waits (a timer, a second click) joins the same step. Rare in an
+        app one person uses.
+      </li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="Only up to the first wait">
+    <ul>
+      <li>The simplest: today's rule.</li>
+      <li>"Undo Deal" puts back only the first card.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="C" title="Each wait starts a new step">
+    <ul>
+      <li>Nothing joins by accident.</li>
+      <li>Dealing 28 cards is 28 undo steps.</li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>an undoable action records from its start until its promise settles</li>
+    <li>another undoable action started meanwhile joins the running one's step</li>
+    <li>a caveat records the cost</li>
+  </ul>
+</epic-net-effect>
