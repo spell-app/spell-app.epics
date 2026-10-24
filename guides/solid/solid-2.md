@@ -1,7 +1,7 @@
 # Solid 2 -- rules for agents
 
 Distilled from `solid-2.html` (the why) and `cheatsheet.html` (the API) in this folder.  Read this BEFORE writing
-or reviewing Solid code, JSX, `core` rendering, `spell-kit/util` reactivity (spell cells), or anything touching
+or reviewing Solid code, JSX, `core` rendering, `spell/util` reactivity (spell cells), or anything touching
 `@spell-app/ui`.
 
 ## Status
@@ -73,10 +73,10 @@ count() // 1
 ## Spell's decisions
 
 - Spell state is NOT Solid signals:  spell needs read-after-write, Solid 2 can't give it (measured, `solid-2.html` §2).
-- **Spell cells** -- BUILT (P11), ONE reactive engine for spell and (later) Spell UI:  `spell-kit/util/reactive`
+- **Spell cells** -- BUILT (P11), ONE reactive engine for spell and (later) Spell UI:  `spell/util/reactive`
   (`src/util/reactive/`:  `cells.ts`, `Cell`, `Derived`, `Reaction`, `Schema`, `extend.ts`, `bridges.ts`,
   `decorators.ts`;  moved from `src/util/spell/` by `output-targets` P10, Q20).  `Observable` and `@thing`
-  stay in `spell-kit/util/spell`.  Prototypes kept in `solid/experiments/` (`spell-cells.core.ts`, `spell-cells.ts`,
+  stay in `spell/util/spell`.  Prototypes kept in `solid/experiments/` (`spell-cells.core.ts`, `spell-cells.ts`,
   `decorators.ts`), pinned by `util`'s `reactive/cells.test.ts` and `app`'s `cellsBridge.browser.test.tsx`:
   - no lodash and no Solid in it (a test pins it), so any package can import it, file by file
   - Spell UI still keeps its own reactive members (`Reactive.ts`):  moving them onto spell cells has four costs to
@@ -84,7 +84,7 @@ count() // 1
   - each instance keeps its values in a `Map` record, the ONLY truth, read and written synchronously
   - a small synchronous core tracks deps and memoizes derived values
   - one `enableExternalSource` bridge makes Solid computations re-run when cells change:  `bridgeSolid()` in
-    `spell-kit/util`, INSTALLED BY THE HOST (`app`'s `src/solid/cellsBridge.ts`, imported by the editor, the runner,
+    `spell/util`, INSTALLED BY THE HOST (`app`'s `src/solid/cellsBridge.ts`, imported by the editor, the runner,
     `<spell-app>`, `<spell-editor>` and `tracked()`) -- `util` / `core` never import Solid, so `spell-runtime.js` holds
     none
   - ONE cells context per page, on `globalThis` (`Symbol.for("@spell-app/cells")`):  the app's `$/util` and every
@@ -128,9 +128,9 @@ count() // 1
   `SpellConsole`;  open to `SP.*`;  `ts/solid`'s `.compiled.tsx`, which is built before it runs).  Compiled
   JAVASCRIPT can't use them (`blob:` URL, no transpile):  it writes the lowered form, `getProp` / `setProp` pairs and
   `declareProp()`, so both spellings MUST build the same runtime shape.  `Thing` / `List` / `App` themselves keep
-  `getProp` / `setProp`.  All from `spell-kit/util/reactive` (`decorators.ts`), re-exported by `@spell/core`:
+  `getProp` / `setProp`.  All from `spell/util/reactive` (`decorators.ts`), re-exported by `@spell/core`:
   - `@prop({ type, default }) accessor x!: T` -- schema from decorator ARGS via `Symbol.metadata` (polyfilled in
-    `spell-kit/util`'s `Schema.ts`);  an initializer runs AFTER `create()`, so defaults go in the args (`default`, or
+    `spell/util`'s `Schema.ts`);  an initializer runs AFTER `create()`, so defaults go in the args (`default`, or
     `{ init: () => [] }` for objects).  BUILT;  used by the editor (`EditorStore`), `SpellConsole`, and compiled
     TypeScript (`@prop({ oneOf: RANKS }) accessor rank!: Rank`).
     SEE WWOD §13 › "State initializes LAZILY, in its getter, never in the constructor"
@@ -141,9 +141,9 @@ count() // 1
   - `@drawn draw()` -- the drawing in its own error boundary (`core`'s `drawing.ts`, not `util`'s:  it shares
     `core.drawThing()`'s boundary).  BUILT (P12)
   - `@thing` on the class -- runs `create()` after the most-derived class's field initializers.  BUILT:
-    `src/util/spell/spellDecorators.ts` (`import { thing } from "spell-kit/util"`);  `Thing` / `List` skip their own
+    `src/util/spell/spellDecorators.ts` (`import { thing } from "spell/util"`);  `Thing` / `List` skip their own
     `create()` call when a `@thing` class is in the chain (`runsCreate()`), so it runs exactly once, also for compiled
-    classes extending a `@thing` class.  Pinned:  `spell-lang/tests/core/classes/construction.test.ts`
+    classes extending a `@thing` class.  Pinned:  `spell-parser/tests/core/classes/construction.test.ts`
   - plain fields are NOT spell state:  not reactive, not keys, and clobbered by a base-constructor `create()` without
     `@thing`
   - decorated classes read / call / write as fast as hand-lowered accessors;  construction is ~6x slower (fine for
@@ -151,7 +151,7 @@ count() // 1
   - where a decorator goes on its line:  SEE WWOD §12 › "A decorator starts its line"
 - The editor store is a decorated class (`EditorStore` in `app`'s `editor.ts`, BUILT):  `editor.x = y` call sites
   didn't change.  Solid 2 has NO mutable store.
-- `core.flush()` / `flushCells()` (`spell-kit/util`) = run pending derived checks, then the host's Solid `flush()`.  BUILT.
+- `core.flush()` / `flushCells()` (`spell/util`) = run pending derived checks, then the host's Solid `flush()`.  BUILT.
   - spell state:  tests and imperative code call `core.flush()`, NEVER Solid's bare `flush()`, which skips the
     derived checks
   - plain Solid signals and stores:  Solid's `flush()`
@@ -278,7 +278,7 @@ draw() {
     - a CONDITIONAL prop (`layout={isWide() ? a : b}`):  the compiler makes it a memo on its first read,
       so reading it first inside an apply throws
     - the fixes:
-      - a detached root:  `E.Reactive.ownRoot(fn)`, from `spell-kit/element`.
+      - a detached root:  `E.Reactive.ownRoot(fn)`, from `spell/element`.
         It's `createRoot` under a module owner that's never disposed:  safe anywhere, and no context reaches in.
       - work that should live with the component:
         `const owner = getOwner()` in the body, then `runWithOwner(owner, () => ...)` in the apply
@@ -362,7 +362,7 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
     `on:`, `oncapture:`, `attr:`, `bool:`, `use:`, `classList`.  The message names the 2.0 replacement.
 - On a tag with a dash, Solid sets a plain prop with `setAttribute(name, value)`, the value as it is.
   - On OUR elements that's enough:  a function or object reaches the element as itself (`options={[...]}`),
-    through `spell-kit/element`'s `RichAttributes`;  text stays an attribute.
+    through `spell/element`'s `RichAttributes`;  text stays an attribute.
   - On anyone else's, the browser turns it into text:  rich data there is `prop:options={...}`.
   - a valueless `prop:active` is `prop:active={true}` (rc.17;  before, it was dropped)
 - Solid clones a dashed tag's template with `document.importNode()`:
@@ -378,7 +378,7 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
   - `onChange` is the native change event -- use `onInput` per keystroke
   - the event's name is the rest, LOWERCASED:  `onUIChange` listens for `uichange`, NOT `ui-change`
     - so on OUR elements (`ui-*`, `epic-*` ...), write the event's own name after `on-`:  `on-ui-change={f}`
-      - our elements take it in their own `setAttribute()` (`spell-kit/element`'s `RichAttributes`, epic `solid-17`)
+      - our elements take it in their own `setAttribute()` (`spell/element`'s `RichAttributes`, epic `solid-17`)
       - data the same way, a plain prop:  `options={[...]}` arrives as the array itself;  no `prop:`
       - Solid's dev build warns `LOWERCASE_EVENT_ATTRIBUTE` once per such name:  expected, harmless
     - any other element's hyphenated event:  a ref directive (below)
