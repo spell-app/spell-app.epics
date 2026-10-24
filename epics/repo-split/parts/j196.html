@@ -1,0 +1,36 @@
+<!-- plan-doc part:  #j196's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  <code>spell publish</code> builds all five packages the same way (<code>PackageBuild</code>, in the kit's
+  <a href="../../../src/cli/publish/" target="src-src-cli-publish"><code>src/cli/publish/</code></a
+  >):
+</p>
+<ul>
+  <li>
+    one <code>.js</code> per source file, at the same path under <code>dist/</code>, so every name the
+    <code>exports</code> give still finds its file; not a bundle, which would copy shared code (two
+    <code>DOMElement</code>s)
+  </li>
+  <li>
+    esbuild strips types and lowers standard decorators (<code>target: es2022</code>, as the toolchain's decorator
+    pre-pass does), names kept; Solid's JSX through Solid's own compiler (the one its Vite plugin runs); Ink's JSX in
+    spell-app's <a href="../../../spell-app/src/cli/" target="src-spell-app-src-cli"><code>cli/</code></a> as React's
+  </li>
+  <li>
+    imports rewritten so node runs them as written: own names and <code>./peer</code> become relative
+    <code>.js</code> paths; other packages' stay names (<code>lodash/get</code> gets its <code>.js</code>);
+    <code>x.css?inline</code>, <code>?raw</code> and <code>.json</code> become small modules;
+    <code>import.meta.glob()</code> becomes the list it matched
+  </li>
+  <li>
+    declarations: the repo's existing <code>spell-types</code> output, copied in (the kit, spell-parser, Spell UI;
+    spell-epic and spell-app have none)
+  </li>
+</ul>
+<p>
+  Why not tsc's emit: it neither lowers our decorators nor compiles Solid's JSX. Why not a Vite build per package:
+  Vite's library mode treats node code as browser code (asset URLs, env), and only Spell UI needs Vite's extras, which
+  are a few lines here. Each repo says how it publishes in its own
+  <a href="../../../package.json" target="src-package-json"><code>package.json</code></a
+  >, <code>"spellPublish"</code>, so the kit names no child repo; spell-brand has none, so it never publishes. Not yet:
+  source maps, and one shared copy of esbuild's decorator helpers (each decorated file has its own, about 2.6 kB).
+</p>
