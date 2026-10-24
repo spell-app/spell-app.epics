@@ -171,7 +171,7 @@ NOTE:  links are relative, so they work on GitHub and in VS Code.
 
 | Piece | Status | Notes |
 |---|:-:|---|
-| custom-element layer (`DOMElement`, `UIComponent`, `ShadowEvents`, `HotDefinitions`) | ✅ | `@solidjs/element` + `component-register` folded into `src/elements/` (epic `spell-element`, 2026-10-09):  upgrade, forms, lifecycle, error boundary, HMR, event-target and slot-owner fixes;  `packages/solid-element/` gone.  Moved on into `spell-kit/element`, what every set's elements are written on (epic `people-and-orgs` P17) |
+| custom-element layer (`DOMElement`, `UIComponent`, `ShadowEvents`, `HotDefinitions`) | ✅ | `@solidjs/element` + `component-register` folded into `src/elements/` (epic `spell-element`, 2026-10-09):  upgrade, forms, lifecycle, error boundary, HMR, event-target and slot-owner fixes;  `packages/solid-element/` gone.  Moved on into `spell/element`, what every set's elements are written on (epic `people-and-orgs` P17) |
 | upstream PRs for those fixes | — | dropped with the package (epic `spell-element`, Q12):  the outline (`UPSTREAM.md`) is in git history only |
 | element core (`core`, `forms` entries) | ✅ | 16.2 kB + 7.5 kB |
 | `UI` runtime (lazy) | ✅ | 30.9 kB (with `UI.icons`), budget < 50 kB;  [`notes/runtime.md`](runtime.md) |
@@ -181,7 +181,7 @@ NOTE:  links are relative, so they work on GitHub and in VS Code.
 | hot reload | ✅ | `yarn test:hmr` |
 | framework hosts (vanilla, React, Vue, Solid 2) | ✅ | `yarn smoke`, 8 pages |
 | SSR / declarative shadow DOM | ✅ | render only, no hydration |
-| `@spell-app/util` (`spell-kit/util`) | ✅ | `@proto`, `class`, `string` (case, `numberToWord`, `suggest`), `dom`, `Constructor` / `Prettify`:  moved from `src/util/` to [`src/util`](../../../README-util.md) (2026-09-30), shared with `spell`;  `spell-ui/util` re-exports it, bundles unchanged (`core` 14.48 kB, 54.63 kB with one button) |
+| `@spell-app/util` (`spell/util`) | ✅ | `@proto`, `class`, `string` (case, `numberToWord`, `suggest`), `dom`, `Constructor` / `Prettify`:  moved from `src/util/` to [`src/util`](../../../README-util.md) (2026-09-30), shared with `spell`;  `spell-ui/util` re-exports it, bundles unchanged (`core` 14.48 kB, 54.63 kB with one button) |
 | published type declarations | ✅ | fixed 2026-09-30:  `dist/index.d.ts`, `dist/core.d.ts`, `dist/components/ui-<name>/index.d.ts` ... exist as `exports` says, util's inlined in `dist/_util/`;  `yarn smoke` runs `tools/DeclarationCheck.ts`;  per-file, not rolled up (see `declarations()` in `vite.config.ts`) |
 
 ## Phase D -- site, hardening, release
