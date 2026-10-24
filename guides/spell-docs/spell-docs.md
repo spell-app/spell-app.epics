@@ -111,7 +111,7 @@ reasonable, fix it in `spell-ui` when it's a real `ui` bug, and record it either
   - a page without a sticky page header:  the last row of its filter bar, else a sticky bar of its own
   - an epic page's (`buildToolbar()`):  icons only, in `<epic-page>`'s header
   - it can run again (a page updated in place):  it replaces what it built first
-- The site header (`<spell-site-header>`, `spell-kit/server/site`):  fixed on top of every page, its height
+- The site header (`<spell-site-header>`, `spell/server/site`):  fixed on top of every page, its height
   `--spell-site-header-height` on `:root` (`siteHeaderHeight()`).  Everything that sticks or lands starts below it:
   the page header and its toolbar, the filter bar, the titles.
 - Sticky titles (`trackStickyHeights()`):  an optional page header (`ui-sticky.spell-h1`) just below the site header,
