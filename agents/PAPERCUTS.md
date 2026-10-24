@@ -1732,6 +1732,10 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## epics
 
+- 2026-10-23 · `spell pack add epics <tag>` scaffolds a family whose test imports `spell-epics/...` (no such package:
+  it's `spell-epic/...`) and whose vocabulary is typed `E.ComponentVocabulary` (spell-epic's are `EpicVocabulary`, from
+  `spell-epic/definitions`);  epic `epic-engine` P23's two new families failed until fixed by hand. · Fixed both by
+  hand;  the scaffold should take the pack's package name and vocabulary type from the pack. · spell-epic (pack tools)
 - 2026-10-10 · Hand edits to a split plan doc's part files were lost:  another agent's `spell dev plan-doc` command,
   running at the same time, had read the doc before the edit and wrote its older copy of the part back (output-targets'
   Doc Review:  J1 and J2's rewrites, found by re-running the checker). · Redid them.  Hand-edit parts only while no
