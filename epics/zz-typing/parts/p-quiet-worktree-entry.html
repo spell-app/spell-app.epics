@@ -1,0 +1,187 @@
+<!-- plan-doc part:  #p-quiet-worktree-entry's body in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Owen is asked for permission every time a session enters an epic's worktree in <code>~/www/spell.worktrees/</code>,
+    though his settings allow <code>EnterWorktree</code>.
+  </p></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>
+      Nothing calls <code>EnterWorktree</code> for a session already in its worktree: not the session-start guard, not
+      the skills.
+    </li>
+    <li>
+      The worktree is recorded another way (the session-start hook's own note), so a reopen from another window still
+      comes back.
+    </li>
+    <li>Epic windows open on the worktree first, so new tabs start in it.</li>
+  </ul></epic-field
+><epic-field name="requests"
+  ><epic-field label="r11 · 🚧 repo-split (a286416d)"
+    ><blockquote>
+      <p>Owen, in `🚧 repo-split` (2026-10-21), during `/epic resume repo-split`:</p>
+      <p>&gt; You keep asking for permission to EnterWorktree, it has to stop.</p>
+      <p>&gt; It's there. Google says this doesn't work for worktrees outside of `.claude/worktrees/`</p>
+      <p>
+        (His screenshot: `~/.claude/settings.json` already has `"EnterWorktree"` in `permissions.allow`, `defaultMode:
+        "auto"`.)
+      </p>
+      <p>&gt; what is the downside of putting it in .claude/worktrees?</p>
+      <p>
+        His pick, from the modal: **"Skip it when already there"** -- "never call EnterWorktree when the session already
+        starts in the worktree; keep ~/www/spell.worktrees/". Not "Back to .claude/worktrees", not "Live with it".
+      </p>
+      <p>## What Claude Code does (from the repo-split session's research)</p>
+      <p>
+        - Claude Code always asks before `EnterWorktree` enters a path outside the repo's `.claude/worktrees/`. -
+        https://code.claude.com/docs/en/worktrees: "An `EnterWorktree` permission rule or choosing 'don't ask again'
+        doesn't suppress this prompt; only `bypassPermissions` mode skips it." Since v2.1.206. - No setting,
+        `EnterWorktree(&lt;path&gt;)` rule, `additionalDirectories` or PreToolUse "allow" skips it
+        (https://code.claude.com/docs/en/permissions; user report anthropics/claude-code#94265). - Open feature request
+        for a path rule / trusted roots: anthropics/claude-code#77069. - Our worktrees are at
+        `~/www/spell.worktrees/&lt;epic&gt;`, so every enter prompts.
+      </p>
+      <p>## Where the skills call it today</p>
+      <p>
+        - `/epic resume`, step 0 / step 3: `EnterWorktree` with `path`, even when the session already runs in the
+        worktree. - `/epic`'s "Launched" (from `epic window launch`): the same, "also in a worktree-only window ...
+        Entering records the worktree, so a reopen from any window comes back to it (epic `epic-eject` I3)". - `/unpark`
+        step 3, `/park` "Resume", `/wait-for`: the same pattern. - That record (I3) needs another way when the enter is
+        skipped: e.g. the SessionStart hook noting the session's cwd.
+      </p>
+      <p>## Also</p>
+      <p>
+        - The `⎇ repo-split` window holds three folders (`~/www/spell`, the worktree, `spell.epics`), so a new session
+        there starts in `~/www/spell` and still has to enter once. Opening epic windows on the worktree first (or alone)
+        would let new sessions start in it.
+      </p>
+      <p>## Why not back to `.claude/worktrees/` (what Owen weighed)</p>
+      <p>
+        - nested under the main checkout, a worktree's missing packages resolve silently to main's `node_modules` - the
+        main window's file watcher carries every worktree - the page editor refuses dot paths (epic `isolate-changes`
+        C4) - cleaning or moving main takes the worktrees with it - undoes repo-split's `~/www/spell.worktrees/` layout
+        (AGENTS.md, J113, P12's tooling)
+      </p>
+    </blockquote>
+    <p>
+      Looking at: From 🚧 repo-split (worktree ~/www/spell.worktrees/repo-split), during /epic resume repo-split: every
+      EnterWorktree into ~/www/spell.worktrees/&lt;epic&gt; prompts Owen, though his allow rule has it
+    </p>
+    <p>
+      Sent 2026-10-21 08:27-04:00;
+      <a href="../requests/r11/request.md" target="src-epics-epic-engine-requests-r11-request-md">request.md</a>
+    </p>
+    <p>
+      <a href="../requests/r11/image-1.png" target="src-epics-epic-engine-requests-r11-image-1-png"
+        ><img src="../requests/r11/image-1.png" alt="r11, screenshot 1" style="max-width: 100%"
+      /></a></p></epic-field></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen's ask: “You keep asking for permission to EnterWorktree, it has to stop.” (<a
+        href="../requests/r11/request.md"
+        target="src-epics-epic-engine-requests-r11-request-md"
+        >r11</a
+      >). His pick: “Skip it when already there”: never call <code>EnterWorktree</code> when the session already starts
+      in the worktree, and keep the worktrees in <code>~/www/spell.worktrees/</code> (not back to
+      <a href="../../../spell-app/.claude/worktrees/" target="src-spell-app-claude-worktrees"
+        ><code>.claude/worktrees/</code></a
+      >, not “live with it”).
+    </li>
+    <li>
+      Why it prompts: Claude Code always asks before <code>EnterWorktree</code> enters a folder outside the repo's
+      <a href="../../../spell-app/.claude/worktrees/" target="src-spell-app-claude-worktrees"
+        ><code>.claude/worktrees/</code></a
+      >. His <code>"EnterWorktree"</code> allow rule can't stop that; only <code>bypassPermissions</code> mode does.
+    </li>
+    <li>
+      The biggest caller is our own session-start guard: <code>WorktreeGuard</code>'s “not recorded” rule tells every
+      new session in a worktree-only window to <code>EnterWorktree</code> the folder it is already in. That rule goes.
+    </li>
+    <li>
+      The skills enter only when <code>pwd</code> is NOT already in the worktree: <code>/epic</code> (“Launched”, resume
+      steps 0 and 3), <code>/unpark</code> step 3, <code>/park</code>'s Resume, <code>/wait-for</code>,
+      <code>/isolate</code>'s way back.
+    </li>
+    <li>
+      A reopen from another window still comes back to the worktree (epic <code>epic-eject</code> I3), recorded another
+      way: the <code>SessionStart</code> hook notes each session's worktree (its session id and folder, in
+      <code>~/.spell-epic</code>), and the guard's “lost” rule reads that note as well as Claude Code's own.
+    </li>
+    <li>
+      A session reopened OUTSIDE its worktree still has to move, which prompts once. Better, if it works: the guard
+      offers
+      <code>epic window launch &lt;name&gt;</code> (the worktree's own window, where the session starts in the folder).
+      Claude picks one in the phase and says which.
+    </li>
+    <li>
+      Epic windows open on the worktree first, so a new tab's session starts in it with nothing to enter. Today the
+      <code>⎇ repo-split</code> window's first folder is <code>~/www/spell</code>, so its new sessions start there.
+    </li>
+    <li>
+      The <code>behind-main</code> check still runs for a session that never entered (it runs at session start too).
+    </li>
+  </ul></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      Nothing enters a worktree the session is already in, so a new tab in an epic's window no longer asks for
+      permission (<a href="../requests/r11/request.md" target="src-epics-epic-engine-requests-r11-request-md">r11</a>):
+      <ul>
+        <li>
+          The session-start guard records a session started in its worktree itself (<a href="#j87">J87</a>), and sends
+          only a session reopened <em>outside</em> it back in. Tried live on a scratch kit worktree: started there, the
+          guard said nothing and wrote its record; the same session reopened in <code>~/www/spell</code> was told to
+          enter.
+        </li>
+        <li>
+          A multi-repo epic's window opens on its worktree first (<a href="#j89">J89</a>, which changes J83: your pick).
+          Windows open today keep the old order (<a href="#c8">C8</a>).
+        </li>
+        <li>
+          <code>epic merge</code> runs from the worktree, so a standing epic's phase merges with no
+          <code>ExitWorktree</code> and back (<a href="#j88">J88</a>). This phase was merged that way.
+        </li>
+        <li>The epic and isolate skills enter only when <code>pwd</code> isn't in the worktree already.</li>
+      </ul>
+    </li>
+    <li>
+      Checked in a scratch worktree of the kit: <code>yarn ts</code> and <code>yarn lint</code> pass, and 1524 tests
+      pass. The one failure is the pack check (<a href="#i66">I66</a>), stale since repo-split's merge.
+    </li>
+    <li>
+      Not tried by hand: a new tab in a real new epic window (<a href="#t44">T44</a>). The <code>/unpark</code>,
+      <code>/park</code> and <code>/wait-for</code> skills already entered only when outside the worktree.
+    </li>
+  </ul></epic-field
+><epic-commit sha="779a3dff10670b84f8965f6dd9ee18b6a60f6d07"
+  >nothing enters a worktree the session is already in (r11): the session-start guard records such a session itself
+  instead of sending it to EnterWorktree; epic merge runs from the worktree (no ExitWorktree and back); a multi-repo
+  epic's window opens on its worktree first; the skills enter only when pwd isn't in it</epic-commit
+><epic-commit sha="092c116a3aea3e228c6f32b013103c4222c14d3f"
+  >Requests.ts no longer imports realpathSync (its main-checkout check is gone)</epic-commit
+><epic-field name="files"
+  ><ul>
+    <li><code>src/command/WorktreeGuard.ts</code>: drop the “not recorded” rule; read the hook's own note</li>
+    <li><code>hooks/worktree-guard.mjs</code>: write the session's worktree note at start</li>
+    <li>
+      <code>skills/epic/SKILL.md</code>, <code>skills/unpark/SKILL.md</code>, <code>skills/park/SKILL.md</code>,
+      <code>skills/wait-for/SKILL.md</code>, <code>skills/isolate/SKILL.md</code>: enter only when not there
+    </li>
+    <li><code>src/window.mjs</code>: the worktree first in an epic window's folders</li>
+    <li><code>src/config/EpicRepo.ts</code>, <code>src/command/PromptGate.ts</code>: their EnterWorktree hints</li>
+    <li><code>tests/command/WorktreeGuard.test.ts</code></li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      <code>yarn test</code>: <code>WorktreeGuard.test.ts</code> covers a session started in its worktree (says
+      nothing), one reopened outside it (by Claude Code's note and by the hook's)
+    </li>
+    <li>Owen opens a new tab in an epic's window, and resumes an epic: no permission prompt</li>
+    <li>That session, reopened from the main window, comes back to its worktree</li>
+  </ul></epic-field
+>
+<epic-field name="to-review"
+  ><a href="#j87">J87</a>, <a href="#j88">J88</a>, <a href="#c8">C8</a>, <a href="#t44">T44</a></epic-field
+>

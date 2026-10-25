@@ -1,0 +1,73 @@
+<!-- plan-doc part:  #i51's details in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Owen's test run, 2026-10-19 20:51: <a href="#t5">T5</a> failed.</p>
+<p>
+  <b>Owen:</b> Already opened a new session in outline-spell's window, /epic review outline-spell typed in at 20:47:
+  press Enter there.
+</p>
+<epic-reply from="Owen" at="2026-10-19 21:13" re="revisit soon"><p>fix it</p></epic-reply>
+<epic-reply from="Claude" at="2026-10-19 21:15"
+  ><p>
+    Fixed. The wake couldn't find outline-spell's session, so it opened a new one beside it. The notice was the cooldown
+    repeating that first wake.
+  </p>
+  <p><b>What happened</b>, from outline-spell's inbox, transcript and VS Code logs:</p>
+  <ul>
+    <li>
+      20:47:32: you pressed Do Now on J30 while nobody was listening. The page server looks for the ONE running session
+      titled for the epic, to type <code>/epic review outline-spell</code> into.
+    </li>
+    <li>
+      outline-spell's session was running, mid-turn, and its tab said 🚧 outline-spell. But Claude Code's record of it
+      (<code>~/.claude/sessions/&lt;pid&gt;.json</code>) had a name it made up,
+      <code>outline-spell-&lt;2 hex digits&gt;</code>. It does that when a session is resumed in a new process, and this
+      one was resumed when VS Code started at 17:27. Our prompt hook doesn't rename a session whose title is already
+      right, so the record kept the made-up name.
+    </li>
+    <li>
+      The finder read only that record name, found no session, and moved to its next rule: a NEW session in
+      outline-spell's window, with the command typed in.
+    </li>
+    <li>
+      "Already opened ... at 20:47": yes, the cooldown. Your next Do Nows (J18 at 20:50, J27 at 20:51) came within 10
+      minutes of that wake, with nobody listening. So they repeated what the first wake did instead of waking again.
+      That part works as designed. The first wake was the bug.
+    </li>
+    <li>
+      Also seen: at 20:47:52 the outline-spell window's extensions restarted. VS Code's log says "Extension host
+      terminating: received terminate message from renderer". That stopped the running turn, and the session was resumed
+      again. The log doesn't say why. Our wake only opened a tab, 20 seconds before, and nothing of ours restarts a
+      window's extensions: most likely a reload.
+    </li>
+  </ul>
+  <p>
+    <b>The fix</b>: <code>SessionFolders.recordTitle()</code>. It takes a session's record name unless Claude Code made
+    it up; then it takes the title from the session's transcript (its last <code>custom-title</code>). These now use it:
+  </p>
+  <ul>
+    <li><code>RunningEpics.liveSessions()</code>: the wake, and the pill's start</li>
+    <li><code>Sessions.ofEpic()</code>: who <code>epic send</code> tells (<a href="#i50">I50</a>)</li>
+    <li>the window script's <code>liveSessions()</code>: <code>epic window launch</code></li>
+  </ul>
+  <p>
+    Today it finds all five running sessions by their tab titles: <code>outline-spell-cb</code> is 🚧 outline-spell,
+    <code>epic-engine-d6</code> is 🚧 epic-engine, <code>epic-eject-a3</code> is 🚧 epic-eject.
+  </p>
+  <p>Checked:</p>
+  <ul>
+    <li>
+      A new test in <code>tests/tool/ReviewStart.test.ts</code>: a busy session with a made-up record name gets the
+      command typed into it. The notice says "Typed /epic review big into 🚧 big: press Enter there. It reads it once
+      its turn ends."
+    </li>
+    <li>
+      New <code>tests/config/SessionFolders.test.ts</code> cases: a made-up name, a name the session was given, an AI
+      title, and a title 5 MB from the end of the transcript.
+    </li>
+    <li>
+      <code>yarn ts</code>, <code>yarn lint</code>, <code>yarn test</code> (1455 passed), the window script's tests
+      (33).
+    </li>
+    <li>Retest V5 once this is on <code>main</code>.</li>
+  </ul></epic-reply
+>
+<epic-commit sha="432609965c258867df12b1eb87862954279040e9">what Owen's first test run found</epic-commit>
