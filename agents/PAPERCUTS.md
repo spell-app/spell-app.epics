@@ -222,6 +222,11 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   and import the helper straight from its leaf (`$/parser/parser.types`) with the "Import directly to avoid
   circular import" comment.  Before adding a `P.x` value use to a scope / base-class file, check its `P` import
   isn't type-only today. · parser
+- 2026-10-24 · spell-app's `yarn review` failed one test, `expectedAfter() > quick enough for every keystroke, on
+  every line of Solitaire` (`tests/spell/parserTests/Expectations.test.ts`, 11.3s), right after Spell UI's 5,600
+  browser tests had run on the same machine;  it passed on its own a minute later. · A timing test under load:  rerun
+  it alone (`yarn vp test run --project spell tests/spell/parserTests/Expectations.test.ts`) before suspecting a
+  change. · spell-app (epic `prefs-and-undo` P3)
 
 ## ui
 
