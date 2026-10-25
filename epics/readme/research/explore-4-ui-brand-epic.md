@@ -684,7 +684,7 @@ Main sources:  `spell-epic/templates/epics/plan-doc.md` (the rules, 755 lines), 
 - `bin/epic`:  runs `src/command/epicMain.ts` through `tsx` (no build step) + the kit's alias hook;  on every Claude
   session's `PATH` while the plugin is on;  `epic --help`, `epic <verb> --help`, `epic --version` (which code runs).
   Loads no spell:  starts in a fraction of a second.  Addressing:  `epic <verb> <epic>[#<id>]` (`seo#J3`) or a short
-  address (`SAGA:/drawable-spell/python-target#T1`).
+  address (`SAGA:/drawable-spell/python-target#C7`).
 - Command groups (from `src/command/EpicProgram.ts` `commandsGroup()` headings and `epicGroups.ts`):
   - Requests from other sessions:  `send`, `requests`, `file`, `home`, `merge`
   - Epic page, making and reading:  `new`, `list`, `summary`, `summaries`, `items`, `docs`, `decisions`, `open`,
