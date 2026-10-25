@@ -6,7 +6,7 @@ or reviewing Solid code, JSX, `core` rendering, `spell/util` reactivity (spell c
 
 ## Status
 
-- The app is ON Solid 2 (migration built 2026-10-02, branch `solid-migration`):  the editor app, `<spell-app>`,
+- The app is ON Solid 2 (migration built 2026-10-02, branch `solid-migration`):  the editor app, `<spell-viewer>`,
   `<spell-editor>` and the VS Code runner draw with Solid on `@spell-app/ui`;  spell state is spell cells;
   `easy-state` is GONE.
   - How it's built now, and why:  `guides/solid-migration.html`.  The record (phases, decisions, log):
@@ -85,7 +85,7 @@ count() // 1
   - a small synchronous core tracks deps and memoizes derived values
   - one `enableExternalSource` bridge makes Solid computations re-run when cells change:  `bridgeSolid()` in
     `spell/util`, INSTALLED BY THE HOST (`app`'s `src/solid/cellsBridge.ts`, imported by the editor, the runner,
-    `<spell-app>`, `<spell-editor>` and `tracked()`) -- `util` / `core` never import Solid, so `spell-runtime.js` holds
+    `<spell-viewer>`, `<spell-editor>` and `tracked()`) -- `util` / `core` never import Solid, so `spell-runtime.js` holds
     none
   - ONE cells context per page, on `globalThis` (`Symbol.for("@spell-app/cells")`):  the app's `$/util` and every
     `spell-runtime.js` copy share the "who's reading" slot, the pending checks and the host's flush, so the one
@@ -185,18 +185,18 @@ count() // 1
   writes only the page's spellings (`class`, `colspan`, `prop:` on a `<ui-*>` tag):  Solid 2's JSX types take no
   others.  The runners can't run it yet;  the core contract does.
 - One Solid per page, shared with `@spell-app/ui` (whose `UI` runtime is already one per page, on `globalThis`):
-  - within a bundle:  Solid + `@spell-app/ui` live in the shared files, NEVER `spell-runtime.js`.  Each `<spell-app>`
+  - within a bundle:  Solid + `@spell-app/ui` live in the shared files, NEVER `spell-runtime.js`.  Each `<spell-viewer>`
     keeps its OWN `core`, all share ONE Solid.  `enableExternalSource` is registered once per Solid, by
     `bridgeSolid()` from the host (`app`'s `cellsBridge.ts`)
   - `spell-runtime.js` gets Solid, `@solidjs/web` and `@solidjs/h` from `spell-solid.js` (`sharedSolid()`), which
-    also holds Spell UI's element core since `<spell-app>` became a Spell UI component;  it never loads
+    also holds Spell UI's element core since `<spell-viewer>` became a Spell UI component;  it never loads
     `spell-ui.js` (`app`'s build tests pin both)
   - `spell run` and the core contract run Solid's BROWSER builds under node, on a linkedom page (`cli`'s
     `hooks.mjs`), with the cells bridged there too
   - across our bundles:  element / runner / editor builds import ONE shared Solid (and `ui`), not a Solid each:  SEE
     `packages/app/AGENTS.md` "Overview".  Any other Solid / `ui` specifier (`solid-js/store`, `spell-ui/runtime`) is a
     build ERROR:  add it to `sharedSolid()`'s list AND to what `vite.solid.config.ts` exports
-  - on host pages with their own Solid / `@spell-app/ui`:  an import-map variant of `<spell-app>` (bare specifiers)
+  - on host pages with their own Solid / `@spell-app/ui`:  an import-map variant of `<spell-viewer>` (bare specifiers)
     (planned, epic page T5:  not shipped -- such a page gets a second Solid today)
   - two copies on one page FAIL SILENTLY:  the fork's `register()` swaps `existing.Component` across copies
 - NEVER put Things (class instances) in a Solid store:  stores wrap them in proxies, `===` breaks.
