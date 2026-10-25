@@ -1,176 +1,60 @@
 <!-- plan-doc part:  #p-one-attribute-store's body in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom"
-  >Each attribute’s value is kept three times, and <code>this.attrs.x</code> can be a microtask stale.</epic-field
+  ><epic-change id="ch22" item="j114" at="2026-10-25 04:27"
+    >Each attribute's value was kept three times, and <code>this.attrs.x</code> could be a microtask stale.</epic-change
+  ></epic-field
 ><epic-field name="changes"
-  >One attribute store, plus a decorator sweep.
+  ><p>
+    <epic-change id="ch23" item="j114" at="2026-10-25 04:27"
+      >One attribute store, then a decorator sweep Owen picked from a list.</epic-change
+    >
+  </p>
   <ul>
     <li>
-      <code>DOMElement</code> keeps one CONVERTED value per attribute, and ui’s reactive record one change signal per
-      attribute
+      <epic-change id="ch24" item="q5" at="2026-10-25 04:27"
+        ><code>DOMElement</code> keeps one CONVERTED value per attribute, with one change signal each;
+        <code>attrs</code> and <code>createProps()</code> are gone</epic-change
+      >.
     </li>
-    <li><code>attrs</code> and <code>createProps()</code> go</li>
     <li>
-      <code>@protoMerged</code> merges each class’s <code>elementSetup</code> down the class chain as it’s defined, and
-      <code>styleSheets</code> move into <code>elementSetup</code>
+      <epic-change id="ch25" item="j114" at="2026-10-25 04:27"
+        ><code>@protoMerged</code> merges each class's <code>elementSetup</code> down the class chain, and
+        <code>styleSheets</code> is one of its keys (<a href="#j15">J15</a>).</epic-change
+      >
     </li>
   </ul></epic-field
 ><epic-field name="goal"
   ><ul>
-    <li>one record, one notifier; <code>attrs</code> and <code>createProps()</code> go (<a href="#q5">Q5</a>)</li>
     <li>
-      the raw text stays where the browser keeps it: DOM API: the attribute itself (<code>getAttribute("size")</code>);
-      <code>DOMElement</code> keeps no copy of it
+      <epic-change id="ch26" item="q18" at="2026-10-25 04:27"
+        ><code>this.x</code> reads the attribute's text converted, or what a property write set, kept as
+        given</epic-change
+      >; brand's 89 <code>this.attrs.x</code> became <code>this.x</code>.
     </li>
     <li>
-      <code>DOMElement</code>’s value per attribute comes from either (<a href="#q18">Q18</a>):
-      <ul>
-        <li>the attribute’s text, converted: <code>disabled</code> becomes <code>true</code></li>
-        <li>a property write: <code>select.options = [...]</code>, kept as given, before the component exists too</li>
-      </ul>
-      the component reads it from there
-    </li>
-    <li>
-      brand’s 89 <code>this.attrs.x</code> become <code>this.x</code> (mechanical); ui’s 4 reads in the core rewritten
-    </li>
-    <li>
-      <a href="../../../src/element/Reactive.ts" target="src-src-element-reactive-ts"><code>Reactive.ts</code></a>
-      reads the one record
-    </li>
-    <li>
-      <code>@protoMerged</code>, a new decorator beside <code>@proto</code> in <code>spell-kit/util</code>’s
-      <a href="../../../src/util/decorators.ts" target="src-src-util-decorators-ts"><code>decorators.ts</code></a
-      >:
-      <ul>
-        <li>
-          as each class is defined, it stores <code>{ ...parent’s merged elementSetup, ...this class’s }</code> on the
-          prototype
-        </li>
-        <li>
-          <code>setup</code> is deleted: <code>this.elementSetup</code> IS the merged value; outside an instance, read
-          <code>Class.prototype.elementSetup</code> (<a href="#j15">J15</a>)
-        </li>
-        <li>
-          <code>UIComponent.setupFor()</code> and its <code>setups</code> cache go (Owen: “do
-          <code>@protoMerged</code> in the next phase please and eliminate this”)
-        </li>
-        <li>84 files say <code>@E.protoMerged</code> instead of <code>@E.proto</code> (ui, brand, epics)</li>
-      </ul>
-    </li>
-    <li>
-      <code>styleSheets</code> become a key of <code>elementSetup</code>:
-      <ul>
-        <li>
-          <code>elementSetup</code> merges by key, so a subclass’s <code>styleSheets</code> still replaces its base’s
-          whole, and spreading the base’s still adds to it
-        </li>
-        <li>
-          readers move to <code>this.elementSetup.styleSheets</code>, plus the server render and the docs tools that
-          read the static
-        </li>
-        <li>103 files</li>
-      </ul>
-    </li>
-    <li>
-      before changing anything else, a list of other places a decorator would clean code up (Owen asked):
-      <ul>
-        <li>for example, a <code>@lazy</code> for members made on first use</li>
-        <li>Owen picks from the list</li>
-      </ul>
-    </li>
-    <li>
-      three timing helpers in <code>spell-ui/util</code> (<a
-        href="../../../spell-ui/src/util/"
-        target="src-spell-ui-src-util"
-        ><code title="spell-ui/src/util/">util</code></a
-      >), named for WHEN they run (Owen’s names), replace the bare platform calls across ui:
-      <ul>
-        <li>
-          <code>afterSolidUpdate(fn)</code>: a microtask, run as soon as the current code finishes, after the Solid
-          update it is in; it replaces <code>queueMicrotask</code> (about 30 calls)
-        </li>
-        <li><code>beforeNextPaint(fn)</code>: it replaces <code>requestAnimationFrame</code>.</li>
-        <li><code>soon(fn)</code>: the next task. It replaces <code>setTimeout(fn, 0)</code>.</li>
-        <li>those last two replace about 14 calls between them</li>
-        <li>a call that needs to cancel keeps what it has, or the helper returns a cancel function</li>
-      </ul>
-    </li>
-    <li>
-      two timer helpers beside them in <code>spell-ui/util</code> (Owen’s request, 2026-10-08), covers for
-      <code>setTimeout</code> and <code>setInterval</code> that take SECONDS, not milliseconds:
-      <ul>
-        <li>
-          <code>after(seconds, fn)</code>: runs <code>fn</code> once, after <code>seconds</code> (<code
-            >after(0.25, ...)</code
-          >
-          is a quarter of a second). It is built on <code>setTimeout</code>.
-          <ul>
-            <li>
-              it returns a promise of <code>fn</code>’s result:
-              <code>after&lt;T = undefined&gt;(seconds: number, fn?: () =&gt; T): CancelablePromise&lt;T&gt;</code>
-            </li>
-            <li><code>fn</code> is optional, so <code>await after(1)</code> waits one second</li>
-            <li>
-              the promise’s <code>cancel()</code> clears the timer. The promise then rejects with an
-              <code>AbortError</code> (a DOM API <code>DOMException</code>, as <code>fetch</code> throws when it is
-              aborted), so an <code>await</code> on it never hangs.
-            </li>
-            <li>16 <code>setTimeout</code> calls in ui move to it</li>
-          </ul>
-        </li>
-        <li>
-          <code>every(seconds, fn)</code>: runs <code>fn</code> every <code>seconds</code>. It is built on
-          <code>setInterval</code>.
-          <ul>
-            <li>
-              it returns a function that stops it: <code>const stop = every(5, poll)</code>, later <code>stop()</code>
-            </li>
-          </ul>
-        </li>
-        <li>each has its own tests, on fake timers</li>
-      </ul>
-    </li>
-    <li>
-      <a href="../../../spell-ui/src/elements/ClassBuilder.ts" target="src-spell-ui-src-elements-classbuilder-ts"
-        ><code>ClassBuilder.build()</code></a
+      <epic-change id="ch27" item="j114" at="2026-10-25 04:27"
+        >Timing helpers named for when they run, <code>afterSolidUpdate()</code>, <code>beforeNextPaint()</code>,
+        <code>soon()</code>, and timers in seconds, <code>after()</code> and <code>every()</code>: 72 bare platform
+        calls moved onto them (<a href="#j14">J14</a>).</epic-change
       >
-      puts the extra class BEFORE the noun, as Fomantic writes it:
-      <ul>
-        <li>before: <code>ui primary button icon</code></li>
-        <li>after: <code>ui primary icon button</code></li>
-        <li>
-          the class strings pinned in 48 test files change with it: 39 in ui (browser and server render), 5 in brand, 4
-          in epics
-        </li>
-        <li>
-          two elements now differ from Fomantic's word order: <code>&lt;ui-tab&gt;</code> reads
-          <code>... segment tab</code>, <code>&lt;ui-panel&gt;</code> <code>panel section</code> (<a href="#j16">J16</a
-          >)
-        </li>
-        <li>the CSS is unaffected: a class selector matches in any order</li>
-      </ul>
     </li>
     <li>
-      the eight decorators and clean-ups Owen picked from that list (2026-10-08):
-      <ul>
-        <li>
-          <code>@E.on("click")</code>: a method that handles an event on the element; it runs untracked by default (<a
-            href="#q21"
-            >Q21</a
-          >)
-        </li>
-        <li><code>@E.fromContent</code>: a value taken from the element's content</li>
-        <li>
-          <code>@E.untracked</code>: a method that runs outside Solid's tracking (actions like <code>select()</code>)
-        </li>
-        <li><code>@E.whileConnected</code>: set up while the element is on the page, undone when it leaves</li>
-        <li>
-          <code>@E.aria</code> and <code>@E.cssStates</code>: ARIA attributes and <code>:state()</code>s kept in step
-          with a member
-        </li>
-        <li><code>@lazy</code> / <code>@once</code>: a member made on first use; a method that runs only once</li>
-        <li>a typed <code>DOMElement&lt;C&gt;</code>: the DOM element knows its component's type</li>
-        <li>the form controls' shared code moves into <code>FormComponent</code></li>
-      </ul>
+      <epic-change id="ch28" item="q21" at="2026-10-25 04:27" answer="Yes, untracked by default"
+        ><code>@E.on("event")</code> on a method: a listener for the element's whole life, run untracked</epic-change
+      >; <code>@E.untracked</code> replaced about 250 <code>untrack()</code> wrappers.
+    </li>
+    <li>
+      <epic-change id="ch29" item="j114" at="2026-10-25 04:27"
+        ><code>@E.fromContent</code>, <code>@E.whileConnected</code>, <code>@E.aria</code>, <code>@E.cssStates</code>,
+        <code>@lazy</code> / <code>@once</code>, a typed <code>DOMElement&lt;C&gt;</code>, and form controls' shared
+        code in <code>FormComponent</code>.</epic-change
+      >
+    </li>
+    <li>
+      <epic-change id="ch30" item="j114" at="2026-10-25 04:27"
+        >An element's extra classes go just before the noun, as Fomantic writes them (<a href="#j16">J16</a>); no
+        screenshot changed.</epic-change
+      >
     </li>
   </ul></epic-field
 ><epic-update at="2026-10-08 23:32" summary="P3 grows by Owen’s review notes on P2"
