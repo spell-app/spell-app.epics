@@ -1,0 +1,59 @@
+<!-- plan-doc part:  #p-shared-page-patch's body in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Only epic pages update in place when their file changes: Spell UI's component-set pages (and any other page) reload
+    and flash, and the page fetches its own new version after being told it changed.
+  </p></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>
+      The page patch moves out of spell-epic's docs runtime into the kit, as ONE shared patcher every page runtime uses,
+      each with its own hooks.
+    </li>
+    <li>
+      The page server sends the new page down the live-reload line with the change, and the patch is a list of small
+      steps: text edited in place, nothing the reader touched replaced.
+    </li>
+    <li>Spell UI's component-set pages use it, so an edit to one never flashes.</li>
+  </ul></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen (2026-10-25,
+      <a href="../requests/r29/request.md" target="src-epics-epic-engine-requests-r29-request-md">r29</a>): 'page
+      server, when reloading a live page, sends the new content to the running page. It then runs a diff on current/new
+      HTML and only updates what has changed -- inserting/removing sections, updating prose, leaving &lt;inputs&gt;
+      alone; the insertions should be as granular as possible.' And: 'reload MUST NOT FLASH anything other than what has
+      actually changed!'
+    </li>
+    <li>
+      ONE page patcher, in the kit, plain DOM: it compares the page's source as loaded with the new source, and changes
+      only what differs in the live page.
+    </li>
+    <li>
+      Each page runtime hands it its hooks: which attributes are the reader's (kept), which elements are never replaced
+      (<code>epic-*</code>, an open editor such as Monaco in a cell), which elements manage their own children, what to
+      re-wire after.
+    </li>
+    <li>spell-epic's docs runtime uses it in place of its own copy: epic pages behave as today.</li>
+    <li>The page server pushes the new page and its ETag with the change: no fetch.</li>
+    <li>
+      Finer steps: edited text changes in place, not the whole paragraph; inputs, focus, typed text, folds and scroll
+      are left alone.
+    </li>
+    <li>
+      The patch is a list of steps (insert, remove, set an attribute, set text), so the server could work them out later
+      for multiplayer Spell without the page changing.
+    </li>
+    <li>A page's own save is known by its ETag: it doesn't patch itself.</li>
+    <li>Spell UI's component-set pages (<code>/components/ui/...</code>) use it, through the site's runtime.</li>
+  </ul></epic-field
+><epic-field name="files"
+  >kit: a new page patcher in spell/server/site (PagePatch), liveClient.ts, LiveReload.ts and the page server's change
+  message; spell-epic: spell-doc-runtime.js (wireLiveUpdate, patchPage, planMorph, carryState, carryEpicState,
+  readingAnchor); spell-ui: the site's runtime (site/_src: site.ts, SiteRouter.ts, SitePacks.ts); their tests; the
+  server's AGENTS.md</epic-field
+><epic-field name="verify"
+  >Edit a component-set page's file and an epic page's file while each is open: only what changed redraws, no reload, no
+  flash; scroll, folds, focus and typed text stay; a page's own save doesn't patch itself.</epic-field
+>
