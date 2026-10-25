@@ -128,11 +128,11 @@ How the runtime will use it (not built yet):
 - Text strings are NOT in the dictionary:  `UI.i18n` owns them (`TextSpec` keys), with `Intl` formatting.
   - Keys are SCOPED per component:
     a vocabulary's texts are that component's English defaults, under its canonical tag.
-    - So two families may share a key:  `label` is "Table" for `<ui-table>`, "Breadcrumb" for `<ui-breadcrumbs>`.
+    - So two families may share a key:  `label` is "Table" for `<ui-table>`, "Breadcrumb" for `<ui-breadcrumb>`.
     - No prefixing needed.
   - A translation registers a key SHARED, for every component using it:
     `UI.i18n.register("es", { label: "Etiqueta" })`.
-  - Or for one component, which wins:  `UI.i18n.register("es", { label: "Migas" }, "ui-breadcrumbs")`.
+  - Or for one component, which wins:  `UI.i18n.register("es", { label: "Migas" }, "ui-breadcrumb")`.
   - Any registered string beats the English defaults, `en` included (an app rewording a default).
 
 ## Open questions
