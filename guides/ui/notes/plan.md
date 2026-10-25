@@ -341,7 +341,7 @@
     `ui-date`, `ui-author`, `ui-avatar`, `ui-detail`, `ui-value`, `ui-image`
   - Fomantic's `<div class="content"><div class="header">` maps 1:1 to `<ui-content><ui-header>`.
   - Shorthand attributes on owners render the same parts;  slotted parts win over shorthand.
-    E.g. `<ui-card header="…" meta="…">`, `<ui-modal header="…">`.
+    E.g. `<ui-card heading="…" meta="…">`, `<ui-modal heading="…">`.
 - Events:  `CustomEvent`s, `bubbles: true, composed: true`, lowercase kebab names.
   - The names:  `ui-change`, `ui-input`, `ui-open`, `ui-close` (cancelable), `ui-select`, `ui-add`, `ui-remove`,
     `ui-search`, `ui-approve`, `ui-deny`, `ui-show`, `ui-hide`, `ui-visible`, `ui-hidden`.

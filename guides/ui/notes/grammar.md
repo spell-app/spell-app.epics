@@ -140,7 +140,7 @@ Every element takes these, though its vocabulary may not name them (`SharedVocab
   - Both written in markup, and disagreeing:  `hidden` wins.
     After that, the latest write wins.
   - `hidden="until-found"` stays the browser's.
-  - Fomantic's hidden divider is `<ui-divider spacer>`;  its visible reveal, `<ui-reveal unclipped>`.
+  - Fomantic's hidden divider is `<ui-divider spacer>`;  its visible reveal, `<ui-reveal clip="none">`.
 - `animation`:  how the element shows and hides (Fomantic's names, `fade up` ...), or `none`.
   - The first that applies:
     1. motion off:  `none` on it or around it, `--ui-motion: none`, or reduced motion
@@ -201,7 +201,7 @@ but the FORM itself has to be a real `<form>` in the light DOM:
       <ui-field required><label for="name">Name</label><ui-input id="name" name="name"></ui-input></ui-field>
       <ui-field><label for="mail">E-mail</label><ui-input id="mail" name="email" type="email"></ui-input></ui-field>
     </ui-fields>
-    <ui-message state="error" header="Please fix the fields"></ui-message>
+    <ui-message state="error" heading="Please fix the fields"></ui-message>
     <ui-button type="submit">Sign up</ui-button>
   </form>
 </ui-form>
@@ -235,7 +235,7 @@ never `ui-list-item` / `ui-menu-item`.
 ```html
 <ui-dropdown selection><ui-item value="a">Apple</ui-item></ui-dropdown>          <!-- data:  renders <slot> only -->
 <ui-list divided><ui-item icon="users">Friends</ui-item></ui-list>                <!-- a list item box -->
-<ui-menu pointing><ui-item href="/inbox" active>Inbox</ui-item></ui-menu>         <!-- a menu item link -->
+<ui-menu appearance="pointing"><ui-item link="/inbox" active>Inbox</ui-item></ui-menu>         <!-- a menu item link -->
 ```
 
 - Why one element:  the dropdown's `<ui-item>` contract ALLOWS it.
@@ -296,7 +296,7 @@ never `ui-list-item` / `ui-menu-item`.
   - `kind: "valueOnly"`:  the value IS the class word.
     So the older booleans (`tabular`, `pointing` ...) stay as aliases with the same words,
     and combine (`appearance="pointing" secondary` ~== `secondary pointing`).
-  - Not in it:  `vertical` (an orientation every look takes) and `basic` (`<ui-tabs basic>` is the panes').
+  - Not in it:  `vertical` (an orientation every look takes) and `basic` (`<ui-tabs appearance="basic">` is the panes').
 - `alignment="fluid | left | center | right"` => `<value> aligned`:  where the items sit along a horizontal bar.
   - Packed at one end (`justify-content`), or filling it (`fluid`:  each item grows from its own width).
   - A segmented menu IS its items, so it moves as a whole (auto margins).
@@ -314,7 +314,7 @@ never `ui-list-item` / `ui-menu-item`.
   - `items="3"` => `three item` (evenly divided)
   - `items="equal"` => `equal width`
   - as `width` on buttons, `widths` on statistics / steps / fields
-- A dropdown item is an item holding a `<ui-dropdown>`:  `<ui-item><ui-dropdown text="More">...`.
+- A dropdown item is an item holding a `<ui-dropdown>`:  `<ui-item><ui-dropdown label="More">...`.
 
 ## Tables:  `<ui-table>` and the native `<table>`
 
@@ -363,10 +363,10 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 
 ```html
 <ui-button id="save">Save</ui-button>
-<ui-popup for="save" header="Saving" content="Stores a draft;  nothing is published."></ui-popup>
+<ui-popup for="save" heading="Saving" label="Stores a draft;  nothing is published."></ui-popup>
 
 <ui-button>Plan</ui-button>                                   <!-- no `for`:  the previous sibling -->
-<ui-popup open-on="click" position="bottom left" flowing header="Basic plan"><ui-button primary>Choose</ui-button></ui-popup>
+<ui-popup open-on="click" position="bottom left" flowing heading="Basic plan"><ui-button color="primary">Choose</ui-button></ui-popup>
 
 <button data-tooltip="Add users" data-position="bottom left" data-inverted>+</button>   <!-- CSS only -->
 ```
@@ -449,7 +449,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 <ui-modal id="photo" closable>
   <ui-header>Profile Picture</ui-header>
   <ui-content><ui-description>Is it okay to use this photo?</ui-description></ui-content>
-  <ui-actions><ui-button class="deny">Nope</ui-button><ui-button positive>Yep, that's me</ui-button></ui-actions>
+  <ui-actions><ui-button class="deny">Nope</ui-button><ui-button color="positive">Yep, that's me</ui-button></ui-actions>
 </ui-modal>
 <script>
   await UI.modals.confirm({ title: "Delete?", message: "It can't be undone." })  // true / false
@@ -588,7 +588,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 <ui-flyout id="help" position="right" width="wide" closable>
   <ui-header>Help</ui-header>
   <ui-content>...</ui-content>
-  <ui-actions><ui-button class="approve" primary>Done</ui-button></ui-actions>
+  <ui-actions><ui-button class="approve" color="primary">Done</ui-button></ui-actions>
 </ui-flyout>
 ```
 
@@ -614,7 +614,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ```html
 <ui-pushable style="height: 100dvh">
   <ui-sidebar id="menu" inverted aria-label="Site">
-    <ui-menu vertical inverted fluid aria-label="Site"><ui-item href="/">Home</ui-item></ui-menu>
+    <ui-menu direction="vertical" inverted fluid aria-label="Site"><ui-item link="/">Home</ui-item></ui-menu>
   </ui-sidebar>
   <ui-pusher>
     <button class="ui button" commandfor="menu" command="--toggle">Menu</button>
@@ -695,8 +695,8 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ## Cards:  `<ui-card>` in `<ui-cards>`
 
 ```html
-<ui-cards columns="3" doubling stackable raised>
-  <ui-card href="/people/kristy" image="kristy.jpg" header="Kristy" meta="Joined in 2013"
+<ui-cards columns="3" doubling stackable appearance="raised">
+  <ui-card link="/people/kristy" image="kristy.jpg" heading="Kristy" meta="Joined in 2013"
            extra="22 Friends"></ui-card>
   <ui-card>
     <img src="matthew.jpg" alt="Matthew" />
@@ -741,13 +741,13 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ## Items view:  `<ui-items>` of the generic `<ui-item>`
 
 ```html
-<ui-items divided relaxed link>
-  <ui-item href="/camps/arrowhead" image="arrowhead.jpg">
+<ui-items divided spacing="lg" appearance="link">
+  <ui-item link="/camps/arrowhead" image="arrowhead.jpg">
     <ui-content vertical-align="middle">
       <ui-header>Arrowhead Valley Camp</ui-header>
       <ui-meta><span>$1200 1 month</span></ui-meta>
       <ui-description>Ours is a life of constant reruns.</ui-description>
-      <ui-extra><ui-button floated="right" primary>Book now</ui-button></ui-extra>
+      <ui-extra><ui-button floated="right" color="primary">Book now</ui-button></ui-extra>
     </ui-content>
   </ui-item>
 </ui-items>
@@ -782,7 +782,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
   <ui-event image="elliot.jpg">
     <ui-content>
       <ui-summary>
-        <ui-author href="/elliot">Elliot Fu</ui-author> added you as a friend <ui-date>1 hour ago</ui-date>
+        <ui-author link="/elliot">Elliot Fu</ui-author> added you as a friend <ui-date>1 hour ago</ui-date>
       </ui-summary>
       <ui-extra text>Ours is a life of constant reruns.</ui-extra>
       <ui-meta><a href="#like"><ui-icon name="heart"></ui-icon> 4 Likes</a></ui-meta>
@@ -814,12 +814,12 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ## Comments:  `<ui-comments>` of `<ui-comment>`s
 
 ```html
-<ui-comments threaded minimal>
+<ui-comments threaded appearance="minimal">
   <ui-header level="3" dividing>Comments</ui-header>
   <ui-comment>
     <ui-avatar src="matt.jpg"></ui-avatar>
     <ui-content>
-      <ui-author href="/matt">Matt</ui-author>
+      <ui-author link="/matt">Matt</ui-author>
       <ui-meta><span>Today at 5:42PM</span></ui-meta>
       <ui-description>How artistic!</ui-description>
       <ui-actions><button type="button">Reply</button></ui-actions>
@@ -885,9 +885,9 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 
 ```html
 <ui-steps ordered widths="3">
-  <ui-step completed header="Shipping" description="Choose your shipping options"></ui-step>
-  <ui-step selected icon="credit-card" header="Billing"></ui-step>
-  <ui-step href="/confirm" disabled><ui-content><ui-title>Confirm</ui-title></ui-content></ui-step>
+  <ui-step completed heading="Shipping" description="Choose your shipping options"></ui-step>
+  <ui-step selected icon="credit-card" heading="Billing"></ui-step>
+  <ui-step link="/confirm" disabled><ui-content><ui-title>Confirm</ui-title></ui-content></ui-step>
 </ui-steps>
 ```
 
@@ -1004,7 +1004,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 
 ```html
 <ui-select name="size" placeholder="Size" required>
-  <ui-item type="header">Shirts</ui-item>
+  <ui-item kind="header">Shirts</ui-item>
   <ui-item value="s">Small</ui-item><ui-item value="m" flag="fr" description="French cut">Medium</ui-item>
 </ui-select>
 ```
@@ -1179,7 +1179,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ## Accordions:  `<ui-accordion>` of title + content pairs, on native `<details>`
 
 ```html
-<ui-accordion styled open="0">
+<ui-accordion appearance="styled" open="0">
   <ui-title>What is a dog?</ui-title>
   <ui-content><p>A domesticated animal.</p></ui-content>
   <ui-title>What kinds of dogs are there?</ui-title>
@@ -1221,7 +1221,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ## Tabs:  `<ui-tabs>` of `<ui-tab>` panes
 
 ```html
-<ui-tabs tabular attached aria-label="Profile" history>
+<ui-tabs appearance="tabular" attach="top" aria-label="Profile" history>
   <ui-tab label="Bio" value="bio">...</ui-tab>
   <ui-tab label="Photos" value="photos" icon="image" lazy><template>...</template></ui-tab>
 </ui-tabs>
@@ -1259,7 +1259,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ## Toasts:  `<ui-toast>` and `UI.toast()`
 
 ```html
-<ui-toast type="success" icon header="Saved" message="All changes are saved." closable></ui-toast>
+<ui-toast type="success" icon heading="Saved" message="All changes are saved." closable></ui-toast>
 <script>
   UI.toast({ title: "Saved", message: "All good", class: "success", showProgress: "bottom" })
   UI.toast({ message: "Delete?", actions: [{ text: "Yes", class: "positive" }, { text: "No", class: "deny" }] })

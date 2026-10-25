@@ -301,8 +301,8 @@ Four kinds:
 </style>
 <div class="toolbar">
   <ui-button>Tight</ui-button>
-  <ui-button compact>Tighter</ui-button>     <!-- 0.75 x 0.75em:  compact derives from the base token -->
-  <ui-button circular>Round</ui-button>      <!-- still round:  circular swaps the radius -->
+  <ui-button padding="compact">Tighter</ui-button>     <!-- 0.75 x 0.75em:  compact derives from the base token -->
+  <ui-button appearance="circular">Round</ui-button>      <!-- still round:  circular swaps the radius -->
 </div>
 ```
 

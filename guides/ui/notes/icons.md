@@ -42,7 +42,7 @@ An icon's name comes from its file name, dashes -> spaces:  `solid/address-book.
   - And names pasted from Font Awesome's site work.
 - `lucide:bell` asks one pack:  by its `id`, or the `prefix` it was added with.
   - Only the first `:` splits.
-- `<ui-icon name="bell" outline>` ~== `name="bell outline"`:  Fomantic's `bell outline icon` spelling.
+- `<ui-icon name="bell" appearance="outline">` ~== `name="bell outline"`:  Fomantic's `bell outline icon` spelling.
 - **Within one pack** (`IconName.claim()`):
   - an explicit `alias` beats a name derived from a file name
   - otherwise, the FIRST entry to claim a name keeps it

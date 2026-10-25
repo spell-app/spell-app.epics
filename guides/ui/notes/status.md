@@ -286,7 +286,7 @@ Decided, or knowingly left for later.  Each should be picked up where noted.
   - RTL arrows
   - an event of its own for `link` steps:  the page listens for `click`
 - **Reveal:**
-  - `ui reveal image` / `circular` couplings:  put `<ui-image circular>` in each slot
+  - `ui reveal image` / `circular` couplings:  put `<ui-image appearance="circular">` in each slot
   - a ribbon label over the reveal
   - detecting focusable CUSTOM elements (`<ui-button>`) in the content, which keeps the reveal's own tab stop
 - **Ad:**  a landmark of its own (`<aside>`):  several would share one name (axe `landmark-unique`).
