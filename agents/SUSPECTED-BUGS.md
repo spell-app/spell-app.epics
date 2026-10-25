@@ -675,6 +675,12 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- A program's right-click menu draws at the page's top left, not at the pointer (2026-10-25, epic `elemental-spell`,
+  the Solitaire showcase's `context-menu="game menu"`, headless Chromium in the editor's Run view):
+  `ActionMenus.showContextMenu()` sets `position: fixed` and `left` / `top` from `clientX` / `clientY` on a
+  `<ui-menu vertical>` appended to `document.body`;  it showed at (0, 0), and the page scrolled.
+  Suspect the menu's own styles (or a popover) overriding the inline position.  Its actions still run.
+
 - The dev editor draws nothing (2026-10-22, seen in the `spanish` worktree, epic `spanish` P13):  `app/index.html`'s
   `<script src="../src/app/index.tsx">` is served as written, and from `/` the browser asks for `/src/app/index.tsx`,
   which vite resolves inside its root, `app/`, and answers 404 ("Failed to load url /src/app/index.tsx", in
