@@ -35,10 +35,8 @@
             checked-out branch</ui-item
           >
           <ui-item icon="flask"
-            >How:
-            <a href="experiments/scan.mjs" target="src-guides-loc-experiments-scan-mjs"
-              ><code>experiments/scan.mjs</code></a
-            >, over the files git tracks (see <a href="#3-how-its-counted">How it's counted</a>)</ui-item
+            >How: <code>epic loc</code>, over the files git tracks (see
+            <a href="#3-how-its-counted">How it's counted</a>)</ui-item
           >
         </ui-list>
 
@@ -51,8 +49,8 @@
           </ui-statistics>
           <ul>
             <li>A row per repo for its code, and a row right under it for its tests.</li>
-            <li>"Code lines" are lines of actual code: no blank lines, no comments.</li>
-            <li>"All lines" and "all chars" are the same code files, counted whole.</li>
+            <li>"Code: Lines" are lines of actual code: no blank lines, no comments.</li>
+            <li>"All: Lines" and "All: Chars" are the same code files, counted whole.</li>
             <li>Hover a number for its exact value.</li>
           </ul>
           <ui-table celled compact striped unstackable
@@ -243,12 +241,9 @@
           >
 
           <ul>
-            <li>
-              Across the kit: 273,510 lines of code and 132,563 lines of tests, so about one line of test for every two
-              of code.
-            </li>
+            <li id="loc-ratio"></li>
             <li>spell-ui is the biggest, then spell-epic and spell-parser.</li>
-            <li>spell-ui's docs are over half of all the docs' characters (4.6M of 9.7M): its components' pages.</li>
+            <li>spell-ui's docs are about half of all the docs' lines: its components' pages.</li>
           </ul>
         </ui-section>
 
@@ -1315,7 +1310,20 @@
 
         <ui-section id="3-how-its-counted" label="3. How it's counted" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="list check"></ui-icon>
-          <p>Every file git tracks in each repo, sorted into code and docs by its extension.</p>
+          <p>
+            Every file git tracks in each repo, sorted into code and docs by its extension, as the settings file
+            <code>guides/loc/loc.json5</code> says.
+          </p>
+          <ul>
+            <li>It sits beside this page, in the content folder: one for the project, every repo in it.</li>
+            <li>
+              Per repo, by its folder name, or <code>"*"</code> for all: which folders are rows (<code>rows</code>,
+              globs: <code>src/*</code>, <code>docs</code>), which files are tests, the code and doc extensions, and
+              what to leave out.
+            </li>
+            <li>A repo's own key replaces <code>"*"</code>'s, but <code>leaveOut</code>, which adds to it.</li>
+            <li>Missing, <code>epic loc</code> writes it with the defaults, and says so: tweak it, then run it again.</li>
+          </ul>
           <ui-section id="the-columns" label="The columns" sticky collapsible dividing collapsed>
             <ui-table celled compact striped unstackable>
               <table>
@@ -1371,7 +1379,7 @@
                 Tracked files only (<code>git ls-files</code>): nothing git ignores, so no <code>node_modules</code>, no
                 built bundles, and none of the content repo (<code>spell.epics</code>).
               </li>
-              <li>Tests: everything under a repo's tests/.</li>
+              <li>Tests: everything under a repo's tests/, and files named <code>*.test.*</code> or <code>*.spec.*</code>.</li>
             </ul>
           </ui-section>
           <ui-section id="taking-out-comments" label="Taking out comments" sticky collapsible dividing collapsed>
@@ -1390,33 +1398,28 @@
           <ui-section id="left-out" label="Left out" sticky collapsible dividing collapsed>
             <p>Files a person didn't write, so they'd only make the numbers bigger:</p>
             <ul>
-              <li>generated files: marked <code>linguist-generated</code> in a repo's .gitattributes</li>
-              <li>component packs (__pack/), vendored code (vendor/), .yarn/, minified files, the app's static/</li>
-              <li>test snapshots (<code>.snap</code>, __snapshots__/)</li>
               <li>
-                a file saying <code>GENERATED</code> in its first 800 characters, or with lines over 400 characters long
-                on average (bundles)
+                generated files: marked <code>linguist-generated</code> in a repo's .gitattributes, or saying
+                <code>GENERATED</code> on their first line
+              </li>
+              <li>component packs (__pack/), vendored code (vendor/), .yarn/, minified files, the app's static/</li>
+              <li>test snapshots (<code>.snap</code>, __snapshots__/), and files named <code>*.generated.*</code></li>
+              <li>bundles: lines over 400 characters long on average</li>
+              <li>
+                and what the settings file's <code>leaveOut</code> names: spell-ui's <code>src/jsx.ts</code> and
+                spell-parser's <code>two_sided_view.py</code>, generated with their marker a few lines down
               </li>
             </ul>
-            <ui-message state="warning" header="Some hand-written files are left out too">
+            <ui-message state="info" header="Only the first line counts">
               <ul>
                 <li>
-                  The <code>GENERATED</code> test also catches files that only TALK about generated files, e.g.
-                  <a
-                    href="../../spell-ui/src/styles/StyleGenerator.ts"
-                    target="src-spell-ui-src-styles-stylegenerator-ts"
-                    ><code>StyleGenerator.ts</code></a
-                  >,
-                  <a
-                    href="../../spell-ui/src/tools/FoundationTokens.ts"
-                    target="src-spell-ui-src-tools-foundationtokens-ts"
-                    ><code>FoundationTokens.ts</code></a
-                  >,
-                  <a href="../../spell-ui/src/tools/ReportTables.ts" target="src-spell-ui-src-tools-reporttables-ts"
-                    ><code>ReportTables.ts</code></a
-                  >, <code>colors.contrast.test.ts</code>.
+                  The first scan left out any file saying <code>GENERATED</code> in its first 800 characters, which also
+                  caught files that only talk about generated files, e.g. <code>StyleGenerator.ts</code>.
                 </li>
-                <li>About 1.5k lines of real code, mostly spell-ui's, are missing for it.</li>
+                <li>
+                  <code>epic loc</code> looks at the first line only, so those count now; a generated file with its
+                  marker further down goes in the settings file's <code>leaveOut</code>.
+                </li>
               </ul>
             </ui-message>
             <ui-accordion class="spell-aside" styled>
@@ -1566,18 +1569,27 @@
 
         <ui-section id="4-refresh-it" label="4. Refresh it" sticky collapsible dividing collapsed>
           <ui-icon slot="icon" name="arrows rotate"></ui-icon>
-          <p>Run the scan over the kit's folder, then copy its numbers into this page by hand.</p>
+          <p>
+            Run <code>epic loc</code> from any folder of the checkout: it rescans every repo and rewrites this page's
+            tables, its dates and the files left out, keeping the rest as written.
+          </p>
           <ui-accordion class="spell-code" styled>
-            <ui-title>Re-run the scan · 4 lines</ui-title>
+            <ui-title>Rescan · 3 lines</ui-title>
             <ui-content>
-              <pre><code class="language-sh">cd ~/www/spell/spell.epics/guides/loc/experiments
-node scan.mjs ~/www/spell          # the table, tab-separated, then the files left out
-node scan.mjs ~/www/spell --json   # the exact numbers, for the tooltips
-# then update sections 1 and 2, the lead's date and the footer</code></pre>
+              <pre><code class="language-sh">epic loc            # rescan, rewrite this page, print its links and the totals
+epic loc --print    # the by-repo table, in the terminal;  the page is left as it is
+epic loc --json     # the exact numbers, every column</code></pre>
             </ui-content>
           </ui-accordion>
           <ul>
-            <li>It needs nothing installed: plain node and git.</li>
+            <li>
+              It works in any project: the repo it runs in, and, in a project of several repos, every child repo cloned
+              in it.
+            </li>
+            <li>
+              <code>epic loc</code> replaced the first one-off scan, <code>experiments/scan.mjs</code>, which is kept
+              beside this page.
+            </li>
             <li>Each child repo is scanned at whatever branch it has checked out.</li>
             <li>Short numbers: 1.2k is 1,200, 1.4M is 1,400,000.</li>
           </ul>
@@ -1585,7 +1597,7 @@ node scan.mjs ~/www/spell --json   # the exact numbers, for the tooltips
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">Last checked 2026-10-25 against the main checkout: re-run the scan to update.</p>
+          <p class="meta">Last checked 2026-10-25 against the main checkout: <code>epic loc</code> to update.</p>
         </footer>
       </main>
     </div>
