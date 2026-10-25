@@ -3,7 +3,9 @@ id: r28
 epic: epic-engine
 from: elemental-spell-97 (6c7231b5)
 at: 2026-10-25T10:18-04:00
-status: new
+status: filed
+filed: P39 · Decimal Phase Numbers
+phase: p-decimal-phase-numbers
 ---
 
 ## Owen's words
