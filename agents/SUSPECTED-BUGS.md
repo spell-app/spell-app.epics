@@ -446,6 +446,13 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   (whitespace between), though `Symbols`' docs say "no space in-between" -- it never checks
   `token.whitespace` / `end` vs `next`.  Prove:  parse `* *` against a `Symbols("**")` rule.  Found planning the
   `markdown` epic (P4 there fixes it if confirmed).
+- [ ] Source maps written INTO the sources:  in epic `debut`'s worktree (2026-10-25, 10:06-10:08, as the editor's dev
+  server restarted after merging `main`), hand-written `spell-app/spaces/@spell/library/people/people.lib.ts` got
+  `//# sourceMappingURL=people.lib.ts.map` appended, and `people.lib.ts.map` and
+  `spaces/@spell/examples/Solitaire/Solitaire.spell.js.map` appeared beside them, untracked.
+  Suspect the source-map writer (`SourceMarks`, `SpellProject.ts`'s `sourceMappingURL`) treating a `.lib.ts` as
+  compiled output.  Prove:  start the editor on a project importing `people`, then `git status` in spell-app.
+  The strays were moved to `~/.spell-epic/ditched/`.
 
 ## py
 
