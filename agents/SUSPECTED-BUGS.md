@@ -676,6 +676,12 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- The page server's start-up compile of `@spell/library` writes `//# sourceMappingURL=people.lib.ts.map` onto the
+  committed `spaces/@spell/library/people/people.lib.ts`, and a `people.lib.ts.map` beside it (2026-10-25, seen in the
+  `elemental-spell` worktree after `spell server stop` / `start`, epic `elemental-spell` P16).  The `ts/lib` target
+  shouldn't carry a source map:  `tests/spaces/library/people.test.ts` then fails ("its committed people.lib.ts is what
+  its spell compiles to now").  Put back with `git checkout`;  the cause not looked at.
+
 - The dev editor draws nothing (2026-10-22, seen in the `spanish` worktree, epic `spanish` P13):  `app/index.html`'s
   `<script src="../src/app/index.tsx">` is served as written, and from `/` the browser asks for `/src/app/index.tsx`,
   which vite resolves inside its root, `app/`, and answers 404 ("Failed to load url /src/app/index.tsx", in

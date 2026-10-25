@@ -1012,6 +1012,10 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 ## app
 
+- 2026-10-25 · In an epic's worktree, http://localhost:3000 is the MAIN checkout's editor (its vite, `~/www/spell`),
+  answering every path with the app:  a worktree's own editor is on another port, in its `.spell-server.editor.json`.
+  And a new project group in `projectGroups.ts` needs the page server restarted (`spell server stop`, `start`):  its
+  API loaded the groups once. · Used the worktree's port;  restarted its server. · app (elemental-spell P16)
 - 2026-10-02 · `app`'s `browser` test project failed EVERY file on a cold `node_modules/.vite/vitest` cache once a test
   imported `$/app/editor`:  vite found `marked`, `semantic-ui-react`, lodash ... mid-run, re-optimized and reloaded
   ("Failed to fetch dynamically imported module");  a second run passed. · `optimizeDeps.entries: BROWSER_TESTS` in
