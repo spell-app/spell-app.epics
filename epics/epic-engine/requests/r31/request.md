@@ -3,7 +3,9 @@ id: r31
 epic: epic-engine
 from: 🚧 debut (ad62dff0)
 at: 2026-10-25T14:05-04:00
-status: new
+status: filed
+filed: P42 · Foldable Page Contents
+phase: p-foldable-page-contents
 images: image-1.png
 ---
 
