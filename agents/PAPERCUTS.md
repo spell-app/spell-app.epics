@@ -1003,6 +1003,12 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   package after `ui` unreviewed.  The test passes alone (26 of 26):  a focus timing under the whole run's load. ·
   Re-ran it alone, then each remaining package's own `yarn review`.  Worth a look:  the test reads focus once,
   where a poll would ride out the load (epic `people-and-orgs` P12). · ui
+- 2026-10-25 · `yarn test:visual` couldn't run at all in the `debut` worktree:  `linux` (the default) waited 180s for
+  Docker Desktop, which never started (`open -a Docker` neither);  `--os local` died loading its Playwright config,
+  `ERR_MODULE_NOT_FOUND` for `spell-ui/tools/environment`, then (with `.ts` added) `spell/element-tools/NodePackage`:
+  Playwright loads the config with plain node, which adds no extension, and repo-split P14's package-name imports
+  write none. · Checked the buttons by hand instead (headless screenshots, epic `debut` P16).  Fix:  the config's
+  import chain writes `.ts` (or Playwright loads it through `tsx`). · ui
 
 ## app
 
