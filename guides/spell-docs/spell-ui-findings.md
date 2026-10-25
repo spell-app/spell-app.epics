@@ -79,7 +79,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
    - symptom:  a nested accordion inherits the outer one's private aliases, box ones included
      (`--_ui-accordion-background` / `-shadow`), so it gets a second card with a shadow;  Fomantic's nested
      `.accordion` (no `ui`) has no box
-   - repro:  `<ui-accordion styled open="0"><ui-title>Outer</ui-title><ui-content><ui-accordion open="0">`
+   - repro:  `<ui-accordion appearance="styled" open="0"><ui-title>Outer</ui-title><ui-content><ui-accordion open="0">`
      `<ui-title>Nested</ui-title><ui-content>x</ui-content></ui-accordion></ui-content></ui-accordion>`
    - workaround:  none needed here (the docs nest only plain accordions)
    - suggest:  `.accordion:not(.ui) { background: none; box-shadow: none; border-radius: 0 }`
@@ -104,7 +104,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
 
 11. **`ui-accordion`:  `styled` hard-codes `width: 37.5em`, so `--ui-accordion-width` loses**
     - symptom:  the variation writes the private alias, beating the public token set on the host
-    - repro:  `<ui-accordion styled style="--ui-accordion-width: 100%">`:  still 37.5em
+    - repro:  `<ui-accordion appearance="styled" style="--ui-accordion-width: 100%">`:  still 37.5em
     - workaround:  `ui-accordion.spell-code::part(accordion) { width: 100% }`
     - suggest:  variations should default the public token (`var(--ui-accordion-width, 37.5em)`) instead of
       overriding it;  same pattern for the other variation-swapped tokens
@@ -119,7 +119,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
     - symptom:  Fomantic's `min-height: calc(0.92857em * 2 + 1em)` makes a one-item menu taller than its item;
       the `text` variation swaps the item padding / margin and the menu margin, and `active` (`selected`) draws
       its own background, so the public tokens can't reach them
-    - repro:  `<ui-menu vertical text><ui-item>One</ui-item></ui-menu>`
+    - repro:  `<ui-menu direction="vertical" appearance="text"><ui-item>One</ui-item></ui-menu>`
     - workaround:  `ui-menu::part(menu) { margin: 0; min-height: 0 }`, `ui-item::part(item) { padding; margin }`,
       `ui-item[selected]::part(item) { background }`
     - suggest:  drop the min-height for `vertical`, and read public tokens in the `text` variation
@@ -160,7 +160,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
 18. **`ui-segment`:  a top-`attached` `ui-label` takes no room, so it covers the segment's first line**
     - symptom:  Fomantic pads the element after a `.ui.attached.label:first-child`;  as elements the label and the
       next child are both slotted light DOM, and `::slotted()` takes only a compound selector, so nothing makes room
-    - repro:  `<ui-segment><ui-label attached="top">For</ui-label><ul><li>covered</li></ul></ui-segment>`
+    - repro:  `<ui-segment><ui-label attach="top">For</ui-label><ul><li>covered</li></ul></ui-segment>`
     - workaround:  `ui-grid.spell-pros-cons ul { margin-top: 2.2em }` (durable template, "Trade-offs")
     - suggest:  the segment pads its top while it has a top-attached label (`:has()` on the host, or a state the
       label sets), as Fomantic does
@@ -168,7 +168,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
 19. **`ui-tabs`:  a dark rule above the pane, even `basic`**
     - symptom:  `pointing secondary` tabs draw a dark line across the top of the active pane, under the tab bar's own
       rule, so the bar looks underlined twice;  `basic` drops the pane's box but not that line
-    - repro:  `<ui-tabs pointing secondary basic><ui-tab label="A">a</ui-tab><ui-tab label="B">b</ui-tab></ui-tabs>`
+    - repro:  `<ui-tabs appearance="pointing secondary basic"><ui-tab label="A">a</ui-tab><ui-tab label="B">b</ui-tab></ui-tabs>`
     - workaround:  none (cosmetic);  the templates use it as is
     - suggest:  a `secondary` / `basic` tab set's panes have no top border (Fomantic's `.ui.tab.segment` under a
       `secondary pointing menu` is usually `basic`)
@@ -183,7 +183,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
 21. **`ui-item`'s `icon` shorthand draws nothing in a `vertical text` `ui-menu`**
     - symptom:  an icon-only item (`icon`, no text) renders its `<svg>`, but the `.icon` box and the svg compute
       `0px` x `0px`
-    - repro:  `<ui-menu vertical text><ui-item href="#a" icon="lightbulb"></ui-item></ui-menu>` (with or without the
+    - repro:  `<ui-menu direction="vertical" appearance="text"><ui-item link="#a" icon="lightbulb"></ui-item></ui-menu>` (with or without the
       menu's `icon` variation)
     - workaround:  the rail slots a `<ui-icon name>` into the item instead (`buildRail()` in `spell-doc-runtime.js`)
     - suggest:  `agents/SUSPECTED-BUGS.md`, `## ui`;  measure the shorthand's svg in a menu example
@@ -240,7 +240,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
       centred on its own width:  the numbers and text start at a different x on every row (found 2026-10-03, in
       `rulex/rulex.html`, Owen:  "broken")
     - cause:  not traced;  short steps (`epics/markdown` "1.1 Shape") stay in one row and look fine
-    - repro:  `<ui-steps ordered>` with four `<ui-step header="a 35-character header" description="a 90-character
+    - repro:  `<ui-steps ordered>` with four `<ui-step heading="a 35-character header" description="a 90-character
       description">` in a 850px column
     - workaround:  a plain `<ol>`, which also lets identifiers be `<code>` (attributes can't hold markup)
     - suggest:  left-align a step's content when the steps stack
@@ -253,19 +253,19 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
       cell, whose `margin-right` is 0.25em (Fomantic's space before a label's text).  A button that centres that cell
       (`place-items: center`) centres cell AND margin, so the glyph sits half the margin left of centre:  0.125em,
       the trash 1.67px (a 13.3px icon), the expand arrows 1.27px (10px)
-    - `<ui-button circular>` doesn't:  an icon-only button's icon has no margin (`--_button-icon-margin: 0`) and a
+    - `<ui-button appearance="circular">` doesn't:  an icon-only button's icon has no margin (`--_button-icon-margin: 0`) and a
       1em box (`--_button-icon-width`), so the glyph is centred
       (measured in Chromium, the glyph's ink against the button's box, at 1200 and 390px, light and dark:  within
       0.37px for every icon the runtime and comments draw:  bullhorn, check, history, xmark, trash can, edit, arrows
       left right)
-    - workaround:  none needed:  every control the runtime and comments draw is a `<ui-button circular basic>` now
+    - workaround:  none needed:  every control the runtime and comments draw is a `<ui-button appearance="circular basic">` now
       (`src/AGENTS.md`, "Widgets" › buttons);  no CSS of ours sizes or moves an icon
     - suggest:  no margin on a `<ui-icon>` that's an element's only content (`:only-child`), or the margin only when a
       sibling follows it, so a lone icon centres wherever it's put
 
 ## Verified working (no action)
 
-- `<ui-button circular basic size="mini" icon="...">`:  the icon centred in the circle by the component, at every size
+- `<ui-button appearance="circular basic" size="mini" icon="...">`:  the icon centred in the circle by the component, at every size
   tried (25px mini, 24px in a `ui-buttons` group), light and dark (2026-10-19)
 
 - find-in-page / text fragments open a folded `ui-accordion` panel (native `<details>`), and the accordion
