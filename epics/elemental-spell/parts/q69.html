@@ -1,0 +1,82 @@
+<!-- plan-doc part:  #q69's details in elemental-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    Owen, 2026-10-24: "would be a lot cooler if we used our parser/tokenizer/rules to do the spellx parsing. Do a quick
+    analysis of what that would take."
+  </p>
+  <p>
+    Today (P3) spellx has its own hand-written reader, <code>SX.SpellxReader</code>: it finds the tags and copies the
+    bodies as raw text, and P6 would write that into <code>.spell</code> text for the real parser. The other way: spellx
+    becomes a THIRD STYLE of spell, beside sentences and the outline, read by spell's own tokenizer and rules.
+  </p></epic-question
+><epic-aside title="What it would take">
+  <ul>
+    <li>
+      <b>A tokenizer for .spellx</b>, a subclass as the markdown one is (<code
+        >MarkdownTokenizer extends P.Tokenizer</code
+      >): at the start of a line, <code>&lt;property "suit" ...&gt;</code>, <code>&lt;/&gt;</code> and
+      <code>/&gt;</code> become tag tokens, NOT one JSX token swallowing the rest. A tag line plus its indented body is
+      then a line and its block, exactly like an outline item; the closer is a check, the indentation already nests it.
+    </li>
+    <li>
+      <b>One rule per tag word</b> in a new <code>spellx</code> rule module, with English and Spanish syntax tables as
+      every module has (<code>spellx.en.ts</code> / <code>spellx.es.ts</code>), about 15 rules. Each builds the SAME
+      match data and AST as its code-spell twin (the property tag as <code>- its "suit" is one of ...</code>), so they
+      compile to identical JS by construction -- the way outline and sentences already do, checked the same way (<code
+        >compile(a) === compile(b)</code
+      >).
+    </li>
+    <li>
+      <b>Tag heads parsed by the real grammar:</b> <code>&lt;on {event}&gt;</code> is the event rule's syntax,
+      <code>&lt;if {condition}&gt;</code> the if rule's. Completion, hover and errors work in heads for free.
+    </li>
+    <li><b>Bodies parsed by today's rules</b>, in place: no text written in between.</li>
+    <li><b>Prose cells:</b> a fallback rule for a line inside a template that isn't a tag (markdown).</li>
+    <li>
+      <b>Drawings:</b> the hard part. The JSX tokenizer has to take control tags (<code>&lt;if ...&gt;</code>,
+      <code>&lt;otherwise&gt;</code>) inside markup, <code>&lt;/&gt;</code> closing any tag, and bare component names --
+      the JSX rewrite Q8 already allowed.
+    </li>
+  </ul> </epic-aside
+><epic-aside title="What it changes in the plan">
+  <ul>
+    <li>P3's reader is retired; its 5 fixtures and outline snapshots stay, as the structure the rules must produce.</li>
+    <li>
+      Q10 (".spellx =&gt; .spell =&gt; JS") changes: a .spellx file compiles straight from its own parse; the
+      <code>.spell</code> text becomes something you can LOOK at (written rule by rule, as the Spanish translator writes
+      another language), not a step in the compile.
+    </li>
+    <li>
+      P6 · Spellx into Spell becomes "Spellx Rules" (bigger); P7 · Drawings carries the JSX work; P8 · Editor and
+      Language Server mostly comes free (hover, completion, colours, folding, outline all read the match tree); P12's
+      converter is the same rule-by-rule writer, both ways.
+    </li>
+    <li>
+      Rough size: 14-18h for the rules path, against about 17-22h for P6 + P7 + P8 as planned, plus the 6-8h P3 already
+      spent (partly kept). About even; the result is one parser instead of two.
+    </li>
+  </ul> </epic-aside
+><epic-choices>
+  <epic-option letter="A" title="Spellx is a third style of spell, read by our own rules" recommended>
+    <p>
+      A spellx tokenizer, one rule per tag, en + es syntax; same AST as code spell; P3's reader retired, its tests kept.
+      One parser, native positions, the editor's features for free, translation for free. Cost: the JSX tokenizer work
+      for drawings, and Q10's compile path changes.
+    </p>
+  </epic-option>
+  <epic-option letter="B" title="Keep the reader for structure;  parse only heads and attributes with the rules">
+    <p>
+      The reader finds tags and bodies; heads (<code>&lt;on mouse down&gt;</code>, <code>&lt;if ...&gt;</code>) and
+      attribute values go through the grammar. Smaller change, but still two readers, and the editor features still need
+      P6's position map.
+    </p>
+  </epic-option>
+  <epic-option letter="C" title="Keep P3's reader as it is">
+    <p>As planned: .spellx is written into .spell text, then compiled. Simplest from here; two readers stay.</p>
+  </epic-option> </epic-choices
+><epic-net-effect
+  ><p>
+    A: the next phases are re-planned around spellx rules (P6 becomes Spellx Rules; P7 and P8 shrink or grow as above),
+    and Q10 is reversed. B or C: the plan stands.
+  </p></epic-net-effect
+>
