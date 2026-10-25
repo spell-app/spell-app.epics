@@ -1,0 +1,1397 @@
+<!-- plan-doc part:  #c16's details in outline-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  In a class definition, I'd like `- "suit" is a suit of its deck` to work without the it/its. What's the impact on
+  parseability?
+</p>
+<p>Also, it looks like the "where" is optional in `a "card" is a thing where:` correct?</p>
+<epic-reply
+  from="Claude"
+  at="2026-10-19 16:40"
+  re='In a class definition, I&apos;d like `- "suit" is a suit of its deck` to work without the it/its. What&apos;s the impact on parseability? Also, it looks like the "where" is optional in `a "card" is a thing where:` correct?'
+  ><p>Two answers:</p>
+  <ul>
+    <li>
+      dropping <code>it</code> / <code>its</code> doesn't work today, but it can, inside a type's outline body only, at
+      a small cost in speed and one real risk to readers
+    </li>
+    <li>and yes, <code>where</code> is optional: the colon is what opens the body</li>
+    <li>
+      I ran each line below through the real parser on <code>main</code> (a throwaway test, deleted after), with a deck
+      that keeps the suits, as in the live Solitaire.
+    </li>
+    <li>
+      <b>This reverses part of an earlier answer:</b> the property-shape decision (<a href="#q4">Q4</a>) chose "always
+      <code>its</code>"; what you ask for is its option B, "<code>its</code> optional".
+    </li>
+  </ul>
+
+  <h4>What a bullet in a type's body accepts today</h4>
+  <p>
+    Every member rule has a second way of writing it, with <code>it</code> or <code>its</code> in place of
+    <code>a card</code>.
+  </p>
+  <ul>
+    <li>those words only count directly inside a type's outline body</li>
+  </ul>
+  <ul>
+    <li>
+      the words <code>it</code> and <code>its</code> are two small rules,
+      <a
+        href="../../../spell-lang/src/spell/rules/types/SubjectRule.ts"
+        target="src-spell-lang-src-spell-rules-types-subjectrule-ts"
+        ><code title="spell-lang/src/spell/rules/types/SubjectRule.ts">SubjectRule</code></a
+      >; each answers "the type this body is about"
+    </li>
+    <li>
+      12 syntaxes use them, in 8 rule files; the property ones are in
+      <a
+        href="../../../spell-lang/src/spell/rules/classes/DefinePropertyHas.ts"
+        target="src-spell-lang-src-spell-rules-classes-definepropertyhas-ts"
+        ><code title="spell-lang/src/spell/rules/classes/DefinePropertyHas.ts">DefinePropertyHas</code></a
+      >
+    </li>
+    <li>a line naming no subject matches none of them, so it's "Don't understand"</li>
+  </ul>
+  <epic-code title="every outline syntax with it / its · 12 lines" language="ts">
+    <pre>
+// DefinePropertyHas.ts
+"{type:subject_it} has (a|an|a property)? {property:member_words} {specifier:type_specifier}?"
+"{type:subject_its} {property:quoted_member} is {specifier:outline_specifier}"
+"{type:subject_its} {property:member_words} is {specifier:outline_specifier}"
+// PropertyValueGetter.ts
+"{type:subject_its} {property:quoted_member} is :? {expression_body}?"
+"{type:subject_its} {property:member_words} is :? {expression_body}?"
+// ItsQuotedProperty.ts (its "color" is red if ... otherwise ...)
+"{type:subject_its} {property:quoted_member}"
+"{type:subject_its} {property:member_words}"
+// QuotedPropertyFormula.ts, QuotedTypeExpression.ts (phrases)
+"{type:subject_it} {alias:text}"
+"{type:subject_it} {signature:quoted_method_signature} (if|is)? :? {expression_body}?"
+// BelongsToOne.ts, SavedInline.ts, SavedInFile.ts
+"{type:subject_it} belongs to (one|a|an) {list:type}"
+"{type:subject_it} is saved inline"
+"{type:subject_it} is saved in its own file"</pre>
+  </epic-code>
+
+  <h4>Each line, with and without it / its</h4>
+  <ui-table compact celled unstackable>
+    <table>
+      <thead>
+        <tr>
+          <th>The bullet</th>
+          <th>Today</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>- its "suit" is a suit of its deck</code></td>
+          <td>works: the card's suit is one of the deck's suits</td>
+        </tr>
+        <tr>
+          <td><code>- "suit" is a suit of its deck</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "suit" is a suit</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "suit" is one of clubs or spades</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "color" is red if ... otherwise it is black</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "short name" is: its rank</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- has a name as text</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- belongs to a pile</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- is saved inline</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "is a (suit)"</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- "is face up" if its direction is up</code></td>
+          <td>
+            <b>no error, and wrong:</b> it's read as one line of a getter, <code>value if condition</code>, and lands at
+            the file's top level, outside the class (<a href="#i9">I9</a>)
+          </td>
+        </tr>
+        <tr>
+          <td><code>- suit is one of clubs or spades</code> (no quotes either)</td>
+          <td>read as setting a variable, <code>suit is one</code>; then "Don't understand of clubs or spades"</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <epic-code title="the silent misreading · 6 lines" language="ts">
+    <pre>
+// a "card" is a thing where:
+//   - its direction is up or down
+//   - "is face up" if its direction is up
+export class Card extends Thing { ...direction... }
+if (this.direction == "up") return "is face up"
+// and at the top level, `red if x is 1` gives  if (x === 1) return "red"</pre>
+  </epic-code>
+
+  <h4>Making the subject implicit, in a body only</h4>
+  <p>
+    Each of the 12 syntaxes gets a twin with no subject. The twin matches only directly inside a type's outline body,
+    and takes its type from the body, exactly as <code>it</code> does now.
+  </p>
+  <ul>
+    <li>
+      A bullet needs a quoted name, or a verb first, to drop its subject.
+      <ul>
+        <li>works: <code>- "suit" is ...</code>, <code>- "is face up" if ...</code></li>
+        <li>
+          works: <code>- has a name as text</code>, <code>- belongs to a pile</code>, <code>- is saved inline</code>
+        </li>
+        <li>
+          NOT a bare name: <code>- suit is one of ...</code> already means "set the variable suit" (last row above). So
+          a property line keeps its quotes or its <code>its</code>, never neither.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Outside a body nothing changes.
+      <ul>
+        <li>at the top level, <code>"suit" is ...</code> stays an error</li>
+        <li>
+          inside a method or getter in the body, <code>it</code> is the card, as now; I tried
+          <code>"hi" is its name</code> in a method: still an error
+        </li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>What it could collide with</h4>
+  <ul>
+    <li>
+      <b>A kind of value, one word away.</b> In the deck's body, <code>- "suits" as one of clubs, ...</code> makes a new
+      kind of thing, the suit, kept on the deck.
+      <ul>
+        <li><code>- "suits" is one of clubs, ...</code> would make a property of each deck instead</li>
+        <li>only <code>as</code> versus <code>is</code> tells them apart: the cost Q4 gave option B</li>
+        <li>guard: hovering says what the line was read as (the <b>Reads as</b> line)</li>
+      </ul>
+    </li>
+    <li>
+      <b>The getter line, <code>value if condition</code>:</b> a phrase beats it (declaration priority), so
+      <code>- "is face up" if ...</code> would become the phrase you meant.
+      <ul>
+        <li>the misreading above should be fixed anyway (<a href="#i9">I9</a>)</li>
+      </ul>
+    </li>
+    <li>
+      <b>Statements starting with a quoted word:</b> the value kind is the only one. Others start with a word:
+      <code>if "a" is x:</code>, <code>to "draw its front":</code>.
+    </li>
+    <li>
+      <b>Nested bullets:</b> a bullet under a bullet is still about the type, not the line above it.
+      <ul>
+        <li>I tried <code>- it has a rank</code> under <code>- it has a name</code>: both became card properties</li>
+        <li>
+          with the subject left out, <code>- "name" is text</code> nested under <code>- its "deck" is a deck</code>
+          looks like the deck's name; it would be the card's
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Getter or property:</b> <code>- "x" is total</code> has the same reading as <code>its "x" is total</code> (a
+      getter, as now). Nothing new.
+    </li>
+  </ul>
+
+  <h4>Ambiguity and speed</h4>
+  <ul>
+    <li>
+      <b>No new "two fit" guess</b> (the guessing caveat, <a href="#c2">C2</a>). A body is about exactly one type, so
+      the left-out subject always has one answer.
+    </li>
+    <li>The new guess is the shape of the line: <code>is</code> means a property, <code>as</code> a kind.</li>
+    <li>
+      <b>Speed</b> (the parser-speed caveat, <a href="#c5">C5</a>): each syntax gives up at its first word if that word
+      can't start it.
+      <ul>
+        <li>the twins start with a quoted word, or with <code>has</code>, <code>belongs</code> or <code>is</code></li>
+        <li>an ordinary line pays one cheap check per twin: about 12 more, beside some 730 rule tests</li>
+        <li>my guess: 1-2% slower; <code>spell speed --against main</code> says for sure</li>
+      </ul>
+    </li>
+    <li>
+      The hover's <b>Reads as</b> line finds the <code>it</code> / <code>its</code> word in the line to spell it out.
+      With no such word, it has to insert one: <code>- "suit" is a suit</code> reads as
+      <code>the "suit" of a card is a suit</code>.
+    </li>
+  </ul>
+
+  <h4>The "its" in "of its deck" stays</h4>
+  <ul>
+    <li>
+      It isn't the line's subject: it says WHOSE deck, the card's.
+      <ul>
+        <li><code>a suit of deck</code> isn't English, and is "Don't understand" today</li>
+        <li><code>a suit of the deck</code> could be taught too; it's a one-line syntax</li>
+      </ul>
+    </li>
+    <li>
+      Those words are only for the reader.
+      <ul>
+        <li>the kind, a suit, already says the deck keeps the list</li>
+        <li><code>- its "suit" is a suit</code> compiles the same</li>
+        <li>so does <code>a suit of its banana</code>: never checked, which I've logged (<a href="#i10">I10</a>)</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>Is "where" optional? Yes</h4>
+  <p>The heading's last word is one small rule, <code>with_nested_statements</code>, and the word in it is optional.</p>
+  <ul>
+    <li>the colon is required</li>
+    <li>where and with mean the same (the openers decision, <a href="#q7">Q7</a>)</li>
+  </ul>
+  <epic-code title="WithNestedStatements.ts · 1 line" language="ts"><pre>syntax: "(where|with)? :"</pre></epic-code>
+  <ui-table compact celled unstackable>
+    <table>
+      <thead>
+        <tr>
+          <th>The heading, then <code>- it has a name as text</code></th>
+          <th>Today</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>a "card" is a thing where:</code></td>
+          <td>works</td>
+        </tr>
+        <tr>
+          <td><code>a "card" is a thing with:</code></td>
+          <td>works</td>
+        </tr>
+        <tr>
+          <td><code>a "card" is a thing:</code></td>
+          <td>works</td>
+        </tr>
+        <tr>
+          <td><code>a card is a thing:</code> (no quotes)</td>
+          <td>works; the quotes on the type's name are optional too</td>
+        </tr>
+        <tr>
+          <td><code>a "deck" is a list of cards:</code></td>
+          <td>works</td>
+        </tr>
+        <tr>
+          <td><code>a card is a thing where</code> (no colon)</td>
+          <td>"Don't understand where", and each bullet errors</td>
+        </tr>
+        <tr>
+          <td><code>a card is a thing</code> (nothing)</td>
+          <td>
+            the type is declared; each bullet says
+            <code>"it" and "its" mean a type only in its outline, indented under e.g. "a card is a thing where:"</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ul>
+    <li>
+      That last message is a little off: the bullet IS indented under the type. It could say "end the line above with a
+      colon", in a few lines of
+      <a href="../../../spell-lang/src/spell/rules/BlockLine.ts" target="src-spell-lang-src-spell-rules-blockline-ts"
+        ><code title="spell-lang/src/spell/rules/BlockLine.ts">BlockLine</code></a
+      >, if you want it.
+    </li>
+  </ul>
+
+  <h4>The ways to go</h4>
+  <epic-choices chosen="A"
+    ><epic-option letter="A" title="Optional, for quoted names and verbs, in a body" recommended
+      ><ul>
+        <li>every bullet in the table above works without <code>it</code> / <code>its</code>, except a bare name</li>
+        <li>each of the 12 subject syntaxes gets a twin without one; the rules take their type from the body</li>
+        <li>the hover's long form learns to put the subject back</li>
+        <li><code>it</code> / <code>its</code> keep working: both styles, the same output</li>
+        <li>cost: about a day; some 150 lines in 8 rule files, about 15 tests</li>
+        <li>also changes: the parsing map, the outline guide, the syntax table, the highlighter bundle</li>
+        <li>cost: the <code>"suits" as</code> / <code>"suits" is</code> pair, one word apart</li>
+        <li>why recommended: it's what you asked for; the quotes keep it from colliding with ordinary statements</li>
+      </ul>
+      <epic-code title="the card, written this way · 5 lines" language="spell">
+        <pre>
+a "card" is a thing:
+	- belongs to a deck
+	- "suit" is a suit of its deck
+	- "is a (suit)"
+	- "is face up" if its direction is up</pre>
+      </epic-code></epic-option
+    ><epic-option letter="B" title="Retry the line with it / its put in front"
+      ><ul>
+        <li>a bullet in a body that didn't parse is read again, with an invisible <code>its</code> before it</li>
+        <li>gain: one file, about 40 lines; no new syntaxes, so no speed cost</li>
+        <li>
+          cost: a line that parses WRONG today is never retried: <code>- "is face up" if ...</code> stays the misreading
+        </li>
+        <li>cost: the invisible word isn't in the text, so hover, colouring and error positions need special cases</li>
+      </ul></epic-option
+    ><epic-option letter="C" title="Keep it / its required (Q4 as decided)"
+      ><ul>
+        <li>a bullet with a quoted name and no <code>its</code> says what to write</li>
+        <li>e.g. <code>a property starts with its: its "suit" is ...</code></li>
+        <li>cost: small, about 20 lines, like the hint a line outside its body gets now</li>
+        <li>cost: one more word on most lines</li>
+      </ul></epic-option
+    ></epic-choices
+  >
+  <p>Whichever you pick, the misreading (<a href="#i9">I9</a>) should be fixed first. Nothing is changed yet.</p>
+
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        in a type's body, <code>- "suit" is a suit of its deck</code>, <code>- has a name as text</code> and
+        <code>- "is face up" if ...</code> work, and compile as the <code>its</code> forms do
+      </li>
+      <li><code>its</code> stays required before an unquoted name: <code>- its rank is a number</code></li>
+      <li>the <code>its</code> in <code>of its deck</code> stays</li>
+      <li>the property-shape decision (Q4) changes from "always its" to "its optional"</li>
+      <li>the parser gets about 1-2% slower, to be measured</li>
+      <li><code>where:</code>, <code>with:</code> and a bare <code>:</code> stay the same; the colon stays required</li>
+      <li>
+        logged on the way: I9 (the getter line read anywhere), I10 (the words after "a suit of its" never checked)
+      </li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
+<epic-reply from="Owen" at="2026-10-19 16:49" re="revisit soon"
+  ><p>
+    seems like: - indented properties without a colon should work. - `suit is a suit of its deck` should just work --
+    we're defining a class, so loose variables can be inferred to be properties of the class? This is kinda what
+    Solitaire.spell is doing where it creates the class (`a game is an app`) then declares bits below it (`a game has a
+    score as a number`) -- I'd like to move that to outline style as well. I note that we'd maybe need to reorganize
+    that file so the foundation/etc classes are not mixed in with the game semantics. Maybe we can "re-open" the
+    "defining class mode" with `a game:\n\t-state is:`... - Think about how we could reorganize Solitaire.spell in the
+    outline-solitaire branch with these semantics and present a strawman. - I don't like `its "value" is the position of
+    its rank in deck ranks` &lt;== seems like it should be `its "value" is the position of its rank in its deck ranks`
+  </p></epic-reply
+><epic-reply
+  from="Claude"
+  at="2026-10-19 17:20"
+  re='seems like: - indented properties without a colon should work. - `suit is a suit of its deck` should just work -- we&apos;re defining a class, so loose variables can be inferred to be properties of the class? This is kinda what Solitaire.spell is doing where it creates the class (`a game is an app`) then declares bits below it (`a game has a score as a number`) -- I&apos;d like to move that to outline style as well. I note that we&apos;d maybe need to reorganize that file so the foundation/etc classes are not mixed in with the game semantics. Maybe we can "re-open" the "defining class mode" with `a game:\n\t-state is:`... - Think about how we could reorganize Solitaire.spell in the outline-solitaire branch with these semantics and present a strawman. - I don&apos;t like `its "value" is the position of its rank in deck ranks` <== seems like it should be `its "value" is the position of its rank in its deck ranks`'
+  ><p>
+    All of it can work, and none of it collides with anything a project writes today. The one change I'd make is to your
+    last point: <code>its deck ranks</code> doesn't match what <code>deck ranks</code> is, and a shorter line says it
+    better.
+  </p>
+  <ul>
+    <li>
+      I ran every line below through today's parser, on a scratch copy of the outline-solitaire example (deleted after).
+    </li>
+    <li>
+      The strawman of Solitaire.spell is at the end, with each line that wouldn't parse today marked.
+      <ul>
+        <li>
+          translated back line by line into today's sentence style, it compiles to the same JavaScript as today's file,
+          give or take headings and comments
+        </li>
+        <li>both of the project's tests pass</li>
+      </ul>
+    </li>
+    <li>Six phases would build it all, about 17 to 24 hours (the last section).</li>
+    <li>Found on the way and logged: <a href="#i13">I13</a> and <a href="#i14">I14</a>.</li>
+  </ul>
+
+  <h4>1. A heading without a colon</h4>
+  <p>
+    Today the colon is what makes the indented lines a type's body. Without it, they're read as if they weren't indented
+    at all.
+  </p>
+  <ui-table compact celled unstackable>
+    <table>
+      <thead>
+        <tr>
+          <th>The lines</th>
+          <th>Today</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>a card is a thing</code>, then <code>- its "suit" is ...</code> indented under it</td>
+          <td>an error on each bullet: "it" and "its" mean a type only in its outline</td>
+        </tr>
+        <tr>
+          <td><code>a game is an app</code>, then <code>print 1</code> indented under it</td>
+          <td>runs at the top level, as if it weren't indented, with no error</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ul>
+    <li>
+      The change: a type's heading takes the indented block under it as its body, colon or not.
+      <ul>
+        <li>
+          one method of
+          <a
+            href="../../../spell-lang/src/spell/rules/classes/TypeDeclaration.ts"
+            target="src-spell-lang-src-spell-rules-classes-typedeclaration-ts"
+            ><code title="spell-lang/src/spell/rules/classes/TypeDeclaration.ts">TypeDeclaration</code></a
+          >, which today takes a body only when <code>where:</code> or <code>:</code> matched
+        </li>
+        <li><code>where</code> without its colon could open the body too</li>
+      </ul>
+    </li>
+    <li>
+      What it collides with: only the second row, an indented block under a heading that today runs as top-level code.
+      <ul>
+        <li>
+          I searched every spell file in the repo's examples, its test projects and your spell-spaces folder: no heading
+          without a colon has an indented line under it
+        </li>
+        <li>
+          the one difference if somebody did: a variable set in a body isn't exported, so another project can't import
+          it
+        </li>
+      </ul>
+    </li>
+    <li>Cost: an hour or two, with tests.</li>
+  </ul>
+  <epic-code title="TypeDeclaration.ts · the change · 5 lines" language="ts">
+    <pre>
+/** A type's heading takes the indented block under it as its body, with or without `where:` or `:`. */
+takesNestedBody(match: P.Match): boolean {
+  return true
+}
+// today SpellStatement's asks whether the `where:` / `:` at the end of the line matched</pre>
+  </epic-code>
+
+  <h4>2. A bare name in a type's body is a property</h4>
+  <p>
+    Yes. Directly in a type's body, a line like <code>suit is a suit of its deck</code> has no other sensible reading,
+    so it can declare the property.
+  </p>
+  <ui-table compact celled unstackable>
+    <table>
+      <thead>
+        <tr>
+          <th>A bullet in a card's body</th>
+          <th>Today</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>- suit is a suit of its deck</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- score is a number</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- name is text</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- face is up or down</code></td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td><code>- x is 1</code></td>
+          <td>sets a variable, kept beside the class (<code>const x = 1</code>); lines below the body can read it</td>
+        </tr>
+        <tr>
+          <td><code>- tag is "hi"</code></td>
+          <td>the same: a variable</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ul>
+    <li>
+      So the only meaning today is the last two rows: a variable set from inside a body.
+      <ul>
+        <li>no project does that</li>
+        <li>bodies are twelve days old; only the outline-solitaire card and deck use them, and their test copy</li>
+      </ul>
+    </li>
+    <li>
+      The change: twins of the <code>its</code> lines, with a bare name where <code>its</code> was.
+      <ul>
+        <li>a property: <code>- suit is a suit of its deck</code>, <code>- score is a number</code></li>
+        <li>a getter: <code>- state is:</code> with a block under it, or <code>- name is: its rank + ...</code></li>
+        <li><code>are</code> as well as <code>is</code>: <code>- foundations are a list of piles</code></li>
+        <li>only directly in a body: inside a getter or a method there, <code>total is 0</code> still sets a local</li>
+        <li>outside a body, nothing changes</li>
+      </ul>
+    </li>
+  </ul>
+  <h5>What's lost, and what could be misread</h5>
+  <ul>
+    <li><b>Setting a variable from a body line.</b> Write <code>set x to 1</code>, which stays a variable.</li>
+    <li>
+      <b>A line means something else once it moves.</b> Inside a body it's a property, outside it a variable.
+      <ul>
+        <li>guard: hovering says what the line was read as, with the subject put back</li>
+        <li>e.g. <code>- suit is a suit</code> reads as <code>the "suit" of a card is a suit</code></li>
+      </ul>
+    </li>
+    <li>
+      <b>A first word that starts a statement.</b> <code>- if x is 1</code> must stay an <code>if</code>.
+      <ul>
+        <li>the twin refuses a first word a built-in statement starts with: if, set, for, return ...</li>
+        <li>a property whose name starts with one of them keeps its quotes</li>
+      </ul>
+    </li>
+    <li>
+      <b>A name that's also a type or a variable:</b> no clash.
+      <ul>
+        <li>
+          <code>- deck is a deck</code> declares the card's deck, even with a variable called deck at the top level
+        </li>
+        <li>
+          a name never starts with "the", "a" or "of", so <code>- the "color" of a suit is:</code> keeps its meaning
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>A getter, or a starting value?</b> <code>- score is 0</code> is a getter that's always 0, as
+      <code>its score is 0</code> is today; it's easy to write meaning "starts at 0".
+      <ul>
+        <li>guard: a warning when a getter never reads <code>it</code>: "score is always 0: did you mean a number?"</li>
+      </ul>
+    </li>
+    <li>
+      <b>A kind of value, one word away:</b> the risk the property-shape decision (<a href="#q4">Q4</a>) named, now
+      without quotes too.
+      <ul>
+        <li><code>- "suits" as one of clubs, ...</code> on the deck makes the kind, suit</li>
+        <li><code>- suits are clubs, ...</code> would make each deck's own property</li>
+        <li>the kind keeps needing its quotes, so a bare <code>suits as one of ...</code> stays an error</li>
+      </ul>
+    </li>
+  </ul>
+  <ul>
+    <li>
+      Speed: the quoted twins give up at their first word, but this one can start with any word.
+      <ul>
+        <li>it gives up at once outside a body: one check of where the line is</li>
+        <li><code>spell speed --against main</code> says how much</li>
+      </ul>
+    </li>
+    <li>
+      Cost: about half a day, on top of option A's twins: the twins, the guard on the first word, tests, the guide.
+    </li>
+  </ul>
+  <epic-choices
+    ><epic-option letter="A" title="Any bare name, in a body" recommended
+      ><ul>
+        <li>a property and a getter both: <code>- suit is a suit</code>, <code>- state is:</code></li>
+        <li>with the guards above: a statement's first word, the getter that never reads it</li>
+        <li>why recommended: it's what you asked for, and nothing today means anything else there</li>
+      </ul></epic-option
+    ><epic-option letter="B" title="Only for a declaration or a block"
+      ><ul>
+        <li>
+          bare when what follows says what it holds (<code>- score is a number</code>) or opens a block (<code
+            >- state is:</code
+          >)
+        </li>
+        <li>a one-line getter keeps its <code>its</code> or quotes: <code>- its name is: its rank + ...</code></li>
+        <li>gain: <code>- score is 0</code> can't be a getter by accident</li>
+        <li>cost: a rule to remember about when the name may be bare</li>
+      </ul></epic-option
+    ><epic-option letter="C" title="No bare names"
+      ><ul>
+        <li>option A as you picked it: quoted names and verbs only</li>
+        <li><code>- suit is ...</code> says to write <code>- "suit" is ...</code></li>
+      </ul></epic-option
+    ></epic-choices
+  >
+
+  <h4>3. Re-opening a type: <code>a game:</code></h4>
+  <p>
+    <code>a game:</code> with bullets under it adds to a type declared elsewhere, exactly as its first body does.
+    Nothing reads <code>a game:</code> today, so it collides with nothing.
+  </p>
+  <ul>
+    <li>
+      Today:
+      <ul>
+        <li><code>a game:</code> and <code>a game where:</code> are both "Don't understand", and so is each bullet</li>
+        <li>
+          <b
+            >declaring it again instead, <code>a game is an app where:</code>, compiles two classes called Game with no
+            error, and the program never loads</b
+          >
+          (<a href="#i13">I13</a>)
+        </li>
+      </ul>
+    </li>
+    <li>
+      The syntax: <code>a game:</code>, or with <code>where</code> or <code>with</code> before the colon: the same
+      openers as a heading (the openers decision, <a href="#q7">Q7</a>).
+      <ul>
+        <li>
+          here the colon stays required, unlike a heading's (point 1): <code>a game</code> alone on a line reads as a
+          fragment, and a stray one would quietly take the lines under it
+        </li>
+      </ul>
+    </li>
+    <li>
+      How it fits with <code>a game is an app where:</code>:
+      <ul>
+        <li>the body is the same as the first one: <code>it</code> and <code>its</code>, quoted names, bare names</li>
+        <li>
+          in the same file, its bullets are moved into the class wherever they are, as the one-line sentences are today
+        </li>
+        <li>
+          in a later file, they're added onto the class, as Solitaire.spell's <code>to play a card</code> already is
+          (onto the card, from Card.spell)
+        </li>
+      </ul>
+    </li>
+    <li>
+      <code>a game has a score as a number</code> stays: it's the sentence style, and both styles stay (<a href="#q1"
+        >Q1</a
+      >). One line adds one thing; a re-opened body adds several.
+    </li>
+    <li>
+      A type that doesn't exist is an error naming it.
+      <ul>
+        <li>the type must be declared where the line can see it: anywhere in the same file, or in an earlier one</li>
+        <li>e.g. <code>a gmae:</code> says there's no type "gmae", and how to declare one</li>
+        <li>
+          safer than the one-line sentence: <code>a gmae has a score as a number</code> quietly adds a property to a
+          class Gmae that nothing declares, and the program crashes as it loads
+        </li>
+        <li>
+          capitals (<a href="#i12">I12</a>): <code>a Game:</code> finds the game, as a first capital does today;
+          <code>a GAME:</code> is "no type GAME" until I12's fix makes it a warning naming the game
+        </li>
+      </ul>
+    </li>
+    <li>
+      Why a file needs it: spell reads top to bottom.
+      <ul>
+        <li>a getter reading a variable, or a drawing calling a move, must come after them</li>
+        <li>
+          I tried <code>to draw a stock-pile</code> calling <code>play from the stock pile</code> above that move:
+          "Don't understand play from the stock pile"
+        </li>
+        <li>
+          today's file puts the game's state after the table for that reason; re-opening lets it keep the outline style
+        </li>
+      </ul>
+    </li>
+    <li>Cost: half a day: one rule, its error, I13's error, tests, the guide.</li>
+  </ul>
+
+  <h4>4. <code>in deck ranks</code>, or <code>in its deck ranks</code></h4>
+  <p>
+    <code>deck ranks</code> isn't a loose variable: it's the deck kind's own list of ranks, the same for every deck.
+    <code>its deck ranks</code> doesn't parse, and it would mean something a little different: this card's deck's ranks.
+  </p>
+  <ul>
+    <li>
+      <code>deck ranks</code> is a type, then one of its lists: the deck's <code>"ranks" as one of ...</code> declares
+      it, and it compiles to <code>Deck.Ranks</code>.
+      <ul>
+        <li>
+          the rule:
+          <a
+            href="../../../spell-lang/src/spell/rules/classes/ClassMember.ts"
+            target="src-spell-lang-src-spell-rules-classes-classmember-ts"
+            ><code title="spell-lang/src/spell/rules/classes/ClassMember.ts">class_member</code></a
+          >
+        </li>
+        <li>it was there before the outline, e.g. <code>card suits</code></li>
+      </ul>
+    </li>
+  </ul>
+  <ui-table compact celled unstackable>
+    <table>
+      <thead>
+        <tr>
+          <th>The end of the card's value line</th>
+          <th>Today</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>... in deck ranks</code> (Card.spell now)</td>
+          <td>works: the rank's place in <code>Deck.Ranks</code>; the test says 12 for a queen</td>
+        </tr>
+        <tr>
+          <td><code>... in its deck ranks</code></td>
+          <td>"Don't understand ranks": <code>its deck</code> is read alone, as the card's deck</td>
+        </tr>
+        <tr>
+          <td><code>... in its deck's ranks</code></td>
+          <td>"Don't understand 's ranks": spell has no <code>'s</code></td>
+        </tr>
+        <tr>
+          <td><code>... in the ranks of its deck</code></td>
+          <td>
+            works once the card has <code>- it belongs to a deck</code>: the same <code>Deck.Ranks</code>. Without it,
+            it reads the card's deck property, which nothing sets, and fails when it runs
+          </td>
+        </tr>
+        <tr>
+          <td><code>- its "value" is the position of its rank</code></td>
+          <td>
+            a warning ("A rank never says it has a position"), then a crash when it runs: the rank has no position yet
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ul>
+    <li>Every reading that works finds the same list: a deck's ranks are the kind's, not one deck's.</li>
+    <li>
+      So <code>its deck</code> only adds a link the card doesn't need.
+      <ul>
+        <li>cards don't keep their deck today: Card.spell left out the sketch's <code>it belongs to a deck</code></li>
+        <li>a card belongs to its pile instead</li>
+        <li>adding the deck would be safe: I tried a card in a deck and in a pile at once, and both kept it</li>
+      </ul>
+    </li>
+    <li>
+      Shortest: <code>- value is the position of its rank</code>.
+      <ul>
+        <li>a rank is a kind of value, and its kind knows the list it's in, the deck's ranks</li>
+        <li>so "the position of" a value can find it there: a small change, and no deck needed</li>
+      </ul>
+    </li>
+    <li>
+      <code>its deck ranks</code> can be taught too, as you wrote it, reading as <code>the ranks of its deck</code>.
+      <ul>
+        <li>cost: two words after <code>its</code> get a second meaning</li>
+        <li>
+          <code>its short name</code> is one property; <code>its deck ranks</code> would be a property, then its list
+        </li>
+        <li>only what's declared tells them apart</li>
+      </ul>
+    </li>
+    <li>
+      Dealing.spell's <code>for each rank in deck ranks</code> is in the deck's own method, so it could say
+      <code>its ranks</code>.
+      <ul>
+        <li>
+          but not <code>its suits</code> in the loop inside it: there <code>its</code> is the rank, and nothing warns
+          (<a href="#i14">I14</a>)
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <epic-choices
+    ><epic-option letter="A" title="the position of its rank" recommended
+      ><ul>
+        <li><code>- value is the position of its rank</code></li>
+        <li>"the position of" a value of a kind finds it in the kind's list</li>
+        <li>cost: small; a couple of hours with tests</li>
+        <li>why recommended: shortest, and it says what the value is without going through a deck</li>
+      </ul></epic-option
+    ><epic-option letter="B" title="its deck ranks, as you wrote it"
+      ><ul>
+        <li><code>- value is the position of its rank in its deck ranks</code></li>
+        <li>the card gets <code>- belongs to a deck</code></li>
+        <li>cost: a new reading of two words after <code>its</code>, beside the multi-word property names</li>
+      </ul></epic-option
+    ><epic-option letter="C" title="the ranks of its deck"
+      ><ul>
+        <li><code>- value is the position of its rank in the ranks of its deck</code></li>
+        <li>works today, once the card has <code>- belongs to a deck</code></li>
+        <li>cost: the longest line</li>
+      </ul></epic-option
+    ></epic-choices
+  >
+
+  <h4>5. The strawman: Solitaire.spell reorganised</h4>
+  <p>
+    The same game, in parts that each use only what's above them: the game, the kinds of pile, the table, what the game
+    knows, playing, drawing.
+  </p>
+  <ul>
+    <li>
+      What moved:
+      <ul>
+        <li>the four kinds of pile, each with what it may take or give up, together before any pile is made</li>
+        <li>the table, every pile and the deck made as the game loads: today it's interleaved with the kinds</li>
+        <li>the game's state, in a re-opened <code>a game:</code> after the table it reads</li>
+        <li>the drawing, last, after the moves the stock's placeholder calls</li>
+        <li>the moves themselves don't change</li>
+      </ul>
+    </li>
+    <li>
+      What's new:
+      <ul>
+        <li>14 lines, each marked <code>// new:</code> at its end</li>
+        <li>5 more fail today only because the line above them does: the bodies of two of the new lines</li>
+        <li>
+          the guard lines need option A's verbs to cover <code>can take</code> and <code>can give up</code>, which have
+          no <code>it</code> form at all today
+        </li>
+      </ul>
+    </li>
+    <li>
+      Checked: with each new line swapped for its sentence-style twin, it compiles to today's JavaScript.
+      <ul>
+        <li>the differences are the headings, the comments, and the foundation's symbol, now declared</li>
+        <li>that clears one of today's two warnings; the other, droppable, is cleared by Pile.spell below</li>
+        <li>both tests pass</li>
+      </ul>
+    </li>
+  </ul>
+  <epic-code title="Solitaire.spell · strawman · 280 lines" language="spell">
+    <pre>
+## Klondike Solitaire Card Game
+-- See [wikipedia](https://en.wikipedia.org/wiki/Klondike_(solitaire)) for rules &amp; naming conventions.
+// What's where, top to bottom:  each part uses only what's above it.
+//   the game:  what it has
+//   the piles:  each kind, and what it may take or give up  (could be its own file, before this one)
+//   the table:  one of each pile, laid out as the game loads
+//   what the game knows:  its state, which reads the table
+//   playing:  the moves
+//   drawing
+//   start
+
+
+## The game:  what it has
+a game is an app where:
+	- score is a number                                          // new: a bare name declares a property
+
+
+## The piles:  each kind, and what it may take or give up
+
+// the stock:  cards not played yet
+a stock-pile is a pile                                          // new: no colon, its bullets are still its body
+	- can give up a card if: the card is its bottom card        // new: a guard in a body, "it" left out
+
+// the discards:  where cards go as the stock is turned over
+a discard-pile is a pile                                        // new: no colon
+	- can give up a card if: the card is its bottom card        // new: a guard in a body
+
+// a foundation:  where a suit is built up, ace to king
+a foundation is a pile                                          // new: no colon
+	- symbol is text                                            // new: a bare name
+	- can never let go of a card                                // new: a guard in a body
+	// one card at a time:  the last of its pile
+	- can take a card if:                                       // new: a guard in a body
+		if the card is not the bottom card of the pile of the card return no
+		return its name is the suit of the card and its value + 1 is the value of the card
+
+// a tableau:  a column, built down from king to ace, red and black in turn
+a tableau is a pile                                             // new: no colon
+	- can give up a card if: the card is face up                // new: a guard in a body
+	- can take a card if:                                       // new: a guard in a body
+		if the tableau is empty
+			return the card is a king
+		return its color is not the color of the card and its value is the value of the card + 1
+
+
+## The table:  one of each pile, laid out as the game loads
+set the game to a new game
+print the game
+
+set all-piles to a new list of piles
+
+set the stock to a new stock-pile with name = "stock", droppable = no
+add the stock to all-piles
+
+set discards to a new discard-pile with name = "discards", droppable = no
+add discards to all-piles
+
+set foundations to a new list of piles
+get a new foundation with name = clubs, symbol = "♣️", droppable = yes
+add it to the foundations
+get a new foundation with name = diamonds, symbol = "♦️", droppable = yes
+add it to the foundations
+get a new foundation with name = hearts, symbol = "♥️", droppable = yes
+add it to the foundations
+get a new foundation with name = spades, symbol = "♠️", droppable = yes
+add it to the foundations
+for each pile in the foundations
+	add it to all-piles
+
+set tableaus to a new list of piles
+for each number from 1 to 7
+	get a new tableau with name = ("T" + the number), droppable = yes
+	add it to the tableaus
+	add it to all-piles
+
+// the deck:  every card starts in the stock
+set the deck to a new deck
+set up the deck
+for each card in the deck
+	add it to the stock
+
+
+## What the game knows:  read from the table, so after it
+a game:                                                         // new: re-opens the game, to add to it
+	- state is:                                                 // new: a bare name, a getter
+		set state to a new list of text
+		for each pile in all-piles
+			add the state of the pile to state
+		return state
+
+
+## Playing
+to debug the game
+	for each line of the state of the game
+		print the line
+
+to reset the stock pile
+	set cards to a copy of list discards as a pile
+	reverse the cards
+	for each card in the cards
+		add it to the stock
+		turn the card face down
+
+animation play from the stock pile
+	if the stock is empty
+		wait for: reset the stock pile
+
+	get the bottom card of stock
+	turn it face up
+	// pause for 150 msec
+	move it to the discards
+
+animation deal the cards
+	// pull all cards into stock with a nice animation
+	set cards to merge all-piles into a new pile
+	reverse the cards
+	for each card in the cards
+		set start-pile to the pile of the card
+		turn the card face down
+		if start-pile is not the stock
+			add the card to the stock
+			pause for 50 msec
+	shuffle the stock
+
+	// deal cards into tableaus
+	for row from 1 to 7
+		turn the bottom card of the stock face up
+		for column from row to 7
+			add the bottom card of the stock to item column of the tableaus
+			pause for 50 msec
+
+	wait for: play from the stock pile
+
+to play a card
+	set start-pile to the pile of the card
+	if start-pile cannot give up the card return no
+
+	if start-pile is the stock
+		play from the stock pile
+		return
+
+	set end-pile to the first pile in piles in all-piles where its droppable is yes and it can take the card
+	if there is not an end-pile return no
+
+	set cards-to-move to cards in start-pile starting with the card
+	set the name of cards-to-move to the name of the start-pile
+	print "moving (" + the state of cards-to-move + ") to (" + the state of end-pile + ")"
+
+	for each card in cards-to-move
+		move it to end-pile
+
+	if the start-pile is a tableau and the start-pile is not empty
+		pause for 200 msec
+		get the last card of the start-pile
+		print "turning over (" + the name of start-pile + ": " + its state + ")"
+		turn it face up
+
+	if end-pile is a foundation: set the score of the game to the score of the game + 10
+	else if start-pile is discards: set the score of the game to the score of the game + 5
+	return yes
+
+on card-click with a card
+	play the card
+
+to auto-play
+	set anything-changed to no
+	if the discards is not empty
+		set test-card to the last card of discards
+		if await play test-card
+			set anything-changed to yes
+			pause for 500 msec
+
+	// attempt to move bottom card of tableaus to foundations
+	for each pile in the tableaus
+		if the pile is empty return
+		set test-card to the last card in the pile
+		set foundation to the first pile in piles in foundations where the name of the pile is the suit of test-card
+		if the foundation can take test-card
+			set anything-changed to yes
+			await play test-card
+			pause for 100 msec
+
+	// attempt to move the entire pile of face-up cards
+	for each pile in the tableaus
+		set face-up-cards to the cards in the pile where the card is face up
+		if face-up-cards is empty return
+		set test-card to the first card in face-up-cards
+		if test-card is a king and test-card is the first card of the pile return
+		if await play test-card
+			set anything-changed to yes
+			pause for 500 msec
+
+	// call auto-play again if anything actually changed
+	if anything-changed await auto-play
+
+to reset the game
+	set the score of the game to 0
+	deal the cards
+
+to cheat
+	set remaining-piles to piles in the tableaus where it is not empty and its first card is face down
+	if remaining-piles is empty return
+	set the pile to a random pile in remaining-piles
+	set unplaid-cards to cards in the pile where the card is face down
+	set card to a random card in unplaid-cards
+	turn the card face up
+	pause for 30 ticks
+	move the card to discards
+
+
+## Drawing:  after playing, as the stock's placeholder plays from it
+// a tableau just draws as a (vertical) list of cards
+
+to draw a foundation:
+	set color to "red" if its name is diamonds or its name is hearts otherwise "black"
+	return &lt;div className="Pile Foundation stacked"&gt;
+		&lt;div className={"Placeholder ui button basic compact fluid " + color + " " + its name}&gt;
+			&lt;div className={"suit " + its name}&gt;{its symbol}&lt;/div&gt;
+		&lt;/div&gt;
+		{draw its bottom card}
+	&lt;/div&gt;
+
+to draw a tableau:
+	return &lt;div className="Pile Tableau staggered"&gt;
+		{draw cards in it}
+	&lt;/div&gt;
+
+to draw a stock-pile:
+	return &lt;div className="Pile Stock stacked"&gt;
+		&lt;div className="Placeholder ui button basic compact fluid" onClick={play from the stock pile}/&gt;
+		{draw its bottom card}
+	&lt;/div&gt;
+
+to draw a discard-pile:
+	return &lt;div className="Pile Discards stacked"&gt;
+		{draw its bottom card}
+	&lt;/div&gt;
+
+to draw a game
+	return &lt;div className="ui container"&gt;
+		&lt;div className="board"&gt;
+			&lt;table className="ui table fixed"&gt;
+				&lt;thead&gt;
+					&lt;tr&gt;
+						&lt;th colSpan="2" className="left aligned"&gt;Klondike Solitaire&lt;/th&gt;
+						&lt;th className="right aligned"&gt;{"Score: " + the score of the game}&lt;/th&gt;
+						&lt;th&gt;&lt;div className="tiny fluid ui button compact" onClick={auto-play}&gt;AutoPlay&lt;/div&gt;&lt;/th&gt;
+						&lt;th&gt;&lt;div className="tiny fluid ui button compact" onClick={cheat}&gt;Cheat&lt;/div&gt;&lt;/th&gt;
+						&lt;th&gt;&lt;div className="tiny fluid ui button compact" onClick={debug the game}&gt;Debug&lt;/div&gt;&lt;/th&gt;
+						&lt;th&gt;&lt;div className="tiny fluid ui button compact" onClick={reset the game}&gt;Restart&lt;/div&gt;&lt;/th&gt;
+					&lt;/tr&gt;
+				&lt;/thead&gt;
+				&lt;tbody&gt;
+				&lt;tr&gt;
+						&lt;td&gt;{draw the stock}&lt;/td&gt;
+						&lt;td&gt;{draw the discards}&lt;/td&gt;
+						&lt;td&gt;&lt;/td&gt;
+						&lt;td&gt;{draw the first pile in foundations}&lt;/td&gt;
+						&lt;td&gt;{draw the second pile in foundations}&lt;/td&gt;
+						&lt;td&gt;{draw the third pile in foundations}&lt;/td&gt;
+						&lt;td&gt;{draw the fourth pile in foundations}&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+						&lt;td&gt;{draw item 1 of the tableaus}&lt;/td&gt;
+						&lt;td&gt;{draw item 2 of the tableaus}&lt;/td&gt;
+						&lt;td&gt;{draw item 3 of the tableaus}&lt;/td&gt;
+						&lt;td&gt;{draw item 4 of the tableaus}&lt;/td&gt;
+						&lt;td&gt;{draw item 5 of the tableaus}&lt;/td&gt;
+						&lt;td&gt;{draw item 6 of the tableaus}&lt;/td&gt;
+						&lt;td&gt;{draw item 7 of the tableaus}&lt;/td&gt;
+					&lt;/tr&gt;
+				&lt;/tbody&gt;
+			&lt;/table&gt;
+		&lt;/div&gt;
+	&lt;/div&gt;
+
+
+## Start
+reset the game
+start the game</pre>
+  </epic-code>
+  <epic-code title="Pile.spell · strawman · 18 lines" language="spell">
+    <pre>
+## Pile of playing cards
+a pile is a list of cards                       // new: no colon
+	- name is text                              // new: a bare name
+	- droppable is yes or no                    // new: a bare name;  the table sets it, and nothing declared it
+	- color is:                                 // new: a bare name, a getter
+		if it is empty return "none"
+		return the color of its last card
+	- value is:                                 // new: a bare name, a getter
+		if it is empty return 0
+		return the value of its last card
+	- state is:                                 // new: a bare name, a getter
+		set state to (the name of the pile or "pile") + ":"
+		for each card in pile
+			set state to state + " " + the state of the card
+		return state
+
+// a card is in one pile at a time:  putting it on another pile takes it off this one
+a card belongs to one pile</pre>
+  </epic-code>
+  <ul>
+    <li>
+      Pile.spell, written with <code>its</code> where the strawman has bare names (and a colon), compiles to today's
+      file plus the droppable property, with no warnings left.
+    </li>
+    <li>
+      Card.spell changes two lines, with the choices above: the suit loses its <code>its</code>, and the value is option
+      A's line.
+    </li>
+  </ul>
+
+  <h5>Before and after, three spots</h5>
+  <epic-code title="the game's bits · 9 lines" language="spell">
+    <pre>
+// today:  the class, then its bits, then the game made, among the piles
+a game is an app
+a game has a score as a number
+set the game to a new game
+print the game
+
+// strawman:  what the game has, in outline;  the game is made in "The table"
+a game is an app where:
+	- score is a number</pre>
+  </epic-code>
+  <epic-code title="a foundation · 27 lines" language="spell">
+    <pre>
+// today:  the kind, its rules and the four foundations, in one run
+a foundation is a pile
+a foundation can never let go of a card
+// one card at a time:  the last of its pile
+a foundation can take a card if:
+	if the card is not the bottom card of the pile of the card return no
+	return its name is the suit of the card and its value + 1 is the value of the card
+get a new foundation with name = clubs, symbol = "♣️", droppable = yes
+add it to the foundations
+...
+
+// strawman, in "The piles":  the kind, and what it may take or give up
+a foundation is a pile
+	- symbol is text
+	- can never let go of a card
+	// one card at a time:  the last of its pile
+	- can take a card if:
+		if the card is not the bottom card of the pile of the card return no
+		return its name is the suit of the card and its value + 1 is the value of the card
+
+// strawman, in "The table":  the four foundations
+set foundations to a new list of piles
+get a new foundation with name = clubs, symbol = "♣️", droppable = yes
+add it to the foundations
+...
+for each pile in the foundations
+	add it to all-piles</pre>
+  </epic-code>
+  <epic-code title="Card.spell · two lines · 7 lines" language="spell">
+    <pre>
+// today
+	- its "suit" is a suit of its deck
+	- its "value" is the position of its rank in deck ranks
+
+// strawman
+	- suit is a suit of its deck
+	- value is the position of its rank</pre>
+  </epic-code>
+  <epic-choices
+    ><epic-option letter="A" title="The kinds stay in Solitaire.spell" recommended
+      ><ul>
+        <li>a "The piles" section, as in the strawman</li>
+        <li>
+          why recommended: the kinds are Klondike's rules, read with the game they belong to; one file reads top to
+          bottom
+        </li>
+      </ul></epic-option
+    ><epic-option letter="B" title="The kinds get a file of their own"
+      ><ul>
+        <li>e.g. Piles.spell, listed after Pile.spell and before Solitaire.spell in the project file</li>
+        <li>the project already reads several files, in the order listed</li>
+        <li>gain: Solitaire.spell is only the game</li>
+        <li>cost: one more file to open to see what a foundation takes</li>
+      </ul></epic-option
+    ></epic-choices
+  >
+  <epic-aside title="why the piles aren't the game's own properties">
+    <ul>
+      <li>
+        It would read well: <code>- stock is a new stock-pile with name = "stock"</code> in the game's body.
+        <ul>
+          <li>
+            the sentence style already does a starting value:
+            <code>a game has a stock as a new stock-pile with ...</code>
+          </li>
+          <li>the outline doesn't yet: <code>its "pal" is a new card</code> reads "new" as a type, with an error</li>
+        </ul>
+      </li>
+      <li>
+        But every move would then need <code>its stock</code>, and <code>it</code> keeps changing under them.
+        <ul>
+          <li><code>get the bottom card of stock</code> makes <code>it</code> the card</li>
+          <li>so <code>move it to its discards</code> would read the card's discards</li>
+        </ul>
+      </li>
+      <li>
+        Bare names inside a type's methods meaning its own (the types gap in <a href="#o3">1.3</a>) would fix that. It's
+        a bigger change, and a question of its own.
+      </li>
+    </ul>
+  </epic-aside>
+
+  <h4>6. Phases to add</h4>
+  <p>
+    Six phases after P7, about 17 to 24 hours in all. Say "add those phases" and I'll add them, shaped by what you pick
+    above.
+  </p>
+  <ol>
+    <li>
+      <b>P8 · Implicit Subject</b> (6-8h): option A as you picked it.
+      <ul>
+        <li><code>it</code> and <code>its</code> optional before a quoted name or a verb</li>
+        <li>the guard lines too, <code>can take a card if</code>, with an <code>it</code> form they don't have yet</li>
+        <li>the getter-line misreading (<a href="#i9">I9</a>) fixed first</li>
+      </ul>
+    </li>
+    <li><b>P9 · Bare Property Names</b> (3-4h): point 2, as picked in its choices.</li>
+    <li><b>P10 · Headings Without Colons</b> (1-2h): point 1.</li>
+    <li>
+      <b>P11 · Reopening Types</b> (3-4h): point 3, with the error for a type declared twice (<a href="#i13">I13</a>).
+    </li>
+    <li>
+      <b>P12 · Value Positions</b> (2-3h): point 4, as picked in its choices, and a loop over a kind's list knowing its
+      kind (<a href="#i14">I14</a>).
+    </li>
+    <li>
+      <b>P13 · Solitaire In Outline</b> (2-3h): the strawman made real.
+      <ul>
+        <li>Solitaire.spell, Pile.spell, and Card.spell's two lines</li>
+        <li>
+          its frozen test copy re-blessed, the same output expected, as the parens decision (<a href="#j9">J9</a>) did
+        </li>
+        <li>the outline guide</li>
+      </ul>
+    </li>
+  </ol>
+
+  <epic-net-effect
+    ><ul>
+      <li>
+        in a type's body, a bare name declares the type's own property or getter:
+        <code>- suit is a suit of its deck</code>, <code>- state is:</code>
+      </li>
+      <li>a type's heading takes its bullets with or without the colon</li>
+      <li>
+        <code>a game:</code> adds bullets to the game, from anywhere in the project; declaring it a second time is an
+        error
+      </li>
+      <li><code>a game has a score as a number</code> stays, as the sentence style</li>
+      <li>the card's value line becomes <code>- value is the position of its rank</code></li>
+      <li>
+        Solitaire.spell is reorganised: kinds of pile, then the table, then the game's state, the moves and the drawing
+      </li>
+      <li>six new phases, P8 to P13, about 17 to 24 hours, once you say so</li>
+      <li>logged on the way: I13 (a type declared twice) and I14 (a loop over a kind's list doesn't know its kind)</li>
+      <li>nothing in the repo is changed yet</li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
+<epic-reply from="Owen" at="2026-10-19 17:53" re="next phase"
+  ><p>take option A for all. Add those phases.</p></epic-reply
+>
+<epic-reply from="Claude" at="2026-10-19 17:58" re="take option A for all.  Add those phases."
+  ><p>Done: option A for every choice, and seven phases added after P7, the six proposed plus a Doc Review.</p>
+  <ul>
+    <li>
+      The picks:
+      <ul>
+        <li>
+          bare names: any bare name in a type's body is its property or getter,
+          <code>- suit is a suit of its deck</code>,
+          <code>- state is:</code>
+        </li>
+        <li>the card's value line: <code>- value is the position of its rank</code></li>
+        <li>the kinds of pile stay in Solitaire.spell, in a "The piles" part</li>
+        <li>
+          and, from the first reply: <code>it</code> / <code>its</code> optional before a quoted name or a verb, in a
+          body
+        </li>
+      </ul>
+    </li>
+    <li>
+      The phases, about 18 to 25 hours in all:
+      <ul>
+        <li>
+          <a href="#p-implicit-subject">P8 · Implicit Subject</a> (6-8h): with the getter-line misreading (<a href="#i9"
+            >I9</a
+          >) first, and the colour-style getter written once (<a href="#c14">C14</a>)
+        </li>
+        <li><a href="#p-bare-property-names">P9 · Bare Property Names</a> (3-4h)</li>
+        <li><a href="#p-headings-without-colons">P10 · Headings Without Colons</a> (1-2h)</li>
+        <li>
+          <a href="#p-reopening-types">P11 · Reopening Types</a> (3-4h): with the error for a type declared twice (<a
+            href="#i13"
+            >I13</a
+          >)
+        </li>
+        <li>
+          <a href="#p-value-positions">P12 · Value Positions</a> (2-3h): with the loop over a kind's list (<a
+            href="#i14"
+            >I14</a
+          >), and the kind's list moved into its owner's class (<a href="#c15">C15</a>)
+        </li>
+        <li><a href="#p-solitaire-in-outline">P13 · Solitaire In Outline</a> (2-3h): the strawman above made real</li>
+        <li><a href="#p-doc-review-2">P14 · Doc Review</a> (1h): the guide, the changelog, this page</li>
+      </ul>
+    </li>
+    <li>
+      Left where they were: the guessing caveat (<a href="#c2">C2</a>) and the typographic marks (<a href="#c9">C9</a>),
+      decided but not in these phases.
+    </li>
+  </ul>
+  <epic-net-effect
+    ><ul>
+      <li>P8 to P14 added, about 18 to 25 hours</li>
+      <li>T8 queued for P8 to P13</li>
+      <li>I9 and T6 queued for P8; I13 for P11; I14 and T7 for P12</li>
+      <li>the property-shape decision (Q4) changes in P8, from "always its" to "its optional"</li>
+      <li>no code changed yet</li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
+<epic-commit sha="7bee85bb43d6aee9b9cd0d9c2a98fcdc309d5198"
+  >Solitaire In Outline -- the outline Solitaire in the new style</epic-commit
+>
+<epic-commit sha="3d1211b575d21f8c7babd5fd531ddf595f7ba7e3" repo="https://github.com/spell-app/spell-app"
+  >the outline Solitaire in the new style</epic-commit
+><epic-commit sha="f2e0680c78b707fd14d94803e9af1b8d522f2095" repo="https://github.com/spell-app/spell-lang"
+  >the outline Solitaire in the new style</epic-commit
+>
