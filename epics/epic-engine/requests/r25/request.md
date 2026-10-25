@@ -3,7 +3,8 @@ id: r25
 epic: epic-engine
 from: 🚧 debut (ad62dff0)
 at: 2026-10-25T09:45-04:00
-status: new
+status: filed
+filed: done:  the page tabs' track and stuck strip (site.css)
 images: image-1.png, image-2.png
 ---
 
