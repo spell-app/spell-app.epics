@@ -1,10 +1,18 @@
 <!-- plan-doc part:  #o2's body in prefs-and-undo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Undo and redo as Owen built them in another project: a record per change, two stacks, and changes to the same thing
-  folded into one step.
+  <epic-change item="j10"
+    >Undo and redo are the kit's <code>UndoStack</code>, in util's <code>persist</code> folder: steps, two stacks, and
+    changes to the same thing folded into one step.</epic-change
+  >
+  <epic-change item="j10"
+    >It's generic: Spell's runtime builds its history on it (<a href="#o3">1.3</a>), and spell-app may too (<a
+      href="#q14"
+      >Q14</a
+    >).</epic-change
+  >
 </p>
 
-<h4 id="o2-record">An undo record</h4>
+<h4 id="o2-record">An undo <epic-change item="j10">step</epic-change></h4>
 <ul>
   <li>
     A name in a person's words, e.g. "Change Margin".
@@ -13,27 +21,42 @@
       <li>Short and capitalized like a menu item: "Add Register", "Copy".</li>
     </ul>
   </li>
-  <li>How to undo it, and how to redo it.</li>
-  <li>Optionally, the thing it changed, and any data it needs.</li>
+  <li>
+    <epic-change item="j10"
+      >A list of records, each knowing how to undo and redo itself: what a record holds is up to whoever builds on the
+      stack.</epic-change
+    >
+  </li>
+  <li>Optionally, the thing it changed.</li>
 </ul>
 
 <h4 id="o2-stacks">Two stacks</h4>
 <ul>
-  <li>Undo pops the newest record off the undo stack, puts it on the redo stack, then runs its undo.</li>
+  <li>Undo pops the newest <epic-change item="j10">step</epic-change> off the undo stack, puts it on the redo stack, then runs its undo.</li>
   <li>Redo does the reverse.</li>
   <li>A new change empties the redo stack: what was undone can't be redone after something else happens.</li>
-  <li>An optional limit drops the oldest records once there are too many.</li>
+  <li>An optional limit drops the oldest <epic-change item="j10">steps</epic-change> once there are too many.</li>
   <li>
-    The record's undo or redo runs just after the stacks have changed, so whatever it triggers already sees the new
-    state.
+    The <epic-change item="j10">step's</epic-change> undo or redo runs just after the stacks have changed, so whatever it triggers already sees the new state.
+    <epic-change item="j10">Nothing records while it undoes or redoes.</epic-change>
   </li>
-  <li>Both stacks are cleared on a context switch, e.g. when another document opens.</li>
+  <li>
+    <epic-change item="j10"
+      >Undo and redo put the records back at once: nothing is run again, nothing waited on, so redoing an action that
+      waited is instant.</epic-change
+    >
+  </li>
+  <li>
+    <epic-change item="j10"><code>clear()</code> empties both, e.g. when another document opens.</epic-change>
+  </li>
 </ul>
 
 <h4 id="o2-coalescing">Folding changes into one step</h4>
 <p>
-  A new record with the same name AND the same thing as the newest one doesn't go on the stack. It replaces only the
-  newest record's redo.
+  <epic-change item="j10"
+    >A new step with the same name AND the same thing as the newest one folds into it: the newest step keeps both
+    steps' changes.</epic-change
+  >
 </p>
 <ul>
   <li>
@@ -44,38 +67,46 @@
     </ul>
   </li>
   <li>A change with no thing named never folds.</li>
+  <li>
+    <epic-change item="j10"
+      >A recorder that can merge records overrides how it folds (<code>fold()</code>).</epic-change
+    >
+  </li>
 </ul>
 
 <h4 id="o2-menu">The menu reads live state</h4>
 <ul>
   <li>Can undo, can redo, and the two titles ("Undo Change Margin", or just "Undo" when there's nothing).</li>
   <li>They update by themselves as the stacks change, so a menu or button just shows them.</li>
+  <li>
+    <epic-change item="j10"
+      >The titles can be worded in another language, the whole title at once (<code>titleFor</code>).</epic-change
+    >
+  </li>
 </ul>
 
-<h4 id="o2-options">Options on any step that changes something</h4>
+<h4 id="o2-options"><epic-change item="j10">Transactions:  one step for everything an action does</epic-change></h4>
 <ul>
   <li>
-    Skip undo: for a step inside a bigger sequence, which records ONE undo at its end. E.g. moving ten items is one
-    "Move Items", not ten.
+    <epic-change item="j10"
+      >Everything recorded while a transaction is open is its ONE step: until its function returns, or its promise
+      settles, waits and promise chains included (<a href="#q6">Q6</a>).</epic-change
+    >
   </li>
-  <li>The undo's name.</li>
-  <li>The thing it changed, so it can fold (above).</li>
-  <li>The state before the change, so undo can put it back.</li>
+  <li>
+    <epic-change item="j10"
+      >Undoable work nested in it, or begun while it waits, joins it: never a step of its own. E.g. moving ten items is
+      one "Move Items", not ten.</epic-change
+    >
+  </li>
+  <li>
+    <epic-change item="j10"
+      >A throw still records what changed, and passes the error on; nothing recorded, no step.</epic-change
+    >
+  </li>
+  <li>
+    <epic-change item="j10"
+      >It replaced the other project's "skip undo" option on each step that changes something.</epic-change
+    >
+  </li>
 </ul>
-
-<epic-note state="done" title="As built, 2026-10-25"
-  ><p>The kit's <code>UndoStack</code> keeps these ideas, with three differences:</p>
-  <ul>
-    <li>
-      A step folding into the newest keeps both steps' changes, rather than replacing the newest one's redo.
-      <ul>
-        <li>A recorder that can merge them overrides how it folds.</li>
-      </ul>
-    </li>
-    <li>
-      "Skip undo" became TRANSACTIONS (<a href="#q6">Q6</a>): everything recorded while one is open is its one step,
-      waits included.
-    </li>
-    <li>The menu's titles can be worded in another language, the whole title at once.</li>
-  </ul></epic-note
->

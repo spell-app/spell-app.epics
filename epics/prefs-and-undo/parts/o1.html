@@ -1,75 +1,124 @@
 <!-- plan-doc part:  #o1's body in prefs-and-undo.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
   A preference is something a person sets once and expects the app to remember: a theme, a panel's width, the last
-  folder they opened. These are the ideas Owen proved in another project, written so they can be rebuilt here.
+  folder they opened.
+  <epic-change item="j10"
+    >Every repo keeps them through ONE pref store, the kit's <code>PrefStore</code>, in util's
+    <code>persist</code> folder (<a href="#q11">Q11</a>), built on ideas Owen proved in another project.</epic-change
+  >
 </p>
 
 <h4 id="o1-one-way">One way to remember, several places to keep it</h4>
-<p>The app always asks the same way. Where the value lives is the store's business:</p>
+<p>
+  The app always asks the same way.
+  <epic-change item="j10">Where the value lives is the store's PLACE, one of five:</epic-change>
+</p>
 <ul>
   <li>the browser's lasting storage: per site, it survives a reload</li>
   <li>the browser's per-tab storage: gone when the tab closes</li>
-  <li>a larger database in the browser, for big values: it has to be waited on</li>
-  <li>a stand-in on the server that lasts for one request, so the same code runs when a page is drawn on the server</li>
+  <li>
+    <epic-change item="j10"
+      >memory: for servers and tests, and the fallback when the browser blocks storage</epic-change
+    >
+  </li>
+  <li>
+    <epic-change item="j10"
+      >the browser's database, for big values and file handles: it has to be waited on (<a
+        href="#p-database-and-server-stores"
+        >P2</a
+      >)</epic-change
+    >
+  </li>
+  <li>
+    <epic-change item="j10"
+      >the person's space on the page server, one file per store: waited on too (<a href="#q9">Q9</a>)</epic-change
+    >
+  </li>
+  <li>
+    <epic-change item="j10"
+      >No stand-in that lasts one request, as the other project had: memory serves a server.</epic-change
+    >
+  </li>
 </ul>
 
-<h4 id="o1-namespace">Every key belongs to its app</h4>
+<h4 id="o1-namespace">Every key belongs to its <epic-change item="j10">store</epic-change></h4>
 <ul>
-  <li>Each store is made for one app, and every key it writes is prefixed with that app's name.</li>
-  <li>So two apps on one site never share a pool, and "forget everything" wipes only the app's own keys.</li>
   <li>
-    A lesson learned the hard way: once, the app's name got lost by mistake. Every app shared one pool, and one app's
-    "forget everything" wiped another app's preferences.
+    <epic-change item="j10"
+      >Each store has one name, and every key it writes starts with it: <code>spell-site:scheme</code>.</epic-change
+    >
+    <ul>
+      <li>
+        <epic-change item="j10"
+          >The name is everything before the key's first colon, so every key that existed before keeps its bytes (<a
+            href="#q15"
+            >Q15</a
+          >).</epic-change
+        >
+      </li>
+    </ul>
+  </li>
+  <li>
+    So two apps on one site never share a pool, and "forget everything" wipes only the
+    <epic-change item="j10">store's</epic-change> own keys.
+  </li>
+  <li>
+    A lesson learned the hard way: once, in the other project, the app's name got lost by mistake. Every app shared one
+    pool, and one app's "forget everything" wiped another app's preferences.
+    <epic-change item="j10">A store here takes its one name, so that can't happen.</epic-change>
   </li>
 </ul>
 
 <h4 id="o1-values">Values, defaults and forgetting</h4>
 <ul>
-  <li>Values go through a serializer that keeps dates and other rich values, not plain JSON.</li>
+  <li>
+    <epic-change item="j10"
+      >Values are text a person or a plain script can read: JSON only when they look like it, anything else is text, e.g.
+      <code>dark</code> (<a href="#q12">Q12</a>).</epic-change
+    >
+    <ul>
+      <li>
+        <epic-change item="j10"
+          >The browser's database keeps a value as the browser copies it: a date, a file, a file handle.</epic-change
+        >
+      </li>
+    </ul>
+  </li>
   <li>Reading takes a default, returned when nothing was saved.</li>
+  <li>
+    <epic-change item="j10"
+      >A pref may be declared, with its type, choices and default: nothing saved, it reads the declared default, else
+      the first choice, else its type's (<a href="#q13">Q13</a>).</epic-change
+    >
+  </li>
   <li>Saving "nothing" forgets the key.</li>
+  <li>
+    <epic-change item="j10"
+      >It never throws when storage fails (blocked, full, bad JSON): it logs, and answers the default.</epic-change
+    >
+  </li>
 </ul>
 
 <h4 id="o1-sync-async">A quick way and a waiting way</h4>
 <ul>
-  <li>Every store can check, read and save quickly (no waiting), and also in a way that's waited on.</li>
   <li>
-    The waited-on way adds a read-modify-write: "give me the value, I'll hand back the new one", done as one step.
+    Every store can check, read and save quickly (no waiting), and also in a way that's waited on
+    <epic-change item="j10">(<code>load()</code>, <code>save()</code>)</epic-change>.
   </li>
-  <li>Each store says whether it has to be waited on.</li>
-  <li>The browser database does: it refuses a quick read, with a message saying to use the waited-on one.</li>
-  <li>A quick save to it still works, but fire-and-forget: a failure is logged, never thrown.</li>
+  <li>
+    The waited-on way adds a read-modify-write: "give me the value, I'll hand back the new one", done as one step
+    <epic-change item="j10">(<code>update()</code>; one database transaction in the browser's database)</epic-change>.
+  </li>
+  <li>
+    <epic-change item="j10">The browser's database and the page server are the waited-on places.</epic-change>
+  </li>
 </ul>
 
 <h4 id="o1-prefixes">Keys as folders</h4>
 <ul>
   <li>Keys with a shared prefix act like a folder, e.g. every key starting <code>layout/</code>.</li>
-  <li>The store can list the keys under a prefix, forget a prefix, or forget all of the app's keys.</li>
+  <li>
+    The store can list the keys under a prefix, forget a prefix, or forget all of
+    <epic-change item="j10">its</epic-change> own keys.
+  </li>
 </ul>
-
-<epic-note state="done" title="As built, 2026-10-25"
-  ><p>The kit's <code>PrefStore</code> keeps these ideas, with three differences:</p>
-  <ul>
-    <li>
-      Where values live:
-      <ul>
-        <li>quick, by name: the browser's lasting storage, its per-tab storage, or memory</li>
-        <li>
-          waited on: the browser's database, and the person's space on the page server (<a
-            href="#p-database-and-server-stores"
-            >P2</a
-          >)
-        </li>
-        <li>no stand-in that lasts one request: memory serves servers and tests</li>
-      </ul>
-    </li>
-    <li>
-      Values are text unless they look like JSON (<a href="#q12">Q12</a>), so people and plain scripts can read them: no
-      serializer for dates.
-      <ul>
-        <li>The browser's database keeps a value as the browser copies it: a date, a file, a file handle.</li>
-      </ul>
-    </li>
-    <li>A pref may be declared, with its type, choices and default (<a href="#q13">Q13</a>).</li>
-  </ul></epic-note
->
