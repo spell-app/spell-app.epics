@@ -318,7 +318,7 @@ Sources:  `components/ui-button/UIButton.en.ts`, `/Users/owen/www/spell/spell.ep
    <ui-root theme="dark" size="small" icons="fa7-brands" loading="Loading reports…">
      <ui-segment>
        <ui-header>Report</ui-header>
-       <ui-button primary>Save</ui-button>
+       <ui-button color="primary">Save</ui-button>
      </ui-segment>
    </ui-root>
    ```
@@ -560,7 +560,7 @@ Vue 3.5, Svelte 5, Solid, Angular 20 and Preact 10").  No Svelte / Angular / Pre
     Awesome Free icon, <= 6 MB), built by spell-brand's `yarn design:bundle` and proven by `yarn design:check`
     (an `about:srcdoc` frame + Claude Design's own runtime, `vendor/claude-design/dc-runtime.js`)
   - spell-ui's `yarn design:build --brand <folder>` writes the system's files (`tools/DesignExport.ts`)
-  - a design writes plain markup (`<ui-button primary icon="check">Save</ui-button>`), no React wrappers
+  - a design writes plain markup (`<ui-button color="primary" icon="check">Save</ui-button>`), no React wrappers
   - `/design push` sends changes;  `/design pull <link>` brings a board back as a page (the "pony" proved it).
   - Counts:  "70 cards (11 of them Brand) and 451 colour tokens, pushed 2026-10-05".
   - NOTE:  the `/design` skill is spell-app's, not spell-epic's (spell-epic guide:  "Staying in spell-app ... the

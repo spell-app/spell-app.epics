@@ -404,7 +404,7 @@ Each tag on a page is TWO objects that point at each other:
   `this.translationForKey("add", { step })`, `this.send("ui-change", detail)`, `this.rootClass`.
 - Attribute `kind`s:  `keyOnly`, `valueAndKey`, `keyOrValueAndKey`, `width`, `multiple`, `textAlign`,
   `verticalAlign`, `size`, `color`, `valueOnly` (all build Fomantic class words through Spell UI's `ClassBuilder`:
-  `<ui-button size="small" primary basic>` -> `ui small basic primary button`), and `boolean` / `enum` / `string` /
+  `<ui-button size="small" color="primary" appearance="basic">` -> `ui small basic primary button`), and `boolean` / `enum` / `string` /
   `number` / `json` / `icon` (typed property, no class).  Booleans:  presence / `""` / `"true"` / `"yes"` = true.
 - `as const satisfies E.ComponentVocabulary` keeps every name a literal type:  `this.partForName("buton")` fails tsc.
 - A component declares its attribute getters with one line:

@@ -242,7 +242,7 @@ Map:  `spell-lang/spell/PARSING.md` (1637 lines, the authoritative map;  "trust 
   MD.toHTML("# Hello\n\n- one **bold**\n- [x] done")
   // <h1>Hello</h1><ul><li>one <strong>bold</strong></li><li class="task-list-item"><input type="checkbox" disabled="" checked="" /> done</li></ul>
   MD.render("> [!NOTE]\n> Hi", { ui: true }).html
-  // <ui-message state="info" icon="info circle" header="Note"><p>Hi</p></ui-message>
+  // <ui-message state="info" icon="info circle" heading="Note"><p>Hi</p></ui-message>
   ```
 
   - `render()` returns `{ markup, html, headings }`;  options `ui`, `headingIds`, `headingOffset`, `breaks`,
