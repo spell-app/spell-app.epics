@@ -2,51 +2,212 @@
 <epic-field name="symptom"
   ><p>
     P11's notebook draws a .spellx file as Jupyter-style cells in the editor app; Owen meant something else
-    (2026-10-25): Spell UI's component docs pages, starting with the Button page, should themselves be the notebook.
+    (2026-10-25): a page like Spell UI's Button page, written in Spell and editable where it's shown.
   </p></epic-field
 ><epic-field name="changes"
   ><p>
-    The Button page (<code>ui-button.html</code>) becomes an editable notebook: examples' code edited live and saved
-    into the page, prose edited in place, cells added, deleted and moved, and spellx examples compiled and drawn live.
+    A notebook becomes a Spell template, <code>&lt;spell-notebook&gt;</code>, a subclass of page: its body a drawing
+    with markdown prose and live <code>&lt;example&gt;</code>s, edited in place from a toolbar, each cell saved and
+    redrawn on its own. Built first on a small Counter notebook.
   </p></epic-field
 ><epic-field name="goal"
   ><ul>
-    <li>Edit an example's code live: it redraws, and saves into <code>ui-button.html</code></li>
-    <li>Edit the prose in place: descriptions, section intros, messages</li>
-    <li>Add, delete and move cells: examples, prose blocks, sections</li>
     <li>
-      Write spellx inside an example: a small template plus its drawing, compiled and drawn live beside the
-      <code>ui-*</code> markup examples
+      A notebook is a Spell template, a subclass of page: <code>&lt;spell-notebook "counter notebook"&gt;</code> in a
+      <code>.spellx</code> file, its chunks its cells
+      <ul>
+        <li>an agent converts a page into one when asked; nothing does it automatically</li>
+      </ul>
     </li>
-    <li>Owen's number for it is P11.1 (inserted after P11); the tool has no decimal ids, so it sits at the end</li>
+    <li>
+      Its body is a drawing: ordinary drawing tags work there, and loose text is markdown, broken into sections at its
+      <code>##</code> headings
+    </li>
+    <li>
+      Each <code>&lt;example&gt;</code> shows a title, its live result and its code; the code shows as spellx or html by
+      one switch for the whole page
+    </li>
+    <li>Edit mode: code in Monaco, prose as markdown; add, delete and move from the top toolbar</li>
+    <li>An edit saves and redraws only its own cell: nothing else on the page flashes or moves</li>
+    <li>A notebook can be locked: whoever can write the file saves; anyone else's edits are a try-out</li>
+    <li>Built first on a small Counter notebook, then the Button page (<a href="#p-button-page-notebook">P16.1</a>)</li>
   </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>The <code>&lt;spell-notebook&gt;</code> template.</b>
+      <ul>
+        <li>
+          <code>notebook</code> is a built-in template, a subclass of <code>page</code>, written in Spell like the two
+          sided view (Q71); English <code>&lt;spell-notebook&gt;</code>, Spanish <code>&lt;encanto-cuaderno&gt;</code>
+        </li>
+        <li>it draws the page: the title, the sections from its <code>##</code> headings, the prose, the examples</li>
+        <li>it holds its own templates (the counter), as an app holds its own</li>
+        <li>
+          <code>&lt;example&gt;</code> is a new chunk tag (Spanish <code>ejemplo</code>), with its code spell twin
+          (<code>an example "one counter":</code>), read and written by P3's reader and P12's converter, so
+          <code>.spell</code> and <code>.spellx</code> stay equal
+        </li>
+        <li>
+          the body is a drawing: drawing tags draw where they sit; loose text is markdown, broken into sections at
+          <code>##</code>; a tag in the middle of prose ends one block and starts the next
+        </li>
+        <li>
+          an example is always WRITTEN in spellx; its html view is made by the same mapping P6 compiles with (each
+          pack's catalog), an html edit mapped back into spellx before it saves, and markup with no spellx form kept as
+          written and marked
+        </li>
+        <li>
+          Files: spell-parser's <code title="spell-parser/src/core/templates/Notebook.spell">Notebook.spell</code> (and
+          its Spanish twin), the <code>example</code> rule in <code>src/spell/</code> and <code>src/spellx/</code>; then
+          <code>yarn core:gen:templates</code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Drawing it.</b>
+      <ul>
+        <li>
+          a Spell page run by <code>&lt;spell-viewer&gt;</code> at the app's own address,
+          <code>/run/@spell/notebooks/Counter</code>
+        </li>
+        <li>
+          a masthead (the title and first paragraph); each <code>##</code> section a sticky, folding
+          <code>&lt;ui-section&gt;</code>, in a table of contents on the right
+        </li>
+        <li>
+          each example: its title, its live result (its body compiled as a drawing, mounted on its own, so it re-renders
+          alone), its code in Monaco, read-only until edit mode
+        </li>
+        <li>
+          Files: spell-app's <code title="spell-app/src/app/components/spell-notebook/">spell-notebook</code> element
+          (masthead, sections, table of contents, example frame), and its App UI docs page
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Edit mode: the toolbar and Monaco.</b>
+      <ul>
+        <li>
+          a sticky toolbar at the top: Edit (a pencil, toggled); Add (Example, Text, Section, Template, after the
+          selected cell); Delete, Move up, Move down (⌘Z undoes each)
+        </li>
+        <li>
+          Show code as spellx / html: one switch for the whole page; each example's own switch flips the page's and
+          every example's; remembered per notebook across reloads
+        </li>
+        <li>Lock (admins only) and Try as a visitor</li>
+        <li>a click selects a cell: a focus ring, and the toolbar acts on it</li>
+        <li>
+          Monaco is spell-app's own (<code>LazyMonaco</code>), one per open example, with spellx colouring (<a
+            href="#c50"
+            >C50</a
+          >); the html view colours as HTML
+        </li>
+        <li>Files: <code>NotebookToolbar.tsx</code>, <code>NotebookCell.tsx</code> in the spell-notebook element</li>
+      </ul>
+    </li>
+    <li>
+      <b>Saving, cell by cell, with no flash.</b>
+      <ul>
+        <li>
+          an edit changes only its cell's span of the file (P11's span-exact edits); re-indenting the edited cell is
+          fine, the rest left byte for byte
+        </li>
+        <li>it saves 600ms after the last keystroke, through the spaces API the editor saves with</li>
+        <li>
+          only the edited cell re-renders: its text compiled ON ITS OWN,
+          <code>SP.SpellProject.compileChunk(text, { into: project })</code>, which reparses just that chunk into the
+          notebook's project; a template edit re-renders the examples using it
+        </li>
+        <li>a broken edit keeps the last good result, marks the code red, and shows the error's line under it</li>
+        <li>
+          a change from outside (another tab, an agent) goes through ONE mechanism with epic-engine's:
+          <epic-link epic="epic-engine" phase="40"></epic-link>'s planner over any keyed tree; this phase writes the
+          chunk-tree adapter (cells keyed by place) and a runner that re-renders cells
+        </li>
+        <li>
+          steps 1-3 and the notebook's own edits don't need P40; this step waits for P40 to merge (which needs Owen's
+          Accept on epic-engine's page)
+        </li>
+        <li>no ids written into the file: cells are found by their place in the chunk tree</li>
+        <li>
+          Files: spell-parser's
+          <a href="../../../spell-parser/src/spell/SpellProject.ts" target="src-spell-parser-src-spell-spellproject-ts"
+            ><code title="spell-parser/src/spell/SpellProject.ts">SpellProject</code></a
+          >
+          (<code>compileChunk()</code>); spell-app's <code>NotebookCells.ts</code>, moved beside the notebook
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Locked notebooks.</b>
+      <ul>
+        <li><code>&lt;spell-notebook "..." locked&gt;</code>, saved in the file</li>
+        <li>
+          whoever can write the file saves (today, the page server lets Owen); anyone else edits as a try-out, gone on
+          reload
+        </li>
+        <li>the toolbar says which: "Your changes are saved" / "Trying it out: changes aren't saved"</li>
+        <li>Try as a visitor lets an admin see the locked side; people's roles in spaces can replace this later</li>
+      </ul>
+    </li>
+    <li>
+      <b>The Counter notebook.</b>
+      <ul>
+        <li>
+          <code title="spell-app/spaces/@spell/notebooks/Counter.spellx">Counter.spellx</code>, in a new project group,
+          <code>@spell/notebooks</code>: a counter template, "Try it" with one counter, "Two of them" with two in a
+          section
+        </li>
+        <li>
+          the editor app opens it as text too, and <code>spell spellx convert</code> gives its <code>.spell</code> twin
+        </li>
+        <li>the <code>.spell</code> / <code>.spellx</code> pair test covers it</li>
+      </ul>
+    </li>
+    <li>
+      <b>Verify.</b>
+      <ul>
+        <li>Owen's hand test, <a href="#t5">T5</a></li>
+        <li>
+          spell-parser: the <code>example</code> rule and its twin, <code>compileChunk()</code>, the notebook template
+          compiles
+        </li>
+        <li>spell-app: browser tests for one-cell re-render (no other node replaced), save, lock; the pair test</li>
+        <li><code>yarn review</code> in each repo touched</li>
+        <li>headless screenshots at 1440 / 900 / 390, light and dark; the designer reviews them</li>
+      </ul>
+    </li>
+    <li>
+      <b>Left for later:</b> undo across reloads; two people editing one notebook at once; a notebook made from an HTML
+      page (<a href="#p-button-page-notebook">P16.1</a>).
+    </li>
+  </ol></epic-field
 ><epic-field name="files"
-  ><p>In outline; the build plan comes later.</p>
-  <ul>
+  ><ul>
     <li>
-      spell-ui:
-      <a
-        href="../../../spell-ui/src/docs-components/ui-docs-example/"
-        target="src-spell-ui-src-docs-components-ui-docs-example"
-        ><code>src/docs-components/ui-docs-example/</code></a
-      >
-      and <code>ui-section</code>
+      spell-parser: <code>src/core/templates/Notebook.spell</code> (and <code>.es.spell</code>); the
+      <code>example</code> rule in <code>src/spell/</code> and <code>src/spellx/</code>;
+      <code>src/spell/SpellProject.ts</code> (<code>compileChunk()</code>)
     </li>
-    <li>spell-ui: saving from <code>&lt;ui-code&gt;</code> and <code>&lt;ui-markdown&gt;</code></li>
     <li>
-      the kit:
-      <a href="../../../src/server/page/PageEditor.ts" target="src-src-server-page-pageeditor-ts"
-        ><code>src/server/page/PageEditor.ts</code></a
-      >
-      (<code>/api/pages</code>: PATCH one element by id)
+      spell-app: <code>src/app/components/spell-notebook/</code> (<code>NotebookToolbar.tsx</code>,
+      <code>NotebookCell.tsx</code>, <code>NotebookCells.ts</code>, moved here);
+      <code>spaces/@spell/notebooks/Counter.spellx</code>
     </li>
-    <li>spell-parser: the spellx compile, for the spellx cells</li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
-    <li>On the Button page, edit an example's code and see it redraw</li>
-    <li>Reload: the edit is still there, and <code>ui-button.html</code>'s git diff shows only that edit</li>
-    <li>Add a cell, and move one</li>
-    <li>A spellx example draws live</li>
+    <li>Owen's hand test, <a href="#t5">T5</a></li>
+    <li>
+      spell-parser: the <code>example</code> rule and its twin; <code>compileChunk()</code>; the notebook template
+      compiles
+    </li>
+    <li>spell-app: browser tests for one-cell re-render, save and lock; the pair test</li>
+    <li>
+      <code>yarn review</code> in each repo touched; headless screenshots at 1440 / 900 / 390, light and dark, reviewed
+      by the designer
+    </li>
   </ul></epic-field
 >
