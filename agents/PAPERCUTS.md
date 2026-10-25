@@ -227,6 +227,10 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   browser tests had run on the same machine;  it passed on its own a minute later. · A timing test under load:  rerun
   it alone (`yarn vp test run --project spell tests/spell/parserTests/Expectations.test.ts`) before suspecting a
   change. · spell-app (epic `prefs-and-undo` P3)
+- 2026-10-25 · `yarn kit:review`'s run of `tests/cli/publish/PublishedPackage.test.ts` timed out in its `beforeAll`
+  (10s hook timeout, staging a package) while the whole kit's suite ran;  alone it passes in ~13s. · Re-run it
+  alone (`yarn vp test run tests/cli/publish/PublishedPackage.test.ts`) before suspecting a change. · kit (epic
+  `coherence` P1)
 
 ## ui
 
