@@ -234,6 +234,11 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 ## ui
 
+- 2026-10-25 · After `yarn site:data` rewrote `src/jsx.ts`, Spell UI's `yarn ts` still failed on JSX attributes the new
+  types have (`appearance` on `<ui-button>`), while a direct `yarn tsc -p tsconfig.json --noEmit` passed:  `spell-types`
+  kept its saved build (`dist-types/.tsconfig.tsbuildinfo`) and didn't see the regenerated file. · `rm -rf dist-types`,
+  then `yarn ts` passed. · ui (epic ui-gaps P4;  `spell-types`'s staleness check)
+
 - 2026-10-25 · `<ui-icon-picker> panel > typing filters the grid by name, best match first` failed once in Spell UI's
   full `yarn review` (771ms), then passed alone (24 of 24):  flaky under the full browser run's load. · Re-ran it
   alone. · ui (epic ui-gaps P2)
