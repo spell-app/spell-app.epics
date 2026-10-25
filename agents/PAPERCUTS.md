@@ -230,6 +230,8 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 ## ui
 
+
+- 2026-10-25 · `UISearch.test.tsx` "debounces typing and aborts a superseded query" failed once in a full `yarn review` run right after four other repos' reviews;  passed alone, 33 of 33 · a timing test under load:  re-run it alone before chasing it · spell-ui
 - 2026-10-20 · `yarn smoke` failed every import-map page (`'@solidjs/web' does not provide an export named
   'mergeProps'`) after a rebuild:  `vendor/` is tree-shaken to the bindings the LAST `dist/` imported, and the new
   build imports more. · `yarn vendor`, then `yarn smoke` again. · ui (epic `repo-split` P6)
