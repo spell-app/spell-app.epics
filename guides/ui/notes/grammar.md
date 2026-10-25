@@ -483,7 +483,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 - A modal starts hidden (`elementSetup.visible` is `"hidden"`).
 - Approve / deny:  anywhere inside, either of
   - Fomantic's classes:  `.approve` / `.ok` / `.positive`, and `.deny` / `.cancel` / `.negative`
-  - `<ui-button positive / negative>`
+  - `<ui-button color="positive">` / `color="negative"`
   - Their cancelable `ui-approve` / `ui-deny` come first (Fomantic's `onApprove` returning `false`).
 - Named by the DOM element's `aria-label`, else the `header` shorthand, else a slotted `<ui-header>`.
   - The close icon is LAST in the DOM, so the first focus lands in the content (a confirm's Cancel), not on it.
@@ -1292,7 +1292,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
   - `progress="top|bottom"` shows it, with `data-ui-motion="essential"` so reduced motion keeps it.
 - Actions:  `slot="actions"`.
   - `actions="basic | left | vertical | attached [top]"` (Fomantic's `classActions`).
-  - Approve / deny classes and `<ui-button positive / negative>` fire the cancelable `ui-approve` / `ui-deny`.
+  - Approve / deny classes and `<ui-button color="positive">` / `color="negative"` fire the cancelable `ui-approve` / `ui-deny`.
   - Any action closes, unless its click was `preventDefault()`ed (`click: () => false` in `UI.toast()`).
 - Accessibility:  `role=status`, `alert` for `type="error"`;  never takes focus.
   - KNOWN LIMIT:  while a modal `<dialog>` is open, the page outside it is inert, containers included.
