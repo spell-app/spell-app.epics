@@ -1,0 +1,298 @@
+<!-- plan-doc part:  #c12's details in spell-element.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-more
+  ><p>
+    Both behaviours still hold in today's code. What's missing is the TESTS, and for the second idea only part of one:
+    <code>&lt;ui-input&gt;</code> already covers <code>input</code> and <code>keydown</code>, but nothing really
+    exercises <code>focusin</code>.
+  </p>
+
+  <h4>1. An object written to a string attribute's property reflects as JSON</h4>
+  <ul>
+    <li>
+      What the old test did (solid-element's <code>props.test.tsx</code>, deleted in P5): it wrote an object, then a
+      number, to a reflecting string property, and read the attribute back
+      <epic-code title="packages/solid-element/src/props.test.tsx (deleted) · 9 lines" language="ts">
+        <pre>
+it("fork:  an object written to a `String` prop reflects as JSON, never `[object Object]`", () =&gt; {
+  const tag = nextTag("object-text")
+  customElement(tag, { label: { value: "", reflect: true } }, Show("label"))
+  const element = mount(`&lt;${tag}&gt;&lt;/${tag}&gt;`).firstElementChild as HTMLElement &amp; { label: unknown }
+  element.label = { a: 1 }
+  expect(element.getAttribute("label")).toBe('{"a":1}')
+  element.label = 7
+  expect(element.getAttribute("label")).toBe("7")
+})</pre>
+      </epic-code>
+    </li>
+    <li>
+      Does today's code still do it? Yes, in two places, both through the same helper,
+      <code>ElementDefinition.text()</code>:
+      <ul>
+        <li>
+          a property write first goes through <code>convert()</code>. A plain string attribute falls to its
+          <code>default</code> branch, which turns anything that isn't a string, number or boolean into JSON
+        </li>
+        <li>
+          then <code>reflectAttribute()</code> asks <code>attributeText()</code> for the attribute's text, which ends in
+          the same <code>text()</code> call
+        </li>
+      </ul>
+      <epic-code title="packages/ui/src/elements/ElementDefinition.ts · 12 lines" language="ts">
+        <pre>
+// convert(), the last branch:  a plain string attribute lands here
+default:
+  return value == null ? undefined : Array.isArray(value) ? value : ElementDefinition.text(value)
+
+/** A primitive as attribute / class text;  anything else as JSON (never `[object Object]`). */
+private static text(value: unknown): string {
+  if (typeof value === "string") return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  return JSON.stringify(value)
+}
+
+// attributeText(), the end
+const text = ElementDefinition.text(value)</pre>
+      </epic-code>
+    </li>
+    <li>
+      One thing the old test never checked: the PROPERTY reads back as the JSON text, not the object. After
+      <code>host.label = { a: 1 }</code>, <code>host.label</code> is the string <code>'{"a":1}'</code>. That's what a
+      string attribute should hold, so the new test pins it too.
+    </li>
+    <li>
+      So: a missing TEST, not a missing behaviour.
+      <ul>
+        <li>
+          No test in
+          <a href="../../../spell-ui/" target="src-spell-ui"><code title="spell-ui">ui</code></a> writes an object to a
+          string attribute: <code>[object Object]</code>
+          appears in no test file
+        </li>
+        <li>
+          The nearest test,
+          <a href="../../../tests/element/DOMElement.test.tsx" target="src-tests-element-domelement-test-tsx"
+            ><code>DOMElement.test.tsx</code></a
+          >'s "reflecting an array keeps the array", writes an array of strings
+        </li>
+      </ul>
+    </li>
+    <li>
+      The test to add: in
+      <a href="../../../tests/element/DOMElement.test.tsx" target="src-tests-element-domelement-test-tsx"
+        ><code>DOMElement.test.tsx</code></a
+      >, under <code>describe("DOMElement attributes")</code>, right after "reflecting an array keeps the array". It
+      uses that file's own helpers (<code>definedTag()</code>, <code>attribute()</code>, <code>renderTag()</code>,
+      <code>shown()</code>)
+      <epic-code title="packages/ui/src/elements/DOMElement.test.tsx · 11 lines" language="ts">
+        <pre>
+test("an object written to a string attribute's property reflects as JSON, never `[object Object]`", async () =&gt; {
+  const { tag } = definedTag("object-text", [attribute("label", "string")])
+  const host = await renderTag(tag)
+  host.label = { a: 1 }
+  expect(host.getAttribute("label")).toBe('{"a":1}')
+  expect(host.label).toBe('{"a":1}')
+  host.label = 7
+  expect(host.getAttribute("label")).toBe("7")
+  await ElementFixture.tick()
+  expect(shown(host)).toBe("string:7")
+})</pre>
+      </epic-code>
+    </li>
+  </ul>
+  <epic-aside title="one hole the old test didn't cover:  an array of objects">
+    <ul>
+      <li>
+        <code>convert()</code> keeps an array as it is (that's what "reflecting an array keeps the array" pins), and
+        <code>attributeText()</code> writes an array as <code>value.join(",")</code>
+      </li>
+      <li>
+        So, read from the code (not run): <code>host.items = [{ a: 1 }]</code> on a string attribute reflects as
+        <code>items="[object Object]"</code>
+      </li>
+      <li>
+        <code>json</code> attributes never reflect (<code>ElementDefinition</code>'s constructor sets
+        <code>reflect: spec.kind !== "json" &amp;&amp; ...</code>), so only a page writing objects into a STRING
+        attribute's array would hit it
+      </li>
+      <li>
+        A fix, if wanted, is one line in <code>attributeText()</code>:
+        <code>value.map((item) =&gt; ElementDefinition.text(item)).join(",")</code>. It's outside T6: a new item if it's
+        worth doing
+      </li>
+    </ul>
+  </epic-aside>
+
+  <h4>2. Page listeners for <code>input</code> / <code>keydown</code> / <code>focusin</code> see the host</h4>
+  <ul>
+    <li>
+      What the old test did (solid-element's <code>events.test.tsx</code>, its "fork" block): an element whose inner
+      <code>&lt;input&gt;</code> handed Solid an <code>onInput</code>, an <code>onKeyDown</code> AND an
+      <code>onFocusIn</code>. It typed into it, and checked that listeners on the host and on the document saw the host
+      as <code>target</code>
+      <epic-code title="packages/solid-element/src/events.test.tsx (deleted) · 16 lines" language="ts">
+        <pre>
+const host = mount(`&lt;${tag}&gt;&lt;/${tag}&gt;`).firstElementChild as HTMLElement
+const seen: Record&lt;string, Seen[]&gt; = {}
+for (const type of ["input", "click", "keydown", "focusin"]) {
+  seen[type] = []
+  const record = (event: Event) =&gt; seen[type].push(see(event))
+  host.addEventListener(type, record)
+  document.addEventListener(type, record)
+}
+await userEvent.type(host.shadowRoot!.querySelector("input")!, "a")
+await userEvent.click(host.shadowRoot!.querySelector("button")!)
+expect(log).toEqual(["focusin", "keydown", "input", "click"])
+expect(seen.input).toEqual([
+  { target: "host", currentTarget: "host", path0: "input" },
+  { target: "host", currentTarget: "#document", path0: "input" }
+])
+expect(seen.focusin[0]).toEqual({ target: "host", currentTarget: "host", path0: "input" })</pre>
+      </epic-code>
+    </li>
+    <li>
+      Does today's code still do it? Yes. Nothing in
+      <a href="../../../src/element/ShadowEvents.ts" target="src-src-element-shadowevents-ts"
+        ><code>ShadowEvents.ts</code></a
+      >
+      is specific to <code>click</code>:
+      <ul>
+        <li>
+          <code>bridge()</code> wraps Solid's listener for every event type Solid delegates
+          (<code>DelegatedEvents.has(type)</code>). In <code>@solidjs/web</code> rc.13 that set holds
+          <code>input</code>, <code>keydown</code> and <code>focusin</code>, among 22 types
+        </li>
+        <li>
+          <code>after()</code> then deletes the event's own <code>target</code> / <code>currentTarget</code>, whatever
+          <code>event.type</code> is, so the browser's own retargeting (target = the host) shows through again
+        </li>
+      </ul>
+    </li>
+    <li>
+      What's tested today:
+      <ul>
+        <li>
+          <a href="../../../tests/element/ShadowEvents.test.tsx" target="src-tests-element-shadowevents-test-tsx"
+            ><code>ShadowEvents.test.tsx</code></a
+          >: its page-listener test checks <code>click</code> only. Its test field has an <code>onInput</code>, but no
+          test listens for <code>input</code> from the page
+        </li>
+        <li>
+          <a
+            href="../../../spell-ui/tests/test-helpers/events.test.tsx"
+            target="src-spell-ui-tests-test-helpers-events-test-tsx"
+            ><code title="test/events.test.tsx">events.test.tsx</code></a
+          >
+          (real <code>ui-*</code> elements): "&lt;ui-input&gt;: input, keydown, focusin, click see the host" types into
+          a <code>&lt;ui-input&gt;</code> and checks all four types. Its inner <code>&lt;input&gt;</code> has Solid
+          <code>onInput</code> and <code>onKeyDown</code> handlers (<a
+            href="../../../spell-ui/src/components/ui-input/UIInput.tsx"
+            target="src-spell-ui-src-components-ui-input-uiinput-tsx"
+            ><code>UIInput.tsx</code></a
+          >), so Solid's walk really runs for those two: <code>input</code> and <code>keydown</code> ARE covered
+        </li>
+        <li>
+          <code>focusin</code> is NOT, really. No <code>ui-*</code> element hands Solid an <code>onFocusIn</code>:
+          <ul>
+            <li>
+              the two that listen for <code>focusin</code> (<code>RovingTabindex</code>, <code>&lt;ui-toast&gt;</code>)
+              use <code>addEventListener()</code> / <code>@E.on("focusin")</code>, which Solid never walks
+            </li>
+            <li>
+              Solid adds its listener for a type only once some code asks for that type, so for
+              <code>focusin</code> nothing overwrites <code>target</code> in the first place
+            </li>
+            <li>
+              so the <code>focusin</code> row in
+              <a
+                href="../../../spell-ui/tests/test-helpers/events.test.tsx"
+                target="src-spell-ui-tests-test-helpers-events-test-tsx"
+                ><code title="test/events.test.tsx">events.test.tsx</code></a
+              >
+              would pass with <code>ShadowEvents</code> switched off
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      So: a missing TEST again, not a missing behaviour. <code>input</code> and <code>keydown</code> only lack a test in
+      <code>ShadowEvents</code>'s own file; <code>focusin</code> lacks one anywhere.
+    </li>
+    <li>
+      The test to add: in
+      <a href="../../../tests/element/ShadowEvents.test.tsx" target="src-tests-element-shadowevents-test-tsx"
+        ><code>ShadowEvents.test.tsx</code></a
+      >, under <code>describe("ShadowEvents page listeners")</code>, after "a listener on the host sees
+      <code>target</code> === host".
+      <ul>
+        <li>
+          It defines its own element rather than adding handlers to the shared <code>defineField()</code>, whose
+          <code>log</code> other tests compare whole
+        </li>
+        <li>
+          It uses only what the file already has: <code>defineElement()</code>, <code>mount()</code>,
+          <code>inside()</code>, <code>see()</code>, <code>userEvent</code>, <code>onTestFinished</code>
+        </li>
+      </ul>
+      <epic-code title="packages/ui/src/elements/ShadowEvents.test.tsx · 26 lines" language="ts">
+        <pre>
+test("listeners for `input`, `keydown`, `focusin` see the host too, not only `click`", async () =&gt; {
+  const log: string[] = []
+  const tag = defineElement("typing", () =&gt; (
+    &lt;input
+      onInput={() =&gt; log.push("input")}
+      onKeyDown={() =&gt; log.push("keydown")}
+      onFocusIn={() =&gt; log.push("focusin")}
+    /&gt;
+  ))
+  const host = await mount(tag)
+  const types = ["focusin", "keydown", "input"]
+  const seen: Record&lt;string, Seen[]&gt; = {}
+  for (const type of types) {
+    const record = (event: Event) =&gt; (seen[type] ??= []).push(see(event))
+    host.addEventListener(type, record)
+    document.addEventListener(type, record)
+    onTestFinished(() =&gt; document.removeEventListener(type, record))
+  }
+  await userEvent.type(inside(host, "input"), "a")
+  // Solid's walk really ran for all three:  the component's own handlers fired
+  expect(log).toEqual(types)
+  for (const type of types) {
+    expect(seen[type]![0]).toEqual({ target: "host", currentTarget: "host", path0: "input" })
+    expect(seen[type]![1]).toEqual({ target: "host", currentTarget: "#document", path0: "input" })
+  }
+})</pre>
+      </epic-code>
+    </li>
+    <li>
+      To be sure it guards the fix: comment out the <code>ShadowEvents.unwalk(event, "target", ...)</code> line at the
+      top of <code>after()</code> and run it once. All three types should fail with <code>target: "input"</code>, which
+      is what a page saw before the fix.
+    </li>
+  </ul>
+
+  <epic-net-effect>
+    <ul>
+      <li>no behaviour change: both ideas already hold in today's code</li>
+      <li>
+        <a href="../../../tests/element/DOMElement.test.tsx" target="src-tests-element-domelement-test-tsx"
+          ><code>DOMElement.test.tsx</code></a
+        >
+        gains one test: an object written to a string attribute's property reflects as <code>{"a":1}</code>, and a
+        number as <code>"7"</code>
+      </li>
+      <li>
+        <a href="../../../tests/element/ShadowEvents.test.tsx" target="src-tests-element-shadowevents-test-tsx"
+          ><code>ShadowEvents.test.tsx</code></a
+        >
+        gains one test: page listeners for <code>input</code>, <code>keydown</code> and <code>focusin</code> see the
+        host, on an element that hands Solid a handler for each
+      </li>
+      <li><code>focusin</code> is tested for real for the first time since the old suite went</li>
+      <li>
+        the array-of-objects hole (<code>items="[object Object]"</code>) stays as it is, unless Owen wants a new item
+        for it
+      </li>
+    </ul>
+  </epic-net-effect></epic-more
+>
