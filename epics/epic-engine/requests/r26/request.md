@@ -3,7 +3,9 @@ id: r26
 epic: epic-engine
 from: 🚧 debut (ad62dff0)
 at: 2026-10-25T09:46-04:00
-status: new
+status: filed
+filed: P38 · API Tab Contents
+phase: p-api-tab-contents
 ---
 
 ## Owen's words
