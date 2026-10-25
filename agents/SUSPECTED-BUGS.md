@@ -40,6 +40,15 @@ fixed, or disproven, delete it (note a disproof in a line at the top if the reas
 
 Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how to prove it. ``
 
+## util
+
+- `src/util/reactive/extend.ts` `declared()`:  a PLAIN class's `@prop({ default })` reads `undefined` while unset, where an
+  `Observable`'s reads its default (`clubs`, `0`, `""`, `false`).  `declared()` reads a schema only when the class has one
+  (`HAS_SCHEMA`, which `Observable` marks), so a plain class's `@prop` declaration is never consulted for its default.
+  Older than typed defaults (epic `prefs-and-undo` P7, which only changed what a found declaration answers).
+  Prove it:  a plain class with `@prop({ type: "text", default: "down" }) accessor direction`, read before it's set.
+  README-util's typed-defaults section says so as a caveat.  Seen 2026-10-25 (epic `prefs-and-undo` P9).
+
 ## spell
 
 - `match.compile()` of one statement writes a loop by what the writer last saw:  after a project was updated in place
