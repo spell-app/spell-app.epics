@@ -348,7 +348,7 @@ Sources:  `components/ui-button/UIButton.en.ts`, `/Users/owen/www/spell/spell.ep
    <body data-spell-needs-server class="spell-doc-page plan-doc">
      <ui-root>
        <ui-components source="/_epic/pack/epics.pack.js"></ui-components>
-       <spell-site-header root="../.."></spell-site-header>
+       <spell-site-header></spell-site-header>
        <div class="spell-doc"><main class="spell-doc-main"> <epic-page ...>...</epic-page> </main></div>
      </ui-root>
      <script src="/_epic/assets/highlight.min.js"></script>
