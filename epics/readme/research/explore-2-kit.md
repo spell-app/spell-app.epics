@@ -432,7 +432,7 @@ LOCALIZATION, two halves:
 2. TEXTS (what people read) -- not in the dictionary:  `UI.i18n` (Spell UI's `src/runtime/I18n.ts`) owns them, keyed
    per component.  `t(key, params, scope)` looks up exact locale (`pt-BR`) -> language (`pt`) -> `en` -> English
    defaults (each vocabulary's `texts`) -> the key itself (visible, not blank).
-   `UI.i18n.register("es", { label: "Etiqueta" })` (shared) or `register("es", { label: "Migas" }, "ui-breadcrumbs")`
+   `UI.i18n.register("es", { label: "Etiqueta" })` (shared) or `register("es", { label: "Migas" }, "ui-breadcrumb")`
    (one component).  Formatting via `Intl`;  Temporal via polyfill when needed.
 - Status:  the translation contract is "designed now, built later" (`guides/ui/notes/translation.md`):  the
   mechanism works (tested with the Spanish dictionary) but no real translations ship.
