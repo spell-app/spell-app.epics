@@ -3,7 +3,8 @@ id: r33
 epic: epic-engine
 from: elemental-spell-97 (6c7231b5)
 at: 2026-10-25T14:48-04:00
-status: new
+status: filed
+filed: item I-number above, built after P41 (it shares PlanDoc)
 ---
 
 ## Owen's words
