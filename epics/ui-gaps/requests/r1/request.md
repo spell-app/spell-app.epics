@@ -33,7 +33,7 @@ AGREED CONCEPTS (old name -> new attribute = value):
 OWEN'S OTHER RENAMES (everywhere):
 - select -> part
 - aria-label -> label
-- <ui-breadcrumb> -> <ui-breadcrumbs>;  <ui-breadcrumb-section> -> <ui-breadcrumb>
+- <ui-breadcrumbs> -> <ui-breadcrumbs>;  <ui-breadcrumb> -> <ui-breadcrumbs>
 - ui-avatar alt:  remove, use tooltip
 - ui-button type:  DITCH
 - ui-buttons primary / secondary:  same as color
