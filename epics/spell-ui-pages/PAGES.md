@@ -129,14 +129,14 @@ so `#examples-types-emphasis` deep-links to it (its tab shown, the sections arou
 | `left floated` / `right floated` | `floated="left"` |
 | `left aligned` / `center aligned` text | `text-align="center"` |
 | `very padded`, `very relaxed`, `very close` | `padded="very"`, `relaxed="very"`, `close="very"` |
-| `top attached`, `bottom attached`, `attached` | `attached="top"`, `attached="bottom"`, `attached` |
+| `top attached`, `bottom attached`, `attached` | `attach="top"`, `attach="bottom"`, `attach="both"` |
 | `left labeled` / `right labeled` | `labeled="left"` / `labeled="right"` |
 | `labeled icon button` + `<i class="x icon">` | `<ui-button labeled icon="x">` |
 | `<i class="x icon"></i>` inside an element | the element's `icon="x"` attribute;  markup / a spinner:  `<ui-icon slot="icon" name="x">` |
-| `ui labeled button` > `button` + `ui basic label` | `<ui-button icon="heart" label="2,048">` |
+| `ui labeled button` > `button` + `ui basic label` | `<ui-button icon="heart" badge="2,048">` |
 | `five buttons`, `three item menu`, `four wide column` | `width="5"` (columns `4`, fractions `1/4`, `25%`);  NEVER `wide` |
 | `<div class="or" data-text="ou">` | `<ui-or label="ou">` |
-| `active` | `active` (alias of `selected` where the tag chooses) |
+| `active` | `selected` |
 | `disabled`, `loading` | same words |
 | `.header`, `.content`, `.meta`, `.description`, `.extra` children | `<ui-header>`, `<ui-content>`, `<ui-meta>`, `<ui-description>`, `<ui-extra>` (parts style themselves by owner) |
 | `.item` children (menu, list, dropdown) | `<ui-item>` (`href` for links) |
