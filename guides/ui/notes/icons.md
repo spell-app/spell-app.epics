@@ -311,8 +311,15 @@ yarn gen:icons
 - It copies FA's `svgs/<style>/<name>.svg` byte for byte (licence comment included), for canonical names only.
   - The package's alias copies are skipped:  aliases are in the index.
 - It runs the builder on each pack.
-- It writes the docs icon browser's search terms, `search.json` (in [the icons' data folder](../src/icons/data/)):
-  solid search terms, the first 5 per icon, under a 100 KB budget.
+- It writes the search words, `search.json` (in [the icons' data folder](../src/icons/data/)), under a 115 KB budget,
+  for `<ui-icon-picker>` and the docs icon browser:
+  - search terms, the first 5 per icon:  every solid icon's, and every icon a category lists
+  - Font Awesome's categories, from the package's `categories.yml`, which group the picker's grid
+    (epic `debut` P14, Q20)
+    - each category's icons written as places in the terms' key list, the gap from the one before:
+      ~15 KB, where their names would be ~37 KB
+  - `yarn gen:icons --search-only` writes it alone, and leaves the packs as they are:
+    it needs no Fomantic clone.
 - It **MUST run in a worktree** while tests run elsewhere:  it deletes and rewrites `icon-packs/`.
 - The generated files are COMMITTED:  installs and CI need no network, and a diff shows what an FA upgrade changed.
   - Lint and format ignore `src/icons/icon-packs/**` (`.oxfmtrc.json` / `.oxlintrc.json`).
