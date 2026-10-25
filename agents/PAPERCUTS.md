@@ -234,6 +234,10 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 ## ui
 
+- 2026-10-25 · `<ui-icon-picker> panel > typing filters the grid by name, best match first` failed once in Spell UI's
+  full `yarn review` (771ms), then passed alone (24 of 24):  flaky under the full browser run's load. · Re-ran it
+  alone. · ui (epic ui-gaps P2)
+
 
 - 2026-10-25 · `UISearch.test.tsx` "debounces typing and aborts a superseded query" failed once in a full `yarn review` run right after four other repos' reviews;  passed alone, 33 of 33 · a timing test under load:  re-run it alone before chasing it · spell-ui
 - 2026-10-20 · `yarn smoke` failed every import-map page (`'@solidjs/web' does not provide an export named
