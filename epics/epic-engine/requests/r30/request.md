@@ -3,7 +3,8 @@ id: r30
 epic: epic-engine
 from: elemental-spell-97 (6c7231b5)
 at: 2026-10-25T13:59-04:00
-status: new
+status: filed
+filed: done at once:  the 9 components' tooltips (Open this X / Close this X), spell-epic 60805c9
 ---
 
 ## Owen's words
