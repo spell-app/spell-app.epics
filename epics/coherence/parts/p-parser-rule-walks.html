@@ -1,0 +1,87 @@
+<!-- plan-doc part:  #p-parser-rule-walks's body in coherence.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    The parser's rules are walked by hand in six places, and the language server's keyword list skips a repeat's
+    separator; three neighbours redo the parser's work another way.
+  </p></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>
+      The parser gains <code>Rule.childRules</code>, <code>P.leadingRules()</code> and
+      <code>P.offsetForPosition()</code>; the walks use them.
+    </li>
+    <li>The app's layout reads handlers with the <code>On</code> rule, so Spanish ones work.</li>
+    <li>JavaScript and TypeScript comments are blanked by oxc's parser.</li>
+  </ul></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      The parser's rules are walked two ways, not six (<a href="#c15">C15</a>): <code>Rule.childRules</code> ("every
+      rule inside this one") and <code>P.leadingRules(rule, parser, { followGroups })</code> ("what can this rule start
+      with"); the parser, the language server, the keyword list and the translator walk through them.
+    </li>
+    <li>A repeat's separator is never skipped: the keyword list finds the words in it.</li>
+    <li>
+      The app's layout reads its handlers with the parser's <code>On</code> rule, <code>when</code> as a synonym, so
+      Spanish handlers (<code>al</code>) work too.
+    </li>
+    <li>
+      JavaScript and TypeScript comments and strings are blanked by oxc's parser, already used beside them; Python and
+      Spell keep a small scanner.
+    </li>
+    <li><code>P.offsetForPosition()</code> beside <code>positionForOffset()</code>, for its three copies.</li>
+  </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>spell-parser:</b> the translator's private <code>childRules()</code> (which already visits a repeat's
+      separator) becomes <code>Rule.childRules</code>; <code>P.leadingRules()</code> from the parser's
+      <code>addLeadingWords()</code>, which then uses it; <code>P.offsetForPosition()</code> beside
+      <code>positionForOffset()</code>;
+      <a
+        href="../../../spell-parser/src/spell/node/spellSyntax.ts"
+        target="src-spell-parser-src-spell-node-spellsyntax-ts"
+        ><code>spellSyntax.ts</code></a
+      >
+      blanks JavaScript and TypeScript with <code>parseSync</code>'s comments and string spans. Tests; the speed test.
+      Commit: <code>coherence P13, C15: parser rule walks</code>.
+    </li>
+    <li>
+      <b>spell-app:</b> the keyword list's <code>allRules()</code> and <code>leadingPhrases()</code>, and the language
+      server's <code>firstWords()</code> / <code>firstKinds()</code>, on them (the separator test, red first); the
+      layout's handlers read with the <code>On</code> rule; the three position-to-offset copies. Commit.
+    </li>
+    <li><b>The catalog</b>: "A new syntax" loses <code>commentsBlanked()</code> as a copy.</li>
+    <li>
+      <b>Left out:</b> the code-pack scanner's helpers for Python (<code>maskCode()</code> and the rest), kept small: no
+      Python parser in the repos.
+    </li>
+    <li>
+      <b>Adjusted from the finding (coherence):</b> "a small table-driven scanner" for Spell too would be a second Spell
+      reader: Spell's comments and strings come from Spell's own tokenizer (the catalog's "A new syntax"), so only
+      Python keeps a scanner. Checked against the code when the phase starts.
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      spell-parser: <code>src/parser/</code> (<code>Rule</code>, a rule-walk file, the barrel),
+      <code>src/spell/SpellParser.ts</code>, <code>src/spell/translate/Translator.ts</code>,
+      <code>src/spell/languages/packs.ts</code>, <code>src/spell/node/spellSyntax.ts</code>, their tests
+    </li>
+    <li>
+      spell-app: <code>src/lsp/</code> (<code>SpellLanguageService</code>, <code>SpellKeywords</code>,
+      <code>ScopesSource</code>), <code>src/app/runner/LayoutSpell.ts</code>,
+      <code>src/cli/commands/formatCommand.ts</code>, their tests
+    </li>
+    <li>the catalog</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>A test, red first: the keyword list includes a word only a repeat's separator says.</li>
+    <li>A test: a Spanish layout's <code>al</code> handler is read.</li>
+    <li>The blanking tests pass on oxc's output; the language server's completion and hover tests unchanged.</li>
+    <li><code>SP.spellParser.speedTest()</code> on the change and on <code>main</code>, both reported.</li>
+    <li><code>yarn review</code> in spell-parser and spell-app, counts with their deltas.</li>
+  </ul></epic-field
+>
