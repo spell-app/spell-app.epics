@@ -1,0 +1,48 @@
+<!-- plan-doc part:  #c19's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The styles barrel should export the foundation sheets by name, so the runtime stops listing them itself. Found in P4
+  (Runtime 1).
+</p>
+<ul>
+  <li>
+    Why: <code>UIRuntime.registerFoundation()</code> needs each foundation sheet BY NAME, for Styles: layers, reset ...
+  </li>
+  <li>
+    But the styles barrel exports <code>foundationCSS</code> and <code>pageCSS</code> as bare text arrays. A dozen tests
+    read them that way.
+  </li>
+  <li>
+    Now:
+    <a href="../../../spell-ui/src/runtime/UIRuntime.ts" target="src-spell-ui-src-runtime-uiruntime-ts"
+      ><code title="spell-ui/src/runtime/UIRuntime.ts">UIRuntime.ts</code></a
+    >
+    keeps two module tables of sheets, foundation and page (<code>FOUNDATION_SHEETS</code>, PAGE_SHEETS).
+    <ul>
+      <li>PAGE_SHEETS is built from the first, plus the utilities, typography and native sheets.</li>
+      <li>
+        Each name is written once, and "utilities" once, in
+        <a href="../../../spell-ui/src/runtime/runtime.types.ts" target="src-spell-ui-src-runtime-runtime-types-ts"
+          ><code title="spell-ui/src/runtime/runtime.types.ts">runtime.types.ts</code></a
+        >.
+      </li>
+      <li>There's no <code>setUtilities()</code> call: it was Styles' default.</li>
+    </ul>
+  </li>
+  <li>Still: the ORDER lives twice, there and in the styles <code title="styles/index.ts">index.ts</code>.</li>
+  <li>
+    The fix: the styles index exports the sheets as a record, and derives the array from it.
+    <code>UIRuntime</code> imports the record.
+    <epic-code title="the fix · 2 lines" language="text">
+      <pre>
+export const foundationSheets = { layers: layersCSS, ... }
+export const foundationCSS = Object.values(foundationSheets)</pre>
+    </epic-code>
+  </li>
+  <li>
+    Not done here: ui's
+    <a href="../../../spell-ui/src/styles/" target="src-spell-ui-src-styles"
+      ><code title="spell-ui/src/styles/">src/styles/</code></a
+    >
+    belonged to another P4 agent.
+  </li>
+</ul>
