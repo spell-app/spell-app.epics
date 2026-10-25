@@ -1,0 +1,286 @@
+<!-- plan-doc part:  #t31's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>The real move, in order: move-check.md's checklist, merged with what P7 / P8's cutover found.</p>
+<ul>
+  <li>
+    Scratch now: ~/www/spell holds the top repo, the six new repos (real, pushed), and SCRATCH clones of spell-app and
+    spell-epic:
+    <ul>
+      <li>spell-app on branch <code>cutover</code>, 7fdb6a0b9</li>
+      <li>spell-epic on branch <code>cutover</code>, epic-engine P10: e453fbf, f11a4c5, 12dedb6</li>
+      <li>plus links spell.epics / spell.spaces to the old folders</li>
+    </ul>
+  </li>
+  <li>Nothing below has been run.</li>
+</ul>
+<ol>
+  <li>
+    <b>Before</b>:
+    <ul>
+      <li>every session ended or parked, repo-split's own worktree included</li>
+      <li><code>epic server stop</code>, <code>spell dev server stop</code> and any vite stopped</li>
+      <li>spell-app's other worktrees either merged, parked, or left to run single-repo on their old branches</li>
+    </ul>
+  </li>
+  <li>
+    <b>Save the two cutover branches out of the scratch clones</b> (they exist only there):
+    <ul>
+      <li><code>git -C ~/www/spell/spell-app push origin cutover</code> and the same in spell-epic (Owen's call)</li>
+      <li>or <code>git fetch</code> them into the real checkouts in step 4, before the scratch goes</li>
+      <li>
+        Then move the scratch clones OUT of ~/www/spell, since any <code>spell-*</code> folder there is a workspace:
+        <code>mv ~/www/spell/spell-app ~/www/spell-app.cutover-scratch</code>, same for spell-epic.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>Move the real folders in, each with a compat link at its old path, in the same command</b>:
+    <ul>
+      <li>
+        <code
+          >mv ~/www/spell-app/spell-app ~/www/spell/spell-app &amp;&amp; ln -s ../spell/spell-app
+          ~/www/spell-app/spell-app</code
+        >
+      </li>
+      <li>
+        <code
+          >mv ~/www/spell-app/spell-epic ~/www/spell/spell-epic &amp;&amp; ln -s ../spell/spell-epic
+          ~/www/spell-app/spell-epic</code
+        >; the same for
+        <a href="../../../spell-epic.worktrees/" target="src-spell-epic-worktrees"
+          ><code title="spell-epic.worktrees/">spell-epic.worktrees</code></a
+        >
+      </li>
+      <li>
+        <code
+          >rm ~/www/spell/spell.epics &amp;&amp; mv ~/www/spell-app/spell-app.epics ~/www/spell/spell.epics &amp;&amp;
+          ln -s ../spell/spell.epics ~/www/spell-app/spell-app.epics</code
+        >
+        (the old <code>spell-app-dev</code> link then resolves through it)
+      </li>
+      <li>
+        <code
+          >rm ~/www/spell/spell.spaces &amp;&amp; mv ~/www/spell-app/spell-spaces ~/www/spell/spell.spaces &amp;&amp; ln
+          -s ../spell/spell.spaces ~/www/spell-app/spell-spaces</code
+        >
+      </li>
+    </ul>
+    <p>spell-app.worktrees stays where it is: its worktrees end on the old layout.</p>
+  </li>
+  <li>
+    <b>Land the cutovers on main</b>, in each real checkout:
+    <ul>
+      <li><code>git fetch ~/www/spell-app.cutover-scratch cutover:cutover</code> (or from origin)</li>
+      <li>then on main, <code>git merge --ff-only cutover</code></li>
+      <li>
+        main must still be ee35f65c8: else <code>epic worktree merge-main</code> on cutover first, and redo the path
+        checks for what main added
+      </li>
+      <li>
+        spell-app: then delete its untracked leftovers of the old layout:
+        <ul>
+          <li><code>packages/*/node_modules</code> and <code>dist*</code></li>
+          <li>the old root <code>node_modules</code></li>
+          <li>
+            <a href="../../../.yarn/install-state.gz" target="src-yarn-install-state-gz"
+              ><code title=".yarn/install-state.gz">yarn's install state</code></a
+            >
+          </li>
+          <li>
+            <code>git clean -ndX</code> to review, then remove the old packages folder and <code>node_modules</code>
+          </li>
+        </ul>
+      </li>
+      <li>
+        Make the engine link: <code>epic shared link</code> in spell-app. The CLI's engine tools use
+        <a href="../../../spell-epic/" target="src-spell-epic"><code title="spell-epic/">spell-app/spell-epic</code></a
+        >.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b><code>git worktree repair</code> with explicit real paths</b>: a bare repair does nothing while the old path
+    still resolves.
+    <ul>
+      <li><code>git -C ~/www/spell/spell-app worktree repair ~/www/spell-app/spell-app.worktrees/*/</code></li>
+      <li><code>git -C ~/www/spell/spell-epic worktree repair ~/www/spell/spell-epic.worktrees/*/</code></li>
+      <li>check <code>git worktree list</code> shows only real paths</li>
+    </ul>
+  </li>
+  <li>
+    <b>Configs on main</b> (already in the cutovers):
+    <ul>
+      <li>
+        spell-app's
+        <a href="../../../.epic/config.json5" target="src-epic-config-json5"
+          ><code title=".epic/config.json5">epic config</code></a
+        >:
+        <ul>
+          <li>
+            contentFolder <a href="../../../spell.epics/" target="src-spell-epics"><code>../spell.epics</code></a>
+          </li>
+          <li>
+            windows.contentName <a href="../../../spell.epics/" target="src-spell-epics"><code>spell.epics</code></a>
+          </li>
+          <li>
+            windowsFolder <a href="../../../windows/" target="src-windows"><code>../spell.epics/windows</code></a>
+          </li>
+        </ul>
+      </li>
+      <li>spell-epic's likewise (epic-engine P10)</li>
+      <li>
+        the top's tracked
+        <a href="../../../.epic/config.json5" target="src-epic-config-json5"
+          ><code title=".epic/config.json5">epic config</code></a
+        >: <code>"repos": "repos.json5"</code>, multi-repo mode
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>One install</b>: <code>cd ~/www/spell &amp;&amp; yarn install</code>, then the checks (ts, lint, test).
+    <ul>
+      <li>The lockfile is spell-app main's; spell-epic is a workspace.</li>
+    </ul>
+  </li>
+  <li>
+    <b>agents/</b>: at the top and in each child repo, a git-ignored link
+    <code>agents -&gt; ../spell.epics/agents</code>.
+    <ul>
+      <li>
+        the top's: <a href="../../../agents/" target="src-agents"><code title="agents/">spell.epics/agents</code></a>
+      </li>
+      <li>until P9 moves WWOD and the logs into spell-util (Q6)</li>
+      <li>
+        NOT in spell-epic: a root <a href="../../../agents/" target="src-agents"><code>agents/</code></a> there loads
+        them as plugin agents (I23)
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>Claude session folders</b>, in <code>~/.claude/projects/</code>. Claude keys sessions by the REAL cwd, so link
+    the new names to the old:
+    <ul>
+      <li>
+        <code>ln -s -- -Users-owen-www-spell-app-spell-app -Users-owen-www-spell</code>: folder 1 of every window is
+        ~/www/spell now
+      </li>
+      <li><code>... -Users-owen-www-spell-spell-app</code> to the same</li>
+      <li><code>-Users-owen-www-spell-spell-epic -&gt; -Users-owen-www-spell-app-spell-epic</code></li>
+      <li>
+        one per moved spell-epic worktree: <code>-Users-owen-www-spell-spell-epic-worktrees-&lt;w&gt;</code> -&gt; its
+        old slug
+      </li>
+      <li>spell-app.worktrees didn't move: no links.</li>
+    </ul>
+  </li>
+  <li>
+    <b>Window files</b> (spell.epics/windows):
+    <ul>
+      <li>folder 1 <code>~/www/spell</code></li>
+      <li>
+        the content folder <a href="../../../spell.epics/" target="src-spell-epics"><code>spell.epics</code></a
+        >, replacing <code>spell-app.epics</code>
+      </li>
+      <li><code>epic window init</code> drops the dead entry</li>
+      <li>reopen each with <code>epic window open</code>, never from VS Code's recent list</li>
+    </ul>
+  </li>
+  <li>
+    <b>Links on PATH</b>:
+    <ul>
+      <li>
+        <code>~/.local/bin/spell</code> -&gt; <code>~/www/spell/spell-app/cli/bin/spell.mjs</code>
+        <ul>
+          <li>by <code>yarn cli:install</code>, from spell-app</li>
+        </ul>
+      </li>
+      <li><code>~/.local/bin/epic</code> -&gt; <code>~/www/spell/spell-epic/bin/epic</code></li>
+    </ul>
+  </li>
+  <li>
+    <b>The epic hub's list of repos</b>, <code>~/.spell-epic/repos.json5</code>:
+    <ul>
+      <li>every path real: ~/www/spell/spell-app, ~/www/spell/spell-epic, and the top ~/www/spell</li>
+      <li>then <code>epic hub ensure</code> / <code>epic server ensure</code></li>
+    </ul>
+  </li>
+  <li>
+    <b>Claude Code</b> (Owen's, never a session's):
+    <ul>
+      <li>
+        the plugin marketplace source -&gt; <code>~/www/spell/spell-epic</code>: re-add or update the marketplace, then
+        reinstall <code>spell-epic@spell-epic</code>
+      </li>
+      <li>
+        <code>~/.claude/settings.json</code>'s extra folders and Edit rule -&gt;
+        <a href="../../../spell.epics/" target="src-spell-epics"><code>/Users/owen/www/spell/spell.epics</code></a>
+      </li>
+      <li>
+        spell-app's
+        <a href="../../../spell-app/.claude/settings.json" target="src-spell-app-claude-settings-json"
+          ><code title="spell-app/.claude/settings.json">Claude settings</code></a
+        >
+        still name the old content folder and the old CLI path:
+        <ul>
+          <li><code>/Users/owen/www/spell-app/spell-app.epics</code></li>
+          <li><code>node packages/cli/bin/spell.mjs</code></li>
+          <li>update it in the same step: left as is in the cutover, a permissions file</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>VS Code extensions</b> (paths baked in at build):
+    <ul>
+      <li>
+        spell-epic's (Review tab, Epic Docs, window bridge), from ~/www/spell/spell-epic:
+        <code>ENGINE_ROUTE</code> / <code>ENGINE_ROOT</code>
+      </li>
+      <li>
+        the spell language's, by <code>spell dev vscode</code> from ~/www/spell/spell-app: <code>REPO_ROOT</code>, now
+        spell-app's root, with lsp/ and app/ at it
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>Servers</b>:
+    <ul>
+      <li>
+        <code>spell dev server ensure</code> in ~/www/spell/spell-app: it builds the stale bundles (format 2, every one
+        rebuilds once)
+      </li>
+      <li><code>epic server ensure</code>, the editor with it</li>
+    </ul>
+  </li>
+  <li>
+    <b>Verify</b>, from ~/www/spell and from a worktree:
+    <ul>
+      <li><code>epic config contentFolder</code> is ~/www/spell/spell.epics</li>
+      <li><code>epic worktree list --json</code>; <code>epic window which</code></li>
+      <li>
+        a new <code>/isolate</code> makes ~/www/spell.worktrees/&lt;name&gt;/, with every child's worktree inside, and
+        links its session folder
+      </li>
+      <li>
+        the page server answers a guide, an epic page, /components/{ui,epics,app,brand}/ and /_epic/assets/spell-ui.js,
+        and check-spell.js passes on them
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>After</b>:
+    <ul>
+      <li>restart every session (no <code>/worktrees</code> clean-up while pre-move sessions live)</li>
+      <li>
+        push spell-app main, spell-epic main and the top repo (github.com/spell-app/spell, to create: Owen's call)
+      </li>
+      <li>delete ~/www/spell-app.cutover-scratch</li>
+      <li>the compat links at the old paths go once no session, window or worktree names them</li>
+    </ul>
+  </li>
+</ol>
+<epic-commit sha="48d83ce06e0b76f85838a9d9026ab7914d575556"
+  >agents/ is a link into the content folder for now, git-ignored (until WWOD and the logs move here, Q6)</epic-commit
+>
+<epic-commit sha="529f76f893fbb6e2b3a437394966e370c6cc511d"
+  >agents/ is a link into the content folder for now, git-ignored (until WWOD and the logs move here, Q6)</epic-commit
+>
