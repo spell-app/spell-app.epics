@@ -1,0 +1,139 @@
+<!-- plan-doc part:  #i12's details in coherence.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Spell UI's components rebuild six of Spell UI's own runtime pieces, and one copy probably sends English event names
+  from a Spanish page.
+</p>
+<ul>
+  <li>
+    <b>Likely bug (not checked):</b> each native fallback (the plain input shown before a component loads) sends its
+    events itself.
+    <ul>
+      <li>None translates the event's name, or lets it be cancelled, as the components' own send does.</li>
+      <li>So a Spanish page's fallback may send <code>ui-change</code> where the page listens for its Spanish name.</li>
+    </ul>
+  </li>
+  <li>
+    <b>Drift:</b> the read-only attribute is a plain switch in the input, and a keyword, <code>read-only</code>, in the
+    dropdown and the slider.
+  </li>
+</ul>
+<ui-table celled compact striped unstackable
+  ><table>
+    <thead>
+      <tr>
+        <th>Job</th>
+        <th>The one</th>
+        <th>Copies</th>
+        <th>Saves</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>arrow keys through a group</td>
+        <td>
+          <a href="../../../spell-ui/src/runtime/RovingTabindex.ts" target="src-spell-ui-src-runtime-rovingtabindex-ts"
+            ><code title="spell-ui/src/runtime/RovingTabindex.ts">RovingTabindex</code></a
+          >, which exists (only the menu and tabs use it)
+        </td>
+        <td>5</td>
+        <td>about 70 lines</td>
+      </tr>
+      <tr>
+        <td>load once per key</td>
+        <td>a new <code>LoadOnce</code>, with a choice of forgetting failures</td>
+        <td>8</td>
+        <td>about 50 lines</td>
+      </tr>
+      <tr>
+        <td>the highlighted option in a list</td>
+        <td>a new <code>Highlight</code> helper</td>
+        <td>3</td>
+        <td>about 40 lines</td>
+      </tr>
+      <tr>
+        <td>a fallback's events</td>
+        <td>
+          a new
+          <a
+            href="../../../spell-ui/src/elements/NativeFallback.ts"
+            target="src-spell-ui-src-elements-nativefallback-ts"
+            ><code title="spell-ui/src/elements/NativeFallback.ts">NativeFallback.send()</code></a
+          >
+        </td>
+        <td>9</td>
+        <td>about 35 lines, and the bug</td>
+      </tr>
+      <tr>
+        <td>the form controls' attributes</td>
+        <td>one form vocabulary, spread in as the shared vocabulary is</td>
+        <td>11 to 21 rows each</td>
+        <td>about 200 lines, and the drift</td>
+      </tr>
+      <tr>
+        <td>fetching text, failing with a typed error</td>
+        <td>a new <code>fetchText(url, onError)</code> (Spell UI can't use <code>$fetch()</code>)</td>
+        <td>4</td>
+        <td>about 15 lines</td>
+      </tr>
+    </tbody>
+  </table></ui-table
+>
+<ul>
+  <li>
+    What differs, the shared ones take as options:
+    <ul>
+      <li>
+        the arrow keys: choosing on move; the accordion needs a focus-only mode (the calendar opts out on purpose)
+      </li>
+      <li>
+        loading: four ways of handling a failure (forgotten; forgotten while offline; forgotten and swallowed; cached
+        for good)
+      </li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="Where · about 40 places" language="text">
+  <pre>
+Arrow keys, rebuilt (#2), in spell-ui/src/components/
+  ui-accordion/UIAccordion.tsx:188-208   ui-markdown/UIMarkdown.tsx:218,420-428 (a tab list)
+  ui-checkbox/RadioGroup.ts:108-113 + UIRadio.tsx:106   UIRating.tsx:314-353
+  ui-theme-editor/UIThemeEditor.tsx:358-368,632
+
+Load once per key (#3), Map&lt;key, Promise&gt;
+  runtime/Sources.ts:31/75   runtime/IconPacks.ts:219   ComponentPacks.ts:28/107
+  RootLoader.ts:49/133,58/165   EmojiData.ts:155/188   CodeHighlighter.ts:25/82
+
+The highlighted option (#5)
+  UIDropdown.tsx:278,294,304,476   UISearch.tsx:233-261,442   UIIconPicker.tsx:311,328-350,449
+  the step maths:  elements/MenuOptions.ts:108   runtime/RovingTabindex.ts (seek)   UISearch's clamp
+
+Fallback events (#7)
+  UISelect.fallback.ts:97   UISearch.fallback.ts:65   UICalendar.fallback.ts:63   UIDropdown.fallback.ts:71
+  UIIconPicker.fallback.ts:49   UICheckbox.fallback.ts:61   UIRating.fallback.ts:76   UISlider.fallback.ts:83
+  UIInput.fallback.ts:104
+
+The form vocabulary (#8):  name, required, readonly, value, placeholder, invalid
+  UIInput.en.ts:92/152/155/237 (readonly:  boolean)
+  UIDropdown.en.ts:97/180/185/280   UISlider.en.ts:40/138/140/172 (readonly:  keyword read-only)
+
+Fetching text (#11)
+  Api.ts:76   AppStylesheet.ts:257   runtime/Sources.ts:99   runtime/IconPacks.ts:222</pre></epic-code
+><epic-code title="Evidence" language="sh">
+  <pre>
+rg -n "Map&lt;string, Promise" spell-ui/src
+rg -n "new CustomEvent" spell-ui/src --glob "*.fallback.ts"</pre>
+</epic-code>
+<p>
+  From
+  <a href="../details/sweep-1/ui-components.md" target="src-epics-coherence-details-sweep-1-ui-components-md"
+    >the ui-components report</a
+  >, #2, #3, #5, #7, #8 and #11.
+</p>
+<epic-net-effect
+  ><ul>
+    <li>check the Spanish fallback's event name first; fix it with <code>NativeFallback.send()</code></li>
+    <li>the five arrow-key copies use <code>RovingTabindex</code>, with a focus-only mode</li>
+    <li>Spell UI gains <code>LoadOnce</code>, <code>Highlight</code> and <code>fetchText()</code></li>
+    <li>one form vocabulary; read-only is one shape in every control</li>
+  </ul></epic-net-effect
+>

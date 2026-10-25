@@ -1,0 +1,76 @@
+<!-- plan-doc part:  #i5's details in coherence.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Fifteen places write a local date or time stamp by hand, and three of them use the UTC date: a stamp written in the
+  evening lands on tomorrow's date.
+</p>
+<ul>
+  <li>
+    <b>Probable bug:</b> the design tool, the request writer and the voice tool take the date as
+    <code>toISOString().slice(0, 10)</code>.
+    <ul>
+      <li>That's the UTC date: in California after 5 pm (4 pm in winter), it's already tomorrow.</li>
+      <li>
+        The review backfill tool documents exactly this trap, beside the code that avoids it, so it's known, just not
+        followed.
+      </li>
+    </ul>
+  </li>
+  <li>
+    Two homes for one job already: spell-epic's
+    <a href="../../../spell-epic/src/tool/PlanTime.ts" target="src-spell-epic-src-tool-plantime-ts"
+      ><code title="spell-epic/src/tool/PlanTime.ts">PlanTime</code></a
+    >
+    (a day, a minute, a clock time) and
+    <a href="../../../spell-epic/src/dates/PlanDates.ts" target="src-spell-epic-src-dates-plandates-ts"
+      ><code title="spell-epic/src/dates/PlanDates.ts">PlanDates</code></a
+    >
+    (a clock time).
+  </li>
+  <li>The other copies each pad numbers with zeros themselves; the kit's command runs write their own too.</li>
+</ul>
+<epic-field label="Differs"><p>Only the format: a day, a minute, with the time-zone offset, or compact.</p></epic-field
+><epic-field label="The one"
+  ><p>
+    A local-time module in the kit's <code>spell/util</code>, since the kit's command runs need it too;
+    <code>PlanTime</code> and <code>PlanDates</code> become its callers.
+  </p></epic-field
+><epic-field label="Saves"><p>About 120 lines, 15 copies; and the evening stamps get the right day.</p></epic-field
+><epic-code title="Where · 18 places" language="text">
+  <pre>
+UTC date, the probable bug
+  spell-epic/src/tools/design.js:149
+  spell-epic/src/command/Requests.ts:398
+  spell-epic/src/tools/voice.ts:120
+  (spell-epic/src/tool/ReviewBackfill.ts:215 documents the trap)
+
+The two homes
+  spell-epic/src/tool/PlanTime.ts:16-48 (isoDate, isoMinutes, clockTime)
+  spell-epic/src/dates/PlanDates.ts:35 (clock)
+
+Local copies, in spell-epic/src/
+  command/Requests.ts:645 (localTime)   list/EpicCards.ts:213 (isoLocal)   command/Stock.ts:400   (= isoMinutes)
+  command/LinesOfCode.ts:328   tools/details.js:465 (today)   tool/ReviewBackfill.ts:217 (isoDate)
+  tools/PageNotes.js:400 (stamp)   comments/ThreadFacts.ts:123 (localStamp)   (= clockTime)
+  tool/ReviewStart.ts:479 (clockOf, = PlanDates.clock)
+  tool/TestShots.ts:70   command/Sessions.ts:878
+
+The kit
+  src/server/runs/CommandRun.ts:619</pre></epic-code
+><epic-code title="Evidence" language="sh">
+  <pre>
+rg -n 'padStart\(2, "0"\)'
+rg -n 'toISOString\(\)\.slice\(0, 10\)'</pre>
+</epic-code>
+<p>
+  From
+  <a href="../details/sweep-1/epic-tools-kit.md" target="src-epics-coherence-details-sweep-1-epic-tools-kit-md"
+    >the epic-tools-kit report</a
+  >, #1.
+</p>
+<epic-net-effect
+  ><ul>
+    <li>the three UTC stamps write the local date</li>
+    <li>the kit's <code>spell/util</code> gains a local-time module</li>
+    <li><code>PlanTime</code>, <code>PlanDates</code> and the 15 copies call it</li>
+  </ul></epic-net-effect
+>

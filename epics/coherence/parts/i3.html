@@ -1,0 +1,125 @@
+<!-- plan-doc part:  #i3's details in coherence.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Every fold, popover and overlay keeps its own open / closed state, its own events and its own
+  <code>aria-expanded</code>: about twenty copies of one mechanism, across Spell UI and the epic pages.
+</p>
+<ul>
+  <li>The catalog already wants the shared one, under "Wanted": "A disclosure".</li>
+  <li>
+    Four groups of copies:
+    <ul>
+      <li>
+        Spell UI's anchored popover panels: the dropdown, the calendar, the search box and the icon picker, each the
+        same 100 lines and 30 lines of CSS
+      </li>
+      <li>
+        Spell UI's overlays, which show and hide with an animation and then send the after-event: the dialog, dimmer,
+        popup, sidebar, nag and toast
+      </li>
+      <li>
+        the epic pages' fold button: ten elements each write their own button, its chevron, and its "Fold this X" /
+        "Unfold this X" tooltips
+      </li>
+      <li>
+        the catalog's six folds: the accordion, the section, the docs example, the epic pages' folds, the docs pages'
+        runtime, Spell UI's site
+      </li>
+    </ul>
+  </li>
+  <li><b>Drift:</b> the icon picker sends no open / close events, where the other three popovers do.</li>
+  <li>
+    <b>Wait for ui-gaps:</b> <epic-link epic="ui-gaps"></epic-link>'s branch is changing
+    <a
+      href="../../../spell-ui/src/components/ui-dropdown/UIDropdown.tsx"
+      target="src-spell-ui-src-components-ui-dropdown-uidropdown-tsx"
+      ><code title="spell-ui/src/components/ui-dropdown/UIDropdown.tsx">UIDropdown</code></a
+    >
+    now. Build this after it merges.
+  </li>
+</ul>
+<epic-field label="Shared"
+  ><ul>
+    <li>an open state, and a guarded request to open or close</li>
+    <li>open and close events a listener can cancel</li>
+    <li>showing the box, and registering it with Spell UI's overlay list so a click outside closes it</li>
+    <li>a popover's anchor id, and the same anchor CSS</li>
+  </ul></epic-field
+><epic-field label="Differs"
+  ><ul>
+    <li>which box opens, where focus goes back to, what opening resets</li>
+    <li>an overlay's animation target, and its after-event</li>
+    <li>a fold button's label, and the thing it names in its tooltip</li>
+  </ul></epic-field
+><epic-field label="The one"
+  ><p>
+    One disclosure, handed what differs: the open state, its events, <code>aria-expanded</code>, and find-in-page
+    opening it. Each fold, popover and overlay takes it; fold-all and open-all are built on it.
+  </p></epic-field
+><epic-field label="Saves"
+  ><ul>
+    <li>the popovers: about 100 lines and 30 lines of CSS, four copies</li>
+    <li>the overlays: about 60 lines, six copies</li>
+    <li>the fold buttons: about 120 lines, ten copies</li>
+  </ul></epic-field
+><epic-code title="Where · 24 places" language="text">
+  <pre>
+Popover panels (ui-components #1)
+  spell-ui/src/components/ui-dropdown/UIDropdown.tsx:324,326,340,365,405   UIDropdown.css:168/199
+  spell-ui/src/components/ui-calendar/UICalendar.tsx:217,225,237,252,535   UICalendar.css:150/213
+  spell-ui/src/components/ui-search/UISearch.tsx:268,276,287,302,414       UISearch.css:137/183
+  spell-ui/src/components/ui-icon-picker/UIIconPicker.tsx:126,128,144-185,391   UIIconPicker.css:155/184
+  spell-ui/src/components/ui-popup/UIPopup.tsx:74-166 (in part)
+
+Overlays shown and hidden (ui-components #4)
+  spell-ui/src/components/ui-modal/DialogComponent.tsx:156
+  UIDimmer.tsx:180   UIPopup.tsx:106   UISidebar.tsx:175   UINag.tsx:160/199   UIToast.tsx:317
+  the shared start:  src/element/UIComponent.tsx:685 (onVisibleChange)
+
+Fold buttons (epic-pages #5), in spell-epic/src/components/
+  EpicOriginal.tsx:41   EpicNewItem.tsx:88   EpicMore.tsx:42   EpicChange.tsx:138   EpicThread.tsx:217
+  EpicPanel.tsx:66   EpicChoices.tsx:134   EpicOption.tsx:316,409   EpicPageNoteHead.tsx:42
+
+The catalog's folds ("A fold:  open and closed")
+  spell-ui:  UIAccordion, UISection, UIDocsExample, site/_src/SiteSections.ts
+  spell-epic:  EpicFold, EpicItem, Fold;  _assets/spell-doc-runtime.js (setCollapsed, setFolded, addFoldAll)</pre></epic-code
+><epic-code title="Evidence" language="sh">
+  <pre>
+spell map uses OverlayEntry
+rg -n "requestOpen|showPopover" spell-ui/src</pre>
+</epic-code>
+<p>
+  From
+  <a href="../details/sweep-1/ui-components.md" target="src-epics-coherence-details-sweep-1-ui-components-md"
+    >the ui-components report</a
+  >, #1 and #4;
+  <a href="../details/sweep-1/epic-pages.md" target="src-epics-coherence-details-sweep-1-epic-pages-md"
+    >the epic-pages report</a
+  >, #5; the catalog's "A fold" and "Wanted".
+</p>
+<epic-choices>
+  <epic-option letter="A" title="One Disclosure in the kit's spell/element, which each takes" recommended
+    ><ul>
+      <li>
+        one <code>Disclosure</code> beside the base element class, so Spell UI's components and the epic pages' elements
+        both reach it
+      </li>
+      <li>the popover panel, the overlays' show / hide and the fold button are built on it</li>
+      <li>the catalog's "A fold" and "A disclosure" become one entry</li>
+      <li>Recommended: one state and one event pair everywhere, which the open / close words already assume.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="Spell UI's PopoverPanel and spell-epic's Fold.toggle() separately"
+    ><ul>
+      <li>a popover helper in Spell UI's elements, and a fold-button helper in spell-epic's <code>Fold</code></li>
+      <li>smaller steps, each in its own repo</li>
+      <li>still two mechanisms for one idea, and the six folds stay as they are</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect option="A" recommended
+  ><ul>
+    <li>the kit's <code>spell/element</code> gains a <code>Disclosure</code></li>
+    <li>the four popovers, six overlays and ten fold buttons use it, after ui-gaps merges</li>
+    <li>the icon picker sends its open and close events</li>
+    <li>the catalog's "A disclosure" moves out of "Wanted"</li>
+  </ul></epic-net-effect
+>

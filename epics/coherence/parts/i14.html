@@ -1,0 +1,93 @@
+<!-- plan-doc part:  #i14's details in coherence.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The parser's rules are walked by hand in six places, and one walk already misses part of the tree: the language
+  server's keyword list skips a repeat's separator, which the translator visits.
+</p>
+<ul>
+  <li>
+    Two questions, each answered several times:
+    <ul>
+      <li>
+        "what can this rule start with": the parser's leading words, the language server's first words and first kinds,
+        the keyword list's leading phrases
+      </li>
+      <li>"every rule inside this one": the keyword list, and the translator</li>
+    </ul>
+  </li>
+  <li>
+    Three neighbours do the parser's work another way:
+    <ul>
+      <li>
+        the app's layout reads its <code>when clicked</code> handlers with a regular expression, English
+        <code>when</code> / <code>on</code> only, beside the parser's own <code>On</code> rule (Spanish has
+        <code>al</code>)
+      </li>
+      <li>
+        two scanners blank out comments and strings in code by hand, where oxc's parser (<code>parseSync</code>) is
+        already used beside them for JavaScript and TypeScript
+      </li>
+      <li>
+        a position to an offset in the text is written twice, beside the parser's
+        <code>positionForOffset()</code>
+      </li>
+    </ul>
+  </li>
+</ul>
+<epic-field label="The one"
+  ><ul>
+    <li>
+      <code>Rule.childRules</code>, and <code>P.leadingRules(rule, parser, { followGroups })</code>, in the parser
+    </li>
+    <li>the layout's handlers read by the <code>On</code> rule, with <code>when</code> as a synonym</li>
+    <li>oxc's parser for JavaScript and TypeScript; Python and Spell keep a small table-driven scanner</li>
+    <li><code>P.offsetForPosition()</code> beside <code>positionForOffset()</code></li>
+  </ul></epic-field
+><epic-field label="Saves"><p>About 90 lines for the walks (six become two), about 130 for the scanners.</p></epic-field
+><epic-code title="Where · 14 places" language="text">
+  <pre>
+"What can this rule start with" (#2)
+  spell-parser/src/spell/SpellParser.ts:650 (addLeadingWords)
+  spell-app/src/lsp/SpellLanguageService.ts:2262 (firstWords), :2298 (firstKinds)
+  spell-app/src/lsp/SpellKeywords.ts:264 (leadingPhrases)
+"Every rule inside it" (#2)
+  spell-app/src/lsp/SpellKeywords.ts:194 (allRules:  skips a Repeat's delimiter)
+  spell-parser/src/spell/translate/Translator.ts:1328-1338 (visits it)
+
+The layout's handlers (#11)
+  spell-app/src/app/runner/LayoutSpell.ts:282 (handlersIn), :474 (the WHEN regex)
+  beside spell-parser/src/spell/rules/events/events.en.ts:47,90 (On, event_words)
+
+Blanking comments and strings (#6)
+  spell-parser/src/spell/languages/packs.ts:385 (maskCode), 425-500 (stringEnd, regexEnd, matchingClose,
+    topLevelComma, statementAround)
+  spell-parser/src/spell/node/spellSyntax.ts:283 (commentsBlanked)
+  oxc already used:  spellSyntax.ts:327   RuleTestSource.ts:48
+
+Position to offset (#9)
+  spell-app/src/cli/commands/formatCommand.ts:70-73   spell-app/src/lsp/ScopesSource.ts:207-208
+  spell-app/src/lsp/SpellLanguageService.ts:74</pre></epic-code
+><epic-code title="Evidence" language="sh">
+  <pre>
+rg -n "addLeadingWords|firstWords|firstKinds|leadingPhrases|allRules"
+rg -n "parseSync" spell-parser/src</pre>
+</epic-code>
+<p>
+  From
+  <a href="../details/sweep-1/parser-app.md" target="src-epics-coherence-details-sweep-1-parser-app-md"
+    >the parser-app report</a
+  >, #2, #6, #9 and #11.
+</p>
+<epic-net-effect
+  ><ul>
+    <li>
+      the parser gains <code>Rule.childRules</code>, <code>P.leadingRules()</code> and
+      <code>P.offsetForPosition()</code>
+    </li>
+    <li>
+      the language server, the keyword list and the translator walk rules through them; a repeat's separator is never
+      skipped
+    </li>
+    <li>the app's layout reads its handlers with the <code>On</code> rule, so Spanish handlers work too</li>
+    <li>JavaScript and TypeScript comments are blanked by oxc's parser</li>
+  </ul></epic-net-effect
+>

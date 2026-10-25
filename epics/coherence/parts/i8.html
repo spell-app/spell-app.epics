@@ -1,0 +1,76 @@
+<!-- plan-doc part:  #i8's details in coherence.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The epic pages talk to the page server in about a dozen hand-written ways, and each handles a stale token, a missing
+  file and "am I served?" differently.
+</p>
+<ul>
+  <li>
+    Writes carry the page's token, and each handles a stale token its own way:
+    <ul>
+      <li>the review link asks the server again</li>
+      <li>the docs helpers reread the page</li>
+      <li>the syntax page throws "reload"</li>
+      <li>the parked goals page reloads the page</li>
+    </ul>
+  </li>
+  <li>The pattern that reads the token from the page is written twice.</li>
+  <li>
+    Ten or so reads check the response themselves and answer nothing on a failure: the work
+    <code>$fetch()</code> already does.
+  </li>
+  <li>The test "is this page on the page server?" is written about ten times.</li>
+  <li>
+    Polling while the page is visible exists:
+    <a href="../../../spell-epic/src/review/ServerLink.ts" target="src-spell-epic-src-review-serverlink-ts"
+      ><code title="spell-epic/src/review/ServerLink.ts">ServerLink.watch()</code></a
+    >
+    polls, pauses while hidden and hears the server's file notices. Five places write it again.
+  </li>
+</ul>
+<epic-field label="The one"
+  ><ul>
+    <li>
+      <code>ServerLink</code> for every read and write: given an <code>isServed</code> test and a
+      <code>get(api)</code> built on <code>$fetch()</code>, with default contents for a missing file
+    </li>
+    <li><code>ServerLink.watch()</code> for every poll, given a test for which paths it cares about</li>
+    <li>today only the agents and review clients use it</li>
+  </ul></epic-field
+><epic-field label="Saves"><p>About 130 lines for the calls, about 60 for the polling.</p></epic-field
+><epic-code title="Where · about 30 places" language="text">
+  <pre>
+Writes with the token (#1), in spell-epic/src/
+  review/ServerLink.ts:110 (asks the server)   tools/_assets/spell-doc-helpers.js:232 (rereads the page)
+  tools/_assets/spell-syntax.js:565 (throws "reload")   tools/_assets/goals-live.js:419 (location.reload())
+  the token regex:  review/review.types.ts:171   tools/_assets/spell-doc-helpers.js:244
+
+Reads that check !response.ok and answer undefined (#1)
+  answers/AnswerForm.ts:671   answers/ChoicesForm.ts:489   answers/RunForm.ts:287   review/AgentsClient.ts:163
+  review/ReviewClient.ts:481,865   components/epic-page/EpicPage.tsx:638   EpicCards.tsx:97   EpicLink.tsx:124
+  tools/_assets/spell-doc-comments.js:447   tools/_assets/spell-syntax.js:615
+
+"On the page server?" (SPELL_SERVER?.token &amp;&amp; protocol !== "file:") (#1)
+  EpicCard.tsx:59   ChoicesForm.ts:240,320   AnswerForm.ts:377,539,669   spell-doc-comments.js:204
+  spell-doc-runtime.js:3294   ServerLink.ts:88,97
+
+Polling while visible (#6)
+  the one:  review/ServerLink.ts:142 (watch)
+  RunForm.ts:315   AnswerForm.ts:580   spell-doc-comments.js:211-221   EpicCards.tsx:81   EpicPage.tsx:630</pre></epic-code
+><epic-code title="Evidence" language="sh">
+  <pre>
+spell map uses ServerLink        # only AgentsClient, ReviewClient
+rg -n "SPELL_SERVER\?\.token" spell-epic/src</pre>
+</epic-code>
+<p>
+  From
+  <a href="../details/sweep-1/epic-pages.md" target="src-epics-coherence-details-sweep-1-epic-pages-md"
+    >the epic-pages report</a
+  >, #1 and #6.
+</p>
+<epic-net-effect
+  ><ul>
+    <li><code>ServerLink</code> gains <code>isServed</code> and <code>get(api)</code>, on <code>$fetch()</code></li>
+    <li><code>ServerLink.watch()</code> takes a path test</li>
+    <li>every epic-page read, write and poll goes through it; one way to handle a stale token</li>
+  </ul></epic-net-effect
+>

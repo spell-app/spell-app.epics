@@ -1,0 +1,180 @@
+<!-- plan-doc part:  #i6's details in coherence.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  spell-epic's node tools write their own copies of what the kit (or spell-epic itself) already has: running git,
+  finding a checkout, a real path, a running process, a file lock, a package's folder, opening Chrome, and the page
+  server's settings.
+</p>
+<ul>
+  <li>
+    <b>A race:</b> one of the three file-lock copies checks that the lock file is missing, then writes it. Two runs at
+    once can both take the lock.
+  </li>
+  <li>
+    The root cause of the lock copies: the kit's
+    <a href="../../../src/server/FileLock.ts" target="src-src-server-filelock-ts"
+      ><code title="src/server/FileLock.ts">FileLock</code></a
+    >
+    imports the server's whole barrel, so plain node can't load it.
+  </li>
+</ul>
+<ui-table celled compact striped unstackable
+  ><table>
+    <thead>
+      <tr>
+        <th>Job</th>
+        <th>The one that exists</th>
+        <th>Copies</th>
+        <th>Saves</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>run git</td>
+        <td>
+          <a href="../../../spell-epic/src/command/Git.ts" target="src-spell-epic-src-command-git-ts"
+            ><code title="spell-epic/src/command/Git.ts">Git.run</code></a
+          >, in spell-epic
+        </td>
+        <td>about 20</td>
+        <td>about 150 lines</td>
+      </tr>
+      <tr>
+        <td>a checkout and its main checkout</td>
+        <td>
+          <a href="../../../src/server/checkout.ts" target="src-src-server-checkout-ts"
+            ><code title="src/server/checkout.ts">checkoutOf()</code></a
+          >, in the kit (three users)
+        </td>
+        <td>10</td>
+        <td>about 50 lines</td>
+      </tr>
+      <tr>
+        <td>a real path, or as given</td>
+        <td>
+          <a href="../../../spell-epic/src/config/RealPath.ts" target="src-spell-epic-src-config-realpath-ts"
+            ><code title="spell-epic/src/config/RealPath.ts">RealPath.of</code></a
+          >, in spell-epic
+        </td>
+        <td>9</td>
+        <td>about 60 lines</td>
+      </tr>
+      <tr>
+        <td>is a process still running</td>
+        <td><code>SRV.isProcessAlive</code>, in the kit</td>
+        <td>5 (one more on purpose)</td>
+        <td>about 45 lines</td>
+      </tr>
+      <tr>
+        <td>one writer at a time</td>
+        <td><code>FileLock</code>, in the kit</td>
+        <td>3</td>
+        <td>about 60 lines, and the race</td>
+      </tr>
+      <tr>
+        <td>an installed package's folder</td>
+        <td>
+          the toolchain's
+          <a href="../../../src/toolchain/sourceNames.ts" target="src-src-toolchain-sourcenames-ts"
+            ><code title="src/toolchain/sourceNames.ts">packageRootFor</code></a
+          >
+        </td>
+        <td>7</td>
+        <td>about 50 lines</td>
+      </tr>
+      <tr>
+        <td>open a page in a Chrome tab</td>
+        <td>
+          <a href="../../../src/server/open.ts" target="src-src-server-open-ts"
+            ><code title="src/server/open.ts">openInChromeTab</code></a
+          >, in the kit
+        </td>
+        <td>1, line for line</td>
+        <td>about 40 lines</td>
+      </tr>
+      <tr>
+        <td>the page server's pieces</td>
+        <td>the kit's page server</td>
+        <td>3, in the epic server</td>
+        <td>a hard-coded swap the settings already declare</td>
+      </tr>
+    </tbody>
+  </table></ui-table
+><epic-field label="The one"
+  ><ul>
+    <li>
+      <code>Git</code> moves into the kit (node's built-ins only, with its own entry so plain node can load it):
+      <code>run</code>, <code>out</code>, <code>lines</code>, <code>mustRun</code>
+    </li>
+    <li><code>RealPath</code> moves into the kit</li>
+    <li>
+      <code>FileLock</code> imports its error class directly, gets its own entry for plain node, and a try-once mode
+    </li>
+    <li><code>checkoutOf()</code>, <code>isProcessAlive</code> and <code>packageRootFor</code> are used as they are</li>
+    <li><code>openInChromeTab</code> gains a <code>{ front }</code> option, the only thing the copy adds</li>
+    <li>
+      the kit's page server exports its unwatched list and its overlay of component sets; the epic server reads
+      <code>localCopies</code> from the settings
+    </li>
+    <li>the spell-epic hook that must stay on node's built-ins keeps its own process check, on purpose</li>
+  </ul></epic-field
+><epic-code title="Where · about 60 places" language="text">
+  <pre>
+Running git (#2:  ~20), in spell-epic/src/ unless named
+  command/SharedMigration.ts:300,315,326-347   command/Shared.ts:633   command/MainMerge.ts:390-405
+  tool/EpicDocs.ts:529   tool/PlanDocFiles.ts:482   command/CheckoutPatches.ts:221,227
+  command/LinesOfCode.ts:273,280   command/PromptAck.ts:107   config/EpicConfig.ts:332   config/EpicRepo.ts:174
+  tools/fuss.ts:909   spell-epic/hooks/behind-main.mjs:80   spell-epic/hooks/worktree.mjs:122
+  the kit:  tools/repos.ts:80   tools/rename-packages.ts:146   src/server/page/PageServer.ts:576
+            src/server/contentFolder.ts:44
+
+A checkout (#3:  10)
+  by --git-common-dir:  command/Git.ts:37   tool/PlanDocFiles.ts:489   hooks/worktree.mjs:127
+                        config/EpicConfig.ts:344   command/CheckoutPatches.ts:274   src/server/contentFolder.ts:43
+  walking up to .git:   tools/offline.ts:142   src/server/page/settings.ts:160 (findRoot)
+  by --show-toplevel:   tools/fuss.ts:905   command/Worktrees.ts:552
+
+A real path (#4:  9)
+  tools/pages.js:214 (exact copy)   tool/ReviewStart.ts:485   config/SessionFolders.ts:313   command/Shared.ts:601
+  tools/bundle-spell-ui.js:718   tools/AskListeners.ts:133   tools/doc-links.js:81
+  src/cli/tools.ts:54   src/server/mainServer.ts:117
+
+A process still running (#5)
+  window.mjs:1551   tools/AskListeners.ts:149   list/RunningEpics.ts:408   command/Sessions.ts:809
+  command/CheckoutServers.ts:182   (tool/InboxPoller.mjs:140 keeps its copy:  built-ins only)
+
+A file lock (#6)
+  tools/migrate.js:300 (withLocks)   command/Shared.ts:642 (withLock)
+  command/CheckoutPatches.ts:300 (lock:  checks, then writes:  the race)
+
+A package's folder (#11)
+  src/element-tools/NodePackage.ts:17   src/toolchain/sourceNames.ts:65   src/server/Bundle.ts:212,221
+  src/toolchain/declarations.ts:207   src/cli/publish/PackageBuild.ts:270   src/server/Linker.ts:601,617
+
+Chrome (#12)
+  spell-epic/src/tools/pages.js:654 (openUrlInChrome)  copies  src/server/open.ts:66
+
+The page server's pieces (#13)
+  spell-epic/src/server/EpicServer.ts:643 (UNWATCHED, = src/server/page/PageServer.ts:523)
+  EpicServer.ts:580 (localHighlight, = PageServer.withLocalCopies())
+  EpicServer.ts:386 (componentSetMounts, = componentSetPath()'s overlay)</pre></epic-code
+><epic-code title="Evidence" language="sh">
+  <pre>
+rg -n 'spawnSync\("git"'
+rg -n "git-common-dir|show-toplevel"
+rg -n "function isProcessAlive"</pre>
+</epic-code>
+<p>
+  From
+  <a href="../details/sweep-1/epic-tools-kit.md" target="src-epics-coherence-details-sweep-1-epic-tools-kit-md"
+    >the epic-tools-kit report</a
+  >, #2, #3, #4, #5, #6, #11, #12 and #13.
+</p>
+<epic-net-effect
+  ><ul>
+    <li>the kit gains <code>Git</code> and <code>RealPath</code>, each loadable by plain node</li>
+    <li><code>FileLock</code> loads in plain node, with a try-once mode; the racy lock is gone</li>
+    <li><code>openInChromeTab</code> takes <code>{ front }</code></li>
+    <li>the kit's page server exports the pieces the epic server copies</li>
+    <li>about 60 copies call the shared ones</li>
+  </ul></epic-net-effect
+>
