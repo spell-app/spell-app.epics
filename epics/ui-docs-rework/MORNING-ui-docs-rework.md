@@ -36,7 +36,7 @@ Plan doc:  `epics/ui-docs-rework/ui-docs-rework.plan.html`.  Branch `ui-docs-rew
 
 ### P2 · Layout Shell — `60fe7554`
 - pages are their `<head>` + one bare `<main>`;  chrome once in `site/_parts/layout.html`
-- `SiteShell` mounts it, `SiteRouter` swaps pages through `<ui-include select="main#main">` + pushState
+- `SiteShell` mounts it, `SiteRouter` swaps pages through `<ui-include selector="main#main">` + pushState
 - no FOUC:  `<ui-root display="when-ready">` defined only after layout AND theme are in;  CLS 0.0002, shown ~250ms
 - checks:  review passed (one flaky theme test fixed);  Playwright:  swap keeps chrome, back / forward, deep links
 - judgement calls:  J12 (new `ui-insert` event on ui-include), J13 (include made on first swap), J14 (absolutize
