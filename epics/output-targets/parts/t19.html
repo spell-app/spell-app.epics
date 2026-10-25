@@ -1,30 +1,187 @@
 <!-- plan-doc part:  #t19's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<epic-field label="Step"
-  ><p>
-    In the editor, run each example: Solitaire, OutlineSolitaire, Solitaire-import, Todos, Todos - Form Based,
-    Calculator, FizzBuzz. Play each a little.
-  </p></epic-field
->
-<epic-field label="What should happen"
-  ><ul>
-    <li>Each runs as before.</li>
-    <li>Solitaire deals, cards click and move, and auto-play works.</li>
-    <li>Todos adds, completes and filters.</li>
-    <li>The Calculator calculates.</li>
-  </ul></epic-field
->
-<p>Already checked headless (<code>spell run --no-browser</code>):</p>
+<p>
+  Solid 2's JSX types accept only the page's own spellings. So the <code>ts/solid</code> writer must translate the React
+  spellings spell programs write, as <code>element()</code> does at run time for JavaScript.
+</p>
 <ul>
-  <li>all seven ran with no errors</li>
-  <li>the Solitaires' 30 tests passed</li>
-  <li>drawing and clicks, only you can check</li>
+  <li>
+    <code>tsc</code> rejects React's names (TS2322), measured through <code>typecheck()</code>.
+    <ul>
+      <li>Rejected: className, colSpan, htmlFor, tabIndex.</li>
+      <li>Write instead, lowercase as in HTML: class, colspan, for, tabindex.</li>
+    </ul>
+  </li>
+  <li>
+    <code>prop:value={...}</code> type-checks only on a <code>&lt;ui-*&gt;</code> tag; on a div it's an error.
+    <ul>
+      <li>
+        The <code>&lt;ui-*&gt;</code> tags are typed loosely, by app's
+        <a href="../../../spell-app/src/app/solid/solid.types.ts" target="src-spell-app-src-app-solid-solid-types-ts"
+          ><code title="spell-app/src/app/solid/solid.types.ts">solid.types.ts</code></a
+        >.
+      </li>
+    </ul>
+  </li>
+  <li>
+    At run time, a plain prop on a tag with a dash is a STRING attribute.
+    <ul>
+      <li>So an object or a live value on a <code>&lt;ui-*&gt;</code> tag MUST be <code>prop:value={...}</code>.</li>
+      <li>That's what <code>element()</code>'s <code>isPropertyOf()</code> decides, for JavaScript.</li>
+    </ul>
+  </li>
+  <li>
+    <code>onUiChange</code> type-checks on a <code>&lt;ui-*&gt;</code> tag (the types are loose), but Solid listens for
+    "uichange".
+    <ul>
+      <li>
+        A hyphenated event (<code>ui-change</code>) needs a ref directive, as the Solid 2 rules say (<a
+          href="../../../guides/solid/solid-2.md"
+          target="src-guides-solid-solid-2-md"
+          ><code title="guides/solid/solid-2.md">solid-2.md</code></a
+        >).
+      </li>
+    </ul>
+  </li>
+  <li>
+    Accepted:
+    <ul>
+      <li><code>colspan={2}</code>, or "2"</li>
+      <li><code>style={{ color: "red" }}</code></li>
+      <li><code>class={["a", { b: true }]}</code></li>
+      <li><code>onClick={(event: any) =&gt; ...}</code></li>
+    </ul>
+  </li>
 </ul>
-<epic-original
+<epic-code title="probe through typecheck() · 4 lines" language="tsx">
+  <pre>
+export const a = &lt;div className="x" /&gt;    // TS2322
+export const b = &lt;td colSpan={2} /&gt;       // TS2322
+export const c = &lt;td colspan={2} /&gt;       // ok
+export const e = &lt;div prop:value={{ a: 1 }} /&gt;  // TS2322</pre></epic-code
+><epic-net-effect
+  ><ul>
+    <li>The writer lowercases attribute names.</li>
+    <li>
+      It routes rich values on <code>&lt;ui-*&gt;</code> tags to prop:, as <code>element()</code> already does at run
+      time.
+    </li>
+  </ul></epic-net-effect
+><epic-original
+  ><epic-version
+    ><p>
+      Solid 2's JSX types accept only the page's own spellings, so the <code>ts/solid</code> writer must translate
+      React's spellings that spell programs write, as <code>element()</code> does at run time for JavaScript.
+    </p>
+    <ul>
+      <li>
+        Rejected by <code>tsc</code> (TS2322), measured through <code>typecheck()</code>: <code>className</code>,
+        <code>colSpan</code>, <code>htmlFor</code>, <code>tabIndex</code>. Write <code>class</code>,
+        <code>colspan</code>, <code>for</code>, <code>tabindex</code>: lowercase, as HTML.
+      </li>
+      <li>
+        <code>prop:value={...}</code> type-checks only on a <code>&lt;ui-*&gt;</code> tag (typed loosely, by
+        <code>app</code>'s
+        <a href="../../../spell-app/src/app/solid/solid.types.ts" target="src-spell-app-src-app-solid-solid-types-ts"
+          ><code>solid.types.ts</code></a
+        >); on a <code>&lt;div&gt;</code> it's an error.
+      </li>
+      <li>
+        At run time, a plain prop on a tag with a dash is a STRING attribute: an object or a live value on a
+        <code>&lt;ui-*&gt;</code> tag MUST be <code>prop:value={...}</code>, as <code>element()</code>'s
+        <code>isPropertyOf()</code> decides for JavaScript.
+      </li>
+      <li>
+        <code>onUiChange</code> type-checks on a <code>&lt;ui-*&gt;</code> tag (loose types), but Solid listens for
+        <code>uichange</code>: a hyphenated event (<code>ui-change</code>) needs a ref directive (<a
+          href="../../../guides/solid/solid-2.md"
+          target="src-guides-solid-solid-2-md"
+          ><code>guides/solid/solid-2.md</code></a
+        >).
+      </li>
+      <li>
+        Accepted: <code>colspan={2}</code> or <code>"2"</code>, <code>style={{ color: "red" }}</code>,
+        <code>class={["a", { b: true }]}</code>, <code>onClick={(event: any) =&gt; ...}</code>.
+      </li>
+    </ul>
+    <epic-code title="probe through typecheck() · 4 lines" language="tsx">
+      <pre>
+export const a = &lt;div className="x" /&gt;    // TS2322
+export const b = &lt;td colSpan={2} /&gt;       // TS2322
+export const c = &lt;td colspan={2} /&gt;       // ok
+export const e = &lt;div prop:value={{ a: 1 }} /&gt;  // TS2322</pre></epic-code
+    ><epic-net-effect
+      ><ul>
+        <li>
+          The writer lowercases attribute names and routes rich values on <code>&lt;ui-*&gt;</code> tags to
+          <code>prop:</code>, as <code>element()</code> already does at run time.
+        </li>
+      </ul></epic-net-effect
+    ></epic-version
   ><epic-version as-of="2026-10-10 11:52"
     ><p>
-      Each runs as before: Solitaire deals, cards click and move, auto-play works; Todos adds, completes and filters;
-      the Calculator calculates. Headless (<code>spell run --no-browser</code>), all seven ran with no errors and the
-      Solitaires' 30 tests passed; drawing and clicks only you can check.
-    </p></epic-version
+      Solid 2's JSX types accept only the page's own spellings. So the <code>ts/solid</code> writer must translate the
+      React spellings spell programs write, as <code>element()</code> does at run time for JavaScript.
+    </p>
+    <ul>
+      <li>
+        <code>tsc</code> rejects React's names (TS2322), measured through <code>typecheck()</code>.
+        <ul>
+          <li>Rejected: <code>className</code>, <code>colSpan</code>, <code>htmlFor</code>, <code>tabIndex</code>.</li>
+          <li>
+            Write instead, lowercase as in HTML: <code>class</code>, <code>colspan</code>, <code>for</code>,
+            <code>tabindex</code>.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <code>prop:value={...}</code> type-checks only on a <code>&lt;ui-*&gt;</code> tag; on a <code>&lt;div&gt;</code>
+        it's an error.
+        <ul>
+          <li>
+            The <code>&lt;ui-*&gt;</code> tags are typed loosely, by app's
+            <a
+              href="../../../spell-app/src/app/solid/solid.types.ts"
+              target="src-spell-app-src-app-solid-solid-types-ts"
+              ><code title="spell-app/src/app/solid/solid.types.ts">solid.types.ts</code></a
+            >.
+          </li>
+        </ul>
+      </li>
+      <li>
+        At run time, a plain prop on a tag with a dash is a STRING attribute.
+        <ul>
+          <li>
+            So an object or a live value on a <code>&lt;ui-*&gt;</code> tag MUST be <code>prop:value={...}</code>.
+          </li>
+          <li>That's what <code>element()</code>'s <code>isPropertyOf()</code> decides, for JavaScript.</li>
+        </ul>
+      </li>
+      <li>
+        <code>onUiChange</code> type-checks on a <code>&lt;ui-*&gt;</code> tag (the types are loose), but Solid listens
+        for <code>uichange</code>.
+        <ul>
+          <li>
+            A hyphenated event (<code>ui-change</code>) needs a ref directive, as the Solid 2 rules say (<a
+              href="../../../guides/solid/solid-2.md"
+              target="src-guides-solid-solid-2-md"
+              ><code title="guides/solid/solid-2.md">solid-2.md</code></a
+            >).
+          </li>
+        </ul>
+      </li>
+      <li>
+        Accepted: <code>colspan={2}</code> or <code>"2"</code>, <code>style={{ color: "red" }}</code>,
+        <code>class={["a", { b: true }]}</code>, <code>onClick={(event: any) =&gt; ...}</code>.
+      </li>
+    </ul>
+    <epic-net-effect
+      ><ul>
+        <li>The writer lowercases attribute names.</li>
+        <li>
+          It routes rich values on <code>&lt;ui-*&gt;</code> tags to <code>prop:</code>, as
+          <code>element()</code> already does at run time.
+        </li>
+      </ul></epic-net-effect
+    ></epic-version
   ></epic-original
 >
