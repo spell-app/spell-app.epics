@@ -33,13 +33,13 @@ have gaps.
   tests, examples), but NOT listed in the normal component docs.  `<ui-root>` knows them (its catalog + loader).
   - `<ui-docs-example>`:  Fomantic's example block:  header + description, the live children, and their SOURCE
     (read from its own light-DOM markup, normalised + indented) in a `<ui-code language="html">`, shown / hidden by a
-    `<ui-button circular basic icon="code">`.
+    `<ui-button appearance="circular basic" icon="code">`.
   - `<ui-docs-api tag="ui-button">`:  attributes (kind, values, default, description) / slots / events / parts /
     states tables for a tag, from `components.json`.
   - `<ui-docs-tokens tag="ui-button">`:  CSS token table with live colour swatches;  optional playground.
   - `<ui-docs-nav current="ui-button">`:  the left sidebar:  EVERY component listed together, grouped by topic
     (Owen prefers this to Fomantic's per-group menus), A-Z / Topics switch, search `<ui-input>`, favourites;  built
-    from `<ui-menu vertical>` / `<ui-item>` etc.
+    from `<ui-menu direction="vertical">` / `<ui-item>` etc.
   - `<ui-docs-themes>`:  theme `<ui-dropdown>` (every sheet in `src/styles/themes/`) + light / dark / system.
 - Themes:  each Fomantic theme becomes `spell-ui/src/styles/themes/<name>.css`, a token sheet in
   `@layer ui.theme` (`packages/ui/notes/theming.md`).

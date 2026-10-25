@@ -34,7 +34,7 @@ yarn site:new getting-started --title "Getting started" --summary "One line."   
     family's `<ui-docs-themes for>`)
   - "On this page" is the layout's (`<ui-docs-toc>` in its right column, pointed at each page by the router):  it
     lists your sections, nested, by itself
-  - `<ui-tabs id="site-tabs" class="site-tabs" history basic appearance="segmented" alignment="fluid" equal>` (a
+  - `<ui-tabs id="site-tabs" class="site-tabs" history appearance="segmented basic" align="fluid" equal>` (a
     segmented control across the column, four equal tabs, its bar sticky) with four panes:  `examples`, `usage`,
     `api`, `theming`.  YOU fill the CONTENTS of the `examples`, `usage` and `theming` panes;  `api` is done
     (`<ui-docs-api family>`, generated from the vocabularies).
@@ -65,11 +65,11 @@ so `#examples-types-emphasis` deep-links to it (its tab shown, the sections arou
 <ui-section id="examples-types" header="Types" sticky collapsible dividing>
   <ui-section id="examples-types-emphasis" header="Emphasis" sticky collapsible dividing>
     <ui-docs-example description="A button can be formatted to show different levels of emphasis.">
-      <ui-button primary>Save</ui-button>
+      <ui-button color="primary">Save</ui-button>
       <ui-button>Discard</ui-button>
     </ui-docs-example>
     <ui-docs-example>
-      <ui-button secondary>Okay</ui-button>
+      <ui-button color="secondary">Okay</ui-button>
     </ui-docs-example>
   </ui-section>
 </ui-section>
@@ -100,13 +100,13 @@ so `#examples-types-emphasis` deep-links to it (its tab shown, the sections arou
       <ui-docs-example>
         <p slot="description">A button can be formatted to show different levels of emphasis.</p>
         <ui-message slot="description" state="info" size="small">Set your brand colours in <code>--ui-primary</code>.</ui-message>
-        <ui-button primary>Save</ui-button>
+        <ui-button color="primary">Save</ui-button>
       </ui-docs-example>
     </ui-section>
     ```
 
   - The markup IS the code shown:  clean `<ui-*>` markup, 2-space indent, no `style=`, no `<div class>` chrome.  A
-    layout wrapper, only if the example needs one:  a `<ui-*>` (`<ui-segment basic>`, `<ui-container>`).  Inverted
+    layout wrapper, only if the example needs one:  a `<ui-*>` (`<ui-segment appearance="basic">`, `<ui-container>`).  Inverted
     examples:  `<ui-segment inverted>` (Fomantic's `ui inverted segment`).
   - NO comments inside a `<ui-docs-example>` (they show in its code).
 - A Fomantic feature we DELIBERATELY don't have (the vocabulary or the old mdx says "not ported"):  one line in its place,
@@ -123,9 +123,9 @@ so `#examples-types-emphasis` deep-links to it (its tab shown, the sections arou
 
 | Fomantic | Ours |
 |---|---|
-| `<div class="ui X">` / `<button class="ui X">` | `<ui-X>`;  each class word => its attribute (`ui small primary basic button` => `<ui-button size="small" primary basic>`) |
+| `<div class="ui X">` / `<button class="ui X">` | `<ui-X>`;  each class word => its attribute (`ui small primary basic button` => `<ui-button size="small" color="primary" appearance="basic">`) |
 | sizes `mini` ... `massive` | `size="mini"`;  `medium` = default, write nothing |
-| colours `red` ... `black`, `primary`, `secondary` | `color="red"`;  `primary` / `secondary` are also bare words on most tags (`<ui-button primary>`) |
+| colours `red` ... `black`, `primary`, `secondary` | `color="red"`;  `primary` / `secondary` are also bare words on most tags (`<ui-button color="primary">`) |
 | `left floated` / `right floated` | `floated="left"` |
 | `left aligned` / `center aligned` text | `text-align="center"` |
 | `very padded`, `very relaxed`, `very close` | `padded="very"`, `relaxed="very"`, `close="very"` |
@@ -135,7 +135,7 @@ so `#examples-types-emphasis` deep-links to it (its tab shown, the sections arou
 | `<i class="x icon"></i>` inside an element | the element's `icon="x"` attribute;  markup / a spinner:  `<ui-icon slot="icon" name="x">` |
 | `ui labeled button` > `button` + `ui basic label` | `<ui-button icon="heart" label="2,048">` |
 | `five buttons`, `three item menu`, `four wide column` | `width="5"` (columns `4`, fractions `1/4`, `25%`);  NEVER `wide` |
-| `<div class="or" data-text="ou">` | `<ui-or text="ou">` |
+| `<div class="or" data-text="ou">` | `<ui-or label="ou">` |
 | `active` | `active` (alias of `selected` where the tag chooses) |
 | `disabled`, `loading` | same words |
 | `.header`, `.content`, `.meta`, `.description`, `.extra` children | `<ui-header>`, `<ui-content>`, `<ui-meta>`, `<ui-description>`, `<ui-extra>` (parts style themselves by owner) |
