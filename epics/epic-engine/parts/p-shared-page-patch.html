@@ -16,6 +16,33 @@
     </li>
     <li>Spell UI's component-set pages use it, so an edit to one never flashes.</li>
   </ul></epic-field
+><epic-field name="requests"
+  ><epic-field label="r29 · elemental-spell-97"
+    ><blockquote>
+      <p>
+        Move the page patch (patchPage, planMorph, carryState, readingAnchor) into the kit, with each runtime's hooks,
+        and use it on the component-set pages. Include: an open editor (Monaco inside a cell) counts as an element never
+        replaced; a page's own save is recognised by its ETag, so the page doesn't patch itself. Owen, 2026-10-25, to
+        elemental-spell: 'reloading/flashing the page is a no-go ... Maybe rather than reloading the page, we send the
+        new page contents to the controller, and it does a granular diff and just updates what has actually changed?'
+        and 'reload MUST NOT FLASH anything other than what has actually changed!' Owen to epic-engine, same day: 'page
+        server, when reloading a live page, sends the new content to the running page. It then runs a diff on
+        current/new HTML and only updates what has changed -- inserting/removing sections, updating prose, leaving
+        &lt;inputs&gt; alone; the insertions should be as granular as possible. We're going to want this for
+        live-updating pages in the editor as well. An alternative ... have the server generate diffs that it sends to
+        the page. We are going to want this for multi-player spell anyway.'
+      </p>
+    </blockquote>
+    <p>
+      Looking at: elemental-spell's notebooks are .spellx Spell templates now and mostly re-render per cell, so they
+      need this for (a) HTML component-set pages (Spell UI's Button page until it's a notebook) and (b) no flash when an
+      outside change (an agent's edit) reaches an open page. elemental-spell P16 won't wait on it.
+    </p>
+    <p>
+      Sent 2026-10-25 10:53-04:00;
+      <a href="../requests/r29/request.md" target="src-epics-epic-engine-requests-r29-request-md">request.md</a>
+    </p></epic-field
+  ></epic-field
 ><epic-field name="goal"
   ><ul>
     <li>
@@ -48,6 +75,69 @@
     <li>A page's own save is known by its ETag: it doesn't patch itself.</li>
     <li>Spell UI's component-set pages (<code>/components/ui/...</code>) use it, through the site's runtime.</li>
   </ul></epic-field
+><epic-update
+  at="2026-10-25 11:01"
+  summary="elemental-spell's notebook joined: the planner works over any keyed tree…"
+  phase="38"
+  ><p>
+    elemental-spell's notebook joined: the planner works over any keyed tree (the DOM one adapter, a notebook's chunk
+    tree another), and what's never replaced and what's kept are one shared set of rules; estimate 10-12h (was 8-10h).
+  </p></epic-update
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>One patcher in the kit:</b> spell-epic's page patch (<code>patchPage()</code>, <code>planMorph()</code>,
+      <code>carryState()</code>, <code>readingAnchor()</code>) moves into the kit as <code>PagePatch</code>, beside the
+      site header in <code>spell/server/site</code>: plain DOM, no imports, so any page can load it.
+    </li>
+    <li>
+      <b>Each runtime's hooks, from ONE shared list of rules:</b> what's never replaced (an open editor, a field being
+      typed in) and what reader state is kept (folds, scroll, selection) are one shared set of rules, so a Spell
+      notebook and an HTML page behave the same (elemental-spell's ask). The patcher knows nothing about epics or Spell
+      UI; a runtime adds to those rules which attributes are the reader's (kept: folds, counts, filters), which elements
+      are never replaced (<code>epic-*</code>, an open editor such as Monaco in a cell), which manage their own children
+      (tabs, accordions, selects), and what to re-wire after.
+    </li>
+    <li>
+      <b>The patch as a list of steps, over ANY keyed tree:</b> the planner compares an old and a new tree through a
+      small adapter (each node's key, kind, attributes, text and children), not DOM nodes directly, and yields a list
+      (insert at a place, remove, set an attribute, set text), which a runner then applies. The DOM is one adapter; a
+      Spell notebook feeds it its chunk tree (old <code>.spellx</code> chunks vs new, keyed by chunk path) and runs the
+      steps as cell re-renders: that adapter and runner are elemental-spell's P16, on this planner. The server could
+      work the same list out later, for multiplayer Spell, without the page changing.
+    </li>
+    <li>
+      <b>Finer steps:</b> edited prose changes its text in place instead of replacing the paragraph; inputs, focus,
+      typed text, folds and scroll are left alone.
+    </li>
+    <li>
+      <b>The server sends the page:</b> the page server puts the new HTML and its ETag in the change message on the
+      live-reload line, so the page no longer fetches it; <code>liveClient()</code> hands it on as today's
+      <code>spell-server:reloading</code> event.
+    </li>
+    <li>
+      <b>Its own save, ignored:</b> a change whose ETag is the one the page's own save just got back isn't patched in
+      again.
+    </li>
+    <li>
+      <b>Epic pages on it:</b> spell-epic's docs runtime keeps its hooks (<code>KEPT_ATTRIBUTES</code>,
+      <code>EPIC_TAG</code>, <code>MANAGERS</code>, <code>carryEpicState()</code>) and drops its own copy of the patch.
+    </li>
+    <li>
+      <b>Component-set pages on it:</b> Spell UI's site runtime takes the change and patches
+      <code>/components/ui/...</code> pages in place, with its own hooks.
+    </li>
+    <li>
+      <b>Checks:</b> kit tests for the patcher (the list of steps for each kind of edit, and applying it); spell-epic's
+      and Spell UI's tests; headless Playwright only (never Claude-in-Chrome) on an epic page and ui-button's page: edit
+      the file, then measure no navigation, that untouched nodes are the SAME nodes as before, and that scroll, folds,
+      focus and typed text stay; <code>yarn review</code> in each repo touched.
+    </li>
+    <li>
+      <b>Left out:</b> the server working out the steps itself (multiplayer, C40); the editor app's live pages in
+      general (C41), but for the notebook, which uses the planner and the shared rules directly (elemental-spell P16).
+    </li>
+  </ol></epic-field
 ><epic-field name="files"
   >kit: a new page patcher in spell/server/site (PagePatch), liveClient.ts, LiveReload.ts and the page server's change
   message; spell-epic: spell-doc-runtime.js (wireLiveUpdate, patchPage, planMorph, carryState, carryEpicState,
