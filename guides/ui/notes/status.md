@@ -110,7 +110,10 @@ NOTE:  links are relative, so they work on GitHub and in VS Code.
 | container | A | `ui-container` | ✅ | 32 | 3.24 | — | [✅](../docs/ui-container.html) | 🚧 local | |
 | grid | A | `ui-grid`, `ui-row`, `ui-column` | ✅ | 77 | 7.84 | — | [✅](../docs/ui-grid.html) | 🚧 local | stackable / doubling / per-device widths / `reversed` by container query, or the screen with `stack-with="page"` (rows and columns follow the grid) |
 | image | A | `ui-image`, `ui-images` | ✅ | 57 | 5.57 | — | [✅](../docs/ui-image.html) | 🚧 local | |
-| text | A | `ui-text` | ✅ | 39 | 2.70 | — | [✅](../docs/ui-text.html) | 🚧 local | |
+| text | A | `ui-text`, `ui-link` | ✅ | 48 | 2.70 | — | [✅](../docs/ui-text.html) | 🚧 local | `paragraph` (a `<p>`), `link` and `font` (epic `ui-gaps` P3, P9);  `<ui-link>`, a link of its own;  `disabled` drops a link |
+| stack | — | `ui-stack` | ✅ | 12 | — | — | [✅](../docs/ui-stack.html) | — | a layout box, no look:  Web Awesome's stack and cluster (epic `ui-gaps` P8) |
+| quote | — | `ui-quote` | ✅ | 2 | — | — | [✅](../docs/ui-quote.html) | — | a block quote, or `inline` (`<q>`) (epic `ui-gaps` P9) |
+| keys | — | `ui-keys` | ✅ | 5 | — | — | [✅](../docs/ui-keys.html) | — | key caps for a shortcut:  `mod` is ⌘ on a Mac, Ctrl elsewhere;  the docs search draws its keys with it (epic `ui-gaps` P9) |
 | flag | A | `ui-flag` | ✅ | 45 | 6.08 | — | [✅](../docs/ui-flag.html) | 🚧 local | emoji only, by design (2026-10-06, epic `wwod-spell-ui` J47):  the `famfamfam` sprite theme removed;  `--ui-flag-font-family` (default `--ui-font-family-emoji`) also read by `<ui-dropdown>` / `<ui-select>` row flags;  docs:  "A flag font" (an opt-in polyfill font for Windows Chromium;  `ui` ships none) |
 | loader | A | `ui-loader` | ✅ | 44 | 4.26 | — | [✅](../docs/ui-loader.html) | 🚧 local | shown by the shared `visible` / `hidden`, starting hidden (epic `spell-element` P12;  was `active`) |
 | placeholder | A | `ui-placeholder` (+ `-header`, `-paragraph`, `-line`, `-image`) | ✅ | 47 | 5.90 | — | [✅](../docs/ui-placeholder.html) | 🚧 local | |
