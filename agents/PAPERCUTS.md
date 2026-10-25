@@ -1747,6 +1747,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## epics
 
+- 2026-10-25 · The epic skill (its cheat sheet and "Each phase" steps) still says `#T` is a todo and `#V` a test, but
+  since epic `epic-engine` P32 `#T` is a TEST and todos are work caveats (`#C`, `--limit` for a limit);  `epic help add`
+  says the old way too, while `epic add --help` says the new.  So a background agent in epic `ui-gaps` wrote a
+  "do it later" todo as test T1. · Re-made it as caveat C2, canceled T1, marked the limit caveat C1 `limit` by hand
+  (`epic update` has no `--limit`). · Bring the skill's text and `epic help add` up to P32. · epics (ui-gaps)
 - 2026-10-24 · `epic window launch elemental-spell --move`, run from the broken `solid-17` worktree's session
   (its git records are gone), made the worktree, the branch and the window file, but no window opened and the
   session never moved.  `epic window open <name>` opened the window, but `epic window handoff <name> --prompt ...`
