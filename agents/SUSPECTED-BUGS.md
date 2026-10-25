@@ -446,13 +446,12 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   (whitespace between), though `Symbols`' docs say "no space in-between" -- it never checks
   `token.whitespace` / `end` vs `next`.  Prove:  parse `* *` against a `Symbols("**")` rule.  Found planning the
   `markdown` epic (P4 there fixes it if confirmed).
-- [ ] Source maps written INTO the sources:  in epic `debut`'s worktree (2026-10-25, 10:06-10:08, as the editor's dev
-  server restarted after merging `main`), hand-written `spell-app/spaces/@spell/library/people/people.lib.ts` got
-  `//# sourceMappingURL=people.lib.ts.map` appended, and `people.lib.ts.map` and
-  `spaces/@spell/examples/Solitaire/Solitaire.spell.js.map` appeared beside them, untracked.
-  Suspect the source-map writer (`SourceMarks`, `SpellProject.ts`'s `sourceMappingURL`) treating a `.lib.ts` as
-  compiled output.  Prove:  start the editor on a project importing `people`, then `git status` in spell-app.
-  The strays were moved to `~/.spell-epic/ditched/`.
+- [ ] A source map beside an example's SOURCE, not in its build folder:  in epic `debut`'s worktree (2026-10-25,
+  10:06-10:08, as the editor's dev server restarted after merging `main`),
+  `spaces/@spell/examples/Solitaire/Solitaire.spell.js.map` appeared beside the example, untracked, once.
+  Suspect `sourceMapFileFor()` resolving before the project knows its build folder.  Prove:  restart the editor's dev
+  server on Solitaire, then `git status` in spell-app.  (The `people.lib.ts` half was fixed 2026-10-25:  a library
+  target writes no source map, epic `elemental-spell`.)
 
 ## py
 
@@ -675,12 +674,6 @@ every entry below that date was fixed or disproven;  what's left:
 ## app
 
 ### 1. Behavior bugs
-
-- The page server's start-up compile of `@spell/library` writes `//# sourceMappingURL=people.lib.ts.map` onto the
-  committed `spaces/@spell/library/people/people.lib.ts`, and a `people.lib.ts.map` beside it (2026-10-25, seen in the
-  `elemental-spell` worktree after `spell server stop` / `start`, epic `elemental-spell` P16).  The `ts/lib` target
-  shouldn't carry a source map:  `tests/spaces/library/people.test.ts` then fails ("its committed people.lib.ts is what
-  its spell compiles to now").  Put back with `git checkout`;  the cause not looked at.
 
 - The dev editor draws nothing (2026-10-22, seen in the `spanish` worktree, epic `spanish` P13):  `app/index.html`'s
   `<script src="../src/app/index.tsx">` is served as written, and from `/` the browser asks for `/src/app/index.tsx`,
