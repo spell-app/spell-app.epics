@@ -1,0 +1,41 @@
+<!-- plan-doc part:  #j90's details in debut.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The coherence review of P20's plan found the switch that applies themes is the place to apply a tint, and the theme
+  editor's sheet slot the wrong one.
+</p>
+<ul>
+  <li><b>Kind:</b> rebuilt.</li>
+  <li>
+    <b>Where:</b> P20 step 2, "the theme editor's own colour settings ... laid over the theme"; step 4, "Stored as
+    <code>glass:rose</code>".
+  </li>
+  <li>
+    <b>The one:</b> <code>UI.themes.apply()</code>, the one switch that applies a theme (its slots, its "last call wins"
+    count), learning a tint: a slot of its own after the theme's, holding <code>ThemeSheet</code>'s text for the two
+    choices.
+    <ul>
+      <li>
+        Not <code>ThemeSheet.applyToPage()</code>: it puts its sheet in the one slot the kept theme and the live theme
+        editor share, so a tint there would replace a kept theme, or be replaced by it.
+      </li>
+      <li>
+        In memory the theme and the tint are two fields; only the stored text joins them (<code>glass:rose</code>). So
+        whatever reads the theme (the theme list, <code>SavedTheme.follow()</code>, the editor's chrome) still gets a
+        sheet name: today an unknown name like <code>glass:rose</code> is forgotten, back to the default.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>Net effect:</b> a theme and a tint picked in a row land in order, and a kept theme's colours still win; no second
+    path applying sheets in the menu or the editor.
+  </li>
+  <li><b>Saves:</b> a second applier and its race guard (about 25 lines); a pick that would forget itself.</li>
+</ul>
+<epic-code title="Evidence" language="text"
+  >spell-ui/src/runtime/Themes.ts:86 apply(): "Concurrent calls: the LAST one wins"; slots { base, theme }
+  spell-ui/src/components/ui-theme-editor/ThemeSheet.ts:163 applyToPage(): styles.register(EDITS_SHEET, ...)
+  spell-ui/src/components/ui-theme-editor/SavedTheme.ts:78 follow(): styles.register(EDITS_SHEET, ...) (the same slot)
+  spell-ui/src/components/ui-theme-editor/UIThemeEditor.types.ts:27 EDITS_SHEET: "ONE per page"
+  spell-ui/src/docs-components/ThemePreference.ts:221 applyTheme(): a name not known is forgotten, for the default
+  spell-app/src/app/solid/EditorTheme.tsx:95 follow(theme): lookFor(theme), SavedTheme.follow(theme)</epic-code
+>
