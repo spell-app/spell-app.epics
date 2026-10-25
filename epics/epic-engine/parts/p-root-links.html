@@ -16,8 +16,9 @@
     </li>
     <li>
       Every local link in the shared pages is a ROOT PATH, as the page server serves it:
-      <code>/spell-ui/src/x.ts</code>, <code>/guides/server.html</code>, <code>/epics/seo/seo.plan.html#t3</code>. The
-      same text from any folder, a part file or a template.
+      <code>/spell-ui/src/x.ts</code>,
+      <a href="/guides/server.html" target="src-guides-server-html"><code>/guides/server.html</code></a
+      >, <code>/epics/seo/seo.plan.html#t3</code>. The same text from any folder, a part file or a template.
     </li>
     <li>Pages are SERVED, never opened from disk: nothing keeps a <code>file://</code> path working.</li>
     <li>
@@ -39,7 +40,175 @@
     writes and checks root paths only, so parts need no rebasing; the docs runtime keeps a worktree's links in that
     worktree.
   </p></epic-field
-><epic-field name="plan"
+><epic-update
+  at="2026-10-25 19:36"
+  summary="built: root paths everywhere the tools write; the migration root-links, run after the merge"
+  phase="46"
+  ><p>
+    Built on the branch, in the plan's order, with Owen's six answers (2026-10-25): the code and tests, then the repos'
+    own pages. The content folder is NOT migrated yet: that runs after the merge.
+  </p>
+  <p><b>Built:</b></p>
+  <ul>
+    <li>
+      The kit's
+      <a href="/src/server/Linker.ts" target="src-src-server-linker-ts"
+        ><code title="src/server/Linker.ts">Linker</code></a
+      >
+      writes every relative link as a ROOT PATH, as the page server serves it (<code>rootLinks()</code>):
+      <ul>
+        <li>
+          a link to a file in the page's own folder stays as written (Q1); so does a load below it
+          (<code>_assets/site.js</code>, <a href target="src-epics-epic-engine-parts"><code>parts/</code></a
+          >), so a worktree's page loads its own copy
+        </li>
+        <li>
+          <code>&lt;spell-site-header root&gt;</code> is dropped; path tooltips and <code>data-*</code> paths that climb
+          become root paths; Markdown links too
+        </li>
+        <li>
+          a link a move broke goes to its file's ONE new home (Q3): <code>spell-lang/</code> to
+          <a href="/spell-parser/" target="src-spell-parser"><code>spell-parser/</code></a
+          >, <code>packages/&lt;name&gt;/</code> to its repo, a folder moved into
+          <a href="/src/" target="src-src"><code>src/</code></a
+          >, a folder moved whole (same last folder and name)
+        </li>
+        <li>
+          <code>link()</code> runs it on every write, so every page the tools touch is mended;
+          <code>fileFor()</code> and <code>resolve()</code> read root paths; <code>check()</code> refuses a relative
+          link: <code>relative: ../x.ts -- write /spell-ui/x.ts</code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      Worktree pages (Q6): the live client lays a root link under <code>/worktrees/&lt;w&gt;/</code> as it's pressed (<a
+        href="/src/server/liveClient.ts"
+        target="src-src-server-liveclient-ts"
+        ><code title="src/server/liveClient.ts">worktreeHref()</code></a
+      >), on every page the page server serves; the site header's tabs use the same helper.
+    </li>
+    <li>
+      The site header's <code>file://</code> fallback is gone (Q5): its <code>root</code>, the bundles' fallback tabs
+      (<code>DOCS_TABS</code>), <code>serverOnly</code> (also out of the content repo's <code>page-server.json5</code>).
+    </li>
+    <li>
+      The migration
+      <a href="/spell-epic/src/tool/migrations/RootLinks.ts" target="src-spell-epic-src-tool-migrations-rootlinks-ts"
+        ><code title="spell-epic/src/tool/migrations/RootLinks.ts">root-links</code></a
+      >:
+      <ul>
+        <li>
+          the epic page's step (in <code>Migrations</code>), the docs tools' TEXT step for every other kind (<a
+            href="/spell-epic/src/tools/migrate.js"
+            target="src-spell-epic-src-tools-migrate-js"
+            ><code title="spell-epic/src/tools/migrate.js">migrate.js</code></a
+          >, now run under <code>tsx</code>), and the content folder's plain-text pass after the pages, every other byte
+          kept, each file under its page's lock
+        </li>
+        <li>
+          areas: <code>epics</code>, <code>guides</code>, <code>pages</code>, <code>sagas</code>, <code>goals</code>,
+          <code>brand</code> (Q4); never <code>ui</code>
+        </li>
+        <li>
+          <code>epic migrate --step root-links --dry-run</code> prints the census by folder and target, and every link
+          mended, still broken, or above the root
+        </li>
+      </ul>
+    </li>
+    <li>
+      The writers: a part holds the same root paths as its page (the page's own folder's made that folder's root path as
+      it's split, <code>PlanParts.toPartFrom()</code>); I134's part-reading rule is
+      <code>PlanDocFiles.rootPartLinks()</code>; <code>fromTemplate()</code> replaces <code>atDepth()</code>; the docs
+      index, See Also, the saga cards, the test list, the saga link, GuideChanges and the crumbs write root paths; See
+      Also and EpicDocs read them.
+    </li>
+    <li>
+      <code>doc-links.js</code> links every page from the kit (one linker), and takes
+      <code>--root-links [--dry-run] &lt;file&gt;...</code> for files the migration doesn't walk;
+      <code>check-spell.js</code> always loads a page from the page server.
+    </li>
+    <li>
+      The repos' own pages (Q2), committed: Epic UI's 52 pages and its layout and footer, spell-epic's templates and
+      <a href="/templates/epics/plan-doc.md" target="src-spell-epic-templates-epics-plan-doc-md"
+        ><code>plan-doc.md</code></a
+      >
+      (326 links in 63 files), spell-brand's and spell-ui's
+      <a href="/docs/" target="src-docs"><code>docs/</code></a> (35 links); the tool's own templates without a site
+      header <code>root</code>.
+    </li>
+    <li>
+      Docs: spell-epic's <code>src/AGENTS.md</code> ("Links", "Writing a page", Epic UI's links, "Scripts"),
+      <code>PLAN-DOC.md</code> ("Parts", "Migrations"), the plan-doc guide, the kit's server
+      <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a
+      >, <a href="/README-server.md" target="src-readme-server-md"><code>README-server.md</code></a
+      >, spell-brand's <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a
+      >.
+    </li>
+  </ul>
+  <p><b>Checked:</b></p>
+  <ul>
+    <li>
+      Tests: the kit 965 passed / 46 skipped (1011), was 996: +15 (the Linker writing, reading, checking, refusing,
+      mending, Markdown, idempotent; <code>worktreeHref()</code>; the header on a worktree page and a pressed link).
+      spell-epic 1757 passed / 1 skipped (1758), was 1755: +3 (the migration on a page, its part, a details page and
+      Markdown, then a second run writing nothing; the text step; a part's own-folder link). spell-ui 366 + 5507,
+      spell-brand 136: unchanged, passing.
+    </li>
+    <li>
+      <code>yarn review</code> in the kit and spell-epic; <code>yarn pack:build</code>, <code>yarn site:data</code>,
+      both docs bundles.
+    </li>
+    <li>
+      The dry run on the real content folder: 15,456 links in 3,188 of 7,176 files; 1,483 mended, 1,127 still broken
+      (written as the browser reads them, listed), 5 above the root (left). On a scratch copy: the same, then a second
+      run wrote nothing.
+    </li>
+    <li>
+      Headless Playwright on migrated scratch copies, at their real addresses, light and dark: this epic page with its
+      427 parts, the page server guide, the Tooling saga page, a details page, the home page and the changelog. On the
+      worktree's server (<code>/</code>) and main's (<code>/worktrees/epic-engine/</code>): every root link fetched;
+      every file link answers 200 but 20 already listed as broken by the census (folders and dot files aside: the server
+      lists no folder and refuses dot files, as before); every pressed link stays in its checkout.
+    </li>
+  </ul>
+  <p><b>Deviations:</b></p>
+  <ul>
+    <li>
+      Parts still rebase: the plan dropped <code>toPart()</code> / <code>toPage()</code> / <code>rebase()</code>, but Q1
+      keeps a page's own-folder links relative, and from
+      <a href target="src-epics-epic-engine-parts"><code>parts/</code></a> those would climb: a part holds them as that
+      folder's root path (<code>toPartFrom()</code>), and <code>toPage()</code> stays to read parts written before the
+      migration.
+    </li>
+    <li>
+      A load below the page's folder stays relative (<code>src</code>, <code>source</code>,
+      <code>&lt;link href&gt;</code>): a root path would load main's bundle on a worktree's page (Epic UI's
+      <code>_assets/site.js</code>, a skeleton's <a href target="src-epics-epic-engine-parts"><code>parts/</code></a
+      >).
+    </li>
+    <li>
+      I134's rule lives in <code>PlanDocFiles.rootPartLinks()</code> on every write, not in <code>IncomingHtml</code>,
+      which has no page or file to resolve against.
+    </li>
+    <li>
+      The site header's tabs given as a root path (<a href="/components/ui/" target="src-spell-ui-docs"
+        ><code>/components/ui/</code></a
+      >, <code>/editor/</code>) are still never laid under a worktree, as before: server routes; only content links and
+      repo-path tabs are.
+    </li>
+    <li>
+      Markdown links are root paths too (the plan's 218): VS Code's Markdown preview reads <code>/x</code> from the
+      window's first folder, so a content repo <code>.md</code> link opens from the page server, not the preview.
+    </li>
+    <li><code>openInChrome()</code>'s <code>file://</code> fallback, when no page server starts, is left.</li>
+  </ul>
+  <p>
+    <b>After the merge, in this order:</b> <code>epic migrate --all --notify</code> (it runs <code>root-links</code> and
+    the content folder's pass), the messages sent to the running sessions; then <code>doc-links.js --check</code> and
+    <code>epic lint --all</code>, and a grep for <code>="../</code> and <code>](../</code>; a second run a few days
+    later.
+  </p></epic-update
+><epic-field name="plan" accepted="2026-10-25 19:46"
   ><ol>
     <li>
       <b>The census, first, as the migration's dry run.</b> Counted 2026-10-25 over the shared pages (epics, sagas,
@@ -85,7 +254,9 @@
         </li>
         <li>
           <code>fileFor()</code> and <code>check()</code> read <code>/x</code> as the checkout's root, through the
-          served folders (<code>/components/ui/</code>, <code>/templates/</code>, the content folder's).
+          served folders (<a href="/components/ui/" target="src-spell-ui-docs"><code>/components/ui/</code></a
+          >, <a href="/templates/" target="src-spell-epic-templates"><code>/templates/</code></a
+          >, the content folder's).
         </li>
         <li>
           <code>check()</code> refuses a relative link in a shared page:
