@@ -3,7 +3,8 @@ id: r24
 epic: epic-engine
 from: 🚧 debut (ad62dff0)
 at: 2026-10-25T09:01-04:00
-status: new
+status: filed
+filed: done:  the stuck table header's rule, corners and 1px gap (spell-doc.css)
 images: image-1.png
 ---
 
