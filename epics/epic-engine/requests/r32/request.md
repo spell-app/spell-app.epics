@@ -3,7 +3,8 @@ id: r32
 epic: epic-engine
 from: 🚧 coherence (d3aa2fc4)
 at: 2026-10-25T14:29-04:00
-status: new
+status: filed
+filed: done at once:  a phase folds once an action is chosen on it, spell-epic 6478396
 images: image-1.png
 ---
 
