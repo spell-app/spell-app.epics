@@ -59,14 +59,14 @@ reasonable, fix it in `spell-ui` when it's a real `ui` bug, and record it either
       <main class="spell-doc-main">
         <h1>Short Title</h1>
         <p class="lede">One line.</p>
-        <ui-section id="summary" header="1. Summary" sticky collapsible dividing collapsed>
+        <ui-section id="summary" header="1. Summary" sticky collapsible dividing open="false">
           <ui-icon slot="icon" name="lightbulb"></ui-icon>
           ...
-          <ui-section id="a-part" header="1.1 A part" sticky collapsible dividing collapsed>
+          <ui-section id="a-part" header="1.1 A part" sticky collapsible dividing open="false">
             ...  <!-- sub-sub-items stay plain:  <h4 id> -->
           </ui-section>
         </ui-section>
-        <ui-section id="api" sticky collapsible dividing collapsed>
+        <ui-section id="api" sticky collapsible dividing open="false">
           <span slot="header">2. The <code>x</code> API</span>  <!-- a title with markup -->
           ...
         </ui-section>
