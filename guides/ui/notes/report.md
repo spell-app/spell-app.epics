@@ -196,7 +196,7 @@ At the promotion (2026-09-29):
 | `ui-loader` | **2.52** | 0.65 | 1.27 | 0.73 | 0.00 | core | 60.14 | 31.36 |
 | `ui-placeholder` | **3.11** | 1.00 | 1.34 | 0.90 | 0.00 | core | 60.73 | 31.80 |
 | `ui-message` | **3.86** | 1.05 | 1.85 | 1.07 | 0.00 | core | 61.48 | 35.06 |
-| `ui-breadcrumb` | **3.17** | 1.54 | 1.00 | 0.78 | 0.00 | core | 60.78 | 34.08 |
+| `ui-breadcrumbs` | **3.17** | 1.54 | 1.00 | 0.78 | 0.00 | core | 60.78 | 34.08 |
 | `ui-input` | **9.02** | 3.36 | 2.83 | 2.11 | 1.14 | core + forms | 73.34 | 53.59 |
 | `ui-checkbox` | **7.91** | 3.80 | 2.72 | 0.75 | 1.09 | core + forms | 72.23 | 48.44 |
 | `ui-form` | **12.42** | 7.59 | 2.34 | 2.69 | 0.00 | core + forms | 76.75 | 55.35 |
@@ -345,9 +345,9 @@ At the promotion (2026-09-29):
 | `components/ui-accordion/index.ts` | 15 | 4 |
 | `components/ui-ad/UIAd.tsx` | 51 | 30 |
 | `components/ui-ad/index.ts` | 11 | 3 |
-| `components/ui-breadcrumb/UIBreadcrumb.tsx` | 90 | 48 |
-| `components/ui-breadcrumb/UIBreadcrumbSection.tsx` | 64 | 35 |
-| `components/ui-breadcrumb/index.ts` | 14 | 5 |
+| `components/ui-breadcrumbs/UIBreadcrumbs.tsx` | 90 | 48 |
+| `components/ui-breadcrumbs/UIBreadcrumb.tsx` | 64 | 35 |
+| `components/ui-breadcrumbs/index.ts` | 14 | 5 |
 | `components/ui-button/UIButton.tsx` | 426 | 235 |
 | `components/ui-button/UIButtons.tsx` | 50 | 29 |
 | `components/ui-button/UIOr.tsx` | 37 | 22 |
