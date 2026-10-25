@@ -3,7 +3,9 @@ id: r1
 epic: ui-gaps
 from: 🚧 debut (ad62dff0)
 at: 2026-10-25T03:17-04:00
-status: new
+status: filed
+filed: P2 · Rename Mechanism
+phase: p-rename-mechanism
 ---
 
 ## Owen's words
