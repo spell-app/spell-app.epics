@@ -27,7 +27,7 @@ yarn test:visual:update              # accept the new renders (review first!)
   - The tokens follow the OS scheme:  `color-scheme: light dark` on `:root` (see [the theming doc](theming.md)).
     So this is the same switch a person's OS setting makes.
   - The page is `<body class="ui-typography">`, so the page background and text follow the scheme too.
-- **The page:**  [the fixture page](../tools/visual/fixture.html) and [its script](../tools/visual/fixture.ts),
+- **The page:**  [the fixture page](/spell-ui/src/tools/visual/fixture.html) and [its script](/spell-ui/src/tools/visual/fixture.ts),
   served by the Vite dev server.
   - The same setup as the `yarn dev` demo:
     every family defined, every family sheet on the page, the stub owners, the runtime loaded.
@@ -51,7 +51,7 @@ yarn test:visual:update              # accept the new renders (review first!)
 
 ## Commands and flags
 
-`yarn test:visual [flags]` ([its cli](../tools/visual/cli.ts)):
+`yarn test:visual [flags]` ([its cli](/spell-ui/src/tools/visual/cli.ts)):
 
 | Flag | Values | Default | What |
 |---|---|---|---|
@@ -69,7 +69,7 @@ yarn test:visual:update              # accept the new renders (review first!)
   - 1 on a failure, or a setup problem (no Docker)
   - 2 on a bad flag
 - NOT part of `yarn review`:  it's slow, and `linux` needs Docker.
-  - But it MUST run before a change that alters rendering is handed back ([ui's AGENTS.md](../AGENTS.md)).
+  - But it MUST run before a change that alters rendering is handed back ([ui's AGENTS.md](/guides/ui/AGENTS.md)).
 - Timing on an M-series Mac, `--os local`, all browsers:  about 2.5 minutes for ~560 tests.
 
 ## Accepting a change
@@ -227,7 +227,7 @@ yarn test:visual --static [--grep <family>] [--browsers chrome]
 ```
 
 - The static render:  `spell-ui/static`, its `StaticRender` + `StaticStylesheet`
-  ([the seo epic page](../../spell.epics/epics/seo/seo.plan.html)).
+  ([the seo epic page](/epics/seo/seo.plan.html)).
 - The report:  `static-parity.md`, in the visual tests' results.
   - most different first, with diff images
   - the `ui-*` tags the static page left unrendered

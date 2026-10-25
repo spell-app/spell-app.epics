@@ -3,7 +3,7 @@
 How a component's attributes become Fomantic's class string inside its shadow root.
 - Built by [`ClassBuilder`](../src/elements/ClassBuilder.ts).
 - Driven by the component's vocabulary, `UI<Name>.en.ts`.
-  Its schema:  [vocabulary.types.ts](../../../src/element/vocabulary.types.ts) (`spell/element`'s).
+  Its schema:  [vocabulary.types.ts](/src/element/vocabulary.types.ts) (`spell/element`'s).
 
 ## Why keep the grammar
 
@@ -229,7 +229,7 @@ but the FORM itself has to be a real `<form>` in the light DOM:
 Fomantic's `.item` is shared by dropdown, list and menu (and the Items view).
 Here it's one element too, `<ui-item>`, drawn by OWNER CONTEXT like the content parts:
 never `ui-list-item` / `ui-menu-item`.
-- Its folder:  [ui-item/](../components/ui-item/).
+- Its folder:  [ui-item/](/guides/ui/components/ui-item/).
 - Its own lib entry:  `@spell-app/ui/ui-item`.
 
 ```html
@@ -967,7 +967,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ## Emoji:  `<ui-emoji name>`, native Unicode
 
 - The glyph is the platform's colour emoji, never an image.
-  - Names map to Unicode sequences in the [emoji data](../components/ui-emoji/data/):
+  - Names map to Unicode sequences in the [emoji data](/guides/ui/components/ui-emoji/data/):
     a JSON file per name set and first letter.
   - [`yarn gen:emoji`](../scripts/gen-emoji.ts) generates them from Fomantic's `emoji.variables`,
     and `emojibase-data`, a DEV-only dependency:

@@ -6,7 +6,7 @@ Icons are plain `.svg` files in **packs**.
 - `<ui-icon>`, and every component's `icon` shorthand, ask it for a name, and it decides which file to load.
 
 The files:
-- [The icons folder](../src/icons/):  the pack FORMAT, and the names around it.
+- [The icons folder](/guides/ui/src/icons/):  the pack FORMAT, and the names around it.
   - `icons.types.ts` (`IconPackIndex` ...)
   - `IconName`:  normalizing and claiming names
   - `BuiltInPacks`:  where the shipped packs live
@@ -89,7 +89,7 @@ export default {
 
 ### Built-in packs
 
-They're in [the icon packs folder](../src/icons/icon-packs/),
+They're in [the icon packs folder](/guides/ui/src/icons/icon-packs/),
 copied to `dist/icon-packs/` by `emitIconPacks()` (in `vite.config.ts`):
 
 | Pack | Icons | Index gzip | What |
@@ -311,7 +311,7 @@ yarn gen:icons
 - It copies FA's `svgs/<style>/<name>.svg` byte for byte (licence comment included), for canonical names only.
   - The package's alias copies are skipped:  aliases are in the index.
 - It runs the builder on each pack.
-- It writes the search words, `search.json` (in [the icons' data folder](../src/icons/data/)), under a 115 KB budget,
+- It writes the search words, `search.json` (in [the icons' data folder](/guides/ui/src/icons/data/)), under a 115 KB budget,
   for `<ui-icon-picker>` and the docs icon browser:
   - search terms, the first 5 per icon:  every solid icon's, and every icon a category lists
   - Font Awesome's categories, from the package's `categories.yml`, which group the picker's grid
@@ -345,7 +345,7 @@ The built-in packs must be served NEXT TO THE MODULE that contains `BuiltInPacks
 
 ## License attribution
 
-See [the icons' licence](../src/icons/LICENSE.md).  In short:
+See [the icons' licence](/guides/ui/src/icons/LICENSE.md).  In short:
 - The SVGs are [Font Awesome 7 Free](https://fontawesome.com) (CC BY 4.0),
   shipped as FA publishes them, each with its licence comment.
 - The Fomantic pack's NAMES are derived from [Fomantic-UI](https://github.com/fomantic/Fomantic-UI) (MIT).
@@ -505,7 +505,7 @@ Two separately built apps (`/a/`, `/b/`), each drawing the same 10 icons, cold, 
   and that they "ask that you do not actively work to remove them from files".
   - That is a request, not a licence condition.
   - CC BY needs attribution reasonable to the medium (a notice in the package, an about page),
-    which [the icons' licence](../src/icons/LICENSE.md) already is for the JSON data.
+    which [the icons' licence](/guides/ui/src/icons/LICENSE.md) already is for the JSON data.
   - Not legal advice.
 - Candidate 3 keeps the comments:  we would ship the files as they are.
 - Candidates 1 and 2 have no per-file comment (generated from metadata):

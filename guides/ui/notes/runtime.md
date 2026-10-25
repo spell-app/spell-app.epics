@@ -41,11 +41,11 @@ class UIThing extends HTMLElement {
 
 ## `<ui-root>`:  loading and settings for a subtree
 
-- [The root's family](../components/ui-root/) (`@spell-app/ui/ui-root`):  a page imports the root only.
+- [The root's family](/guides/ui/components/ui-root/) (`@spell-app/ui/ui-root`):  a page imports the root only.
   - Every `ui-*` tag inside loads its family on demand, once per page.
   - `RootLoader` does it, with a literal `import.meta.glob` per family.
   - Tag => family comes from `UIRoot.catalog.ts`, GENERATED from the vocabularies (`yarn gen:root`).
-    - [Its test](../tests/components/ui-root/UIRoot.catalog.test.ts) fails while it's stale.
+    - [Its test](/guides/ui/tests/components/ui-root/UIRoot.catalog.test.ts) fails while it's stale.
     - Never from `ComponentDefinitions`, which would put every vocabulary in the root's chunk.
 - Ready:  its families settled, then every element inside `ready` (an inner root:  its `settled`).
   - Or the `timeout` (5s).
@@ -177,7 +177,7 @@ Defaults depend on `kind`:
   - `animations.css` owns the keyframes, and matches the attribute.
 - The `duration` and `easing` options become `--ui-animation-duration` / `--ui-animation-easing` on the element.
   - So the CSS should read them:  `animation-duration: var(--ui-animation-duration, …)`.
-- `AnimationNames` (in [the runtime's types](../src/runtime/runtime.types.ts)) is the catalogue.
+- `AnimationNames` (in [the runtime's types](/spell-ui/src/runtime/runtime.types.ts)) is the catalogue.
   - Fomantic's multi-word names are kebab-cased:  `"horizontal flip"` becomes `flip-horizontal`.
   - Plain `fly` is in it too.
   - `<ui-transition>` maps Fomantic's spelling onto it:  plain `slide` / `swing` run `slide-down` / `swing-down`.

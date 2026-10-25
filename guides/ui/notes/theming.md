@@ -1,7 +1,7 @@
 # Theming `@spell-app/ui`
 
 How the CSS foundation fits together:  tokens, remaps, layers, the app stylesheet, utilities and themes.
-- Everything lives in [the styles folder](../src/styles/).
+- Everything lives in [the styles folder](/guides/ui/src/styles/).
 - The design rationale:  [the plan](plan.md), "CSS system".
 
 ## The pieces
@@ -25,9 +25,9 @@ How the CSS foundation fits together:  tokens, remaps, layers, the app styleshee
 | `ui.css` | one `@import` entry of the page set, for pages without the runtime | -- |
 
 \* GENERATED, never edit them by hand.
-- Built from [the styles vocabulary](../src/styles/styles.en.ts) by `yarn gen:styles`.
+- Built from [the styles vocabulary](/spell-ui/src/styles/styles.en.ts) by `yarn gen:styles`.
 - The generated files are committed, so consumers need no build step.
-- [The styles test](../tests/src/styles/styles.test.ts) fails when they're stale.
+- [The styles test](/guides/ui/tests/src/styles/styles.test.ts) fails when they're stale.
 
 `spell-ui/styles` exports each sheet as text (`tokensCSS` ...), plus two sets:
 - `foundationCSS`:  in adoption order, for the document AND every shadow root
@@ -144,7 +144,7 @@ What it picks:
 - Dark scheme (lighter `onDark` hues):  ink on everything but black.
 - `--ui-<colour>-inverted-on` is the dark-scheme pick, for the `-inverted` colour used whatever the scheme.
 - `-text` roles reach 4.5:1 on `--ui-background` in both schemes;  hue `-border`s reach 3:1 (UI boundaries).
-- [The contrast test](../tests/src/styles/colors.contrast.test.ts) measures every pair from the COMPUTED tokens.
+- [The contrast test](/guides/ui/tests/src/styles/colors.contrast.test.ts) measures every pair from the COMPUTED tokens.
   So a vocabulary change that breaks contrast fails a test, naming the colour.
 - A theme that changes a base (`--ui-red-on-light`) should re-check its `-on`:  it's data, not derived.
   - The classic theme keeps Fomantic's palette, and with it Fomantic's contrast failures.
@@ -153,7 +153,7 @@ What it picks:
 
 Every family exposes PUBLIC per-component tokens, `--ui-<tag>-*`:  one per Fomantic `.variables` entry that still matters.
 - E.g. `--ui-button-radius`, `--ui-card-width`, `--ui-header-color`.
-- Each docs page lists them with their defaults:  [the family tokens tool](../tools/FamilyTokens.ts) reads them from the sheet.
+- Each docs page lists them with their defaults:  [the family tokens tool](/spell-ui/src/tools/FamilyTokens.ts) reads them from the sheet.
 - Decided 2026-09-30 (Owen).
 
 ### Where you can set them
@@ -208,14 +208,14 @@ A component sheet NEVER declares a public component token.
   - the remaps:  `--ui-color*`, `--ui-scale`, `--ui-inverted`, `--ui-scheme`, `--ui-variation-*`,
     a local `--ui-size-*` ladder
   - the global tokens
-- [The component tokens test](../tests/test/componentTokens.test.ts) enforces it:
+- [The component tokens test](/guides/ui/tests/test/componentTokens.test.ts) enforces it:
   - no sheet declares a `--ui-<tag>-*` name (any family's)
   - every alias is named after the token it reads
   - no sheet reads an aliased token bare
   - `EXCEPTIONS` lists deliberate cross-family theming, each with why.
 - A token nothing varies needs no alias:  the rule reads it where it paints.
   - `var(--ui-modal-content-padding, 1.5em)`
-  - [The family tokens tool](../tools/FamilyTokens.ts) (the docs' token tables) lists both kinds.
+  - [The family tokens tool](/spell-ui/src/tools/FamilyTokens.ts) (the docs' token tables) lists both kinds.
 
 ### Variations
 
@@ -375,7 +375,7 @@ but not the derived `--ui-red-hover` / `-text`.
 
 ## Utilities
 
-[The utilities sheet](../src/styles/utilities.css) (hand-written), plus the generated colour and size parts.
+[The utilities sheet](/spell-ui/src/styles/utilities.css) (hand-written), plus the generated colour and size parts.
 - All `ui-*`, all in `ui.utilities`.
 - Adopted into the page and every shadow root.
 
@@ -482,7 +482,7 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 
 ### Our own theme:  `spell`
 
-[`spell.css`](../src/styles/themes/spell.css) is the Spell brand as a theme ([the brand's design system](../../spell.epics/brand/spell-design-system/)).
+[`spell.css`](../src/styles/themes/spell.css) is the Spell brand as a theme ([the brand's design system](/guides/spell.epics/brand/spell-design-system/)).
 - It's the DEFAULT look of Spell UI's docs site (`ThemePreference`), until the viewer picks another.
 - The docs pages wore it too (`spell-ui.entry.js`),
   until epic `design-system` moved them to `spell-brand` (below).
@@ -532,11 +532,11 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 ### Our own theme:  `spell-brand`
 
 [`spell-brand.css`](../src/styles/themes/spell-brand.css) is `spell` as Claude Design's brand pages draw it, converging on them
-(epic `design-system`, [its epic page](../../spell.epics/epics/design-system/design-system.plan.html)).
+(epic `design-system`, [its epic page](/epics/design-system/design-system.plan.html)).
 - Started 2026-10-04 as a FULL COPY of `spell.css`, so the two may drift.
   - Whether it replaces `spell` is a later call.
 - Also in `UI.themes.own`, and in the docs' theme picker as "Spell Brand", second.
-- The docs pages wear it:  [their bundle](../../epics/tools/_assets/spell-ui.js) applies it (epic `design-system`, P9).
+- The docs pages wear it:  [their bundle](/spell-epic/src/tools/_assets/spell-ui.js) applies it (epic `design-system`, P9).
 - It adds the brand's own semantic roles that no `--ui-*` token covers, as `--spell-*` `light-dark()` pairs:
   - surfaces:  `--spell-surface-tint`, `-warm`, `-selected`, `-code`, `-inverse`
   - text
@@ -551,7 +551,7 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 
 ### Fomantic themes
 
-Every other sheet in [the themes folder](../src/styles/themes/) is a port of one of Fomantic's themes
+Every other sheet in [the themes folder](/guides/ui/src/styles/themes/) is a port of one of Fomantic's themes
 (in Fomantic, its `<name>/` folder of `src/themes/`).
 - `github.css`, `material.css`, `fomantic-classic.css` (Fomantic's own `classic` theme;  ours keeps the name) ...
 - Fomantic's themes are DELTAS on Fomantic's default look, and our equivalent of that look is `classic.css`.
@@ -599,12 +599,12 @@ await themes.apply(undefined) // our own look
     - `apply("dark")` throws.
 - A theme picker offers, in order:  `own` (`spell`, `spell-brand`), "plain" (`undefined`), `classic`, then `names`.
   - And a separate light / dark switch.
-- The docs site's picker is `<ui-docs-themes>` (in [the docs components](../src/docs-components/)):
+- The docs site's picker is `<ui-docs-themes>` (in [the docs components](/guides/ui/src/docs-components/)):
   - a sun / moon flip, and a palette overlay with the list and "Match system"
   - It remembers both per viewer through `ThemePreference`:
     the scheme under the one key every doc site shares.
   - `for="ui-button"` lists the themes touching one family, from the site data's `themes`.
-    [The theme families tool](../tools/ThemeFamilies.ts) reads each sheet's class grammar and tokens at build time.
+    [The theme families tool](/spell-ui/src/tools/ThemeFamilies.ts) reads each sheet's class grammar and tokens at build time.
 - `apply()` registers two `UI.styles` names (`UI.themes.slots`):
   - `classic`:  the base slot
   - `theme`:  the current Fomantic theme;  switching replaces its text in place
@@ -715,10 +715,10 @@ The references:
      - Fomantic's JS-added classes like `.focused`:  try the native state, e.g. `:focus-within`
 6. Assets the theme really uses go in `themes/<name>/`, referenced relatively.
    - images, a font it needs to look right
-7. Test:  append a `describe("<name>.css")` to [the themes test](../tests/src/styles/themes/themes.test.ts).
+7. Test:  append a `describe("<name>.css")` to [the themes test](/guides/ui/tests/src/styles/themes/themes.test.ts).
    - `ThemeHarness.use(name)`, then at least one COMPUTED style per touched component, INSIDE its shadow root.
-   - `ThemeHarness.inner(html, selector)`, in [the theme harness](../test-helpers/ThemeHarness.ts).
-   - `UI.themes`' own tests ([the Themes test](../tests/src/runtime/Themes.test.ts))
+   - `ThemeHarness.inner(html, selector)`, in [the theme harness](/spell-ui/src/test-helpers/ThemeHarness.ts).
+   - `UI.themes`' own tests ([the Themes test](/guides/ui/tests/src/runtime/Themes.test.ts))
      already check that the sheet is wholly `@layer ui.theme`.
 8. Look:  screenshot the touched components with the theme applied, light and dark,
    next to the theming page of fomantic-ui.com.

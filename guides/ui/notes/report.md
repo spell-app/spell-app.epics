@@ -559,7 +559,7 @@ Counted by `LocCount`:  non-blank, non-comment lines as "code".
 
 ### What Solid 2 asks of component authors
 
-The rules are in [ui's AGENTS.md](../AGENTS.md), "Solid authoring".
+The rules are in [ui's AGENTS.md](/guides/ui/AGENTS.md), "Solid authoring".
 - **Eager memos:**  Solid 2 memos compute at creation.
   - Base-class memos that call overridables are `{ lazy: true }`.
   - Effects that call overridables are created in `onMount()`, after subclass fields exist.
