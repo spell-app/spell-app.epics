@@ -1,0 +1,95 @@
+<!-- plan-doc part:  #c43's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Fix 4 of the untyped gap (<a href="#o7">1.7</a>): three smaller places where spell has the type but the writer doesn't
+  use it. 24 markers in all.
+</p>
+<ul>
+  <li>
+    <b>A formula's slot tied to a property</b> (16 places): <code>a card "is a (suit)" for its suits</code> makes
+    <code>is_a_$suit(suit)</code>.
+    <ul>
+      <li>The slot ranges over a card's suits, so its type is the property's: <code>Card["suit"]</code>.</li>
+      <li>It's exact once enumerations are <code>as const</code> (fix 7).</li>
+    </ul>
+  </li>
+  <li>
+    <b>An event's payload</b> (4 places, and 1 tsc error each once the markers go).
+    <ul>
+      <li><code>on card-click with a card</code> says the event brings a card.</li>
+      <li>
+        Core's <code>EventCallback</code> becomes generic over its payload:
+        <code>(event: SpellEvent &amp; { card: Card })</code>.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>A merged member's type</b> (4 places).
+    <ul>
+      <li>
+        <code>a card belongs to one pile</code> (OutlineSolitaire) makes
+        <code>export interface Card { readonly pile: any }</code>, though spell knows it's a Pile.
+      </li>
+      <li>
+        Solitaire-import's merged <code>play(): any</code> likewise: a method's return is in its scope once its body has
+        parsed (<code>mutateScopeFromBody()</code>).
+      </li>
+      <li>
+        With <a href="#p-js-solid-drawing">P10</a>, a member from the same project moves into the class body, and
+        TypeScript infers it.
+      </li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="Solitaire · today, and after · 10 lines" language="ts">
+  <pre>
+// a card "is a (suit)" for its suits
+is_a_$suit(suit: any /* spell: type unknown */) { return this.suit === suit }
+is_a_$suit(suit: Card["suit"]) { return this.suit === suit }        // after
+
+// on card-click with a card	play the card
+spellCore.RUNTIME.on('card-click', (event: any /* spell: type unknown */) =&gt; {
+  let { card } = event                                               // after:  card is a Card
+  card.play()
+})
+</pre></epic-code
+><epic-net-effect
+  ><ul>
+    <li>24 markers gone</li>
+    <li>the event payload's tsc error (1 per Solitaire) gone</li>
+  </ul></epic-net-effect
+>
+<epic-reply from="Owen" at="2026-10-09 01:16" re="revisit soon"><p>do it</p></epic-reply>
+<epic-original
+  ><epic-version as-of="2026-10-10 11:52"
+    ><p>
+      Fix 4 of the untyped gap (<a href="#o7">1.7</a>): three smaller places where spell has the type but the writer
+      doesn't use it. 24 markers in all.
+    </p>
+    <ul>
+      <li>
+        <b>A formula's slot tied to a property</b> (16 places): <code>a card "is a (suit)" for its suits</code> makes
+        <code>is_a_$suit(suit)</code>. The slot ranges over a card's suits, so its type is the property's:
+        <code>Card["suit"]</code>, exact once enumerations are <code>as const</code> (fix 7).
+      </li>
+      <li>
+        <b>An event's payload</b> (4 places, and 1 tsc error each once the markers go):
+        <code>on card-click with a card</code> says the event brings a card. <code>core</code>'s
+        <code>EventCallback</code> becomes generic over its payload:
+        <code>(event: SpellEvent &amp; { card: Card })</code>.
+      </li>
+      <li>
+        <b>A merged member's type</b> (4 places): <code>a card belongs to one pile</code> (OutlineSolitaire) makes
+        <code>export interface Card { readonly pile: any }</code>, though spell knows it's a <code>Pile</code>.
+        Solitaire-import's merged <code>play(): any</code> likewise: a method's return is in its scope once its body has
+        parsed (<code>mutateScopeFromBody()</code>). With <a href="#p-js-solid-drawing">P10</a>, a member from the same
+        project moves into the class body, and TypeScript infers it.
+      </li>
+    </ul>
+    <epic-net-effect
+      ><ul>
+        <li>24 markers gone</li>
+        <li>the event payload's tsc error (1 per Solitaire) gone</li>
+      </ul></epic-net-effect
+    ></epic-version
+  ></epic-original
+>

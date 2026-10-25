@@ -1,101 +1,171 @@
 <!-- plan-doc part:  #t14's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p>
-  Fix 2 of the untyped gap (<a href="#o7">1.7</a>), and what <a href="#t8">T8</a> asks for (from
-  <a href="#j13">J13</a>): where spell has no type but TypeScript would find one, write nothing and let it.
-</p>
-<ul>
-  <li>
-    A callback's parameter: TypeScript types it from the collection, since core's helpers take a
-    <code>CollectionOf&lt;T&gt;</code> (<a href="#j14">J14</a>, T7).
-    <ul>
-      <li>For example in <code>spellCore.map(list, (x) =&gt; ...)</code>, filter(), forEachSequential().</li>
-      <li>
-        27 places:
-        <ul>
-          <li>13 counting loops: <code>for each number from 1 to 7</code>, as getRange() is <code>number[]</code></li>
-          <li>14 loops over a plain array: <code>for each rank in card ranks</code></li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-  <li>
-    A local set from getItemOf() or randomItemOf() that spell can't type: TypeScript gives
-    <code>Card | undefined</code>, from the list's own type.
-  </li>
-  <li>The marker stays where TypeScript can't help: a method's own parameter, a property.</li>
-</ul>
-<epic-code title="Solitaire · before and after · 5 lines" language="ts">
-  <pre>
-spellCore.map(spellCore.getRange(1, 7), (number: any /* spell: type unknown */) =&gt; { ... })
-spellCore.map(spellCore.getRange(1, 7), (number) =&gt; { ... })   // after:  number
-
-spellCore.map(Card.Ranks, (rank: any /* spell: type unknown */) =&gt; { ... })
-spellCore.map(Card.Ranks, (rank) =&gt; { ... })                    // after:  string | number, exact with fix 7
-</pre>
-</epic-code>
-<ul>
-  <li>
-    <b>Not on its own.</b> In the what-if (<a href="#o7-errors">1.7</a>), this alone took Solitaire's tsc errors from 6
-    to 38:
-    <ul>
-      <li>
-        a local from <code>filter()</code> becomes <code>unknown</code>, as core returns that: needs fix 1 or fix 9
-      </li>
-      <li>each event handler's <code>event</code> becomes an implicit any (TS7006): needs fix 3</li>
-    </ul>
-  </li>
-</ul>
-<epic-net-effect
+<epic-field label="Step"
   ><ul>
-    <li>27 markers gone; T8 done with it</li>
-    <li>a callback's parameter typed by what it's passed to, as a person writes it</li>
-  </ul></epic-net-effect
+    <li>In the editor (<code>spell server</code>, then the app), run the example Todos - Form Based.</li>
+    <li>Tick a task, and edit a task's title.</li>
+    <li>Type a new task name, and press Add Task.</li>
+    <li>Press each button of the Test menu.</li>
+  </ul></epic-field
+><epic-field label="What should happen"
+  ><ul>
+    <li>
+      A violet menu runs across the top: "To Do:" on the left; "Show:", All, Active and Completed on the right, with All
+      highlighted.
+      <ul>
+        <li>
+          Clicking Active or Completed moves the highlight, and shows only the tasks not done, or only those done (I10).
+        </li>
+        <li>All shows them all again.</li>
+        <li>Ticking a task under Active hides its row.</li>
+      </ul>
+    </li>
+    <li>Three task rows, each a checkbox and a title field. "Create todos app" is ticked.</li>
+    <li>
+      Under the form, its debug view shows the app as JSON. Ticking a task, or typing in a title, changes that JSON as
+      you go.
+    </li>
+    <li>Add Task is greyed out while the new task field is empty, and turns on once you type a name.</li>
+    <li>Add Task adds a fourth row, titled as typed, and empties the new task field.</li>
+    <li>
+      The grey Test menu:
+      <ul>
+        <li>Add Item adds a row titled "Moar"</li>
+        <li>Remove Item removes the first row</li>
+        <li>Change name renames the first row "New title"</li>
+        <li>Remove Completed removes every ticked row</li>
+      </ul>
+    </li>
+    <li>No errors on the program's console, and no "can't draw" stand-ins anywhere.</li>
+  </ul></epic-field
 >
-<epic-reply from="Owen" at="2026-10-09 01:15" re="revisit soon"><p>do it</p></epic-reply>
+<epic-reply from="Owen" at="2026-10-09 20:35" re="revisit soon"
+  ><p>
+    That example is broken: - checkboxes don't work - filters don't work - add/remove/change items DO work
+  </p></epic-reply
+><epic-reply from="Claude" at="2026-10-10"
+  ><p>
+    You wrote: "That example is broken: checkboxes don't work; filters don't work; add/remove/change items DO work."
+  </p>
+  <p>Both are fixed in the worktree, not committed yet. Three causes, one an old one:</p>
+  <ol>
+    <li>
+      <b>The checkboxes did tick, but nothing showed it</b> (issue I8).
+      <ul>
+        <li>
+          In the editor, a click ticked "Teach it to draw", and wrote it into the task: Remove Completed then removed it
+          too.
+        </li>
+        <li>
+          But the debug view under the form read <code>"tasks": {}</code>: a spell list's JSON was empty, since a list
+          keeps its items outside its props.
+        </li>
+        <li>And the filters didn't filter (3, below), so nothing else on the page read the tick either.</li>
+        <li>Fixed: a list's JSON is now its items. The debug view shows each task, and follows each tick.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The debug view also missed changes made outside the form</b> (issue I9).
+      <ul>
+        <li>Change name renamed the first row, while the JSON still said "Create todos app".</li>
+        <li>A spell object's JSON followed which props it HAS, not their values.</li>
+        <li>Fixed: it follows each value too.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The filters never filtered</b>, not since 2020 (issue I10).
+      <ul>
+        <li>
+          The git history: the first Todo app hid filtered tasks as it drew them; the form-based rewrite (2020-08-18,
+          "not quite finished") repeated every task, and never read the filter again.
+        </li>
+        <li>So not a regression of P11, which kept it as it was.</li>
+        <li>
+          Fixed in the example's spell: a derived property, <code>shownTasks</code>, the tasks the filter shows; the
+          repeat draws those.
+        </li>
+        <li>
+          Open, for later: the repeat names its list by its JavaScript name, typed as text, so spell can't say
+          <code>shown-tasks</code> there. I10 has the options.
+        </li>
+      </ul>
+    </li>
+  </ol>
+  <p>Checked in the editor (this worktree's), and pinned by tests:</p>
+  <ul>
+    <li>
+      The runner's browser test now plays the real compiled example: a real click on a checkbox, then Active, Completed,
+      Change name and All, reading the rows and the debug JSON.
+    </li>
+    <li>Plus a test each in core and util, failing before the fix.</li>
+    <li>I updated this test's "What should happen": Active and Completed now filter.</li>
+  </ul>
+  <epic-net-effect
+    ><ul>
+      <li>Ticking a task shows in the debug JSON, and under Active its row goes.</li>
+      <li>All / Active / Completed show every task, the ones not done, the ones done.</li>
+      <li>The debug JSON follows changes from the grey Test menu too.</li>
+      <li>Three new issues, I8 - I10, for you to review; the code is uncommitted in the worktree.</li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
+<epic-reply from="Claude" at="2026-10-10">
+  <p>You asked: "still not working on :3000, do you need to bounce the server?"</p>
+  <p>
+    Port 3000 is the MAIN checkout's editor (<code>spell-app/packages/app</code>, restarted at 00:23). The fix is only
+    in the <code>output-targets</code> worktree, not committed yet and not merged, so main's editor can't show it.
+  </p>
+  <ul>
+    <li>
+      This worktree's editor: <a href="http://localhost:57563/" target="ext-localhost-57563">localhost:57563</a> (its
+      page server is on 57562). Open Todos - Form Based there.
+    </li>
+    <li>Once output-targets merges into main, :3000 gets it too.</li>
+  </ul>
+  <epic-net-effect>
+    <ul>
+      <li>Try V14 on <code>localhost:57563</code>; nothing needs bouncing</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
+<epic-reply from="Owen" at="2026-10-10 00:21" re="revisit soon"
+  ><p>still not working on :3000, do you need to bounce the server?</p></epic-reply
+>
 <epic-original
   ><epic-version as-of="2026-10-10 11:52"
-    ><p>
-      Fix 2 of the untyped gap (<a href="#o7">1.7</a>), and what <a href="#t8">T8</a> asks for (from
-      <a href="#j13">J13</a>): where spell has no type but TypeScript would find one, write nothing and let it.
-    </p>
-    <ul>
-      <li>
-        A callback's parameter (<code>spellCore.map(list, (x) =&gt; ...)</code>, <code>filter()</code>,
-        <code>forEachSequential()</code>): TypeScript types it from the collection, since <code>core</code>'s helpers
-        take a <code>CollectionOf&lt;T&gt;</code> (<a href="#j14">J14</a>, T7). 27 places:
-        <ul>
-          <li>
-            13 counting loops: <code>for each number from 1 to 7</code>, as <code>getRange()</code> is
-            <code>number[]</code>
-          </li>
-          <li>14 loops over a plain array: <code>for each rank in card ranks</code></li>
-        </ul>
-      </li>
-      <li>
-        A local set from <code>getItemOf()</code> or <code>randomItemOf()</code> that spell can't type: TypeScript gives
-        <code>Card | undefined</code> from the list's own type.
-      </li>
-      <li>The marker stays where TypeScript can't help: a method's own parameter, a property.</li>
-    </ul>
-
-    <ul>
-      <li>
-        <b>Not on its own.</b> In the what-if (<a href="#o7-errors">1.7</a>), this alone took Solitaire's tsc errors
-        from 6 to 38:
-        <ul>
-          <li>
-            a local from <code>filter()</code> becomes <code>unknown</code>, as <code>core</code> returns that: needs
-            fix 1 or fix 9
-          </li>
-          <li>each event handler's <code>event</code> becomes an implicit any (TS7006): needs fix 3</li>
-        </ul>
-      </li>
-    </ul>
-    <epic-net-effect
+    ><epic-field label="Step"
+      ><p>
+        In the editor (<code>spell dev server</code>, then the app), run the example <code>Todos - Form Based</code>.
+        Then tick a task, edit a task's title, type a new task name and press Add Task, and press each button of the
+        Test menu.
+      </p></epic-field
+    ><epic-field label="What should happen"
       ><ul>
-        <li>27 markers gone; T8 done with it</li>
-        <li>a callback's parameter typed by what it's passed to, as a person writes it</li>
-      </ul></epic-net-effect
+        <li>
+          A violet menu runs across the top: "To Do:" on the left; "Show:", All, Active and Completed on the right, with
+          All highlighted. Clicking Active or Completed moves the highlight, and shows only the tasks not done, or only
+          those done (I10); All shows them all again. Ticking a task under Active hides its row.
+        </li>
+        <li>Three task rows, each a checkbox and a title field. "Create todos app" is ticked.</li>
+        <li>
+          Under the form, its debug view shows the app as JSON. Ticking a task, or typing in a title, changes that JSON
+          as you go.
+        </li>
+        <li>Add Task is greyed out while the new task field is empty, and turns on once you type a name.</li>
+        <li>Add Task adds a fourth row, titled as typed, and empties the new task field.</li>
+        <li>
+          The grey Test menu:
+          <ul>
+            <li>Add Item adds a row titled "Moar"</li>
+            <li>Remove Item removes the first row</li>
+            <li>Change name renames the first row "New title"</li>
+            <li>Remove Completed removes every ticked row</li>
+          </ul>
+        </li>
+        <li>No errors on the program's console, and no "can't draw" stand-ins anywhere.</li>
+      </ul></epic-field
     ></epic-version
   ></epic-original
+><epic-commit sha="e2cfe02dc46b307f07038cd61958bbbe3a865391"
+  >Todos - Form Based's ticks and filters show; ui-form's debug view is a captioned box; AGENTS.md names drawing.ts and
+  the TypeScript writer</epic-commit
 >

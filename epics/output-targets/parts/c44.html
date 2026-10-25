@@ -1,0 +1,77 @@
+<!-- plan-doc part:  #c44's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Fix 5 of the untyped gap (<a href="#o7">1.7</a>): in OutlineSolitaire, a type's statics are written after its class,
+  so TypeScript never sees them. 13 of its 19 tsc errors, and 5 getters typed <code>any</code>.
+</p>
+<epic-code title="OutlineSolitaire · today · 10 lines" language="ts">
+  <pre>
+// a "deck" is a list of cards with:
+//   - "suits" as one of clubs, diamonds, hearts or spades
+export class Deck extends List {             // not List&lt;Card&gt;:  instanceType is a getter, Card comes later
+  static get instanceType() {
+    return Card
+  }
+  ...
+}
+Deck.Suits = ['clubs', 'diamonds', 'hearts', 'spades']
+// TS2339: Property 'Suits' does not exist on type 'typeof Deck'.   (13 times)
+</pre>
+</epic-code>
+<ul>
+  <li>
+    The statics: write them in the class body (<code>static Suits = [...]</code>), as the plain style already is
+    (Solitaire's <code>Card.Ranks</code>).
+    <ul>
+      <li>
+        Where the order must stay (a value read before the class is done): <code>declare static Suits: ...</code> in the
+        body.
+      </li>
+      <li>And keep the assignment where it is.</li>
+    </ul>
+  </li>
+  <li>
+    The item type: <code>TSWriter.superTypeOf()</code> reads only a plain <code>static instanceType = Card</code>.
+    <ul>
+      <li>Read the getter's returned type too, so <code>Deck extends List&lt;Card&gt;</code>.</li>
+    </ul>
+  </li>
+  <li>
+    <a href="#p-js-solid-drawing">P10</a>'s "one class body per type" does this by itself, if it covers statics: worth a
+    line in its Verify.
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>OutlineSolitaire: 19 tsc errors to 6, and 5 fewer inferred anys</li>
+  </ul></epic-net-effect
+>
+<epic-reply from="Owen" at="2026-10-09 01:16" re="revisit soon"><p>do it</p></epic-reply>
+<epic-original
+  ><epic-version as-of="2026-10-10 11:52"
+    ><p>
+      Fix 5 of the untyped gap (<a href="#o7">1.7</a>): in OutlineSolitaire, a type's statics are written after its
+      class, so TypeScript never sees them. 13 of its 19 tsc errors, and 5 getters typed <code>any</code>.
+    </p>
+
+    <ul>
+      <li>
+        The statics: write them in the class body (<code>static Suits = [...]</code>), as the plain style already is
+        (Solitaire's <code>Card.Ranks</code>). Where the order must stay (a value read before the class is done),
+        <code>declare static Suits: ...</code> in the body, and keep the assignment where it is.
+      </li>
+      <li>
+        The item type: <code>TSWriter.superTypeOf()</code> reads only a plain <code>static instanceType = Card</code>;
+        read the getter's returned type too, so <code>Deck extends List&lt;Card&gt;</code>.
+      </li>
+      <li>
+        <a href="#p-js-solid-drawing">P10</a>'s "one class body per type" does this by itself, if it covers statics:
+        worth a line in its Verify.
+      </li>
+    </ul>
+    <epic-net-effect
+      ><ul>
+        <li>OutlineSolitaire: 19 tsc errors to 6, and 5 fewer inferred anys</li>
+      </ul></epic-net-effect
+    ></epic-version
+  ></epic-original
+>

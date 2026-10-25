@@ -1,0 +1,101 @@
+<!-- plan-doc part:  #c41's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Fix 2 of the untyped gap (<a href="#o7">1.7</a>), and what <a href="#c35">C35</a> asks for (from
+  <a href="#j13">J13</a>): where spell has no type but TypeScript would find one, write nothing and let it.
+</p>
+<ul>
+  <li>
+    A callback's parameter: TypeScript types it from the collection, since core's helpers take a
+    <code>CollectionOf&lt;T&gt;</code> (<a href="#j14">J14</a>, T7).
+    <ul>
+      <li>For example in <code>spellCore.map(list, (x) =&gt; ...)</code>, filter(), forEachSequential().</li>
+      <li>
+        27 places:
+        <ul>
+          <li>13 counting loops: <code>for each number from 1 to 7</code>, as getRange() is <code>number[]</code></li>
+          <li>14 loops over a plain array: <code>for each rank in card ranks</code></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    A local set from getItemOf() or randomItemOf() that spell can't type: TypeScript gives
+    <code>Card | undefined</code>, from the list's own type.
+  </li>
+  <li>The marker stays where TypeScript can't help: a method's own parameter, a property.</li>
+</ul>
+<epic-code title="Solitaire · before and after · 5 lines" language="ts">
+  <pre>
+spellCore.map(spellCore.getRange(1, 7), (number: any /* spell: type unknown */) =&gt; { ... })
+spellCore.map(spellCore.getRange(1, 7), (number) =&gt; { ... })   // after:  number
+
+spellCore.map(Card.Ranks, (rank: any /* spell: type unknown */) =&gt; { ... })
+spellCore.map(Card.Ranks, (rank) =&gt; { ... })                    // after:  string | number, exact with fix 7
+</pre>
+</epic-code>
+<ul>
+  <li>
+    <b>Not on its own.</b> In the what-if (<a href="#o7-errors">1.7</a>), this alone took Solitaire's tsc errors from 6
+    to 38:
+    <ul>
+      <li>
+        a local from <code>filter()</code> becomes <code>unknown</code>, as core returns that: needs fix 1 or fix 9
+      </li>
+      <li>each event handler's <code>event</code> becomes an implicit any (TS7006): needs fix 3</li>
+    </ul>
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>27 markers gone; T8 done with it</li>
+    <li>a callback's parameter typed by what it's passed to, as a person writes it</li>
+  </ul></epic-net-effect
+>
+<epic-reply from="Owen" at="2026-10-09 01:15" re="revisit soon"><p>do it</p></epic-reply>
+<epic-original
+  ><epic-version as-of="2026-10-10 11:52"
+    ><p>
+      Fix 2 of the untyped gap (<a href="#o7">1.7</a>), and what <a href="#c35">C35</a> asks for (from
+      <a href="#j13">J13</a>): where spell has no type but TypeScript would find one, write nothing and let it.
+    </p>
+    <ul>
+      <li>
+        A callback's parameter (<code>spellCore.map(list, (x) =&gt; ...)</code>, <code>filter()</code>,
+        <code>forEachSequential()</code>): TypeScript types it from the collection, since <code>core</code>'s helpers
+        take a <code>CollectionOf&lt;T&gt;</code> (<a href="#j14">J14</a>, T7). 27 places:
+        <ul>
+          <li>
+            13 counting loops: <code>for each number from 1 to 7</code>, as <code>getRange()</code> is
+            <code>number[]</code>
+          </li>
+          <li>14 loops over a plain array: <code>for each rank in card ranks</code></li>
+        </ul>
+      </li>
+      <li>
+        A local set from <code>getItemOf()</code> or <code>randomItemOf()</code> that spell can't type: TypeScript gives
+        <code>Card | undefined</code> from the list's own type.
+      </li>
+      <li>The marker stays where TypeScript can't help: a method's own parameter, a property.</li>
+    </ul>
+
+    <ul>
+      <li>
+        <b>Not on its own.</b> In the what-if (<a href="#o7-errors">1.7</a>), this alone took Solitaire's tsc errors
+        from 6 to 38:
+        <ul>
+          <li>
+            a local from <code>filter()</code> becomes <code>unknown</code>, as <code>core</code> returns that: needs
+            fix 1 or fix 9
+          </li>
+          <li>each event handler's <code>event</code> becomes an implicit any (TS7006): needs fix 3</li>
+        </ul>
+      </li>
+    </ul>
+    <epic-net-effect
+      ><ul>
+        <li>27 markers gone; T8 done with it</li>
+        <li>a callback's parameter typed by what it's passed to, as a person writes it</li>
+      </ul></epic-net-effect
+    ></epic-version
+  ></epic-original
+>

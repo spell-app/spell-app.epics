@@ -1,0 +1,92 @@
+<!-- plan-doc part:  #c48's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Fix 9 of the untyped gap (<a href="#o7">1.7</a>): a few <code>@spell/core</code> helpers still return
+  <code>unknown</code>, as T7 left them. Types only, no behaviour change, like T7.
+</p>
+<ul>
+  <li>
+    Five helpers in
+    <a href="../../../spell-lang/src/core/collection-other.ts" target="src-spell-lang-src-core-collection-other-ts"
+      ><code title="spell-lang/src/core/collection-other.ts">collection-other.ts</code></a
+    >
+    return <code>unknown</code>:
+    <ul>
+      <li><code>filter()</code>, <code>map()</code></li>
+      <li><code>duplicateCollection()</code>, <code>mergeCollections()</code></li>
+      <li><code>rangeStartingAt()</code></li>
+    </ul>
+  </li>
+  <li>
+    Each makes a new collection of its input's class (<code>newThingLike()</code>), or of the class it's given.
+    <ul>
+      <li>So a Pile filtered is a Pile, and a copy <code>as a pile</code> is a Pile.</li>
+    </ul>
+  </li>
+  <li>
+    <code>KeyOf&lt;C&gt;</code> can't resolve "this" in a List sub-class (its own NOTE).
+    <ul>
+      <li>So <code>itemOf(this, card)</code> is <code>string | number</code>, not a position.</li>
+      <li>1 tsc error in each of the example Solitaires.</li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="Solitaire · today · 5 lines" language="ts">
+  <pre>
+filter&lt;T = unknown&gt;(collection?: CollectionOf&lt;T&gt;, condition?: ...): unknown
+
+let droppable_piles = spellCore.filter(all_piles, (pile) =&gt; ...)   // unknown, once its marker goes
+spellCore.rangeStartingAt(this, spellCore.itemOf(this, card))
+// TS2345: Argument of type 'string | number | undefined' is not assignable to parameter of type 'number | null | undefined'.
+</pre>
+</epic-code>
+<ul>
+  <li>
+    Why it matters most: it makes fix 2 safe on its own. Without it, a local set from one of these is
+    <code>unknown</code> once its marker goes, and every use of it an error.
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>3 tsc errors gone (one per example Solitaire)</li>
+    <li>a local from a collection helper typed even where spell doesn't know the type</li>
+  </ul></epic-net-effect
+>
+<epic-reply from="Owen" at="2026-10-09 01:17" re="revisit soon"><p>do it</p></epic-reply>
+<epic-original
+  ><epic-version as-of="2026-10-10 11:52"
+    ><p>
+      Fix 9 of the untyped gap (<a href="#o7">1.7</a>): a few <code>@spell/core</code> helpers still return
+      <code>unknown</code>, as T7 left them. Types only, no behaviour change, like T7.
+    </p>
+    <ul>
+      <li>
+        <code>filter()</code>, <code>map()</code>, <code>duplicateCollection()</code>,
+        <code>mergeCollections()</code> and <code>rangeStartingAt()</code> return <code>unknown</code> (<a
+          href="../../../spell-lang/src/core/collection-other.ts"
+          target="src-spell-lang-src-core-collection-other-ts"
+          ><code>packages/core/src/collection-other.ts</code></a
+        >). Each makes a new collection of its input's class (<code>newThingLike()</code>), or of the class it's given:
+        so a <code>Pile</code> filtered is a <code>Pile</code>, and a copy <code>as a pile</code> is a
+        <code>Pile</code>.
+      </li>
+      <li>
+        <code>KeyOf&lt;C&gt;</code> can't resolve <code>this</code> in a <code>List</code> sub-class (its own NOTE), so
+        <code>itemOf(this, card)</code> is <code>string | number</code>, not a position: 1 tsc error in each of the
+        example Solitaires.
+      </li>
+    </ul>
+
+    <ul>
+      <li>
+        Why it matters most: it makes fix 2 safe on its own. Without it, a local set from one of these is
+        <code>unknown</code> once its marker goes, and every use of it an error.
+      </li>
+    </ul>
+    <epic-net-effect
+      ><ul>
+        <li>3 tsc errors gone (one per example Solitaire)</li>
+        <li>a local from a collection helper typed even where spell doesn't know the type</li>
+      </ul></epic-net-effect
+    ></epic-version
+  ></epic-original
+>

@@ -1,0 +1,181 @@
+<!-- plan-doc part:  #c40's details in output-targets.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Fix 1 of the untyped gap (<a href="#o7">1.7</a>), the biggest single cause of any in the TypeScript output.</p>
+<ul>
+  <li>Spell works a type out while parsing, but the tree node made from the match doesn't keep it.</li>
+  <li>So the TypeScript writer finds nothing, and writes a marker: <code>any /* spell: type unknown */</code>.</li>
+  <li>
+    Where spell has the type:
+    <ul>
+      <li>
+        a loop's or a where's variable is in its nested scope, with its datatype
+        <ul>
+          <li>
+            <code>list_iteration.getNestedScopeForMatch()</code> and getWhereScope(), in
+            <a href="../../../spell-lang/src/spell/rules/lists" target="src-spell-lang-src-spell-rules-lists"
+              ><code title="spell-lang/src/spell/rules/lists">lists.ts</code></a
+            >
+          </li>
+        </ul>
+      </li>
+      <li>
+        an item read from a list has it as the match's <code>datatype</code>
+        (<code>ListItemExpression.getDatatype()</code>, same file)
+      </li>
+    </ul>
+  </li>
+  <li>
+    Where it's lost:
+    <ul>
+      <li><code>getAST()</code> builds <code>new P.ASTVariableExpression(item, { name })</code>, without it</li>
+      <li>
+        <a href="../../../spell-lang/src/parser/ast/AST.ts" target="src-spell-lang-src-parser-ast-ast-ts"
+          ><code title="spell-lang/src/parser/ast/AST.ts">ASTNode.datatype</code></a
+        >
+        is the node's own <code>_datatype</code>, never its match's
+      </li>
+    </ul>
+  </li>
+  <li>
+    The change:
+    <ul>
+      <li>
+        <code>ASTNode.datatype</code> falls back to <code>this.match.datatype</code>. That's allowed in a writer:
+        <code>getDatatype()</code> reads only <code>match.data</code> and child matches, never scope
+      </li>
+      <li>
+        a loop's or where's argument node carries its <code>ScopeVariable</code>, as <code>variable</code>
+        <ul>
+          <li>noted in <code>match.data</code> while parsing, as <code>getAST()</code> mustn't look it up</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    How many: 152 of the 285 untyped places across the 9 projects.
+    <ul>
+      <li>85 are loop and where variables: a Card or a Pile.</li>
+      <li>
+        67 are locals read from a list: <code>getItemOf()</code> 29, <code>filter()</code> 18, randomItemOf() 8, and the
+        rest.
+      </li>
+    </ul>
+  </li>
+</ul>
+<epic-code title="Solitaire · before and after · 8 lines" language="ts">
+  <pre>
+// set test-card to the last card of discards
+let test_card: any /* spell: type unknown */ = spellCore.getItemOf(discards, -1)
+let test_card = spellCore.getItemOf(discards, -1) as Card           // after
+
+// for each card in the deck	move it to the stock
+spellCore.map(deck, (card: any /* spell: type unknown */) =&gt; { ... })
+spellCore.map(deck, (card: Card) =&gt; { ... })                        // after
+</pre>
+</epic-code>
+<ul>
+  <li>
+    Land it with fix 2 (letting TypeScript type the rest, <a href="#c35">C35</a>) and fix 9 (<code>core</code>'s return
+    types): together, in the what-if, Solitaire went from 61% to 89% typed (<a href="#o7-errors">1.7</a>).
+  </li>
+  <li>
+    This is the "written where spell knows the type" half of <a href="#j13">J13</a>. Only the TypeScript changes:
+    <code>JSWriter</code> never reads <code>datatype</code>, so the JavaScript snapshots don't move.
+  </li>
+  <li>
+    It surfaces errors the markers hid: 5 in Solitaire, members used on a <code>Pile</code> that don't exist there (<a
+      href="#q25"
+      >Q25</a
+    >).
+  </li>
+</ul>
+<epic-net-effect
+  ><ul>
+    <li>152 markers become real types: Card, Pile, Deck</li>
+    <li>the editor and the Type Explorer gain nothing new: they already read the match</li>
+  </ul></epic-net-effect
+>
+<epic-reply from="Owen" at="2026-10-09 01:15" re="revisit soon"><p>do it</p></epic-reply>
+<epic-original
+  ><epic-version as-of="2026-10-10 11:52"
+    ><p>
+      Fix 1 of the untyped gap (<a href="#o7">1.7</a>), the biggest single cause of <code>any</code> in
+      <code>ts/solid</code>'s output: spell works a type out while parsing, but the tree node made from the match
+      doesn't keep it, so <code>TSWriter</code> finds nothing and writes a marker (<code
+        >any /* spell: type unknown */</code
+      >).
+    </p>
+    <ul>
+      <li>
+        Where spell has the type:
+        <ul>
+          <li>
+            a loop's or a <code>where</code>'s variable is in its nested scope, with its datatype (<code
+              >list_iteration.getNestedScopeForMatch()</code
+            >
+            and <code>getWhereScope()</code> in
+            <a href="../../../spell-lang/src/spell/rules/lists" target="src-spell-lang-src-spell-rules-lists"
+              ><code>packages/spell/src/rules/lists.ts</code></a
+            >)
+          </li>
+          <li>
+            an item read from a list has it as the match's <code>datatype</code>
+            (<code>ListItemExpression.getDatatype()</code>, same file)
+          </li>
+        </ul>
+      </li>
+      <li>
+        Where it's lost:
+        <ul>
+          <li><code>getAST()</code> builds <code>new P.ASTVariableExpression(item, { name })</code>, without it</li>
+          <li>
+            <code>ASTNode.datatype</code> is the node's own <code>_datatype</code>, never its match's (<a
+              href="../../../spell-lang/src/parser/ast/AST.ts"
+              target="src-spell-lang-src-parser-ast-ast-ts"
+              ><code>packages/parser/src/ast/AST.ts</code></a
+            >)
+          </li>
+        </ul>
+      </li>
+      <li>
+        The change:
+        <ul>
+          <li>
+            <code>ASTNode.datatype</code> falls back to <code>this.match.datatype</code>. That's allowed in a writer:
+            <code>getDatatype()</code> reads only <code>match.data</code> and child matches, never scope
+          </li>
+          <li>
+            a loop's or <code>where</code>'s argument node carries its <code>ScopeVariable</code> (as
+            <code>variable</code>), noted in <code>match.data</code> while parsing, as <code>getAST()</code> mustn't
+            look it up
+          </li>
+        </ul>
+      </li>
+      <li>
+        How many: 152 of the 285 untyped places across the 9 projects. 85 are loop and <code>where</code> variables (a
+        <code>Card</code> or a <code>Pile</code>), 67 are locals read from a list (<code>getItemOf()</code> 29,
+        <code>filter()</code> 18, <code>randomItemOf()</code> 8, and the rest).
+      </li>
+    </ul>
+
+    <ul>
+      <li>
+        Land it with fix 2 (letting TypeScript type the rest, <a href="#c35">C35</a>) and fix 9 (<code>core</code>'s
+        return types): together, in the what-if, Solitaire went from 61% to 89% typed (<a href="#o7-errors">1.7</a>).
+      </li>
+      <li>
+        This is the "written where spell knows the type" half of <a href="#j13">J13</a>. Only the TypeScript changes:
+        <code>JSWriter</code> never reads <code>datatype</code>, so the JavaScript snapshots don't move.
+      </li>
+      <li>
+        It surfaces errors the markers hid: 5 in Solitaire, members used on a <code>Pile</code> that don't exist there
+        (<a href="#q25">Q25</a>).
+      </li>
+    </ul>
+    <epic-net-effect
+      ><ul>
+        <li>152 markers become real types (<code>Card</code>, <code>Pile</code>, <code>Deck</code>)</li>
+        <li>the editor and the Type Explorer gain nothing new: they already read the match</li>
+      </ul></epic-net-effect
+    ></epic-version
+  ></epic-original
+>
