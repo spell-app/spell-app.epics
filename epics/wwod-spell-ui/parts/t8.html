@@ -1,38 +1,23 @@
 <!-- plan-doc part:  #t8's details in wwod-spell-ui.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  On the boolean-names choices page, a row's File link should open VS Code at that line, from the side bar AND from
-  Chrome.
+  TypeScript doesn't check the <code>cause</code> passed to <code>new SourceError()</code>; it checks it only where it's
+  read.
 </p>
 <ul>
   <li>
-    The page:
-    <a href="../details/boolean-names.html" target="src-epics-wwod-spell-ui-details-boolean-names-html"
-      ><code title="epics/wwod-spell-ui/details/boolean-names.html">boolean-names.html</code></a
-    >. Click a row's File, e.g.
-    <a
-      href="../../../spell-ui/src/components/ui-section/UISection.tsx"
-      target="src-spell-ui-src-components-ui-section-uisection-tsx"
-      ><code title="spell-ui/src/components/ui-section/UISection.tsx:169">UISection.tsx</code></a
-    >.
+    Why: WWOD §5 asks for an empty class body, so <code>SourceError</code> and ApiError keep Error's constructor. That
+    constructor's cause is <code>unknown</code>.
   </li>
+  <li>The cause is typed where it's READ: <code>declare cause: SourceErrorCause | undefined</code>.</li>
   <li>
-    In the side bar, the page posts an open request (<code>{ spell: "open", kind: "external" }</code>) with a VS Code
-    file link.
-    <ul>
-      <li>The link: <code>vscode://file/&lt;worktree&gt;/&lt;file&gt;:&lt;line&gt;</code></li>
-      <li>
-        <code>DocView.open()</code> hands it to VS Code's <code>openExternal()</code>, which routes VS Code's own scheme
-        back to VS Code.
-      </li>
-      <li>Not checkable headless: the extension isn't in Playwright.</li>
-    </ul>
+    So this compiles:
+    <pre><code>new SourceError("...", { cause: { kind: "lod" } })   // compiles;  error.kind is "lod" at run time</code></pre>
   </li>
-  <li>In Chrome, it's the plain VS Code file link. Chrome asks once before opening VS Code.</li>
+  <li>The 20 call sites were checked by hand. The tests read <code>kind</code> back on each path they cover.</li>
   <li>
-    If the side bar does nothing, the smallest fix is in <code>DocView.open()</code>.
-    <ul>
-      <li>It would handle a <code>file</code> link with a <code>#L&lt;line&gt;</code> fragment.</li>
-      <li>But that needs <code>spell app vscode</code>, which can't run from this branch while it's behind main.</li>
-    </ul>
+    A typed constructor would catch it, at the cost of a non-empty body. That's a WWOD §5 question, not taken here.
+    <epic-code title="a typed constructor · 1 line" language="text">
+      <pre>constructor(message: string, options: { cause: SourceErrorCause }) { super(message, options) }</pre>
+    </epic-code>
   </li>
 </ul>
