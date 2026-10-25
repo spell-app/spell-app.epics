@@ -4,7 +4,7 @@ What we're aiming for in three months, next year and someday — and what "shipp
 
 - **Page for people:** [goals.html](goals.html) -- the source of truth for goals, questions and decisions.
 - **Status:** draft -- a first pass, not yet talked through.  Updated 2026-10-01.
-- **Rules for this folder:** [../AGENTS.md](../../AGENTS.md)
+- **Rules for this folder:** [../AGENTS.md](/goals/AGENTS.md)
 
 > **Draft.**  Nothing here is decided yet.  Goals and work items are proposals:  don't start a `W` item until
 > the page marks it agreed (a `D` decision, or the topic's status `agreed`).
@@ -15,7 +15,7 @@ What we're aiming for in three months, next year and someday — and what "shipp
   holds up for small real programs.
 - **Today:**  everything runs from a git checkout.  Nothing is packaged, hosted, or published to npm.
 - **A draft arc:**  October *solid ground*, November *first spell in five minutes*, December *public preview*
-  (see the [contents page](../index.html#arc)).
+  (see the [contents page](/goals/spell/index.html#arc)).
 - **The hard part:**  choosing what waits until 2027.
 
 ### Today

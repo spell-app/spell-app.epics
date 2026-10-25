@@ -4,7 +4,7 @@ Spell as an app you download and double-click:  Mac first, then Windows.
 
 - **Page for people:** [native.html](native.html) -- the source of truth for goals, questions and decisions.
 - **Status:** draft -- a first pass, not yet talked through.  Updated 2026-10-01.
-- **Rules for this folder:** [../AGENTS.md](../../AGENTS.md)
+- **Rules for this folder:** [../AGENTS.md](/goals/AGENTS.md)
 
 > **Draft.**  Nothing here is decided yet.  Goals and work items are proposals:  don't start a `W` item until
 > the page marks it agreed (a `D` decision, or the topic's status `agreed`).

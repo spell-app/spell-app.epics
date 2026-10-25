@@ -4,7 +4,7 @@ How spell looks and sounds everywhere:  a visual language made with Claude Desig
 
 - **Page for people:** [brand.html](brand.html) -- the source of truth for goals, questions and decisions.
 - **Status:** draft -- a first pass, not yet talked through.  Updated 2026-10-01.
-- **Rules for this folder:** [../AGENTS.md](../../AGENTS.md)
+- **Rules for this folder:** [../AGENTS.md](/goals/AGENTS.md)
 
 > **Draft.**  Nothing here is decided yet.  Goals and work items are proposals:  don't start a `W` item until
 > the page marks it agreed (a `D` decision, or the topic's status `agreed`).
@@ -69,4 +69,4 @@ _None yet._
 
 - `packages/ui/notes/theming.md`, `spell-ui/src/styles/` -- how a theme plugs in
 - `spell-epic/src/tools/_assets/goals.css` -- this site's look:  a first sketch, not the brand
-- Related:  [spell-ui](../spell-ui/spell-ui.md), [docs](../docs/docs.md), [native](../native/native.md)
+- Related:  [spell-ui](/goals/spell/spell-ui/spell-ui.md), [docs](/goals/spell/docs/docs.md), [native](/goals/spell/native/native.md)

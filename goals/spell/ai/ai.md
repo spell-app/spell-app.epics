@@ -4,7 +4,7 @@ AI inside the spell app, and AI that helps people write spells.
 
 - **Page for people:** [ai.html](ai.html) -- the source of truth for goals, questions and decisions.
 - **Status:** draft -- a first pass, not yet talked through.  Updated 2026-10-01.
-- **Rules for this folder:** [../AGENTS.md](../../AGENTS.md)
+- **Rules for this folder:** [../AGENTS.md](/goals/AGENTS.md)
 
 > **Draft.**  Nothing here is decided yet.  Goals and work items are proposals:  don't start a `W` item until
 > the page marks it agreed (a `D` decision, or the topic's status `agreed`).
@@ -29,7 +29,7 @@ AI inside the spell app, and AI that helps people write spells.
 ## Decisions (settled -- don't relitigate)
 
 - **D1 · People pick how much AI teaches** -- three modes:  "do it all for me", show the spell and explain on ask,
-  walk me through every change.  The teacher half of [motivation/D1](../motivation/motivation.md) (AI:  partner, then
+  walk me through every change.  The teacher half of [motivation/D1](/goals/spell/motivation/motivation.md) (AI:  partner, then
   teacher).
 
 ## Work (proposed)

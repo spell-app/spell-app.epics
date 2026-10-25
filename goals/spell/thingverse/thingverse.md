@@ -4,7 +4,7 @@ Standard libraries of everyday ideas (people, bank accounts, invoices, calendars
 
 - **Page for people:** [thingverse.html](thingverse.html) -- the source of truth for goals, questions and decisions.
 - **Status:** draft -- a first pass, not yet talked through.  Updated 2026-10-01.
-- **Rules for this folder:** [../AGENTS.md](../../AGENTS.md)
+- **Rules for this folder:** [../AGENTS.md](/goals/AGENTS.md)
 
 > **Draft.**  Nothing here is decided yet.  Goals and work items are proposals:  don't start a `W` item until
 > the page marks it agreed (a `D` decision, or the topic's status `agreed`).
@@ -16,7 +16,7 @@ Standard libraries of everyday ideas (people, bank accounts, invoices, calendars
 - **Today:**  one library, `@library/cards` (cards, decks, piles, jokers).  Imports work through compiled
   JavaScript that carries the phrases it declares.
 - **Foundations first:**  dates and times, money, maps, saving data, and the type work in
-  [syntax](../syntax/syntax.html).
+  [syntax](/goals/spell/syntax/syntax.html).
 
 ### Today
 

@@ -4,7 +4,7 @@ Why spell exists, and how it could change who gets to make software.
 
 - **Page for people:** [motivation.html](motivation.html) -- the source of truth for goals, questions and decisions.
 - **Status:** in dialog -- being talked through with Owen.  Updated 2026-10-01.
-- **Rules for this folder:** [../AGENTS.md](../../AGENTS.md)
+- **Rules for this folder:** [../AGENTS.md](/goals/AGENTS.md)
 
 > **Draft.**  Nothing here is decided yet.  Goals and work items are proposals:  don't start a `W` item until
 > the page marks it agreed (a `D` decision, or the topic's status `agreed`).
@@ -77,4 +77,4 @@ Why spell exists, and how it could change who gets to make software.
 - `packages/spell/thoughts/FOP presentation.txt` -- the 2017 talk's outline
 - `spell-lang/docs/spell/thoughts/WhatIsSpell.md` -- what spell is, what people might make, SpellCo
 - `/Users/owen/www/spell-app/_thoughts/` -- older notes (2009-2019):  background, not canonical
-- Related:  [audience](../audience/audience.md), [goals](../goals/goals.md), [brand](../brand/brand.md)
+- Related:  [audience](/goals/spell/audience/audience.md), [goals](/goals/spell/goals/goals.md), [brand](/goals/spell/brand/brand.md)

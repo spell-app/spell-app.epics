@@ -4,7 +4,7 @@ The people we imagine using spell, what they want to make, and how they'll find 
 
 - **Page for people:** [audience.html](audience.html) -- the source of truth for goals, questions and decisions.
 - **Status:** draft -- a first pass, not yet talked through.  Updated 2026-10-01.
-- **Rules for this folder:** [../AGENTS.md](../../AGENTS.md)
+- **Rules for this folder:** [../AGENTS.md](/goals/AGENTS.md)
 
 > **Draft.**  Nothing here is decided yet.  Goals and work items are proposals:  don't start a `W` item until
 > the page marks it agreed (a `D` decision, or the topic's status `agreed`).
@@ -62,4 +62,4 @@ _None yet._
 
 - `spell-lang/docs/spell/thoughts/WhatIsSpell.md` -- the kinds of apps people might make
 - `packages/spell/projects/system/examples/` -- today's examples
-- Related:  [motivation](../motivation/motivation.md), [thingverse](../thingverse/thingverse.md)
+- Related:  [motivation](/goals/spell/motivation/motivation.md), [thingverse](/goals/spell/thingverse/thingverse.md)
