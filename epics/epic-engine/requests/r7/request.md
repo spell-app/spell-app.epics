@@ -23,4 +23,4 @@ Repo-split will say when P2 lands on main.
 
 ## Context
 
-repo-split epic page, T2 (epics/repo-split/repo-split.plan.html#t2);  P2 committed on branch repo-split, not on main yet
+repo-split epic page, T2 (epics/repo-split/repo-split.plan.html#c24);  P2 committed on branch repo-split, not on main yet
