@@ -1,0 +1,137 @@
+<!-- plan-doc part:  #p-kit-node-tools's body in coherence.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    spell-epic's node tools rebuild what the kit already has (git, checkouts, real paths, locks, Chrome), and 15 scripts
+    across the repos each write their own headless page check.
+  </p></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>
+      The kit gains <code>Git</code>, <code>RealPath</code>, a <code>FileLock</code> plain node can load (with a
+      try-once mode), and a <code>BrowserPage</code> for headless checks.
+    </li>
+    <li>About 75 copies, in every repo, call them.</li>
+    <li>The lock two runs can both take is gone.</li>
+  </ul></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      spell-epic's node tools stop rebuilding the kit's (<a href="#c7">C7</a>): running git, finding a checkout, a real
+      path, a running process, a file lock, a package's folder, opening Chrome and the page server's pieces each have
+      ONE home in the kit, and about 60 copies call it.
+    </li>
+    <li>
+      The racy lock is gone (<a href="#c7">C7</a>): every lock is the kit's <code>FileLock</code>, which plain node
+      loads, with a try-once mode.
+    </li>
+    <li>
+      One headless page check (<a href="#c8">C8</a>): <code>spell/element-tools/BrowserPage</code> opens a page,
+      collects its problems and waits for it to settle; the 15 scripts (Spell UI's, spell-epic's demo checks, the
+      brand's, the kit's publish check, the app's) open their pages through it, and the <code>__name</code> hack is in
+      one place.
+    </li>
+    <li>
+      The catalog's "Git, from spell-epic", "One writer at a time" and "Opening a browser" point at the kit; "A headless
+      page check" leaves Wanted.
+    </li>
+  </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>The kit first: the homes, with their tests.</b>
+      <ul>
+        <li>
+          <code>Git</code> moves from spell-epic to <code>spell/server/Git</code>: <code>run</code>, <code>out</code>,
+          <code>lines</code>, <code>mustRun</code>; node's built-ins only, so plain node loads it as
+          <code>spell/server/Git.ts</code>. Its <code>CODE_ROOT</code> (spell-epic's own folder) stays in spell-epic.
+        </li>
+        <li><code>RealPath</code> moves the same way, to <code>spell/server/RealPath</code>.</li>
+        <li>
+          <code>FileLock</code> imports its error class from its own file, not the server's barrel, so plain node loads
+          it; it gains a try-once mode (answers "held" instead of waiting), with the race test.
+        </li>
+        <li>
+          <code>openInChromeTab()</code> takes <code>{ front }</code>; the page server exports its unwatched list, its
+          local copies and its overlay of component sets.
+        </li>
+        <li>
+          <code>BrowserPage</code> in the element tools, from spell-epic's <code>openPage()</code> (which has
+          <code>onProblem</code> already): viewport, colour scheme, <code>onProblem</code>, <code>settle</code>, and
+          routes a page's requests may be answered from (spell-epic's engine routes for a <code>file://</code> page).
+        </li>
+        <li>
+          The kit's own copies move onto them: the repos tool, the page server's git call,
+          <code>contentFolderOf()</code> (by file, <code>spell/server/Git.ts</code>: it loads before
+          <code>spell/util</code> can), the real-path copies in the CLI and main server, the package-folder copies onto
+          <code>packageRootFor()</code>, the publish check onto <code>BrowserPage</code>.
+        </li>
+        <li>Commit: <code>coherence P7, C7, C8: kit node tools</code>.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Spell UI:</b> the site check, screenshots, visual tests, live-reload test and README script open their pages
+      through <code>BrowserPage</code>. Commit.
+    </li>
+    <li><b>The brand:</b> the design check and the comparison, the same. Commit.</li>
+    <li>
+      <b>spell-epic:</b> every <code>Git</code> and <code>RealPath</code> import names the kit; the ~20 raw git runs, 10
+      checkout finders (<code>checkoutOf()</code>), 5 process checks, 3 locks (<code>FileLock</code>),
+      <code>openUrlInChrome</code> (<code>openInChromeTab({ front })</code>); the epic server reads
+      <code>localCopies</code> from the settings and takes the page server's pieces; <code>browserPage.js</code> and the
+      eight demo checks use <code>BrowserPage</code>. Commit.
+    </li>
+    <li><b>spell-app:</b> the examples script uses <code>BrowserPage</code>. Commit.</li>
+    <li><b>The catalog</b> follows; <code>yarn review</code> in each repo.</li>
+    <li>
+      <b>Left, each with why at the site:</b> <code>InboxPoller.mjs</code> and the hooks (node's built-ins only: they
+      stand alone, the catalog's "Fine as it is").
+    </li>
+    <li>
+      <b>Adjusted from the finding (coherence):</b> the homes are <code>spell/server</code>, beside
+      <code>checkoutOf()</code>, <code>FileLock</code> and <code>openInChromeTab()</code>, where the catalog's "Files,
+      folders and processes" already live, not a new folder. And <code>FileLock</code> already has five spell-epic users
+      through the barrel: only the plain-node scripts copied it.
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      the kit: <a href="../../../src/server/" target="src-src-server"><code>src/server/</code></a> (new
+      <code>Git.ts</code>, <code>RealPath.ts</code>; <code>FileLock.ts</code>, <code>open.ts</code>,
+      <code>page/PageServer.ts</code>, <code>contentFolder.ts</code>, <code>mainServer.ts</code>), new
+      <code>src/element-tools/BrowserPage.ts</code>,
+      <a href="../../../src/cli/" target="src-src-cli"><code>src/cli/</code></a
+      >, <a href="../../../tools/" target="src-tools"><code>tools/</code></a
+      >, their tests
+    </li>
+    <li>
+      Spell UI: <a href="../../../spell-ui/src/tools/" target="src-spell-ui-src-tools"><code>src/tools/</code></a> (site
+      check, screenshots, visual tests, live-reload test),
+      <a href="../../../spell-ui/scripts/readme-components.ts" target="src-spell-ui-scripts-readme-components-ts"
+        ><code>scripts/readme-components.ts</code></a
+      >
+    </li>
+    <li>the brand: <code>scripts/design-check.ts</code>, <code>scripts/compare.ts</code></li>
+    <li>
+      spell-epic: <code>src/command/</code>, <code>src/config/</code>, <code>src/tool/</code>,
+      <a href="../../../spell-ui/src/tools/" target="src-spell-ui-src-tools"><code>src/tools/</code></a>
+      (<code>pages.js</code>, <code>browserPage.js</code>), <code>src/server/EpicServer.ts</code>,
+      <code>src/demo/*.mjs</code>
+    </li>
+    <li>spell-app: <code>scripts/examples-readme.ts</code></li>
+    <li>the catalog</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      The catalog's flags (<code>spawnSync("git"</code>, <code>git-common-dir|show-toplevel</code>,
+      <code>function isProcessAlive</code>, <code>chromium.launch</code>) find only the copies kept, each with why.
+    </li>
+    <li>A test: two try-once takers of one <code>FileLock</code>, at once: exactly one wins.</li>
+    <li>
+      Each moved check still runs and finds what it found: Spell UI's site check, the brand's design check, spell-epic's
+      demo checks.
+    </li>
+    <li><code>yarn review</code> in every repo touched, counts with their deltas.</li>
+  </ul></epic-field
+>
