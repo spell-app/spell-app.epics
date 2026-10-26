@@ -275,6 +275,8 @@ Four kinds:
   - set inline by an element:
     - the anchor names:  `--_ui-dropdown-anchor`, `--_ui-search-anchor`, `--_ui-calendar-anchor`
     - `--_ui-pusher-*` (`PusherTokens`)
+    - a `shrinkable` menu's stage, on its box (`TitleFit`):  `--_menu-fit` (`whole`, `cut`, `icons`, `overflow`),
+      which its items query, and `--_menu-title-max`, the widest a title may be while cut
 - Declared on EVERY owner root, default included (the alias re-declares from the public token),
   so a nested owner never inherits an outer owner's value.
 - Where a page sets an owner look token:  on the owner, above it, or `::part()` of the owner's box.

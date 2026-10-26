@@ -315,6 +315,30 @@ never `ui-list-item` / `ui-menu-item`.
   - `items="equal"` => `equal width`
   - as `width` on buttons, `widths` on statistics / steps / fields
 - A dropdown item is an item holding a `<ui-dropdown>`:  `<ui-item><ui-dropdown label="More">...`.
+- `shrinkable` (a plain switch, Spanish `encogible`;  epic `ui-gaps` P13) fits the items' titles to the row,
+  in four stages as the menu gets narrower (`TitleFit`, beside the menu):
+  1. every title whole
+  2. the longest cut first, each ending in `…`, down to one width (`--_menu-title-max`, written on the box)
+  3. once a title would be cut under `--ui-menu-title-min` (50px):  icons only, `:state(icons-only)`
+     - each title is its item's tooltip, and still its accessible name:  clipped, never removed
+     - an item with no icon draws its title's first letter as one
+  4. once a button would be under `--ui-menu-item-min` (34px):  every item folds into ONE overflow button
+     (`part="overflow"`, `…`, named "More";  `slot="overflow"` changes its icon), `:state(overflow)`
+     - its menu (`part="overflow-menu"`, `role="menu"`, a popover) holds a row per item:
+       its icon, its title, a copy of its counts;  the selected one a `menuitemradio`, ticked
+     - picking a row clicks the real item, so `selected` and the page's own listeners work as ever
+     - a dot on the button while an item inside has a count
+  - Only the menu's own items with words are fitted:  an icon button (the docs' bullhorn), a sub-menu or a button
+    stays in the row at every stage.
+  - Their titles sit in a box of their own while the menu is shrinkable (`<ui-item>`'s `title` part);
+    counts go in an item's `badge` slot, so they stay while the title is cut or gone.
+  - A `segmented` one is a single choice:  never cut, never icons only.
+    Too narrow for every choice whole, it becomes a dropdown (`:state(dropdown)`):
+    its overflow button shows the chosen item and a caret.
+  - `<ui-toolbar shrinkable>` never scrolls with `‹` / `›`:  the overflow button replaces them.
+  - Each stage is measured in its own look, written and taken back before the next paint,
+    so a width between two stages never flips, and a page's own CSS for a stage counts.
+  - Never on a server:  the static render draws the titles whole.
 
 ## Tables:  `<ui-table>` and the native `<table>`
 
