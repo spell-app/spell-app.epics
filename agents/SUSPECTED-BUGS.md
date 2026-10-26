@@ -472,6 +472,11 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## ui
 
+- `<ui-section>` (`UISection.css`):  a `dividing` section's private token, `--_section-title-border`, inherits down
+  the flat tree into every section it holds, so an untitled, non-dividing `<ui-section>` inside one draws a rule under
+  its (empty) title.  Seen on spell-app's notebook page, a `<section>` drawn inside a `##` section, 2026-10-25 (epic
+  `elemental-spell` P16);  the page hides it (`NotebookPage.css`).  Likely fix:  set it on every section, `none` unless
+  `dividing`.
 - `$fetch()` (the kit's `src/util/spell/`):  (1) `error.status` is `undefined` on every error it throws:  the
   `status` getter reads `props.response`, which `$fetch()` never passes (it passes `props.status`);  (2) a request that
   never connects leaves an unhandled rejection even when the caller catches the `OfflineError` (`void promise.finally(...)`
