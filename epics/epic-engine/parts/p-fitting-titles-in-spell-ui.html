@@ -1,0 +1,313 @@
+<!-- plan-doc part:  #p-fitting-titles-in-spell-ui's body in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    The docs toolbars fit their titles to the row (the longest titles shorten first, with "…", and once any title would
+    be cut under 50px the whole row shows icons only), but that behaviour lives in spell-epic's docs runtime, not in
+    Spell UI. No other page can have it, and the runtime has to measure Spell UI's shadow boxes from outside:
+  </p>
+  <ul>
+    <li>
+      <a
+        href="/spell-epic/src/tools/_assets/spell-doc-toolbar.js"
+        target="src-spell-epic-src-tools-assets-spell-doc-toolbar-js"
+        ><code title="spell-epic/src/tools/_assets/spell-doc-toolbar.js">fitTitles()</code></a
+      >, <code>titleFit()</code>, <code>titleCap()</code> and <code>keepFitted()</code> (a ResizeObserver on the
+      toolbar, its row and each item's box, plus the fonts loading), with <code>MIN_TITLE_PX = 50</code>
+    </li>
+    <li>
+      its look in
+      <a
+        href="/spell-epic/src/tools/_assets/spell-toolbar.css"
+        target="src-spell-epic-src-tools-assets-spell-toolbar-css"
+        ><code title="spell-epic/src/tools/_assets/spell-toolbar.css">spell-toolbar.css</code></a
+      >: <code>--spell-toolbar-title-max</code>, <code>.spell-toolbar-icons</code>, <code>.spell-toolbar-label</code>,
+      and the segmented exception
+    </li>
+    <li>
+      a refit by hand whenever the row changes (the comments' bullhorn, <code>fitToolbar</code>), since nothing watches
+      what's in the row
+    </li>
+  </ul></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen, 2026-10-25, on how the docs toolbars fit their titles: "How is this implemented? I want to push this
+      behavior into <code>&lt;ui-menu&gt;</code> and <code>&lt;ui-toolbar&gt;</code>."
+    </li>
+    <li>
+      <code>&lt;ui-menu fit="titles"&gt;</code> and <code>&lt;ui-toolbar fit="titles"&gt;</code> fit their items' titles
+      to the row, as the docs toolbars do today:
+      <ul>
+        <li>every title whole while they fit</li>
+        <li>then the longest give way first, down to one width, each ending in "…"</li>
+        <li>
+          once any title would be cut under the minimum (<code>--ui-menu-title-min</code>, 50px), the whole row shows
+          icons only: <code>:state(icons-only)</code>
+        </li>
+        <li>still too wide: a toolbar scrolls, with its ‹ › keys</li>
+      </ul>
+    </li>
+    <li>With the titles gone, each item's title is its tooltip, and still its accessible name.</li>
+    <li>
+      Without <code>fit</code>, nothing changes: no new markup, a toolbar scrolls as now. A <code>segmented</code> menu
+      keeps scrolling.
+    </li>
+    <li>
+      The docs runtime just writes <code>fit="titles"</code>, and its own copy of the fitting goes, code, styles and
+      test.
+    </li>
+    <li>
+      Done when: both components pages show a live example to resize; the guides, details pages and Epic UI's band fit
+      as before at 1200px, the side bar's width and phone width; spell-epic has no fitting code left;
+      <code>yarn review</code>
+      passes in spell-ui and spell-epic; the visual baselines are updated after review.
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>
+    A new <code>fit</code> attribute on the menu (and so the toolbar), one small helper class beside the menu that
+    measures and fits, a title box and a badge slot on <code>&lt;ui-item&gt;</code>; the docs runtime then uses it and
+    deletes its own.
+  </p></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>The public API</b>, on <code>&lt;ui-menu&gt;</code>; <code>&lt;ui-toolbar&gt;</code> gets it all for free, as
+      its vocabulary is built on the menu's:
+      <ul>
+        <li>
+          <code>fit</code>: how the items fit the row. <code>none</code>, the default: as today. <code>titles</code>:
+          the titles shrink, then go. An <code>enum</code> like the item's <code>kind</code>, so it draws no class word.
+          Spanish: <code>ajuste</code>, values <code>ninguno</code> (shared) and <code>títulos</code>. (Open question
+          1.)
+        </li>
+        <li>
+          <code>--ui-menu-title-min</code>, a public token, 50px: the narrowest a title may be cut before the row goes
+          to icons. Read through its alias, <code>--_ui-menu-title-min</code>, as every menu token is.
+        </li>
+        <li>
+          The cap itself, the widest a title may be right now: <code>--_menu-title-max</code>, written by the menu on
+          its own box, which its items inherit. Plumbing no page sets, so it takes that shape, not a public token's
+          alias (spell-ui's rule, epic <code>wwod-spell-ui</code> Q13).
+        </li>
+        <li>
+          <code>:state(icons-only)</code> on the menu while the titles are gone, so a page can style the icon-only row
+          (the docs make each button 34px square).
+        </li>
+        <li>
+          On <code>&lt;ui-item&gt;</code>: a <code>title</code> part (its title box) and a <code>badge</code> slot and
+          part, for counts that must stay when the title is cut or gone. Spanish <code>titulo</code> and
+          <code>insignia</code>, both already in the shared words. (Open question 2.)
+        </li>
+        <li>
+          Checked against ui-gaps' renames: <code>fit</code> clashes with nothing (<code>fitted</code> became
+          <code>padding</code>), names one concept, and takes words as values, as <code>padding</code>,
+          <code>align</code> and <code>wrap</code> do; <code>badge</code> is the word ui-gaps chose for a count. The
+          member-clash test covers the component's own members.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>How the item shows its title.</b> While its menu fits titles (the menu says so in the item context it already
+      hands every item), <code>&lt;ui-item&gt;</code> wraps its default slot in
+      <code>&lt;span class="title" part="title"&gt;</code>:
+      <ul>
+        <li>one line, cut with "…" at <code>--_menu-title-max</code></li>
+        <li>
+          icons only: the box is squeezed to nothing and clipped, not removed. So its text still names the item for a
+          screen reader, and its natural width can still be measured without showing it again (no flash). Its gap after
+          the icon goes too.
+        </li>
+        <li>
+          icons only: the item's title is also its box's tooltip (<code>title</code>): its <code>label</code>, else its
+          text. A <code>title</code> or <code>aria-label</code> the page wrote wins.
+        </li>
+        <li>
+          a menu without <code>fit</code> draws no title box, so a vertical menu's sub-menu or an input inside an item
+          is never clipped
+        </li>
+        <li>
+          <code>&lt;ui-action&gt;</code>'s own title box (it already has a <code>title</code> part) becomes the item's,
+          one drawing for both
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Where the code lives:</b> one helper class, <code>TitleFit</code>, in
+      <a href="/spell-ui/src/components/ui-menu/" target="src-spell-ui-src-components-ui-menu"
+        ><code>ui-menu/TitleFit.ts</code></a
+      >, beside <code>SegmentedThumb</code> and shaped like it:
+      <ul>
+        <li>
+          the pure maths, moved from the docs runtime as statics: <code>TitleFit.cap(widths, room)</code> (was
+          <code>titleCap()</code>) and <code>TitleFit.fit(widths, room, min)</code> (was <code>titleFit()</code>, the
+          minimum now a parameter): <code>"whole"</code>, a width, or <code>"icons"</code>
+        </li>
+        <li>
+          <code>start()</code> measures the menu's box: its width, less its padding and gaps, less every other thing in
+          the row (a button, the bullhorn), less each item's icon, badge and padding; what's left is the titles' room
+        </li>
+        <li>
+          it refits when any of those change size (a ResizeObserver on the box, each item's box and each other slotted
+          element), when the slot's children change, and when the fonts load; it writes only when the answer changed, so
+          it can't loop
+        </li>
+        <li>
+          each title's spacing is counted whether it shows or not, so the answer is the same from either side: a width
+          between "icons" and "titles" never flips back and forth
+        </li>
+        <li>the minimum is read as a length (px, or em of the menu's font size)</li>
+        <li>
+          <code>UIMenu</code> runs it as it runs the thumb: <code>@E.onChange("isReady", "fit")</code> starts it on the
+          top menu, its cleanup stops it; the answer is an <code>@E.state</code> member, and
+          <code>@E.cssState("icons-only")</code> follows it. Never on a server: the static render draws the titles
+          whole.
+        </li>
+        <li>
+          the lint guard: a raw <code>ResizeObserver</code> is allowed in component files (the lint patterns test lists
+          it as valid; the toolbar, the button group and the thumb use one), so no disable comment
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Segmented menus keep scrolling:</b> a <code>segmented</code> menu ignores <code>fit</code>, with a development
+      warning; a single choice whose labels vanish is a different control. The docs runtime doesn't ask for it there
+      anyway. (Open question 3.)
+    </li>
+    <li>
+      <b>Items with no icon:</b> they can't go to icons only, so a row holding one never does; it caps down to the
+      minimum and then overflows (a toolbar scrolls), with a development warning naming the item. Every docs toolbar
+      item has a mark already. (Open question 4.)
+    </li>
+    <li>
+      <b>Moving the docs runtime onto it:</b>
+      <ul>
+        <li>
+          <code>toolbarMenu()</code> writes <code>fit="titles"</code> on a titled toolbar that isn't segmented (today's
+          <code>fitsTitles()</code>)
+        </li>
+        <li>
+          <code>toolbarItem()</code>: the title straight in the item (no <code>span.spell-toolbar-label</code>), its
+          access letter's <code>&lt;u&gt;</code> inside it as now; the badges in <code>slot="badge"</code>
+        </li>
+        <li>
+          deleted: <code>fitTitles()</code>, <code>fitsTitles()</code>, <code>titleFit()</code>,
+          <code>titleCap()</code>, <code>keepFitted()</code>, <code>MIN_TITLE_PX</code>, <code>TITLE_MAX</code>, the
+          <code>fitToolbar</code> option through <code>wireComments()</code> and the comments, and both
+          <code>keepFitted()</code> calls (the page runtime's and Epic UI's band); the menu watches its own row now
+        </li>
+        <li>
+          spell-toolbar.css: <code>.spell-toolbar-icons</code> becomes <code>:state(icons-only)</code> (the square
+          buttons, the letter marks shown only then); the <code>.spell-toolbar-label</code> and
+          <code>--spell-toolbar-title-max</code> rules go
+        </li>
+        <li>
+          the two bundles rebuilt (<code>bundle-spell-ui.js</code>: <code>spell-ui.js</code>,
+          <code>spell-comments.js</code>); <code>titleCap.test.ts</code> deleted, its cases moved
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Tests and docs:</b>
+      <ul>
+        <li>
+          <code>TitleFit.cap()</code> / <code>TitleFit.fit()</code>: the old cases, plus a minimum other than 50 and the
+          no-flip width
+        </li>
+        <li>
+          browser tests for <code>&lt;ui-menu fit&gt;</code> and <code>&lt;ui-toolbar fit&gt;</code> at three widths
+          (whole, cut, icons only): the cap, <code>:state(icons-only)</code>, the tooltip, the accessible name (axe
+          too); a resize and an added button refit; a segmented menu still scrolls; a toolbar too wide even as icons
+          shows ‹ ›; no <code>fit</code>, no title box; the static render draws the titles whole; the Spanish tag fits
+          the same
+        </li>
+        <li>
+          a Fitting titles example in each family's elements examples (three rows at fixed widths), so the visual tests
+          take it; baselines updated in this change, after looking at every diff
+        </li>
+        <li>
+          both components pages: a "Fitting titles" example in a box you can drag narrower, its usage and accessibility
+          lines; <code>yarn site:build</code> and <code>site:check</code> on both
+        </li>
+        <li>
+          Spell UI's notes (grammar's Menus, the menu's token table, status) and spell-epic's <code>src/AGENTS.md</code>
+          (the toolbar's fitting is now the menu's)
+        </li>
+        <li>
+          then <code>yarn review</code> in spell-ui and spell-epic, and check-spell on a guide, a details page and an
+          Epic UI page at 1200px, 400px and phone width
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Estimate:</b> 8-12h. Spell UI's part (API, helper, item, tests, pages, baselines) about 6-9h; the docs
+      runtime's move and its checks 2-3h.
+    </li>
+    <li>
+      <b>Open questions,</b> each with what I'd do:
+      <ol>
+        <li>
+          The attribute's name: <code>fit="titles"</code> (recommended: a short concept word, room for other fits
+          later), or <code>overflow="shrink"</code>, or a bare switch <code>fit-titles</code>?
+        </li>
+        <li>
+          How the item's title is cut: a <code>title</code> part around its default slot, and counts in a new
+          <code>badge</code> slot (recommended: plain <code>&lt;ui-item&gt;Questions&lt;/ui-item&gt;</code> keeps
+          working), or a <code>title</code> slot pages must fill?
+        </li>
+        <li>A segmented menu with <code>fit</code>: ignored with a warning (recommended), or fitted like any other?</li>
+        <li>
+          A row with an item that has no icon: never icons only, with a warning (recommended); or that item shows its
+          title's first letter as its icon, as the docs' letter marks do?
+        </li>
+        <li>
+          Icons only: just <code>:state(icons-only)</code> (recommended), or also Fomantic's <code>icon</code> menu
+          class word, which re-pads and centres every item?
+        </li>
+        <li>
+          Should <code>&lt;ui-toolbar&gt;</code> fit by default? Recommended no: a toolbar scrolls by default, as its
+          page says; <code>fit="titles"</code> opts in.
+        </li>
+      </ol>
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><p>
+    spell-ui:
+    <a href="/spell-ui/src/components/ui-menu/" target="src-spell-ui-src-components-ui-menu">ui-menu</a> (UIMenu.tsx, a
+    new TitleFit.ts, UIMenu.css, UIMenu.en.ts, UIMenu.es.ts, a new example),
+    <a href="/spell-ui/src/components/ui-toolbar/" target="src-spell-ui-src-components-ui-toolbar">ui-toolbar</a> (its
+    CSS, a new example),
+    <a href="/spell-ui/src/components/ui-item/" target="src-spell-ui-src-components-ui-item">ui-item</a> (UIItem.tsx,
+    UIItem.css, UIItem.en.ts, UIItem.es.ts),
+    <a href="/spell-ui/src/components/ui-action/" target="src-spell-ui-src-components-ui-action">ui-action</a> (its
+    title box becomes the item's),
+    <a href="/spell-ui/src/components/components.types.ts" target="src-spell-ui-src-components-components-types-ts"
+      ><code>components.types.ts</code></a
+    >
+    (ItemContext), the docs pages
+    <a href="/spell-ui/docs/ui-menu.html" target="src-spell-ui-docs-ui-menu-html">ui-menu.html</a> and
+    <a href="/spell-ui/docs/ui-toolbar.html" target="src-spell-ui-docs-ui-toolbar-html">ui-toolbar.html</a>,
+    <a href="/components/ui/__data/" target="src-spell-ui-docs-data"><code>docs/__data/</code></a> and
+    <code>spell-ui/jsx</code> (regenerated), the tests (ui-menu, ui-toolbar, ui-item, a new TitleFit test), the visual
+    baselines.
+  </p>
+  <p>
+    spell-epic:
+    <a
+      href="/spell-epic/src/tools/_assets/spell-doc-toolbar.js"
+      target="src-spell-epic-src-tools-assets-spell-doc-toolbar-js"
+      >spell-doc-toolbar.js</a
+    >, spell-toolbar.css, spell-doc-runtime.js, spell-comments.entry.js, spell-doc-comments.js, the two bundles
+    (rebuilt), <code>tests/tools/titleCap.test.ts</code> (deleted), spell-epic's <code>src/AGENTS.md</code>.
+  </p>
+  <p>Docs: Spell UI's notes (grammar's Menus, theming's tokens, status), its AGENTS.md if a rule moves.</p></epic-field
+><epic-field name="verify"
+  ><p>
+    On the ui-menu and ui-toolbar components pages, drag the Fitting titles example narrower: titles whole, then the
+    longest cut with "…", then icons only, each title its tooltip; a toolbar then scrolls with ‹ ›. A guide, a details
+    page and an Epic UI page's band at 1200px, the side bar's width and phone width fit as today (check-spell
+    screenshots); Spell UI's components pages' segmented toolbar still scrolls, every title whole. The Spanish
+    <code>&lt;es-menu ajuste="títulos"&gt;</code> fits the same.
+  </p></epic-field
+>

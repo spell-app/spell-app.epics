@@ -3,7 +3,9 @@ id: r34
 epic: epic-engine
 from: 🚧 debut (ad62dff0)
 at: 2026-10-25T20:51-04:00
-status: new
+status: filed
+filed: P47 · Move Into Spell UI
+phase: p-move-into-spell-ui
 ---
 
 ## Owen's words
