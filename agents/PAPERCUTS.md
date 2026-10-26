@@ -1756,6 +1756,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   <worktree>/spell-parser`, then `epic worktree merge-main` and `yarn install` again.  Still to do:  epic-engine,
   intellisense, outline-spell, readme, solid-17 and spanish keep a `spell-lang/` folder (`git -C spell-parser worktree
   list`);  better, `merge-main` (or a checkout patch) moves it. · epics
+- 2026-10-25 · `spell server start all` from a worktree (elemental-spell) started servers whose app API answered
+  every `/api/projects/...` with 500 `handler is not a function`:  the log's stack mixed the MAIN checkout's
+  `src/server/Router.ts` with the worktree's `bodies.ts` and route modules.  `spell` on the PATH is the main
+  checkout's `bin/spell.mjs`, so the page server ran main's server code over the worktree's routes. · Stop
+  them and start with the worktree's own CLI, `node bin/spell.mjs server start all`, from the worktree's root:
+  its own ports, and the API answers. · server
 
 ## brand
 
