@@ -58,6 +58,198 @@
       so they write their themes as data from the start.
     </li>
   </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>When</b>: right after <a href="#p-new-themes">P17 · One Theme Set</a>, before
+      <a href="#p-spell-facelift">P19 · Spell Facelift</a> and <a href="#p-four-new-themes">P20 · Four New Themes</a>
+      (Owen: "Do this before P18", Spell Facelift's number then), so they write their themes as data from the start.
+    </li>
+    <li>
+      <b>The file</b>: <code>&lt;name&gt;.theme.json5</code>, beside its sheet in Spell UI's themes folder.
+      <ul>
+        <li>
+          <code>extends</code>: the theme it builds on (Fruity: <code>"glass"</code>); <code>palette</code>: the hues it
+          borrows (<code>"apple"</code>); <code>rules</code>: its rules sheets (below); <code>title</code>, only for a
+          theme a person names (a saved theme, <a href="#p-saving-themes">P23</a>): Spell's take their file's name.
+        </li>
+        <li>
+          Its values in NESTED groups (Owen: "grouping should be nested!"): typography &gt; size, family &gt; body, heading;
+          radii &gt; s, m, l; surfaces &gt; page, panel, inset, bar; text &gt; body, strong, muted, light; borders;
+          brand &gt; primary &gt; color, on ..., links, focus; semantic &gt; positive ...; shadows; palette &gt; red
+          &gt; base, on, text ...
+        </li>
+        <li>
+          Each leaf one value for both schemes, or <code>{ "light": ..., "dark": ... }</code>, written out as
+          <code>light-dark()</code>. A value is CSS text; <code>"{surfaces.panel}"</code> points at another leaf, the
+          way the design tokens file already writes one.
+        </li>
+        <li>
+          Two open groups: <code>components</code>, a family's own tokens under its name (menu &gt;
+          segmented-active-background), and <code>own</code>, the theme's private values (<code>glass-blur</code>,
+          <code>glass-wallpaper</code>).
+        </li>
+      </ul>
+      <epic-code title="Merlot&#39;s file, shortened · 26 lines" language="text">
+        <pre>
+{
+  "$schema": "./theme.schema.json",
+  // Merlot:  a code studio in wine reds, flat panels a step off the page
+  "palette": "apple",
+  "typography": { "size": "15px" },
+  "radii": { "s": "6px", "m": "8px", "l": "12px" },
+  "surfaces": {
+    "page": { "light": "#e8dade", "dark": "#1a0c13" },
+    "panel": { "light": "#fefcfd", "dark": "#3d1f2d" },
+    "inset": { "light": "#f4ecef", "dark": "#2b1520" },
+    "bar": "{surfaces.panel}"
+  },
+  "text": {
+    "body": { "light": "#3a1824", "dark": "#f3e3e9" },
+    "muted": { "light": "#6d4555", "dark": "#cfacb9" }
+  },
+  "brand": {
+    "primary": {
+      "color": { "light": "#8c1d40", "dark": "#f4a65f" },
+      "on": { "light": "#ffffff", "dark": "#1a0c13" }
+    }
+  },
+  "components": {
+    "menu": { "segmented-active-background": "{brand.primary.color}" }
+  }
+}</pre>
+      </epic-code>
+    </li>
+    <li>
+      <b>The tree</b>, written ONCE, as data: <code>themeTree</code> in
+      <a href="/spell-ui/src/styles/styles.en.ts" target="src-spell-ui-src-styles-styles-en-ts"
+        ><code title="spell-ui/src/styles/styles.en.ts">styles.en.ts</code></a
+      >, beside the foundation's other scales.
+      <ul>
+        <li>Each leaf names the token it sets: surfaces &gt; page is <code>--ui-background</code>.</li>
+        <li>
+          The generator, the schema and the Full Theme Builder (<a href="#p-full-theme-builder">P22</a>, its folds) all
+          read it: a token added to the tree shows up in all three.
+        </li>
+        <li>(coherence) Its top groups are the theming page&#39;s token tables&#39; groups, by the same names (typography, radii, text, surfaces, brand, semantic ...): one list, the tables read it too.</li>
+      </ul>
+    </li>
+    <li>
+      <b>What stays CSS</b>: rules sheets in <code>themes/rules/</code>, a folder, so no theme menu lists them (as
+      <code>palettes/</code> today).
+      <ul>
+        <li><code>glass.css</code>: the blur behind every glass surface, the inverted segment, the flyout.</li>
+        <li>
+          <a href="/spell-ui/src/styles/themes/spell.css" target="src-spell-ui-src-styles-themes-spell-css"
+            ><code>spell.css</code></a
+          >: its fonts, its headings, the brand's own components, the <code>accent</code> colour's class.
+        </li>
+        <li>
+          <code>modern.css</code> (coherence): the rules Glass and Spell each copy today, about 70 lines: anchors below
+          the sticky header, tabular numbers, link underlines, the image outline, the button press, no animation while
+          the scheme switches. One copy, which the four new themes name too.
+        </li>
+        <li>A page setting that isn't a token (font smoothing) goes there too.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The writer</b>: <code>ThemeFile</code> (new), beside
+      <a href="/spell-ui/src/styles/StyleGenerator.ts" target="src-spell-ui-src-styles-stylegenerator-ts"
+        ><code title="spell-ui/src/styles/StyleGenerator.ts">StyleGenerator</code></a
+      >.
+      <ul>
+        <li>
+          It merges a theme's palette and what it extends, checks every name against the tree (a wrong one fails, naming
+          the group it belongs in), and writes the sheet: the values on <code>:root</code> in
+          <code>@layer ui.theme</code>, then its rules sheets.
+        </li>
+        <li>Fruity's sheet still imports Glass's, as today: no copy of the glass.</li>
+        <li>Pure, text in and text out, as StyleGenerator is: it runs in node and in the browser.</li>
+        <li>
+          <code>yarn gen:styles</code> writes the theme sheets too: one command for every generated sheet, no new
+          script. Each sheet's first line says it's generated, from which file.
+        </li>
+        <li>
+          The test that keeps the generated sheets current covers them; spell-ui's merge list marks them generated, so a
+          merge of <code>main</code> makes them again.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>At build time, not in the page</b> (recommended):
+      <ul>
+        <li>
+          Nothing that loads a theme changes: <code>UI.themes</code> still reads the folder's CSS, so no JSON5 reader
+          and no writer ship in a page, and the contrast test, the design tokens tool and the editor read the same
+          sheets.
+        </li>
+        <li>A review sees the CSS a change makes.</li>
+        <li>
+          In the page only where it's needed: the builder (<a href="#p-full-theme-builder">P22</a>) and saved themes (<a
+            href="#p-saving-themes"
+            >P23</a
+          >) run the same <code>ThemeFile</code> for the theme being made, reading a theme's file as text with the kit's
+          <code>parseJSON5()</code>, loaded only there.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Converted</b>: Spell, Glass, Fruity, Merlot and Apple's palette.
+      <ul>
+        <li>
+          A one-off script makes the first pass from today's sheets (each value into its leaf,
+          <code>light-dark(a, b)</code> into a pair); then by hand: the groups checked, the sheets' comments kept as the
+          file's comments, the rules moved.
+        </li>
+        <li>
+          Unchanged: every value, light and dark, the same as before, checked against a list taken before the change;
+          and the designer's shots in the three places match.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The type and the schema</b>
+      <ul>
+        <li>
+          <code>ThemeData</code>, in
+          <a href="/spell-ui/src/styles/styles.types.ts" target="src-spell-ui-src-styles-styles-types-ts"
+            ><code title="spell-ui/src/styles/styles.types.ts">styles.types.ts</code></a
+          >, worked out from the tree, as <code>HueName</code> is from the hues: no type to keep in step.
+        </li>
+        <li>
+          <code>theme.schema.json</code>, beside the themes, written by <code>yarn gen:styles</code> from the tree: VS
+          Code completes and checks a theme file's names. Each file names it (<code>"$schema"</code>), so it works in
+          any window.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Docs</b>: the theming notes, "A theme file": its fields, the tree, the rules sheets,
+      <code>yarn gen:styles</code>; the <code>Themes</code> class's docstring; a catalog entry, "A theme's values".
+    </li>
+    <li>
+      <b>Checked</b>: a test of <code>ThemeFile</code> (a pair, a pointer, a name not in the tree, an unknown theme it
+      extends); the values unchanged; the generated sheets current; the themes and contrast tests as they are; the
+      designer's shots; <code>yarn review</code> in spell-ui and spell-app.
+    </li>
+    <li>
+      <b>Left out</b>
+      <ul>
+        <li>The theme editor: it writes its sheet as today, until the builder moves onto theme data (P22).</li>
+        <li>The editor's chrome sheet (<code>EditorTheme.css</code>): the editor's, not a theme's.</li>
+        <li>
+          Classic, the base under every theme, and the dark sheet: they stay CSS (classic could follow later, if the
+          builder wants it).
+        </li>
+        <li>Fomantic's archived themes.</li>
+        <li>
+          A TypeScript file per theme, as the foundation's scales are: the route that saves a theme into Spell UI (P23)
+          would be writing code; it writes JSON5 with its comments kept, and VS Code checks JSON5 against a schema as
+          well.
+        </li>
+      </ul>
+    </li>
+  </ol></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
