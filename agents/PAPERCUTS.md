@@ -1856,3 +1856,8 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   is still running (`epic agents` says none too), so it never waits for redirects. · Ignored it. · epics (debut)
 
 - 2026-10-23 · spell-app's `tests/app/build.test.ts` ("production build > keeps rule class names ...") times out at 60 s, alone and in the full run, on main and in the `spanish` worktree · not fixed:  re-run, or raise its timeout · app
+
+- 2026-10-25 · `spell app serve --headless` run from a WORKTREE took over the shared page server:  the main checkout's
+  4747 server and its :3000 editor stopped, and the worktree's served in their place, for every session.  Fix:
+  `spell server stop` in the worktree, `spell server start` at `~/www/spell`.  It should refuse, or serve on its own
+  ports, from a worktree.  (epic elemental-spell;  kit `spell app serve` / spaces' `EditorServer`)
