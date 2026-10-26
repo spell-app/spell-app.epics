@@ -483,9 +483,10 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 ### Our own theme:  `spell`
 
 [`spell.css`](../src/styles/themes/spell.css) is the Spell brand as a theme ([the brand's design system](/guides/spell.epics/brand/spell-design-system/)).
-- It's the DEFAULT look of Spell UI's docs site (`ThemePreference`), until the viewer picks another.
-- The docs pages wore it too (`spell-ui.entry.js`),
-  until epic `design-system` moved them to `spell-brand` (below).
+- It's the DEFAULT look of Spell UI's docs site and the guides (`ThemePreference`), until the viewer picks another.
+- The ONE Spell theme (epic `debut` P17, J88):  the Spell Brand theme (`spell-brand.css`) folded into it.
+  - A theme remembered as `spell-brand` comes back as `spell` (`Themes.RENAMED`).
+  - Its facelift is epic `debut` P18.
 - Listed in `UI.themes.own`, not `names`:  it's no Fomantic port.
   - Applied exactly like one, on top of `classic`.
   - So it restates every classic token the brand replaces:
@@ -529,15 +530,11 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
     - A transition that must run in that very frame (`<ui-docs-themes>`' sun / moon swap)
       declares itself `!important` in its component layer:  an earlier layer's `!important` wins.
 
-### Our own theme:  `spell-brand`
+### The brand's roles, in `spell`
 
-[`spell-brand.css`](../src/styles/themes/spell-brand.css) is `spell` as Claude Design's brand pages draw it, converging on them
-(epic `design-system`, [its epic page](/epics/design-system/design-system.plan.html)).
-- Started 2026-10-04 as a FULL COPY of `spell.css`, so the two may drift.
-  - Whether it replaces `spell` is a later call.
-- Also in `UI.themes.own`, and in the docs' theme picker as "Spell Brand", second.
-- The docs pages wear it:  [their bundle](/spell-epic/src/tools/_assets/spell-ui.js) applies it (epic `design-system`, P9).
-- It adds the brand's own semantic roles that no `--ui-*` token covers, as `--spell-*` `light-dark()` pairs:
+[`spell.css`](/spell-ui/src/styles/themes/spell.css) also holds what the Spell Brand theme added, as Claude Design's brand pages draw it
+(epic `design-system`, [its epic page](/epics/design-system/design-system.plan.html);  folded in by epic `debut` P17).
+- The brand's own semantic roles that no `--ui-*` token covers, as `--spell-*` `light-dark()` pairs ("Brand roles"):
   - surfaces:  `--spell-surface-tint`, `-warm`, `-selected`, `-code`, `-inverse`
   - text
   - accent:  `--spell-accent`, `-soft`, `-ring`
@@ -547,7 +544,32 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
   - type roles:  `--spell-type-eyebrow`, `-lede`, `-spell` ...
   - the Polished Ivory ladder
   - They're read by `spell-brand`'s `<brand-*>` elements and `.spell.html` pages, never by `<ui-*>` elements.
-- The brand pages load it through `spell-brand`'s bundle (`brand-ui.js`, in its `_assets/ui/`).
+- The brand's own components:  checkbox, slider, tooltips, fold chevron, menus, segmented controls, Markdown;
+  and the `accent` hue.
+- The brand pages apply it through `spell-brand`'s bundle (`brand-ui.js`, in its `_assets/ui/`).
+
+### Our own themes:  `glass` and `fruity`, a theme on a theme
+
+- [`glass.css`](/spell-ui/src/styles/themes/glass.css):  macOS's look today, translucent GLASS surfaces
+  (`backdrop-filter`) on a SOLID page, one colour in light and one in dark.
+- [`fruity.css`](/spell-ui/src/styles/themes/fruity.css):  Glass with a pastel wallpaper, three colour washes.
+  - Its sheet imports Glass's (`@import "./glass.css"`), then sets only `--glass-wallpaper`, the slot Glass's page
+    rule draws.
+  - Vite inlines the import, so Fruity is still ONE sheet to `UI.themes`;  a fix to the glass is made once.
+  - Owen (2026-10-25, C1):  "glass is the base, fruity the exceptions".
+- The theme editor knows both as GLASS themes (`GLASS_THEMES`, its types):  its Glass choice changes their
+  `--glass-surface*`;  its Background tints Fruity's wallpaper too (`WALLPAPER_THEME`).
+- Their hues are Apple's system colours, a palette sheet both import from
+  [`palettes/`](/spell-ui/src/styles/themes/palettes/apple.css):  a folder `UI.themes` doesn't list
+  (it globs the themes folder's top level only).
+
+### Our own theme:  `merlot`
+
+[`merlot.css`](/spell-ui/src/styles/themes/merlot.css):  a code studio in wine reds, flat panels joined by hairlines.
+- Was `studio` (Shades of Purple), moved toward maroon (epic `debut` P17);  a remembered `studio` comes back as `merlot`.
+- The page and its panels a visible step apart, in both schemes:  1.32:1 light, 1.30:1 dark (Studio's light was 1.13:1).
+- Dark:  a deep wine page, an amber primary with wine ink on it;  light:  a pale rose-grey page, a maroon primary.
+- Its hues:  Apple's palette, as Glass's (`palettes/apple.css`):  classic's fail AA on its page.
 
 ### Fomantic themes
 
@@ -574,7 +596,7 @@ import { UI } from "@spell-app/ui/core" // `spell-ui/core` in the package
 
 const { themes } = await UI.load() // the runtime:  `UI.themes` exists once it has loaded
 themes.names // ["fomantic-classic", "github", "material" ...]:  the Fomantic themes, A-Z
-themes.own // ["spell", "spell-brand"]:  our own themes
+themes.own // ["spell", "glass", "fruity", "merlot"]:  our own themes, the one set every place offers
 await themes.apply("github") // classic + github, on the page and in every shadow root
 await themes.apply("spell") // classic + spell, the same way
 await themes.apply("classic") // classic alone
@@ -592,12 +614,12 @@ await themes.apply(undefined) // our own look
   - None is in `spell-ui/styles`, which holds no code.
     Code there split Rolldown's helpers into an extra chunk every page fetched (epic `wwod-spell-ui`, I13).
 - `UI.themes.sheets`:  every sheet, `classic` and `dark` included.
-- `UI.themes.names`:  the Fomantic themes, i.e. without `classic`, `dark` and `own` (`spell`, `spell-brand`, above).
+- `UI.themes.names`:  the Fomantic themes, i.e. without `classic`, `dark` and `own` (`spell`, `glass`, `fruity`, `merlot`, above).
   - `classic`:  the base, applied with every Fomantic theme, or alone with `apply("classic")`.
   - `dark`:  a colour SCHEME, not a look.
     - Switch it with `color-scheme`, `ui-dark` or `<ui-root theme="dark">`, on top of any theme.
     - `apply("dark")` throws.
-- A theme picker offers, in order:  `own` (`spell`, `spell-brand`), "plain" (`undefined`), `classic`, then `names`.
+- A theme picker offers, in order:  `own` (`spell`, `glass`, `fruity`, `merlot`), "plain" (`undefined`), `classic`, then `names`.
   - And a separate light / dark switch.
 - The docs site's picker is `<ui-docs-themes>` (in [the docs components](/guides/ui/src/docs-components/)):
   - a sun / moon flip, and a palette overlay with the list and "Match system"
