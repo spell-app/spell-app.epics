@@ -19,7 +19,8 @@ How the CSS foundation fits together:  tokens, remaps, layers, the app styleshee
 | `native.css` | native markup slotted into components, the CSS-only tooltip, `ui-native` | `ui.components` |
 | `themes/classic.css` | Fomantic's original look | `ui.theme` |
 | `themes/dark.css` | force the dark scheme page-wide | `ui.theme` |
-| `themes/<name>.css` | a Fomantic theme (`github`, `material` ...), on top of `classic`;  see "Themes" | `ui.theme` |
+| `themes/<name>.css` | one of Spell's own themes (`spell`, `glass`, `fruity`, `merlot`), on top of `classic`;  see "Themes" | `ui.theme` |
+| `themes/archive/` | Fomantic's 23 themes, archived:  in no bundle, menu or test;  see "Fomantic themes" | -- |
 | `src/runtime/Themes.ts` | `UI.themes`:  loads and applies the theme sheets (a runtime service, not in `spell-ui/styles`) | -- |
 | `media.css` | `@custom-media --ui-mobile` ... (build-time only) | -- |
 | `ui.css` | one `@import` entry of the page set, for pages without the runtime | -- |
@@ -487,7 +488,7 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 - The ONE Spell theme (epic `debut` P17, J88):  the Spell Brand theme (`spell-brand.css`) folded into it.
   - A theme remembered as `spell-brand` comes back as `spell` (`Themes.RENAMED`).
   - Its facelift is epic `debut` P18.
-- Listed in `UI.themes.own`, not `names`:  it's no Fomantic port.
+- Listed in `UI.themes.own`:  it's no Fomantic port.
   - Applied exactly like one, on top of `classic`.
   - So it restates every classic token the brand replaces:
     type, the size ladder, radii, ink, borders, shadows, the palette, message colours, links, focus.
@@ -527,7 +528,7 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
   - `scroll-margin-top` under the site header
   - no transitions during a scheme switch:
     `html.ui-scheme-switching`, set for one frame by `ThemePreference.applyScheme()`
-    - A transition that must run in that very frame (`<ui-docs-themes>`' sun / moon swap)
+    - A transition that must run in that very frame (`<ui-theme-menu>`'s sun / moon swap)
       declares itself `!important` in its component layer:  an earlier layer's `!important` wins.
 
 ### The brand's roles, in `spell`
@@ -573,11 +574,15 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 
 ### Fomantic themes
 
-Every other sheet in [the themes folder](/guides/ui/src/styles/themes/) is a port of one of Fomantic's themes
-(in Fomantic, its `<name>/` folder of `src/themes/`).
+Fomantic's themes were ported, one sheet each, and are ARCHIVED (epic `debut` P17, Q22):
+[the archive folder](/spell-ui/src/styles/themes/archive/), with the four folders of fonts they brought.
+- Kept only to copy from:  in no theme menu, no bundle and no test.
+  - The runtime globs only the themes folder's TOP level (below), so nothing in `archive/` is built.
+  - Their tests went with them, and `UI.themes.names`, the list of them.
 - `github.css`, `material.css`, `fomantic-classic.css` (Fomantic's own `classic` theme;  ours keeps the name) ...
 - Fomantic's themes are DELTAS on Fomantic's default look, and our equivalent of that look is `classic.css`.
   - So a Fomantic theme is applied ON TOP of `classic`:  both sheets, `classic` first, both `@layer ui.theme`.
+  - Spell's own themes are applied the same way.
   - The theme wins ties, by order.
   - A theme sheet never repeats classic's tokens.
 - A theme sheet has two halves, both in `@layer ui.theme`:
@@ -595,9 +600,8 @@ Every other sheet in [the themes folder](/guides/ui/src/styles/themes/) is a por
 import { UI } from "@spell-app/ui/core" // `spell-ui/core` in the package
 
 const { themes } = await UI.load() // the runtime:  `UI.themes` exists once it has loaded
-themes.names // ["fomantic-classic", "github", "material" ...]:  the Fomantic themes, A-Z
 themes.own // ["spell", "glass", "fruity", "merlot"]:  our own themes, the one set every place offers
-await themes.apply("github") // classic + github, on the page and in every shadow root
+await themes.apply("merlot") // classic + merlot, on the page and in every shadow root
 await themes.apply("spell") // classic + spell, the same way
 await themes.apply("classic") // classic alone
 await themes.apply(undefined) // our own look
@@ -614,22 +618,23 @@ await themes.apply(undefined) // our own look
   - None is in `spell-ui/styles`, which holds no code.
     Code there split Rolldown's helpers into an extra chunk every page fetched (epic `wwod-spell-ui`, I13).
 - `UI.themes.sheets`:  every sheet, `classic` and `dark` included.
-- `UI.themes.names`:  the Fomantic themes, i.e. without `classic`, `dark` and `own` (`spell`, `glass`, `fruity`, `merlot`, above).
-  - `classic`:  the base, applied with every Fomantic theme, or alone with `apply("classic")`.
+- `UI.themes.own`:  the themes a menu lists, `spell`, `glass`, `fruity`, `merlot` (above);  nothing else is one.
+  - `classic`:  the base, applied with every theme, or alone with `apply("classic")`;  listed nowhere.
   - `dark`:  a colour SCHEME, not a look.
     - Switch it with `color-scheme`, `ui-dark` or `<ui-root theme="dark">`, on top of any theme.
     - `apply("dark")` throws.
-- A theme picker offers, in order:  `own` (`spell`, `glass`, `fruity`, `merlot`), "plain" (`undefined`), `classic`, then `names`.
-  - And a separate light / dark switch.
-- The docs site's picker is `<ui-docs-themes>` (in [the docs components](/guides/ui/src/docs-components/)):
-  - a sun / moon flip, and a palette overlay with the list and "Match system"
+- The theme menu, `<ui-theme-menu>` (Spell UI's [theme menu family](/spell-ui/src/components/ui-theme-menu/)),
+  lists `own`, each with its one-line description;  no Plain, no Classic (epic `debut` P17).
+  - A palette button, its panel Light | Dark | Auto and the themes;  or a theme dropdown, or a sun / moon alone.
   - It remembers both per viewer through `ThemePreference`:
-    the scheme under the one key every doc site shares.
-  - `for="ui-button"` lists the themes touching one family, from the site data's `themes`.
-    [The theme families tool](/spell-ui/src/tools/ThemeFamilies.ts) reads each sheet's class grammar and tokens at build time.
+    the scheme under the one key every Spell site shares, the theme under each place's own key (`site()`).
+  - A theme remembered under an old name comes back as its new one (`Themes.RENAMED`);  any other gone name, the
+    place's default.
+  - A theme's title is one function, `UIT.ThemeNames.titleOf()`, the theme editor's Start from's too.
+  - It was the docs site's own widget, `<ui-docs-themes>`, until P17;  `spell ui rename` rewrites the old tag.
 - `apply()` registers two `UI.styles` names (`UI.themes.slots`):
   - `classic`:  the base slot
-  - `theme`:  the current Fomantic theme;  switching replaces its text in place
+  - `theme`:  the current theme;  switching replaces its text in place
   - Concurrent calls:  the last one wins.
   - `UI.themes.current` is the last name applied.
 - Under it, `UI.styles.register(name, css, { page: true, shadow: true })`:
