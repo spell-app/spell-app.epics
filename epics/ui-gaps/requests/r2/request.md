@@ -3,7 +3,9 @@ id: r2
 epic: ui-gaps
 from: epic-engine
 at: 2026-10-25T21:48-04:00
-status: new
+status: filed
+filed: P13 · Move Into Spell UI
+phase: p-move-into-spell-ui
 ---
 
 ## Owen's words
