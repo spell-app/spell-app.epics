@@ -596,6 +596,18 @@ knowingly kept:
 - **Pinned at** -- `src/components/ui-modal/DialogComponent.tsx` (class docs), `src/components/ui-flyout/UIFlyout.tsx`,
   `docs/grammar.md` "Flyouts".
 
+### UIThemeEditor.tsx is one 2,000-line component
+
+- **Cost** -- the theme editor's component holds the bar, the frames and their messages, the Basics, the token tree
+  and its marks in one file (~2,090 lines):  hard to read, and every change re-reads all of it.
+- **Cause** -- epic `debut` P24 merged the theme bench (1,333 lines) into the theme editor (631) in one phase;
+  only the token row moved out, as `<ui-theme-token>`.
+- **Fix** -- the frames and their dressing into a plain class of the family (`PagePreview`:  urls, `dress()`, `post()`,
+  looks, the loading order), and the Basics into an element of their own, as the token row is.
+- **Pinned at** -- `spell-ui/src/components/ui-theme-editor/UIThemeEditor.tsx`.
+
+---
+
 ## docs
 
 ### The page runtime and plan-doc.js drive two section markups

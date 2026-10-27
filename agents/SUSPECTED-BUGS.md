@@ -693,6 +693,11 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- Solitaire sometimes fails to compile in a framed editor (2026-10-27, epic `debut` P24):  in the theme editor's
+  preview, the DARK editor frame (the editor at `127.0.0.1`, while the light one loads at `localhost`) twice showed
+  `Match Don't understand "for each rank in card ranks"` and the other rules of Solitaire, no game drawn;  a rerun drew it.
+  Loaded alone, at either address, it compiled every time.
+  Suspect a race in the editor's start:  the grammar not in yet when Debug (the frame's full view) compiles.
 - A backtick in a project's `styles.css`, even in a comment, stops the program running in the editor
   (2026-10-26, epic `debut` I50):  the App pane stays empty, and the console says
   `SyntaxError: missing ) after argument list`, then `Example failed with error: ...`.
