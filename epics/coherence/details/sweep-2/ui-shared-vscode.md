@@ -25,7 +25,7 @@ By the coherence agent, 2026-10-26 (epic `coherence`, sweep 2:  the first sweep 
 
 ## 1. One table of the static render's families, one loader
 
-- **Kind:**  twice.  No open epic (epic `seo` P3 made both lists).
+- **Kind:**  twice.  No open epic (epic `seo` made both:  `StaticFamilies` in P2, `StaticCatalog` in P3-P4, 10-02).
 - **Where:**
   - `spell-ui/src/static/StaticCatalog.ssr.ts:2-94, 106-202`:  `StaticCatalog.classes`, every server-ready component
     class, by 93 imports and a 95-line list;  `spell ssr` defines them (`spell-ui/src/tools/StaticDocument.ts:146-151`)
