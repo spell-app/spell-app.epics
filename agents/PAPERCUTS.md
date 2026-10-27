@@ -1172,7 +1172,13 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   the running editor's page names its script `../src/app/index.tsx?t=<time>` once Vite has hot-reloaded an edit,
   and the test wants it to END with `/src/app/index...`.  Fix:  `spell server stop all`, then `spell server start`,
   and run it again.  (debut P10)
-
+- 2026-10-27 · `spell speedtest --against HEAD` refuses in the one-repo kit:  "HEAD has no src/spell:  --against needs
+  a spell-parser ref from after epic repo-split P14" -- it still looks for `src/spell` at the ref's root, not
+  `parser/src/spell`. · Ran `spell speedtest` in the worktree, then in the main checkout (same `parser/src` as HEAD),
+  and compared. · cli (elemental-spell P27)
+- 2026-10-27 · `yarn lsp:scopes --builtins`, run in a worktree, writes the worktree's absolute path into every
+  template's `uri` in `parser/src/core/core.scopes.js`, which is committed with the main checkout's. · Put the main
+  checkout's path back by hand (`sed`). · cli (elemental-spell P27)
 
 ## docs
 
