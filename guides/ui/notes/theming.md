@@ -489,7 +489,8 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 - It's the DEFAULT look of Spell UI's docs site and the guides (`ThemePreference`), until the viewer picks another.
 - The ONE Spell theme (epic `debut` P17, J88):  the Spell Brand theme (`spell-brand.css`) folded into it.
   - A theme remembered as `spell-brand` comes back as `spell` (`Themes.RENAMED`).
-  - Its facelift is epic `debut` P18.
+  - Its facelift, epic `debut` P19:  dark panels a clear step off the page (`violet-900` on `violet-950`), and its
+    text readable on every state of every colour, with no exceptions in the contrast test.
 - Listed in `UI.themes.own`:  it's no Fomantic port.
   - Applied exactly like one, on top of `classic`.
   - So it restates every classic token the brand replaces:
@@ -502,7 +503,7 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 | Spell Purple | `--ui-primary` (= `--ui-violet`), `-hover` / `-down` step the ladder | `violet-600` / lilac `violet-300` |
 | House of Owen grey-blue | `--ui-secondary` (= `--ui-grey`), borders, text roles | `brand-700` / `brand-400` |
 | Polished Ivory | `--ui-brown` (`-background`, `-text`) | `accent-600` / `accent-400` |
-| canvas, cards | `--ui-background`, `--ui-surface` | `brand-25`, white / `violet-950`, `violet-925` |
+| canvas, cards | `--ui-background`, `--ui-surface` | `brand-25`, white / `violet-950`, `violet-900` |
 | text, headers | `--ui-text-color`, `--ui-text-dark`, `--ui-text-muted` | `brand-900`, aubergine, `brand-700` / `brand-100`, `violet-25`, `brand-300` |
 | shadows `xs` ... `lg` | `--ui-shadow-subtle` / `-raised` / `-floating` / `-floating-hover` | grey-blue / near-black + lilac glow, one list each |
 | lavender | `--ui-highlight`, `--ui-info-*`, active menu items | `violet-150` / `violet-800` |
@@ -522,6 +523,10 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
   - pill buttons, labels and progress bars
   - 12px inputs;  16px cards, segments, messages, toasts;  22px modals
   - round checkboxes
+- Pressed and focused colours (the remap's `--ui-color-focus` / `-down`), its own where `colors.css`' one recipe
+  left text under 4.5:1:
+  - `secondary` darkens, as grey does (the recipe lightens it, as black)
+  - light orange, olive and info, and dark purple, which carry ink:  a gentler step (-0.06 focus, -0.07 down)
 - Beyond tokens:
   - a 3px focus ring
   - buttons that press to `scale: 0.97` (reduced motion:  none)
