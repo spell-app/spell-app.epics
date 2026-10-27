@@ -525,6 +525,24 @@ knowingly kept:
 
 ## ui
 
+### The docs pages' tabs panel is drawn twice:  the site's sticky one, and `docs-page.css`'s plain one
+
+- **Cost** -- the T-shaped panel round a page's tabs and its section tabs (Examples | Usage | API, then Owners |
+  Content) has two drawings:  spell-epic's `spell-toolbar.css` ("Under a page's tabs") draws the site's, which
+  sticks;  Spell UI's `docs-page.css` draws a plain one for other pages drawn like a component page (spell-app's
+  notebook, epic `elemental-spell` P18, J153).  A change to the panel's look must be made in both.  Their MEASURES
+  are one already (`--ui-docs-tabs-*`, which `site.css` reads).
+- **Cause** -- the site's panel is built by spell-epic's toolbar script (`<ui-sticky class="spell-site-toolbar">`)
+  and measured by `SiteSections` as it sticks;  the notebook's tabs are drawn inside a spell view's shadow root,
+  reached only through an exported part (`docs-tabs`), with nothing to stick.
+- **Fix** -- one Spell UI element for a page's tabs panel (its tabs, its section tabs, sticking or not), which the
+  site's layout and the notebook both draw;  then spell-toolbar.css's "Under a page's tabs" and the plain rules
+  in `docs-page.css` go.
+- **Pinned at** -- `spell-ui/src/docs-components/docs-page.css` (header), spell-epic's
+  `src/tools/_assets/spell-toolbar.css` ("UNDER A PAGE'S TABS").
+
+---
+
 ### Two reactive engines:  Spell UI's members and spell cells
 
 - **Cost**:  a derived value sees only its own side's members.  A Spell UI `@derived` getter reading a spell thing's
