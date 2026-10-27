@@ -1,21 +1,213 @@
 <!-- plan-doc part:  #t5's details in outline-spell.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<epic-field label="Step"
-  ><p>
-    Reload a VS Code window (the extension is already rebuilt from this branch). In any <code>.spell</code> file, type a
-    card whose heading has no colon:
-  </p>
-  <epic-code title="a heading without a colon · 3 lines" language="spell">
-    <pre>
-a card is a thing
-	- rank is a number
-	- suit is one of clubs or spades</pre>
-  </epic-code>
-  <p>Then open the Outline view (Cmd-Shift-O).</p></epic-field
-><epic-field label="Should"
-  ><ul>
-    <li>no red squiggles on any line</li>
-    <li>the Outline view shows <code>rank</code> and <code>suit</code> under <code>card</code></li>
-  </ul></epic-field
-><epic-field label="If not"
-  ><p>Tell Claude which line was red, or what the Outline view listed under <code>card</code>.</p></epic-field
+<p>The speed test (<code>spell speedtest --against HEAD</code>, 3 runs each, taking turns), after P1:</p>
+<ui-table celled padding="compact" unstackable
+  ><table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Average</th>
+        <th>Min</th>
+        <th>Max</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>before (main)</td>
+        <td>78</td>
+        <td>73</td>
+        <td>96</td>
+      </tr>
+      <tr>
+        <td>after P1</td>
+        <td>82</td>
+        <td>78</td>
+        <td>93</td>
+      </tr>
+      <tr>
+        <td>change</td>
+        <td>+5%</td>
+        <td>+7%</td>
+        <td>-3%</td>
+      </tr>
+    </tbody>
+  </table></ui-table
 >
+<ul>
+  <li>this side ran 701 rule tests, main 681: about the same cost per test</li>
+  <li>
+    where it comes from: every type declaration is now tried against 4 syntaxes (with or without a body, quoted name or
+    not), and the member rules have an <code>it</code> form each
+  </li>
+  <li>if it grows: fold the 4 type syntaxes into 1 with an optional body</li>
+</ul>
+<epic-reply
+  ><p>
+    <b>After P2 · Value Types (2026-10-06):</b> <code>spell speed --against HEAD</code> (HEAD = P1): average 88 vs 81,
+    min 83 vs 75, max 99 vs 91: +8%, on 721 rule tests vs 701 (about +5% per test). So about 13% slower than
+    <code>main</code> in all.
+  </p>
+  <ul>
+    <li>
+      likely from:
+      <ul>
+        <li><code>value_if</code>, which every <code>X if Y</code> line tries</li>
+        <li><code>is_in</code>'s <code>value_choices</code> form, tried on every <code>is</code></li>
+      </ul>
+    </li>
+    <li>
+      worth a look if P3 adds as much: a whole project's parse time (<code>BENCH=1</code> on
+      <a href="/spell-parser/tests/spell/SpellProject.test.ts" target="src-spell-lang-tests-spell-spellproject-test-ts"
+        ><code>SpellProject.test.ts</code></a
+      >), which is what people feel
+    </li>
+  </ul></epic-reply
+><epic-reply
+  ><p>
+    <b>After P6 · Editor Help (2026-10-06), against <code>main</code>:</b> <code>spell speed --against main</code>:
+    average 87 vs 75, min 83 vs 71, max 100 vs 93: <b>+16%</b>, on 727 rule tests vs 681 (about +9% per test).
+  </p>
+  <ul>
+    <li>
+      since P2's +8%, P3-P5 added: inferred phrases (every <code>a card "..."</code> line tries them), the kind-mode
+      placeholder <code>{constant}|{number}</code>, and each phrase's owner check
+    </li>
+    <li>
+      the rule tests are a stand-in; what people feel is a whole project's parse: worth measuring Solitaire before and
+      after before merging
+    </li>
+  </ul></epic-reply
+>
+<epic-reply
+  ><p>
+    <b>After P8 · Implicit Subject (2026-10-19), against its own start:</b> the parser's rule tests run about 5% slower
+    than before the phase. The phase's plan guessed 1-2%.
+  </p>
+  <ui-table celled padding="compact" appearance="striped" unstackable
+    ><table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Average</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>before P8 (HEAD)</td>
+          <td>111</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>after P8</td>
+          <td>116</td>
+          <td>+5% (min +6%)</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <ul>
+    <li>measured with <code>spell speed --against HEAD</code>, 10 runs each</li>
+    <li>
+      per module:
+      <ul>
+        <li>expressions: no change</li>
+        <li>methods: +3%</li>
+        <li>
+          classes: +7%. The 17 new syntaxes without a subject are each tried on every statement line outside a body, and
+          rejected early there
+        </li>
+        <li>
+          the <code>if</code> module's +16% isn't comparable: its tests changed (each line now wrapped in a method)
+        </li>
+      </ul>
+    </li>
+    <li>
+      the first version cost +12%: the parser's quick test looked the new rule up for every sub-rule. A set of the
+      rules' names cut most of that (the judgement call on the left-out subject, <a href="#j14">J14</a>)
+    </li>
+    <li>still not measured: a whole project's parse, Solitaire before and after, which is what people feel</li>
+  </ul></epic-reply
+>
+<epic-reply from="Claude" at="2026-10-19 19:20" re="Try to win back the 5%">
+  <p>
+    Owen asked to win back P8's 5%. A little came back; about 4-5% is still there, and I couldn't pin it on any one
+    change.
+  </p>
+  <ul>
+    <li>
+      Fixed, measurably:
+      <ul>
+        <li>
+          the either-getter has its own quick test for the <code>if</code> again
+          <ul>
+            <li>e.g. <code>the color of a card is red if ...</code></li>
+            <li>
+              it lost that check when T6 made its body a <code>value_if</code> line, so every line with
+              <code>is</code> was parsed in full
+            </li>
+          </ul>
+        </li>
+        <li>
+          looking the left-out subject's rule up on every quick test: a subrule now knows it's zero-width from the
+          moment it's made
+        </li>
+        <li>a line outside a type's body turns down the 17 subject-less forms at their first step</li>
+      </ul>
+    </li>
+    <li>
+      Measured on real projects (all 11 test projects parsed in one process, fastest of 20 runs each, side by side with
+      HEAD): 285 ms on HEAD, 298-302 ms now: <b>about +5%</b>, spread evenly over every project, fizzbuzz included.
+    </li>
+    <li>
+      Why I stopped: taking the change apart, each piece measured within the bench's noise (±2-3%), and the pieces
+      didn't add up (the parser change alone +4%, the spell changes alone +3%, both together +5%). A CPU profile shows
+      the extra time spread thinly over the parser's core loop, not in any one function.
+    </li>
+    <li>Rule tests (<code>spell speed --against HEAD</code>, 15-25 runs): +3% to +5%, depending on the run.</li>
+  </ul>
+  <epic-net-effect>
+    <li>P8 makes parsing about 5% slower, evenly; nothing obvious is left to cut</li>
+    <li>finding the rest needs a quieter machine and a longer profiling session: a todo, if you want it</li>
+  </epic-net-effect>
+</epic-reply>
+<epic-reply from="Claude" at="2026-10-19 21:30" re="P9">
+  <p>
+    <b>After P9 · Bare Property Names (2026-10-19):</b> P8 and P9 together make whole projects parse about 5-7% slower
+    than before P8. P8 alone was about 5%, so P9 adds a point or two.
+  </p>
+  <ui-table celled padding="compact" appearance="striped" unstackable
+    ><table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Before P8 (HEAD)</th>
+          <th>P8 + P9</th>
+          <th>Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>11 test projects, fastest of 20 each</td>
+          <td>263-282 ms</td>
+          <td>276-300 ms</td>
+          <td>about +5-7%</td>
+        </tr>
+        <tr>
+          <td>rule tests, <code>spell speed --against HEAD</code>, 10 runs</td>
+          <td>119</td>
+          <td>128</td>
+          <td>+8% average, +6% min</td>
+        </tr>
+      </tbody>
+    </table></ui-table
+  >
+  <ul>
+    <li>the projects were parsed side by side with HEAD, in one process each</li>
+    <li>the rule-test numbers are noisy: the projects are what people feel</li>
+    <li>
+      likely from P9: the bare-name forms are tried on every line in a body, and each checks its first word against the
+      statement words
+    </li>
+    <li>profiling it is still the todo, T9</li>
+  </ul>
+</epic-reply>
