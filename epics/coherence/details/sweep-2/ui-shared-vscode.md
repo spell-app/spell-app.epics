@@ -380,7 +380,9 @@ And one blind spot.
   `· not spell-ui/src/cli/iconCommand.ts` with a Fine line, or finding 6 takes the page away.
 - **A new syntax:**  `spell-ui/src/static/StaticSelectors.ssr.ts:238, 255, 270`:  CSS selectors, not "a language or format
   of our own", and the home, `P.Tokenizer`, is spell-parser's, which Spell UI may not import.  They're copies of finding
-  8's reader:  `· not spell-ui/src/`, and that entry's own Score line (`\blet depth = 0\b` in `spell-ui/src`) counts them.
+  8's reader:  `· not spell-ui/src/`, and that entry's own Score line counts them:  `\blet depth = 0\b` · in
+  `spell-ui/src/static/`, `spell-ui/src/tools/`, `spell-ui/src/styles/` (elsewhere it finds a nesting count,
+  `SourceMarkup.ts:90`, and two loops, `TreeLayout.ts:148, 151`).
 - **Loading once per key:**  `DocPreview.ts:52` will count once the score reads `vscode/src`:  real (finding 12).
 
 ## Considered, left out
