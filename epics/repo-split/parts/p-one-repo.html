@@ -7,44 +7,23 @@
 ><epic-field name="goal"
   ><p>
     Owen asked (2026-10-26) whether the child repos still need to be separate repos, now that there's one version, one
-    <code>npm install spell</code> that brings everything, and one <code>spell publish</code>. The trade-off:
+    <code>npm install spell</code> that brings everything, and one <code>spell publish</code>.
   </p>
-  <ui-table celled padding="compact" appearance="striped" unstackable
-    ><table>
-      <thead>
-        <tr>
-          <th>What separate repos buy</th>
-          <th>What it's worth now</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Imports only point down, enforced by cloning</td>
-          <td>A lint rule over the folders can enforce the same</td>
-        </tr>
-        <tr>
-          <td>Small clones</td>
-          <td>Nobody outside clones them yet</td>
-        </tr>
-        <tr>
-          <td>A GitHub page per project</td>
-          <td>The READMEs and npm pages stay anyway</td>
-        </tr>
-        <tr>
-          <td>spell-brand private</td>
-          <td>Only spell-brand needs that: it stays a repo of its own</td>
-        </tr>
-        <tr>
-          <td>spell-epic installs as a Claude plugin from its own repo</td>
-          <td>Not needed: a plugin can come from a folder of a bigger repo, or from npm (the aside below)</td>
-        </tr>
-        <tr>
-          <td>Each repo's CI is faster</td>
-          <td>A change across repos still needs all of them</td>
-        </tr>
-      </tbody>
-    </table></ui-table
-  >
+  <p>What separate repos buy, and what each is worth now:</p>
+  <ul>
+    <li>
+      <b>Imports only point down, enforced by cloning:</b>
+      a lint rule over the folders can enforce the same.
+    </li>
+    <li><b>Small clones:</b> nobody outside clones them yet.</li>
+    <li><b>A GitHub page per project:</b> the READMEs and npm pages stay anyway.</li>
+    <li><b>spell-brand private:</b> only spell-brand needs that, and it stays a repo of its own.</li>
+    <li>
+      <b>spell-epic installs as a Claude plugin from its own repo:</b>
+      not needed: a plugin can come from a folder of a bigger repo, or from npm (the aside below).
+    </li>
+    <li><b>Each repo's CI is faster:</b> a change across repos still needs all of them.</li>
+  </ul>
   <p>What they cost, all of it seen in this epic:</p>
   <ul>
     <li>
@@ -79,25 +58,64 @@
       The four repos are folders of the kit's repo, with their history: <code>git log</code> on a file in
       <a href="/ui/" target="src-ui"><code>ui/</code></a> goes back past the merge.
     </li>
-    <li>One install, as today: yarn workspaces over the folders, one <code>yarn install</code> at the root.</li>
+    <li>
+      They're folders of ONE package, <code>spell</code>, beside the kit's own (<a href="#q62">Q62</a>):
+      <ul>
+        <li>
+          every file's name is the package, then the folder, then its path:
+          <code>spell/ui/components/ui-button</code>, <code>spell/parser/parser</code>, <code>spell/epic/...</code>,
+          <code>spell/app/...</code>, beside <code>spell/util/...</code> and <code>spell/element/...</code>
+        </li>
+        <li>no folder's name clashes with a kit folder's (util, element, server, cli, toolchain ...)</li>
+        <li>
+          how is this phase's work: an exports entry per folder (<code>./ui/*</code> to <code>./ui/src/*</code> ...), or
+          each folder's <a href="/src/" target="src-src"><code>src/</code></a> moves under the kit's
+        </li>
+        <li>
+          each folder's "read my own source" condition (<code>spell-ui-source</code> ...) collapses into the kit's one,
+          <code>spell-source</code>
+        </li>
+      </ul>
+    </li>
+    <li>
+      The rename script (<a href="/tools/rename-packages.ts" target="src-tools-rename-packages-ts"
+        ><code title="tools/rename-packages.ts">rename-packages.ts</code></a
+      >) gains four rules, kept for open branches as before:
+      <ul>
+        <li><code>spell-ui/x</code> becomes <code>spell/ui/x</code></li>
+        <li><code>spell-parser/x</code> becomes <code>spell/parser/x</code></li>
+        <li><code>spell-epic/x</code> becomes <code>spell/epic/x</code></li>
+        <li><code>spell-app/x</code> becomes <code>spell/app/x</code></li>
+        <li>about 5,000 import lines change, once more; each open worktree reruns its steps before merging main</li>
+      </ul>
+    </li>
+    <li>
+      spell-brand stays its own repo and package (<a href="#q57">Q57</a>): its imports of Spell UI become
+      <code>spell/ui/...</code> (about 30), through the same script.
+    </li>
+    <li>One install, as today: one <code>yarn install</code> at the root, now for one package.</li>
     <li>
       The rule that imports only point down (the kit, then parser and ui, then epic, then app) is a lint rule over the
       folders, with its test, in place of the clone that enforced it.
     </li>
     <li>
-      TypeScript reads the other packages' source where that's simpler, or keeps the built declarations (<a href="#q59"
-        >Q59</a
-      >).
+      TypeScript reads the folders' source, as it reads the kit's own today (<a href="#q59">Q59</a>): in one package
+      that's the natural shape, tried on one folder first.
     </li>
     <li>CI is one workflow for the repo, plus spell-brand's own.</li>
-    <li><code>spell publish</code> works as before: the same five packages, the same names.</li>
+    <li>
+      <code>spell publish</code> packs the one <code>spell</code>, plus the small packages still open: a standalone
+      <a href="/spell-ui/README.md" target="src-spell-ui-readme-md"><code>spell-ui</code></a> bundle (<a href="#q63"
+        >Q63</a
+      >), the plugin's own package (<a href="#q64">Q64</a>), confirmed in <a href="#q65">Q65</a>.
+    </li>
     <li>
       The spell-epic plugin still installs:
       <ul>
         <li>for Owen, loaded in place from the checkout, never copied</li>
         <li>
-          for anyone else, from npm, or from a marketplace file at the repo's root that points at
-          <code>./epic</code> (<a href="#q58">Q58</a>)
+          for anyone else, <code>/plugin install epic@spell</code>: the marketplace file at the repo's root, the
+          plugin's files from npm (<a href="#q58">Q58</a>), in a small package of their own (<a href="#q64">Q64</a>)
         </li>
       </ul>
     </li>
@@ -111,11 +129,11 @@
       </ul>
     </li>
     <li>
-      The four old GitHub repos are archived, each with a README pointing at the new home (<a href="#q60">Q60</a>).
+      The four old GitHub repos are deleted once merged (<a href="#q60">Q60</a>): their history lives on in the merged
+      repo.
       <ul>
         <li>
-          <b>Their URLs redirect nowhere:</b> GitHub redirects a renamed or moved repo, not one whose code moved into
-          another.
+          <b>Old links to them 404:</b> GitHub redirects a renamed or moved repo, not one whose code moved into another.
         </li>
       </ul>
     </li>
@@ -132,8 +150,9 @@
         <ul>
           <li><code>/plugin marketplace add spell-app/spell</code> then works.</li>
           <li>
-            Keeping the marketplace's NAME <code>spell-epic</code> keeps the install command the same:
-            <code>/plugin install spell-epic@spell-epic</code>.
+            The marketplace is named <code>spell</code> and the plugin <code>epic</code> (Owen, 2026-10-26,
+            <a href="#q58">Q58</a>): <code>/plugin install epic@spell</code>, where today's installs are
+            <code>spell-epic@spell-epic</code> and reinstall once.
           </li>
         </ul>
       </li>
@@ -208,7 +227,13 @@
   <p>
     Its open questions: the folder names (<a href="#q56">Q56</a>), spell-brand (<a href="#q57">Q57</a>), the plugin for
     people outside (<a href="#q58">Q58</a>), how TypeScript reads the other packages (<a href="#q59">Q59</a>), the old
-    GitHub repos (<a href="#q60">Q60</a>), and when (<a href="#q61">Q61</a>).
+    GitHub repos (<a href="#q60">Q60</a>), and when (<a href="#q61">Q61</a>), all answered; then one package (<a
+      href="#q62"
+      >Q62</a
+    >, answered), and three still open: a standalone Spell UI (<a href="#q63">Q63</a>), the plugin's package (<a
+      href="#q64"
+      >Q64</a
+    >), what <code>spell publish</code> publishes (<a href="#q65">Q65</a>).
   </p></epic-field
 ><epic-field name="changes"
   ><ul>
@@ -229,11 +254,37 @@
       </ul>
     </li>
     <li>
-      The npm names and every import stay as they are: an import names a package, not a folder, so
-      <code>spell-ui/...</code> still means Spell UI.
+      The four become folders of the ONE package <code>spell</code> (<a href="#q62">Q62</a>): imports read
+      <code>spell/ui/...</code>, <code>spell/parser/...</code>, <code>spell/epic/...</code>, <code>spell/app/...</code>,
+      by four new rules in the kept rename script.
     </li>
     <li>spell-brand stays its own private repo.</li>
   </ul></epic-field
+><epic-update at="2026-10-26 20:49" summary="one package, spell/ui/..."
+  ><p>
+    One package after the merge (<a href="#q62">Q62</a>), Owen, 2026-10-26: the four folders become parts of
+    <code>spell</code>, so imports read <code>spell/ui/...</code>, <code>spell/parser/...</code>,
+    <code>spell/epic/...</code>, <code>spell/app/...</code>.
+  </p>
+  <ul>
+    <li>
+      Before: the npm names and every import stayed as they were (<code>spell-ui/...</code>), and
+      <code>spell publish</code> packed the same five packages.
+    </li>
+    <li>
+      Now: the rename script gains four rules (and the <code>&lt;repo&gt;-source</code> conditions collapse to
+      <code>spell-source</code>), kept for open branches; spell-brand, still its own repo, imports
+      <code>spell/ui/...</code>.
+    </li>
+    <li>
+      The estimate goes from 6-10h to 9-14h: about 5,000 import lines renamed and checked once more, the one package's
+      exports and tsconfigs, and the open worktrees' extra round.
+    </li>
+    <li>
+      Also fixed in the body: the old repos are deleted, not archived (<a href="#q60">Q60</a>), and the plugin installs
+      as <code>epic@spell</code> (<a href="#q58">Q58</a>).
+    </li>
+  </ul></epic-update
 ><epic-field name="files"
   ><ul>
     <li>
@@ -242,25 +293,42 @@
     </li>
     <li>
       the root's <a href="/package.json" target="src-package-json"><code>package.json</code></a
-      >: workspaces over the four folders;
+      >: the four folders in the one package's exports, their dependencies merged in;
       <a href="/repos.json5" target="src-repos-json5"><code>repos.json5</code></a> and the repos tool, which stop
       cloning them
     </li>
     <li>the toolchain's import lint: the down-only rule by folder, and its test</li>
-    <li>each package's tsconfig and exports, if TypeScript reads source (Q59)</li>
+    <li>the folders' tsconfigs, which become programs of the one package, reading source (Q59)</li>
+    <li>
+      the rename script,
+      <a href="/tools/rename-packages.ts" target="src-tools-rename-packages-ts"
+        ><code title="tools/rename-packages.ts">rename-packages.ts</code></a
+      >: the four new rules, and each <code>&lt;repo&gt;-source</code> condition to <code>spell-source</code>; then run
+      over the kit and spell-brand
+    </li>
     <li>the CI workflow: one for the repo; the four child workflows go</li>
     <li>a marketplace file at the root; the plugin's own manifest in <code>epic/</code></li>
     <li>
       the root and folder <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> files, the READMEs, the
       commands page, the page server's settings (paths from each folder)
     </li>
-    <li>a pointer README in each old repo, before it's archived</li>
+    <li>the four old GitHub repos, deleted once the merge is pushed (Q60)</li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
     <li>the type check, the lint and the tests, run once at the root (<code>yarn review</code>), all green</li>
     <li>CI green on the merged repo, and spell-brand's against it</li>
-    <li><code>spell publish --dry-run</code>, then a scratch project installs the packed files and runs</li>
+    <li>
+      <code>spell publish --dry-run</code>, then a scratch project installs the packed <code>spell</code> and runs: a
+      Vite page imports <code>spell/ui/...</code> and loads one <code>DOMElement</code>
+    </li>
+    <li>
+      a grep for <a href="/spell-ui/" target="src-spell-ui"><code>spell-ui/</code></a
+      >, <a href="/spell-parser/" target="src-spell-parser"><code>spell-parser/</code></a
+      >, <a href="/spell-epic/" target="src-spell-epic"><code>spell-epic/</code></a> and
+      <a href="/spell-app/" target="src-spell-app"><code>spell-app/</code></a> imports finds none, in the kit and
+      spell-brand
+    </li>
     <li>
       the plugin installs in a scratch Claude config: from the root marketplace, and from the npm tarball; its hooks and
       skills run
