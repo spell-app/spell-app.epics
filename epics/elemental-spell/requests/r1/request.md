@@ -3,7 +3,9 @@ id: r1
 epic: elemental-spell
 from: 🚧 ui-gaps (2c2064da)
 at: 2026-10-25T09:17-04:00
-status: new
+status: filed
+filed: P23 · Planned Tags and mod Keys
+phase: p-planned-tags-and-mod-keys
 ---
 
 ## Owen's words

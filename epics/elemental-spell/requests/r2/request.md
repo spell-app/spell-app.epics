@@ -3,7 +3,9 @@ id: r2
 epic: elemental-spell
 from: 🚧 debut (ad62dff0)
 at: 2026-10-26T20:55-04:00
-status: new
+status: filed
+filed: P22 · Notebook Polish
+phase: p-notebook-polish
 images: image-1.png, image-2.png, image-3.png, image-4.png
 ---
 

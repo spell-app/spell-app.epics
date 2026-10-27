@@ -3,7 +3,9 @@ id: r3
 epic: elemental-spell
 from: 🚧 debut (ad62dff0)
 at: 2026-10-26T21:40-04:00
-status: new
+status: filed
+filed: P21 · Turns that Wait
+phase: p-turns-that-wait
 ---
 
 ## Owen's words
