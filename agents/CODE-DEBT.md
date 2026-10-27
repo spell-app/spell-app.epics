@@ -53,6 +53,14 @@ One `###` heading per item, under its package's `##` section, `---` between item
 - **Fix**: keep `waits` through an incremental update (sent to epic `elemental-spell`), then drop `KNOWN_FAILING`
   in the test.
 
+### Solitaire's edit-and-redeal runner test skipped
+
+- **Cost**: `runner.browser.test.tsx`'s "`Solitaire` played, then its app's own file edited" is `test.skip`, so
+  restarting on an edit of the app's own file goes untested in the runner (2026-10-26, epic `debut` I52).
+- **Cause**: since I50 (the cards' flip, its pauses) the first deal never ends when the test runs after the file's
+  other Solitaire tests;  alone it passes, and main without I50 passes the whole file.  Not yet traced.
+- **Fix**: find what the earlier games leave running that stalls the new deal, then un-skip it.
+
 ### Circular imports through the `spell-lang/parser` barrel
 
 - **Cost**: six sub-paths of `spell-lang/parser` cannot be imported before `spell-lang/parser` itself without
