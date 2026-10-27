@@ -498,6 +498,12 @@ whose sheet `yarn gen:styles` writes.
     it's `hues` here, since `palette` names the palette a theme borrows.
 - Each value is one value for both schemes, or `{ "light": ..., "dark": ... }`, written out as `light-dark()`.
   - A value is CSS text;  `"{surfaces.panel}"` anywhere in it points at another leaf (`var(--ui-surface)`).
+  - A colour is hex, `#rrggbb`, or `#rrggbbaa` with its alpha (`round(a × 255)`):  `#ffffff59`, never
+    `rgb(255 255 255 / 0.35)`, inside a longer value too (a shadow's `0 1px 2px #0000004d`).
+    - One spelling, so two files compare at a glance (Owen, epic `debut` P20).
+    - `ThemeFile` refuses a plain `rgb()`, naming the hex to write;  relative colours (`oklch(from ...)`),
+      `color-mix()` and `var()` are fine.
+    - The theme editor writes its sheets in hex too.
   - A hue's `base` and `text > ink` are pairs of tokens (`--ui-red-on-light` / `-on-dark`):
     their two values go to the two tokens.
 - Two open groups:
