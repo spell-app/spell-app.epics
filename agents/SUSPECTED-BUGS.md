@@ -51,6 +51,19 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- Incremental parsing loses an action's `waits: true` after an edit inside it (2026-10-26, epic `debut` I50):
+  `INCREMENTAL_FULL=1 yarn vp test run --project spell tests/spell/parserTests/IncrementalProject.test.ts -t "edits in /Solitaire.spell"`
+  fails on spell-app's `main` twin at line 166 ("delete a character", in `to put a card on a pile`, which
+  has `pause for 200 msec`):  the full parse declares `put a card on a pile` with `waits: true`, the incremental
+  update without it.  The default run (every 7th line) passed only by which lines it sampled;  I50's two new deal
+  lines shifted them, and it now fails at line 169 (`pause for 200 msecx`).
+
+- A Spanish property whose first `devolver` returns an item of a list of text gets the datatype `Texte`
+  (2026-10-26, epic `debut` I50):  Solitario's `su "cara" es:` (the lookup `el elemento columna de ["🃑", ...]`)
+  declared `datatype: "Texte"`, and a subclass's override of it compiled as `get cara(): Texte`, TS2552.
+  English Solitaire's `its "picture" is:`, the same shape, is `text`.  Worked around in Solitario by a first
+  `si es un comodín devolver "🃟"`.  Suspect the Spanish singular of a list's item type.
+
 - `match.compile()` of one statement writes a loop by what the writer last saw:  after a project was updated in place
   (`project.updateText()`), Spanish `para lugar desde fila a 7` compiled to `forEachSequential(...)` where a fresh
   load writes `for (const lugar of ...)`.  Same program, so harmless when run;  the shape check compiles through
