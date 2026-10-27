@@ -44,6 +44,15 @@ One `###` heading per item, under its package's `##` section, `---` between item
 
 ## spell
 
+### Incremental parse of Solitaire's twin pinned as an expected failure
+
+- **Cost**: `IncrementalProject.test.ts`'s "edits in /Solitaire.spell" runs as `test.fails`, so the incremental
+  parse of that file goes unchecked until it's fixed (2026-10-26, epic `debut` I50).
+- **Cause**: incremental parsing loses an action's `waits: true` after an edit inside it (the suspected-bugs log,
+  "## spell").  The test samples every 7th line;  I50's two new deal lines moved the sample onto the bug.
+- **Fix**: keep `waits` through an incremental update (sent to epic `elemental-spell`), then drop `KNOWN_FAILING`
+  in the test.
+
 ### Circular imports through the `spell-lang/parser` barrel
 
 - **Cost**: six sub-paths of `spell-lang/parser` cannot be imported before `spell-lang/parser` itself without
