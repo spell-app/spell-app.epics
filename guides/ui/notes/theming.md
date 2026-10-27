@@ -19,7 +19,7 @@ How the CSS foundation fits together:  tokens, remaps, layers, the app styleshee
 | `native.css` | native markup slotted into components, the CSS-only tooltip, `ui-native` | `ui.components` |
 | `themes/classic.css` | Fomantic's original look | `ui.theme` |
 | `themes/dark.css` | force the dark scheme page-wide | `ui.theme` |
-| `themes/<name>.css` | one of Spell's own themes (`spell`, `glass`, `fruity`, `merlot`, `paper`, `midnight`, `crisp`, `pop`), on top of `classic`;  see "Themes" | `ui.theme` |
+| `themes/<name>.css` | one of Spell's own themes (`spell`, `glass`, `fruity`, `merlot`, `paper`, `midnight`, `crisp`, `pop`, `matrix`), on top of `classic`;  see "Themes" | `ui.theme` |
 | `themes/archive/` | Fomantic's 23 themes, archived:  in no bundle, menu or test;  see "Fomantic themes" | -- |
 | `src/runtime/Themes.ts` | `UI.themes`:  loads and applies the theme sheets (a runtime service, not in `spell-ui/styles`) | -- |
 | `media.css` | `@custom-media --ui-mobile` ... (build-time only) | -- |
@@ -485,7 +485,7 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 
 ### A theme file
 
-Spell's own eight themes, and Apple's palette, are written as DATA (epic `debut` P18, P20):  a theme file each,
+Spell's own nine themes, and Apple's palette, are written as DATA (epic `debut` P18, P20):  a theme file each,
 whose sheet `yarn gen:styles` writes.
 - The file:  `<name>.theme.json5`, beside its sheet in the themes folder;
   a palette's, `palettes/<name>.palette.json5`.
@@ -516,7 +516,7 @@ whose sheet `yarn gen:styles` writes.
     - `modern.css`:  the rules Glass and Spell both had:  anchors below a sticky header, tabular numbers,
       link underlines, the image outline, the button press, no animation while the scheme switches, font smoothing
     - `states.css`:  the secondary colour's own states, for a theme that sets them (Spell and the four new ones)
-    - `glass.css`, `spell.css`, `merlot.css`, `paper.css`, `midnight.css`, `crisp.css`, `pop.css`, `apple.css`:
+    - `glass.css`, `spell.css`, `merlot.css`, `paper.css`, `midnight.css`, `crisp.css`, `pop.css`, `matrix.css`, `apple.css`:
       each one's own
 - The writer, `ThemeFile` (beside `StyleGenerator`):
   - merges a theme's palette and what it extends (`values()`), checks every name against the tree,
@@ -660,6 +660,20 @@ Each is a theme file on Apple's palette (`"palette": "apple"`), with the modern 
   (its Palatino and Rounded):  `--ui-font-family-serif` (Palatino first) and `--ui-font-family-rounded`
   (`ui-rounded` first).
 
+### Our own themes:  `matrix`
+
+A dark ops console (epic `debut`;  Owen, 2026-10-26:  "make a new theme "matrix" based on this", a screenshot of a
+rack viewer, a live fabric inventory).  A theme file on Apple's palette, with the modern rules, the shared secondary
+states and a rules sheet of its own;  no glass, no wallpaper, and the code stays Purple.
+- [`matrix.theme.json5`](/spell-ui/src/styles/themes/matrix.theme.json5):  dark first.
+  - Dark:  a near-black page with a cold green-grey cast, panels a step lighter on low hairlines, no glow;
+    light, "daylight":  a cool grey-green page, white panels.
+  - ONE mint accent (deepened in light, so white reads on it);  amber is `warning`, coral is `negative`:
+    fine, needs attention, wrong.
+  - Bold headings, tightly tracked;  a table's header row and a `sub` header (an eyebrow, in the accent) in the
+    monospace, uppercase and spaced out:  its rules sheet, `rules/matrix.css`.
+  - The system font and its monospace;  6px chips, 8px controls, 14px cards and panels, 18px modals.
+
 ### Fomantic themes
 
 Fomantic's themes were ported, one sheet each, and are ARCHIVED (epic `debut` P17, Q22):
@@ -688,7 +702,7 @@ Fomantic's themes were ported, one sheet each, and are ARCHIVED (epic `debut` P1
 import { UI } from "@spell-app/ui/core" // `spell-ui/core` in the package
 
 const { themes } = await UI.load() // the runtime:  `UI.themes` exists once it has loaded
-themes.own // ["spell", "glass", "fruity", "merlot", "paper", "midnight", "crisp", "pop"]:  our own themes, the one set every place offers
+themes.own // ["spell", "glass", "fruity", "merlot", "paper", "midnight", "crisp", "pop", "matrix"]:  our own themes, the one set every place offers
 await themes.apply("merlot") // classic + merlot, on the page and in every shadow root
 await themes.apply("spell") // classic + spell, the same way
 await themes.apply("classic") // classic alone
@@ -706,7 +720,7 @@ await themes.apply(undefined) // our own look
   - None is in `spell-ui/styles`, which holds no code.
     Code there split Rolldown's helpers into an extra chunk every page fetched (epic `wwod-spell-ui`, I13).
 - `UI.themes.sheets`:  every sheet, `classic` and `dark` included.
-- `UI.themes.own`:  the themes a menu lists, `spell`, `glass`, `fruity`, `merlot`, `paper`, `midnight`, `crisp`, `pop` (above);  nothing else is one.
+- `UI.themes.own`:  the themes a menu lists, `spell`, `glass`, `fruity`, `merlot`, `paper`, `midnight`, `crisp`, `pop`, `matrix` (above);  nothing else is one.
   - `classic`:  the base, applied with every theme, or alone with `apply("classic")`;  listed nowhere.
   - `dark`:  a colour SCHEME, not a look.
     - Switch it with `color-scheme`, `ui-dark` or `<ui-root theme="dark">`, on top of any theme.
