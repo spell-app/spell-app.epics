@@ -483,9 +483,50 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 - It's in `ui.tokens`, so a page's own `color-scheme` wins.
 - A light-only page sets `:root { color-scheme: light }`, or `class="ui-light"`.
 
+### A theme file
+
+Spell's own four themes, and Apple's palette, are written as DATA (epic `debut` P18):  a theme file each,
+whose sheet `yarn gen:styles` writes.
+- The file:  `<name>.theme.json5`, beside its sheet in the themes folder;
+  a palette's, `palettes/<name>.palette.json5`.
+- Its values sit in NESTED groups, the theme tree's (`themeTree`, in `styles.en.ts`):
+  - `typography > size, family > body, heading, mono`;  `radii > s, m, l`;  `text > ink, body, strong, muted`
+  - `surfaces > page, panel, inset, strong, bar, code`;  `borders`;  `shadows`;  `motion`
+  - `brand > primary, secondary, accent, link, focus`;  `semantic > positive ...`;  `hues > red > base, on, text ...`
+  - Each leaf names the token it sets:  `surfaces > page` is `--ui-background`.
+  - The tree's top groups are the token tables' groups, by the same names, except the table's "Palette":
+    it's `hues` here, since `palette` names the palette a theme borrows.
+- Each value is one value for both schemes, or `{ "light": ..., "dark": ... }`, written out as `light-dark()`.
+  - A value is CSS text;  `"{surfaces.panel}"` anywhere in it points at another leaf (`var(--ui-surface)`).
+  - A hue's `base` and `text > ink` are pairs of tokens (`--ui-red-on-light` / `-on-dark`):
+    their two values go to the two tokens.
+- Two open groups:
+  - `components`:  a family's own tokens, under its name:  `menu > segmented-radius` is `--ui-menu-segmented-radius`
+  - `own`:  the theme's private values, by their full name:  `glass-blur` is `--glass-blur`
+- What it builds on:
+  - `extends`:  the theme it builds on (Fruity:  `"glass"`):  its sheet imports that one's first
+  - `palette`:  the hues it borrows (`"apple"`)
+  - `rules`:  its rules sheets, in `themes/rules/`, for what values can't say:  selectors, the glass blur, motion
+    - `modern.css`:  the rules Glass and Spell both had:  anchors below a sticky header, tabular numbers,
+      link underlines, the image outline, the button press, no animation while the scheme switches, font smoothing
+    - `glass.css`, `spell.css`, `merlot.css`, `apple.css`:  each one's own
+- The writer, `ThemeFile` (beside `StyleGenerator`):
+  - merges a theme's palette and what it extends (`values()`), checks every name against the tree,
+    and writes the sheet:  its imports, then its values on `:root`, in `@layer ui.theme`
+  - a wrong name fails, saying where it belongs:  a name not in the tree, a family token that's a tree leaf,
+    an `own` name that isn't the theme's, a theme or palette with no file
+  - pure, text in and text out:  `yarn gen:styles` runs it in node, a test runs it in the browser, and the theme
+    editor will run it live (P22)
+- Nothing that loads a theme changed:  `UI.themes` still reads the folder's sheets, which are committed.
+  - Each sheet's first line says it's generated, from which file;  spell-ui's merge list regenerates them.
+- `theme.schema.json`, beside the themes, is written from the tree too:  each file names it (`"$schema"`),
+  so VS Code completes and checks its names.
+- `themeValues.test.ts` holds every value each theme sets, light and dark, as the page computes it:
+  taken before the conversion, so the files set exactly what the hand-written sheets did.
+
 ### Our own theme:  `spell`
 
-[`spell.css`](../src/styles/themes/spell.css) is the Spell brand as a theme ([the brand's design system](/guides/spell.epics/brand/spell-design-system/)).
+[`spell.theme.json5`](/spell-ui/src/styles/themes/spell.theme.json5) is the Spell brand as a theme ([the brand's design system](/guides/spell.epics/brand/spell-design-system/)).
 - It's the DEFAULT look of Spell UI's docs site and the guides (`ThemePreference`), until the viewer picks another.
 - The ONE Spell theme (epic `debut` P17, J88):  the Spell Brand theme (`spell-brand.css`) folded into it.
   - A theme remembered as `spell-brand` comes back as `spell` (`Themes.RENAMED`).
@@ -558,26 +599,26 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 
 ### Our own themes:  `glass` and `fruity`, a theme on a theme
 
-- [`glass.css`](/spell-ui/src/styles/themes/glass.css):  macOS's look today, translucent GLASS surfaces
+- [`glass.theme.json5`](/spell-ui/src/styles/themes/glass.theme.json5):  macOS's look today, translucent GLASS surfaces
   (`backdrop-filter`) on a SOLID page, one colour in light and one in dark.
-- [`fruity.css`](/spell-ui/src/styles/themes/fruity.css):  Glass with a pastel wallpaper, three colour washes.
-  - Its sheet imports Glass's (`@import "./glass.css"`), then sets only `--glass-wallpaper`, the slot Glass's page
-    rule draws.
+- [`fruity.theme.json5`](/spell-ui/src/styles/themes/fruity.theme.json5):  Glass with a pastel wallpaper, three colour washes.
+  - It extends `glass`:  its sheet imports Glass's (`@import "./glass.css"`), then sets only `glass-wallpaper`, the slot
+    Glass's page rule draws, and two bar tokens.
   - Vite inlines the import, so Fruity is still ONE sheet to `UI.themes`;  a fix to the glass is made once.
   - Owen (2026-10-25, C1):  "glass is the base, fruity the exceptions".
 - The theme editor knows both as GLASS themes (`GLASS_THEMES`, its types):  its Glass choice changes their
   `--glass-surface*`;  its Background tints Fruity's wallpaper too (`WALLPAPER_THEME`).
-- Their hues are Apple's system colours, a palette sheet both import from
-  [`palettes/`](/spell-ui/src/styles/themes/palettes/apple.css):  a folder `UI.themes` doesn't list
+- Their hues are Apple's system colours, a palette both borrow from
+  [`palettes/`](/spell-ui/src/styles/themes/palettes/apple.palette.json5):  a folder `UI.themes` doesn't list
   (it globs the themes folder's top level only).
 
 ### Our own theme:  `merlot`
 
-[`merlot.css`](/spell-ui/src/styles/themes/merlot.css):  a code studio in wine reds, flat panels joined by hairlines.
+[`merlot.theme.json5`](/spell-ui/src/styles/themes/merlot.theme.json5):  a code studio in wine reds, flat panels joined by hairlines.
 - Was `studio` (Shades of Purple), moved toward maroon (epic `debut` P17);  a remembered `studio` comes back as `merlot`.
 - The page and its panels a visible step apart, in both schemes:  1.32:1 light, 1.30:1 dark (Studio's light was 1.13:1).
-- Dark:  a deep wine page, an amber primary with wine ink on it;  light:  a pale rose-grey page, a maroon primary.
-- Its hues:  Apple's palette, as Glass's (`palettes/apple.css`):  classic's fail AA on its page.
+- Dark:  a deep wine page, a warm gold primary with wine ink on it (amber until Owen's pick, P17 Q3);  light:  a pale rose-grey page, a maroon primary.
+- Its hues:  Apple's palette, as Glass's (`"palette": "apple"`):  classic's fail AA on its page.
 
 ### Fomantic themes
 
