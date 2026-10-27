@@ -63,75 +63,109 @@
       &lt;ui-root&gt; etc
     </p>
   </blockquote>
+  <p>And on where it's kept: "Take from user preference in space".</p>
   <ul>
     <li>
-      ONE remembered choice of theme, light / dark and (from P23) tint, which every page of every place draws in: the
-      editor and its notebooks, the epic pages and guides, Spell UI's, App UI's and the brand's pages.
+      ONE choice of theme, light / dark and (from P22) tint, which every page of every place draws in: the editor and
+      its notebooks, the epic pages and guides, Spell UI's, App UI's and the brand's pages.
     </li>
     <li>
-      Kept by the page server, so it carries across the editor's own address and the docs' address; the browser keeps a
-      copy for the first paint, and for when no page server answers.
+      It's the person's own preference, kept in their Spell space beside their other preferences; every place reads it
+      from there and writes it back there.
     </li>
     <li>A nested <code>&lt;ui-root theme&gt;</code> that sets its own theme is the only exception.</li>
   </ul></epic-field
 ><epic-field name="plan"
   ><ol>
     <li>
-      <b>One key, kept by the page server</b>
+      <b>Where it's kept: the person's preferences, in their space</b> (Owen: "Take from user preference in space")
       <ul>
         <li>
-          The theme (with its tint, from P22) and the scheme are kept as ONE choice, in a store every place shares:
-          <code>spell-site:theme</code> beside the existing <code>spell-site:scheme</code>.
+          A file of its own in the person's preferences folder: <code>@spell/owen@/__prefs/spell-site.json5</code>,
+          beside the editor's <code>spellEditor.json5</code> (spell-app's <code>SpacePrefs</code>, epic
+          <code>prefs-and-undo</code>).
         </li>
         <li>
-          Kept on the page server, through the kit's <code>ServerPlace</code> (<code>/api/prefs</code>, which
-          spell-app's spaces already answer, in the person's own space).
+          Two keys, readable and editable by hand (comments kept):
+          <pre>
+{
+  theme: "glass:pink",   // a theme, or a theme and its tint (P22);  "glass" alone without one
+  scheme: "dark",        // "light" | "dark" | "system"
+}</pre>
         </li>
         <li>
-          The editor already reaches that address: its dev server passes <code>/api</code> on to the page server. So the
-          editor's address and the docs' address read and write the same value, though their browsers' storage is apart.
+          The store is <code>spell-site</code>, the one <code>ColorScheme</code> already names for the scheme
+          (<code>spell-site:scheme</code>): the scheme moves from the browser into the same file.
+        </li>
+        <li>Whose: this machine's person (<code>LOCAL_PERSON</code>) until sign-in, as every preference there.</li>
+      </ul>
+    </li>
+    <li>
+      <b>How each place reads and writes it</b>
+      <ul>
+        <li>
+          Every place through ONE <code>ThemePreference</code>, on the kit's <code>PrefStore</code> with the page server
+          as its place (<code>ServerPlace</code>, <code>/api/prefs</code>), which the person's space answers.
         </li>
         <li>
-          The browser keeps a copy too, for two jobs:
-          <ul>
-            <li>
-              the first paint, before the server answers: the head script and <code>restore()</code> read the copy, then
-              take the server's value if it differs
-            </li>
-            <li>
-              when nothing answers <code>/api/prefs</code> (the read-only build, P9; a page server with no spell-app):
-              the copy IS the choice
-            </li>
-          </ul>
+          The docs sites (epic pages and guides, Spell UI's, App UI's and the brand's pages): served by the page server,
+          so <code>/api/prefs</code> is their own address.
+        </li>
+        <li>
+          The editor and its notebooks: its dev server already passes <code>/api</code> on to the page server, so it
+          reads and writes the same file.
+        </li>
+        <li>
+          <code>ThemePreference.site()</code> loses its own key: a place keeps only a default, and one shared default is
+          better (the question below). This reverses <a href="#j87">J87</a> (each place remembers its own theme).
         </li>
       </ul>
     </li>
     <li>
-      <b>Picked anywhere, followed everywhere</b>
+      <b>A change reaches open pages live</b>
       <ul>
         <li>
-          <code>ThemePreference</code> saves a pick to both places; every theme menu on the page follows
-          (<code>subscribe()</code>, as today).
+          Saving <code>spell-site</code> through <code>/api/prefs</code> tells every open page over the page server's
+          live channel (<code>LiveReload.send("prefs", { store, key, value })</code>, the socket every served page
+          already keeps).
         </li>
         <li>
-          An open tab in another place catches up when it comes back into view: it asks the server again on
-          <code>visibilitychange</code> and focus, and applies a changed choice. Same-address tabs still hear at once,
-          as now (<code>ColorScheme.watch()</code>).
+          The page's live client hands it on; <code>ThemePreference</code> applies it and its menus follow
+          (<code>subscribe()</code>).
         </li>
         <li>
-          <code>ThemePreference.site()</code> loses its own key: a place keeps only its own default, used until the
-          viewer has ever picked, and one shared default is better (the question below).
+          The editor: its <code>/api</code> forwarding carries the socket too (<code>ws: true</code>, checked); and
+          every page also asks again when it comes back into view, so a missed message is never stale for long.
         </li>
-        <li>This reverses <a href="#j87">J87</a> (each place remembers its own theme), from Owen's r1.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The browser's copy: first paint only</b>
+      <ul>
+        <li>
+          <code>localStorage</code> keeps the last value seen, so the head script and <code>restore()</code> draw the
+          right theme before the space answers; the space's value always wins, and replaces the copy.
+        </li>
+        <li>It is never the source of truth while a space answers.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The read-only public build (P9): no server</b>
+      <ul>
+        <li>
+          The visitor's browser keeps the choice, the same way it keeps their edits: the browser's database
+          (<code>DatabasePlace</code>), as the build's <code>StaticFiles</code> does.
+        </li>
+        <li>A page server with no spell-app installed (no space to answer) does the same.</li>
       </ul>
     </li>
     <li>
       <b>The old keys, moved once</b>
       <ul>
         <li>
-          <code>spell-app:theme</code>, <code>spell-epic:theme</code> and <code>spell-ui-site:theme</code>: the first
-          page to load after the change takes the value it finds, if the shared one is still empty, and forgets the old
-          key, as <code>ColorScheme</code> moved the scheme's old keys.
+          <code>spell-app:theme</code>, <code>spell-epic:theme</code>, <code>spell-ui-site:theme</code> and the
+          browser's <code>spell-site:scheme</code>: the first page to load after the change writes what it finds into
+          the space, if the space has nothing yet, and forgets the old keys.
         </li>
       </ul>
     </li>
@@ -139,37 +173,26 @@
       <b>The one exception: a nested root</b>
       <ul>
         <li>
-          A <code>&lt;ui-root theme="..."&gt;</code> inside the page draws its own theme inside it, and its theme menu
-          (if it has one) changes only it: checked, and a test added.
+          A <code>&lt;ui-root theme="..."&gt;</code> inside a page draws its own theme inside it, and never reads or
+          writes the person's choice: checked, and a test added.
         </li>
       </ul>
     </li>
     <li>
-      <b>Every place's setup</b>
+      <b>Rejected, Owen's choice the reason ("Take from user preference in space")</b>
       <ul>
         <li>
-          The editor (<code>EditorTheme</code>), the epic pages' bundle, Spell UI's site, App UI's and the brand's pages
-          call the same setup, with no key of their own.
-        </li>
-        <li>The theme bench (I49) needs no bridge for the theme any more; its tuning bridge stays.</li>
-      </ul>
-    </li>
-    <li>
-      <b>Rejected, and what each would touch</b>
-      <ul>
-        <li>
-          Serving the editor under the page server's address, so the browser's storage is shared: touches the editor's
-          dev server, its hot reload and its <code>/api</code>, <code>/spaces</code>, <code>/element</code> forwarding,
-          the editor's URLs in the page server's settings, and every bookmark of <code>localhost:3000</code>. A big move
-          for one value.
+          A page-server store of its own, apart from the space: a second home for a person's preferences; the space
+          already holds them, and follows the person to any machine with their space.
         </li>
         <li>
-          A messaging bridge like the bench's <code>BenchBridge</code>: works only while one place frames the other. Two
-          tabs, or a tab opened tomorrow, never hear.
+          Serving the editor under the page server's address, so browsers share storage: would touch the editor's dev
+          server, its hot reload, its <code>/api</code>, <code>/spaces</code> and <code>/element</code> forwarding and
+          every <code>localhost:3000</code> link, for one value, and still keep it in the browser, not the space.
         </li>
         <li>
-          A cookie on <code>localhost</code>: cookies ignore the port, so it would be shared, but every request would
-          carry it, a page can't hear it change, and the public build's host would need its own.
+          A messaging bridge like the theme bench's <code>BenchBridge</code>: works only while one place frames another;
+          two tabs never hear.
         </li>
       </ul>
     </li>
@@ -177,25 +200,24 @@
       <b>Already there (coherence check)</b>
       <ul>
         <li>
-          <code>ServerPlace</code> and <code>PrefStore</code> (the kit's <code>persist/</code>) already keep preferences
-          on the page server, and <code>ColorScheme</code> already makes the scheme one choice per address: the theme
-          joins them, no new mechanism.
+          <code>SpacePrefs</code>, its routes, <code>ServerPlace</code> and <code>PrefStore</code> already keep a
+          person's preferences in their space: the theme joins them, no new mechanism.
+        </li>
+        <li>
+          The live channel (<code>LiveReload</code>) already reaches every served page: one new message, no new socket.
         </li>
         <li>
           <code>ThemePreference</code> stays the one owner of the choice; <code>BenchBridge</code> keeps only what it
           alone does (tuning, scrolling, the full view).
         </li>
-        <li>
-          The site header's own preferences (<code>SiteHeader</code>'s session store) are per tab on purpose, and stay
-          so.
-        </li>
+        <li>The site header's own per-tab preferences stay per tab, on purpose.</li>
       </ul>
     </li>
     <li>
       <b>Question for Owen</b>
       <ul>
         <li>
-          One default for a viewer who never picked: today the editor and the epic pages start in Fruity, Spell UI's
+          One default for a person who never picked: today the editor and the epic pages start in Fruity, Spell UI's
           pages in Spell. My lean: Spell, the brand's own look, everywhere.
         </li>
       </ul>
@@ -204,7 +226,7 @@
 ><epic-field name="files"
   ><ul>
     <li>
-      the remembered choice:
+      the choice:
       <a
         href="/spell-ui/src/components/ui-theme-menu/ThemePreference.ts"
         target="src-spell-ui-src-components-ui-theme-menu-themepreference-ts"
@@ -217,35 +239,58 @@
       >
     </li>
     <li>
-      where it's kept: the kit's
+      where it's kept: spell-app's
+      <a
+        href="/spell-app/src/spaces/server/node/prefs/SpacePrefs.ts"
+        target="src-spell-app-src-spaces-server-node-prefs-spaceprefs-ts"
+        ><code title="spell-app/src/spaces/server/node/prefs/SpacePrefs.ts">SpacePrefs</code></a
+      >
+      and
+      <a
+        href="/spell-app/src/spaces/server/node/prefs/prefsRoutes.ts"
+        target="src-spell-app-src-spaces-server-node-prefs-prefsroutes-ts"
+        ><code title="spell-app/src/spaces/server/node/prefs/prefsRoutes.ts">prefs routes</code></a
+      >
+      (and the live message on save); the kit's
       <a href="/src/util/persist/PrefStore.ts" target="src-src-util-persist-prefstore-ts"
         ><code title="src/util/persist/PrefStore.ts">PrefStore</code></a
       >,
       <a href="/src/util/persist/ServerPlace.ts" target="src-src-util-persist-serverplace-ts"
         ><code title="src/util/persist/ServerPlace.ts">ServerPlace</code></a
       >,
+      <a href="/src/util/persist/DatabasePlace.ts" target="src-src-util-persist-databaseplace-ts"
+        ><code title="src/util/persist/DatabasePlace.ts">DatabasePlace</code></a
+      >,
       <a href="/src/util/persist/ColorScheme.ts" target="src-src-util-persist-colorscheme-ts"
         ><code title="src/util/persist/ColorScheme.ts">ColorScheme</code></a
-      >; answered by spell-app's
-      <a
-        href="/spell-app/src/spaces/server/node/prefs/prefsRoutes.ts"
-        target="src-spell-app-src-spaces-server-node-prefs-prefsroutes-ts"
-        ><code title="spell-app/src/spaces/server/node/prefs/prefsRoutes.ts">prefs routes</code></a
       >
     </li>
     <li>
-      each place's setup, which loses its own key and default:
+      live: the kit's
+      <a href="/src/server/LiveReload.ts" target="src-src-server-livereload-ts"
+        ><code title="src/server/LiveReload.ts">LiveReload</code></a
+      >
+      and
+      <a href="/src/server/liveClient.ts" target="src-src-server-liveclient-ts"
+        ><code title="src/server/liveClient.ts">liveClient</code></a
+      >; the editor's <code>/api</code> forwarding in
+      <a href="/spell-app/app/vite.config.ts" target="src-spell-app-app-vite-config-ts"
+        ><code title="spell-app/app/vite.config.ts">vite.config.ts</code></a
+      >
+    </li>
+    <li>
+      each place's setup, which loses its own key:
       <a href="/spell-app/src/app/solid/EditorTheme.tsx" target="src-spell-app-src-app-solid-editortheme-tsx"
         ><code title="spell-app/src/app/solid/EditorTheme.tsx">EditorTheme</code></a
-      >, the epic pages' bundle entry
+      >, the epic pages'
       <a
         href="/spell-epic/src/tools/_assets/spell-ui.entry.js"
         target="src-spell-epic-src-tools-assets-spell-ui-entry-js"
         ><code title="spell-epic/src/tools/_assets/spell-ui.entry.js">spell-ui.entry.js</code></a
-      >, Spell UI's site entry
+      >, Spell UI's
       <a href="/spell-ui/site/_src/site.ts" target="src-spell-ui-site-src-site-ts"
         ><code title="spell-ui/site/_src/site.ts">site.ts</code></a
-      >, the brand's layout
+      >, the brand's layout; the read-only build's setup
     </li>
     <li>
       the nested root:
@@ -253,24 +298,37 @@
         ><code title="spell-ui/src/components/ui-root/UIRoot.tsx">UIRoot</code></a
       >'s <code>theme</code>
     </li>
-    <li>docs: README-themes, theming.md ("One choice for every place"), <code>ThemePreference</code>'s docstring</li>
+    <li>
+      docs: README-themes, theming.md ("One choice, in your space"), spell-app's spaces AGENTS.md (the new store),
+      <code>ThemePreference</code>'s docstring
+    </li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
     <li>
-      Pick Merlot dark in the editor; open an epic page, Spell UI's Button page and the Avatar notebook: each draws in
-      Merlot dark at once, with no flash of another theme after the first visit.
+      Pick Merlot dark in the editor: <code>@spell/owen@/__prefs/spell-site.json5</code> says
+      <code>theme: "merlot"</code>, <code>scheme: "dark"</code>.
     </li>
-    <li>With an epic page open in another tab: pick Paper in the editor, switch back to the tab: it's Paper.</li>
-    <li>A page with a nested <code>&lt;ui-root theme="..."&gt;</code> keeps its own theme inside it.</li>
     <li>
-      With the page server stopped (the read-only build, <code>spell app site serve</code>): the choice is kept in the
-      browser.
+      With an epic page, Spell UI's Button page and the Avatar notebook open in other tabs: each turns Merlot dark
+      within a second, with no reload.
     </li>
-    <li>A viewer who had picked a theme in one place keeps it: the newest pick of the old keys wins, once.</li>
     <li>
-      Tests: <code>ThemePreference</code>'s, the prefs routes', the editor's; <code>yarn review</code> in spell-ui,
-      spell-app and spell-epic.
+      Edit the file by hand to <code>theme: "paper"</code>: open pages follow on their next look (back into view), and a
+      reload draws Paper with no flash of another theme after the first visit.
+    </li>
+    <li>
+      A page with a nested <code>&lt;ui-root theme="..."&gt;</code> keeps its own theme inside it, and changing it never
+      touches the file.
+    </li>
+    <li>
+      The read-only build (<code>spell app site serve</code>, page server stopped): the choice is kept in the browser
+      and survives a reload.
+    </li>
+    <li>A person who had picked a theme in one place keeps it after the change (the old keys move once).</li>
+    <li>
+      Tests: <code>ThemePreference</code>'s, <code>SpacePrefs</code>' and the prefs routes', the live message's, the
+      editor's; <code>yarn review</code> in spell-ui, spell-app, spell-epic and the kit.
     </li>
   </ul></epic-field
 >
