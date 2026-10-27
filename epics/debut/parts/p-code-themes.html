@@ -1,0 +1,314 @@
+<!-- plan-doc part:  #p-code-themes's body in debut.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Every theme's code draws in Shades of Purple: Matrix's mint console has purple comments and a purple band on the
+    current line, and in VS Code itself none of Spell's themes exist.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Pick Matrix, and the editor's code turns to a mint console palette; pick any other theme, and its code matches it
+      too, light and dark ("yes mint").
+    </li>
+    <li>
+      VS Code's theme picker lists a Spell theme for each of Spell's, in light and dark: 18, wearing the theme's own
+      surfaces, accent and code colours ("make a VSC theme to match each theme, in both light and dark").
+    </li>
+    <li>Code blocks on the docs sites and epic pages take the same code colours as the editor.</li>
+    <li>
+      Every code colour reads: 4.5:1 against the code's own background, comments too, since a Spell file's comments are
+      its prose.
+    </li>
+    <li>The theme bench shows the code colours in its editor frames and tunes them in a Code branch.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>Owen, 2026-10-26, asked whether Matrix should get its own code colours, word for word:</p>
+  <blockquote><p>yes mint. Let's make a VSC theme to match each theme, in both light and dark.</p></blockquote>
+  <ul>
+    <li>
+      Each Spell theme gets code colours of its own, light and dark: the editor's code, every code block on the docs and
+      epic pages, and a VS Code colour theme.
+    </li>
+    <li>
+      They're part of the theme, in its theme file: one place to change them, and the theme bench tunes them like any
+      other value.
+    </li>
+    <li>
+      The Spell extension for VS Code lists all of them, so VS Code itself can wear any Spell theme, its side bar, tabs
+      and status bar too.
+    </li>
+  </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>The code colours become part of the theme: a <code>code</code> group in the theme tree</b>
+      <ul>
+        <li>
+          Its roles are the ones the editor's Purple port already colours by (<code>ShadesOfPurple.rules()</code>):
+          text, heading, comment, keyword, type, library, name, member, parameter, action, constant, string, tag,
+          punctuation; plus attr, meta, addition and deletion, which code blocks use.
+        </li>
+        <li>
+          And the few editor colours: cursor, selection, current line, line numbers (and the current one), bracket
+          match, find match.
+        </li>
+        <li>
+          Each is a CSS token, <code>--ui-code-&lt;role&gt;</code>, light and dark like every other value. Code blocks
+          (<code>&lt;ui-code&gt;</code>) already read ten of them (<code>--ui-code-keyword</code>, <code>-string</code>,
+          <code>-comment</code> ...), so they follow the theme with no new code; today they fall back to One Dark / One
+          Light.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>How many palettes are designed by hand: 3 of 18 in full, the other 15 derived, then tuned</b>
+      <ul>
+        <li>
+          A recipe in <code>ThemeFile</code> derives a theme's code colours from its own colours: each role a hue the
+          theme already has (its palette, primary, accent, positive, warning), at a lightness that reads on its code
+          background (OKLCH: about 0.80 in dark, 0.48 in light); comments its muted text, a step toward its primary.
+        </li>
+        <li>A theme file's <code>code</code> group only holds what's changed by hand: one role, or all of them.</li>
+        <li>
+          Designed in full: Spell dark (Shades of Purple, as today), Spell light (the Studio board's light Purple, as
+          today) and Matrix (a mint console: mint keywords, teal types, amber strings, grey-green comments, as Owen's
+          rack viewer).
+        </li>
+        <li>
+          The other 15 (Glass, Fruity, Merlot, Paper, Midnight, Crisp, Pop in both schemes, and Matrix light) come from
+          the recipe, then a designer pass each, tuning a few roles in their files. Every one is looked at; none ships
+          unseen.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Readable: every code colour 4.5:1, comments included</b>
+      <ul>
+        <li>
+          Against the code's real background: the code is see-through on the panel in every theme (<a href="#j129"
+            >J129</a
+          >), so the theme's panel colour.
+        </li>
+        <li>
+          Comments too: in a Spell file the comments are the prose (Solitaire's "# A playing card ..."), not asides.
+        </li>
+        <li>
+          Shades of Purple's own comment colour (#b362ff) is 3.85:1 on its navy, but about 4.8:1 on Spell's darker
+          panel. Where a theme's panel is lighter, the recipe lifts it; Spell's stays as it is if it passes.
+        </li>
+        <li>The contrast test gets a check per role, per theme, per scheme: 18 × 18.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The editor's code reads the theme, with nothing generated for it</b>
+      <ul>
+        <li>
+          <code>CodeThemes</code> builds Monaco's theme from the page's own <code>--ui-code-*</code> tokens as they draw
+          (a probe element's computed colour, so a light / dark pair comes out as the scheme shows it), and defines it
+          with Monaco.
+        </li>
+        <li>
+          It rebuilds when the theme, the scheme or a tuning changes: it already watches <code>&lt;html&gt;</code>'s
+          classes and the scheme; it adds the theme attribute and the bench's tuning message.
+        </li>
+        <li>
+          So the editor, the theme bench's live tuning and the read-only public build all need nothing more.
+          <code>ShadesOfPurple</code> keeps only its token rules (which Spell token gets which role), its colours moving
+          into Spell's theme file.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>VS Code: 18 colour themes, generated, in the Spell extension</b>
+      <ul>
+        <li>
+          A new writer beside <code>ThemeFile</code>, <code>CodeThemeFile</code>: pure, no node, so it can run anywhere.
+          From a theme's values in one scheme, it writes a VS Code theme:
+          <ul>
+            <li>
+              <code>tokenColors</code>: the roles onto TextMate scopes, Spell's grammar's
+              (<code>keyword.control.spell</code>, <code>comment.line.number-sign.heading.spell</code> ...) and the
+              common ones, so TypeScript, CSS and JSON look right too
+            </li>
+            <li>
+              <code>semanticTokenColors</code>: the language server's token types (<code>type</code>,
+              <code>parameter</code>, <code>comment.heading1</code> ...), with <code>semanticHighlighting: true</code>
+            </li>
+            <li>
+              <code>colors</code>: the editor colours, and the workbench's from the theme's surfaces, borders, text and
+              primary (side bar and activity bar the page, the editor the panel, tabs, status bar, buttons, focus ring,
+              lists), a fixed table of about 40 keys
+            </li>
+          </ul>
+        </li>
+        <li>
+          Written into the Spell extension's <code>themes/</code> (<code>spell-matrix-dark.json</code> ...) by its
+          build, which may use Spell UI (every arrow points down; Spell UI never writes into spell-app). Committed, and
+          marked generated in <a href="/.gitattributes" target="src-gitattributes"><code>.gitattributes</code></a> and
+          <code>generators.json5</code>.
+        </li>
+        <li>
+          Its <a href="/package.json" target="src-package-json"><code>package.json</code></a> lists them
+          (<code>contributes.themes</code>, labelled "Spell Matrix Dark" ...), written by the same build, with a check
+          that fails while stale.
+        </li>
+        <li>
+          The extension's own defaults that colour headings bold (<code>configurationDefaults</code>) stay; they're
+          style, not colour.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The theme bench</b>
+      <ul>
+        <li>
+          Its tuning tree gets a Code branch (the roles, light and dark side by side), and its editor frames show the
+          code changing as a role is tuned.
+        </li>
+        <li>"Copy changes" writes the <code>code</code> group like any other.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Order: after One Theme Choice (P21), before Tints and the Full Theme Builder</b>
+      <ul>
+        <li>After P21, so the editor's code follows the one stored theme rather than each place's own.</li>
+        <li>
+          Before Tints: a tint changes the page's wash and accent, not the code; and the theme builder (P24) then gets
+          the code group with the rest.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Already there (coherence check)</b>
+      <ul>
+        <li>
+          <code>&lt;ui-code&gt;</code>'s ten <code>--ui-code-*</code> tokens: the code group takes their names, so no
+          second set.
+        </li>
+        <li>
+          <code>ShadesOfPurple</code>'s roles and token rules: kept as the mapping, its colours moving into the theme
+          file.
+        </li>
+        <li>
+          The kit's colour helpers (<a href="/src/util/color.ts" target="src-src-util-color-ts"
+            ><code title="src/util/color.ts">spell/util/color</code></a
+          >: OKLCH, contrast) for the recipe and the test; <code>CONTRAST_TEXT</code> for 4.5.
+        </li>
+        <li>
+          Nothing generates VS Code themes today. The window looks (<a
+            href="/spell-epic/src/window.mjs"
+            target="src-spell-epic-src-window-mjs"
+            ><code title="spell-epic/src/window.mjs">epic window color</code></a
+          >) re-hue Tomorrow Night Blue through each window's own colour settings, a different job; a Spell theme could
+          later be a window look, noted, not in this phase.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Left out</b>
+      <ul>
+        <li>Publishing the themes to the VS Code marketplace on their own: they ship inside the Spell extension.</li>
+        <li>Tints in the code: a tint doesn't change code colours.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Question for Owen</b>
+      <ul>
+        <li>
+          Glass, now everyone's first theme (<a href="#q39">Q39</a>), and Fruity: keep Shades of Purple, which people
+          have seen in the editor so far, or derive their own like the rest? My lean: Glass keeps Purple, so the default
+          editor looks as it does today; Fruity gets its own (pink and violet).
+        </li>
+      </ul>
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      the code group in every theme: Spell UI's theme tree (<a
+        href="/spell-ui/src/styles/styles.en.ts"
+        target="src-spell-ui-src-styles-styles-en-ts"
+        ><code title="spell-ui/src/styles/styles.en.ts">themeTree</code></a
+      >),
+      <a href="/spell-ui/src/styles/ThemeFile.ts" target="src-spell-ui-src-styles-themefile-ts"
+        ><code title="spell-ui/src/styles/ThemeFile.ts">ThemeFile</code></a
+      >, the nine <code>*.theme.json5</code>,
+      <a href="/spell-ui/src/styles/themes/theme.schema.json" target="src-spell-ui-src-styles-themes-theme-schema-json"
+        ><code>theme.schema.json</code></a
+      >
+    </li>
+    <li>
+      the VS Code theme writer: a new <code title="spell-ui/src/styles/CodeThemeFile.ts">CodeThemeFile</code> beside
+      <code>ThemeFile</code> (pure, no node)
+    </li>
+    <li>
+      code blocks:
+      <a href="/spell-ui/src/components/ui-code/UICode.css" target="src-spell-ui-src-components-ui-code-uicode-css"
+        ><code title="spell-ui/src/components/ui-code/UICode.css">UICode.css</code></a
+      >
+      (its <code>--ui-code-*</code> defaults)
+    </li>
+    <li>
+      the editor:
+      <a
+        href="/spell-app/src/app/ui/monaco/themes/CodeThemes.ts"
+        target="src-spell-app-src-app-ui-monaco-themes-codethemes-ts"
+        ><code title="spell-app/src/app/ui/monaco/themes/CodeThemes.ts">CodeThemes</code></a
+      >,
+      <a
+        href="/spell-app/src/app/ui/monaco/themes/ShadesOfPurple.ts"
+        target="src-spell-app-src-app-ui-monaco-themes-shadesofpurple-ts"
+        ><code title="spell-app/src/app/ui/monaco/themes/ShadesOfPurple.ts">ShadesOfPurple</code></a
+      >
+      (its roles become the code group's)
+    </li>
+    <li>
+      VS Code: the Spell extension (<a href="/spell-app/vscode/package.json" target="src-spell-app-vscode-package-json"
+        ><code title="spell-app/vscode/package.json">spell-app/vscode</code></a
+      >), a generated <code>themes/</code> folder and its <code>contributes.themes</code>; its build
+    </li>
+    <li>
+      the bench:
+      <a
+        href="/spell-ui/src/docs-components/ui-docs-theme-bench/"
+        target="src-spell-ui-src-docs-components-ui-docs-theme-bench"
+        ><code title="spell-ui/src/docs-components/ui-docs-theme-bench/">ui-docs-theme-bench</code></a
+      >, <code>BenchBridge</code>
+    </li>
+    <li>
+      generated-file lists: spell-app's
+      <a href="/.gitattributes" target="src-gitattributes"><code>.gitattributes</code></a> and
+      <a href="/.epic/generators.json5" target="src-epic-generators-json5"><code>.epic/generators.json5</code></a>
+    </li>
+    <li>docs: README-themes, theming.md, README-vscode / the extension's README</li>
+  </ul>
+  <p>
+    Repo-split's P20 (One Repo) moves these into the kit's <a href="/ui/" target="src-ui"><code>ui/</code></a> and
+    <a href="/spell-app/app/" target="src-spell-app-app"><code>app/</code></a
+    >; the plan names them as they are today.
+  </p></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      The contrast test checks every code colour of every theme, light and dark, against its code background: 4.5:1,
+      comments included.
+    </li>
+    <li>
+      The editor full-monty (Solitaire in Debug, every side bar open, a card picked) in all nine themes, light and dark:
+      the code matches the theme; a designer pass per theme.
+    </li>
+    <li>
+      A docs page's and an epic page's code block, in Matrix and Paper, light and dark, read the same colours as the
+      editor.
+    </li>
+    <li>
+      The 18 VS Code theme files load: a test validates each against VS Code's theme shape, and a Monaco page renders
+      each one.
+    </li>
+    <li>
+      Owen, in VS Code: rebuild the extension (<code>spell app vscode</code>), then Code › Settings › Theme › Color
+      Theme (⌘K ⌘T), pick "Spell Matrix Dark", open <code>Solitaire/Card.spellx</code>.
+    </li>
+    <li>The bench: tune a code colour, and the editor frames' code changes at once.</li>
+  </ul></epic-field
+>
