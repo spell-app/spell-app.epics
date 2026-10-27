@@ -3,7 +3,9 @@ id: r1
 epic: debut
 from: elemental-spell-97 (6c7231b5)
 at: 2026-10-26T21:45-04:00
-status: new
+status: filed
+filed: P21 · One Theme Choice
+phase: p-one-theme-choice
 ---
 
 ## Owen's words
