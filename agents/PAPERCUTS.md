@@ -231,6 +231,14 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   (10s hook timeout, staging a package) while the whole kit's suite ran;  alone it passes in ~13s. · Re-run it
   alone (`yarn vp test run tests/cli/publish/PublishedPackage.test.ts`) before suspecting a change. · kit (epic
   `coherence` P1)
+- 2026-10-27 · `spell rename branches` (repo-split P20's carry-on) ends with `spell rename imports` over the WHOLE kit,
+  which also renamed 12 of main's files that name the old layout on purpose (`AGENTS.md`'s "`spell-ui/` ...",
+  the one-repo and MultiRepo tests' made-up old layouts, `UIBundle.ts`'s published names) and committed them. ·
+  Check its last commit's diff;  put back every file the carried branches didn't bring (debut's carry-on kept 1 of 13).
+  The fix:  rename only the files the carried merges changed, as the per-branch pass already does. · kit (epic `debut`)
+- 2026-10-27 · `node epic/src/tools/bundle-spell-ui.js` died on main after repo-split P20:  `"onResolve" filter is
+  not a valid Go regular expression` -- its `SPELL_EPIC` filter had a lookahead, which esbuild's Go regexps lack. ·
+  Spelled "anything but `ui`" out without one (debut's carry-on, merged). · epic (epic `debut`)
 
 ## ui
 
