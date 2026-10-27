@@ -3,7 +3,9 @@ id: r4
 epic: elemental-spell
 from: 🚧 debut (ad62dff0)
 at: 2026-10-27T10:01-04:00
-status: new
+status: filed
+filed: P25 · Notebook Look and Editing
+phase: p-notebook-look-and-editing
 images: image-1.png, image-2.png
 ---
 
