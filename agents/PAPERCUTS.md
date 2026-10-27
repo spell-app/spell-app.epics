@@ -1776,6 +1776,12 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## epics
 
+- 2026-10-27 · `epic commit debut#I77 <sha>` from a kit worktree finds only the KIT's commits:  a child repo's sha
+  (spell-ui's `e384f311`) says "no commit ... in /Users/owen/www/spell.worktrees/debut";  `PlanDocFiles.repoFolders()`
+  doesn't list the child repos inside the kit, and from a child repo's folder the page isn't found at all.  Worked round
+  by naming the child commits in `epic update ... done`'s summary.  Fix:  repoFolders() lists the kit's child repos
+  (`repos.json5`).  spell-epic (epic `debut`, I77).
+
 - 2026-10-25 · The epic skill (its cheat sheet and "Each phase" steps) still says `#T` is a todo and `#V` a test, but
   since epic `epic-engine` P32 `#T` is a TEST and todos are work caveats (`#C`, `--limit` for a limit);  `epic help add`
   says the old way too, while `epic add --help` says the new.  So a background agent in epic `ui-gaps` wrote a
