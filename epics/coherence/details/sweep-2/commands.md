@@ -39,10 +39,11 @@ By the coherence agent, 2026-10-26 (epic `coherence`, sweep 2).  No file changed
     `local`, `start [all]`, `stop [local|all]`, `status`, `url <file>`, `prune [--dry-run]`
   - `epic server` (spell-epic's `src/cli/epicGroups.ts:527-566`, run by `src/cli/EpicProgram.ts:507-516`):
     `serve`, `start [--all]`, `ensure`, `stop`, `status`, `url <file>`, `prune [--dry-run]`
-    - it hands each verb straight to the kit's page server command line, which keeps two hidden verbs only for it:
-      - `src/server/page/cli.ts:7-8`:  "`ensure`:  the same, hidden:  the old name, which spell-epic's
-        `epic server ensure` still hands on"
-      - `serve`:  the same case as `local` (`:61-62`)
+    - it hands each verb straight to the kit's page server command line, whose hidden verbs it shows people:
+      - `ensure`, kept only for it (`src/server/page/cli.ts:8`):  "the same, hidden:  the old name, which
+        spell-epic's `epic server ensure` still hands on"
+      - `serve`, the background server's own verb (`:4`:  "what a background server runs ... which `prune` finds
+        by it"), the same case as `local` (`:61-62`)
     - its `--all` is rewritten into the kit's `start all` (`EpicProgram.ts:514`)
   - the skills and hooks say `epic server`:
     - `spell-epic/skills/details/SKILL.md:215,219` (`stop`, `ensure`, `url`)
@@ -70,12 +71,13 @@ By the coherence agent, 2026-10-26 (epic `coherence`, sweep 2).  No file changed
   - `epic server` takes them as they are:  `local`, `start [--all]`, `stop`, `status`, `url`, `prune`
     - it maps them onto `epic hub` where there's no page server;  `epic hub` takes the same words
   - `all` one way in both:  `--all`
-  - the page server's hidden `serve` and `ensure` go
+  - the page server's hidden `ensure` goes;  `serve` stays the background server's own, out of `epic server`'s help
   - the skills and hooks say `epic server start` (or `spell server`):  one spelling in every doc
 - **Net effect:**
   - a person or a skill learns one set of verbs for the page server, whichever command they type
-  - `src/server/page/cli.ts` loses the two names it keeps for a caller;  `start` reads the same in every help
-- **Saves:**  the two hidden verbs and the `--all` rewrite (about 15 lines);  66 mentions down to one spelling.
+  - `src/server/page/cli.ts` loses the name it keeps for a caller;  `start` reads the same in every help
+- **Saves:**  the hidden `ensure`, `epic server`'s own verb list and the `--all` rewrite (about 15 lines);
+  66 mentions down to one spelling.
 - **Evidence:**
   - `epic server --help` beside `spell server --help`;  `grep -n ensure src/server/page/cli.ts`
   - repo-split J119 and J120 (`parts/j119.html`, `parts/j120.html`) leave `epic`'s verb names to "the epic-renames
