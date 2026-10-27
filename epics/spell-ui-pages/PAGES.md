@@ -97,11 +97,11 @@ so `#examples-types-emphasis` deep-links to it (its tab shown, the sections arou
 
     ```html
     <ui-section id="examples-types-emphasis" header="Emphasis" sticky collapsible dividing>
-      <ui-docs-example>
+      <ui-example>
         <p slot="description">A button can be formatted to show different levels of emphasis.</p>
         <ui-message slot="description" state="info" size="small">Set your brand colours in <code>--ui-primary</code>.</ui-message>
         <ui-button color="primary">Save</ui-button>
-      </ui-docs-example>
+      </ui-example>
     </ui-section>
     ```
 
