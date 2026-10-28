@@ -239,6 +239,12 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 - 2026-10-27 · `node epic/src/tools/bundle-spell-ui.js` died on main after repo-split P20:  `"onResolve" filter is
   not a valid Go regular expression` -- its `SPELL_EPIC` filter had a lookahead, which esbuild's Go regexps lack. ·
   Spelled "anything but `ui`" out without one (debut's carry-on, merged). · epic (epic `debut`)
+- 2026-10-27 · `yarn review` at the kit's root (its folders' `yarn format`) rewrote ~345 files on `main` nobody had
+  touched:  app's docs pages and vendored `static/`, epic's tools and templates, the kit's tests, and app's fixture
+  snapshots (`tests/spell/__examples__`, `__guides__`), which the `spell` tests then failed against (46 of them).
+  `main` has drifted from oxfmt, and the snapshots aren't in the format ignore list. · Reverted them by path, and ran
+  app's `ts` / `lint` / `test` without the format step. · Fix:  one `yarn format` commit on `main` (snapshots left out
+  of it, or ignored). · kit (epic `elemental-spell` P28)
 
 ## ui
 
