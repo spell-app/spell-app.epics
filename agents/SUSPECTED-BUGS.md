@@ -693,6 +693,12 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- spaces looks for Owen's projects at `~/www/spell.spaces`, but since epic `repo-split` P20 they're at
+  `~/www/spell/spell.spaces` (2026-10-29, found by P24's docs pass):  `app/src/spaces/server/node/environment.ts`.
+  Suspect a default left from when the app was a child repo inside the kit;  `SPELL_SPACES_DIR` may be what keeps it working.
+- `packCreate.ts` and its test fixture still assume `spell-*` workspaces (2026-10-29, P24's docs pass):
+  the folders are `parser/`, `ui/`, `epic/`, `app/` now, still named `spell-parser` ... in their manifests.
+  Suspect a new pack created by it lands wrong, or its test only passes on the old layout.
 - An editor left open while a project's files are renamed on disk saves the project WITHOUT them
   (2026-10-29, epic `repo-split` P21):  the editor at `localhost:3000` had Solitaire open when every `.spellx` file
   became `.spellml`, and its `__project.json5` came back with only `styles.css` in `imports` (Card, Deck, Pile and
