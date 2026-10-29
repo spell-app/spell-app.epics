@@ -693,6 +693,12 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- An editor left open while a project's files are renamed on disk saves the project WITHOUT them
+  (2026-10-29, epic `repo-split` P21):  the editor at `localhost:3000` had Solitaire open when every `.spellx` file
+  became `.spellml`, and its `__project.json5` came back with only `styles.css` in `imports` (Card, Deck, Pile and
+  Solitaire gone);  restored with `git checkout`.
+  Suspect the project save writes its in-memory file list, dropping the files it can no longer find,
+  rather than refusing or re-reading the folder.
 - Solitaire sometimes fails to compile in a framed editor (2026-10-27, epic `debut` P24):  in the theme editor's
   preview, the DARK editor frame (the editor at `127.0.0.1`, while the light one loads at `localhost`) twice showed
   `Match Don't understand "for each rank in card ranks"` and the other rules of Solitaire, no game drawn;  a rerun drew it.
