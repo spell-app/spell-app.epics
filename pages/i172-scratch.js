@@ -1,1 +1,0 @@
-window.scratchVersion = 7
