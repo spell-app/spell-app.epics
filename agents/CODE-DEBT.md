@@ -647,6 +647,26 @@ knowingly kept:
 
 ---
 
+## epic
+
+### The epic tooling still meets worktrees in the OLD layout (child-repo checkouts inside)
+
+- **Cost** -- every walker of an epic's worktree carries a second case:  `EpicConfig.foundCheckouts()`,
+  `isCrossed()` (reading the history rewrite's commit maps), `leftBehind()`;  `MainMerge.carryOn()`;  the refusals in
+  `Worktrees.remove()`, the worktree hook's `remove` and `Requests.mergeCheck()`;  the hook's old-clone note on a
+  reused branch;  the kit's `oldLayout` settings.
+- **Cause** -- epic `repo-split` P20 · One Repo merged the child repos into the kit without making every open branch
+  merge first (epic `epic-engine` Q40, changed:  Owen, "I don't want everyone to stall overnight").  A worktree cut
+  before still holds a worktree of each old clone (`spell-ui/` ...), whose branch's work is in no kit branch until
+  `spell rename branches` crosses it over.
+- **Fix** -- once no worktree holds a child checkout (`epic worktree status`, or
+  `ls ~/www/spell.worktrees/*/spell-*/.git`), delete that support:  the methods above, `oldLayout` and its settings,
+  `~/www/spell.old/`, and the commit maps beyond the four `main` ones (`epic commits remap` needs those).
+- **Pinned at** -- epic `epic-engine` P49;  the kit's `.epic/config.json5` (`oldLayout`);  the tests in
+  `epic/tests/command/OneRepo.test.ts` ("an OLD-LAYOUT worktree").
+
+---
+
 ## app
 
 ### The runners can't run TypeScript output
