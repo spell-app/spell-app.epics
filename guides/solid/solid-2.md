@@ -399,8 +399,9 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
   - A tag of your own:  augment `"@solidjs/web/types/jsx.js"`, NOT `"@solidjs/web"` (which only re-exports `JSX`).
 - Spell UI controllers keep their state in REACTIVE MEMBERS, not bare signals
   (the element framework's `Reactive.ts`, `spell/element`;  P14):  a record per instance plus a notifier signal per
-  member ("N" in `solid-2.html` §2), and `@derived` as a self-tracking cache over the record (spell cells' idea, "X", without `enableExternalSource`).  So
-  `this.x = v;  this.x` is fresh with no `flush()`;  Solid listeners re-run on the notifier, staged as usual.
+  member ("N" in `solid-2.html` §2), and `@derived` as a self-tracking cache over the record
+  (spell cells' idea, "X", without `enableExternalSource`).  So `this.x = v;  this.x` is fresh with no `flush()`;
+  Solid listeners re-run on the notifier, staged as usual.
   Rules:  `ui/AGENTS.md` "Solid authoring".
 - Spell UI specifics (its events:  SEE `ui/AGENTS.md` "UI rules"):
   - never write a bare string attribute in JSX (`<ui-toast icon>` requests `true.js`):  write `icon=""`
