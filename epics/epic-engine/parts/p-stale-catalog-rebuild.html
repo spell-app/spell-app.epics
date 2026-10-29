@@ -45,6 +45,20 @@
       </ul>
     </li>
     <li>
+      <epic-change id="ch408" item="q60" at="2026-10-29 17:39" answer="Both"
+        >Both (<a href="#q60">Q60</a> C): the page server watches the components' vocabularies itself, and regenerates
+        the root catalog before any page breaks.</epic-change
+      >
+      <ul>
+        <li>
+          <epic-change id="ch409" item="q60" at="2026-10-29 17:39" answer="Both"
+            >The backstop: a page that still finds its catalog stale (a component pack the watch missed) tells the
+            server, once.</epic-change
+          >
+        </li>
+      </ul>
+    </li>
+    <li>
       When a page finds its root catalog stale, it tells the page server it came from.
       <ul>
         <li>
@@ -71,6 +85,20 @@
       </ul>
     </li>
     <li>
+      <epic-change id="ch410" item="q61" at="2026-10-29 17:39" answer="Only in a worktree"
+        >Only in a worktree (<a href="#q61">Q61</a> B): the server rewrites the committed generated files (Spell UI's
+        root catalog, spell-epic's docs bundle, a pack's <code>__pack/</code>) in a worktree, never in the main
+        checkout.</epic-change
+      >
+      <ul>
+        <li>
+          <epic-change id="ch411" item="q61" at="2026-10-29 17:39" answer="Only in a worktree"
+            >On main it writes nothing: it logs what to run instead.</epic-change
+          >
+        </li>
+      </ul>
+    </li>
+    <li>
       It reuses what the server already has for bundles (<a
         href="/src/server/Bundle.ts"
         target="src-src-server-bundle-ts"
@@ -89,6 +117,127 @@
   <p>
     Spell UI's root catalog and spell-epic's docs bundle join the stale-bundle machinery the page server already has.
   </p></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <p>The committed generated files join the bundles the server already builds.</p>
+      <ul>
+        <li>
+          Three new entries in
+          <a href="/src/server/server.types.ts" target="src-src-server-server-types-ts"
+            ><code title="src/server/server.types.ts">BUNDLES</code></a
+          >, marked committed, the catalogs first:
+          <ul>
+            <li>Spell UI's root catalog: <code>yarn gen:root</code>, from every component's vocabulary</li>
+            <li>the epics pack: <code>yarn pack:build</code>, its <code>__pack/</code></li>
+            <li>spell-epic's docs bundle: <code>bundle-spell-ui.js</code>, its <code>spell-ui.js</code></li>
+          </ul>
+        </li>
+        <li>
+          Each named in its folder's <code>"pageServer"</code> settings, so
+          <a href="/src/server/Bundle.ts" target="src-src-server-bundle-ts"
+            ><code title="src/server/Bundle.ts">Bundle.specs()</code></a
+          >
+          finds it.
+        </li>
+        <li>A committed one keeps its "built from" record in a git-ignored cache, never beside the file it writes.</li>
+      </ul>
+    </li>
+    <li>
+      <p>Only in a worktree (Q61):</p>
+      <ul>
+        <li>
+          <code>spell bundle --stale</code> rebuilds a committed one only when the checkout is a worktree
+          (<code>SRV.checkoutOf()</code>).
+        </li>
+        <li>
+          On main it writes nothing, and logs one line: "ui-root is stale: run <code>yarn gen:root</code> in ui/".
+        </li>
+        <li><code>spell bundle ui-root</code>, asked for by name, still builds anywhere.</li>
+      </ul>
+    </li>
+    <li>
+      <p>
+        The watch (Q60): the vocabularies are among the sources, so
+        <a href="/src/server/page/BundleBuild.ts" target="src-src-server-page-bundlebuild-ts"
+          ><code title="src/server/page/BundleBuild.ts">BundleBuild.watch()</code></a
+        >
+        regenerates the catalog a few seconds after a component gains an attribute; the bundles built from it follow,
+        and live reload brings the pages back.
+      </p>
+      <ul>
+        <li>
+          A worktree's build starts at its FIRST page of any kind, not only at a components page
+          (<code>worktreeBuildFor()</code>): an epic page in a worktree starts the watch too.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <p>The backstop (Q60): a page still hitting a stale catalog tells the server, once.</p>
+      <ul>
+        <li>
+          <a href="/src/element/DOMElement.ts" target="src-src-element-domelement-ts"
+            ><code title="src/element/DOMElement.ts">DOMElement.attach()</code></a
+          >
+          throws a <code>StaleCatalogError</code> (its tag and the missing attributes in its <code>cause</code>), in
+          element's types file.
+        </li>
+        <li>
+          <code>&lt;ui-root&gt;</code>'s loader, on that error, calls <code>SPELL_SERVER.reportStale()</code> when the
+          page has a server.
+        </li>
+        <li>The live client adds <code>reportStale()</code>: once a page, a POST with the write token.</li>
+        <li>
+          The page server's route finds the page's checkout (main, or <code>/worktrees/&lt;w&gt;/</code>) and checks its
+          bundles: one build however many pages ask; on main, the log line only.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <p>Tests:</p>
+      <ul>
+        <li>
+          <a href="/tests/server/Bundle.test.ts" target="src-tests-server-bundle-test-ts"><code>Bundle.test.ts</code></a
+          >: the committed entries in order, their record in the cache, skipped with a log on main
+        </li>
+        <li>
+          <a href="/tests/server/page/BundleBuild.test.ts" target="src-tests-server-page-bundlebuild-test-ts"
+            ><code>BundleBuild.test.ts</code></a
+          >: a worktree build starts on any of its pages; two reports during a build make one more run
+        </li>
+        <li>
+          <a href="/tests/server/liveClient.test.ts" target="src-tests-server-liveclient-test-ts"
+            ><code>liveClient.test.ts</code></a
+          >: <code>reportStale()</code> posts once, with the token
+        </li>
+        <li>element's and <code>&lt;ui-root&gt;</code>'s: the typed error, and the loader reporting it</li>
+      </ul>
+    </li>
+    <li>
+      <p>
+        The headless check: in this worktree, add an attribute to
+        <a href="/ui/src/components/ui-menu/UIMenu.en.ts" target="src-ui-src-components-ui-menu-uimenu-en-ts"
+          ><code>UIMenu.en.ts</code></a
+        >, open its components page through the main server (<code>/worktrees/epic-engine/components/ui/</code>) with
+        Playwright, and see it reload by itself with no stale error; then take the attribute out, and the catalog goes
+        back.
+      </p>
+    </li>
+    <li>
+      <p>
+        Docs: the server's <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> (its bundles section:
+        committed bundles, worktree only, the report route), element's (the error), ui's (<code>gen:root</code> runs by
+        itself in a worktree), the kit's "The page server"; the commands page if <code>spell bundle</code> gains names
+        (<code>spell commands check</code>). No markup changes, so no migration.
+      </p>
+    </li>
+    <li>
+      <p>
+        Left out: a published page, or one opened from disk, keeps today's console message; spell-brand's copy of the
+        bundle is its own.
+      </p>
+    </li>
+  </ol></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
