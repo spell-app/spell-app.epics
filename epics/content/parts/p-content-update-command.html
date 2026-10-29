@@ -8,70 +8,119 @@
   ><ul>
     <li>
       One command lists what's new since the last content update: commits in the parser and Spell UI with their epics,
-      changelog entries merged since, new components, new grammar.
+      the changelog entries of those epics, new components, new grammar.
     </li>
-    <li>Its <code>--json</code> is what the session reads to turn changes into features worth showing.</li>
-    <li>Features you said to always upgrade are done without asking; ones you turned down aren't offered again.</li>
     <li>
-      The phase ends by running it: the first "Content Update &lt;date&gt; &lt;time&gt;" phase is on the page, with a
-      question to pick from (<a href="#q6">Q6</a> A).
+      A standing set on this page, "Upgrades on offer", grows as the session finds features worth showing; you tick any
+      of them, add your own, and press Send.
+    </li>
+    <li>
+      Your ticks become a "Content Update &lt;date&gt; &lt;time&gt;" phase, built like any other; the rest stay on
+      offer.
+    </li>
+    <li>
+      Features you said to always upgrade are done without asking; ones you turned down (removed from the set) aren't
+      offered again.
+    </li>
+    <li>
+      The phase ends by running it: the set holds its first features (<a href="#q6">Q6</a>, <a href="#j3">J3</a>).
     </li>
   </ul></epic-field
 ><epic-field name="changes"
   ><p>
-    <code>spell content update</code> gathers what changed since the last update; a file beside the content remembers
-    where the last one stopped and what you said always or never to upgrade.
+    <code>spell content update</code> gathers what changed since the last update; the session adds the features it finds
+    to a standing set on this page, "Upgrades on offer"; you tick and press Send, and your ticks become a Content Update
+    phase (<a href="#j3">J3</a>, folding in the old P4).
   </p></epic-field
 ><epic-field name="plan"
   ><ol>
     <li>
-      <b>The memory file</b>, <code title="app/spaces/@spell/content-updates.json5">content-updates.json5</code>, beside
-      the content:
+      <b>What it remembers</b>, in two places, neither of them shipped with the examples:
       <ul>
         <li>
-          <code>last</code>: the commit and date the last update stopped at (the first run starts from this epic's
-          merge)
+          your picks and turn-downs are the standing set itself: ticked options are stamped Picked, turned-down ones
+          Removed; read back with <code>epic items content --json</code>
         </li>
-        <li><code>always</code>: features you said to always upgrade, each a short id and a line</li>
-        <li><code>never</code>: features you turned down</li>
+        <li>
+          the commit the last update stopped at, and the "always upgrade" rules, in
+          <code title="spell.epics/epics/content/content-updates.json5">content-updates.json5</code> in this epic's
+          shared folder, as the coherence score keeps its snapshots in its epic's (<a
+            href="/src/cli/coherence/ScoreSnapshots.ts"
+            target="src-src-cli-coherence-scoresnapshots-ts"
+            ><code title="src/cli/coherence/ScoreSnapshots.ts">ScoreSnapshots</code></a
+          >)
+        </li>
       </ul>
     </li>
     <li>
       <b>The command</b>, <code>spell content update [--json]</code>, beside <code>check</code>; one class gathers, the
-      command prints:
+      command prints. It reuses what the repo has (app may use the epic folder's code: it sits above it):
       <ul>
-        <li>commits under parser/ and ui/ since <code>last</code>, grouped by the epic their subject names</li>
-        <li>changelog entries merged since (their sections in the content folder's changelog, by date)</li>
         <li>
-          new Spell UI components (a new folder under its components) and new grammar (new rule files in the parser)
+          commits under parser/ and ui/ since the stop commit, through the kit's
+          <a href="/src/server/Git.ts" target="src-src-server-git-ts"><code title="src/server/Git.ts">Git</code></a
+          >; each subject read by
+          <a href="/epic/src/tool/PlanCommits.ts" target="src-epic-src-tool-plancommits-ts"
+            ><code title="epic/src/tool/PlanCommits.ts">PlanCommits.parseCommitSubject()</code></a
+          >, so they group by epic
         </li>
-        <li>anything matching an <code>always</code> or <code>never</code> entry is marked so</li>
+        <li>
+          each of those epics' changelog entry, one lookup per epic (<a
+            href="/epic/src/tool/EpicDocs.ts"
+            target="src-epic-src-tool-epicdocs-ts"
+            ><code title="epic/src/tool/EpicDocs.ts">EpicDocs.changelogEntry()</code></a
+          >)
+        </li>
+        <li>
+          new components: Spell UI's component data (<a
+            href="/components/ui/__data/components.json5"
+            target="src-ui-docs-data-components-json5"
+            ><code title="ui/docs/__data/components.json5">components.json5</code></a
+          >) at the stop commit against now
+        </li>
+        <li>
+          new grammar: the parser's syntax table (<a
+            href="/parser/src/spell/spellSyntax.json"
+            target="src-parser-src-spell-spellsyntax-json"
+            ><code title="parser/src/spell/spellSyntax.json">spellSyntax.json</code></a
+          >) the same way
+        </li>
+        <li>anything matching an "always" rule, or an option already on offer, picked or removed, is marked so</li>
       </ul>
     </li>
     <li>
-      <b>Recording an update's end</b>:
-      <code>spell content update --done [--always id ...] [--never id ...]</code> moves <code>last</code> to
-      <code>HEAD</code> and adds to the lists.
+      <b>Recording an update's end</b>: <code>spell content update --done [--always id ...]</code> moves the stop commit
+      to now and adds to the always rules.
     </li>
     <li>
-      <b>The judgement stays with the session</b>: the content epic's skill steps (in its epic page's guide, and
-      README-examples' "Keeping the examples current") say how to turn the list into features, each with the examples
-      and notebooks it would touch.
+      <b>The standing set</b> (<a href="#j3">J3</a>), with epic-engine's P50 tools, already on main:
+      <ul>
+        <li>made once: <code>epic add content#choices "Upgrades on offer" --multiple</code></li>
+        <li>
+          each update run: the session turns the new changes into features worth showing (the judgement stays with it),
+          each with the examples and notebooks it would touch, and adds each with
+          <code>epic option add content#s-upgrades-on-offer "Title" "note"</code>
+        </li>
+        <li>
+          you tick and press Send; the session makes a "Content Update &lt;date&gt; &lt;time&gt;" phase from the ticks,
+          and builds it as any phase here
+        </li>
+      </ul>
     </li>
     <li>
-      <b>Tests</b>: a throwaway git repo with a few commits, as other git tests do; the always / never marking; the
-      changelog read from a small sample page.
+      <b>The steps written down</b>: README-examples gets "Keeping the examples current": run the command, add the
+      features, build the picks.
     </li>
     <li>
-      <b>The first update</b>, as this phase's last step: run it, add the phase "Content Update &lt;date&gt;
-      &lt;time&gt;", whose plan holds a question with one pick per feature (upgrade / not now / never), until
-      epic-engine's P50 · Choices Questions gives tick boxes (<a href="#q6">Q6</a> A).
+      <b>Tests</b>: a throwaway git repo with a few commits; the always / picked / removed marking; the component and
+      syntax diffs on small samples.
     </li>
+    <li><b>The first run</b>, as this phase's last step: run it, and fill the set with its first features.</li>
     <li>
       <b>Checked:</b> <code>yarn review</code>, <code>spell commands check</code>; a short doc pass, changelog entry,
       merged into <code>main</code>.
     </li>
-    <li><b>Left out:</b> the standing list (P4).</li>
+    <li><b>Left out:</b> an "Update now" button of its own: Send does it.</li>
   </ol></epic-field
 ><epic-field name="files"
   ><ul>
@@ -80,25 +129,31 @@
       gathers the changes, in app's
       <a href="/app/src/cli/" target="src-app-src-cli"><code title="app/src/cli/">cli</code></a>
     </li>
-    <li>new: <code title="app/spaces/@spell/content-updates.json5">content-updates.json5</code></li>
     <li>
-      reads: the changelog, <code title="spell.epics/guides/changelog.html">changelog.html</code>, in the content folder
+      new: <code title="spell.epics/epics/content/content-updates.json5">content-updates.json5</code>, in this epic's
+      shared folder
     </li>
     <li>
-      commands.json5;
+      reads: commit subjects (<a href="/epic/src/tool/PlanCommits.ts" target="src-epic-src-tool-plancommits-ts"
+        ><code title="epic/src/tool/PlanCommits.ts">PlanCommits</code></a
+      >), the changelog (<a href="/epic/src/tool/EpicDocs.ts" target="src-epic-src-tool-epicdocs-ts"
+        ><code title="epic/src/tool/EpicDocs.ts">EpicDocs</code></a
+      >), Spell UI's component data and the parser's syntax table at two commits
+    </li>
+    <li>
+      the commands page's data;
       <a href="/app/README-examples.md" target="src-app-readme-examples-md"
         ><code title="app/README-examples.md">README-examples</code></a
       >
       (how an update runs)
     </li>
+    <li>this epic page's standing set</li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
-    <li>
-      Tests on a small git history: the commits since a given one, grouped by epic; the always / never lists filter what
-      it offers.
-    </li>
+    <li>Tests on a small git history: the commits since a given one, grouped by epic; the always / never marking.</li>
     <li><code>spell content update</code> on the real repo lists something sensible; <code>--json</code> parses.</li>
+    <li>Ticking two options in "Upgrades on offer" and pressing Send makes a phase with just those two.</li>
     <li>
       <code>yarn review</code>, <code>spell commands check</code>; a short doc pass; merged into <code>main</code> at
       once.
