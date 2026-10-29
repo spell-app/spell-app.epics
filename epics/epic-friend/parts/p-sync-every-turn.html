@@ -1,0 +1,115 @@
+<!-- plan-doc part:  #p-sync-every-turn's body in epic-friend.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Each turn commits the plans locally and stops there: nobody else ever sees them, and two people's new items would
+    clash.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      <epic-change id="ch12" item="q5" at="2026-10-29 06:54" answer="Automatically, every turn"
+        >Every turn's commit pulls (rebasing) before and pushes after, on its own; <code>epic shared sync</code> by
+        hand; a conflict it can't settle stops the sync and says so; offline, it commits and pushes later.</epic-change
+      >
+      (<a href="#q5">Q5</a>)
+    </li>
+    <li>
+      <epic-change id="ch13" item="q6" at="2026-10-29 06:54" answer="Renumber after the pull"
+        >After each pull, two items, comments or change marks with one id are told apart: the LOCAL one gets the next
+        free number, its part file and every link following, with a log line.</epic-change
+      >
+      (<a href="#q6">Q6</a>)
+    </li>
+    <li>The log keeps both people's lines (git's union merge) and is re-sorted by time.</li>
+    <li>The page's "updated" date merges as the later of the two.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>
+    The end-of-turn commit pulls before it and pushes after, whenever the content repo has a remote;
+    <code>epic shared sync</code> does the same by hand. After each pull it fixes what a merge leaves: duplicate ids,
+    the log's order, the page's date.
+  </p></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>Pull and push.</b>
+      <a href="/epic/src/command/Shared.ts" target="src-epic-src-command-shared-ts"
+        ><code title="epic/src/command/Shared.ts">Shared</code></a
+      >
+      gains <code>sync()</code>: commit as today, then <code>git pull --rebase</code>, the fixes below, and
+      <code>git push</code>. Only when the content repo has a remote; inside the commit lock that's there already.
+    </li>
+    <li>
+      <b>Every turn.</b> <code>epic shared commit</code> runs the sync when there's a remote, still detached from the
+      turn (<a href="/epic/hooks/shared-commit.mjs" target="src-epic-hooks-shared-commit-mjs"
+        ><code title="epic/hooks/shared-commit.mjs">the end-of-turn hook</code></a
+      >); <code>epic shared sync</code> runs it by hand, and prints what it did.
+    </li>
+    <li>
+      <b>When it can't.</b> Offline: the commits stay, and the next sync pushes them. A conflict the fixes can't settle:
+      the rebase is aborted, and the sync names the files, in its log and the next time
+      <code>epic shared status</code> runs.
+    </li>
+    <li>
+      <b>The merge settings.</b> The content repo's attributes file gets <code>merge=union</code> for every
+      <a href="/epics/epic-friend/parts/log.html" target="src-epics-epic-friend-parts-log-html"
+        ><code>parts/log.html</code></a
+      >; <code>Shared.init()</code> writes it, and a sync adds it to a repo without it.
+    </li>
+    <li>
+      <b>After the pull</b>, for each epic page the pull changed:
+      <ul>
+        <li>the log's lines re-sorted by their time</li>
+        <li>the page's <code>updated</code> date the later of the two</li>
+        <li>
+          duplicate ids (items, comments, change marks): the one only this machine had gets the next free number, its
+          part file and links following, through
+          <a href="/epic/src/tool/migrations/ItemRenames.ts" target="src-epic-src-tool-migrations-itemrenames-ts"
+            ><code title="epic/src/tool/migrations/ItemRenames.ts">ItemRenames.renumber()</code></a
+          >, with a log line
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Checked</b>: tests with two clones of one bare repo, both adding <code>T22</code>, a log line and a date; a
+      real conflict; offline. <code>yarn review</code> in <a href="/epic/" target="src-epic"><code>epic/</code></a
+      >.
+    </li>
+    <li><b>Left out</b>: the review inboxes, which stay local until the Shared Comments phase.</li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="/epic/src/command/Shared.ts" target="src-epic-src-command-shared-ts"
+        ><code title="epic/src/command/Shared.ts">Shared</code></a
+      >: <code>commit()</code> and the new <code>sync</code>
+    </li>
+    <li>
+      <a href="/epic/hooks/shared-commit.mjs" target="src-epic-hooks-shared-commit-mjs"
+        ><code title="epic/hooks/shared-commit.mjs">the end-of-turn hook</code></a
+      >
+    </li>
+    <li>the content repo's attributes file, written by <code>Shared.init()</code> and added to old repos</li>
+    <li>
+      a renumbering class beside the item-renames migration, reusing its
+      <a href="/epic/src/tool/migrations/ItemRenames.ts" target="src-epic-src-tool-migrations-itemrenames-ts"
+        ><code title="epic/src/tool/migrations/ItemRenames.ts">renumber()</code></a
+      >
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      tests with two clones of one bare repo: both add <code>T22</code>, both log, both bump the date; after the sync,
+      <code>T22</code> and <code>T23</code>, one sorted log, the later date
+    </li>
+    <li>
+      a conflict it can't settle: the sync stops, aborts the rebase and says which files, so the repo is never left
+      half-merged
+    </li>
+    <li>offline: the commit stands, and the push waits for the next turn</li>
+    <li>
+      <code>yarn review</code> in <a href="/epic/" target="src-epic"><code>epic/</code></a>
+    </li>
+  </ul></epic-field
+>
