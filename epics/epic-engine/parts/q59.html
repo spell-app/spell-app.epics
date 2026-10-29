@@ -51,3 +51,76 @@
   </ul></epic-net-effect
 >
 <epic-answer title="Send and wake, as a press does"></epic-answer>
+<epic-reply
+  from="Claude"
+  at="2026-10-29 09:05"
+  re='How does `b` work for a session which is not e.g. visible in VSCode? Does it run an "invisible session" somewhere?'
+  ><p>
+    No invisible session: nothing runs in the background. A wake always lands in a VS Code tab, and in most cases it
+    only TYPES <code>/epic review epic-engine</code> there; Claude starts when you press Enter.
+  </p>
+  <p>What the page server does when Send (or, with B, the countdown) finds nobody listening, first match wins:</p>
+  <ol>
+    <li>
+      <b>The epic's session is running</b> (one tab titled for the epic):
+      <ul>
+        <li>its inbox poller runs: it's told through the inbox and wakes by itself in a few seconds, nothing typed</li>
+        <li>
+          no poller: the command is typed into its tab through the spell extension's window bridge; press Enter there.
+          If that tab is already open, VS Code refuses to type into it, so nothing happens and the page says so
+        </li>
+      </ul>
+    </li>
+    <li><b>No session, the epic's worktree window open:</b> a NEW session tab in that window, the command typed in.</li>
+    <li>
+      <b>The worktree window closed:</b> the window is OPENED (<code>epic window launch</code>), the command typed in.
+    </li>
+    <li><b>No worktree:</b> a new session tab in a main window.</li>
+    <li><b>No VS Code window:</b> nothing; the page shows the command to type.</li>
+  </ol>
+  <ul>
+    <li>It needs VS Code and the spell extension's window bridge; a terminal-only session can't be reached.</li>
+    <li>
+      Limits: one wake per epic in 10 minutes, none in airplane mode, none when several sessions are titled for the
+      epic, none for a Send with nothing new.
+    </li>
+  </ul>
+  <epic-code title="Where it's decided:  ReviewStart.wake()">
+    <pre><code>if (this.pollerOf(session.pid)) return result("told", ...)          // wakes itself
+const reply = await ReviewStart.request(window, "open-session", { sessionId, prompt: command })
+...
+await ReviewStart.request(window, "open-session", { prompt: command })  // a new tab in the worktree's window
+...
+this.launch(["launch", epic, "--prompt", command])                       // opens the window
+// every message ends "press Enter there."</code></pre>
+  </epic-code>
+  <p>
+    <b>What that means for the countdown with B:</b> leave a mark unsent and walk away with no session listening, and 2
+    minutes later a new tab can appear, or the epic's window open, with the command waiting for Enter, at most once
+    every 10 minutes. With a session listening (the usual case) A, B and C all behave the same: the marks just go. B is
+    recorded and folded into P53 · Send Countdown; if the window opening by itself isn't what you pictured, pick one of
+    these instead:
+  </p>
+  <epic-choices>
+    <epic-option letter="A" title="Keep B as recorded"
+      ><ul>
+        <li>The countdown's end does all a press does, opening a tab or a window included.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="B, but only into a running session" recommended
+      ><ul>
+        <li>
+          The countdown wakes the epic's running session (told through its poller, or typed into its tab), but never
+          opens a new tab or a window: those stay a press's.
+        </li>
+        <li>With no session at all, the marks go as sent and the orange "No Claude session" pill shows.</li>
+        <li>Why: nothing appears on screen that you didn't ask for.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect
+    ><ul>
+      <li>Q59 stays B unless you pick otherwise here; P53's plan says B</li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
