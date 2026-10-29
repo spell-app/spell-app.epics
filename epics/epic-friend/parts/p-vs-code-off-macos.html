@@ -1,0 +1,163 @@
+<!-- plan-doc part:  #p-vs-code-off-macos's body in epic-friend.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    The window moves, session finding and the VS Code extension assume macOS: on Linux or Windows they fail or quietly
+    do nothing.
+  </p></epic-field
+><epic-field name="goal"
+  ><p>
+    Owen's comment C10 on <a href="/guides/epic-friend.html" target="src-guides-epic-friend-html">the guide</a>'s limit
+    "VS Code on macOS": "phase to get VSCode on other machines working".
+  </p>
+  <p>What assumes macOS today (found by reading the code, 2026-10-29):</p>
+  <ul>
+    <li>
+      <b>Every process, by pid:</b> <code>ps -axo pid=,ppid=,comm=</code> (<code>processTable()</code>, the window
+      script). Linux's <code>ps</code> takes it; Windows has no <code>ps</code>.
+    </li>
+    <li>
+      <b>A process's folder:</b> <code>lsof -a -d cwd</code> (the window script, <code>Sessions</code>,
+      <code>CheckoutServers</code>). Linux often lacks <code>lsof</code>, and has <code>/proc/&lt;pid&gt;/cwd</code>;
+      Windows has neither.
+    </li>
+    <li>
+      <b>Running VS Code:</b> <code>spawnSync("code", ...)</code>. On Windows the command is <code>code.cmd</code>,
+      which needs a shell.
+    </li>
+    <li>
+      <b>Links:</b> the session folders' link, the plugin's cache and skill links, <code>~/.local/bin/epic</code>.
+      Windows makes a folder link only as a junction, and a file link not at all without Developer Mode.
+    </li>
+    <li>
+      <b>A pasted picture</b> in the Review tab: AppleScript only (<code>clipboardImage()</code>, DocView); elsewhere
+      nothing happens.
+    </li>
+    <li>
+      <b>The extension</b> is built and installed by hand (<code>yarn package</code>,
+      <code>code --install-extension</code>).
+    </li>
+  </ul>
+  <p>Outcomes:</p>
+  <ul>
+    <li>
+      <b>Linux works in full:</b> window moves, handoffs, the Review tab, pasted pictures (<code>wl-paste</code> or
+      <code>xclip</code>).
+    </li>
+    <li>
+      <b>Windows works</b> for everything but what needs a file link, which says so in one line and how to turn on
+      Developer Mode.
+    </li>
+    <li>
+      <b>One helper per job</b>, in the kit's <code>spell/server</code> where the kit needs it too (<code
+        >CheckoutServers</code
+      >
+      uses the kit's server finder): no <code>process.platform</code> test scattered through callers.
+    </li>
+    <li>
+      <b>The extension</b> installed by <code>epic init</code> (P13's plugin step), from the <code>.vsix</code> the
+      published package carries.
+    </li>
+    <li><b>The guide's limit</b> "VS Code on macOS" goes, or shrinks to what's left.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>
+      Each macOS-only call gets the Linux and Windows way beside it, chosen in ONE place per job (a process table, a
+      process's folder, a link, the clipboard's picture, running <code>code</code>).
+    </li>
+    <li>The extension is built and installed by <code>epic init</code>'s plugin step on every system, not by hand.</li>
+    <li>CI runs the epic tests on Linux and Windows too.</li>
+  </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      Census first: grep the epic folder, its hooks and the kit's server for <code>ps</code>, <code>lsof</code>,
+      <code>osascript</code>, <code>spawnSync("code"</code>, <code>symlinkSync</code>, <code>darwin</code>; add any not
+      in the goal's list to it.
+    </li>
+    <li>
+      <code>spell/server/Processes</code>: <code>table()</code> (<code>ps</code> on macOS and Linux; PowerShell's
+      <code>Get-CimInstance Win32_Process</code> on Windows) and <code>folderOf(pids)</code> (<code>lsof</code> on
+      macOS, <code>/proc/&lt;pid&gt;/cwd</code> on Linux, none on Windows: the callers already treat "can't tell" as
+      missing). The window script, <code>Sessions</code>, <code>CheckoutServers</code> and the prune use them; their
+      parse tests move with them.
+    </li>
+    <li>
+      Running <code>code</code>: one <code>codeCommand()</code> in the window script, <code>shell: true</code> on
+      Windows.
+    </li>
+    <li>
+      Links: one <code>linkFolder()</code> (a junction on Windows) and, for a file link, a copy with a note on Windows;
+      <code>SessionFolders</code> and <code>PluginInstall</code> use them.
+    </li>
+    <li>
+      <code>clipboardImage()</code>: <code>wl-paste --type image/png</code> or
+      <code>xclip -selection clipboard -t image/png -o</code> on Linux, PowerShell's
+      <code>Get-Clipboard -Format Image</code> on Windows; still never throws.
+    </li>
+    <li>
+      The extension: <code>PluginInstall</code> installs the <code>.vsix</code> (built in the kit, shipped in spell-epic
+      by <code>spell publish</code>) with <code>code --install-extension</code>, skipped when that version is installed.
+    </li>
+    <li>CI: an OS matrix for the epic project; fix what it finds.</li>
+    <li>
+      Docs; manual tests M for Linux and Windows; <code>yarn review</code>; commit
+      <code>epic-friend P15: VS Code Off macOS -- ...</code>.
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="/epic/src/window.mjs" target="src-epic-src-window-mjs"
+        ><code title="epic/src/window.mjs">the window script</code></a
+      >: <code>processTable()</code>, the cwd lookup, running <code>code</code>
+    </li>
+    <li>
+      <a href="/epic/src/command/Sessions.ts" target="src-epic-src-command-sessions-ts"
+        ><code title="epic/src/command/Sessions.ts">Sessions</code></a
+      >,
+      <a href="/epic/src/command/CheckoutServers.ts" target="src-epic-src-command-checkoutservers-ts"
+        ><code title="epic/src/command/CheckoutServers.ts">CheckoutServers</code></a
+      >, and the kit's server finder (<code>spell/server/page/prune</code>): their <code>ps</code> /
+      <code>lsof</code> calls
+    </li>
+    <li>
+      a new home for the helpers: <code>spell/server/Processes</code> (a process table, a process's folder), plain-node
+      safe
+    </li>
+    <li>
+      <a href="/epic/src/config/SessionFolders.ts" target="src-epic-src-config-sessionfolders-ts"
+        ><code title="epic/src/config/SessionFolders.ts">SessionFolders</code></a
+      >,
+      <a href="/epic/src/command/PluginInstall.ts" target="src-epic-src-command-plugininstall-ts"
+        ><code title="epic/src/command/PluginInstall.ts">PluginInstall</code></a
+      >: links as junctions on Windows, a copy where a file link can't be made
+    </li>
+    <li>
+      <a href="/epic/vscode/src/DocView.ts" target="src-epic-vscode-src-docview-ts"
+        ><code title="epic/vscode/src/DocView.ts">DocView</code></a
+      >: <code>clipboardImage()</code> on Linux and Windows
+    </li>
+    <li>
+      <a href="/epic/src/command/PluginInstall.ts" target="src-epic-src-command-plugininstall-ts"
+        ><code title="epic/src/command/PluginInstall.ts">PluginInstall</code></a
+      >: installs the extension (<code>code --install-extension</code>); <code>spell publish</code> ships the
+      <code>.vsix</code> in spell-epic
+    </li>
+    <li>the CI workflow: the epic tests on <code>ubuntu-latest</code> and <code>windows-latest</code></li>
+    <li>docs: README-vscode (epic's), the guide's limits, README-epics</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      Tests: each helper with each platform's output handed in (a <code>ps</code> table, <code>/proc</code>, Windows'
+      <code>Get-CimInstance</code> output), as <code>processTable(text)</code> is tested today
+    </li>
+    <li>CI green on Linux and Windows</li>
+    <li>
+      Manual: a Linux machine or VM, and a Windows one, each running
+      <a href="/epic/" target="src-epic"><code>/epic</code></a> through a window move (tests for Owen, written step by
+      step)
+    </li>
+  </ul></epic-field
+>
