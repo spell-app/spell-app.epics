@@ -1,0 +1,203 @@
+<!-- plan-doc part:  #p-commit-log's body in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    The Log section lists every review step (questions answered, items reviewed, phases set active), so it doesn't say
+    what changed in the code, or when.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen, 2026-10-29:
+      <q
+        >I was thinking that this would be a log of what changes went in when, not when I answered a question. So
+        entries would be &lt;date/time&gt;, &lt;git commit&gt;, Summary of changes and what phases/questions they
+        reference.</q
+      >
+    </li>
+    <li>
+      The Log shows one entry per commit of the epic (<a href="#j145">J145</a>), from any of the kit's repos or its
+      peers (<a href="#j150">J150</a>): when it went in, its short sha (a link to it on GitHub), the summary of the
+      change, and a chip for each phase and item it names (<a href="#j148">J148</a>, <a href="#j149">J149</a>).
+    </li>
+    <li>Opening the Log, Owen sees the newest change first (<a href="#j146">J146</a>).</li>
+    <li>
+      The review lines (answered, reviewed, active ...) get out of the way of the changes: how is
+      <a href="#q56">Q56</a>.
+    </li>
+    <li>The entries are kept current as commits land: how is <a href="#q57">Q57</a>.</li>
+    <li>Every epic's Log, open or merged, gets its change entries from its history (<a href="#j151">J151</a>).</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>
+    The Log becomes the epic's change log: one entry per commit, with its time, its commit (a link), what it changed,
+    and the phases and items it names.
+  </p>
+  <p>The review lines move out of the way, kept for what still reads them.</p></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>Commits with their times, from every repo.</b> The history the backfill reads gains each commit's time.
+      <ul>
+        <li>
+          <code>CommitLogEntry</code> gets <code>time</code>, git's commit time with its offset;
+          <code>PlanDocFiles.docLog()</code> and <code>sharedDocLog()</code> keep it.
+        </li>
+        <li>Merge commits are left out (<a href="#j145">J145</a>).</li>
+        <li>
+          <code>repoFolders()</code> adds the kit's peers that are on disk (<code>EpicConfig.peers</code>, from P49), so
+          a spell-brand commit counts (<a href="#j150">J150</a>).
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>A commit becomes a Log entry.</b> <code>PlanDoc.backfillCommits()</code>, which fills the phases' and items'
+      Commits lists, also adds one <code>&lt;epic-event&gt;</code> per epic commit it reads (<a href="#j148">J148</a>):
+      <ul>
+        <li>
+          <code>at</code>: the commit's time; <code>sha</code>, <code>repo</code>; its text: the subject's sentence
+        </li>
+        <li>
+          <code>refs</code>: each phase it names by the phase's lasting id, each item by its id (<a href="#j149">J149</a
+          >), using the backfill's own rule for which phase a number means
+        </li>
+        <li>a commit naming the epic but no phase or item still gets an entry, with no chips</li>
+        <li>an entry already there (same sha) is skipped, so it can run again</li>
+      </ul>
+      It runs where the backfill runs today: <code>epic phase ... done</code>, <code>epic merge</code>,
+      <code>epic commits &lt;name&gt; --backfill</code> (<a href="#q57">Q57</a>, A; if B is picked, this step becomes a
+      page-server route instead).
+    </li>
+    <li>
+      <b>One link maker.</b> The commit link <code>&lt;epic-commit&gt;</code> builds (<code>repo</code>, else the
+      page's, plus <code>/commit/&lt;sha&gt;</code>) moves to a shared helper both elements use.
+    </li>
+    <li>
+      <b>The line draws it.</b> <code>&lt;epic-event&gt;</code> gains <code>sha</code>, <code>repo</code> and
+      <code>refs</code> in its vocabulary; with a sha it draws the time, the short sha as a link, the summary, then a
+      chip per ref (<code>&lt;epic-link&gt;</code>, showing a phase's number today, <q>P52</q>). A ref the page no
+      longer has is plain text.
+    </li>
+    <li>
+      <b>The Log section, newest first, review lines folded away</b> (<a href="#j146">J146</a>, <a href="#q56">Q56</a>,
+      A):
+      <ul>
+        <li>the section draws its lines newest first; the part file still appends, oldest first</li>
+        <li>
+          lines with no sha are hidden until a <q>Review steps</q> toggle in the Log's header is on; the toggle is
+          remembered per page
+        </li>
+        <li>if Q56 goes B or C, this step instead moves those lines to an Activity section, or never draws them</li>
+      </ul>
+    </li>
+    <li>
+      <b>What reads the log keeps working.</b>
+      <ul>
+        <li>
+          <code>PlanDoc.activeWindow()</code> (Actual Time) skips lines with a sha, so a commit summary starting
+          <q>P52 done</q> can't be mistaken for the phase going done
+        </li>
+        <li>
+          "last worked on" (<code>eventTimesIn()</code>) takes the newest time of any line: an old commit added by the
+          migration doesn't move it back
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The migration</b> (<a href="#j151">J151</a>): a step <code>log-commits</code>, dated today, that runs the
+      history walk for each epic page and adds its entries.
+      <ul>
+        <li>
+          the migration steps work on the page's markup; this one also needs git, so it gets the history handed in the
+          way <code>commits --backfill</code> does, or, if the migration runner can't, it becomes
+          <code>epic commits --all --backfill</code>
+        </li>
+        <li>run with <code>--dry-run</code> on epic-engine first, then on every epic</li>
+      </ul>
+    </li>
+    <li>
+      <b>Docs.</b> The Log in <code>PLAN-DOC.md</code> and the template's
+      <a href="/templates/epics/plan-doc.md" target="src-epic-templates-epics-plan-doc-md"><code>plan-doc.md</code></a>
+      (what a log line holds now, the two kinds); the epic skill's mentions of the Log and the backfill;
+      <code>EpicSection</code>'s and <code>EpicEvent</code>'s vocabulary descriptions (<q>oldest first</q> goes); the
+      elements' docs page data; the epics pack rebuilt.
+    </li>
+    <li>
+      <b>Tests</b>, in <a href="/epic/tests/" target="src-epic-tests"><code>epic/tests/</code></a> beside each:
+      <ul>
+        <li>
+          backfill: an entry per commit, refs by phase id, no chips for an epic-only subject, idempotent, merge commits
+          out
+        </li>
+        <li>history: the time parsed, a peer's commits with its own repo link</li>
+        <li><code>&lt;epic-event&gt;</code>: sha link, chips, a missing ref as plain text</li>
+        <li>the Log section: newest first, the toggle hiding and showing review lines</li>
+        <li><code>activeWindow()</code> ignoring commit lines; the migration adding nothing on a second run</li>
+      </ul>
+    </li>
+    <li>
+      <b>Checks.</b> <code>yarn review</code> in <a href="/epic/" target="src-epic"><code>epic/</code></a
+      >; the migration over epic-engine; its Log looked at headlessly (light and dark, side-bar width): commits newest
+      first, each sha opening its commit, P49's chips going to P49; Actual Time on P41-P49 unchanged.
+    </li>
+    <li>
+      <b>Left out:</b>
+      <ul>
+        <li>a file list or diff size per entry</li>
+        <li>filtering the Log by phase or item</li>
+        <li>entries for commits that name no epic and no phase by its name (the backfill's rule stands)</li>
+        <li>a commit made mid-phase shows once the backfill next runs, not the moment it's made (Q57, A)</li>
+      </ul>
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      the log line:
+      <a href="/epic/src/components/epic-event/" target="src-epic-src-components-epic-event"
+        ><code>epic/src/components/epic-event/</code></a
+      >
+    </li>
+    <li>
+      the Log section:
+      <a href="/epic/src/components/epic-section/" target="src-epic-src-components-epic-section"
+        ><code>epic/src/components/epic-section/</code></a
+      >
+    </li>
+    <li>
+      filling it:
+      <a href="/epic/src/tool/PlanDoc.ts" target="src-epic-src-tool-plandoc-ts"><code>epic/src/tool/PlanDoc.ts</code></a
+      >, <code>PlanDocFiles.ts</code>, <code>PlanCommits.ts</code>, <code>PlanDocCommands.ts</code>,
+      <code>planDoc.types.ts</code>
+    </li>
+    <li>
+      the migration:
+      <a href="/epic/src/tool/migrations/" target="src-epic-src-tool-migrations"
+        ><code>epic/src/tool/migrations/</code></a
+      >
+    </li>
+    <li>
+      the docs:
+      <a href="/epic/src/tool/PLAN-DOC.md" target="src-epic-src-tool-plan-doc-md"
+        ><code>epic/src/tool/PLAN-DOC.md</code></a
+      >,
+      <a href="/templates/epics/plan-doc.md" target="src-epic-templates-epics-plan-doc-md"
+        ><code>epic/templates/epics/plan-doc.md</code></a
+      >, the epic skill
+    </li>
+    <li>
+      tests: <a href="/epic/tests/" target="src-epic-tests"><code>epic/tests/</code></a> beside each
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      epic-engine's own Log, after the migration: every commit naming the epic since it started, newest first, each sha
+      opening its commit
+    </li>
+    <li>a phase finished with <code>epic phase ... done</code> shows its commits at the top of the Log at once</li>
+    <li>the phases' Actual Time still works out (it reads the active / done lines)</li>
+    <li>
+      <code>yarn review</code> in <a href="/epic/" target="src-epic"><code>epic/</code></a>
+    </li>
+  </ul></epic-field
+>
