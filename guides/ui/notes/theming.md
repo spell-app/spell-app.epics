@@ -483,6 +483,12 @@ Dark mode follows the OS by default:  `color-scheme: light dark` on `:root`.
 - It's in `ui.tokens`, so a page's own `color-scheme` wins.
 - A light-only page sets `:root { color-scheme: light }`, or `class="ui-light"`.
 
+A page's address can pick its theme and scheme for one visit:  `?theme=glass&scheme=dark` (`ThemePreference`).
+- Every Spell place reads it:  the docs, the epic pages, the editor, notebooks.
+- It wins over the viewer's remembered choice, and is never stored;  picking from the theme menu still is.
+- An unknown theme, or a scheme other than `light` / `dark`, is ignored with a warning.
+- The theme bench's ↗ and the theme menu's Theme bench open their pages so (`ThemePreference.addressWith()`).
+
 ### A theme file
 
 Spell's own nine themes, and Apple's palette, are written as DATA (epic `debut` P18, P20):  a theme file each,
