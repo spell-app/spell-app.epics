@@ -245,6 +245,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   `main` has drifted from oxfmt, and the snapshots aren't in the format ignore list. · Reverted them by path, and ran
   app's `ts` / `lint` / `test` without the format step. · Fix:  one `yarn format` commit on `main` (snapshots left out
   of it, or ignored). · kit (epic `elemental-spell` P28)
+- 2026-10-29 · `yarn vp fmt --check src tests vite.config.ts ...` (the flag FIRST, then several paths mixing folders and files) says "Expected at least one target file. All matched files may have been excluded by ignore rules." and exits 2, though each path alone checks fine;  `vp fmt --check .` and `vp fmt --check src tests` work. · Put the flag after the paths:  `vp fmt src tests vite.config.ts --check` (the kit's `kit:format:check`, epic's `format:check`;  epic `epic-engine` I156). · kit
 
 ## ui
 
