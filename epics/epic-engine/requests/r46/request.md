@@ -3,7 +3,9 @@ id: r46
 epic: epic-engine
 from: 🚧 repo-split (1c6fb846)
 at: 2026-10-29T17:31-04:00
-status: new
+status: filed
+filed: P55 · Send Working Ring
+phase: p-send-working-ring
 images: image-1.png
 ---
 
