@@ -3,7 +3,9 @@ id: r45
 epic: epic-engine
 from: 🚧 debut (ad62dff0)
 at: 2026-10-29T16:50-04:00
-status: new
+status: filed
+filed: P54 · Stale Catalog Rebuild
+phase: p-stale-catalog-rebuild
 images: image-1.png
 ---
 
