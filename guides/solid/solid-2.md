@@ -2,12 +2,12 @@
 
 Distilled from `solid-2.html` (the why) and `cheatsheet.html` (the API) in this folder.  Read this BEFORE writing
 or reviewing Solid code, JSX, `core` rendering, `spell/util` reactivity (spell cells), or anything touching
-`@spell-app/ui`.
+Spell UI (`spell/ui`).
 
 ## Status
 
 - The app is ON Solid 2 (migration built 2026-10-02, branch `solid-migration`):  the editor app, `<spell-viewer>`,
-  `<spell-editor>` and the VS Code runner draw with Solid on `@spell-app/ui`;  spell state is spell cells;
+  `<spell-editor>` and the VS Code runner draw with Solid on Spell UI (`spell/ui`);  spell state is spell cells;
   `easy-state` is GONE.
   - How it's built now, and why:  `guides/solid-migration.html`.  The record (phases, decisions, log):
     `epics/solid-migration/`.
@@ -43,7 +43,7 @@ or reviewing Solid code, JSX, `core` rendering, `spell/util` reactivity (spell c
 - Re-verified on rc.13:  every experiment behaved as on rc.11 (`solid-2.html`, "rc.11 vs rc.13").
   - rc.13 moved `createErrorBoundary`, `createLoadingBoundary`, `createRevealOrder`, `sharedConfig` and `$DEVCOMP`
     out of `solid-js` into `solid-js/internal`.  NEVER import from `solid-js/internal`:  use `<Errored>` /
-    `<Loading>` / `<Reveal>` (callable as functions, `children` as a getter -- see `UIComponent.mount()` in `spell-ui`).
+    `<Loading>` / `<Reveal>` (callable as functions, `children` as a getter -- see `UIComponent.mount()` in Spell UI).
   - RC bumps:  run `solid/experiments/*` on old and new (`SOLID_NODE_MODULES=<dir>` picks the Solid) and diff.
 - NEVER model Solid 2 on React OR on Solid 1:  both priors produce wrong code here.
 
@@ -87,7 +87,7 @@ count() // 1
     `spell/util`, INSTALLED BY THE HOST (`app`'s `src/solid/cellsBridge.ts`, imported by the editor, the runner,
     `<spell-viewer>`, `<spell-editor>` and `tracked()`) -- `util` / `core` never import Solid, so `spell-runtime.js` holds
     none
-  - ONE cells context per page, on `globalThis` (`Symbol.for("@spell-app/cells")`):  the app's `$/util` and every
+  - ONE cells context per page, on `globalThis` (`Symbol.for("spell:cells")`):  `spell/util` (the kit's) and every
     `spell-runtime.js` copy share the "who's reading" slot, the pending checks and the host's flush, so the one
     bridge sees every runtime's Things.  Bridged once per Solid (remembered there)
   - compiled output keeps its `getProp` / `setProp` accessor pairs;  derived getters may call `derive()`
@@ -184,8 +184,8 @@ count() // 1
   `on`, `trigger` ...) and is real JSX:  `buildTsx()` lowers its decorators (esbuild), then runs Solid's compiler.  It
   writes only the page's spellings (`class`, `colspan`, `prop:` on a `<ui-*>` tag):  Solid 2's JSX types take no
   others.  The runners can't run it yet;  the core contract does.
-- One Solid per page, shared with `@spell-app/ui` (whose `UI` runtime is already one per page, on `globalThis`):
-  - within a bundle:  Solid + `@spell-app/ui` live in the shared files, NEVER `spell-runtime.js`.  Each `<spell-viewer>`
+- One Solid per page, shared with Spell UI (whose `UI` runtime is already one per page, on `globalThis`):
+  - within a bundle:  Solid + Spell UI live in the shared files, NEVER `spell-runtime.js`.  Each `<spell-viewer>`
     keeps its OWN `core`, all share ONE Solid.  `enableExternalSource` is registered once per Solid, by
     `bridgeSolid()` from the host (`app`'s `cellsBridge.ts`)
   - `spell-runtime.js` gets Solid, `@solidjs/web` and `@solidjs/h` from `spell-solid.js` (`sharedSolid()`), which
@@ -194,9 +194,9 @@ count() // 1
   - `spell run` and the core contract run Solid's BROWSER builds under node, on a linkedom page (`cli`'s
     `hooks.mjs`), with the cells bridged there too
   - across our bundles:  element / runner / editor builds import ONE shared Solid (and `ui`), not a Solid each:  SEE
-    `packages/app/AGENTS.md` "Overview".  Any other Solid / `ui` specifier (`solid-js/store`, `spell-ui/runtime`) is a
+    `app/AGENTS.md` "Overview".  Any other Solid / `ui` specifier (`solid-js/store`, `spell/ui/runtime`) is a
     build ERROR:  add it to `sharedSolid()`'s list AND to what `vite.solid.config.ts` exports
-  - on host pages with their own Solid / `@spell-app/ui`:  an import-map variant of `<spell-viewer>` (bare specifiers)
+  - on host pages with their own Solid / Spell UI:  an import-map variant of `<spell-viewer>` (bare specifiers)
     (planned, epic page T5:  not shipped -- such a page gets a second Solid today)
   - two copies on one page FAIL SILENTLY:  the fork's `register()` swaps `existing.Component` across copies
 - NEVER put Things (class instances) in a Solid store:  stores wrap them in proxies, `===` breaks.
@@ -354,7 +354,7 @@ const app = (
 const Active = dynamic(() => (editing() ? Editor : Viewer))
 ```
 
-## DOM and `@spell-app/ui` elements
+## DOM and Spell UI elements
 
 - `class`, not `className`;  array / object form, NEVER built class strings.  No `classList`.
 - Attributes are HTML:  lowercase built-in names, boolean = presence.
@@ -395,14 +395,14 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
 - `render(() => <App />, el)` returns `dispose`.  A ShadowRoot works as the container.
 - `<Portal>` defaults to `document.body`:  inside a shadow root ALWAYS pass `mount`.
 - JSX types for `<ui-*>`:  Spell UI's, exact, generated from its vocabularies:
-  `import type {} from "spell-ui/jsx"` once in the program.
+  `import type {} from "spell/ui/jsx"` once in the program.
   - A tag of your own:  augment `"@solidjs/web/types/jsx.js"`, NOT `"@solidjs/web"` (which only re-exports `JSX`).
-- `@spell-app/ui` controllers keep their state in REACTIVE MEMBERS, not bare signals (`spell-ui` `Reactive.ts`,
-  P14):  a record per instance plus a notifier signal per member ("N" in `solid-2.html` §2), and `@derived` as a
-  self-tracking cache over the record (spell cells' idea, "X", without `enableExternalSource`).  So
+- Spell UI controllers keep their state in REACTIVE MEMBERS, not bare signals
+  (the element framework's `Reactive.ts`, `spell/element`;  P14):  a record per instance plus a notifier signal per
+  member ("N" in `solid-2.html` §2), and `@derived` as a self-tracking cache over the record (spell cells' idea, "X", without `enableExternalSource`).  So
   `this.x = v;  this.x` is fresh with no `flush()`;  Solid listeners re-run on the notifier, staged as usual.
-  Rules:  `spell-ui/AGENTS.md` "Solid authoring".
-- `@spell-app/ui` specifics (its events:  SEE `spell-ui/AGENTS.md` "UI rules"):
+  Rules:  `ui/AGENTS.md` "Solid authoring".
+- Spell UI specifics (its events:  SEE `ui/AGENTS.md` "UI rules"):
   - never write a bare string attribute in JSX (`<ui-toast icon>` requests `true.js`):  write `icon=""`
   - glyphs must be emitted by the build
   - many hosts are `display: contents`
@@ -458,7 +458,7 @@ h(Picker, { onPick: () => go() }) // WRONG:  becomes a getter, passes go()'s res
   - it appends `export const $$moduleUrl` to every module it transforms for SSR, Vitest's node projects too:
     a test listing a module's exports sees it
   - `app` runs both, a node project and a browser one (Vitest browser mode, chromium through Playwright):  SEE
-    `packages/app/AGENTS.md` "Overview".
+    `app/AGENTS.md` "Overview".
   - `app`'s component tests `render()` from `@solidjs/web` into a fixture and `await uiReady` for the `<ui-*>` tags.
     `@solidjs/testing-library@next` (1.0.0-beta.3) exists but isn't installed.
 - Reactive semantics this repo depends on are pinned as vitest cases:  `util`'s `src/reactive/cells.test.ts` and
@@ -498,7 +498,7 @@ expect(button.textContent).toBe("Clicks: 1")
 - Links are plain `<a>`, taken by delegation from the WHOLE page:  `explicitLinks: true` limits it to `<a link>`.
 - `useNavigate()` works only under the router:  code outside components gets it handed over by the root layout.
   A bare `history.pushState()` changes the URL, not the page.
-- How the app does each of these:  SEE `packages/app/AGENTS.md` "Overview" (Routing).
+- How the app does each of these:  SEE `app/AGENTS.md` "Overview" (Routing).
 - A route whose `path` is an ARRAY stays mounted across those URLs:  read `props.params` in an effect's compute.
 - Tests:  `createRouter({ routes, history: memoryHistory("/url") })` per test.
 
