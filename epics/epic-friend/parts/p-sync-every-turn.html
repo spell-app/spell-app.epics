@@ -32,47 +32,55 @@
 ><epic-field name="plan"
   ><ol>
     <li>
+      <b>One renumbering</b> (coherence). <code>epic migrate</code> already renumbers items, inbox ids and links (<a
+        href="/epic/src/tool/MigrateCommands.ts"
+        target="src-epic-src-tool-migratecommands-ts"
+        ><code title="epic/src/tool/MigrateCommands.ts">MigrateCommands</code></a
+      >: <code>ItemRenames.renumber</code>, <code>ReviewInbox.renameIds</code>, <code>ContentRelink.run</code>). That
+      path comes out into one call both use, and learns change marks (<code>ch&lt;N&gt;</code>) and requests
+      (<code>r&lt;N&gt;</code>).
+    </li>
+    <li>
+      <b>Renumber BEFORE the rebase</b> (coherence). Two people both making <code>parts/t22.html</code> is a conflict
+      that stops a rebase. So the sync fetches first, finds ids this machine made that the remote also has, renumbers
+      the local ones to the next free number (a commit, a log line), then rebases.
+    </li>
+    <li>
       <b>Pull and push.</b>
       <a href="/epic/src/command/Shared.ts" target="src-epic-src-command-shared-ts"
         ><code title="epic/src/command/Shared.ts">Shared</code></a
       >
-      gains <code>sync()</code>: commit as today, then <code>git pull --rebase</code>, the fixes below, and
-      <code>git push</code>. Only when the content repo has a remote; inside the commit lock that's there already.
+      gains <code>sync()</code>: commit as today, fetch, renumber, <code>git pull --rebase</code>, then the log and date
+      fixes, then <code>git push</code>. Only with a remote; inside <code>commit()</code>'s existing lock, through the
+      kit's git runner.
     </li>
     <li>
       <b>Every turn.</b> <code>epic shared commit</code> runs the sync when there's a remote, still detached from the
-      turn (<a href="/epic/hooks/shared-commit.mjs" target="src-epic-hooks-shared-commit-mjs"
-        ><code title="epic/hooks/shared-commit.mjs">the end-of-turn hook</code></a
-      >); <code>epic shared sync</code> runs it by hand, and prints what it did.
+      turn; <code>epic shared sync</code> runs it by hand. On the commands page, then <code>spell commands check</code>.
     </li>
     <li>
-      <b>When it can't.</b> Offline: the commits stay, and the next sync pushes them. A conflict the fixes can't settle:
-      the rebase is aborted, and the sync names the files, in its log and the next time
-      <code>epic shared status</code> runs.
+      <b>When it can't.</b> Offline: the commits stay, and the next sync pushes them. A conflict it can't settle: the
+      rebase is aborted, and a state file says which files. The next session's start notice tells the person and Claude,
+      the way the "behind main" notice does (coherence): no new channel.
     </li>
     <li>
-      <b>The merge settings.</b> The content repo's attributes file gets <code>merge=union</code> for every
+      <b>The content repo's own files</b> (coherence). One <code>Shared</code> step keeps the content repo's
+      <a href="/.gitignore" target="src-gitignore"><code>.gitignore</code></a> and
+      <a href="/.gitattributes" target="src-gitattributes"><code>.gitattributes</code></a> as marked blocks, brought up
+      to date on every init and sync, the way <code>epic init</code> keeps the code repo's. This phase adds
+      <code>merge=union</code> for every
       <a href="/epics/epic-friend/parts/log.html" target="src-epics-epic-friend-parts-log-html"
         ><code>parts/log.html</code></a
-      >; <code>Shared.init()</code> writes it, and a sync adds it to a repo without it.
+      >; Spell's own copy, which has drifted, is brought up to date too.
     </li>
     <li>
-      <b>After the pull</b>, for each epic page the pull changed:
-      <ul>
-        <li>the log's lines re-sorted by their time</li>
-        <li>the page's <code>updated</code> date the later of the two</li>
-        <li>
-          duplicate ids (items, comments, change marks): the one only this machine had gets the next free number, its
-          part file and links following, through
-          <a href="/epic/src/tool/migrations/ItemRenames.ts" target="src-epic-src-tool-migrations-itemrenames-ts"
-            ><code title="epic/src/tool/migrations/ItemRenames.ts">ItemRenames.renumber()</code></a
-          >, with a log line
-        </li>
-      </ul>
+      <b>After the pull</b>, for each epic page it changed: the log's lines re-sorted by time, and the page's
+      <code>updated</code> date the later of the two.
     </li>
     <li>
-      <b>Checked</b>: tests with two clones of one bare repo, both adding <code>T22</code>, a log line and a date; a
-      real conflict; offline. <code>yarn review</code> in <a href="/epic/" target="src-epic"><code>epic/</code></a
+      <b>Checked</b>: tests with two clones of one bare repo; a real conflict; offline;
+      <code>spell commands check</code>. <code>yarn review</code> in
+      <a href="/epic/" target="src-epic"><code>epic/</code></a
       >.
     </li>
     <li><b>Left out</b>: the review inboxes, which stay local until the Shared Comments phase.</li>
@@ -82,34 +90,47 @@
     <li>
       <a href="/epic/src/command/Shared.ts" target="src-epic-src-command-shared-ts"
         ><code title="epic/src/command/Shared.ts">Shared</code></a
-      >: <code>commit()</code> and the new <code>sync</code>
+      >: <code>commit()</code>, the new <code>sync</code>, the content repo's two marked blocks
+    </li>
+    <li>
+      <a href="/epic/src/tool/MigrateCommands.ts" target="src-epic-src-tool-migratecommands-ts"
+        ><code title="epic/src/tool/MigrateCommands.ts">MigrateCommands</code></a
+      >: its renumbering pulled out into one call
+    </li>
+    <li>
+      <a href="/epic/src/tool/PlanDoc.ts" target="src-epic-src-tool-plandoc-ts"
+        ><code title="epic/src/tool/PlanDoc.ts">PlanDoc</code></a
+      >'s change marks and
+      <a href="/epic/src/command/Requests.ts" target="src-epic-src-command-requests-ts"
+        ><code title="epic/src/command/Requests.ts">Requests</code></a
+      >' ids: renumbered too
     </li>
     <li>
       <a href="/epic/hooks/shared-commit.mjs" target="src-epic-hooks-shared-commit-mjs"
         ><code title="epic/hooks/shared-commit.mjs">the end-of-turn hook</code></a
+      >, and the start-of-session notice like
+      <a href="/epic/hooks/behind-main.mjs" target="src-epic-hooks-behind-main-mjs"
+        ><code title="epic/hooks/behind-main.mjs">behind-main</code></a
       >
     </li>
-    <li>the content repo's attributes file, written by <code>Shared.init()</code> and added to old repos</li>
     <li>
-      a renumbering class beside the item-renames migration, reusing its
-      <a href="/epic/src/tool/migrations/ItemRenames.ts" target="src-epic-src-tool-migrations-itemrenames-ts"
-        ><code title="epic/src/tool/migrations/ItemRenames.ts">renumber()</code></a
-      >
+      the commands page's data (<code title="spell.epics/guides/dev/commands/commands.json5">commands.json5</code>)
     </li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
     <li>
-      tests with two clones of one bare repo: both add <code>T22</code>, both log, both bump the date; after the sync,
-      <code>T22</code> and <code>T23</code>, one sorted log, the later date
+      tests with two clones of one bare repo: both add <code>T22</code> (and its part file), a change mark and a
+      request, both log, both bump the date; after the sync, <code>T22</code> and <code>T23</code>, one sorted log, the
+      later date
     </li>
     <li>
-      a conflict it can't settle: the sync stops, aborts the rebase and says which files, so the repo is never left
-      half-merged
+      a conflict it can't settle: the sync stops, aborts the rebase, and the next session's notice says which files
     </li>
     <li>offline: the commit stands, and the push waits for the next turn</li>
     <li>
-      <code>yarn review</code> in <a href="/epic/" target="src-epic"><code>epic/</code></a>
+      <code>spell commands check</code>; <code>yarn review</code> in
+      <a href="/epic/" target="src-epic"><code>epic/</code></a>
     </li>
   </ul></epic-field
 >
