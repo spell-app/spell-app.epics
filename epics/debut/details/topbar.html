@@ -1,11 +1,224 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>The editor's top bar</title>
-    <meta name="description" content="Details:  The editor's top bar">
-    <link rel="stylesheet" href="/_epic/assets/spell-doc.css">
+    <meta name="description" content="Details:  The editor's top bar" />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+    <style>
+      /* The sketches:  a box dressed as the editor's dark bar, the bars inside it drawn with Spell UI */
+      .tb-stage {
+        color-scheme: dark;
+        background: linear-gradient(100deg, #2b1a52 0%, #3a1d4a 55%, #4b1f3c 100%);
+        border-radius: 14px;
+        padding: 10px 12px;
+        margin-block: 12px;
+        color: #ece6fa;
+        overflow: hidden;
+      }
+      /* drawn at the editor's width (1240px), shrunk to fit the page's column */
+      .tb-stage.wide {
+        width: 1240px;
+        zoom: 0.68;
+      }
+      /* the segmented thumb measures the page's pixels:  undo the zoom on it, and shrink it by its font instead */
+      .tb-stage.wide ui-menu[appearance="segmented"] {
+        zoom: 1.4706;
+      }
+      .tb-stage.wide ui-menu[appearance="segmented"]::part(menu) {
+        font-size: 9.5px;
+      }
+      .tb-stage.light {
+        color-scheme: light;
+        background: linear-gradient(100deg, #e9defb 0%, #f6e3f3 55%, #dcecfb 100%);
+        color: #2a2140;
+      }
+      .tb-stage .tb-caption {
+        font-size: 12px;
+        opacity: 0.75;
+        margin: 0 0 6px 4px;
+      }
+      .tb-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
+        border-radius: 10px;
+        padding-inline: 6px;
+        background: rgb(255 255 255 / 0.05);
+      }
+      .tb-stage.light .tb-row {
+        background: rgb(255 255 255 / 0.55);
+      }
+      .tb-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .tb-group + .tb-group {
+        margin-left: 60px;
+      }
+      .tb-spring {
+        flex: 1 1 auto;
+      }
+      .tb-mark {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        color: #a98bff;
+      }
+      .tb-stage.light .tb-mark {
+        color: #6d3fd9;
+      }
+      .tb-mark b {
+        color: inherit;
+      }
+      .tb-project {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+      }
+      ui-menu.tb-menus::part(menu),
+      ui-menu.tb-tabs::part(menu) {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        min-height: 32px;
+      }
+      ui-menu.tb-menus ui-item::part(item) {
+        padding: 4px 9px;
+      }
+      .tb-icon {
+        opacity: 0.8;
+        cursor: default;
+      }
+      .tb-icon.on {
+        opacity: 1;
+        color: #a98bff;
+      }
+      .tb-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: inline-grid;
+        place-items: center;
+        background: #6d3fd9;
+        color: white;
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .tb-glyph {
+        font-size: 18px;
+        line-height: 1;
+        opacity: 0.8;
+      }
+      .tb-dim {
+        opacity: 0.35;
+      }
+      /* the pane under the bar:  its tabs row, then a hint of the code */
+      .tb-panes {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .tb-pane {
+        border-radius: 10px;
+        background: rgb(255 255 255 / 0.06);
+        min-height: 120px;
+        overflow: hidden;
+      }
+      .tb-stage.light .tb-pane {
+        background: rgb(255 255 255 / 0.6);
+      }
+      .tb-pane .tb-code {
+        padding: 8px 14px;
+        font:
+          13px/1.6 ui-monospace,
+          monospace;
+        opacity: 0.7;
+      }
+      .tb-pane .tb-app {
+        padding: 14px;
+        font-size: 13px;
+        opacity: 0.7;
+      }
+      ui-menu.tb-tabs {
+        display: block;
+      }
+      ui-menu.tb-tabs::part(menu) {
+        border-bottom: 1px solid rgb(255 255 255 / 0.12);
+        border-radius: 0;
+      }
+      .tb-dirty {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #f2c94c;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      /* open menus, drawn flat side by side */
+      .tb-open-menus {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 12px;
+        align-items: start;
+      }
+      .tb-open-menus ui-action::part(item) {
+        padding-block: 5px;
+        white-space: nowrap;
+      }
+      .tb-open-menus ui-action::part(item) {
+        display: flex;
+        align-items: center;
+      }
+      .tb-open-menus ui-action::part(shortcut) {
+        margin-inline-start: auto;
+        padding-inline-start: 16px;
+      }
+      .tb-open-menus ui-menu::part(menu) {
+        width: 240px;
+      }
+      .tb-open-menus h4 {
+        margin: 0 0 4px 4px;
+        font-size: 13px;
+        opacity: 0.8;
+      }
+      .tb-new {
+        font-size: 10px;
+        font-weight: 700;
+        color: #f2c94c;
+        margin-left: 6px;
+        letter-spacing: 0.03em;
+      }
+      .tb-phone {
+        width: 390px;
+        max-width: 100%;
+      }
+      .tb-width {
+        resize: horizontal;
+        overflow: auto;
+        min-width: 160px;
+        max-width: 100%;
+      }
+      .tb-shots {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: 12px;
+      }
+      .tb-shots figure {
+        margin: 0;
+      }
+      .tb-shots img {
+        max-width: 100%;
+        border-radius: 8px;
+      }
+    </style>
   </head>
   <body class="spell-doc-page spell-details-page">
     <ui-root>
@@ -15,43 +228,861 @@
         <main class="spell-doc-main">
           <ui-breadcrumbs class="spell-crumbs" size="small" aria-label="Breadcrumb">
             <ui-breadcrumb link="/pages/index.html" target="src-packages-docs-index-html">Docs</ui-breadcrumb>
+            <ui-breadcrumb link="/epics/debut/debut.plan.html" target="debut">debut</ui-breadcrumb>
             <ui-breadcrumb selected>The editor's top bar</ui-breadcrumb>
           </ui-breadcrumbs>
-          <ui-sticky class="spell-h1"><header class="spell-page-head">
+          <ui-sticky class="spell-h1"
+            ><header class="spell-page-head">
               <h1>The editor's top bar</h1>
-              <epic-send></epic-send></header></ui-sticky>
-          <p class="lede">One sentence: what's being decided, and why it matters now.</p>
+              <epic-send></epic-send></header
+          ></ui-sticky>
+          <p class="lede">
+            A sketch of the editor's new top: app menus that show their keys, the app's tools moved up into the bar, and
+            the project's files as tabs. Comment on it before it's built.
+          </p>
           <div class="spell-details-meta">
-            <epic-field label="Asked by" data-details-by>session <code>name</code>, while doing what</epic-field>
+            <epic-field label="Asked by" data-details-by
+              >agent <code>debut-topbar</code>, for epic <code>debut</code>, while sketching your 2026-10-29
+              ask</epic-field
+            >
             <epic-field label="Asked" data-details-asked>2026-10-29</epic-field>
           </div>
 
           <ui-message class="spell-where" state="info" heading="Where we are">
-            <epic-field label="Epic"><code>name</code> -- what that work is for, in one line.</epic-field>
-            <epic-field label="Just now">what happened that led to this question.</epic-field>
-            <epic-field label="This decides">what changes for you, whichever you pick.</epic-field>
+            <epic-field label="Epic"
+              ><code>debut</code> -- the Spell editor's first public look: its themes, its Inspector, its
+              chrome.</epic-field
+            >
+            <epic-field label="Just now"
+              >You asked to rethink the editor's top: app menus with their keys, the pane's tools in the top bar, Save /
+              Reset / "..." into the menus, files as tabs. The session agreed a shape; this page draws it.</epic-field
+            >
+            <epic-field label="This decides"
+              >What the top of the editor looks like in every mode, and which commands live where. Nothing is built
+              yet.</epic-field
+            >
           </ui-message>
 
-          <ui-section id="context" label="1. Context" sticky collapsible dividing>
-            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <!-- ////////////////////////////////////////////////////////////////////////////// -->
+
+          <ui-section id="today" label="1. Today" sticky collapsible dividing>
+            <ui-icon slot="icon" name="desktop"></ui-icon>
+            <p>Today the top of the editor is three rows of controls, from the top:</p>
             <ul>
-              <li>What's going on, in plain words; define every coined word.</li>
-              <li>The picture: a table, the real code, a diagram, a live example.</li>
+              <li>
+                <strong>The top bar:</strong> Spell's hat, the project menu ("Solitaire ▾"), Run | Edit | Debug in the
+                middle, and the theme, Home and you at the right.
+              </li>
+              <li>
+                <strong>Each pane's own header:</strong>
+                <ul>
+                  <li>the code's: the file menu ("Card.spellml ▾"), then Save, Reload, New File and a "..." menu</li>
+                  <li>
+                    the app's: its title, then Restart, Pick a part (the crosshairs), Settings, and the Inspector ▾
+                  </li>
+                </ul>
+              </li>
+              <li><strong>The Inspector's cards</strong> have headers of their own (left as they are here).</li>
             </ul>
-            <epic-text-box for="context"></epic-text-box>
+            <p>Taken headlessly from the running editor, Solitaire, at 1440px wide:</p>
+            <div class="tb-shots">
+              <figure>
+                <figcaption>Run, light</figcaption>
+                <img
+                  src="topbar/today-run-light.png"
+                  alt="Today, Run mode, light:  top bar, then the app pane's header"
+                />
+              </figure>
+              <figure>
+                <figcaption>Run, dark</figcaption>
+                <img src="topbar/today-run-dark.png" alt="Today, Run mode, dark" />
+              </figure>
+              <figure>
+                <figcaption>Edit, light</figcaption>
+                <img src="topbar/today-edit-light.png" alt="Today, Edit mode, light:  file header over the code" />
+              </figure>
+              <figure>
+                <figcaption>Edit, dark</figcaption>
+                <img src="topbar/today-edit-dark.png" alt="Today, Edit mode, dark" />
+              </figure>
+            </div>
+            <epic-aside title="On a phone (390px), Edit, light and dark">
+              <div class="tb-shots">
+                <figure>
+                  <img
+                    src="topbar/today-edit-light-phone.png"
+                    alt="Today on a phone, Edit, light"
+                    style="max-width: 260px"
+                  />
+                </figure>
+                <figure>
+                  <img
+                    src="topbar/today-edit-dark-phone.png"
+                    alt="Today on a phone, Edit, dark"
+                    style="max-width: 260px"
+                  />
+                </figure>
+                <figure>
+                  <img
+                    src="topbar/today-run-dark-phone.png"
+                    alt="Today on a phone, Run, dark"
+                    style="max-width: 260px"
+                  />
+                </figure>
+              </div>
+            </epic-aside>
+            <epic-text-box for="today"></epic-text-box>
           </ui-section>
 
-          <ui-section id="q1" label="Q1 · Short question" sticky collapsible dividing>
+          <!-- ////////////////////////////////////////////////////////////////////////////// -->
+
+          <ui-section id="run-bar" label="2. The new bar, Run mode" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle play"></ui-icon>
+            <p>
+              One bar instead of two. The app's tools move up into its right group, and the app gets ~44px more room.
+            </p>
+            <ul>
+              <li>Left: the hat, the project menu, then the menus: File · Edit · View · Run · Help.</li>
+              <li>Middle: Run | Edit | Debug, as today.</li>
+              <li>
+                Right, two groups 60px apart (the bar's spacing rule):
+                <ul>
+                  <li>the app's tools: Restart, Pick a part, Settings, the Inspector ▾</li>
+                  <li>yours: the theme, Home, you</li>
+                </ul>
+              </li>
+              <li>The app's title ("Solitaire") was in the row that goes: the project menu already says it.</li>
+            </ul>
+
+            <div class="tb-stage wide">
+              <p class="tb-caption">Run mode, dark -- the Inspector open, picking</p>
+              <div class="tb-row">
+                <div class="tb-group">
+                  <span class="tb-mark"><ui-icon name="hat wizard"></ui-icon><b>Spell</b></span>
+                  <span class="tb-project"
+                    ><ui-icon name="lightbulb"></ui-icon>Solitaire<ui-icon name="chevron down"></ui-icon
+                  ></span>
+                  <ui-menu class="tb-menus" size="small" aria-label="App menus, Run mode">
+                    <ui-item appearance="link">File</ui-item>
+                    <ui-item appearance="link">Edit</ui-item>
+                    <ui-item appearance="link">View</ui-item>
+                    <ui-item appearance="link">Run</ui-item>
+                    <ui-item appearance="link">Help</ui-item>
+                  </ui-menu>
+                </div>
+                <span class="tb-spring"></span>
+                <ui-menu appearance="segmented" size="small" aria-label="Modes, Run">
+                  <ui-item appearance="link" selected><ui-icon name="circle play"></ui-icon>Run</ui-item>
+                  <ui-item appearance="link"><ui-icon name="pen"></ui-icon>Edit</ui-item>
+                  <ui-item appearance="link"><ui-icon name="tree"></ui-icon>Debug</ui-item>
+                </ui-menu>
+                <span class="tb-spring"></span>
+                <div class="tb-group">
+                  <ui-icon class="tb-icon" name="arrows rotate" title="Restart"></ui-icon>
+                  <ui-icon class="tb-icon on" name="bullseye" title="Pick a part of the app"></ui-icon>
+                  <ui-icon class="tb-icon" name="gear" title="Settings"></ui-icon>
+                  <span class="tb-icon on" title="Inspector, and its cards"
+                    ><ui-icon name="table columns"></ui-icon> <ui-icon name="chevron down"></ui-icon
+                  ></span>
+                </div>
+                <div class="tb-group">
+                  <ui-icon class="tb-icon" name="palette" title="Theme"></ui-icon>
+                  <span class="tb-glyph" title="Home">⌂</span>
+                  <span class="tb-avatar" title="You">O</span>
+                </div>
+              </div>
+              <div class="tb-panes" style="grid-template-columns: 1fr 280px">
+                <div class="tb-pane">
+                  <div class="tb-app">The running app, from just under the bar: no header row of its own.</div>
+                </div>
+                <div class="tb-pane"><div class="tb-app">The Inspector's cards, as today.</div></div>
+              </div>
+            </div>
+
+            <div class="tb-stage light wide">
+              <p class="tb-caption">The same, light</p>
+              <div class="tb-row">
+                <div class="tb-group">
+                  <span class="tb-mark"><ui-icon name="hat wizard"></ui-icon><b>Spell</b></span>
+                  <span class="tb-project"
+                    ><ui-icon name="lightbulb"></ui-icon>Solitaire<ui-icon name="chevron down"></ui-icon
+                  ></span>
+                  <ui-menu class="tb-menus" size="small" aria-label="App menus, Run mode, light">
+                    <ui-item appearance="link">File</ui-item>
+                    <ui-item appearance="link">Edit</ui-item>
+                    <ui-item appearance="link">View</ui-item>
+                    <ui-item appearance="link">Run</ui-item>
+                    <ui-item appearance="link">Help</ui-item>
+                  </ui-menu>
+                </div>
+                <span class="tb-spring"></span>
+                <ui-menu appearance="segmented" size="small" aria-label="Modes, Run, light">
+                  <ui-item appearance="link" selected><ui-icon name="circle play"></ui-icon>Run</ui-item>
+                  <ui-item appearance="link"><ui-icon name="pen"></ui-icon>Edit</ui-item>
+                  <ui-item appearance="link"><ui-icon name="tree"></ui-icon>Debug</ui-item>
+                </ui-menu>
+                <span class="tb-spring"></span>
+                <div class="tb-group">
+                  <ui-icon class="tb-icon" name="arrows rotate" title="Restart"></ui-icon>
+                  <ui-icon class="tb-icon" name="bullseye" title="Pick a part of the app"></ui-icon>
+                  <ui-icon class="tb-icon" name="gear" title="Settings"></ui-icon>
+                  <span class="tb-icon"
+                    ><ui-icon name="table columns"></ui-icon> <ui-icon name="chevron down"></ui-icon
+                  ></span>
+                </div>
+                <div class="tb-group">
+                  <ui-icon class="tb-icon" name="palette" title="Theme"></ui-icon>
+                  <span class="tb-glyph" title="Home">⌂</span>
+                  <span class="tb-avatar" title="You">O</span>
+                </div>
+              </div>
+            </div>
+            <epic-aside title="Drawing notes">
+              <ul>
+                <li>The bars are drawn at the editor's width, 1240px, shrunk to fit this page's column.</li>
+                <li>
+                  The house is a "⌂" character: the docs pages can't draw the editor's house icon. The editor's own
+                  icons (play, pencil, crosshairs) are swapped for the closest the docs pages have.
+                </li>
+                <li>
+                  The bar keeps today's spacing rule: groups at least 60px apart, icons in a group 12px apart. The app's
+                  tools are a group of their own; no new margins.
+                </li>
+              </ul>
+            </epic-aside>
+            <epic-text-box for="run-bar"></epic-text-box>
+          </ui-section>
+
+          <!-- ////////////////////////////////////////////////////////////////////////////// -->
+
+          <ui-section id="edit-bar" label="3. The new bar, Edit mode (file tabs)" sticky collapsible dividing>
+            <ui-icon slot="icon" name="pen"></ui-icon>
+            <p>
+              The same top bar. Over the code, the file menu and its buttons become a row of tabs: every file of the
+              project, always there.
+            </p>
+            <ul>
+              <li>A file with changes not saved has a dot on its tab; Save (⌘S) clears it.</li>
+              <li>No opening or closing: the project's files ARE the tabs (Solitaire has five).</li>
+              <li>Save, Reload, New File and the "..." menu's items go to the File and Edit menus (section 4).</li>
+              <li>The app's tools stay in the top bar while you edit: the app still shows, on the right.</li>
+            </ul>
+
+            <div class="tb-stage wide">
+              <p class="tb-caption">Edit mode, dark -- Card.spellml has changes not saved</p>
+              <div class="tb-row">
+                <div class="tb-group">
+                  <span class="tb-mark"><ui-icon name="hat wizard"></ui-icon><b>Spell</b></span>
+                  <span class="tb-project"
+                    ><ui-icon name="lightbulb"></ui-icon>Solitaire<ui-icon name="chevron down"></ui-icon
+                  ></span>
+                  <ui-menu class="tb-menus" size="small" aria-label="App menus, Edit mode">
+                    <ui-item appearance="link" selected>File</ui-item>
+                    <ui-item appearance="link">Edit</ui-item>
+                    <ui-item appearance="link">View</ui-item>
+                    <ui-item appearance="link">Run</ui-item>
+                    <ui-item appearance="link">Help</ui-item>
+                  </ui-menu>
+                </div>
+                <span class="tb-spring"></span>
+                <ui-menu appearance="segmented" size="small" aria-label="Modes, Edit">
+                  <ui-item appearance="link"><ui-icon name="circle play"></ui-icon>Run</ui-item>
+                  <ui-item appearance="link" selected><ui-icon name="pen"></ui-icon>Edit</ui-item>
+                  <ui-item appearance="link"><ui-icon name="tree"></ui-icon>Debug</ui-item>
+                </ui-menu>
+                <span class="tb-spring"></span>
+                <div class="tb-group">
+                  <ui-icon class="tb-icon" name="arrows rotate" title="Restart"></ui-icon>
+                  <ui-icon class="tb-icon" name="bullseye" title="Pick a part of the app"></ui-icon>
+                  <ui-icon class="tb-icon" name="gear" title="Settings"></ui-icon>
+                  <span class="tb-icon"
+                    ><ui-icon name="table columns"></ui-icon> <ui-icon name="chevron down"></ui-icon
+                  ></span>
+                </div>
+                <div class="tb-group">
+                  <ui-icon class="tb-icon" name="palette" title="Theme"></ui-icon>
+                  <span class="tb-glyph" title="Home">⌂</span>
+                  <span class="tb-avatar" title="You">O</span>
+                </div>
+              </div>
+              <div class="tb-panes">
+                <div class="tb-pane">
+                  <ui-menu class="tb-tabs" appearance="tabular" size="small" shrinkable aria-label="Files, wide">
+                    <ui-item appearance="link" selected
+                      >Card.spellml<span class="tb-dirty" title="Not saved"></span
+                    ></ui-item>
+                    <ui-item appearance="link">Deck.spellml</ui-item>
+                    <ui-item appearance="link">Pile.spellml</ui-item>
+                    <ui-item appearance="link">Solitaire.spellml</ui-item>
+                    <ui-item appearance="link">styles.css</ui-item>
+                  </ui-menu>
+                  <div class="tb-code">
+                    # A playing card<br />&lt;spell-view "card" template="two sided view" draggable&gt;
+                  </div>
+                </div>
+                <div class="tb-pane"><div class="tb-app">The running app: no header row.</div></div>
+              </div>
+            </div>
+
+            <p><strong>When the tabs don't fit.</strong> Drag the box's right edge to make it narrower.</p>
+            <div class="tb-stage tb-width" style="width: 420px">
+              <p class="tb-caption">The code column, narrow -- Spell UI's <code>&lt;ui-menu shrinkable&gt;</code></p>
+              <div class="tb-pane" style="min-height: 0">
+                <ui-menu class="tb-tabs" appearance="tabular" size="small" shrinkable aria-label="Files, narrow">
+                  <ui-item appearance="link" selected>Card.spellml</ui-item>
+                  <ui-item appearance="link">Deck.spellml</ui-item>
+                  <ui-item appearance="link">Pile.spellml</ui-item>
+                  <ui-item appearance="link">Solitaire.spellml</ui-item>
+                  <ui-item appearance="link">styles.css</ui-item>
+                </ui-menu>
+              </div>
+            </div>
+            <ul>
+              <li>
+                <strong>Worth knowing:</strong> <code>shrinkable</code> doesn't fold just the tabs that don't fit. It
+                shortens every title with "…" first, then shows icons only, then folds EVERY tab into one "…" button.
+              </li>
+              <li>
+                "Only the ones that don't fit go into …" (as VS Code and browsers do) would be a new stage for
+                <code>shrinkable</code>: a question below.
+              </li>
+            </ul>
+            <epic-text-box for="edit-bar"></epic-text-box>
+          </ui-section>
+
+          <!-- ////////////////////////////////////////////////////////////////////////////// -->
+
+          <ui-section id="menus" label="4. The menus" sticky collapsible dividing>
+            <ui-icon slot="icon" name="bars"></ui-icon>
+            <p>
+              Every command the editor has today, put into five menus. Each key is one the editor already answers to:
+              the menus are drawn from the same list the keys come from, so a key a menu shows always works.
+            </p>
+            <ul>
+              <li><span class="tb-new">NEW</span> marks an item the editor has no command for yet.</li>
+              <li>
+                "Static" marks what the public build leaves out today (it has no server): it'd be left out of the menus
+                too.
+              </li>
+              <li>
+                The Spell UI <code>&lt;ui-action shortcut&gt;</code> draws each item and its key: ⌘ on a Mac, Ctrl
+                elsewhere.
+              </li>
+            </ul>
+
+            <div class="tb-stage">
+              <p class="tb-caption">The five menus, open, drawn flat -- a mode or card that's on would be ticked</p>
+              <div class="tb-open-menus">
+                <div>
+                  <h4>File</h4>
+                  <ui-menu direction="vertical" size="small" aria-label="File">
+                    <ui-action shortcut="mod+S">Save</ui-action>
+                    <ui-action shortcut="shift+mod+R">Reload from Server</ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action shortcut="mod+N">New File</ui-action>
+                    <ui-action>Duplicate File</ui-action>
+                    <ui-action>Rename File</ui-action>
+                    <ui-action>Delete File</ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action>New Example</ui-action>
+                    <ui-action>Duplicate Example</ui-action>
+                    <ui-action>Rename Example</ui-action>
+                    <ui-action>Delete Example</ui-action>
+                    <ui-action>Reset Example</ui-action>
+                  </ui-menu>
+                </div>
+                <div>
+                  <h4>Edit</h4>
+                  <ui-menu direction="vertical" size="small" aria-label="Edit">
+                    <ui-action shortcut="mod+Z">Undo <span class="tb-new">NEW</span></ui-action>
+                    <ui-action shortcut="shift+mod+Z">Redo <span class="tb-new">NEW</span></ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action shortcut="mod+F">Find <span class="tb-new">NEW</span></ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action>Code Editor Settings…</ui-action>
+                  </ui-menu>
+                </div>
+                <div>
+                  <h4>View</h4>
+                  <ui-menu direction="vertical" size="small" aria-label="View">
+                    <ui-action>Run</ui-action>
+                    <ui-action>Edit</ui-action>
+                    <ui-action>Debug</ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action>Inspector</ui-action>
+                    <ui-action>Inspector: Properties</ui-action>
+                    <ui-action>Inspector: Views</ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action>Line Numbers</ui-action>
+                    <ui-action>Theme…</ui-action>
+                    <ui-action>Edit Theme…</ui-action>
+                  </ui-menu>
+                </div>
+                <div>
+                  <h4>Run</h4>
+                  <ui-menu direction="vertical" size="small" aria-label="Run">
+                    <ui-action shortcut="mod+Enter">Compile and Run</ui-action>
+                    <ui-action>Restart</ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action>Pick a Part of the App</ui-action>
+                    <ui-action shortcut="Escape">Let Go of the Part</ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action>Clear Console</ui-action>
+                    <ui-action>Settings…</ui-action>
+                  </ui-menu>
+                </div>
+                <div>
+                  <h4>Help</h4>
+                  <ui-menu direction="vertical" size="small" aria-label="Help">
+                    <ui-action>Keyboard Shortcuts <span class="tb-new">NEW</span></ui-action>
+                    <ui-action disabled>Help</ui-action>
+                    <ui-action kind="divider"></ui-action>
+                    <ui-action>Home</ui-action>
+                  </ui-menu>
+                </div>
+              </div>
+            </div>
+            <epic-aside title="Every command today, where it is, and its key">
+              <table class="ui very basic table">
+                <thead>
+                  <tr>
+                    <th>Command</th>
+                    <th>Key today</th>
+                    <th>Where it is today</th>
+                    <th>Into</th>
+                    <th>Static</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Save</td>
+                    <td>⌘S</td>
+                    <td>code header icon</td>
+                    <td>File</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Reload (from the server)</td>
+                    <td>⌘⇧R</td>
+                    <td>code header icon</td>
+                    <td>File</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>New File</td>
+                    <td>⌘N</td>
+                    <td>code header icon; file menu; "..."</td>
+                    <td>File</td>
+                    <td>left out</td>
+                  </tr>
+                  <tr>
+                    <td>Duplicate / Rename / Delete File</td>
+                    <td>--</td>
+                    <td>file menu; "..."</td>
+                    <td>File</td>
+                    <td>left out</td>
+                  </tr>
+                  <tr>
+                    <td>Compile and run</td>
+                    <td>⌘↵</td>
+                    <td>no button: the editor compiles as you type</td>
+                    <td>Run</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>New {Type} (Example, Guide, Project)</td>
+                    <td>--</td>
+                    <td>project menu</td>
+                    <td>File</td>
+                    <td>left out</td>
+                  </tr>
+                  <tr>
+                    <td>Duplicate / Rename / Delete {Type}</td>
+                    <td>--</td>
+                    <td>project menu</td>
+                    <td>File</td>
+                    <td>left out</td>
+                  </tr>
+                  <tr>
+                    <td>Reset {Type}</td>
+                    <td>--</td>
+                    <td>top bar, public build only</td>
+                    <td>File</td>
+                    <td>only there</td>
+                  </tr>
+                  <tr>
+                    <td>Show line numbers</td>
+                    <td>--</td>
+                    <td>code "..."</td>
+                    <td>View</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Settings… (the code editor's)</td>
+                    <td>--</td>
+                    <td>code "..."</td>
+                    <td>Edit</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Run | Edit | Debug</td>
+                    <td>--</td>
+                    <td>top bar, middle</td>
+                    <td>stays; also View</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Restart</td>
+                    <td>--</td>
+                    <td>app header icon</td>
+                    <td>bar; Run</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Pick a part of the app</td>
+                    <td>Esc stops picking</td>
+                    <td>app header crosshairs</td>
+                    <td>bar; Run</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Let go of the picked part</td>
+                    <td>Esc</td>
+                    <td>the picked part's pill, ✕</td>
+                    <td>Run</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Settings (the project's)</td>
+                    <td>--</td>
+                    <td>app header gear</td>
+                    <td>bar; Run</td>
+                    <td>left out</td>
+                  </tr>
+                  <tr>
+                    <td>Inspector, open / close</td>
+                    <td>--</td>
+                    <td>app header icon</td>
+                    <td>bar; View</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Inspector cards: Properties, Views</td>
+                    <td>--</td>
+                    <td>app header ▾</td>
+                    <td>bar; View</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Hide a card</td>
+                    <td>--</td>
+                    <td>the card's eye</td>
+                    <td>stays</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Clear Console</td>
+                    <td>--</td>
+                    <td>Debug's panel, Output tab</td>
+                    <td>stays; also Run</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Program panel tabs, Close</td>
+                    <td>--</td>
+                    <td>Debug's panel</td>
+                    <td>stays</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Theme: Light / Dark / Auto, the themes, Edit theme…</td>
+                    <td>--</td>
+                    <td>top bar palette</td>
+                    <td>bar; View</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>Home</td>
+                    <td>--</td>
+                    <td>top bar; the hat</td>
+                    <td>bar; Help</td>
+                    <td>kept</td>
+                  </tr>
+                  <tr>
+                    <td>You</td>
+                    <td>--</td>
+                    <td>top bar avatar</td>
+                    <td>stays</td>
+                    <td>left out</td>
+                  </tr>
+                  <tr>
+                    <td>Help</td>
+                    <td>--</td>
+                    <td>nowhere: a stub that does nothing yet</td>
+                    <td>Help</td>
+                    <td>left out</td>
+                  </tr>
+                </tbody>
+              </table>
+            </epic-aside>
+            <epic-aside title="Where the keys come from, and what they'd need">
+              <ul>
+                <li>
+                  The editor's keys, outside the code: ONE list,
+                  <code title="app/src/app/pages/editorHotkeys.ts">EDITOR_HOTKEYS</code>: ⌘S, ⌘⇧R, ⌘↵, ⌘N.
+                </li>
+                <li>
+                  Inside the code, the code editor adds three of the same itself (⌘S, ⌘⇧R, ⌘↵), in
+                  <code title="app/src/app/editor.ts">editor.onInputDidMount()</code>: a second list to keep in step.
+                </li>
+                <li>
+                  The menus' items are the app's actions (<code title="app/src/app/solid/Actions.tsx">Actions</code>),
+                  which hold no keys today. The build would give each hotkey the action it runs, so the menu, the keys
+                  and the code editor read one list.
+                </li>
+                <li>
+                  What the public build leaves out is one list too,
+                  <code title="app/src/app/solid/Actions.tsx">HIDDEN_IN_STATIC_BUILD</code>: the menus read it, so their
+                  server-only items go.
+                </li>
+                <li>
+                  <strong>⌘N probably never reaches the editor:</strong> Chrome keeps ⌘N for a new window, and gives a
+                  page no say. To check before it's printed in a menu.
+                </li>
+                <li>
+                  The NEW items in Edit (Undo, Redo, Find) are the code editor's own commands: the menu would only run
+                  them.
+                </li>
+              </ul>
+            </epic-aside>
+            <epic-text-box for="menus"></epic-text-box>
+          </ui-section>
+
+          <!-- ////////////////////////////////////////////////////////////////////////////// -->
+
+          <ui-section id="phone" label="5. Phone width" sticky collapsible dividing>
+            <ui-icon slot="icon" name="window maximize"></ui-icon>
+            <p>At 390px the bar can't hold five menus and the tools, so it folds:</p>
+            <ul>
+              <li>the hat, the project menu, then ONE ☰ menu holding File · Edit · View · Run · Help as sub-menus</li>
+              <li>Run | Edit | Debug as icons, as today</li>
+              <li>you, at the right; the app's tools are in ☰ › Run and View</li>
+              <li>over the code: the file tabs become one dropdown, "Card.spellml ▾"</li>
+            </ul>
+            <div class="tb-stage tb-phone">
+              <p class="tb-caption">Edit mode, 390px</p>
+              <div class="tb-row" style="gap: 10px">
+                <span class="tb-mark"><ui-icon name="hat wizard"></ui-icon></span>
+                <span class="tb-project"
+                  ><ui-icon name="lightbulb"></ui-icon><ui-icon name="chevron down"></ui-icon
+                ></span>
+                <ui-icon class="tb-icon" name="bars" title="Menus"></ui-icon>
+                <span class="tb-spring"></span>
+                <ui-menu appearance="segmented" size="small" aria-label="Modes, phone">
+                  <ui-item appearance="link"><ui-icon name="circle play"></ui-icon></ui-item>
+                  <ui-item appearance="link" selected><ui-icon name="pen"></ui-icon></ui-item>
+                  <ui-item appearance="link"><ui-icon name="tree"></ui-icon></ui-item>
+                </ui-menu>
+                <span class="tb-spring"></span>
+                <span class="tb-avatar" title="You">O</span>
+              </div>
+              <div class="tb-pane" style="margin-top: 10px">
+                <div style="padding: 6px 8px">
+                  <ui-dropdown value="card" size="small" aria-label="File">
+                    <ui-item value="card">Card.spellml</ui-item>
+                    <ui-item value="deck">Deck.spellml</ui-item>
+                    <ui-item value="pile">Pile.spellml</ui-item>
+                    <ui-item value="solitaire">Solitaire.spellml</ui-item>
+                    <ui-item value="styles">styles.css</ui-item>
+                  </ui-dropdown>
+                </div>
+                <div class="tb-code"># A playing card</div>
+              </div>
+            </div>
+            <epic-text-box for="phone"></epic-text-box>
+          </ui-section>
+
+          <!-- ////////////////////////////////////////////////////////////////////////////// -->
+
+          <ui-section id="q1" label="Q1 · Which menus?" sticky collapsible dividing>
             <ui-icon slot="icon" name="circle question"></ui-icon>
             <epic-ask>
-              <epic-question><p>The question in full, in one or two lines.</p></epic-question>
+              <epic-question
+                ><p>
+                  The bar gets app menus after the project's name. Which ones? Section 4 shows what each would hold.
+                </p></epic-question
+              >
               <epic-choices>
-                <epic-option letter="A" title="First option" recommended>
-                  <p>One line: what changes, and why it's recommended.</p>
-                  <epic-aside title="Details"><p>Anything longer: a table, code, a picture.</p></epic-aside>
+                <epic-option letter="A" title="File · Edit · View · Run · Help" recommended>
+                  <p>The five drawn above: the names every desktop app uses, so people know where to look.</p>
                 </epic-option>
-                <epic-option letter="B" title="Second option">
-                  <p>One line: what changes, and its cost.</p>
+                <epic-option letter="B" title="No Edit menu">
+                  <p>
+                    File · View · Run · Help. Edit would hold only the code editor's own commands, which right-click
+                    already has; its Settings… moves to View.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="One ☰ menu">
+                  <p>A single menu with the five as sub-menus, at every width: the quietest bar, but one more click.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q2" label="Q2 · The app's tools in Edit and Debug?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Restart, Pick a part, Settings and the Inspector move into the top bar. The first sketch showed them
+                  only while running. But the app shows in Edit and Debug too, beside the code. Which modes show them?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Every mode" recommended>
+                  <p>
+                    They work on the app, which shows in every mode: picking a card while editing its code is the
+                    Inspector's main use.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Only in Run">
+                  <p>
+                    As first sketched. In Edit and Debug they'd be in the Run and View menus only, or back in a header
+                    over the app.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q3" label="Q3 · Where does Debug go?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Debug is Edit plus the Program panel under the code (its output, the compiled code). With a View menu,
+                  is it still a mode of its own?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Stays a third mode" recommended>
+                  <p>Run | Edit | Debug in the middle, as today: nothing to relearn. View lists them too.</p>
+                </epic-option>
+                <epic-option letter="B" title="A panel, in View">
+                  <p>
+                    Run | Edit only. View › "Program Panel" shows or hides it in Edit, like VS Code's terminal panel.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="A button in the bar">
+                  <p>Run | Edit, and a bug icon in the app's tools that opens the panel.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q4" label="Q4 · Do file tabs close?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>In Edit, the project's files are tabs over the code. Can you close one?</p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="No:  every file, always" recommended>
+                  <p>A project has a handful of files; the tabs are its file list. Nothing to manage.</p>
+                </epic-option>
+                <epic-option letter="B" title="Yes, as VS Code">
+                  <p>Open files only, each with a ✕; the project menu or a file list opens the others.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q5" label="Q5 · When the tabs don't fit" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Spell UI's shrinkable menu shortens every tab's title, then folds them ALL into one "…" button. Is
+                  that what you want, or only the ones that don't fit folded away?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Fold only the extras" recommended>
+                  <p>
+                    Whole tabs while they fit, the rest in "…", as browsers and VS Code do. A new stage for
+                    <code>shrinkable</code>, which every menu would get.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Shrinkable as it is">
+                  <p>Titles cut with "…", then icons, then one "…" for all: no Spell UI work. Try it in section 3.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q6" label="Q6 · Theme, Home and you" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  The bar's right end gets the app's tools. Where do the theme palette, Home and your avatar go?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Stay, a group of their own" recommended>
+                  <p>At the far right, 60px after the app's tools, as drawn: where they are today.</p>
+                </epic-option>
+                <epic-option letter="B" title="Theme and Home into menus">
+                  <p>
+                    Theme into View, Home into Help (the hat goes Home already): the right end is the app's tools and
+                    you.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="Everything into menus">
+                  <p>Avatar too, as a "You…" item: the right end is only the app's tools.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q7" label="Q7 · The project's own actions" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  New, Duplicate, Rename and Delete the project (and the public build's Reset) sit at the foot of the
+                  project menu, "Solitaire ▾". Where do they go?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="File menu, below the file's" recommended>
+                  <p>One place for every "make, copy, rename, delete"; the project menu only switches projects.</p>
+                </epic-option>
+                <epic-option letter="B" title="Stay in the project menu">
+                  <p>File holds only the file's actions; the project's stay with its name.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q8" label="Q8 · New keys?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  The menus show only today's keys (⌘S, ⌘⇧R, ⌘↵, ⌘N, Esc). Add keys for the modes, the Inspector and
+                  picking?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Today's keys only, for now" recommended>
+                  <p>
+                    Ship the menus first. Many keys are the browser's (⌘1-9 switch tabs, ⌘N a new window): new ones need
+                    a careful pick, an epic item of their own.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Add some now">
+                  <p>Say which in Other, e.g. ⌥⌘I for the Inspector, ⌃⌘1-3 for Run, Edit, Debug.</p>
                 </epic-option>
               </epic-choices>
             </epic-ask>
