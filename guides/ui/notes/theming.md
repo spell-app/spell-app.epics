@@ -466,6 +466,27 @@ Ours are CONTAINER-based by default.
     - Why:  a box can't style-query its own custom properties, only its ancestors'.
   - The sheet `@import`s `media.css` (`@custom-media`, Lightning CSS).
 
+## Code colours
+
+Every theme colours code, light and dark, by what it colours (epic `debut` P22;  Owen:  "yes mint.  Let's make a VSC
+theme to match each theme, in both light and dark").
+- The roles are the theme tree's `code` group, each a token `--ui-code-<role>`:
+  text, heading, comment, keyword, type, library, name, member, parameter, action, constant, string, tag, punctuation;
+  and attr, meta, addition and deletion, for `<ui-code>`'s highlight.js colours.
+  - And the editor's own:  cursor, selection, current line, line numbers, bracket match, find match (`code > editor`).
+- A theme file's `code` group sets any of them by hand;  the rest come from the RECIPE (`codeRoles`, written into
+  `colors.css`):  each role a colour the theme already has, its hue kept, at a lightness that reads on its code
+  background (OKLCH 0.48 in light, 0.80 in dark;  comments and punctuation 0.50 and 0.74, greyer).
+  - Designed by hand:  Spell (Shades of Purple in dark, its comments lifted to #bd78ff to read on Spell's panel),
+    Matrix (a mint console), Glass (Xcode's colours) and Fruity (pink and violet from its wallpaper).
+  - Merlot, Paper, Midnight, Crisp and Pop take the recipe.
+- Read by:
+  - `<ui-code>` (`number` and `title` take `constant` and `action`)
+  - the Spell editor's code:  `CodeThemes` builds Monaco's theme off the page as it draws, so the theme bench's tuning
+    shows at once
+  - the Spell extension's VS Code themes, 18 of them (`CodeThemeFile`, `VscodeThemes`)
+- `colors.contrast.test.ts` holds every role to 4.5:1 on the theme's panel and in a code block, comments too.
+
 ## One choice, in your space
 
 The theme and light / dark are ONE choice for every place Spell draws (epic `debut` P21;  Owen:  "one theme picker
