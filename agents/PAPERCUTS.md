@@ -1090,6 +1090,14 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 Entries before 2026-09-30 are from when the command line lived in the parser repo, on its `CLI` branch.
 
+- 2026-10-29 · `spell speedtest --against HEAD` refuses in the one repo, from the kit's root or `parser/`:
+  "HEAD has no src/spell:  --against needs a spell-parser ref from after epic repo-split P14" -- it looks for
+  `src/spell` at the repo's root, which is `parser/src/spell` since P20. · Baseline by hand:  `git worktree add
+  --detach <scratch>/head-wt HEAD`, a `node_modules` there of links to the worktree's entries but `spell` linked to
+  the new worktree itself (the install's `spell` link is relative, `..`, so linking the whole folder runs the
+  CURRENT code), then `node ../bin/spell.mjs speedtest` in its `parser/`, taking turns with the current side. · cli
+  (epic `debut` P26)
+
 - 2026-09-28 · New `tsx` entry point died with `ERR_MODULE_NOT_FOUND: Cannot find package '~'` -- looked like
   `tsconfig` `paths` weren't applied, so time went on probing `tsx`'s `register({ tsconfig })`.  Real cause:  the
   FILE was gone (`~/spellVersion.node` had just been renamed to `~/packageVersion.node` by another session).  `tsx`
