@@ -466,6 +466,26 @@ Ours are CONTAINER-based by default.
     - Why:  a box can't style-query its own custom properties, only its ancestors'.
   - The sheet `@import`s `media.css` (`@custom-media`, Lightning CSS).
 
+## One choice, in your space
+
+The theme and light / dark are ONE choice for every place Spell draws (epic `debut` P21;  Owen:  "one theme picker
+for everything").
+- Pick it in any theme menu:  the editor and its notebooks, the epic pages and guides, Spell UI's, App UI's and the
+  brand's pages all draw in it, on their next page and in tabs already open.
+- Kept in the person's space, beside their other preferences (Owen:  "Take from user preference in space"):
+  `@spell/owen@/__prefs/spell-site.json5`, `{ theme: "glass", scheme: "dark" }`, readable and editable by hand.
+  - Every place reads and writes it through `ThemePreference`, on the kit's `PrefStore` with the page server as its
+    place (`ServerPlace`, `/api/prefs`);  the editor's dev server passes `/api` on.
+- A save reaches open pages at once:  the page server tells every page over its live channel (`pref-saved`), and
+  each page asks again when it comes back into view.
+- The browser keeps a copy (`spell-site:theme`, `spell-site:scheme`) to draw the right theme before the space answers;
+  the space always wins.
+- The read-only public build, with no page server, keeps the choice in the browser alone.
+- Each place's own key from before (`spell-app:theme`, `spell-epic:theme`, `spell-ui-site:theme`) is moved over once,
+  and into the space when it holds nothing yet.
+- The one exception:  a nested `<ui-root theme>` draws its own scheme inside it, and never touches the choice.
+- Glass for a person who never picked (Q39).
+
 ## Themes
 
 A theme is a sheet of token overrides in `@layer ui.theme`, loaded on the page after the foundation.
@@ -541,7 +561,8 @@ whose sheet `yarn gen:styles` writes.
 ### Our own theme:  `spell`
 
 [`spell.theme.json5`](/spell-ui/src/styles/themes/spell.theme.json5) is the Spell brand as a theme ([the brand's design system](/guides/spell.epics/brand/spell-design-system/)).
-- It's the DEFAULT look of Spell UI's docs site and the guides (`ThemePreference`), until the viewer picks another.
+- It was the default look of Spell UI's docs site and the guides until epic `debut` P21:  Glass is everyone's since
+  (Q39).
 - The ONE Spell theme (epic `debut` P17, J88):  the Spell Brand theme (`spell-brand.css`) folded into it.
   - A theme remembered as `spell-brand` comes back as `spell` (`Themes.RENAMED`).
   - Its facelift, epic `debut` P19:  dark panels a clear step off the page (`violet-900` on `violet-950`), and its
@@ -734,10 +755,10 @@ await themes.apply(undefined) // our own look
 - The theme menu, `<ui-theme-menu>` (Spell UI's [theme menu family](/spell-ui/src/components/ui-theme-menu/)),
   lists `own`, each with its one-line description;  no Plain, no Classic (epic `debut` P17).
   - A palette button, its panel Light | Dark | Auto and the themes;  or a theme dropdown, or a sun / moon alone.
-  - It remembers both per viewer through `ThemePreference`:
-    the scheme under the one key every Spell site shares, the theme under each place's own key (`site()`).
+  - It remembers both through `ThemePreference`:  ONE choice for every place, the editor's, the epic pages' and
+    Spell UI's pages' alike (epic `debut` P21, "One choice, in your space", below).
   - A theme remembered under an old name comes back as its new one (`Themes.RENAMED`);  any other gone name, the
-    place's default.
+    default, Glass.
   - A theme's title is one function, `UIT.ThemeNames.titleOf()`, the theme editor's Start from's too.
   - It was the docs site's own widget, `<ui-docs-themes>`, until P17;  `spell ui rename` rewrites the old tag.
 - `apply()` registers two `UI.styles` names (`UI.themes.slots`):
