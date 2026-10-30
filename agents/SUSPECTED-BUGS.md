@@ -693,6 +693,9 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- A saving `<spell-editor>` POSTs its compiled output even when the compile had parse errors (2026-10-29, epic
+  `repo-split` P25):  on the page server it wrote a broken Solitaire build into the checkout's `build/`, which the runner
+  then served.  Suspect its save step doesn't check the compile's errors first.
 - An editor left open while a project's files are renamed on disk saves the project WITHOUT them
   (2026-10-29, epic `repo-split` P21):  the editor at `localhost:3000` had Solitaire open when every `.spellx` file
   became `.spellml`, and its `__project.json5` came back with only `styles.css` in `imports` (Card, Deck, Pile and
