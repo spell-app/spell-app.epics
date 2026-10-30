@@ -487,6 +487,23 @@ theme to match each theme, in both light and dark").
   - the Spell extension's VS Code themes, 18 of them (`CodeThemeFile`, `VscodeThemes`)
 - `colors.contrast.test.ts` holds every role to 4.5:1 on the theme's panel and in a code block, comments too.
 
+## My themes
+
+The theme editor saves themes by name, any number:  "My themes" (epic `debut` P25), kept in this browser (`SavedTheme`).
+- Each has an id, made once when it's first saved:  a rename (change its name, Save) keeps it, so a menu that
+  remembered it still finds it.
+- In the builder:  Save, Save as new, Delete (it asks first), Open one to change in place;  Builds on lists My themes
+  too, and starting from one copies it into a new theme, the original as it was.
+- Export writes a `<name>.theme.json5` theme file, as Spell's own are;  Import adds one back, a name already there
+  taking " 2", a file that isn't a theme refused (`ThemeFile`'s check).
+- Every theme menu lists them first, under "My themes", above Spell's:  picking one wears its base, then its sheet,
+  remembered as `mine:<id>`;  no tint row for it (its colours are its own);  one deleted since, the default.
+- The one theme a browser kept before P25 opens as the first of them, named after its base ("My Fruity").
+- Save into Spell UI:  a Spell admin's only (`spell-admin` in Spell's own org), on the page server
+  (`/api/themes/spell-ui`, spell-app's:  only it knows who the person is).  It writes the theme file and its sheet into
+  Spell UI's themes folder, and adds the name to the theme list (`Themes.ts`, between its `own:start` / `own:end`
+  markers);  a name already there asks before writing over it.
+
 ## Tints
 
 Any theme in any of Spell UI's colours, by its own name (epic `debut` P23;  Owen:  "pick 'rose' or 'teal' to apply that
