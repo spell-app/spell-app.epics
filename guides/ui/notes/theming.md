@@ -487,6 +487,20 @@ theme to match each theme, in both light and dark").
   - the Spell extension's VS Code themes, 18 of them (`CodeThemeFile`, `VscodeThemes`)
 - `colors.contrast.test.ts` holds every role to 4.5:1 on the theme's panel and in a code block, comments too.
 
+## Tints
+
+Any theme in any of Spell UI's colours, by its own name (epic `debut` P23;  Owen:  "pick 'rose' or 'teal' to apply that
+color to the basic look"):  Glass, or Glass - Pink.
+- A tint REPLACES the theme's primary (buttons, links, selection, focus) and tints the page behind everything as a soft
+  gradient of the colour, light into deep (`--ui-wallpaper`, drawn fixed behind the page;  Fruity's three washes take
+  the tint instead).  Panels and cards keep the theme's own colours.
+- It's the theme editor's Primary and Background, both the tint (`ThemeDraft.tintCss()`), worn in a slot of its own
+  after the theme's (`UI.themes.apply(name, { tint })`).
+- Picked in the theme menu's tint row (`<ui-hue-swatches>`, the editor's colour rows too), remembered with the theme as
+  one name:  `glass:pink`, in the person's space as everything else.
+- `colors.contrast.test.ts` reads every theme in every tint, light and dark:  the primary's text on it, text and links at
+  both ends of the gradient;  a colour that can't is left out of that theme's row (`TINTS_LEFT_OUT`, none today).
+
 ## One choice, in your space
 
 The theme and light / dark are ONE choice for every place Spell draws (epic `debut` P21;  Owen:  "one theme picker
