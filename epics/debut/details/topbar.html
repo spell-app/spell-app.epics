@@ -260,7 +260,7 @@
       /* a sketch never pushes the page sideways:  its padding inside its width */
       .tb-stage:not(.wide) {
         box-sizing: border-box;
-        max-width: 100%;
+        max-width: min(100%, calc(100vw - 32px));
       }
       /* at phone width the editor-wide sketches shrink further */
       @media (width < 700px) {
@@ -278,7 +278,8 @@
       .tb-pressed {
         opacity: 1;
         color: #a98bff;
-        background: rgb(169 139 255 / 0.22);
+        background: rgb(169 139 255 / 0.38);
+        outline: 1px solid rgb(169 139 255 / 0.7);
         box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.35);
         border-radius: 6px;
         padding: 5px;
@@ -291,8 +292,8 @@
       .tb-popup {
         position: absolute;
         top: calc(100% + 12px);
-        left: -14px;
-        width: 260px;
+        right: -6px;
+        width: min(260px, 62vw);
         display: flex;
         gap: 10px;
         align-items: start;
@@ -309,7 +310,7 @@
         content: "";
         position: absolute;
         top: -6px;
-        left: 18px;
+        right: 178px;
         width: 10px;
         height: 10px;
         background: inherit;
@@ -625,10 +626,17 @@
                 close it.
               </li>
               <li>
-                <strong>The ring is drawn on the part itself</strong>, not on a box laid over the page.
+                <strong>The ring is drawn by the part itself</strong>, not by a box laid over the page.
                 <ul>
                   <li>The part under the mouse gets a light dashed ring; the picked part a solid one.</li>
-                  <li>Each is the part's own <code>::after</code>, 3px outside it, in the theme's accent, rounded.</li>
+                  <li>
+                    Each is the part's own <code>::after</code>, pinned to the part by CSS anchor positioning: 3px
+                    outside it, in the theme's accent, rounded.
+                  </li>
+                  <li>
+                    The browser keeps it on the part through scrolls and drags, with no script, and a parent that hides
+                    its overflow can't cut it off.
+                  </li>
                   <li>
                     A part with no box of its own (<code>display: contents</code>) can't draw one: the old overlay
                     stays, for those only.
@@ -670,20 +678,28 @@
             </div>
             <epic-aside title="The ring, in CSS">
               <pre><code class="language-css">/* the editor marks the part:  data-inspected="hover" | "picked" */
-[data-inspected] { position: relative }   /* only when the part isn't positioned already */
+[data-inspected="hover"]  { anchor-name: --inspect-hover }
+[data-inspected="picked"] { anchor-name: --inspect-picked }
+
 [data-inspected]::after {
   content: "";
-  position: absolute;
-  inset: -3px;
-  border: 2px solid var(--ui-primary-color);
+  position: fixed;              /* placed by the page, not by the part's parents */
+  position-anchor: --inspect-picked;
+  top: calc(anchor(top) - 3px);
+  left: calc(anchor(left) - 3px);
+  right: calc(anchor(right) - 3px);
+  bottom: calc(anchor(bottom) - 3px);
+  outline: 2px solid var(--ui-primary-color);
   border-radius: calc(var(--ui-radius) + 3px);
   pointer-events: none;
 }
-[data-inspected="hover"]::after { border-style: dashed; opacity: 0.7 }</code></pre>
+[data-inspected="hover"]::after { position-anchor: --inspect-hover; outline-style: dashed; opacity: 0.7 }</code></pre>
               <ul>
+                <li>No box on the page redrawn on every frame: the browser moves the ring with its part.</li>
                 <li>
-                  No box on the page redrawn on every frame: the ring moves with the part, scrolled, dragged or
-                  animated.
+                  Fixed means no parent that hides its overflow can cut the ring. Only a parent with a filter, a
+                  transform or a blur would hold it in; the editor's panels have none since their glass moved to a layer
+                  of its own.
                 </li>
                 <li>
                   A part that already uses its own <code>::after</code> loses it while marked: worth checking against
