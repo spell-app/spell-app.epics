@@ -21,7 +21,7 @@ export const recipeBoxVocabulary = {
       kind: "string",
       default: "rest",
       description:
-        "Which back-end keeps them:  `rest`, `graphql`, `folder`, `sheet`, `sheet-no-id` or `google-sheet`.  The page's address can say too:  `?back-end=graphql`."
+        "Which back-end keeps them:  `rest`, `graphql`, `folder`, `room`, `sheet`, `sheet-no-id` or `google-sheet`.  The page's address can say too:  `?back-end=graphql`."
     },
     {
       name: "sheet",
@@ -35,10 +35,39 @@ export const recipeBoxVocabulary = {
   parts: [
     { name: "box", description: "The whole box." },
     { name: "recipe", description: "One recipe." },
-    { name: "note", description: "What the read said about its rows." }
+    { name: "note", description: "What the read said about its rows." },
+    { name: "connection", description: "In a live room:  whether it's connected, and its last heal." }
   ],
   states: [],
   texts: [
+    { key: "up", text: "Up", description: "Moves a recipe up the list, in a live room." },
+    { key: "down", text: "Down", description: "Moves a recipe down the list, in a live room." },
+    {
+      key: "one-more",
+      text: "One more serving",
+      description: "Adds 1 to its servings, as an addition, in a live room."
+    },
+    { key: "online", text: "Connected to the room.", description: "The room's connection is up." },
+    {
+      key: "offline",
+      text: "Not connected:  what you change is kept here, and goes when it's back.",
+      description: "The room's connection is down."
+    },
+    { key: "go-offline", text: "Go offline", description: "Stops talking to the room, for trying it." },
+    { key: "go-online", text: "Back online", description: "Starts talking to the room again." },
+    { key: "healed", text: "Last healed by {why}, in {ms} ms.", description: "How the room's last heal went." },
+    {
+      key: "lost",
+      text: "Someone else changed {field} at the same time, and theirs stands.  Yours was:  {mine}",
+      description: "Long text of yours replaced."
+    },
+    { key: "use-mine", text: "Use mine", description: "Puts yours back." },
+    {
+      key: "deleted",
+      text: "Someone else deleted {title} while you were changing it.",
+      description: "What you were changing is gone."
+    },
+    { key: "restore", text: "Restore", description: "Makes it again, with your changes." },
     { key: "title", text: "Title", description: "A recipe's title." },
     { key: "servings", text: "Servings", description: "How many it serves." },
     { key: "notes", text: "Notes", description: "A recipe's notes." },

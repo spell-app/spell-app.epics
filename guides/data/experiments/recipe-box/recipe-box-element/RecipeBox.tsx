@@ -3,19 +3,25 @@ import { For, Show } from "solid-js"
 
 import {
   GraphPlace,
+  LiveRoomPlace,
   Places,
   PlaceError,
+  positionBetween,
   RemotePlace,
   RestPlace,
+  rowsInPlace,
   SheetPlace,
   writeAnswerFor,
+  type ListPosition,
   type ListQuery,
   type PendingChanges,
   type Place,
   type PlaceConflict,
+  type PlaceLostText,
   type PlaceResult,
   type PlaceRow,
   type PlaceRowsChange,
+  type PlaceThingDeleted,
   type PlaceWriteFailure
 } from "spell/util/places"
 import { pollWhileVisible } from "spell/util/polling"
@@ -46,6 +52,7 @@ const POLL_SECONDS = 5
  *   shared with "anyone with the link".
  *   - `sheet-no-id`:  the same file, with nothing saying which row is which.
  * - A Google Sheet to write to goes through a server side, which holds its key:  the last save wins each cell.
+ * - A live room has a referee putting everyone's changes in one order, over a websocket:  so nothing polls, and it heals itself.
  */
 const BACK_ENDS: Record<string, (sheet: string) => Place> = {
   sheet: (url) => new SheetPlace({ url, collection: COLLECTION, idColumn: "id", numbers: ["servings"] }),
@@ -63,6 +70,7 @@ const BACK_ENDS: Record<string, (sheet: string) => Place> = {
       versions: { field: "version" }
     }),
   folder: () => new RemotePlace({ url: `${SERVERS}/api/places/recipes`, token: DEMO_TOKEN }),
+  room: () => new LiveRoomPlace({ url: `${SERVERS}/api/rooms/recipes`, token: DEMO_TOKEN }),
   graphql: () =>
     new GraphPlace({
       url: `${SERVERS}/graphql`,
@@ -83,11 +91,18 @@ const BACK_ENDS: Record<string, (sheet: string) => Place> = {
 /** The one collection it shows. */
 const COLLECTION = "recipes"
 
+/** The field a recipe's place in the list is kept in, in a live room:  its parent and its position, as one. */
+const PLACE_FIELD = "place"
+
+/** What every recipe in a room is in. */
+const THE_BOX = "box"
+
 /** What the page says it's kept in. */
 const BACK_END_NAMES: Record<string, string> = {
   rest: "a REST server",
   graphql: "a GraphQL server",
   folder: "a folder of files",
+  room: "a live room",
   sheet: "a CSV file",
   "sheet-no-id": "a CSV file, with no id column",
   "google-sheet": "a Google Sheet"
@@ -97,7 +112,7 @@ const BACK_END_NAMES: Record<string, string> = {
 const SHEET_FILE = "recipes.csv"
 
 /** What needs `scripts/recipe-servers.ts` running:  a CSV file doesn't. */
-const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet"])
+const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "room"])
 
 /** Where the "someone else" button has somewhere to go:  for a Google Sheet, someone else is you, in Google's own page. */
 const HAS_SOMEONE_ELSE = new Set(["rest", "graphql", "folder"])
@@ -112,6 +127,8 @@ const ELSEWHERE: Record<string, string> = { folder: "folder" }
 type Notice = {
   /** Tells it apart. */
   key: number
+  /** What it's about:  a new one about the same thing replaces it. */
+  about?: string
   /** The words. */
   text: string
   /** What's on its button, if it has one. */
@@ -127,6 +144,8 @@ type Notice = {
  * - A place that takes no writes shows as text, with nothing to press:  it asks the place (`writeAnswerFor()`), never which back-end it is.
  * - What a read says about its rows (`PlaceResult.notes`) is shown as it is.
  * - Every write goes through `PendingChanges`:  shown at once, sent soon, in order.
+ * - In a live room nothing polls:  what others do arrives (`PlaceHeal.follow()`), and it can add to a number, move a recipe,
+ *   and say when someone deleted what you're changing.
  * - A GUIDE-ONLY element:  built into `recipe-box.bundle.js` by `epic/src/tools/bundle-experiment.ts`, on the page's Spell UI.
  ****************/
 export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
@@ -147,6 +166,12 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   @E.state accessor canWrite = true
   /** What the last read said about its rows. */
   @E.state accessor notes: readonly string[] = []
+  /** Is it a live room? */
+  @E.state accessor isLive = false
+  /** In a live room:  is it connected? */
+  @E.state accessor isInTheRoom = false
+  /** In a live room:  how the last heal went, in words. */
+  @E.state accessor lastHeal = ""
 
   /** The list of places:  one here, under the name `recipes`. */
   private places: Places | undefined
@@ -192,12 +217,21 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     this.places = places
     this.pending = pending
     this.result = result
+    this.isLive = place.describe().live === "push"
     const stops = [
       places.onRows((change) => this.rowsChanged(change)),
       places.onConflict((conflict) => this.merged(conflict)),
       places.onWriteFailed((failure) => this.refused(failure)),
+      places.onLost((lost) => this.lost(lost)),
+      places.onThingDeleted((deleted) => this.deleted(deleted)),
       pending.onStateChange(() => (this.saving = pending.queue.text)),
-      pollWhileVisible(POLL_SECONDS, () => this.readAgain())
+      ...(place instanceof LiveRoomPlace
+        ? [
+            places.heal.follow({ placeName: COLLECTION, collection: COLLECTION }),
+            place.onConnection((isConnected) => this.connectionChanged(place, isConnected)),
+            () => place.close()
+          ]
+        : [pollWhileVisible(POLL_SECONDS, () => this.readAgain())])
     ]
     void this.read(result.load())
     return () => {
@@ -235,6 +269,18 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     this.tellOnce(failure)
   }
 
+  /** The room's connection went, or came back. */
+  private connectionChanged(room: LiveRoomPlace, isConnected: boolean): void {
+    this.isInTheRoom = isConnected
+    this.noteHeal(room)
+  }
+
+  /** Say how the room's last heal went. */
+  private noteHeal(room: LiveRoomPlace): void {
+    const heal = room.heals.at(-1)
+    if (heal) this.lastHeal = this.translationForKey("healed", { why: heal.why, ms: `${heal.ms}` })
+  }
+
   /** Rows changed under what's showing:  a write, an answer, a heal. */
   private rowsChanged({ rows, idField, removed = [] }: PlaceRowsChange): void {
     const changed = new Map(rows.map((row) => [row[idField], row]))
@@ -246,6 +292,13 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
         return row ? { ...recipe, ...row } : recipe
       })
     this.recipes = [...kept, ...changed.values()]
+    const room = this.places?.placeFor(COLLECTION)
+    if (room instanceof LiveRoomPlace) this.noteHeal(room)
+  }
+
+  /** The recipes, in the order they show:  a room's by their place in the list. */
+  private get shownRecipes(): PlaceRow[] {
+    return this.isLive ? rowsInPlace(this.recipes, PLACE_FIELD) : this.recipes
   }
 
   ////////////////
@@ -259,13 +312,51 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     this.pending!.setField({ collection: COLLECTION, id: `${recipe.id as string}`, field, value, was })
   }
 
-  /** Add what's been typed, under an id made here. */
+  /** Add what's been typed, under an id made here, at the end of the list if it's a room. */
   private addRecipe(): void {
     const title = this.newTitle.trim()
     if (!title) return
-    const id = `r-${Date.now().toString(36)}`
-    this.pending!.insert({ collection: COLLECTION, id, fields: { title, cuisine: "", servings: 2, notes: "" } })
+    const id = `r-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
+    const place = this.isLive ? { [PLACE_FIELD]: this.placeBetween(this.shownRecipes.at(-1)) } : {}
+    this.pending!.insert({
+      collection: COLLECTION,
+      id,
+      fields: { title, cuisine: "", servings: 2, notes: "", ...place }
+    })
     this.newTitle = ""
+  }
+
+  /** A place in the list after `before`, and before `after`. */
+  private placeBetween(before?: PlaceRow, after?: PlaceRow): ListPosition {
+    const atOf = (row?: PlaceRow) => (row?.[PLACE_FIELD] as ListPosition | undefined)?.at
+    return { parent: THE_BOX, at: positionBetween(atOf(before), atOf(after)) }
+  }
+
+  /** Move `recipe` up or down one:  a new place in the list for it, and nothing said about the others. */
+  private move(recipe: PlaceRow, by: -1 | 1): void {
+    const others = this.shownRecipes.filter((other) => other.id !== recipe.id)
+    const at = this.shownRecipes.findIndex((other) => other.id === recipe.id) + by
+    if (at < 0 || at > others.length) return
+    this.setField(recipe, PLACE_FIELD, this.placeBetween(others[at - 1], others[at]))
+  }
+
+  /** One more serving, as an addition:  two people pressing it both count. */
+  private addServing(recipe: PlaceRow): void {
+    const id = `${recipe.id as string}`
+    this.pending!.addToField({
+      collection: COLLECTION,
+      id,
+      field: "servings",
+      by: 1,
+      was: Number(recipe.servings) || 0
+    })
+  }
+
+  /** Stop talking to the room, or start again:  for trying what being offline does. */
+  private toggleConnection(): void {
+    const room = this.places!.placeFor(COLLECTION) as LiveRoomPlace
+    if (this.isInTheRoom) room.close()
+    else room.connect()
   }
 
   /** It's gone, at once. */
@@ -297,6 +388,18 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     this.tell(text, this.translationForKey("use-theirs"), useTheirs)
   }
 
+  /** Someone else's change replaced this person's long text:  it says what it was. */
+  private lost({ id, field, mine, useMine }: PlaceLostText): void {
+    const text = this.translationForKey("lost", { field, mine: `${mine as string}` })
+    this.tell(text, this.translationForKey("use-mine"), useMine, `${id}/${field}`)
+  }
+
+  /** Someone else deleted what this person was changing. */
+  private deleted({ row, restore }: PlaceThingDeleted): void {
+    const text = this.translationForKey("deleted", { title: `${row.title as string}` })
+    this.tell(text, this.translationForKey("restore"), restore, `${row.id as string}/deleted`)
+  }
+
   /** The server said no. */
   private refused({ error, retry }: PlaceWriteFailure): void {
     this.tell(this.translationForKey("refused", { why: error.message }), this.translationForKey("retry"), retry)
@@ -307,10 +410,16 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     if (!this.notices.some((notice) => notice.text === text)) this.tell(text)
   }
 
-  /** Say `text`, with a button. */
-  private tell(text: string, action?: string, click?: () => void): void {
-    const notice: Notice = { key: ++this.noticesMade, text, ...(action && { action }), ...(click && { click }) }
-    this.notices = [...this.notices, notice]
+  /** Say `text`, with a button;  `about`:  in place of what's being said about that. */
+  private tell(text: string, action?: string, click?: () => void, about?: string): void {
+    const notice: Notice = {
+      key: ++this.noticesMade,
+      text,
+      ...(action && { action }),
+      ...(click && { click }),
+      ...(about && { about })
+    }
+    this.notices = [...this.notices.filter((other) => !about || other.about !== about), notice]
   }
 
   /** Stop saying `notice`. */
@@ -331,6 +440,16 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
             <output>{this.saving}</output>
           </Show>
         </div>
+        <Show when={this.isLive}>
+          <div class="bar room">
+            <span part={this.partForName("connection")}>
+              {this.translationForKey(this.isInTheRoom ? "online" : "offline")} <small>{this.lastHeal}</small>
+            </span>
+            <ui-button size="small" appearance="basic" onClick={() => this.toggleConnection()}>
+              {this.translationForKey(this.isInTheRoom ? "go-offline" : "go-online")}
+            </ui-button>
+          </div>
+        </Show>
         <For each={this.notes} keyed={(note: string) => note}>
           {(note) => (
             <ui-message size="small" part={this.partForName("note")}>
@@ -360,7 +479,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
           </form>
         </Show>
         <div class="recipes">
-          <For each={this.recipes} keyed={(recipe: PlaceRow) => recipe.id ?? recipe}>
+          <For each={this.shownRecipes} keyed={(recipe: PlaceRow) => recipe.id ?? recipe}>
             {(recipe) => (this.canWrite ? this.recipe(recipe) : this.recipeToRead(recipe))}
           </For>
         </div>
@@ -387,6 +506,17 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
         {field("servings", "servings", "number")}
         {field("notes", "notes")}
         <div class="actions">
+          <Show when={this.isLive}>
+            <ui-button size="small" appearance="basic" onClick={() => this.move(recipe(), -1)}>
+              {this.translationForKey("up")}
+            </ui-button>
+            <ui-button size="small" appearance="basic" onClick={() => this.move(recipe(), 1)}>
+              {this.translationForKey("down")}
+            </ui-button>
+            <ui-button size="small" appearance="basic" onClick={() => this.addServing(recipe())}>
+              {this.translationForKey("one-more")}
+            </ui-button>
+          </Show>
           <Show when={HAS_SOMEONE_ELSE.has(this.backEndName)}>
             <ui-button size="small" appearance="basic" onClick={() => void this.someoneElseRenames(recipe())}>
               {this.translationForKey("elsewhere")}
