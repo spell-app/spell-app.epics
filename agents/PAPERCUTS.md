@@ -1913,3 +1913,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   (epic data;  `PageStages`, `<epic-section>`'s `:state(offstage)`)
 
 - 2026-10-31 · app:  `Expectations.test.ts`, "quick enough for every keystroke", fails under a full run's load · not a regression:  on a run's first pass the code before epic `language` takes 2.37 msec a call and after it 2.40, against a 2 msec limit (later passes ~0.62, quiet ~0.41 both);  the limit is on a cold start.  Run it alone. · spell-parser / app
+- 2026-10-31 · `node src/tools/bundle-spell-ui.js` (from `epic/`):  when Spell UI's `tsc` fails, its fallback,
+  "building with `vite build` alone", dies too:  `Couldn't find a script named "vite"` (yarn has no `vite` bin
+  there, only `vp`), so ONE type error in `ui/src/` stops the docs bundle outright, under a misleading banner. ·
+  Fix the type error and run it again;  the fallback should call `yarn vp build`. · epics (epic `epic-engine` I189)
