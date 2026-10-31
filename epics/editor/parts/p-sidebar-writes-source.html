@@ -33,9 +33,20 @@
   ><ol>
     <li>
       <b>One source edit.</b> "Set this attribute on this tag to this value", worked out from the parser's exact spans,
-      for <code>.spellml</code>. It takes the notebook's span logic, and the notebook moves onto it, so there is one
-      copy. It uses the file's own language's words, and keeps quotes as written. <code>.spell</code> follows, from its
-      parse positions.
+      for <code>.spellml</code>. It has ONE home, <code>SourceEdits</code>, which returns <code>TextEdit</code>s, the
+      shape the language server already uses.
+      <ul>
+        <li>
+          The notebook's <code>moved()</code>, its <code>deleted()</code> and its add come from their two files into it,
+          so <a href="#p-add-and-move">Add And Move</a> uses them too.
+        </li>
+        <li>
+          It's a small file in the language server's folder that loads neither the service nor the code editor, because
+          a side-bar edit must work with the code editor not loaded.
+        </li>
+        <li>It uses the file's own language's words, and keeps quotes as written.</li>
+        <li><code>.spell</code> follows, from its parse positions.</li>
+      </ul>
     </li>
     <li>
       <b>Into the file.</b>
@@ -59,6 +70,10 @@
           your nested undo.
         </li>
         <li>If the home is gone, because someone deleted that tag, undo says so and skips the step.</li>
+        <li>
+          A step can also hold a whole file's text before and after, for what has no one meaning: the notebook's steps,
+          and <a href="#p-change-this">Change This</a>'s.
+        </li>
       </ul>
     </li>
     <li>
@@ -67,6 +82,19 @@
         <li>In the code: the code editor's own undo.</li>
         <li>In the running app, in Run: the program's own undo, as today.</li>
         <li>Anywhere else in Edit: the editor's history.</li>
+        <li>All of this is decided in one place, the <code>undo</code> entry of the editor's list of keys.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The notebook joins the same history.</b>
+      <ul>
+        <li>
+          Its add, move, delete and lock become steps here, holding the text and the cells' keys as they do today, and
+          its private list goes.
+        </li>
+        <li>Its own ⌘Z registration goes too: ⌘Z on a notebook page reaches the editor's history.</li>
+        <li>Typing in a cell keeps that cell's own undo, as today.</li>
+        <li>It keeps today's limit: undoing an add puts back the whole text, so typing done after it goes too.</li>
       </ul>
     </li>
     <li>
@@ -81,17 +109,20 @@
   </ol>
   <p>
     <b>Checked by:</b> tests that an edit changes only its characters, with the code editor loaded and not; undo after
-    typing elsewhere; a step whose tag was deleted; a Spanish file keeping its words; in a browser, change a tag's
-    value, save, reload, and it's still changed.
+    typing elsewhere; a step whose tag was deleted; a Spanish file keeping its words; a notebook's move and lock undone
+    by ⌘Z, and the page undoing in the same order as before; in a browser, change a tag's value, save, reload, and it's
+    still changed.
   </p>
   <p>
     <b>Left out:</b> adding, moving and deleting tags (<a href="#p-add-and-move">Add And Move</a>); a change to one
     thing among many made in a loop (<a href="#p-this-or-all">This Or All</a>); undo across a reload.
   </p></epic-field
 ><epic-field name="files"
-  >parser/src/spellx/spellx.types.ts, app/src/app/solid/NotebookCells.ts, app/src/app/ui/monaco/SpellModels.ts,
-  app/src/app/editor.ts, app/src/app/solid/Inspector.tsx, app/src/app/solid/Actions.tsx,
-  app/src/app/pages/editorHotkeys.ts, src/util/persist/UndoStack.ts, parser/src/core/carry.ts</epic-field
+  >parser/src/spellx/spellx.types.ts, app/src/lsp/SourceEdits.ts (new), app/src/app/solid/NotebookCells.ts,
+  app/src/app/solid/notebook/NotebookPageCells.ts, app/src/app/solid/notebook/NotebookController.ts,
+  app/src/app/solid/notebook/NotebookPage.tsx, app/src/app/ui/monaco/SpellModels.ts, app/src/app/editor.ts,
+  app/src/app/solid/Inspector.tsx, app/src/app/solid/Actions.tsx, app/src/app/pages/editorHotkeys.ts,
+  src/util/persist/UndoStack.ts, parser/src/core/carry.ts</epic-field
 ><epic-field name="verify"
   >Tests: an edit changes only its characters, with the code editor loaded and not; undo after typing elsewhere in the
   file; a step whose tag was deleted. A Spanish file's words stay Spanish. In a browser: change a tag's value, save,
