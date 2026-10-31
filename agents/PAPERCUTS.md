@@ -1922,3 +1922,4 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   there, only `vp`), so ONE type error in `ui/src/` stops the docs bundle outright, under a misleading banner. ·
   Fix the type error and run it again;  the fallback should call `yarn vp build`. · epics (epic `epic-engine` I189)
 - 2026-10-31 · `epic details <epic>#M1 --step` refuses plain text with two or more fenced code blocks:  `id "" used 2 times`.  Fix:  write `<pre><code>` instead.  (epic data)
+- 2026-10-31 · A merge that adds a dependency breaks main's editor:  `epic merge` moved main to a commit with `@atproto/oauth-client-browser` in `yarn.lock`, and main's install didn't have it, so Vite showed a full-page "Failed to resolve import".  Fix:  `yarn install` at the kit's root, then restart vite;  Vite held the failure until restarted.  `epic merge` should install when `yarn.lock` moved.  (epic data)
