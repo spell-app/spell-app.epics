@@ -4,7 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>The Data Problem: A Survey</title>
-    <meta name="description" content="One sentence." />
+    <meta
+      name="description"
+      content="How others have solved reading and changing data from many back-ends, sharing it between people, and saying it in plain words:  the survey behind epic data."
+    />
+    <meta name="spell-saga" content="spell-language" />
     <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page">
@@ -18,216 +22,1958 @@
         <ui-sticky class="spell-h1"
           ><header class="spell-page-head"><h1>The Data Problem: A Survey</h1></header></ui-sticky
         >
-        <p class="lede">One sentence: what this doc settles, and for whom.</p>
+        <p class="lede">
+          How other systems let people read and change data from many back-ends, share it, and say it in plain words:
+          the research behind what Spell will do.
+        </p>
         <ui-list class="spell-meta">
-          <ui-item icon="user">Written for: who reads this, and what they're about to do</ui-item>
+          <ui-item icon="map"
+            ><b>Epic page:</b> <a href="/epics/data/data.plan.html" target="data">epic data</a></ui-item
+          >
+          <ui-item icon="user">Written for: whoever is choosing how Spell does data, or checking why it did</ui-item>
           <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="orange">draft</ui-label> (or decided / built)</ui-item
+            >Status: <ui-label size="mini" color="orange">research</ui-label> nothing is built</ui-item
           >
           <ui-item icon="flask"
-            >Researched on: branch, date, and how the claims were checked (see
-            <a href="#4-sources">Sources</a>)</ui-item
+            >Researched on: 2026-10-31, from each system's own docs where they could be read (see
+            <a href="#7-not-verified">Not verified</a>)</ui-item
           >
         </ui-list>
 
-        <ui-section id="1-summary" label="1. Summary" sticky collapsible dividing open="false">
-          <ui-statistics class="spell-stats" size="mini">
-            <ui-statistic value="3×" label="faster"></ui-statistic>
-            <ui-statistic value="1.2" label="ms, median"></ui-statistic>
-            <ui-statistic value="0" label="breaking changes"></ui-statistic>
-          </ui-statistics>
+        <ui-section id="1-summary" label="1. What it adds up to" sticky collapsible dividing open="false">
+          <p>Three findings shape everything else.</p>
           <ul>
-            <li>The conclusion first, one idea per bullet.</li>
-            <li>Every fact, number and caveat survives condensing.</li>
-            <li>Headline numbers above: 2-4 of them, each also stated (with its caveat) in the body.</li>
+            <li>
+              <b>Nobody infers what a page needs.</b> Relay's compiler gathers what authors wrote out, and fate does the
+              same at run time, where Spell could work it out from the program itself.
+            </li>
+            <li>
+              <b>The best back-end interfaces are small, with written fallbacks.</b> fate requires one method, and
+              rclone publishes a table of what each back-end lacks and what happens instead.
+            </li>
+            <li>
+              <b>Real products already run on "wonky, then heals".</b> Figma says plainly that it doesn't use true
+              CRDTs: one server per document, and the last change to arrive wins for each property.
+            </li>
           </ul>
-          <ui-message state="positive" heading="Recommendation">
+          <ui-message state="warning" heading="One correction to how the epic was first framed">
             <ul>
-              <li>What to do, in one line.</li>
+              <li>
+                The kickoff describes fate as gathering each part's data needs and sending them to a coordinator at the
+                app level.
+              </li>
+              <li>
+                fate has no compiler: its views are plain objects, composed at run time, and its Vite plugin only keeps
+                the server's API types in sync.
+              </li>
+              <li>The docs read speak of a single request at the root and of batching, and name no "coordinator".</li>
+              <li>So the compiler part isn't something to copy from fate. It would be new.</li>
             </ul>
           </ui-message>
-        </ui-section>
-
-        <ui-section id="2-the-design" label="2. The design" sticky collapsible dividing open="false">
-          <p>
-            A short lead, then a nested <code>&lt;ui-section&gt;</code> per distinct part. A
-            <dfn class="spell-term" tabindex="0">coined term</dfn>
-            <ui-popup
-              heading="coined term"
-              label="What it means here, in one line:  hover or focus the term."
-            ></ui-popup>
-            gets its meaning in a popup.
+          <p class="meta">
+            No quotations here: the pages were read through a tool that summarises them, so everything is in this page's
+            own words. Open the linked source before quoting one.
           </p>
+        </ui-section>
 
-          <ui-section id="how-it-flows" label="How it flows" sticky collapsible dividing open="false">
-            <ui-steps class="spell-steps" ordered>
-              <ui-step heading="step one" description="What happens first, and when."></ui-step>
-              <ui-step heading="step two" description="What it hands on."></ui-step>
-              <ui-step heading="step three" description="Where it ends."></ui-step>
-            </ui-steps>
+        <ui-section id="2-paradigms" label="2. The paradigms, side by side" sticky collapsible dividing open="false">
+          <p>
+            Twenty-one systems, one row each, the last column this survey's judgement. "Not checked" means the page read
+            didn't say, not that the thing is absent.
+          </p>
+          <ui-table celled padding="compact" appearance="striped" unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>System</th>
+                  <th>What the author writes</th>
+                  <th>Where data lives</th>
+                  <th>How reads are gathered</th>
+                  <th>How writes apply</th>
+                  <th>Cancelling</th>
+                  <th>Live updates</th>
+                  <th>Back-end swappable?</th>
+                  <th>Cost to a beginner</th>
+                </tr>
+                <tr>
+                  <td><b>Meteor</b></td>
+                  <td>publish, subscribe and a Mongo query, twice</td>
+                  <td>in-memory partial copy; the server may keep each client's image</td>
+                  <td>by hand, per subscription</td>
+                  <td>a stub runs at once; the server's writes replace it</td>
+                  <td>a subscription stops with its computation</td>
+                  <td>pushed over its own protocol</td>
+                  <td>No: Mongo's language</td>
+                  <td>Low to start, high at scale</td>
+                </tr>
+                <tr>
+                  <td><b>fate</b></td>
+                  <td>a view per component, one request at the root</td>
+                  <td>objects cached by type and id</td>
+                  <td>run-time composition, batched</td>
+                  <td>an optimistic value, rolled back by itself</td>
+                  <td>an abort signal; shared requests survive</td>
+                  <td>server-sent events, per field</td>
+                  <td>Yes, by its Transport; requires ids and its conventions</td>
+                  <td>Medium: views, refs, masking errors</td>
+                </tr>
+                <tr>
+                  <td><b>Relay</b></td>
+                  <td>a GraphQL fragment per component</td>
+                  <td>objects cached by id</td>
+                  <td>a compiler, ahead of time</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>GraphQL only</td>
+                  <td>High</td>
+                </tr>
+                <tr>
+                  <td><b>Apollo</b></td>
+                  <td>GraphQL queries</td>
+                  <td>objects cached by type and id</td>
+                  <td>per query</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>GraphQL only</td>
+                  <td>Medium: merge rules</td>
+                </tr>
+                <tr>
+                  <td><b>TanStack Query, SWR</b></td>
+                  <td>a key and a fetch function</td>
+                  <td>a cache per key</td>
+                  <td>by hand; the same key shares a request</td>
+                  <td>by hand, in four steps, or draw what's pending</td>
+                  <td>Query: only if the fetch uses the signal; SWR unconfirmed</td>
+                  <td>refetch on focus or reconnect</td>
+                  <td>Yes: any promise; only the cache is shared</td>
+                  <td>Low, until invalidation</td>
+                </tr>
+                <tr>
+                  <td><b>TanStack DB</b></td>
+                  <td>collections and live queries</td>
+                  <td>client collections</td>
+                  <td>local queries; an optional subset loader</td>
+                  <td>local, a handler persists it, rollback</td>
+                  <td>not checked</td>
+                  <td>from the source</td>
+                  <td>Yes: source adapters</td>
+                  <td>Medium to high</td>
+                </tr>
+                <tr>
+                  <td><b>Zero</b></td>
+                  <td>its query language and mutators</td>
+                  <td>a local store, filled by queries</td>
+                  <td>the query is the subscription</td>
+                  <td>runs locally, then for real on the server</td>
+                  <td>a query's time to live</td>
+                  <td>yes</td>
+                  <td>No: Postgres</td>
+                  <td>Medium, plus a sync server to run</td>
+                </tr>
+                <tr>
+                  <td><b>Convex</b></td>
+                  <td>query functions on the server</td>
+                  <td>the server, with a client cache</td>
+                  <td>a subscription per function</td>
+                  <td>an optimistic update, written by hand</td>
+                  <td>not checked</td>
+                  <td>all clients on one snapshot</td>
+                  <td>No: its own</td>
+                  <td>Low, but it's a platform</td>
+                </tr>
+                <tr>
+                  <td><b>Firestore</b></td>
+                  <td>a query and a listener</td>
+                  <td>a local cache</td>
+                  <td>per listener</td>
+                  <td>local first</td>
+                  <td>not checked</td>
+                  <td>yes</td>
+                  <td>No</td>
+                  <td>Low; cost and limits come later</td>
+                </tr>
+                <tr>
+                  <td><b>Supabase</b></td>
+                  <td>a channel and a filter</td>
+                  <td>Postgres</td>
+                  <td>per channel</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>per-row events</td>
+                  <td>Postgres</td>
+                  <td>Low to medium</td>
+                </tr>
+                <tr>
+                  <td><b>ElectricSQL</b></td>
+                  <td>shape definitions</td>
+                  <td>your client store</td>
+                  <td>one table per shape</td>
+                  <td>yours, four patterns of rising power</td>
+                  <td>not checked</td>
+                  <td>yes</td>
+                  <td>Postgres, read only</td>
+                  <td>Medium</td>
+                </tr>
+                <tr>
+                  <td><b>PowerSync</b></td>
+                  <td>SQL and an upload function</td>
+                  <td>SQLite in the browser</td>
+                  <td>sync rules</td>
+                  <td>local, queued, sent through your API</td>
+                  <td>not checked</td>
+                  <td>yes</td>
+                  <td>Several source databases, SQLite in front</td>
+                  <td>High: sync rules</td>
+                </tr>
+                <tr>
+                  <td><b>WarpDrive</b></td>
+                  <td>requests and schemas</td>
+                  <td>one cache</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>Yes: a chain of handlers and a cache interface</td>
+                  <td>High: many concepts</td>
+                </tr>
+                <tr>
+                  <td><b>ORMs</b> (Prisma, Rails, Django)</td>
+                  <td>lazy chained queries</td>
+                  <td>a database, on the server</td>
+                  <td>lazily; one query per row unless told otherwise</td>
+                  <td>the model's save</td>
+                  <td>not checked</td>
+                  <td>No</td>
+                  <td>Yes, within SQL; differences documented</td>
+                  <td>Low: closest to English</td>
+                </tr>
+                <tr>
+                  <td><b>Hasura, PostGraphile</b></td>
+                  <td>a database schema, GraphQL</td>
+                  <td>Postgres</td>
+                  <td>one SQL statement per request</td>
+                  <td>generated</td>
+                  <td>not checked</td>
+                  <td>Hasura: polling, every second, shared across clients</td>
+                  <td>Generated from the database</td>
+                  <td>Medium</td>
+                </tr>
+                <tr>
+                  <td><b>rclone, FUSE, 9P</b></td>
+                  <td>a path and verbs</td>
+                  <td>wherever it lives</td>
+                  <td>none: each call on its own</td>
+                  <td>put, write</td>
+                  <td>9P's flush; FUSE's interrupt, advisory</td>
+                  <td>none in the base</td>
+                  <td><b>The best:</b> optional features and a fallback table</td>
+                  <td>Low: a file is a file</td>
+                </tr>
+                <tr>
+                  <td><b>OData</b></td>
+                  <td>query options in the URL</td>
+                  <td>the service</td>
+                  <td>expand and select options</td>
+                  <td>HTTP verbs, with declared restrictions</td>
+                  <td>not checked</td>
+                  <td>delta links</td>
+                  <td>Yes, if a service speaks it</td>
+                  <td>High: the weight of the spec</td>
+                </tr>
+                <tr>
+                  <td><b>Datomic</b></td>
+                  <td>Datalog over a value</td>
+                  <td>a local cache and storage</td>
+                  <td>a query at a point in time</td>
+                  <td>transactions add facts</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>No</td>
+                  <td>High: new thinking</td>
+                </tr>
+                <tr>
+                  <td><b>Route loaders</b></td>
+                  <td>a load function per route</td>
+                  <td>the server, per route</td>
+                  <td>per route, in parallel</td>
+                  <td>a form action, then revalidate</td>
+                  <td>the newest navigation wins</td>
+                  <td>No</td>
+                  <td>Yes: your code</td>
+                  <td>Low, but tied to routes</td>
+                </tr>
+                <tr>
+                  <td><b>Server Components</b></td>
+                  <td>an await in the component</td>
+                  <td>the server</td>
+                  <td>no gathering: requests may chain up</td>
+                  <td>not checked</td>
+                  <td>not checked</td>
+                  <td>No</td>
+                  <td>Yes: your code</td>
+                  <td>Low, needs a server</td>
+                </tr>
+                <tr>
+                  <td><b>Solid's query and async</b></td>
+                  <td>a query and an async memo</td>
+                  <td>the router's cache, or the reactive graph</td>
+                  <td>the same name shares a request</td>
+                  <td>an action, then revalidate; an optimistic overlay</td>
+                  <td>not by itself (see <a href="#solid-cancelling">Solid's cancelling</a>)</td>
+                  <td>No</td>
+                  <td>Yes: your code</td>
+                  <td>Low to medium</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+        </ui-section>
+
+        <ui-section id="3-families" label="3. Each family" sticky collapsible dividing open="false">
+          <p>What an author writes in each, what a layperson would pay, and what's worth keeping.</p>
+
+          <ui-section
+            id="meteor"
+            label="Meteor: a copy of the database in the browser"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <p>Every query runs against a partial copy of the database, kept in the browser's memory.</p>
+            <ul>
+              <li><b>The author writes:</b> a publish on the server, a subscribe in the browser, and a Mongo query.</li>
+              <li>
+                <b>Writes:</b> the same method runs in the browser at once as a guess, and the server's real writes
+                replace the guess when they arrive.
+              </li>
+              <li>
+                <b>Worth keeping:</b> a subscription made inside a reactive computation stops when that computation is
+                invalidated: the closest thing found to "the part went away, so its data stopped".
+              </li>
+              <li>
+                <b>Layperson's cost:</b> very little to start, and then the language is Mongo's, with per-client work on
+                the server. A vendor's own benchmark saturated at 1,200 virtual users, or 1,680 with change streams.
+              </li>
+              <li>
+                <b>Why it declined:</b> no official account was found, only opinion. Blaming a language shaped like one
+                database is this survey's reading.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a href="https://docs.meteor.com/api/collections" target="ext-docs-meteor-com-api-collections"
+                >Collections</a
+              >, <a href="https://docs.meteor.com/api/meteor" target="ext-docs-meteor-com-api-meteor">Meteor API</a>,
+              <a
+                href="https://github.com/meteor/meteor/blob/devel/packages/ddp/DDP.md"
+                target="ext-github-com-meteor-meteor-blob-devel-packages-ddp-ddp-md"
+                >its protocol</a
+              >,
+              <a
+                href="https://blog.galaxycloud.app/why-meteor-3-5-is-the-most-important-release-in-years/"
+                target="ext-blog-galaxycloud-app-why-meteor-3-5-is-the-most-important-release-in-years"
+                >Galaxy's benchmark</a
+              >,
+              <a
+                href="https://www.github.com/peerlibrary/meteor-control-mergebox"
+                target="ext-github-com-peerlibrary-meteor-control-mergebox"
+                >control-mergebox</a
+              >,
+              <a
+                href="https://forums.meteor.com/t/meteor-is-great-why-is-not-more-popular/36580"
+                target="ext-forums-meteor-com-t-meteor-is-great-why-is-not-more-popular-36580"
+                >a forum thread</a
+              >,
+              <a
+                href="https://medium.com/@sachagreif/an-open-letter-to-the-new-owners-of-meteor-353d64780b20"
+                target="ext-medium-com-sachagreif-an-open-letter-to-the-new-owners-of-meteor-353d64780b20"
+                >Sacha Greif's letter</a
+              >.
+            </p>
           </ui-section>
 
-          <ui-section id="the-parts" label="The parts" sticky collapsible dividing open="false">
-            <ui-cards class="spell-flow" stackable>
-              <ui-card>
-                <ui-content>
-                  <ui-header>a part</ui-header>
-                  <ui-description>What it owns.</ui-description>
-                </ui-content>
-              </ui-card>
-              <ui-card>
-                <ui-content>
-                  <ui-header>another part</ui-header>
-                  <ui-description>What it leaves to the first.</ui-description>
-                </ui-content>
-              </ui-card>
-            </ui-cards>
-          </ui-section>
-
-          <ui-section id="today-vs-proposed" label="Today vs proposed" sticky collapsible dividing open="false">
-            <ui-table celled padding="compact" appearance="striped" unstackable>
-              <table>
-                <tbody>
-                  <tr>
-                    <th>case</th>
-                    <th>today</th>
-                    <th>proposed</th>
-                    <th class="num right aligned">ms</th>
-                  </tr>
-                  <tr>
-                    <td>an input</td>
-                    <td class="no negative">what goes wrong</td>
-                    <td class="yes positive">what should happen</td>
-                    <td class="num right aligned">1.2</td>
-                  </tr>
-                  <tr>
-                    <td>another</td>
-                    <td class="meh warning">works, but slowly</td>
-                    <td class="yes positive">fast</td>
-                    <td class="num right aligned">0.4</td>
-                  </tr>
-                </tbody>
-              </table>
-            </ui-table>
-          </ui-section>
-
-          <ui-section id="trade-offs" label="Trade-offs" sticky collapsible dividing open="false">
-            <ui-grid class="spell-pros-cons" columns="2" stackable>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attach="top" color="green"><ui-icon name="thumbs up"></ui-icon> For</ui-label>
-                  <ul>
-                    <li>What this choice buys.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attach="top" color="red"><ui-icon name="thumbs down"></ui-icon> Against</ui-label>
-                  <ul>
-                    <li>What it costs, and who pays.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-            </ui-grid>
-          </ui-section>
-
-          <ui-section id="the-code" label="The code" sticky collapsible dividing open="false">
-            <p>Prefer an excerpt from a real, runnable file; say which.</p>
+          <ui-section id="fate" label="fate: views composed at run time" sticky collapsible dividing open="false">
+            <p>
+              A data client inspired by Relay and GraphQL, with neither the query language nor the compiler. Its 1.0 is
+              dated 2026-05-14.
+            </p>
             <ui-accordion class="spell-code" appearance="styled">
-              <ui-title>example.ts · 6 lines</ui-title>
+              <ui-title>fate's views, requests and actions · 9 lines</ui-title>
               <ui-content>
-                <pre><code class="language-ts">// every code block starts folded:  no `open`
-export function greet(name: string): string {
-  return `hello, ${name}`
-}
+                <pre><code class="language-tsx">export const PostView = view&lt;Post&gt;()({
+  author: UserView,      // a relation, read through another view
+  content: true,
+  id: true,
+  comments: defer(CommentConnectionView)   // loads when read
+})
+const post = useView(PostView, postRef)
+const { posts } = useRequest({ posts: { list: PostView } })
+like({ input: { id: post.id }, optimistic: { likes: post.likes + 1 } })   // restored if it fails</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li><b>The author writes:</b> every field each part reads, in a view.</li>
+              <li>
+                <b>Masking:</b> a part can only read what it selected: a TypeScript error at compile time, and
+                <code>undefined</code> at run time.
+              </li>
+              <li>
+                <b>Cancelling:</b> an abort signal. When a request is shared, cancelling one reader doesn't cancel the
+                others.
+              </li>
+              <li><b>Keeping:</b> the last 10 released requests stay, so going back is fast.</li>
+              <li>
+                <b>Back-ends:</b> an interface with one required method (fetch by id), and optional ones for lists,
+                queries, mutations and subscriptions. The most directly useful thing in this survey.
+              </li>
+              <li>
+                <b>Lists:</b> automatic insertion was removed as the default, so where a new item goes must be said out
+                loud.
+              </li>
+              <li>
+                <b>Offline:</b> saved mutations are sent in order, but temporary ids aren't rewritten in later ones.
+              </li>
+              <li>
+                <b>Layperson's cost:</b> medium, and all of it is the views. Spell's chance is to make them disappear.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a href="https://fate.technology/guide/why-fate" target="ext-fate-technology-guide-why-fate">Why fate</a>,
+              <a href="https://fate.technology/posts/fate-1.0" target="ext-fate-technology-posts-fate-1-0"
+                >the 1.0 post</a
+              >, <a href="https://fate.technology/guide/views" target="ext-fate-technology-guide-views">Views</a>,
+              <a href="https://fate.technology/guide/core-concepts" target="ext-fate-technology-guide-core-concepts"
+                >Core concepts</a
+              >,
+              <a href="https://fate.technology/guide/requests" target="ext-fate-technology-guide-requests">Requests</a>,
+              <a href="https://fate.technology/guide/actions" target="ext-fate-technology-guide-actions">Actions</a>,
+              <a href="https://fate.technology/guide/list-views" target="ext-fate-technology-guide-list-views"
+                >List views</a
+              >,
+              <a href="https://fate.technology/guide/live-views" target="ext-fate-technology-guide-live-views"
+                >Live views</a
+              >,
+              <a href="https://fate.technology/guide/persistence" target="ext-fate-technology-guide-persistence"
+                >Persistence</a
+              >,
+              <a
+                href="https://fate.technology/api/fate/src/interfaces/Transport"
+                target="ext-fate-technology-api-fate-src-interfaces-transport"
+                >Transport</a
+              >,
+              <a href="https://fate.technology/integrations/graphql" target="ext-fate-technology-integrations-graphql"
+                >GraphQL</a
+              >,
+              <a href="https://fate.technology/integrations/server" target="ext-fate-technology-integrations-server"
+                >Server</a
+              >.
+            </p>
+          </ui-section>
 
-const message = greet("spell")</code></pre>
-              </ui-content>
-            </ui-accordion>
-            <p>Variants of one snippet (before / after, TS / JS) go in tabs, one code block per tab.</p>
-            <ui-tabs class="spell-tabs" appearance="pointing secondary basic" aria-label="Before and after">
-              <ui-tab label="Before">
-                <ui-accordion class="spell-code" appearance="styled">
-                  <ui-title>before.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return "hello, " + name
-}</code></pre>
-                  </ui-content>
-                </ui-accordion>
-              </ui-tab>
-              <ui-tab label="After">
-                <ui-accordion class="spell-code" appearance="styled">
-                  <ui-title>after.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return `hello, ${name}`
-}</code></pre>
-                  </ui-content>
-                </ui-accordion>
-              </ui-tab>
-            </ui-tabs>
-            <ui-message state="warning" heading="Heads up">
+          <ui-section
+            id="relay-apollo"
+            label="Relay and Apollo: fragments and a cache by id"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                <b>Relay's author writes:</b> a GraphQL fragment per component. A compiler joins them into one query for
+                the whole subtree, ahead of time.
+              </li>
+              <li>
+                <b>Apollo's cache:</b> an object's id is its type plus its id. Nested objects are flattened into one
+                lookup table, so one edit shows everywhere.
+              </li>
+              <li>
+                <b>Worth keeping:</b> the cache by type and id, and joining what parts need. Not the query language.
+              </li>
+              <li><b>Layperson's cost:</b> high. Both need GraphQL, and Relay its compiler and conventions.</li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://relay.dev/docs/guided-tour/rendering/fragments/"
+                target="ext-relay-dev-docs-guided-tour-rendering-fragments"
+                >Fragments</a
+              >,
+              <a
+                href="https://relay.dev/docs/principles-and-architecture/thinking-in-relay/"
+                target="ext-relay-dev-docs-principles-and-architecture-thinking-in-relay"
+                >Thinking in Relay</a
+              >,
+              <a href="https://relay.dev/docs/guides/compiler/" target="ext-relay-dev-docs-guides-compiler">Compiler</a
+              >,
+              <a
+                href="https://www.apollographql.com/docs/react/caching/overview"
+                target="ext-apollographql-com-docs-react-caching-overview"
+                >Apollo caching</a
+              >.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="tanstack-swr"
+            label="TanStack Query and SWR: a key and a fetch"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li><b>The author writes:</b> a key that names the data, and a function that fetches it.</li>
+              <li>
+                <b>Defaults:</b> stale at once, refetched on mount, focus and reconnect, kept 5 minutes when unused, 3
+                retries.
+              </li>
+              <li>
+                <b>Cancelling:</b> not by default. A query whose part goes away keeps going unless the fetch uses the
+                signal it's given.
+              </li>
+              <li>
+                <b>Writes:</b> either draw what's pending, or do four steps by hand through the cache: cancel, snapshot,
+                set, restore on error. fate's whole pitch is removing those steps.
+              </li>
+              <li><b>Layperson's cost:</b> low until invalidation, which is where everyone gets stuck.</li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://tanstack.com/query/latest/docs/framework/react/guides/query-keys"
+                target="ext-tanstack-com-query-latest-docs-framework-react-guides-query-keys"
+                >Keys</a
+              >,
+              <a
+                href="https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults"
+                target="ext-tanstack-com-query-latest-docs-framework-react-guides-important-defaults"
+                >Defaults</a
+              >,
+              <a
+                href="https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation"
+                target="ext-tanstack-com-query-latest-docs-framework-react-guides-query-cancellation"
+                >Cancellation</a
+              >,
+              <a
+                href="https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates"
+                target="ext-tanstack-com-query-latest-docs-framework-react-guides-optimistic-updates"
+                >Optimistic updates</a
+              >,
+              <a href="https://swr.vercel.app/docs/getting-started" target="ext-swr-vercel-app-docs-getting-started"
+                >SWR</a
+              >,
+              <a href="https://swr.vercel.app/docs/mutation" target="ext-swr-vercel-app-docs-mutation">SWR mutation</a>,
+              <a href="https://www.github.com/vercel/swr/pull/2275" target="ext-github-com-vercel-swr-pull-2275"
+                >SWR's abort proposal</a
+              >.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="sync-engines"
+            label="Sync engines: the query is the subscription"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <p>Each keeps data near the browser and keeps it current, mostly tied to one database.</p>
+            <ul>
+              <li>
+                <b>TanStack DB:</b> typed collections with fast live queries, about 0.7 ms to update one row in a sorted
+                100,000-row collection on an M1 Pro. Its sync mode changes with size, under about 10,000 rows or over
+                about 50,000: <b>the size of the data changes the strategy.</b>
+              </li>
+              <li>
+                <b>Zero:</b> a query runs locally at once, then on the server, each result saying if it's unknown,
+                complete or cached. Show "not found" only when complete, or it flickers.
+              </li>
+              <li>
+                <b>Convex:</b> query functions on the server, dependencies tracked by themselves, every subscription on
+                the same snapshot.
+              </li>
+              <li>
+                <b>Firestore:</b> listeners fire on local writes before they're sent, with a flag saying they're
+                pending. Last write wins.
+              </li>
+              <li>
+                <b>Supabase:</b> subscribes to table changes; past about 3,000 subscribers it recommends something else.
+              </li>
+              <li>
+                <b>ElectricSQL:</b> reads only, with four patterns for writes of rising power: online, optimistic per
+                component, shared optimistic, through a local database. A useful ladder.
+              </li>
+              <li>
+                <b>PowerSync:</b> SQLite in the browser. Writes queue, and go through a function you write to your own
+                API, which keeps validation and permissions yours.
+              </li>
+              <li>
+                <b>Layperson's cost:</b> low to read, high to run, and swapping back-ends is mostly impossible by
+                design.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a href="https://tanstack.com/db/latest/docs/overview" target="ext-tanstack-com-db-latest-docs-overview"
+                >TanStack DB</a
+              >,
+              <a
+                href="https://tanstack.com/db/latest/docs/guides/collection-options-creator"
+                target="ext-tanstack-com-db-latest-docs-guides-collection-options-creator"
+                >its sources</a
+              >,
+              <a href="https://zero.rocicorp.dev/docs/queries" target="ext-zero-rocicorp-dev-docs-queries"
+                >Zero queries</a
+              >,
+              <a href="https://zero.rocicorp.dev/docs/mutators" target="ext-zero-rocicorp-dev-docs-mutators"
+                >Zero mutators</a
+              >,
+              <a
+                href="https://marmelab.com/blog/2025/02/28/zero-sync-engine"
+                target="ext-marmelab-com-blog-2025-02-28-zero-sync-engine"
+                >a 2025 review</a
+              >,
+              <a href="https://infoq.com/news/2026/06/zero-version-1" target="ext-infoq-com-news-2026-06-zero-version-1"
+                >InfoQ</a
+              >, <a href="https://docs.convex.dev/realtime" target="ext-docs-convex-dev-realtime">Convex realtime</a>,
+              <a
+                href="https://docs.convex.dev/client/react/optimistic-updates"
+                target="ext-docs-convex-dev-client-react-optimistic-updates"
+                >Convex optimistic</a
+              >,
+              <a
+                href="https://firebase.google.com/docs/firestore/query-data/listen"
+                target="ext-firebase-google-com-docs-firestore-query-data-listen"
+                >Firestore listeners</a
+              >,
+              <a
+                href="https://firebase.google.com/docs/firestore/manage-data/enable-offline"
+                target="ext-firebase-google-com-docs-firestore-manage-data-enable-offline"
+                >Firestore offline</a
+              >,
+              <a
+                href="https://supabase.com/docs/guides/realtime/postgres-changes"
+                target="ext-supabase-com-docs-guides-realtime-postgres-changes"
+                >Supabase</a
+              >,
+              <a href="https://electric.ax/docs/guides/writes" target="ext-electric-ax-docs-guides-writes"
+                >Electric writes</a
+              >,
+              <a href="https://electric.ax/docs/guides/shapes" target="ext-electric-ax-docs-guides-shapes"
+                >Electric shapes</a
+              >,
+              <a
+                href="https://docs.powersync.com/intro/powersync-overview"
+                target="ext-docs-powersync-com-intro-powersync-overview"
+                >PowerSync</a
+              >,
+              <a
+                href="https://docs.powersync.com/client-sdks/writing-data"
+                target="ext-docs-powersync-com-client-sdks-writing-data"
+                >its writes</a
+              >,
+              <a
+                href="https://docs.powersync.com/architecture/powersync-protocol"
+                target="ext-docs-powersync-com-architecture-powersync-protocol"
+                >its protocol</a
+              >.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="adapters"
+            label="Adapters and uniform query languages"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                <b>Prisma, Rails, Django:</b> one lazy query that reads nearly like English, with an adapter per
+                database. Ten books and their authors is 11 queries, unless told to gather them.
+              </li>
+              <li>
+                <b>WarpDrive:</b> a chain of request handlers and a replaceable cache: flexible, with many concepts.
+              </li>
+              <li>
+                <b>Hasura:</b> live queries by polling, once a second by default. It chose polling on purpose, since
+                working out which event affects which complex query is intractable.
+              </li>
+              <li><b>PostGraphile:</b> GraphQL from a Postgres schema, permissions left to the database.</li>
+              <li>
+                <b>OData:</b> a uniform query language, with what each service can do declared in its metadata, per
+                property if need be. A service refuses what it can't do.
+              </li>
+              <li>
+                <b>Datomic:</b> the database is a value, so a query at a point in time always gives the same answer.
+              </li>
+              <li>
+                <b>Layperson's cost:</b> ORMs are the lowest in this survey, because the code is the question. The rest
+                are high.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://www.prisma.io/docs/orm/overview/databases/database-drivers"
+                target="ext-prisma-io-docs-orm-overview-databases-database-drivers"
+                >Prisma drivers</a
+              >,
+              <a
+                href="https://www.prisma.io/docs/orm/reference/database-features"
+                target="ext-prisma-io-docs-orm-reference-database-features"
+                >Prisma features</a
+              >,
+              <a
+                href="https://guides.rubyonrails.org/active_record_querying.html"
+                target="ext-guides-rubyonrails-org-active-record-querying-html"
+                >Rails</a
+              >,
+              <a
+                href="https://docs.djangoproject.com/en/stable/topics/db/queries/"
+                target="ext-docs-djangoproject-com-en-stable-topics-db-queries"
+                >Django queries</a
+              >,
+              <a
+                href="https://docs.djangoproject.com/en/stable/ref/models/options/"
+                target="ext-docs-djangoproject-com-en-stable-ref-models-options"
+                >Django options</a
+              >, <a href="https://warp-drive.io/" target="ext-warp-drive-io">WarpDrive</a>,
+              <a
+                href="https://emberjs.github.io/data/api/@warp-drive/core/classes/RequestManager"
+                target="ext-emberjs-github-io-data-api-warp-drive-core-classes-requestmanager"
+                >RequestManager</a
+              >,
+              <a
+                href="https://emberjs.github.io/data/api/@warp-drive/json-api/classes/JSONAPICache"
+                target="ext-emberjs-github-io-data-api-warp-drive-json-api-classes-jsonapicache"
+                >JSONAPICache</a
+              >,
+              <a
+                href="https://hasura.io/docs/2.0/subscriptions/postgres/livequery/index/"
+                target="ext-hasura-io-docs-2-0-subscriptions-postgres-livequery-index"
+                >Hasura live queries</a
+              >,
+              <a
+                href="https://raw.githubusercontent.com/hasura/graphql-engine/master/architecture/live-queries.md"
+                target="ext-raw-githubusercontent-com-hasura-graphql-engine-master-architecture-live-queries"
+                >its architecture</a
+              >,
+              <a
+                href="https://hasura.io/blog/1-million-active-graphql-subscriptions"
+                target="ext-hasura-io-blog-1-million-active-graphql-subscriptions"
+                >its benchmark</a
+              >,
+              <a href="https://postgraphile.org/postgraphile/4" target="ext-postgraphile-org-postgraphile-4"
+                >PostGraphile</a
+              >,
+              <a
+                href="https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html"
+                target="ext-docs-oasis-open-org-odata-odata-v4-01-odata-v4-01-part2-url-conventions-html"
+                >OData URLs</a
+              >,
+              <a
+                href="https://raw.githubusercontent.com/oasis-tcs/odata-vocabularies/main/vocabularies/Org.OData.Capabilities.V1.md"
+                target="ext-raw-githubusercontent-com-oasis-tcs-odata-vocabularies-main-vocabularies-org-oda"
+                >its capabilities</a
+              >,
+              <a
+                href="https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html"
+                target="ext-docs-oasis-open-org-odata-odata-v4-01-odata-v4-01-part1-protocol-html"
+                >its protocol</a
+              >,
+              <a
+                href="https://docs.datomic.com/datomic-overview.html"
+                target="ext-docs-datomic-com-datomic-overview-html"
+                >Datomic</a
+              >,
+              <a
+                href="https://docs.datomic.com/peer-tutorial/query-the-data.html"
+                target="ext-docs-datomic-com-peer-tutorial-query-the-data-html"
+                >its queries</a
+              >.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="files"
+            label="Everything is a file: rclone, FUSE, Plan 9"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                <b>rclone</b> is the best model found for what a back-end may lack. Few required methods, optional ones
+                in small separate interfaces, and a published table: no copy means it's downloaded then uploaded again;
+                no move means copy then delete; no clean-up means an error.
+              </li>
+              <li>
+                <b>Plan 9's 9P:</b> every service is a file tree, in about twelve messages. Cancelling is a request of
+                its own, and the client must wait for its reply even if the first answer got there first.
+              </li>
+              <li><b>FUSE:</b> an interrupt doesn't by itself cancel the operation, and a reply is still expected.</li>
+              <li>
+                <b>Layperson's cost:</b> low, since people know what a file is, but a folder can't answer a question.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://raw.githubusercontent.com/rclone/rclone/master/fs/types.go"
+                target="ext-raw-githubusercontent-com-rclone-rclone-master-fs-types-go"
+                >rclone's interfaces</a
+              >, <a href="https://rclone.org/overview/" target="ext-rclone-org-overview">its table</a>,
+              <a href="https://man.archlinux.org/man/fuse.4.en.txt" target="ext-man-archlinux-org-man-fuse-4-en-txt"
+                >fuse(4)</a
+              >,
+              <a href="https://9p.io/magic/man2html/5/0intro" target="ext-9p-io-magic-man2html-5-0intro">intro(5)</a>.
+            </p>
+          </ui-section>
+
+          <ui-section id="loaders" label="Loaders, server components, Solid" sticky collapsible dividing open="false">
+            <ul>
+              <li>
+                <b>React Router:</b> a load function per route, run in parallel. A newer navigation cancels older ones,
+                and the server keeps working on what was cancelled.
+              </li>
+              <li><b>SvelteKit:</b> load functions track what they used, down to a single search parameter.</li>
+              <li>
+                <b>Server Components:</b> an await in the component, and the browser gets only the output. The simplest
+                to write here, for server data alone.
+              </li>
+              <li>
+                <b>Solid Router:</b> a named query shares its request, and an action revalidates the page's queries.
+              </li>
+              <li>
+                <b>Solid 2:</b> async is part of the graph: a memo may return a promise, with an optimistic overlay
+                discarded when the change settles.
+              </li>
+              <li><b>Layperson's cost:</b> low, with data tied to routes and code, which is hard to swap.</li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://reactrouter.com/start/framework/data-loading"
+                target="ext-reactrouter-com-start-framework-data-loading"
+                >React Router loading</a
+              >,
+              <a
+                href="https://reactrouter.com/explanation/race-conditions"
+                target="ext-reactrouter-com-explanation-race-conditions"
+                >its race conditions</a
+              >,
+              <a href="https://reactrouter.com/how-to/fetchers" target="ext-reactrouter-com-how-to-fetchers"
+                >its fetchers</a
+              >, <a href="https://svelte.dev/docs/kit/load" target="ext-svelte-dev-docs-kit-load">SvelteKit</a>,
+              <a
+                href="https://react.dev/reference/rsc/server-components"
+                target="ext-react-dev-reference-rsc-server-components"
+                >Server Components</a
+              >,
+              <a
+                href="https://docs.solidjs.com/solid-router/data-fetching/queries"
+                target="ext-docs-solidjs-com-solid-router-data-fetching-queries"
+                >Solid queries</a
+              >,
+              <a
+                href="https://docs.solidjs.com/solid-router/concepts/actions"
+                target="ext-docs-solidjs-com-solid-router-concepts-actions"
+                >Solid actions</a
+              >,
+              <a
+                href="https://github.com/solidjs/solid/releases/tag/v2.0.0-beta.0"
+                target="ext-github-com-solidjs-solid-releases-tag-v2-0-0-beta-0"
+                >Solid 2 beta notes</a
+              >,
+              <a
+                href="https://github.com/solidjs/solid/discussions/2791"
+                target="ext-github-com-solidjs-solid-discussions-2791"
+                >its design discussion</a
+              >.
+            </p>
+
+            <ui-section
+              id="solid-cancelling"
+              label="Solid's cancelling, checked by running it"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>
+                The sources couldn't say whether a replaced async memo gets an abort signal, so this was tried against
+                the version in the repo, Solid 2.0 rc.17, with a small script.
+              </p>
               <ul>
-                <li>A trap the reader will fall into, and how to avoid it.</li>
+                <li><b>No signal is handed in:</b> the memo's function receives only one argument.</li>
+                <li>
+                  <b>A replaced answer is dropped:</b> the slow first fetch answered after the second, and was never
+                  shown.
+                </li>
+                <li>
+                  <b>Aborting works by hand:</b> an <code>onCleanup()</code> inside the memo ran when its input changed,
+                  and when the memo was disposed, aborting the request in flight.
+                </li>
+                <li>
+                  <b>The same in <code>createDeferred()</code>,</b> the form epic <code>language</code> will use. Not
+                  tried: how it behaves across thousands of them.
+                </li>
               </ul>
-            </ui-message>
-            <ui-accordion class="spell-aside" appearance="styled">
-              <ui-title>Aside: why not the obvious approach?</ui-title>
-              <ui-content>
-                <p>A digression the main text can skip. Starts collapsed.</p>
-              </ui-content>
-            </ui-accordion>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="other-mechanisms" label="Other ways to collect data" sticky collapsible dividing open="false">
+            <p>The candidates for a fifth back-end, beyond REST, GraphQL, chunked files and the file system.</p>
+            <ul>
+              <li>
+                <b>Google Sheets:</b> 60 reads and 60 writes per person per minute. It has a SQL-like query, with
+                columns addressed by letter.
+              </li>
+              <li><b>Airtable:</b> a formula filter, sort, and pages of at most 100.</li>
+              <li><b>RSS:</b> read only, with a real id per item and a stated time to cache: a cheap sixth.</li>
+              <li>
+                <b>SQLite in the browser:</b> proves "local feels like server", but its storage needs a worker and, on
+                the basic setup, particular page headers. Browsers can clear it.
+              </li>
+              <li>
+                <b>MCP:</b> the closest shape (URIs, list, read, flagged subscribe), though aimed at model hosts; its
+                reach from a browser wasn't checked. An update says only which resource changed.
+              </li>
+              <li><b>WebSockets:</b> a way to deliver changes, not a back-end: no reads, no keys, no back-pressure.</li>
+              <li>
+                <b>DuckDB over HTTP:</b> prior art for chunked files, fetching only the parts of a file it needs by
+                range requests.
+              </li>
+              <li>
+                <b>The browser's file system:</b> file handles that can be kept, with a change observer. It needs
+                permission and HTTPS.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://developers.google.com/workspace/sheets/api/limits"
+                target="ext-developers-google-com-workspace-sheets-api-limits"
+                >Sheets limits</a
+              >,
+              <a
+                href="https://developers.google.com/chart/interactive/docs/querylanguage"
+                target="ext-developers-google-com-chart-interactive-docs-querylanguage"
+                >its query language</a
+              >,
+              <a
+                href="https://airtable.com/developers/web/api/list-records"
+                target="ext-airtable-com-developers-web-api-list-records"
+                >Airtable</a
+              >,
+              <a href="https://www.rssboard.org/rss-specification" target="ext-rssboard-org-rss-specification">RSS</a>,
+              <a
+                href="https://sqlite.org/wasm/doc/trunk/persistence.md"
+                target="ext-sqlite-org-wasm-doc-trunk-persistence-md"
+                >SQLite</a
+              >,
+              <a
+                href="https://modelcontextprotocol.io/specification/2025-06-18/server/resources"
+                target="ext-modelcontextprotocol-io-specification-2025-06-18-server-resources"
+                >MCP resources</a
+              >,
+              <a
+                href="https://modelcontextprotocol.io/specification/2025-06-18/basic/utilities/cancellation"
+                target="ext-modelcontextprotocol-io-specification-2025-06-18-basic-utilities-cancellation"
+                >MCP cancelling</a
+              >,
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API"
+                target="ext-developer-mozilla-org-en-us-docs-web-api-websockets-api"
+                >WebSockets</a
+              >,
+              <a
+                href="https://duckdb.org/docs/2.0/core_extensions/httpfs/https.html"
+                target="ext-duckdb-org-docs-2-0-core-extensions-httpfs-https-html"
+                >DuckDB httpfs</a
+              >,
+              <a
+                href="https://duckdb.org/docs/2.0/clients/wasm/data_ingestion.html"
+                target="ext-duckdb-org-docs-2-0-clients-wasm-data-ingestion-html"
+                >DuckDB-Wasm</a
+              >,
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/API/File_System_API"
+                target="ext-developer-mozilla-org-en-us-docs-web-api-file-system-api"
+                >File System API</a
+              >.
+            </p>
           </ui-section>
         </ui-section>
 
-        <ui-section id="3-history" label="3. History" sticky collapsible dividing open="false">
-          <p class="meta">What changed in the decision, newest first. Not every edit: only what a reader must know.</p>
-          <ui-feed class="spell-history" size="small">
-            <ui-event icon="check">
-              <ui-content>
-                <ui-summary>Built, and the numbers re-measured <ui-date>2026-10-01</ui-date></ui-summary>
-              </ui-content>
-            </ui-event>
-            <ui-event icon="gavel">
-              <ui-content>
-                <ui-summary
-                  >Decided: the proposed design, over the obvious one <ui-date>2026-09-30</ui-date></ui-summary
-                >
-              </ui-content>
-            </ui-event>
-          </ui-feed>
+        <ui-section id="4-together" label="4. Several people at once" sticky collapsible dividing open="false">
+          <p>How systems let two people change the same data, and what it costs.</p>
+          <ui-table celled padding="compact" appearance="striped" unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>System</th>
+                  <th>Who decides</th>
+                  <th>Same field, two people</th>
+                  <th>My unconfirmed change</th>
+                  <th>Long text</th>
+                  <th>Offline</th>
+                </tr>
+                <tr>
+                  <td><b>Figma</b></td>
+                  <td>the server</td>
+                  <td>last to arrive wins, whole value</td>
+                  <td>applied at once; conflicting values from the server ignored until confirmed</td>
+                  <td>not merged</td>
+                  <td>a fresh copy, edits reapplied</td>
+                </tr>
+                <tr>
+                  <td><b>Linear</b> (secondary sources)</td>
+                  <td>the server</td>
+                  <td>last wins, by the server's number</td>
+                  <td>optimistic, queued in the browser</td>
+                  <td>a CRDT for issue descriptions only</td>
+                  <td>a failsafe</td>
+                </tr>
+                <tr>
+                  <td><b>Replicache, Zero</b></td>
+                  <td>the server re-runs your code</td>
+                  <td>whatever your code does</td>
+                  <td>replayed on the server's state</td>
+                  <td>not addressed by what was read</td>
+                  <td>Replicache saves pending changes; Zero has no offline writes</td>
+                </tr>
+                <tr>
+                  <td><b>Meteor</b></td>
+                  <td>the server re-runs the method</td>
+                  <td>whatever the method does</td>
+                  <td>a stub's guess, replaced by the server's writes</td>
+                  <td>not addressed</td>
+                  <td>re-sent on reconnect</td>
+                </tr>
+                <tr>
+                  <td><b>Convex</b></td>
+                  <td>the server, strictly in order</td>
+                  <td>re-run on conflict</td>
+                  <td>rolled back when it completes</td>
+                  <td>not addressed by what was read</td>
+                  <td>not addressed by what was read</td>
+                </tr>
+                <tr>
+                  <td><b>Liveblocks</b></td>
+                  <td>the server</td>
+                  <td>last to reach the server wins, per key</td>
+                  <td>applied at once; others' changes to that value held back</td>
+                  <td>its text type merges both</td>
+                  <td>queued</td>
+                </tr>
+                <tr>
+                  <td><b>Firestore</b></td>
+                  <td>the server</td>
+                  <td>last write wins, per document</td>
+                  <td>listeners fire at once, flagged pending</td>
+                  <td>not addressed by what was read</td>
+                  <td>writes queue; transactions fail</td>
+                </tr>
+                <tr>
+                  <td><b>Yjs, Automerge</b></td>
+                  <td>nobody needed</td>
+                  <td>one fixed winner</td>
+                  <td>nothing pending: it merges</td>
+                  <td>character by character</td>
+                  <td>yes</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+
+          <ui-section
+            id="figma"
+            label="Figma: the closest to what Spell wants"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>One server process per document, whose order replaces any timestamps.</li>
+              <li>Unrelated properties never conflict, and the final value is always one somebody really sent.</li>
+              <li>Text isn't merged: one person's AB against another's BC ends as one or the other.</li>
+              <li>Ids are made in the browser, so creating things works offline.</li>
+              <li>A deleted thing lives on in the undo history of whoever deleted it.</li>
+              <li>A list position is a fraction between its neighbours, and parent and position change together.</li>
+              <li>Reconnecting is one routine: download a fresh copy, then reapply offline edits.</li>
+              <li>Its reliability work: a checkpoint every 30-60 seconds, a journal, aiming to lose under a second.</li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://www.figma.com/blog/how-figmas-multiplayer-technology-works/"
+                target="ext-figma-com-blog-how-figmas-multiplayer-technology-works"
+                >How it works</a
+              >,
+              <a
+                href="https://www.figma.com/blog/realtime-editing-of-ordered-sequences/"
+                target="ext-figma-com-blog-realtime-editing-of-ordered-sequences"
+                >Ordered sequences</a
+              >,
+              <a
+                href="https://www.figma.com/blog/making-multiplayer-more-reliable/"
+                target="ext-figma-com-blog-making-multiplayer-more-reliable"
+                >Making it more reliable</a
+              >.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="run-twice"
+            label="Run the code twice: Replicache, Zero, Meteor, Convex"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                A change is a named function with its arguments. It runs locally as a guess, then for real on the
+                server.
+              </li>
+              <li>
+                The browser rewinds to the server's state and replays what's still pending, so a replay may turn out
+                differently.
+              </li>
+              <li>
+                Every change has an id, so retrying is safe. One that can never work must still be marked done, or it
+                blocks the rest.
+              </li>
+              <li>Convex commits only if everything it read is still current, and re-runs itself if not.</li>
+              <li>
+                Rocicorp's example against plain last-wins: two people adding to a counter lose one of the additions.
+              </li>
+              <li>Zero's warning: a retry can only undo what's in the database. A sent email stays sent.</li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://doc.replicache.dev/concepts/how-it-works"
+                target="ext-doc-replicache-dev-concepts-how-it-works"
+                >How Replicache works</a
+              >,
+              <a
+                href="https://doc.replicache.dev/reference/server-push"
+                target="ext-doc-replicache-dev-reference-server-push"
+                >its push rules</a
+              >,
+              <a
+                href="https://doc.replicache.dev/strategies/overview"
+                target="ext-doc-replicache-dev-strategies-overview"
+                >its strategies</a
+              >, <a href="https://replicache.dev/" target="ext-replicache-dev">Replicache</a>,
+              <a href="https://zero.rocicorp.dev/docs/when-to-use" target="ext-zero-rocicorp-dev-docs-when-to-use"
+                >Zero: when to use it</a
+              >,
+              <a href="https://rocicorp.dev/blog/ready-player-two" target="ext-rocicorp-dev-blog-ready-player-two"
+                >Rocicorp on Reflect</a
+              >,
+              <a href="https://docs.meteor.com/api/meteor.html" target="ext-docs-meteor-com-api-meteor-html"
+                >Meteor methods</a
+              >,
+              <a href="https://docs.convex.dev/database/advanced/occ" target="ext-docs-convex-dev-database-advanced-occ"
+                >Convex concurrency</a
+              >.
+            </p>
+          </ui-section>
+
+          <ui-section id="crdt-cost" label="What a full CRDT costs" sticky collapsible dividing open="false">
+            <ul>
+              <li>
+                Speed is no longer the issue: one benchmark of 260,000 edits ran Yjs in 0.97 s and 3.3 MB, against a
+                plain string's 0.61 s and 0.1 MB. Automerge has since fixed its old numbers.
+              </li>
+              <li>
+                Even a full CRDT is last-writer-wins on a plain field: Automerge picks a fixed winner, and keeps the
+                losers readable.
+              </li>
+              <li>
+                The real costs, as this survey reads them: metadata kept forever, a harder story for changing a data's
+                shape, no place for rules ("only one person may take the seat"), and no way for a server to say no.
+              </li>
+              <li>
+                Ink &amp; Switch report that people rarely hit conflicts, because tracking is fine-grained and people
+                avoid each other by instinct. So <b>seeing who's there</b> is the cheapest conflict tool of all.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://github.com/yjs/yjs/blob/main/INTERNALS.md"
+                target="ext-github-com-yjs-yjs-blob-main-internals-md"
+                >Yjs internals</a
+              >,
+              <a href="https://docs.yjs.dev/api/document-updates" target="ext-docs-yjs-dev-api-document-updates"
+                >its updates</a
+              >,
+              <a
+                href="https://docs.yjs.dev/getting-started/adding-awareness"
+                target="ext-docs-yjs-dev-getting-started-adding-awareness"
+                >its presence</a
+              >, <a href="https://github.com/yjs/y-monaco" target="ext-github-com-yjs-y-monaco">y-monaco</a>,
+              <a href="https://josephg.com/blog/crdts-go-brrr/" target="ext-josephg-com-blog-crdts-go-brrr"
+                >Seph Gentle's benchmark</a
+              >,
+              <a href="https://automerge.org/blog/automerge-3/" target="ext-automerge-org-blog-automerge-3"
+                >Automerge 3</a
+              >,
+              <a
+                href="https://automerge.org/docs/reference/documents/conflicts/"
+                target="ext-automerge-org-docs-reference-documents-conflicts"
+                >its conflicts</a
+              >,
+              <a href="https://www.inkandswitch.com/essay/local-first/" target="ext-inkandswitch-com-essay-local-first"
+                >Local-first software</a
+              >.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="others-together"
+            label="Linear, Liveblocks, rooms, and text"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                <b>Linear,</b> by secondary sources only: per-attribute changes, a server-given number deciding, a CRDT
+                added later for issue descriptions alone.
+              </li>
+              <li>
+                <b>Liveblocks:</b> last writer means last to reach the server, so a faster connection can decide. Its
+                trap: an edit to an object someone replaced shows on your screen and may reach nobody.
+              </li>
+              <li>
+                <b>Durable Objects, PartyKit:</b> one single-threaded instance per name, already the shape of one
+                referee per shared space.
+              </li>
+              <li>
+                <b>Text:</b> ProseMirror rejects a change made on an old version, and the client rebases it. Fraser's
+                differential sync diffs against a shadow copy and starts over on a bad checksum, but can merge into
+                nonsense.
+              </li>
+              <li>
+                <b>HTTP already names this:</b> <code>If-Match</code> exists to prevent lost updates. An idempotency key
+                makes a retry safe, though its standard is still a draft.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://linear.app/now/scaling-the-linear-sync-engine"
+                target="ext-linear-app-now-scaling-the-linear-sync-engine"
+                >Linear's talk</a
+              >,
+              <a
+                href="https://liveblocks.io/blog/understanding-sync-engines-how-figma-linear-and-google-docs-work"
+                target="ext-liveblocks-io-blog-understanding-sync-engines-how-figma-linear-and-google-docs-w"
+                >Liveblocks' comparison</a
+              >,
+              <a
+                href="https://github.com/wzhudev/reverse-linear-sync-engine"
+                target="ext-github-com-wzhudev-reverse-linear-sync-engine"
+                >a reverse-engineering repo</a
+              >,
+              <a href="https://www.fujimon.com/blog/linear-sync-engine" target="ext-fujimon-com-blog-linear-sync-engine"
+                >a talk write-up</a
+              >,
+              <a href="https://linear.app/docs/offline-mode" target="ext-linear-app-docs-offline-mode">Linear offline</a
+              >,
+              <a
+                href="https://liveblocks.io/docs/guides/how-conflict-resolution-works-in-liveblocks-sync"
+                target="ext-liveblocks-io-docs-guides-how-conflict-resolution-works-in-liveblocks-sync"
+                >Liveblocks' conflicts</a
+              >,
+              <a
+                href="https://liveblocks.io/blog/how-crdts-and-sync-engines-keep-realtime-lists-ordered-with-fractional-indexing"
+                target="ext-liveblocks-io-blog-how-crdts-and-sync-engines-keep-realtime-lists-ordered-with-f"
+                >its list order</a
+              >,
+              <a
+                href="https://developers.cloudflare.com/durable-objects/concepts/what-are-durable-objects/"
+                target="ext-developers-cloudflare-com-durable-objects-concepts-what-are-durable-objects"
+                >Durable Objects</a
+              >,
+              <a href="https://docs.partykit.io/how-partykit-works/" target="ext-docs-partykit-io-how-partykit-works"
+                >PartyKit</a
+              >,
+              <a
+                href="https://blog.cloudflare.com/cloudflare-acquires-partykit"
+                target="ext-blog-cloudflare-com-cloudflare-acquires-partykit"
+                >its acquisition</a
+              >,
+              <a
+                href="https://marijnhaverbeke.nl/blog/collaborative-editing.html"
+                target="ext-marijnhaverbeke-nl-blog-collaborative-editing-html"
+                >ProseMirror's collab</a
+              >,
+              <a href="https://neil.fraser.name/writing/sync/" target="ext-neil-fraser-name-writing-sync"
+                >Differential sync</a
+              >,
+              <a
+                href="https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1.1"
+                target="ext-rfc-editor-org-rfc-rfc9110-html-section-13-1-1"
+                >If-Match</a
+              >,
+              <a
+                href="https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header"
+                target="ext-datatracker-ietf-org-doc-html-draft-ietf-httpapi-idempotency-key-header"
+                >the key's draft</a
+              >,
+              <a
+                href="https://docs.stripe.com/api/idempotent_requests"
+                target="ext-docs-stripe-com-api-idempotent-requests"
+                >Stripe's keys</a
+              >,
+              <a
+                href="https://pypi.org/project/fractional-indexing-jittered/"
+                target="ext-pypi-org-project-fractional-indexing-jittered"
+                >jittered positions</a
+              >,
+              <a href="https://vlcn.io/blog/fractional-indexing" target="ext-vlcn-io-blog-fractional-indexing"
+                >interleaving</a
+              >.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="cancel-sources"
+            label="Cancelling, and getting a write out as a page closes"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>Aborting a fetch rejects the browser's promise. No page read says what happens at the server.</li>
+              <li>
+                That a POST may already have landed is reasoning from how HTTP works, not something a source says.
+              </li>
+              <li>A stale read can overwrite an optimistic write, which is why TanStack cancels refetches first.</li>
+              <li><code>keepalive</code> and <code>sendBeacon</code> are best effort, with a 64 KiB limit.</li>
+              <li>
+                The last event reliably seen is the page turning hidden. Background Sync isn't available everywhere.
+              </li>
+            </ul>
+            <p class="meta">
+              Sources:
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch"
+                target="ext-developer-mozilla-org-en-us-docs-web-api-fetch-api-using-fetch"
+                >Using fetch</a
+              >,
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/API/RequestInit"
+                target="ext-developer-mozilla-org-en-us-docs-web-api-requestinit"
+                >RequestInit</a
+              >,
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/API/Navigator/sendBeacon"
+                target="ext-developer-mozilla-org-en-us-docs-web-api-navigator-sendbeacon"
+                >sendBeacon</a
+              >,
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilitychange_event"
+                target="ext-developer-mozilla-org-en-us-docs-web-api-document-visibilitychange-event"
+                >visibilitychange</a
+              >,
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API"
+                target="ext-developer-mozilla-org-en-us-docs-web-api-background-synchronization-api"
+                >Background Sync</a
+              >,
+              <a
+                href="https://firebase.google.com/docs/firestore/manage-data/transactions"
+                target="ext-firebase-google-com-docs-firestore-manage-data-transactions"
+                >Firestore transactions</a
+              >,
+              <a
+                href="https://firebase.google.com/docs/database/android/offline-capabilities"
+                target="ext-firebase-google-com-docs-database-android-offline-capabilities"
+                >Realtime Database offline</a
+              >.
+            </p>
+          </ui-section>
         </ui-section>
 
-        <ui-section id="4-sources" label="4. Sources and experiments" sticky collapsible dividing open="false">
-          <ul>
-            <li>Runnable scripts in <code>&lt;topic&gt;/experiments/</code>, each saying how to run it.</li>
-            <li>Tables quote medians of several runs, never a single run.</li>
-          </ul>
-          <ui-items class="spell-sources" divided>
-            <ui-item>
-              <ui-content>
-                <ui-header><code>experiments/measure.ts</code></ui-header>
-                <ui-meta>experiment · <code>yarn tsx &lt;topic&gt;/experiments/measure.ts</code></ui-meta>
-                <ui-description>What it measures, and which claim above it backs.</ui-description>
-              </ui-content>
-            </ui-item>
-            <ui-item>
-              <ui-content>
-                <ui-header><a href="https://example.com/" target="ext-example-com">An external reference</a></ui-header>
-                <ui-meta>reference · read 2026-10-01</ui-meta>
-                <ui-description>What it says that this doc relies on.</ui-description>
-              </ui-content>
-            </ui-item>
-          </ui-items>
+        <ui-section id="5-lay-words" label="5. How lay tools say data" sticky collapsible dividing open="false">
+          <p>What people who don't program were given, what worked, and what confused them.</p>
+          <ui-table celled padding="compact" appearance="striped" unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>System</th>
+                  <th>How it says data</th>
+                  <th>Worked</th>
+                  <th>Confused</th>
+                </tr>
+                <tr>
+                  <td><b>HyperCard</b></td>
+                  <td><code>go to the last card of this stack</code></td>
+                  <td>No save: typing writes to the file. The data and the interface are one thing</td>
+                  <td>No way back from a bad change; failures are silent</td>
+                </tr>
+                <tr>
+                  <td><b>AppleScript</b></td>
+                  <td><code>every window whose zoomed is true</code></td>
+                  <td>Plurals, <code>every</code> and <code>whose</code> read aloud well</td>
+                  <td>
+                    The filter works on application objects, not on its own lists.
+                    <b>The trap for local feeling like server</b>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Inform 7</b></td>
+                  <td><code>The mouse is in the teapot.</code> One sentence for a start, a test and a change</td>
+                  <td>The owner gets a name on the far side, and "various ... to one" is everyday English</td>
+                  <td>A lookup finding nothing is a run-time error unless checked first</td>
+                </tr>
+                <tr>
+                  <td><b>Excel, Sheets</b></td>
+                  <td><code>XLOOKUP(value, range, range, [if_not_found])</code></td>
+                  <td><b>The state shows in place, in the cell.</b> "No match" sits beside the lookup</td>
+                  <td>Codes say something's wrong, not what. Refreshing is a separate idea</td>
+                </tr>
+                <tr>
+                  <td><b>Airtable, Notion</b></td>
+                  <td>"Link" tables, with lookup and rollup</td>
+                  <td>The link is mirrored by itself. People think in lists, not keys</td>
+                  <td>Three field types for what English says one way</td>
+                </tr>
+                <tr>
+                  <td><b>Bubble</b></td>
+                  <td><code>Do a search for</code>, then <code>:first item</code></td>
+                  <td>Live by default, with nobody asking</td>
+                  <td>A search is always a list, even for one match</td>
+                </tr>
+                <tr>
+                  <td><b>Glide, Softr, Retool</b></td>
+                  <td>Retool: a resource, then a query</td>
+                  <td><b>Retool splits WHERE from WHAT</b></td>
+                  <td>Softr's swap resets settings. Retool's people wire loading flags by hand</td>
+                </tr>
+                <tr>
+                  <td><b>Scratch</b></td>
+                  <td>A checkbox on a variable, and a ☁ on its name</td>
+                  <td><b>The best proof of "local feels like remote": same blocks, one checkbox</b></td>
+                  <td>Numbers only, 10 per project, no lists</td>
+                </tr>
+                <tr>
+                  <td><b>Wolfram</b></td>
+                  <td><code>EntityValue[Entity["Country","France"], "Population"]</code></td>
+                  <td>One form for one, many or a class</td>
+                  <td>A notation, not words</td>
+                </tr>
+                <tr>
+                  <td><b>COBOL, SQL</b></td>
+                  <td><code>MOVE x TO y</code></td>
+                  <td>Reads aloud</td>
+                  <td>SQL ended up mainly with programmers. <b>English-looking isn't layperson-friendly</b></td>
+                </tr>
+                <tr>
+                  <td><b>Logo</b></td>
+                  <td>Lists and words, one data shape</td>
+                  <td>Small, one idea</td>
+                  <td>No sharing, no outside data</td>
+                </tr>
+                <tr>
+                  <td><b>Natural-language queries</b></td>
+                  <td>Free-form questions</td>
+                  <td>Nothing to learn, at first</td>
+                  <td>People can't tell what it understands</td>
+                </tr>
+                <tr>
+                  <td><b>Apple Shortcuts</b></td>
+                  <td><code>Get Contents of URL</code></td>
+                  <td>The verb names the thing, for a read</td>
+                  <td>Past reading, it's all HTTP's words</td>
+                </tr>
+                <tr>
+                  <td><b>Zapier</b></td>
+                  <td>A trigger starts a Zap</td>
+                  <td>"When this happens, do that" needs no teaching</td>
+                  <td><b>Polling is invisible:</b> 15 minutes on the free plan, so "when" isn't when</td>
+                </tr>
+                <tr>
+                  <td><b>Studies</b> (Pane, Myers)</td>
+                  <td>The HANDS system's queries and totals</td>
+                  <td>Children did significantly better with them</td>
+                  <td>People write "and" where logic needs "or"</td>
+                </tr>
+                <tr>
+                  <td><b>"The cloud"</b></td>
+                  <td>A 2012 survey of 1,006 US adults</td>
+                  <td>Of those who say they never use it, 95% do</td>
+                  <td>51% think storms interfere with it</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+
+          <ui-section id="lay-lessons" label="What it adds up to" sticky collapsible dividing open="false">
+            <ol>
+              <li>
+                <b>No verb for reading.</b> Bubble's three words sit in front of the noun, where AppleScript has only
+                the noun.
+              </li>
+              <li>
+                <b>One word tells one from many.</b> A singular or a list, said out loud, so Bubble's error can't
+                happen.
+              </li>
+              <li>
+                <b>Same words, one checkbox.</b> Scratch changes the declaration and no block, and AppleScript shows the
+                opposite.
+              </li>
+              <li><b>No save command.</b> HyperCard showed this in 1987, at the price of needing a real undo.</li>
+              <li><b>WHERE and WHAT are separate.</b> A block must not hold its own source, as Softr's swap shows.</li>
+              <li>
+                <b>The states belong next to the read,</b> like a cell's "Loading…", or everyone wires a flag by hand.
+              </li>
+              <li>
+                <b>Links are one idea,</b> where Airtable has three field types. Neither "join" nor "relation" should
+                appear.
+              </li>
+              <li><b>The owner has a name on both sides,</b> from one declaration.</li>
+              <li><b>Be honest about "when".</b> Polling belongs in one visible place.</li>
+              <li><b>English-looking isn't enough,</b> and nor is free-form English.</li>
+              <li><b>"And" will be used for "or",</b> and needs a warning.</li>
+            </ol>
+            <p class="meta">
+              Sources:
+              <a href="https://en.wikipedia.org/wiki/HyperCard" target="ext-en-wikipedia-org-wiki-hypercard"
+                >HyperCard</a
+              >,
+              <a href="https://mjtsai.com/blog/2004/05/10/saving/" target="ext-mjtsai-com-blog-2004-05-10-saving"
+                >its saving</a
+              >,
+              <a
+                href="https://jacobfilipp.com/DrDobbs/articles/DDJ/1988/8814/8814d/8814d.htm"
+                target="ext-jacobfilipp-com-drdobbs-articles-ddj-1988-8814-8814d-8814d-htm"
+                >Dr. Dobb's, 1988</a
+              >,
+              <a
+                href="https://lists.runrev.com/pipermail/use-livecode/2003-December/027085.html"
+                target="ext-lists-runrev-com-pipermail-use-livecode-2003-december-027085-html"
+                >a mailing list</a
+              >,
+              <a
+                href="https://developer.apple.com/library/archive/documentation/AppleScript/Conceptual/AppleScriptLangGuide/reference/ASLR_reference_forms.html"
+                target="ext-developer-apple-com-library-archive-documentation-applescript-conceptual-applesc"
+                >AppleScript</a
+              >, Inform 7 on
+              <a
+                href="https://ganelson.github.io/inform-website/book/WI_13_1.html"
+                target="ext-ganelson-github-io-inform-website-book-wi-13-1-html"
+                >relations</a
+              >,
+              <a
+                href="https://ganelson.github.io/inform-website/book/WI_13_5.html"
+                target="ext-ganelson-github-io-inform-website-book-wi-13-5-html"
+                >more of them</a
+              >,
+              <a
+                href="https://ganelson.github.io/inform-website/book/WI_13_9.html"
+                target="ext-ganelson-github-io-inform-website-book-wi-13-9-html"
+                >their names</a
+              >
+              and
+              <a
+                href="https://ganelson.github.io/inform-website/book/WI_16_1.html"
+                target="ext-ganelson-github-io-inform-website-book-wi-16-1-html"
+                >tables</a
+              >,
+              <a
+                href="https://ganelson.github.io/inform-website/book/WI_16_2.html"
+                target="ext-ganelson-github-io-inform-website-book-wi-16-2-html"
+                >their lookups</a
+              >,
+              <a
+                href="https://ganelson.github.io/inform-website/book/WI_16_3.html"
+                target="ext-ganelson-github-io-inform-website-book-wi-16-3-html"
+                >and more</a
+              >,
+              <a
+                href="https://support.google.com/docs/answer/3093340"
+                target="ext-support-google-com-docs-answer-3093340"
+                >IMPORTRANGE</a
+              >,
+              <a
+                href="https://support.microsoft.com/en-us/office/xlookup-function-b7fd680e-6d10-43e6-84f9-88eae8bf5929"
+                target="ext-support-microsoft-com-en-us-office-xlookup-function-b7fd680e-6d10-43e6-84f9-88ea"
+                >XLOOKUP</a
+              >,
+              <a
+                href="https://support.microsoft.com/en-us/office/about-power-query-in-excel-7104fbee-9e62-4cb9-a02e-5bfb1a6c536a"
+                target="ext-support-microsoft-com-en-us-office-about-power-query-in-excel-7104fbee-9e62-4cb9"
+                >Power Query</a
+              >,
+              <a
+                href="https://support.airtable.com/docs/linking-records-in-airtable"
+                target="ext-support-airtable-com-docs-linking-records-in-airtable"
+                >Airtable links</a
+              >,
+              <a
+                href="https://support.airtable.com/docs/rollup-field-overview"
+                target="ext-support-airtable-com-docs-rollup-field-overview"
+                >its rollups</a
+              >,
+              <a
+                href="https://www.notion.com/help/relations-and-rollups"
+                target="ext-notion-com-help-relations-and-rollups"
+                >Notion</a
+              >,
+              <a
+                href="https://manual.bubble.io/core-resources/data/data-sources"
+                target="ext-manual-bubble-io-core-resources-data-data-sources"
+                >Bubble's sources</a
+              >,
+              <a
+                href="https://manual.bubble.io/help-guides/data/the-database/finding-data"
+                target="ext-manual-bubble-io-help-guides-data-the-database-finding-data"
+                >its finding</a
+              >,
+              <a
+                href="https://manual.bubble.io/core-resources/data/search"
+                target="ext-manual-bubble-io-core-resources-data-search"
+                >its search</a
+              >,
+              <a
+                href="https://forum.bubble.io/t/why-does-bubble-restrict-do-a-search-for-constraints/397566"
+                target="ext-forum-bubble-io-t-why-does-bubble-restrict-do-a-search-for-constraints-397566"
+                >its forum</a
+              >,
+              <a href="https://www.glideapps.com/docs/computed-columns" target="ext-glideapps-com-docs-computed-columns"
+                >Glide</a
+              >,
+              <a
+                href="https://docs.softr.io/core-concepts-overview/connect-your-data-source"
+                target="ext-docs-softr-io-core-concepts-overview-connect-your-data-source"
+                >Softr</a
+              >,
+              <a
+                href="https://docs.softr.io/migration-tips/migrating-from-airtable-to-softr-databases"
+                target="ext-docs-softr-io-migration-tips-migrating-from-airtable-to-softr-databases"
+                >its migration</a
+              >,
+              <a
+                href="https://docs.retool.com/queries/reference/objects/query"
+                target="ext-docs-retool-com-queries-reference-objects-query"
+                >Retool queries</a
+              >,
+              <a href="https://docs.retool.com/queries/quickstart" target="ext-docs-retool-com-queries-quickstart"
+                >its quickstart</a
+              >,
+              <a
+                href="https://docs.retool.com/classic-apps/concepts/intro"
+                target="ext-docs-retool-com-classic-apps-concepts-intro"
+                >its concepts</a
+              >,
+              <a
+                href="https://community.retool.com/t/how-do-i-control-table-loading-state/11297"
+                target="ext-community-retool-com-t-how-do-i-control-table-loading-state-11297"
+                >a loading thread</a
+              >,
+              <a
+                href="https://community.retool.com/t/loading-spinner-not-appearing/31408"
+                target="ext-community-retool-com-t-loading-spinner-not-appearing-31408"
+                >another</a
+              >,
+              <a href="https://en.scratch-wiki.info/wiki/Cloud_Data" target="ext-en-scratch-wiki-info-wiki-cloud-data"
+                >Scratch</a
+              >,
+              <a
+                href="https://en.scratch-wiki.info/wiki/List_of_Block_Workarounds"
+                target="ext-en-scratch-wiki-info-wiki-list-of-block-workarounds"
+                >its workarounds</a
+              >,
+              <a
+                href="https://reference.wolfram.com/language/ref/EntityValue.html"
+                target="ext-reference-wolfram-com-language-ref-entityvalue-html"
+                >Wolfram</a
+              >,
+              <a
+                href="https://www.theregister.com/2024/05/31/fifty_years_of_sql/"
+                target="ext-theregister-com-2024-05-31-fifty-years-of-sql"
+                >Fifty years of SQL</a
+              >,
+              <a
+                href="https://en.wikipedia.org/wiki/Query_by_Example"
+                target="ext-en-wikipedia-org-wiki-query-by-example"
+                >Query by Example</a
+              >, <a href="https://www.wikipedia.org/wiki/Cobol" target="ext-wikipedia-org-wiki-cobol">COBOL</a>,
+              <a
+                href="https://criticalcodestudies.com/flowmatic.html"
+                target="ext-criticalcodestudies-com-flowmatic-html"
+                >FLOW-MATIC</a
+              >,
+              <a
+                href="https://en.wikipedia.org/wiki/Logo_(programming_language)"
+                target="ext-en-wikipedia-org-wiki-logo-programming-language"
+                >Logo</a
+              >, natural language in
+              <a href="https://arxiv.org/pdf/1906.08990" target="ext-arxiv-org-pdf-1906-08990">one review</a>,
+              <a
+                href="https://journal.hep.com.cn/fcs/EN/10.1007/s11704-025-50592-w"
+                target="ext-journal-hep-com-cn-fcs-en-10-1007-s11704-025-50592-w"
+                >a later one</a
+              >
+              and
+              <a
+                href="https://www.springerprofessional.de/en/natural-language-interfaces-to-data-bases-some-practical-issues/13978576"
+                target="ext-springerprofessional-de-en-natural-language-interfaces-to-data-bases-some-practi"
+                >a third</a
+              >,
+              <a
+                href="https://support.apple.com/guide/shortcuts/apd58d46713f/ios"
+                target="ext-support-apple-com-guide-shortcuts-apd58d46713f-ios"
+                >Shortcuts</a
+              >,
+              <a
+                href="https://discussions.apple.com/thread/251045870"
+                target="ext-discussions-apple-com-thread-251045870"
+                >a thread</a
+              >,
+              <a
+                href="https://redlib.hackliberty.org/r/shortcuts/comments/1k3wmrs/fix_for_the_network_connection_was_lost"
+                target="ext-redlib-hackliberty-org-r-shortcuts-comments-1k3wmrs-fix-for-the-network-connecti"
+                >one person's report</a
+              >,
+              <a
+                href="https://help.zapier.com/hc/en-us/articles/8496288188429-Learn-key-concepts-in-Zaps"
+                target="ext-help-zapier-com-hc-en-us-articles-8496288188429-learn-key-concepts-in-zaps"
+                >Zapier concepts</a
+              >,
+              <a
+                href="https://help.zapier.com/hc/en-us/articles/8496244568589"
+                target="ext-help-zapier-com-hc-en-us-articles-8496244568589"
+                >its triggers</a
+              >,
+              <a
+                href="https://dblp.org/rec/journals/ijmms/PaneRM01.html"
+                target="ext-dblp-org-rec-journals-ijmms-panerm01-html"
+                >Pane 2001's record</a
+              >,
+              <a
+                href="https://link.springer.com/doi/10.1007/1-4020-5386-X_3"
+                target="ext-link-springer-com-doi-10-1007-1-4020-5386-x-3"
+                >the 2006 chapter</a
+              >,
+              <a
+                href="https://www.csd.cmu.edu/sites/default/files/phd-thesis/CMU-CS-02-127.pdf"
+                target="ext-csd-cmu-edu-sites-default-files-phd-thesis-cmu-cs-02-127-pdf"
+                >the HANDS thesis</a
+              >, the cloud survey at
+              <a
+                href="https://www.businesswire.com/news/home/20120827006131/en/2712951/Most-Americans-Confused-By-Cloud-Computing-According-to-National-Survey"
+                target="ext-businesswire-com-news-home-20120827006131-en-2712951-most-americans-confused-by-"
+                >Business Wire</a
+              >,
+              <a
+                href="https://www.eweek.com/cloud/cloud-computing-confusing-to-many-survey/"
+                target="ext-eweek-com-cloud-cloud-computing-confusing-to-many-survey"
+                >eWeek</a
+              >
+              and
+              <a
+                href="https://www.nbcnews.com/technolog/survey-51-percent-think-stormy-weather-interferes-online-cloud-968907"
+                target="ext-nbcnews-com-technolog-survey-51-percent-think-stormy-weather-interferes-online-c"
+                >NBC</a
+              >.
+            </p>
+          </ui-section>
+        </ui-section>
+
+        <ui-section
+          id="6-take"
+          label="6. What Spell takes, and what it avoids"
+          sticky
+          collapsible
+          dividing
+          open="false"
+        >
+          <p>These are judgements built on the sources, not claims from them.</p>
+          <ui-section id="ideas-taken" label="Ideas to take" sticky collapsible dividing open="false">
+            <ol>
+              <li><b>The compiler infers each part's selection,</b> so nobody writes one, and masking comes free.</li>
+              <li>
+                <b>Cache objects by type and id,</b> not requests, so one edit shows everywhere with no invalidation.
+              </li>
+              <li><b>A required core, optional features, written fallbacks</b> (fate, rclone, MCP, OData).</li>
+              <li><b>The back-end says what it did, and the engine does the rest,</b> visibly.</li>
+              <li><b>Results say what they know.</b> Never draw "none found" until the answer is complete.</li>
+              <li><b>One action, run on both sides,</b> as a local overlay and a back-end call.</li>
+              <li>
+                <b>Lifetime follows the part,</b> with counted sharing: the last reader leaving aborts. Keep about 10
+                released requests.
+              </li>
+              <li><b>Polling is the live fallback everywhere.</b></li>
+            </ol>
+          </ui-section>
+          <ui-section id="traps" label="Traps" sticky collapsible dividing open="false">
+            <ol>
+              <li>
+                <b>A silent fallback that downloads everything.</b> Uniform words must come with visible cost: a
+                ceiling, a compile note, then an error.
+              </li>
+              <li>
+                <b>A language shaped like one database, with per-client state on the server.</b> A warning, not a proven
+                cause of Meteor's decline.
+              </li>
+              <li>
+                <b>Identity isn't free.</b> Sheets, CSV and files have no reliable key, and inserting a row shifts every
+                row number.
+              </li>
+              <li><b>Cancelling isn't undoing.</b> Abort reads, since a write already sent is only ever reconciled.</li>
+              <li>
+                <b>Optimistic writes past one click.</b> Start low on Electric's ladder, with offline as a later rung.
+              </li>
+            </ol>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="7-not-verified" label="7. Not verified" sticky collapsible dividing open="false">
+          <p>Everything this survey couldn't confirm. Nothing here should be repeated as fact without checking.</p>
+
+          <ui-section id="not-verified-data" label="Reading and changing data" sticky collapsible dividing open="false">
+            <ol>
+              <li>
+                <b>Why Meteor declined:</b> no official postmortem; opinion only, and Greif's letter returned 403 (a
+                search snippet).
+              </li>
+              <li><b>Mergebox:</b> known from a third-party package, not Meteor's own docs.</li>
+              <li><b>SWR's abort:</b> a proposed change; whether it shipped wasn't confirmed.</li>
+              <li>
+                <b>Solid 2's async API:</b> from search snippets of release notes and discussions, since the docs
+                preview and the signals README returned 404. Cancelling was then checked by running it (<a
+                  href="#solid-cancelling"
+                  >above</a
+                >).
+              </li>
+              <li>
+                <b>Zero:</b> 1.0 and Postgres-only come from snippets of InfoQ and a 2025 review. Pricing wasn't found.
+              </li>
+              <li><b>TanStack DB:</b> its "1.0 RC" is inferred from a linked migration guide.</li>
+              <li>
+                <b>WarpDrive:</b> API snippets only, the guides unread. Ember Data's succession rests on a search
+                snippet.
+              </li>
+              <li><b>FUSE:</b> the kernel docs page returned 404; from the fuse(4) man page and mirrors.</li>
+              <li><b>Firestore:</b> how to detach, and query limits, were past where the page was cut off.</li>
+              <li>
+                <b>OData:</b> <code>501 Not Implemented</code> wasn't reached; the refusal rule is from the URL
+                conventions and the protocol's section 6.1.
+              </li>
+              <li>
+                <b>React Router's request signal, SvelteKit's abort on navigation, Server Components' cancelling:</b>
+                not found on the pages read.
+              </li>
+              <li>
+                <b>Sheets' gviz limits and auth for private sheets:</b> from one page. Its limit and offset clauses are
+                from memory.
+              </li>
+              <li>
+                <b>fate against Relay:</b> the comparison is this survey's. fate's docs name Relay as an influence,
+                without a detailed comparison.
+              </li>
+              <li><b>The file system observer's browser support:</b> MDN's tables didn't load.</li>
+              <li>
+                <b>The back-end interface proposed from this survey is untested:</b> a design, not something anyone has
+                built.
+              </li>
+            </ol>
+          </ui-section>
+
+          <ui-section
+            id="not-verified-together"
+            label="Several people at once"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ol>
+              <li>
+                <b>Linear:</b> no primary technical source, only Liveblocks' comparison, a reverse-engineering repo, an
+                HN comment and a talk write-up. Its docs page gave a 404, so that text is from a search snippet.
+              </li>
+              <li><b>Google Docs:</b> Liveblocks gives no primary source, so it isn't relied on.</li>
+              <li><b>PartyKit's Yjs layer:</b> not read. Durable Object limits may have changed.</li>
+              <li>
+                <b>Abort and the server:</b> neither MDN page says what happens to a POST at the server, and the fetch
+                standard's part wasn't read in full. It's reasoning from HTTP.
+              </li>
+              <li>
+                <b>Rocicorp:</b> the Reflect post is the source for its rebase case. Whether Reflect is still offered
+                wasn't checked.
+              </li>
+              <li><b>Automerge's merge rules page:</b> 404; its conflicts page was used.</li>
+              <li><b>TanStack:</b> nothing found states that in-flight mutations can't be aborted.</li>
+              <li><b>Interleaving in list positions:</b> from a secondary blog. The Fugue paper wasn't read.</li>
+              <li>
+                <b>Untested:</b> all timings, and the compiler sorting actions into kinds. No prototype was built, and
+                that sort is the riskiest idea.
+              </li>
+            </ol>
+          </ui-section>
+
+          <ui-section id="not-verified-words" label="Lay tools" sticky collapsible dividing open="false">
+            <ol>
+              <li>
+                <b>Pane and others, 2001:</b> the full text wouldn't load, so the "and for or" and HANDS lines are from
+                search snippets of the 2006 chapter and the thesis. There are no verified percentages on totals against
+                loops.
+              </li>
+              <li>
+                <b>Reisner's studies of SQUARE and SEQUEL:</b> not found. "Joins expose the storage" is this survey's
+                reading, and Chamberlin's words are via The Register's interview.
+              </li>
+              <li>
+                <b>Bubble being confusing:</b> the manual states the rules, and there's one forum post. That these
+                confuse beginners is an inference, not a study's finding.
+              </li>
+              <li><b>IFTTT:</b> its help page returned 403, so it's left out.</li>
+              <li>
+                <b>Apple Shortcuts' Find and Filter actions:</b> not found. Get Contents of URL is from Apple's guide.
+              </li>
+              <li><b>Logo's MAKE:</b> from memory only.</li>
+              <li>
+                <b>HyperTalk:</b> Wikipedia and a 1988 article in Dr. Dobb's, not Apple's reference, and the autosave
+                critic is one blog post.
+              </li>
+              <li><b>Retool:</b> from search snippets of its docs, and undated forum threads.</li>
+              <li><b>Wolfram's free-form input:</b> not checked; the guide pages tried were 404.</li>
+              <li>
+                <b>Google Docs' status text:</b> secondary sources only, and no Spanish wording found. So "saved in"
+                being what people already read is likely, not proven.
+              </li>
+              <li>
+                <b>Androutsopoulos' 1995 survey:</b> not retrieved. The idea of people not knowing what a system
+                understands comes from later papers citing it.
+              </li>
+            </ol>
+          </ui-section>
         </ui-section>
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">
-            Last checked 2026-10-01 against branch <code>main</code>: re-run the experiments to update.
-          </p>
+          <p class="meta">Researched 2026-10-31 for epic data, before any of its code.</p>
         </footer>
       </main>
     </div>
