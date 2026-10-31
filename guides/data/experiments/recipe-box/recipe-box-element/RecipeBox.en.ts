@@ -21,7 +21,7 @@ export const recipeBoxVocabulary = {
       kind: "string",
       default: "rest",
       description:
-        "Which back-end keeps them:  `rest`, `graphql`, `folder`, `room`, `sheet`, `sheet-no-id` or `google-sheet`.  The page's address can say too:  `?back-end=graphql`."
+        "Which back-end keeps them:  `rest`, `graphql`, `graphql-apart`, `folder`, `room`, `sheet`, `sheet-no-id`, `device` or `google-sheet`.  The page's address can say too:  `?back-end=graphql`."
     },
     {
       name: "sheet",
@@ -35,6 +35,7 @@ export const recipeBoxVocabulary = {
   parts: [
     { name: "box", description: "The whole box." },
     { name: "recipe", description: "One recipe." },
+    { name: "none", description: "What's said when there are no recipes." },
     { name: "note", description: "What the read said about its rows." },
     { name: "connection", description: "In a live room:  whether it's connected, and its last heal." },
     { name: "sample", description: "The switch between a sample and the real place." },
@@ -42,6 +43,7 @@ export const recipeBoxVocabulary = {
   ],
   states: [],
   texts: [
+    { key: "no-recipes", text: "No recipes here yet.", description: "A read answered, with nothing in it." },
     { key: "use-sample", text: "Use a sample", description: "Swaps in editable records, for the real place." },
     { key: "use-real", text: "Use the real place", description: "Puts the real place back." },
     {

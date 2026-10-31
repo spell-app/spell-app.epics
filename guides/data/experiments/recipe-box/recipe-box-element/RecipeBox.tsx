@@ -2,6 +2,7 @@ import type { JSX } from "@solidjs/web"
 import { For, Show } from "solid-js"
 
 import {
+  DevicePlace,
   GraphPlace,
   LiveRoomPlace,
   Places,
@@ -48,11 +49,13 @@ const POLL_SECONDS = 5
  * Each back-end, by its name:  this much is all that differs, so `back-end="graphql"` is the one line that changes.
  * - REST says versions, so a clash merges per field, with a notice.
  * - GraphQL says none:  the last save wins that field.
+ *   - `graphql` has the same recipes as `rest`;  `graphql-apart` has its own, for showing back-ends that share nothing.
  * - A folder is only reachable through a server side, `RemotePlace`:  it has versions, so a clash merges per field.
  * - A sheet is a CSV file at an address (`sheet`), read only, with no server of ours:  this page's own, or a Google Sheet
  *   shared with "anyone with the link".
  *   - `sheet-no-id`:  the same file, with nothing saying which row is which.
  * - A Google Sheet to write to goes through a server side, which holds its key:  the last save wins each cell.
+ * - This device needs no server, and only this browser ever sees them.
  * - A live room has a referee putting everyone's changes in one order, over a websocket:  so nothing polls, and it heals itself.
  */
 const BACK_ENDS: Record<string, (sheet: string) => Place> = {
@@ -72,21 +75,27 @@ const BACK_ENDS: Record<string, (sheet: string) => Place> = {
     }),
   folder: () => new RemotePlace({ url: `${SERVERS}/api/places/recipes`, token: DEMO_TOKEN }),
   room: () => new LiveRoomPlace({ url: `${SERVERS}/api/rooms/recipes`, token: DEMO_TOKEN }),
-  graphql: () =>
-    new GraphPlace({
-      url: `${SERVERS}/graphql`,
-      collections: {
-        recipes: {
-          list: "recipes",
-          one: "recipe",
-          paging: "connection",
-          fields: ["id", "title: name", "cuisine", "servings", "notes"],
-          insert: { mutation: "addRecipe", input: "RecipeInput!" },
-          update: { mutation: "changeRecipe", id: "ID!", input: "RecipePatch!" },
-          delete: { mutation: "removeRecipe", id: "ID!" }
-        }
+  graphql: () => graphPlaceAt(`${SERVERS}/graphql`),
+  "graphql-apart": () => graphPlaceAt(`${SERVERS}/apart/graphql`),
+  device: () => new DevicePlace({ wholeRows: true })
+}
+
+/** The GraphQL service at `url`:  its fields and its mutations are the same at every address. */
+function graphPlaceAt(url: string): Place {
+  return new GraphPlace({
+    url,
+    collections: {
+      recipes: {
+        list: "recipes",
+        one: "recipe",
+        paging: "connection",
+        fields: ["id", "title: name", "cuisine", "servings", "notes"],
+        insert: { mutation: "addRecipe", input: "RecipeInput!" },
+        update: { mutation: "changeRecipe", id: "ID!", input: "RecipePatch!" },
+        delete: { mutation: "removeRecipe", id: "ID!" }
       }
-    })
+    }
+  })
 }
 
 /** The one collection it shows. */
@@ -102,6 +111,8 @@ const THE_BOX = "box"
 const BACK_END_NAMES: Record<string, string> = {
   rest: "a REST server",
   graphql: "a GraphQL server",
+  "graphql-apart": "a GraphQL server, with recipes of its own",
+  device: "this browser",
   folder: "a folder of files",
   room: "a live room",
   sheet: "a CSV file",
@@ -113,7 +124,7 @@ const BACK_END_NAMES: Record<string, string> = {
 const SHEET_FILE = "recipes.csv"
 
 /** What needs `scripts/recipe-servers.ts` running:  a CSV file doesn't. */
-const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "room"])
+const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "graphql-apart", "folder", "google-sheet", "room"])
 
 /** Where the "someone else" button has somewhere to go:  for a Google Sheet, someone else is you, in Google's own page. */
 const HAS_SOMEONE_ELSE = new Set(["rest", "graphql", "folder"])
@@ -177,6 +188,8 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   @E.state accessor lastHeal = ""
   /** Is a sample in use? */
   @E.state accessor isSample = false
+  /** Has a read answered yet?  Before that, no recipes means nothing yet, not none. */
+  @E.state accessor hasRead = false
 
   /** The list of places:  one here, under the name `recipes`. */
   private places: Places | undefined
@@ -288,6 +301,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     const { contents, notes } = this.result!
     if (contents) this.recipes = contents
     this.notes = notes
+    this.hasRead = true
     this.notices = this.notices.filter(({ text }) => text !== this.readFailure)
     this.readFailure = undefined
   }
@@ -525,6 +539,11 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
           </form>
         </Show>
         <div class="recipes">
+          <Show when={this.hasRead && !this.shownRecipes.length}>
+            <p class="none" part={this.partForName("none")}>
+              {this.translationForKey("no-recipes")}
+            </p>
+          </Show>
           <Show
             when={this.canWrite}
             fallback={
