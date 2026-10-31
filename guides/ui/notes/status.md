@@ -12,6 +12,7 @@ A checklist of every component in [the plan](plan.md):  what's done, in progress
   - `<ui-menu tabs>`, `<ui-toolbar scroll-first>`
   - `<ui-split-panel>`, panes in rows or columns
   - `<ui-root app>`, `--ui-control-cursor`, `--ui-control-height`
+  - `<ui-tree>` and `<ui-tree-item>`, new:  done, with tests, keys, a docs page;  `icon` on every vocabulary
 
 - **Shared states** (2026-10-09, epic `spell-element` P8):
   every element takes them, though its vocabulary never names them.
