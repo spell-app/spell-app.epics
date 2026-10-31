@@ -21,7 +21,7 @@ export const recipeBoxVocabulary = {
       kind: "string",
       default: "rest",
       description:
-        "Which back-end keeps them:  `rest`, `graphql`, `folder`, `room`, `sheet`, `sheet-no-id`, `device` or `google-sheet`.  The page's address can say too:  `?back-end=graphql`."
+        "Which back-end keeps them:  `rest`, `graphql`, `folder`, `room`, `sheet`, `sheet-no-id`, `device`, `google-sheet`, `atmosphere` or `atmosphere-real`.  The page's address can say too:  `?back-end=graphql`."
     },
     {
       name: "sheet",
@@ -39,11 +39,24 @@ export const recipeBoxVocabulary = {
     { name: "note", description: "What the read said about its rows." },
     { name: "connection", description: "In a room:  whether it's connected, and its last heal." },
     { name: "sample", description: "The switch between a sample and the real place." },
-    { name: "using-sample", description: "What's said while a sample is in use." }
+    { name: "using-sample", description: "What's said while a sample is in use." },
+    { name: "sign-in", description: "On a place where each person is someone:  who's signed in, and the way in and out." }
   ],
   states: [],
   texts: [
     { key: "no-recipes", text: "No recipes here yet.", description: "A read answered, with nothing in it." },
+    { key: "sign-in-signed-out", text: "You aren't signed in, so you can read these, and not change them.", description: "Nobody's signed in." },
+    { key: "sign-in-signing-in", text: "Signing in…", description: "On the way." },
+    { key: "sign-in-signed-in", text: "Signed in as {name}.", description: "Someone's signed in." },
+    {
+      key: "sign-in-ended",
+      text: "Your sign-in has ended:  they last two weeks at most.  Sign in again, and what you changed goes through.",
+      description: "A sign-in ran out."
+    },
+    { key: "sign-in-failed", text: "That didn't sign you in:  {why}", description: "Signing in didn't work." },
+    { key: "sign-in-who", text: "Your handle", description: "The field for who they are." },
+    { key: "sign-in", text: "Sign in", description: "Signs in." },
+    { key: "sign-out", text: "Sign out", description: "Signs out." },
     { key: "use-sample", text: "Use a sample", description: "Swaps in editable records, for the real place." },
     { key: "use-real", text: "Use the real place", description: "Puts the real place back." },
     {

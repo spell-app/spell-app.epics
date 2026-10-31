@@ -2,6 +2,7 @@ import type { JSX } from "@solidjs/web"
 import { For, Show } from "solid-js"
 
 import {
+  AtProtoPlace,
   DevicePlace,
   GraphPlace,
   LiveRoomPlace,
@@ -28,14 +29,18 @@ import {
 } from "spell/util/places"
 import { useRealPlace, useSample } from "spell/util/places/SamplePlace"
 import { pollWhileVisible } from "spell/util/polling"
+import { FakeSignIn } from "spell/server/test/FakeSignIn"
 import { E } from "spell/ui/core"
 
 import { recipeBoxVocabulary } from "./RecipeBox.en"
 
 import recipeBoxCSS from "./RecipeBox.css?inline"
 
-/** Where `scripts/recipe-servers.ts` listens. */
-const SERVERS = "http://127.0.0.1:4791"
+/** Where `scripts/recipe-servers.ts` listens:  `?servers=` when it's on another port. */
+const SERVERS = new URLSearchParams(location.search).get("servers") ?? "http://127.0.0.1:4791"
+
+/** Where its fake of AT Protocol's network listens:  the next port. */
+const FAKE_ATMOSPHERE = SERVERS.replace(/\d+$/, (port) => `${Number(port) + 1}`)
 
 /**
  * The token the demo's place server wants:  a real page has its own server's (`window.SPELL_SERVER.token`), but this
@@ -61,6 +66,8 @@ const POLL_SECONDS = 5
  * - A Google Sheet to write to goes through a server side, which holds its key:  the last save wins each cell.
  * - This device needs no server, and only this browser ever sees them.
  * - A room has a referee putting everyone's changes in one order, over a websocket:  so nothing polls, and it heals itself.
+ * - `atmosphere`:  each person's own records, on their own host, put together, on `FakeAtmosphere`:  no real account.  Sign in as `alice.test` or `bob.test`.
+ * - `atmosphere-real`:  the real network, and a real sign-in:  your own account's records, which are public.  Manual test M3.
  */
 const BACK_ENDS: Record<string, (sheet: string) => Place> = {
   sheet: (url) => new SheetPlace({ url, collection: COLLECTION, idColumn: "id", numbers: ["servings"] }),
@@ -96,7 +103,21 @@ const BACK_ENDS: Record<string, (sheet: string) => Place> = {
         }
       }
     }),
-  device: () => new DevicePlace({ wholeRows: true })
+  device: () => new DevicePlace({ wholeRows: true }),
+  atmosphere: () =>
+    new AtProtoPlace({
+      kind: "personal atmosphere account",
+      collections: { recipes: "com.example.recipe" },
+      signIn: new FakeSignIn(FAKE_ATMOSPHERE),
+      network: {
+        directory: FAKE_ATMOSPHERE,
+        relay: FAKE_ATMOSPHERE,
+        handles: FAKE_ATMOSPHERE,
+        stream: FAKE_ATMOSPHERE.replace(/^http/, "ws")
+      }
+    }),
+  "atmosphere-real": () =>
+    new AtProtoPlace({ kind: "personal atmosphere account", corner: "app.spell.demo", findsAccounts: false })
 }
 
 /** The one collection it shows. */
@@ -113,6 +134,8 @@ const BACK_END_NAMES: Record<string, string> = {
   rest: "a CSV file, through REST",
   graphql: "a CSV file, through GraphQL",
   device: "this browser",
+  atmosphere: "each person's own account (a fake network)",
+  "atmosphere-real": "your own atmosphere account, where it's public",
   folder: "a folder of files",
   room: "a folder of files, through a room",
   sheet: "a CSV file",
@@ -125,7 +148,7 @@ const BACK_END_NAMES: Record<string, string> = {
 const SHEET_FILE = "recipes.csv"
 
 /** What needs `scripts/recipe-servers.ts` running:  a CSV file doesn't. */
-const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "room", "sheet-server"])
+const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "room", "sheet-server", "atmosphere"])
 
 /** What each back-end's read asks for:  a folder's list holds no notes, so it has to say, and that's when its bodies are read. */
 const READ_QUERIES: Record<string, ListQuery> = { folder: { select: ["title", "cuisine", "servings", "notes"] } }
@@ -185,6 +208,12 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   @E.state accessor isSample = false
   /** Has a read answered yet?  Before that, no recipes means nothing yet, not none. */
   @E.state accessor hasRead = false
+  /** Where a person's sign-in stands, in words:  `""` for a place with none. */
+  @E.state accessor signInWords = ""
+  /** Is someone signed in? */
+  @E.state accessor isSignedIn = false
+  /** Who's signing in, as it's typed. */
+  @E.state accessor signInName = ""
 
   /** The list of places:  one here, under the name `recipes`. */
   private places: Places | undefined
@@ -231,7 +260,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     const result = places.read({ placeName: COLLECTION, collection: COLLECTION, ...(query && { query }) })
     this.places = places
     this.result = result
-    this.isLive = place.describe().live === "push"
+    this.isLive = isRoom(place)
     const stops = [
       places.onRows((change) => this.rowsChanged(change)),
       places.onConflict((conflict) => this.merged(conflict)),
@@ -245,14 +274,42 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
             place.onConnection((isConnected) => this.connectionChanged(place, isConnected)),
             () => place.close()
           ]
-        : [pollWhileVisible(this.pollSeconds, () => this.readAgain())])
+        : place.describe().live === "push"
+          ? [places.heal.follow({ placeName: COLLECTION, collection: COLLECTION })]
+          : [pollWhileVisible(this.pollSeconds, () => this.readAgain())]),
+      ...(place.signIn ? [place.signIn.onChange(() => this.signInChanged(place))] : [])
     ]
+    if (place.signIn) {
+      void (place as AtProtoPlace).signIn.ready.then(() => this.signInChanged(place))
+      place.onPeopleHere?.(() => this.signInChanged(place))
+    }
     this.hearSaves()
     void this.read(result.load())
     return () => {
       stops.forEach((stop) => stop())
       result.leave()
     }
+  }
+
+  /** Who's signed in changed:  what shows, whether it can be changed, and whose records show. */
+  private signInChanged(place: Place): void {
+    const { status, problem } = place.signIn!
+    const name = place.currentPerson?.().name ?? ""
+    this.isSignedIn = status === "signed in"
+    this.signInWords = problem ? this.translationForKey("sign-in-failed", { why: problem }) : this.translationForKey(`sign-in-${status.replace(" ", "-")}` as "sign-in-signed-in", { name })
+    this.canWrite = writeAnswerFor(place, { collection: COLLECTION }).canWrite
+    void this.readAgain()
+  }
+
+  /** Sign in as whoever's named.  A failure shows as the sign-in says it. */
+  private signIn(): void {
+    const place = this.places!.placeForOrDie(COLLECTION)
+    if (this.signInName.trim()) place.signIn?.signIn(this.signInName).catch(() => undefined)
+  }
+
+  /** Sign out. */
+  private signOut(): void {
+    void this.places!.placeForOrDie(COLLECTION).signIn?.signOut()
   }
 
   /** The changes on their way, for whichever place is behind the name:  a sample's are its own. */
@@ -278,7 +335,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     const place = places.placeForOrDie(COLLECTION)
     this.isSample = !!place.describe().isSample
     this.canWrite = writeAnswerFor(place, { collection: COLLECTION }).canWrite
-    this.isLive = place.describe().live === "push"
+    this.isLive = isRoom(place)
     this.hearSaves()
     const { contents, notes, loadError } = this.result!
     this.recipes = contents ?? []
@@ -488,6 +545,32 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
             {this.translationForKey(this.isSample ? "use-real" : "use-sample")}
           </ui-button>
         </div>
+        <Show when={this.signInWords}>
+          <div class="bar room" part={this.partForName("sign-in")}>
+            <span>{this.signInWords}</span>
+            <Show
+              when={this.isSignedIn}
+              fallback={
+                <>
+                  <ui-input
+                    size="small"
+                    aria-label={this.translationForKey("sign-in-who")}
+                    placeholder={this.translationForKey("sign-in-who")}
+                    value={this.signInName}
+                    onInput={(event: Event) => (this.signInName = (event.target as HTMLInputElement).value)}
+                  />
+                  <ui-button size="small" onClick={() => this.signIn()}>
+                    {this.translationForKey("sign-in")}
+                  </ui-button>
+                </>
+              }
+            >
+              <ui-button size="small" appearance="basic" onClick={() => this.signOut()}>
+                {this.translationForKey("sign-out")}
+              </ui-button>
+            </Show>
+          </div>
+        </Show>
         <Show when={this.isSample}>
           <ui-message size="small" color="blue" part={this.partForName("using-sample")}>
             {this.translationForKey("using-sample", { backEnd: BACK_END_NAMES[this.backEndName]! })}
@@ -643,3 +726,9 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
 
 /** The vocabulary's attribute getters, typed:  `this.backEnd`. */
 export interface RecipeBox extends E.AttributeValues<typeof recipeBoxVocabulary> {}
+
+/** Does `place` keep everyone's changes in one order, so it can add to a number and move a recipe, as only a room can? */
+function isRoom(place: Place): boolean {
+  const { live, edits } = place.describe()
+  return live === "push" && !!edits
+}
