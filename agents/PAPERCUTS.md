@@ -1917,3 +1917,4 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   "building with `vite build` alone", dies too:  `Couldn't find a script named "vite"` (yarn has no `vite` bin
   there, only `vp`), so ONE type error in `ui/src/` stops the docs bundle outright, under a misleading banner. ·
   Fix the type error and run it again;  the fallback should call `yarn vp build`. · epics (epic `epic-engine` I189)
+- 2026-10-31 · `epic details <epic>#M1 --step` refuses plain text with two or more fenced code blocks:  `id "" used 2 times`.  Fix:  write `<pre><code>` instead.  (epic data)
