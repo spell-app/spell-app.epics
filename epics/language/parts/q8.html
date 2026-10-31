@@ -1,6 +1,9 @@
 <!-- plan-doc part:  #q8's details in language.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-question><p>A draw and a getter must answer right away, or the page can't draw.</p></epic-question
 ><epic-choices
+  chosen="A"
+  chosen-on="2026-10-31"
+  chosen-note="recorded after the talk;  waiting for the next phase, P3 · Set the X"
   ><epic-option letter="A" title="Getter:  an error.  Draw:  runs behind, then redraws" recommended
     ><p>
       A getter that waits says "make it an action". A draw shows the current value, warns, and redraws when the slow
@@ -14,4 +17,218 @@
   ><ul>
     <li>Both of today's silent failures become a clear message, or work.</li>
   </ul></epic-net-effect
+>
+<epic-choices
+  ><epic-option letter="A" title="Getter:  an error.  Draw:  runs behind, then redraws"
+    ><p>
+      Your pick, as first written. Simple, and the same in every target. To draw a loaded value you still need a
+      property and an action, though Solid could now do without them.
+    </p></epic-option
+  ><epic-option letter="C" title="A getter may wait.  A draw shows “…”, then fills in" recommended
+    ><p>
+      No error and no new words: <code>{the score}</code> just works in a draw, on Solid's <code>createDeferred</code>.
+      A literal <code>pause</code> in a draw stays an error, as does a slow comparison in a sort. It costs the three
+      traps above, and the action read is still unsolved, so it needs a prototype first.
+    </p></epic-option
+  ><epic-option letter="B" title="An error in both"
+    ><p>Strict and simple, but drawing a loaded value then needs a property and an action.</p></epic-option
+  ></epic-choices
+><epic-net-effect option="C" recommended
+  ><ul>
+    <li>
+      A slow value can be drawn with no extra code: "…" first, then the value, and the rest of the page keeps moving.
+    </li>
+    <li>Python's server pages would wait instead of showing "…".</li>
+    <li>The compile-time pass gets bigger: it must mark which draws wait, and handle each trap.</li>
+  </ul></epic-net-effect
+><epic-reply agent="claude" from="Claude" at="2026-10-30" re="Q8">
+  <blockquote>
+    <p>Solid 2 has much better async support, read up on the latest there and see how that applies to this</p>
+  </blockquote>
+  <p>
+    Solid 2 changes the answer: a getter that waits no longer has to be an error. A draw can read one with no Spell
+    syntax, show "…", and fill itself in. I tried this in real Chromium, with Spell's real drawing code on Solid rc.17.
+    It works, but only with one particular Solid tool. The obvious tool freezes a deal partway through.
+  </p>
+
+  <h4>How Solid 2 handles a slow value</h4>
+  <ul>
+    <li>
+      A memo is a remembered calculation. In Solid 2 a memo may return a promise, which is a value that arrives later.
+    </li>
+    <li>
+      Reading that memo before its first answer throws a special error, <code>NotReadyError</code>. It means "not yet",
+      not "broken".
+    </li>
+    <li>
+      That error passes straight through any plain getter on its way up, to the nearest <code>&lt;Loading&gt;</code>,
+      which shows a stand-in. Solid then re-runs the read when the answer lands.
+    </li>
+    <li>Later changes keep the old value on screen, and <code>isPending()</code> says a new one is on its way.</li>
+    <li>Spell's getters are already plain JavaScript getters, so the "not yet" gets through them untouched.</li>
+  </ul>
+
+  <h4>What it could compile to</h4>
+  <epic-code
+    title="A getter that waits, and the draw that reads it (a sketch:  core.slowly and core.waiting don't exist)"
+    language="ts"
+  >
+    <pre>
+// the score:  wait for the server, then the rank + the bonus
+get score() {
+  return core.slowly(this, "score", async () =&gt; { ... })   // one createDeferred per thing and getter
+}
+
+draw() {
+  return h("div", "Moves: ", () =&gt; this.moves,
+    " Score: ", core.waiting(() =&gt; this.score))            // &lt;Loading fallback="…"&gt;, only where the pass says it waits
+}</pre>
+  </epic-code>
+
+  <h4>What Spell would show</h4>
+  <ul>
+    <li><strong>First load:</strong> "…" where the value goes, and the rest of the page draws.</li>
+    <li><strong>A later change:</strong> the old value stays until the new one lands, and the rest keeps moving.</li>
+    <li>
+      <strong>An <code>if</code> or an attribute that reads it:</strong> there's no spot for a "…", so the thing's whole
+      drawing shows "…" first, and that thing is drawn again when the answer lands.
+    </li>
+    <li>
+      <strong>A failure:</strong> the thing's usual "can't draw" stand-in, and it heals when a later answer works.
+    </li>
+    <li>
+      <strong>No <code>&lt;Loading&gt;</code> at all:</strong> the whole app stays blank until the value lands, with a
+      warning in development. So Spell must always supply one.
+    </li>
+  </ul>
+
+  <h4>The surprise: which Solid tool matters</h4>
+  <p>
+    A plain async memo holds back drawing. Any write in the same moment as the one that set it off waits for the answer,
+    as do later writes that thing draws. Here's a four-step deal, whose step 2 changes what a 100 ms getter reads:
+  </p>
+  <epic-code title="What the page showed after each step" language="text">
+    <pre>
+                 step 1            step 2            step 3            step 4
+createMemo       dealt 1 slow 10   dealt 1 slow 10   dealt 1 slow 10   dealt 4 slow 20    frozen, then a jump
+createDeferred   dealt 1 slow 10   dealt 2 slow 10   dealt 3 slow 10   dealt 4 slow 20    every step shows</pre>
+  </epic-code>
+  <ul>
+    <li>
+      <code>createDeferred</code> is new in rc.16: "a refetch holds nothing". Its value may lag, but the rest of the
+      screen moves on.
+    </li>
+    <li>So a waiting getter would have to be a <code>createDeferred</code>, never a plain memo.</li>
+  </ul>
+
+  <h4>Getters that wait, read from each place</h4>
+  <ul>
+    <li><strong>A draw:</strong> works as above, and a plain getter over it (<code>the score + 1</code>) too.</li>
+    <li>
+      <strong>An action:</strong> a bare read throws the "not yet" error on first load, so the pass must add a wait.
+      <ul>
+        <li>
+          <strong>This one is unsolved:</strong> just after a change, Solid's <code>resolve()</code> still gave the old
+          value (30, not 50).
+        </li>
+        <li><code>refresh()</code> gave the right one, but it runs the slow work again.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>A sort or <code>where</code>:</strong> as today's option A, an error for a sort, and one by one for
+      <code>where</code>. I didn't try these.
+    </li>
+  </ul>
+
+  <h4>Three traps for the compile-time pass</h4>
+  <ol>
+    <li>
+      <strong>Reads after the first wait aren't followed.</strong> A getter that read the bonus after its wait stayed at
+      4 when the bonus became 100. The fix may be to read everything before the first wait, or to warn. Neither is
+      tried.
+    </li>
+    <li>
+      <strong>A remembered getter over a waiting one stays wrong for good.</strong> Over <code>derive()</code> it stayed
+      at 31 after the rank changed, when it should have been 41. Compiled TypeScript puts <code>@derived</code> on
+      getters that loop, so the pass must leave it off these.
+    </li>
+    <li>
+      <strong>A raw promise in a draw is a failure.</strong> A live value holding one shows "can't draw". So the getter
+      must be compiled as above, and just marking it <code>async</code> won't do.
+    </li>
+  </ol>
+
+  <h4>Other targets</h4>
+  <ul>
+    <li><code>ts/solid</code> has Solid and real JSX, so the same design should carry over. Not run.</li>
+    <li>
+      <code>ts/lib</code> keeps only the classes and never draws, so a waiting getter there has no draw to worry about.
+    </li>
+    <li>
+      <code>py</code> has no Solid on the server, where it draws HTML as text. A waiting getter there would be an
+      <code>async</code> property, and that drawing would wait for it before sending the page, with no "…". Its page's
+      drawing half is JavaScript. All of this is from reading the code, and not run.
+    </li>
+    <li>So the words stay the same, but what shows meanwhile would differ by target.</li>
+  </ul>
+
+  <h4>Q6's queue and what draws mid-action</h4>
+  <ul>
+    <li>
+      <strong>Solid's <code>action()</code> doesn't fit.</strong> It holds the drawing until the whole action ends. A
+      three-step deal showed "dealt 0" throughout, then "dealt 3".
+    </li>
+    <li>
+      It has no queue either: each call starts by itself, and Solid's docs set no order between them. It also can't be
+      called from a draw, which fails with <code>ACTION_CALLED_IN_OWNED_SCOPE</code>.
+    </li>
+    <li>
+      <strong>A plain <code>async</code> action, what Spell writes today, does fit.</strong> Every step drew in turn. So
+      the Q6 queue stays Spell's own.
+    </li>
+    <li>
+      <strong>The prototype we flagged (o5):</strong> an <code>await</code> that doesn't really wait changes the page's
+      contents but not what's seen. Three writes with two such awaits between them changed the page three times, and
+      only the last was painted. This was a tiny case, not Solitaire.
+    </li>
+    <li>
+      <strong>Spell's properties and Solid's signals differ:</strong> a property reads back its new value at once, even
+      while its drawing is held back. So code and screen can disagree during a hold, which is another reason to avoid
+      holds.
+    </li>
+  </ul>
+
+  <h4>Verified, and not</h4>
+  <ul>
+    <li>
+      <strong>Verified:</strong> everything above with a number or quoted page text, run in headless Chromium on rc.17,
+      with hand-written classes in the shape the compiler writes, through the real <code>core.drawThing()</code> and the
+      real properties. The script is
+      <code
+        >/private/tmp/claude-501/-Users-owen-www-spell-worktrees-language/014c1123-de35-435c-81d3-f3435dd8e188/scratchpad/exp/q8.ts</code
+      >.
+    </li>
+    <li>
+      <strong>Not verified:</strong>
+      <ul>
+        <li>the compile-time pass itself, since nothing was compiled from Spell</li>
+        <li>real Solitaire, custom elements (<code>&lt;solitaire-card&gt;</code>) and their shadow roots</li>
+        <li>
+          how long each per-thing value lives, and the cost with thousands of things (each could re-run its slow work
+          whenever what it read changes)
+        </li>
+        <li>a getter that writes as well as waits, and a draw that starts an action</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Docs:</strong> v2.solidjs.com's <code>createDeferred</code> page, Solid's
+      <code>05-async-data.md</code> and <code>06-actions-optimistic.md</code>, and the rc.17 source. They're rc docs, so
+      details may still move.
+    </li>
+  </ul>
+</epic-reply>
+<epic-reply from="owenoak" at="2026-10-30 23:51" re="revisit soon"
+  ><p>
+    Solid 2 has much better async support, read up on the latest there and see how that applies to this
+  </p></epic-reply
 >
