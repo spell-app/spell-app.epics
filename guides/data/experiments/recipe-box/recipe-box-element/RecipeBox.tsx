@@ -7,6 +7,7 @@ import {
   LiveRoomPlace,
   Places,
   PlaceError,
+  isListPosition,
   positionBetween,
   RemotePlace,
   RestPlace,
@@ -52,9 +53,11 @@ const POLL_SECONDS = 5
  *   - Both are one CSV file on the servers, so `graphql` has the same recipes as `rest`.
  * - A folder is only reachable through a server side, `RemotePlace`:  it has versions, so a clash merges per field.
  *   - A live room's referee keeps its recipes in that same folder.
- * - A sheet is a CSV file at an address (`sheet`), read only, with no server of ours:  this page's own, a Google Sheet
- *   shared with "anyone with the link", or the servers' own file, which REST can write and it can't.
+ * - A sheet is a CSV file at an address (`sheet`), read only, with no server of ours:  this page's own, or a Google Sheet
+ *   shared with "anyone with the link".
  *   - `sheet-no-id`:  the same file, with nothing saying which row is which.
+ * - `sheet-server`:  the servers' own CSV file with a place server in front (`CsvPlace`), so it takes writes:  each save changes only
+ *   the lines that changed, and it reads as a position, so a recipe can move.
  * - A Google Sheet to write to goes through a server side, which holds its key:  the last save wins each cell.
  * - This device needs no server, and only this browser ever sees them.
  * - A live room has a referee putting everyone's changes in one order, over a websocket:  so nothing polls, and it heals itself.
@@ -62,6 +65,8 @@ const POLL_SECONDS = 5
 const BACK_ENDS: Record<string, (sheet: string) => Place> = {
   sheet: (url) => new SheetPlace({ url, collection: COLLECTION, idColumn: "id", numbers: ["servings"] }),
   "sheet-no-id": (url) => new SheetPlace({ url, collection: COLLECTION, numbers: ["servings"] }),
+  "sheet-server": () =>
+    new RemotePlace({ url: `${SERVERS}/api/places/recipes-csv`, token: DEMO_TOKEN, can: { kind: "sheet", atomic: true } }),
   "google-sheet": () =>
     new RemotePlace({
       url: `${SERVERS}/api/places/google-sheet`,
@@ -97,7 +102,7 @@ const BACK_ENDS: Record<string, (sheet: string) => Place> = {
 /** The one collection it shows. */
 const COLLECTION = "recipes"
 
-/** The field a recipe's place in the list is kept in, in a live room:  its parent and its position, as one. */
+/** The field a recipe's place in the list is kept in, in a live room or a CSV file:  its parent and its position, as one. */
 const PLACE_FIELD = "place"
 
 /** What every recipe in a room is in. */
@@ -112,6 +117,7 @@ const BACK_END_NAMES: Record<string, string> = {
   room: "a folder of files, through a live room",
   sheet: "a CSV file",
   "sheet-no-id": "a CSV file, with no id column",
+  "sheet-server": "a CSV file, through its place server",
   "google-sheet": "a Google Sheet"
 }
 
@@ -119,7 +125,7 @@ const BACK_END_NAMES: Record<string, string> = {
 const SHEET_FILE = "recipes.csv"
 
 /** What needs `scripts/recipe-servers.ts` running:  a CSV file doesn't. */
-const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "room"])
+const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "room", "sheet-server"])
 
 /** What each back-end's read asks for:  a folder's list holds no notes, so it has to say, and that's when its bodies are read. */
 const READ_QUERIES: Record<string, ListQuery> = { folder: { select: ["title", "cuisine", "servings", "notes"] } }
@@ -338,9 +344,14 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     if (room instanceof LiveRoomPlace) this.noteHeal(room)
   }
 
-  /** The recipes, in the order they show, newest first:  a room's by their place in the list;  every other place adds at its end. */
+  /** Can a recipe move?  A room's can, and so can those of any place whose rows say their place in the list. */
+  private get canMove(): boolean {
+    return this.isLive || this.recipes.some((recipe) => isListPosition(recipe[PLACE_FIELD]))
+  }
+
+  /** The recipes, in the order they show:  by their place in the list, if they have one;  else newest first, as every other place adds at its end. */
   private get shownRecipes(): PlaceRow[] {
-    return this.isLive ? rowsInPlace(this.recipes, PLACE_FIELD) : [...this.recipes].reverse()
+    return this.canMove ? rowsInPlace(this.recipes, PLACE_FIELD) : [...this.recipes].reverse()
   }
 
   ////////////////
@@ -359,7 +370,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     const title = this.newTitle.trim()
     if (!title) return
     const id = `r-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
-    const place = this.isLive ? { [PLACE_FIELD]: this.placeBetween(undefined, this.shownRecipes[0]) } : {}
+    const place = this.canMove ? { [PLACE_FIELD]: this.placeBetween(undefined, this.shownRecipes[0]) } : {}
     this.pending.insert({
       collection: COLLECTION,
       id,
@@ -573,7 +584,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
         />
         <div class="title-line">
           {field("title", "title")}
-          <Show when={this.isLive}>
+          <Show when={this.canMove}>
             <div class="actions">
               <ui-button size="small" appearance="basic" onClick={() => this.move(recipe(), -1)}>
                 {this.translationForKey("up")}
@@ -581,9 +592,11 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
               <ui-button size="small" appearance="basic" onClick={() => this.move(recipe(), 1)}>
                 {this.translationForKey("down")}
               </ui-button>
-              <ui-button size="small" appearance="basic" onClick={() => this.addServing(recipe())}>
-                {this.translationForKey("one-more")}
-              </ui-button>
+              <Show when={this.isLive}>
+                <ui-button size="small" appearance="basic" onClick={() => this.addServing(recipe())}>
+                  {this.translationForKey("one-more")}
+                </ui-button>
+              </Show>
             </div>
           </Show>
         </div>

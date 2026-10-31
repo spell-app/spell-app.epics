@@ -6,7 +6,7 @@
     <title>Every Back-End</title>
     <meta
       name="description"
-      content="The recipe box seven times on one page, proving one set of recipes can have several ways in:  one CSV file behind a sheet, REST and GraphQL;  one folder of files behind a folder and a live room in two windows;  and this device on its own."
+      content="The recipe box seven times on one page, proving one set of recipes can have several ways in:  one CSV file behind a sheet that writes only the lines that changed, REST and GraphQL;  one folder of files behind a folder and a live room in two windows;  and this device on its own."
     />
     <meta name="spell-saga" content="spell-language" />
     <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
@@ -116,12 +116,12 @@
             </h2>
             <div class="frames">
               <section>
-                <h3>The sheet <small>can't write, though REST can write the same file</small></h3>
-                <pre><code class="language-spell">family cookbook is a sheet at "http://127.0.0.1:4791/recipes.csv":
+                <h3>The sheet <small>with a server in front, it writes, and only the lines that changed</small></h3>
+                <pre><code class="language-spell">family cookbook is a sheet at "http://127.0.0.1:4791/api/places/recipes-csv":
 	- its ids are in "id"</code></pre>
                 <iframe
-                  title="The recipe box, the CSV file read as a sheet"
-                  src="recipe-box-frame.html?back-end=sheet&amp;sheet=http://127.0.0.1:4791/recipes.csv&amp;poll=1"
+                  title="The recipe box, the CSV file as a sheet, through its place server"
+                  src="recipe-box-frame.html?back-end=sheet-server&amp;poll=1"
                 ></iframe>
               </section>
               <section>
@@ -203,6 +203,11 @@
               <b>Change a recipe in REST.</b> It's in the CSV file at once, and GraphQL and the sheet show it within a
               second or two.
             </li>
+            <li>
+              <b>Add, move, change and remove a recipe in the sheet,</b> with the file's diff open in VS Code, or
+              <code>git diff --no-index</code> against a copy: only that line changes. A note with a comma keeps its
+              quotes, and the row you didn't touch stays byte for byte. Move a row and edit it at once, and both show.
+            </li>
             <li><b>Edit a row in VS Code, and save.</b> All three show it within a second.</li>
             <li>
               <b>A clash:</b> type in the same recipe's title in REST, and in VS Code or GraphQL, within a second of
@@ -227,7 +232,19 @@
               system's temporary folder. The file beside this page never changes. On
               <a href="recipe-box.html?back-end=sheet" target="src-guides-data-experiments-recipe-box-recipe-box-html"
                 >the recipe box's own page</a
-              >, the sheet still reads that one.
+              >, the sheet reads that one, at its plain address, and can't write: a browser can only fetch a file, so a
+              program writing to a plain address won't compile. A server in front is its address: a place server's,
+              <code>/api/places/...</code>, with no other word.
+            </li>
+            <li>
+              <b>Saving compares new rows with old.</b> Rows are matched by the id column, so an edit and a move at once
+              are both understood. Only the lines that differ are rewritten: quotes, line ends, a byte order mark, blank
+              lines and columns the program doesn't know all stay.
+            </li>
+            <li>
+              <b>With no id column,</b> rows are matched by their whole text: an added or moved row is found, but an
+              edited row reads as one removed and one added. Saving a change to one such row from a program is refused,
+              and says why.
             </li>
             <li>
               <b>Versions:</b> a CSV file has no version column, so a row's version is a hash of what it holds. Editing
@@ -238,8 +255,9 @@
               request. VS Code has its own say: with unsaved edits, it warns you the file changed on disk.
             </li>
             <li>
-              <b>A file that doesn't read:</b> half saved, or with a blank or repeated id. REST and GraphQL answer as
-              they last read and refuse to save over it, and the sheet says why it can't read it.
+              <b>A file that doesn't read:</b> half saved, not UTF-8, or with a blank or repeated id. Every way in
+              answers as it last read and refuses to save over it, in words. Two saves at once take turns, under the
+              file's lock, and neither loses a row.
             </li>
             <li>
               <b>The folder:</b> the live room's referee keeps its recipes there, in the same files. A recipe added in
