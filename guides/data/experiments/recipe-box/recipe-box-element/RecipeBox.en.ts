@@ -51,8 +51,8 @@ export const recipeBoxVocabulary = {
       text: "Using a sample.  What you change stays in this browser, and never reaches {backEnd}.",
       description: "A sample is in use."
     },
-    { key: "up", text: "Up", description: "Moves a recipe up the list, in a live room." },
-    { key: "down", text: "Down", description: "Moves a recipe down the list, in a live room." },
+    { key: "up", text: "Up", description: "Moves a recipe up the list, in a place that keeps an order." },
+    { key: "down", text: "Down", description: "Moves a recipe down the list, in a place that keeps an order." },
     {
       key: "one-more",
       text: "One more serving",
