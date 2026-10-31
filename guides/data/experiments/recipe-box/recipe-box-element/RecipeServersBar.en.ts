@@ -57,7 +57,10 @@ export const recipeServersBarVocabulary = {
       text: "Start again with the first recipes:  what's been changed in the CSV file and the folder is lost.",
       description: "What Restart does."
     },
-    { key: "where", text: "CSV file:  {csvFile}.  Folder:  {folder}.", description: "Where the recipes are, to open in VS Code." }
-  ],
-  examples: []
-} as const satisfies E.Vocabulary
+    {
+      key: "where",
+      text: "CSV file:  {csvFile}.  Folder:  {folder}.",
+      description: "Where the recipes are, to open in VS Code."
+    }
+  ]
+} as const satisfies E.ComponentVocabulary
