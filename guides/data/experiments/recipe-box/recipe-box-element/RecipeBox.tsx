@@ -13,7 +13,7 @@ import {
   type PlaceRowsChange,
   type PlaceWriteFailure
 } from "spell/util/places"
-import { pollWhileVisible } from "spell/util/timing"
+import { pollWhileVisible } from "spell/util/polling"
 import { E } from "spell/ui/core"
 
 import { recipeBoxVocabulary } from "./RecipeBox.en"
@@ -149,11 +149,15 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
 
   /** Show what a read brought:  a read that couldn't says so once. */
   private async read(reading: Promise<unknown>): Promise<void> {
-    await reading
-    const { contents, loadError } = this.result!
+    const noServer = this.translationForKey("no-server")
+    try {
+      await reading
+    } catch {
+      return this.tellOnce(noServer)
+    }
+    const { contents } = this.result!
     if (contents) this.recipes = contents
-    if (loadError) this.tellOnce(this.translationForKey("no-server"))
-    else this.notices = this.notices.filter(({ action }) => action)
+    this.notices = this.notices.filter(({ text }) => text !== noServer)
   }
 
   /** Rows changed under what's showing:  a write, an answer, a heal. */
