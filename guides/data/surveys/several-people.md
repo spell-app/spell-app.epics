@@ -477,7 +477,7 @@ This is my judgement, and untested.
 - Past the limit:  every save and read fails for 30 seconds.  The app must say so, and hold pending changes.
 - A retried create with no id column makes a double.  An id column plus upsert (`fieldsToMergeOn`) prevents it.
 
-**What I couldn't verify**
+**What I couldn't verify** (looked again 2026-10-31, for epic `data` P19, with these two still not stated on any page:  [Update multiple records](https://airtable.com/developers/web/api/update-multiple-records) has no version, ETag or conflict field;  the manual test, epic `data` M2, tries the first)
 1. What Airtable does with two simultaneous writes to one field.
 2. That no version check exists at all:  absence from the pages read and from one search.
 3. A 304 or ETag on its list requests.

@@ -533,6 +533,15 @@ Read from each system's own docs, through a summarising fetch tool, so check the
 - **OAuth:**  PKCE in practice;  a client secret is optional;  access tokens 60 minutes, refresh tokens 60 days;  "At present you cannot create tokens directly from the browser."  https://airtable.com/developers/web/api/oauth-reference
 - **Probed:**  a preflight to `api.airtable.com` answered `access-control-allow-origin: *`, and allowed `authorization`.  A preflight to its OAuth token URL answered 200 with no CORS header, which agrees with its docs.
 
+### Checked against Airtable's pages, 2026-10-31, for epic `data` P19
+
+1. **10 records a request:**  [its support page](https://support.airtable.com/docs/managing-api-call-limits-in-airtable) says so ("up to 10 records per request"), and the API reference pages for create, update and delete still don't state it.  Sent past that, nobody here has tried.
+2. **Offset lifetime:**  not stated anywhere read.  [List records](https://airtable.com/developers/web/api/list-records) only says iteration "may timeout due to client inactivity or server restarts", with a 422, `LIST_RECORDS_ITERATOR_NOT_AVAILABLE`.
+3. **Monthly limits, which this survey missed:**  the same support page:  free 1,000 calls a month, Team 100,000, Business no cap, metadata calls counted too.  So checking every 30 seconds uses a free plan's month in about 8 hours.
+4. **Field types:**  [the field model](https://airtable.com/developers/web/api/field-model) marks formula, rollup, lookup, count, created and modified time and by, auto number, button, AI text and sync source read only.  What a write to one answers is only in forum posts.
+5. **Scopes:**  list needs `data.records:read`, writing and deleting `data.records:write`, the base's schema `schema.bases:read`.
+6. **`POST .../listRecords`:**  takes a list's parameters in its body, past the 16,000-character address limit.
+
 ### What this adds to the interface in section 5
 
 These are my judgement, and untested.
