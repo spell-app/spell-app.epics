@@ -20,14 +20,22 @@ export const recipeBoxVocabulary = {
       name: "back-end",
       kind: "string",
       default: "rest",
-      description: "Which back-end keeps them:  `rest`, `graphql` or `folder`.  The page's address can say too:  `?back-end=graphql`."
+      description:
+        "Which back-end keeps them:  `rest`, `graphql`, `folder`, `sheet`, `sheet-no-id` or `google-sheet`.  The page's address can say too:  `?back-end=graphql`."
+    },
+    {
+      name: "sheet",
+      kind: "string",
+      description:
+        "The address of the CSV file `sheet` reads;  default `recipes.csv`, beside the page.  The page's address can say too:  `?sheet=...`."
     }
   ],
   events: [],
   slots: [],
   parts: [
     { name: "box", description: "The whole box." },
-    { name: "recipe", description: "One recipe." }
+    { name: "recipe", description: "One recipe." },
+    { name: "note", description: "What the read said about its rows." }
   ],
   states: [],
   texts: [
@@ -43,6 +51,9 @@ export const recipeBoxVocabulary = {
     { key: "use-theirs", text: "Use theirs", description: "Puts their value back." },
     { key: "retry", text: "Retry", description: "Tries a refused change again." },
     { key: "dismiss", text: "Dismiss", description: "Closes a notice." },
+    { key: "read-only", text: "Read only", description: "This place takes no changes." },
+    { key: "serves", text: "Serves {servings}", description: "How many a recipe to read serves." },
+    { key: "cant-read", text: "Can't read it:  {why}", description: "A read failed, and the place said why." },
     {
       key: "merged",
       text: "{field} also changed elsewhere.  Yours was kept;  theirs was:  {theirs}",

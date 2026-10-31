@@ -4,8 +4,11 @@ import { For, Show } from "solid-js"
 import {
   GraphPlace,
   Places,
+  PlaceError,
   RemotePlace,
   RestPlace,
+  SheetPlace,
+  writeAnswerFor,
   type ListQuery,
   type PendingChanges,
   type Place,
@@ -39,8 +42,20 @@ const POLL_SECONDS = 5
  * - REST says versions, so a clash merges per field, with a notice.
  * - GraphQL says none:  the last save wins that field.
  * - A folder is only reachable through a server side, `RemotePlace`:  it has versions, so a clash merges per field.
+ * - A sheet is a CSV file at an address (`sheet`), read only, with no server of ours:  this page's own, or a Google Sheet
+ *   shared with "anyone with the link".
+ *   - `sheet-no-id`:  the same file, with nothing saying which row is which.
+ * - A Google Sheet to write to goes through a server side, which holds its key:  the last save wins each cell.
  */
-const BACK_ENDS: Record<string, () => Place> = {
+const BACK_ENDS: Record<string, (sheet: string) => Place> = {
+  sheet: (url) => new SheetPlace({ url, collection: COLLECTION, idColumn: "id", numbers: ["servings"] }),
+  "sheet-no-id": (url) => new SheetPlace({ url, collection: COLLECTION, numbers: ["servings"] }),
+  "google-sheet": () =>
+    new RemotePlace({
+      url: `${SERVERS}/api/places/google-sheet`,
+      token: DEMO_TOKEN,
+      can: { atomic: true, versionCheck: false }
+    }),
   rest: () =>
     new RestPlace({
       url: SERVERS,
@@ -72,8 +87,20 @@ const COLLECTION = "recipes"
 const BACK_END_NAMES: Record<string, string> = {
   rest: "a REST server",
   graphql: "a GraphQL server",
-  folder: "a folder of files"
+  folder: "a folder of files",
+  sheet: "a CSV file",
+  "sheet-no-id": "a CSV file, with no id column",
+  "google-sheet": "a Google Sheet"
 }
+
+/** The file it reads for a sheet, unless it's told another:  the one beside this page. */
+const SHEET_FILE = "recipes.csv"
+
+/** What needs `scripts/recipe-servers.ts` running:  a CSV file doesn't. */
+const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet"])
+
+/** Where the "someone else" button has somewhere to go:  for a Google Sheet, someone else is you, in Google's own page. */
+const HAS_SOMEONE_ELSE = new Set(["rest", "graphql", "folder"])
 
 /** What each back-end's read asks for:  a folder's list holds no notes, so it has to say, and that's when its bodies are read. */
 const READ_QUERIES: Record<string, ListQuery> = { folder: { select: ["title", "cuisine", "servings", "notes"] } }
@@ -97,6 +124,8 @@ type Notice = {
  * ### `RecipeBox`
  * The component behind `<recipe-box>`, the data epic's demo:  recipes in a place, and nothing about the server but `BACK_ENDS`.
  * - One read (`PlaceResult`), asked again every few seconds while the page shows (`pollWhileVisible()`).
+ * - A place that takes no writes shows as text, with nothing to press:  it asks the place (`writeAnswerFor()`), never which back-end it is.
+ * - What a read says about its rows (`PlaceResult.notes`) is shown as it is.
  * - Every write goes through `PendingChanges`:  shown at once, sent soon, in order.
  * - A GUIDE-ONLY element:  built into `recipe-box.bundle.js` by `epic/src/tools/bundle-experiment.ts`, on the page's Spell UI.
  ****************/
@@ -114,6 +143,10 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   @E.state accessor notices: Notice[] = []
   /** The new recipe's title, as it's typed. */
   @E.state accessor newTitle = ""
+  /** Will the place take a change?  Asked once, of what it says it can do. */
+  @E.state accessor canWrite = true
+  /** What the last read said about its rows. */
+  @E.state accessor notes: readonly string[] = []
 
   /** The list of places:  one here, under the name `recipes`. */
   private places: Places | undefined
@@ -123,6 +156,8 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   private pending: PendingChanges | undefined
   /** How many notices there have been. */
   private noticesMade = 0
+  /** What's being said about the last read that failed:  taken back when one works. */
+  private readFailure: string | undefined
 
   ////////////////
   // ## Which back-end
@@ -134,6 +169,12 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     return named in BACK_ENDS ? named : "rest"
   }
 
+  /** The CSV file a sheet reads:  the page's address says, else `sheet`, else the one beside this page. */
+  private get sheetAddress(): string {
+    const named = new URLSearchParams(location.search).get("sheet") ?? this.sheet ?? SHEET_FILE
+    return new URL(named, location.href).href
+  }
+
   ////////////////
   // ## Reading
   ////////////////
@@ -142,7 +183,9 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   @E.whileConnected
   protected startReading() {
     const name = this.backEndName
-    const places = new Places({ keepPendingAs: `recipe-box-${name}` }).add(COLLECTION, BACK_ENDS[name]!())
+    const place = BACK_ENDS[name]!(this.sheetAddress)
+    this.canWrite = writeAnswerFor(place, { collection: COLLECTION }).canWrite
+    const places = new Places({ keepPendingAs: `recipe-box-${name}` }).add(COLLECTION, place)
     const pending = places.pendingFor(COLLECTION)
     const query = READ_QUERIES[name]
     const result = places.read({ placeName: COLLECTION, collection: COLLECTION, ...(query && { query }) })
@@ -168,17 +211,28 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     return this.read(this.result!.reload())
   }
 
-  /** Show what a read brought:  a read that couldn't says so once. */
+  /** Show what a read brought:  a read that couldn't says so once, and what's showing stays. */
   private async read(reading: Promise<unknown>): Promise<void> {
-    const noServer = this.translationForKey("no-server")
     try {
       await reading
-    } catch {
-      return this.tellOnce(noServer)
+    } catch (error) {
+      return this.readFailed(error)
     }
-    const { contents } = this.result!
+    const { contents, notes } = this.result!
     if (contents) this.recipes = contents
-    this.notices = this.notices.filter(({ text }) => text !== noServer)
+    this.notes = notes
+    this.notices = this.notices.filter(({ text }) => text !== this.readFailure)
+    this.readFailure = undefined
+  }
+
+  /** Say why a read failed, in place of why the last one did:  a place's own words, or "start the servers". */
+  private readFailed(error: unknown): void {
+    const needsServers = NEEDS_THE_SERVERS.has(this.backEndName) && !(error instanceof PlaceError)
+    const why = `${(error as Error).message}`
+    const failure = needsServers ? this.translationForKey("no-server") : this.translationForKey("cant-read", { why })
+    this.notices = this.notices.filter(({ text }) => text !== this.readFailure)
+    this.readFailure = failure
+    this.tellOnce(failure)
   }
 
   /** Rows changed under what's showing:  a write, an answer, a heal. */
@@ -273,30 +327,41 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
       <div class="box" part={this.partForName("box")}>
         <div class="bar">
           <span>{this.translationForKey("stored-in", { backEnd: BACK_END_NAMES[this.backEndName]! })}</span>
-          <output>{this.saving}</output>
+          <Show when={this.canWrite} fallback={<ui-label size="small">{this.translationForKey("read-only")}</ui-label>}>
+            <output>{this.saving}</output>
+          </Show>
         </div>
+        <For each={this.notes} keyed={(note: string) => note}>
+          {(note) => (
+            <ui-message size="small" part={this.partForName("note")}>
+              {note()}
+            </ui-message>
+          )}
+        </For>
         <For each={this.notices} keyed={(notice: Notice) => notice.key}>
           {(notice) => this.notice(notice())}
         </For>
-        <form
-          class="adding"
-          onSubmit={(event) => {
-            event.preventDefault()
-            this.addRecipe()
-          }}
-        >
-          <ui-input
-            placeholder={this.translationForKey("new-title")}
-            value={this.newTitle}
-            on-ui-typed={(event: CustomEvent<{ value: string }>) => (this.newTitle = event.detail.value)}
-          />
-          <ui-button color="primary" onClick={() => this.addRecipe()}>
-            {this.translationForKey("add")}
-          </ui-button>
-        </form>
+        <Show when={this.canWrite}>
+          <form
+            class="adding"
+            onSubmit={(event) => {
+              event.preventDefault()
+              this.addRecipe()
+            }}
+          >
+            <ui-input
+              placeholder={this.translationForKey("new-title")}
+              value={this.newTitle}
+              on-ui-typed={(event: CustomEvent<{ value: string }>) => (this.newTitle = event.detail.value)}
+            />
+            <ui-button color="primary" onClick={() => this.addRecipe()}>
+              {this.translationForKey("add")}
+            </ui-button>
+          </form>
+        </Show>
         <div class="recipes">
-          <For each={this.recipes} keyed={(recipe: PlaceRow) => recipe.id}>
-            {(recipe) => this.recipe(recipe)}
+          <For each={this.recipes} keyed={(recipe: PlaceRow) => recipe.id ?? recipe}>
+            {(recipe) => (this.canWrite ? this.recipe(recipe) : this.recipeToRead(recipe))}
           </For>
         </div>
       </div>
@@ -322,14 +387,27 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
         {field("servings", "servings", "number")}
         {field("notes", "notes")}
         <div class="actions">
-          <ui-button size="small" appearance="basic" onClick={() => void this.someoneElseRenames(recipe())}>
-            {this.translationForKey("elsewhere")}
-          </ui-button>
+          <Show when={HAS_SOMEONE_ELSE.has(this.backEndName)}>
+            <ui-button size="small" appearance="basic" onClick={() => void this.someoneElseRenames(recipe())}>
+              {this.translationForKey("elsewhere")}
+            </ui-button>
+          </Show>
           <ui-button size="small" appearance="basic" onClick={() => this.removeRecipe(recipe())}>
             {this.translationForKey("remove")}
           </ui-button>
         </div>
       </div>
+    )
+  }
+
+  /** One recipe in a place that takes no changes:  to read, with nothing that looks as if it could be changed. */
+  private recipeToRead(recipe: () => PlaceRow): JSX.Element {
+    return (
+      <article class="recipe to-read" part={this.partForName("recipe")} data-id={`${(recipe().id as string) ?? ""}`}>
+        <h3>{`${recipe().title as string}`}</h3>
+        <span class="serves">{this.translationForKey("serves", { servings: `${recipe().servings as string}` })}</span>
+        <p>{`${recipe().notes as string}`}</p>
+      </article>
     )
   }
 
