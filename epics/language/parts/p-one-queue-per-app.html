@@ -8,11 +8,15 @@
       <a href="#q6">Q6</a>: a repeat of the running action is ignored; a different one waits, and only the latest is
       kept.
     </li>
+    <li>
+      The queue sits where a person's action enters the program, so compiled calls never touch it, and a deal can't wait
+      for itself.
+    </li>
     <li>The per-name running flag and its guard lines leave compiled output.</li>
     <li>A program's opening deal draws as it runs: the top level doesn't hold the first draw.</li>
     <li>Errors from a queued action are shown.</li>
     <li>Plain async actions stay, never Solid's <code>action()</code>, which holds drawing to the end.</li>
-    <li>Undo still treats one action as one step.</li>
+    <li>Undo still treats one action as one step, and refuses mid-action however it's asked (<a href="#j2">J2</a>).</li>
     <li>Doc pass: <code>README-spell</code>'s section on actions.</li>
   </ul></epic-field
 ><epic-field name="changes"
@@ -20,20 +24,40 @@
     <li>Actions a person starts run one at a time, through one queue per app.</li>
     <li>A failure shows, rather than vanishing.</li>
   </ul></epic-field
-><epic-field name="plan" accepted="2026-10-31 00:20"
+><epic-update id="up9" at="2026-10-31 00:22" summary="Queue extends core.runAction(), at the runtime's door" phase="3"
+  ><p>
+    From the reuse review, checked against the code: clicks reach the program at run time, not through the event
+    writers, so the queue extends <code>core.runAction()</code> there rather than adding <code>core.run()</code>. That
+    also settles nested calls.
+  </p></epic-update
+><epic-field name="plan" accepted="2026-10-31 00:22"
   ><ol>
-    <li>Add <code>core.run()</code> beside <code>core.runAction()</code>, with Q6's rules, and its Python twin.</li>
-    <li>Write click and key handlers through it.</li>
     <li>
-      Decide what a nested call does: it runs inside the action that called it, never queued, or a deal would wait for
-      itself.
+      Extend <code>core.runAction()</code>, the one place keys and menus already enter: it takes arguments, as the
+      Inspector needs, and holds Q6's queue. Its Python twin sits behind <code>PageSession</code>.
     </li>
-    <li>Remove the guard lines that <code>animation</code> writes, keeping the words until P13.</li>
     <li>
-      Start the top level without holding the first draw, and handle a recompile's carry-over, where
-      <code>pauseFor</code> never finishes.
+      Send clicks and drops through it from <code>SpellElement</code> at run time, and the Inspector's actions too,
+      dropping its direct call. Compiled handlers stay plain methods, and nested calls stay direct.
     </li>
-    <li>Check undo's grouping across waits, and the Inspector's busy state.</li>
+    <li>
+      Keep drag moves and <code>while</code> handlers outside the queue, and undo and redo refused while an action runs,
+      from a key or a menu.
+    </li>
+    <li>
+      Add one helper, <code>core.meanwhile()</code>: run this now, don't hold the caller, report a failure on the
+      program's console. The top level uses it here, and P11's word uses it next. Move the four existing failure reports
+      onto it where they fit.
+    </li>
+    <li>
+      Remove the guard lines that <code>animation</code> writes, keeping the words until P13.
+      <code>start exclusive process</code> keeps its own.
+    </li>
+    <li>Handle a recompile's carry-over, where <code>pauseFor</code> never finishes.</li>
+    <li>
+      Check undo's grouping across waits, correct its docstring ("a click while a deal waits joins the deal"), and check
+      the Inspector's busy state.
+    </li>
     <li>Try the running-flag oddity from the research once, so it's explained before it's removed.</li>
     <li>Left out: stopping a running action by name. It can be added once someone asks for it.</li>
   </ol></epic-field
@@ -44,9 +68,17 @@
     ><code>acting.ts</code></a
   >, <a href="/parser/src/core/runtime.ts" target="src-parser-src-core-runtime-ts"><code>runtime.ts</code></a
   >, <a href="/parser/src/core/undoing.ts" target="src-parser-src-core-undoing-ts"><code>undoing.ts</code></a
+  >, <a href="/parser/src/core/sending.ts" target="src-parser-src-core-sending-ts"><code>sending.ts</code></a
+  >, <a href="/parser/src/core/ui.ts" target="src-parser-src-core-ui-ts"><code>ui.ts</code></a
   >),
   <a href="/parser/src/py/core/spell_core/" target="src-parser-src-py-core-spell-core"
     ><code>parser/src/py/core/spell_core/</code></a
+  >,
+  <a href="/app/src/app/runner/SpellElement.tsx" target="src-app-src-app-runner-spellelement-tsx"
+    ><code>app/src/app/runner/SpellElement.tsx</code></a
+  >,
+  <a href="/app/src/app/solid/InspectorActions.ts" target="src-app-src-app-solid-inspectoractions-ts"
+    ><code>app/src/app/solid/InspectorActions.ts</code></a
   >,
   <a
     href="/parser/src/spell/rules/methods/MethodDefinition.ts"
@@ -55,8 +87,9 @@
   >,
   <a href="/parser/src/parser/ast/AST.ts" target="src-parser-src-parser-ast-ast-ts"
     ><code>parser/src/parser/ast/AST.ts</code></a
-  >, the event writers.</epic-field
+  >.</epic-field
 ><epic-field name="verify"
-  >Tests in both JavaScript and Python: double click, click during a deal, three clicks keeping the latest, a failing
-  action. Solitaire checked headless, mid-deal.</epic-field
+  >Tests in both JavaScript and Python: double click, click during a deal, three clicks keeping the latest, a nested
+  send during a deal, undo from a key and a menu mid-deal, a drag and a drop mid-deal, a failing action. Solitaire
+  checked headless, mid-deal.</epic-field
 >

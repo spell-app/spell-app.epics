@@ -9,8 +9,8 @@
     <li>A getter read from an action waits for its answer.</li>
     <li>A literal <code>pause</code> in a draw and a slow comparison in a sort are clear errors.</li>
     <li>
-      TypeScript follows JavaScript; Python's server drawing waits before sending the page; <code>ts/lib</code> has no
-      drawing to handle.
+      TypeScript follows JavaScript; Python's server drawing waits before sending the page; <code>ts/lib</code> never
+      draws, and writes a plain async getter.
     </li>
     <li>
       Doc pass: <code>README-spell</code>, and the Solid notes in
@@ -23,31 +23,59 @@
     <li>A getter may wait, with no new words.</li>
     <li>A draw shows “…” where the value goes, then fills it in.</li>
   </ul></epic-field
-><epic-field name="plan" accepted="2026-10-31 00:20"
+><epic-update id="up11" at="2026-10-31 00:22" summary="Hold in drawInBoundary(); ts/lib writes its own getter" phase="3"
+  ><p>
+    From the reuse review, checked against the code: the whole-thing hold lives in the existing drawing boundary; the
+    “…” is a translated core message; <code>ts/lib</code> needs its own getter, since its core has no drawing.
+  </p></epic-update
+><epic-field name="plan" accepted="2026-10-31 00:22"
   ><ol>
     <li>Read P8's findings, and adjust this plan to them.</li>
     <li>Have the pass mark getters and draws that wait, leaving drawing alone when nothing waits.</li>
-    <li>Add the two core helpers: one deferred value per thing and getter, and a stand-in around a draw's read.</li>
-    <li>Where there's no spot for a “…” (an <code>if</code>, an attribute), hold that thing's drawing only.</li>
+    <li>
+      Add <code>core.waitedValue()</code>, one deferred value per thing and getter, and
+      <code>core.whileWaiting()</code>, the “…” around one read. Record "waits" in the words list.
+    </li>
+    <li>
+      Hold a whole thing's drawing with one <code>&lt;Loading&gt;</code> inside <code>drawInBoundary()</code>, the one
+      boundary both targets draw in, only where the pass says that thing's draw waits. That covers places with no spot
+      for a “…” (an <code>if</code>, an attribute), and it means a program is never blank.
+    </li>
     <li>
       Handle the traps: leave <code>@derived</code> off these getters, and warn on a read after the first wait, unless
       P8 finds a better answer.
     </li>
     <li>Write the action read as P8 settled it.</li>
-    <li>Write TypeScript's and Python's versions, with Python's run for the first time here.</li>
-    <li>Add the two error messages through the language packs.</li>
+    <li>
+      Write TypeScript's and Python's versions, with Python's run for the first time here.
+      <code>LibraryWriter</code> writes a waiting getter as a plain async getter, since a library's core holds no
+      drawing.
+    </li>
+    <li>
+      Add the “…” as a core message beside <code>cant-draw</code>, in its English, Spanish and Python twins and
+      <code>messages.expected.json5</code>, and the two errors through the language packs.
+    </li>
     <li>Left out: a chosen stand-in per draw. It's always “…” for now.</li>
   </ol></epic-field
 ><epic-field name="files"
-  ><a href="/parser/src/core/" target="src-parser-src-core"><code>parser/src/core/</code></a> (the drawing code,
-  <code>core.slowly</code> and <code>core.waiting</code>, both new),
+  ><a href="/parser/src/core/" target="src-parser-src-core"><code>parser/src/core/</code></a> (<a
+    href="/parser/src/core/drawing.ts"
+    target="src-parser-src-core-drawing-ts"
+    ><code>drawing.ts</code></a
+  >, <a href="/parser/src/core/core.types.ts" target="src-parser-src-core-core-types-ts"><code>core.types.ts</code></a
+  >, the messages, <code>core.waitedValue()</code> and <code>core.whileWaiting()</code>, both new),
   <a href="/parser/src/parser/writers/JSWriter.ts" target="src-parser-src-parser-writers-jswriter-ts"
     ><code>parser/src/parser/writers/JSWriter.ts</code></a
   >,
   <a href="/parser/src/parser/writers/TSWriter.ts" target="src-parser-src-parser-writers-tswriter-ts"
     ><code>TSWriter.ts</code></a
+  >,
+  <a href="/parser/src/parser/writers/LibraryWriter.ts" target="src-parser-src-parser-writers-librarywriter-ts"
+    ><code>LibraryWriter.ts</code></a
   >, <a href="/parser/src/py/" target="src-parser-src-py"><code>parser/src/py/</code></a
-  >, the shared pass.</epic-field
+  >, the shared pass,
+  <a href="/agents/coherence/words.md" target="src-agents-coherence-words-md"><code>agents/coherence/words.md</code></a
+  >.</epic-field
 ><epic-field name="verify"
   >Browser tests: first load, a later change, an <code>if</code> reading it, a failure that heals, custom elements.
   Table rows for each target. A deal with a slow getter doesn't freeze.</epic-field

@@ -28,24 +28,47 @@
     <li>One project-wide pass says which actions wait, for every target.</li>
     <li>JavaScript and TypeScript wait at each call to one, with no word in the source.</li>
   </ul></epic-field
-><epic-field name="plan" accepted="2026-10-31 00:20"
+><epic-update
+  id="up8"
+  at="2026-10-31 00:22"
+  summary="Pass in WriterProject; rules stop writing their own wait"
+  phase="3"
+  ><p>
+    From the reuse review, checked against the code: the pass's home is <code>WriterProject</code>; rules stop writing
+    their own wait, avoiding a double <code>await</code>; sending gets its own rule; the compare gains
+    <code>--target</code>.
+  </p></epic-update
+><epic-field name="plan" accepted="2026-10-31 00:22"
   ><ol>
     <li>Add rows to the test table: each kind of call, its waiting in each target, in and out of loops.</li>
     <li>
-      Move <code>findWaiting()</code> and its helpers from <code>PyWriter</code> down to
-      <code>ProgramWriter.forProject()</code>, which already sees the whole project before writing.
+      Add <code>--target</code> to <code>spell content compare</code>, as <code>spell compile --target</code> has, since
+      this phase changes Python's output too. P11 and P12 use it as well.
+    </li>
+    <li>
+      Move <code>findWaiting()</code> and its helpers from <code>PyWriter</code> down to <code>WriterProject</code>, the
+      home of what a whole project says, made once per compile and with no writer needed. Check that Python's drawing
+      half, <code>ElementsWriter</code>, gets the right answer, since it inherits this.
     </li>
     <li>
       Have it set the flag <code>isAsync</code> already honours, so every <code>async</code> and
-      <code>Promise</code> follows with no new logic.
+      <code>Promise</code> follows with no new logic. Declarations read that flag, which closes I3.
+      <code>ScopeMethod.waits</code> is written for a project's own methods only if P13's hover needs it.
     </li>
     <li>Write <code>await</code> at calls in <code>JSWriter</code>, as <code>PyWriter</code> does.</li>
     <li>
-      Add a <code>waits</code> entry to core's generated declarations, and retire the pass's hard-coded
-      <code>pauseFor</code>.
+      Add a <code>waits</code> entry to core's generated declarations, then make the rules that wrap their own wait
+      write plain calls: <code>Alert</code>, <code>Warn</code>, <code>Confirm</code>, <code>Prompt</code>,
+      <code>Notify</code>, <code>Pause</code>, <code>Send</code>. Otherwise JavaScript gets a double <code>await</code>.
+      <code>wait for</code> itself stays until P13, written once. This retires the hard-coded <code>pauseFor</code>.
     </li>
-    <li>Have the three loop rules write one neutral loop, and the writers pick its form after the pass.</li>
-    <li>Write <code>ScopeMethod.waits</code> from the pass, so imports and later the editor read one record.</li>
+    <li>
+      Give sending its own rule in the pass: a sender waits only if a handler of that event does (<a href="#j4">J4</a>).
+    </li>
+    <li>
+      Have the three loop rules write one neutral loop, and the writers pick its form after the pass.
+      <code>ShapeCheck</code>'s special case for the loop's varying shape goes.
+    </li>
     <li>
       Stop the pass at the named list, and give each target its way across: e.g. a handler's own function, and a top
       level that doesn't hold the first draw (built in P10).
@@ -54,27 +77,49 @@
       Fix I2's forms: a condition waits; <code>where</code> goes one by one; a slow sort comparison is an error. Getters
       and draws are P12's.
     </li>
-    <li>Review every difference with <code>spell content compare</code>, then re-bless snapshots.</li>
+    <li>
+      Review every difference with <code>spell content compare</code>, for JavaScript and Python, then re-bless
+      snapshots.
+    </li>
     <li>Left out: the queue (P10), the words (P11, P13), and joining by type rather than name.</li>
   </ol></epic-field
 ><epic-field name="files"
   ><a href="/parser/src/py/PyWriter.ts" target="src-parser-src-py-pywriter-ts"><code>parser/src/py/PyWriter.ts</code></a
   >,
+  <a href="/parser/src/py/PyBaseWriter.ts" target="src-parser-src-py-pybasewriter-ts"
+    ><code>parser/src/py/PyBaseWriter.ts</code></a
+  >,
+  <a href="/parser/src/py/ElementsWriter.ts" target="src-parser-src-py-elementswriter-ts"
+    ><code>parser/src/py/ElementsWriter.ts</code></a
+  >,
   <a href="/parser/src/parser/writers/" target="src-parser-src-parser-writers"
     ><code>parser/src/parser/writers/</code></a
   >
-  (<code>ProgramWriter</code>, <code>JSWriter</code>, <code>TSWriter</code>),
+  (<code>WriterProject</code>, <code>ProgramWriter</code>, <code>JSWriter</code>, <code>TSWriter</code>),
   <a href="/parser/src/parser/ast/AST.ts" target="src-parser-src-parser-ast-ast-ts"
     ><code>parser/src/parser/ast/AST.ts</code></a
-  >, the loop rules in
+  >, the waiting rules in
+  <a href="/parser/src/spell/rules/UI/" target="src-parser-src-spell-rules-ui"
+    ><code>parser/src/spell/rules/UI/</code></a
+  >, <code>rules/async/</code> and <code>rules/events/Send.ts</code>, the loop rules in
   <a href="/parser/src/spell/rules/lists/" target="src-parser-src-spell-rules-lists"
     ><code>parser/src/spell/rules/lists/</code></a
+  >,
+  <a href="/parser/src/spell/translate/ShapeCheck.ts" target="src-parser-src-spell-translate-shapecheck-ts"
+    ><code>parser/src/spell/translate/ShapeCheck.ts</code></a
   >,
   <a href="/parser/src/spell/SpellDeclarations.ts" target="src-parser-src-spell-spelldeclarations-ts"
     ><code>parser/src/spell/SpellDeclarations.ts</code></a
   >, <a href="/parser/src/core/" target="src-parser-src-core"><code>parser/src/core/</code></a
-  >'s declarations.</epic-field
+  >'s declarations,
+  <a href="/app/src/cli/runner/compareProjects.mts" target="src-app-src-cli-runner-compareprojects-mts"
+    ><code>app/src/cli/runner/compareProjects.mts</code></a
+  >,
+  <a href="/app/src/cli/commands/contentCompareCommand.ts" target="src-app-src-cli-commands-contentcomparecommand-ts"
+    ><code>app/src/cli/commands/contentCompareCommand.ts</code></a
+  >.</epic-field
 ><epic-field name="verify"
-  >JavaScript and Python agree on what waits in every project. <code>spell content compare</code> lists every changed
-  line, each explained. The parser's speed test on the change and on HEAD.</epic-field
+  >JavaScript and Python agree on what waits in every project, checked with <code>spell content compare --target</code>,
+  every changed line explained. No double <code>await</code>. The parser's speed test on the change and on
+  HEAD.</epic-field
 >
