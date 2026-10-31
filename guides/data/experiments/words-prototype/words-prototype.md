@@ -10,6 +10,9 @@ Epic `data`, P10, 2026-10-31.  T8:  the first time any proposed Spell line was c
   It doesn't mean it does anything yet.  Connecting words to places is The Words (P11).
 - What really runs:  `every recipe where ...`, `..., sorted by ...`, and the lines marked "ran" in the Note column.
 
+Since P13 (Live And Presence), `the current person`, `the people here`, `when a recipe changes:` and `when someone else changes it:` are real words.
+The table below is as P10 found it;  the test pins them as they are now, and every word in the whole recipe box compiles with no prototype rule.
+
 ## What it found, that nobody expected
 
 1. **A line that compiles can be wrong.**  Five proposed lines compile today to something else, with no error:
