@@ -45,6 +45,7 @@ const BACK_ENDS: Record<string, () => Place> = {
         recipes: {
           list: "recipes",
           one: "recipe",
+          paging: "connection",
           fields: ["id", "title: name", "cuisine", "servings", "notes"],
           insert: { mutation: "addRecipe", input: "RecipeInput!" },
           update: { mutation: "changeRecipe", id: "ID!", input: "RecipePatch!" },
@@ -261,7 +262,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
           <ui-input
             placeholder={this.translationForKey("new-title")}
             value={this.newTitle}
-            on-ui-changed={(event: CustomEvent<{ value: string }>) => (this.newTitle = event.detail.value)}
+            on-ui-typed={(event: CustomEvent<{ value: string }>) => (this.newTitle = event.detail.value)}
           />
           <ui-button color="primary" onClick={() => this.addRecipe()}>
             {this.translationForKey("add")}
@@ -283,7 +284,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
         label={this.translationForKey(key)}
         type={type}
         value={`${recipe()[name] as string}`}
-        on-ui-changed={(event: CustomEvent<{ value: string }>) => {
+        on-ui-typed={(event: CustomEvent<{ value: string }>) => {
           const { value } = event.detail
           this.setField(recipe(), name, type === "number" ? Number(value) : value)
         }}
