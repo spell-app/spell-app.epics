@@ -64,6 +64,7 @@ const POLL_SECONDS = 5
  * - `sheet-server`:  the servers' own CSV file with a place server in front (`CsvPlace`), so it takes writes:  each save changes only
  *   the lines that changed, and it reads as a position, so a recipe can move.
  * - A Google Sheet to write to goes through a server side, which holds its key:  the last save wins each cell.
+ * - `airtable`:  an Airtable base through a server side, which holds its key:  a stub of Airtable, or your own (`AIRTABLE_BASE`):  the last save wins each field.
  * - This device needs no server, and only this browser ever sees them.
  * - A room has a referee putting everyone's changes in one order, over a websocket:  so nothing polls, and it heals itself.
  * - `atmosphere`:  each person's own records, on their own host, put together, on `FakeAtmosphere`:  no real account.  Sign in as `alice.test` or `bob.test`.
@@ -79,6 +80,12 @@ const BACK_ENDS: Record<string, (sheet: string) => Place> = {
       url: `${SERVERS}/api/places/google-sheet`,
       token: DEMO_TOKEN,
       can: { atomic: true, versionCheck: false }
+    }),
+  airtable: () =>
+    new RemotePlace({
+      url: `${SERVERS}/api/places/airtable`,
+      token: DEMO_TOKEN,
+      can: { kind: "airtable", versionCheck: false }
     }),
   rest: () =>
     new RestPlace({
@@ -141,14 +148,15 @@ const BACK_END_NAMES: Record<string, string> = {
   sheet: "a CSV file",
   "sheet-no-id": "a CSV file, with no id column",
   "sheet-server": "a CSV file, through its place server",
-  "google-sheet": "a Google Sheet"
+  "google-sheet": "a Google Sheet",
+  airtable: "an Airtable base"
 }
 
 /** The file it reads for a sheet, unless it's told another:  the one beside this page. */
 const SHEET_FILE = "recipes.csv"
 
 /** What needs `scripts/recipe-servers.ts` running:  a CSV file doesn't. */
-const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "room", "sheet-server", "atmosphere"])
+const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "airtable", "room", "sheet-server", "atmosphere"])
 
 /** What each back-end's read asks for:  a folder's list holds no notes, so it has to say, and that's when its bodies are read. */
 const READ_QUERIES: Record<string, ListQuery> = { folder: { select: ["title", "cuisine", "servings", "notes"] } }
