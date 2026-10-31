@@ -2,6 +2,9 @@
 
 Things that look like bugs but haven't been confirmed.  Add to the right section, under its package;  when one is confirmed and
 fixed, or disproven, delete it (note a disproof in a line at the top if the reasoning is worth keeping).
+- Fixed 2026-10-31 (data P15, branch `data`):  an action `undone as "..."` that adds saved things recorded each new thing's starting
+  values, so its Undo wrote blanks back to the place (on REST, failed writes;  logged as blank cards):  starting values are no longer recorded.
+  `draw the fields of <a thing>` compiled to `core.drawItems()` of something with no items, drawing nothing:  now it won't compile, saying why.
 - Fixed 2026-10-23 (spanish P28, branch `spanish`, not yet merged):  a Spanish loop's own variable vanished from its
   compile (`para índice de fila a 7` => `async () => {...}`, no `índice`).  Not the loop rule, nor `de`:  the javascript
   writer drops an arrow's trailing parameters its body never uses, and looked for them with `\b`, which is ASCII only,
@@ -51,16 +54,8 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
-- [ ] `core` undo, an action `undone as "..."` that adds new saved things (epic `data` I21, 2026-10-31):  its Undo blanks
-  them and leaves them on the page.
-  - Three `add (a new recipe with title = ...) to the recipes` in one `- undone as "Add Examples"`:  after Undo, three cards
-    with no title and 0 servings.
-  - Guess:  the step records the new things' first property writes (`SettingRecord`), and putting those back empties them.
-    With no `undone as`, each add is its own step, and Undo takes the card away, as it should.
 - [ ] `core`, a list read that `to create it` awaits, when the place can't be reached:  the drawing says so through
   `if that fails:`, and the rejected `create()` is also an uncaught "Failed to fetch" on the page's console (epic `data` I21).
-- [ ] `draw the fields of its new recipe`, with `- to draw its fields:` on a recipe, compiles to `core.drawItems(this.newRecipe)`:
-  no error, the wrong drawing (epic `data` I21).  A named drawing is a slot of its own thing, so another thing can't draw it.
 - Incremental parsing loses an action's `waits: true` after an edit inside it (2026-10-26, epic `debut` I50):
   `INCREMENTAL_FULL=1 yarn vp test run --project spell tests/spell/parserTests/IncrementalProject.test.ts -t "edits in /Solitaire.spell"`
   fails on spell-app's `main` twin at line 166 ("delete a character", in `to put a card on a pile`, which
