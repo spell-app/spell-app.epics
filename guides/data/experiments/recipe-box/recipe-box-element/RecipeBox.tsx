@@ -338,9 +338,9 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     if (room instanceof LiveRoomPlace) this.noteHeal(room)
   }
 
-  /** The recipes, in the order they show:  a room's by their place in the list. */
+  /** The recipes, in the order they show, newest first:  a room's by their place in the list;  every other place adds at its end. */
   private get shownRecipes(): PlaceRow[] {
-    return this.isLive ? rowsInPlace(this.recipes, PLACE_FIELD) : this.recipes
+    return this.isLive ? rowsInPlace(this.recipes, PLACE_FIELD) : [...this.recipes].reverse()
   }
 
   ////////////////
@@ -354,12 +354,12 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     this.pending.setField({ collection: COLLECTION, id: `${recipe.id as string}`, field, value, was })
   }
 
-  /** Add what's been typed, under an id made here, at the end of the list if it's a room. */
+  /** Add what's been typed, under an id made here, at the top of the list if it's a room. */
   private addRecipe(): void {
     const title = this.newTitle.trim()
     if (!title) return
     const id = `r-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
-    const place = this.isLive ? { [PLACE_FIELD]: this.placeBetween(this.shownRecipes.at(-1)) } : {}
+    const place = this.isLive ? { [PLACE_FIELD]: this.placeBetween(undefined, this.shownRecipes[0]) } : {}
     this.pending.insert({
       collection: COLLECTION,
       id,
@@ -546,7 +546,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   /**
    * One recipe:  each field a box to change it in.  `recipe` is an accessor:  the same box stays as it changes.
    * - Its title on a line, with what a room can do to it;  its servings and notes on the next:  so more of them fit in a frame.
-   * - Remove is an `x` on the card's corner:  never in reach of the line a person is typing on.
+   * - Remove is an `x` on the card's upper right corner:  never in reach of the line a person is typing on.
    */
   private recipe(recipe: () => PlaceRow): JSX.Element {
     const field = (name: string, key: "title" | "servings" | "notes", type = "text") => (
