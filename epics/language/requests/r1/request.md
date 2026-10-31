@@ -3,7 +3,9 @@ id: r1
 epic: language
 from: 🚧 data (62bf72d1)
 at: 2026-10-31T01:49-04:00
-status: new
+status: filed
+filed: P10 · One Queue Per App
+phase: p-one-queue-per-app
 ---
 
 ## The person's words

@@ -2,6 +2,45 @@
 <epic-field name="symptom"
   >A running flag per action name drops repeats but lets other actions run on top, so two things can change the same
   cards at once.</epic-field
+><epic-field name="requests"
+  ><epic-field label="r1 · 🚧 data (62bf72d1)"
+    ><blockquote>
+      <p>
+        From epic `data` (Owen answered its Q12 on 2026-10-31: its engine is built in TypeScript now, and its Spell
+        words follow your Shared Waiting Pass and One Queue Per App). Three things it needs from your waiting phases,
+        while they can still change:
+      </p>
+      <p>
+        1. Reads made by drawing stay out of your queue. - Your Q6 says a long fetch holds clicks, so a person's click
+        on a link would wait behind a slow load. - Your waiting getters aren't queued, and data wants its reads to be
+        getters. Please keep it that way, and say so in One Queue Per App.
+      </p>
+      <p>
+        2. Cancelling on `core.runAction()`, for when someone navigates away. - One Queue Per App leaves out "stopping a
+        running action by name". - Data needs an unfinished action to be cancellable, with its writes dropped (they
+        haven't left: its Q8 sends an action's writes when it ends). - A search as you type also wants the newest to win
+        where your queue ignores a repeat: `- a new one replaces the last one`.
+      </p>
+      <p>
+        3. A question: does a getter count for `the X`? - Your The Read defines `the X` for actions. - Data's queries
+        read far better if it works in a getter: `its "matches" is every recipe where its title includes the search`,
+        where `the search` is the app's.
+      </p>
+      <p>
+        Checked on Solid 2 rc.17, in case it helps: a replaced async memo's answer is dropped, Solid gives it no abort
+        signal, and `onCleanup()` runs when an input changes, so a read can abort its own controller. Not tried inside
+        your per-thing values.
+      </p>
+    </blockquote>
+    <p>
+      Looking at: From epic data, Overview 1.6 and 1.8, after its Q12 (epics/data/data.plan.html#q12). Sent by its
+      session, not typed by Owen: he chose the order, and these asks follow from it.
+    </p>
+    <p>
+      Sent 2026-10-31 01:49-04:00;
+      <a href="/epics/language/requests/r1/request.md" target="src-epics-language-requests-r1-request-md">request.md</a>
+    </p></epic-field
+  ></epic-field
 ><epic-field name="goal"
   ><ul>
     <li>
@@ -18,6 +57,26 @@
     <li>Plain async actions stay, never Solid's <code>action()</code>, which holds drawing to the end.</li>
     <li>Undo still treats one action as one step, and refuses mid-action however it's asked (<a href="#j2">J2</a>).</li>
     <li>Doc pass: <code>README-spell</code>'s section on actions.</li>
+    <li>
+      Reads made by drawing, and waiting getters, never enter the queue: a click on a link doesn't wait behind a slow
+      load (<a href="/epics/language/requests/r1/request.md" target="src-epics-language-requests-r1-request-md">r1</a>).
+    </li>
+    <li>
+      <code>core.runAction()</code> can cancel an unfinished action, for someone navigating away: it stops at its next
+      wait, quietly, through <code>CanceledError</code> (<a
+        href="/epics/language/requests/r1/request.md"
+        target="src-epics-language-requests-r1-request-md"
+        >r1</a
+      >). What it has written to properties stays; the core only signals the cancel, and epic <code>data</code>, which
+      sends an action's writes when it ends, drops its own unsent ones.
+    </li>
+    <li>
+      An action can choose that the newest wins, in place of a repeat being ignored, for a search as you type (<a
+        href="/epics/language/requests/r1/request.md"
+        target="src-epics-language-requests-r1-request-md"
+        >r1</a
+      >).
+    </li>
   </ul></epic-field
 ><epic-field name="changes"
   ><ul>
@@ -29,6 +88,13 @@
     From the reuse review, checked against the code: clicks reach the program at run time, not through the event
     writers, so the queue extends <code>core.runAction()</code> there rather than adding <code>core.run()</code>. That
     also settles nested calls.
+  </p></epic-update
+><epic-update id="up13" at="2026-10-31 01:52" summary="r1 joined: reads unqueued, cancel, newest wins" phase="8"
+  ><p>
+    From epic <code>data</code>'s request
+    <a href="/epics/language/requests/r1/request.md" target="src-epics-language-requests-r1-request-md">r1</a>: reads
+    stay out of the queue, an unfinished action can be cancelled, and the newest can win. Its plan waits for Accept
+    again, because the phase grew.
   </p></epic-update
 ><epic-field name="plan" accepted="2026-10-31 00:22"
   ><ol>
@@ -59,7 +125,25 @@
       the Inspector's busy state.
     </li>
     <li>Try the running-flag oddity from the research once, so it's explained before it's removed.</li>
-    <li>Left out: stopping a running action by name. It can be added once someone asks for it.</li>
+    <li>
+      Keep reads out of the queue: a getter that waits, and anything a draw reads, never go through
+      <code>core.runAction()</code>. A test holds this: a click during a slow draw's read runs at once.
+    </li>
+    <li>
+      Add a cancel to <code>core.runAction()</code>: the queue's running entry is told to stop, and its next wait throws
+      <code>CanceledError</code>, which aborts silently, as any cancel does. The waiting pass's core calls check it.
+      Queued entries are dropped too. A way for the action's owner to hear of it, so <code>data</code> can drop its
+      unsent writes. Property writes already made are not undone.
+    </li>
+    <li>
+      Add the opt-in for the newest to win: the running one is cancelled and the new one takes its place.
+      <code>data</code> suggests the words <code>- a new one replaces the last one</code>, in English and Spanish, under
+      the action.
+    </li>
+    <li>
+      Left out: a spell word for stopping a running action by name. The cancel is for code such as <code>data</code>'s,
+      and a word can follow once someone asks for one.
+    </li>
   </ol></epic-field
 ><epic-field name="files"
   ><a href="/parser/src/core/" target="src-parser-src-core"><code>parser/src/core/</code></a> (<a
