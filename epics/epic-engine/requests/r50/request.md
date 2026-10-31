@@ -3,7 +3,9 @@ id: r50
 epic: epic-engine
 from: 🚧 data (62bf72d1)
 at: 2026-10-31T11:18-04:00
-status: new
+status: filed
+filed: P59 · Details Side Bar
+phase: p-details-side-bar
 ---
 
 ## The person's words
