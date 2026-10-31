@@ -37,7 +37,7 @@ export const recipeBoxVocabulary = {
     { name: "recipe", description: "One recipe." },
     { name: "none", description: "What's said when there are no recipes." },
     { name: "note", description: "What the read said about its rows." },
-    { name: "connection", description: "In a live room:  whether it's connected, and its last heal." },
+    { name: "connection", description: "In a room:  whether it's connected, and its last heal." },
     { name: "sample", description: "The switch between a sample and the real place." },
     { name: "using-sample", description: "What's said while a sample is in use." }
   ],
@@ -56,7 +56,7 @@ export const recipeBoxVocabulary = {
     {
       key: "one-more",
       text: "One more serving",
-      description: "Adds 1 to its servings, as an addition, in a live room."
+      description: "Adds 1 to its servings, as an addition, in a room."
     },
     { key: "online", text: "Connected to the room.", description: "The room's connection is up." },
     {

@@ -52,7 +52,7 @@ const POLL_SECONDS = 5
  * - GraphQL says none:  the last save wins that field.
  *   - Both are one CSV file on the servers, so `graphql` has the same recipes as `rest`.
  * - A folder is only reachable through a server side, `RemotePlace`:  it has versions, so a clash merges per field.
- *   - A live room's referee keeps its recipes in that same folder.
+ *   - A room's referee keeps its recipes in that same folder.
  * - A sheet is a CSV file at an address (`sheet`), read only, with no server of ours:  this page's own, or a Google Sheet
  *   shared with "anyone with the link".
  *   - `sheet-no-id`:  the same file, with nothing saying which row is which.
@@ -60,7 +60,7 @@ const POLL_SECONDS = 5
  *   the lines that changed, and it reads as a position, so a recipe can move.
  * - A Google Sheet to write to goes through a server side, which holds its key:  the last save wins each cell.
  * - This device needs no server, and only this browser ever sees them.
- * - A live room has a referee putting everyone's changes in one order, over a websocket:  so nothing polls, and it heals itself.
+ * - A room has a referee putting everyone's changes in one order, over a websocket:  so nothing polls, and it heals itself.
  */
 const BACK_ENDS: Record<string, (sheet: string) => Place> = {
   sheet: (url) => new SheetPlace({ url, collection: COLLECTION, idColumn: "id", numbers: ["servings"] }),
@@ -102,7 +102,7 @@ const BACK_ENDS: Record<string, (sheet: string) => Place> = {
 /** The one collection it shows. */
 const COLLECTION = "recipes"
 
-/** The field a recipe's place in the list is kept in, in a live room or a CSV file:  its parent and its position, as one. */
+/** The field a recipe's place in the list is kept in, in a room or a CSV file:  its parent and its position, as one. */
 const PLACE_FIELD = "place"
 
 /** What every recipe in a room is in. */
@@ -114,7 +114,7 @@ const BACK_END_NAMES: Record<string, string> = {
   graphql: "a CSV file, through GraphQL",
   device: "this browser",
   folder: "a folder of files",
-  room: "a folder of files, through a live room",
+  room: "a folder of files, through a room",
   sheet: "a CSV file",
   "sheet-no-id": "a CSV file, with no id column",
   "sheet-server": "a CSV file, through its place server",
@@ -151,7 +151,7 @@ type Notice = {
  * - A place that takes no writes shows as text, with nothing to press:  it asks the place (`writeAnswerFor()`), never which back-end it is.
  * - What a read says about its rows (`PlaceResult.notes`) is shown as it is.
  * - Every write goes through `PendingChanges`:  shown at once, sent soon, in order.
- * - In a live room nothing polls:  what others do arrives (`PlaceHeal.follow()`), and it can add to a number, move a recipe,
+ * - In a room nothing polls:  what others do arrives (`PlaceHeal.follow()`), and it can add to a number, move a recipe,
  *   and say when someone deleted what you're changing.
  * - Use a sample:  editable records in place of the place, with nothing above it changed, and nothing reaching the place
  *   (`useSample()`).  It's what the editor's side bar will offer, for a read-only or slow place.
@@ -175,11 +175,11 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   @E.state accessor canWrite = true
   /** What the last read said about its rows. */
   @E.state accessor notes: readonly string[] = []
-  /** Is it a live room? */
+  /** Is it a room? */
   @E.state accessor isLive = false
-  /** In a live room:  is it connected? */
+  /** In a room:  is it connected? */
   @E.state accessor isInTheRoom = false
-  /** In a live room:  how the last heal went, in words. */
+  /** In a room:  how the last heal went, in words. */
   @E.state accessor lastHeal = ""
   /** Is a sample in use? */
   @E.state accessor isSample = false
