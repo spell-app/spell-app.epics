@@ -1,0 +1,140 @@
+<!-- plan-doc part:  #o6's body in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Waiting comes from epic <code>language</code>, and cancelling doesn't. So <code>data</code> has to add it, and the
+  rule is simple: walking away stops what the page was doing for you, and never what you asked for.
+</p>
+<h4 id="o6-language">What <code>language</code> gives, once built</h4>
+<p>All of this is planned and accepted, and none of it is built (<a href="#o8">1.8</a>).</p>
+<ul>
+  <li>No word to wait: an action just waits for anything slow, so a data read only has to be marked as slow.</li>
+  <li>A getter may wait: a draw shows "…", then fills in.</li>
+  <li><code>meanwhile</code> and <code>at the same time:</code> say not to wait.</li>
+  <li>One queue per app: a repeat of the running action is ignored, and another waits, keeping only the latest.</li>
+</ul>
+<h4 id="o6-gap">What it doesn't give</h4>
+<ul>
+  <li>
+    <b>Cancelling:</b> its queue plan leaves out stopping a running action, and nothing in its waiting phases mentions
+    aborting.
+  </li>
+  <li>
+    <b>A slow action holds clicks:</b> a person's click on a link would queue behind a slow load. Its own
+    <epic-link epic="language" item="Q6"></epic-link> says so.
+  </li>
+  <li>
+    <b>So reads need to stay out of the queue:</b> a read through a waiting getter isn't queued, which argues for reads
+    as getters and writes as actions.
+  </li>
+  <li>
+    <b>A search as you type:</b> the queue ignores a repeat, where a search wants the newest to win. So an action can
+    say <code>- a new one replaces the last one</code>.
+  </li>
+  <li>
+    <b>Reading your own write:</b> in an action just after a change, its Q8 got the old value (30, not 50). That's
+    unsolved until its prototype runs.
+  </li>
+  <li>
+    <b>A filter over slow values:</b> <code>where</code> goes one by one, so a filter on a place must be sent to it, or
+    it means one call per row.
+  </li>
+</ul>
+<h4 id="o6-solid">What Solid does, checked by running it</h4>
+<p>
+  The survey couldn't say whether a replaced read gets an abort signal, so this was tried on the repo's Solid (2.0
+  rc.17), in both <code>createMemo()</code> and <code>createDeferred()</code>, with the same results.
+</p>
+<ul>
+  <li><b>Checked:</b> Solid hands the function no abort signal, only one argument.</li>
+  <li>
+    <b>Checked:</b> a replaced answer is dropped: a slow first fetch answered after the second, and was never shown.
+  </li>
+  <li>
+    <b>Checked:</b> <code>onCleanup()</code> inside it runs when an input changes and when it's disposed, so aborting
+    works if Spell's read makes its own controller.
+  </li>
+  <li>
+    <b>Not checked:</b> how this behaves inside <code>language</code>'s per-thing values, or across thousands of them.
+  </li>
+</ul>
+<h4 id="o6-cancel">Read and write cancelling are different</h4>
+<ui-table celled padding="compact" appearance="striped" unstackable>
+  <table>
+    <tbody>
+      <tr>
+        <th>Where it is</th>
+        <th>Cancel means</th>
+        <th>Certain?</th>
+      </tr>
+      <tr>
+        <td>A read, in flight</td>
+        <td>abort it; nothing changes</td>
+        <td>yes, though a server may keep working</td>
+      </tr>
+      <tr>
+        <td>A write in an unfinished action or a draft</td>
+        <td>drop it, and replay</td>
+        <td>yes: it never left</td>
+      </tr>
+      <tr>
+        <td>A write pending, not sent</td>
+        <td>drop it, and replay</td>
+        <td>yes</td>
+      </tr>
+      <tr>
+        <td>A write sent, with no answer</td>
+        <td>can't: aborting only stops listening. It resends with the same id until the outcome is known</td>
+        <td><b>no: the outcome is unknown</b></td>
+      </tr>
+      <tr>
+        <td>A write confirmed</td>
+        <td>a new change that reverses it</td>
+        <td>that's undo, and others may have built on it</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>
+  Why a write sent is unknown is reasoning from how HTTP works, since no page read says so. An action's writes show at
+  once, and could be sent only when it finishes, which is what makes cancelling real (<a href="#q8">Q8</a>).
+</p>
+<h4 id="o6-navigate">Navigating away</h4>
+<ui-table celled padding="compact" appearance="striped" unstackable>
+  <table>
+    <tbody>
+      <tr>
+        <th>What's running</th>
+        <th>Moving to another page</th>
+        <th>Closing the tab</th>
+      </tr>
+      <tr>
+        <td>Reads for the old page</td>
+        <td>aborted, unless another part is still reading them</td>
+        <td>gone anyway</td>
+      </tr>
+      <tr>
+        <td>A finished action, its writes pending or sent</td>
+        <td><b>keeps going, never cancelled</b></td>
+        <td>saved pending changes resend on the next visit</td>
+      </tr>
+      <tr>
+        <td>An unfinished action, waiting on a read</td>
+        <td>cancelled: nothing was sent</td>
+        <td>gone: nothing was sent</td>
+      </tr>
+      <tr>
+        <td>A draft form</td>
+        <td>kept, and restored on return</td>
+        <td>kept locally</td>
+      </tr>
+      <tr>
+        <td>A failed write, its page gone</td>
+        <td>a notice anywhere in the app: Retry, or Show me</td>
+        <td>a notice on the next visit</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>
+  The browser's ways to get a write out as a page closes are best effort, with a 64 KiB limit. Saving pending changes,
+  each with an id, is what really guarantees it.
+</p>

@@ -1,0 +1,172 @@
+<!-- plan-doc part:  #o7's body in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Spell can give "wonky for a second, then it heals" with no full CRDT, because Figma already works that way: it says
+  plainly that it doesn't use true CRDTs. The timings and the compiler part below are untested.
+</p>
+<p>
+  <b>The caveat:</b> "heals" means everyone ends up seeing the same thing, not that nothing was lost. That's fine for a
+  colour, and a real loss for a paragraph.
+</p>
+<h4 id="o7-model">The model</h4>
+<ol>
+  <li>Browsers make their own ids, and a change is one field of one thing.</li>
+  <li>One referee per shared space puts changes in order. For a field, the last to arrive wins.</li>
+  <li>The screen always shows the referee's copy, with my unconfirmed changes replayed on top.</li>
+  <li>
+    One heal routine: fetch the latest, replay. It runs on opening, reconnecting, a missed change, a periodic checksum
+    and a rejected change.
+  </li>
+</ol>
+<ul>
+  <li>
+    Step 3 means there's no flicker, with no special case: my pending change simply wins on my screen until confirmed.
+  </li>
+  <li>Bugs heal the same way as lost messages, since nothing else has to be right for the routine to work.</li>
+  <li>A rough guess, unmeasured: well under a second in a live room, and the poll interval otherwise.</li>
+</ul>
+<h4 id="o7-changes">Each kind of change</h4>
+<ui-table celled padding="compact" appearance="striped" unstackable>
+  <table>
+    <tbody>
+      <tr>
+        <th>Change</th>
+        <th>How it's handled</th>
+        <th>What people see</th>
+      </tr>
+      <tr>
+        <td>Set a property</td>
+        <td>the whole value, last wins</td>
+        <td>the loser's value flips once, never a blend</td>
+      </tr>
+      <tr>
+        <td>Add to a list</td>
+        <td>both kept, the referee settles the position</td>
+        <td>a slight shuffle</td>
+      </tr>
+      <tr>
+        <td>Remove</td>
+        <td>a marker in the log, trimmed later as snapshots replace it</td>
+        <td>it disappears</td>
+      </tr>
+      <tr>
+        <td>Reorder</td>
+        <td>parent and position are one field, and there are no arrays</td>
+        <td>an order nobody chose, with nothing doubled or lost</td>
+      </tr>
+      <tr>
+        <td>Add to a number</td>
+        <td>sent as an addition, not a new value</td>
+        <td>both count</td>
+      </tr>
+      <tr>
+        <td>Long text</td>
+        <td>a text library (Yjs) for that field only; the referee just relays its bytes</td>
+        <td>both people typing live</td>
+      </tr>
+      <tr>
+        <td>Delete what another is editing</td>
+        <td>delete wins, with a notice</td>
+        <td>it vanishes, with Restore</td>
+      </tr>
+      <tr>
+        <td>Check, then write (the last seat)</td>
+        <td>the action re-runs on the referee</td>
+        <td>one may be put back, with a notice</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>
+  <b>The compiler's part, the riskiest idea here:</b> it can see what an action reads and writes. A plain write becomes
+  a set, "add 1" becomes an addition, and "check, then write" re-runs on the referee, so nobody chooses.
+</p>
+<h4 id="o7-no-referee">Without a referee</h4>
+<p>The browser's code stays the same: the referee's copy, pending changes, replay. Only the transport differs.</p>
+<ui-table celled padding="compact" appearance="striped" unstackable>
+  <table>
+    <tbody>
+      <tr>
+        <th>Place</th>
+        <th>Live?</th>
+        <th>Same field, two people</th>
+        <th>Long text</th>
+      </tr>
+      <tr>
+        <td>A live room, or files through one Spell server</td>
+        <td>yes</td>
+        <td>last wins</td>
+        <td>merged</td>
+      </tr>
+      <tr>
+        <td>REST with versions (<code>If-Match</code>)</td>
+        <td>poll every 2-10 seconds</td>
+        <td>a field-by-field merge, then mine wins, with a notice</td>
+        <td>a three-way merge</td>
+      </tr>
+      <tr>
+        <td>Plain REST</td>
+        <td>poll</td>
+        <td><b>last save wins the whole record: warn at compile time</b></td>
+        <td><b>lost</b></td>
+      </tr>
+      <tr>
+        <td>Files, no server</td>
+        <td>re-read on focus</td>
+        <td>last save wins</td>
+        <td>one person at a time</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<h4 id="o7-wrong">Where it ends stable but wrong</h4>
+<p>These four don't match "wonky, then heals". Sync can't fix them, so the types and the compiler have to.</p>
+<ui-table celled padding="compact" appearance="striped" unstackable>
+  <table>
+    <tbody>
+      <tr>
+        <th>Case</th>
+        <th>What goes wrong</th>
+        <th>What Spell does about it</th>
+      </tr>
+      <tr>
+        <td>Long text stored as a plain field</td>
+        <td>a whole paragraph is gone</td>
+        <td>a long text type, and a compile warning with no room</td>
+      </tr>
+      <tr>
+        <td>The last seat, with no referee rule</td>
+        <td>on REST, both people believe they got it</td>
+        <td>a rule on the server, or a compile warning that the check is only in the browser</td>
+      </tr>
+      <tr>
+        <td>Two fields each valid, invalid together (start and end dates)</td>
+        <td>a nonsense combination</td>
+        <td>group them as one field, or a checked action</td>
+      </tr>
+      <tr>
+        <td>Old offline edits arriving late</td>
+        <td>an hour-old value overwrites newer work</td>
+        <td>each change says what it had seen, so this can be noticed, and the person told or asked</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p>Seeing who's there is the cheapest conflict tool: people avoid what someone else is plainly editing.</p>
+<h4 id="o7-crdt">How it fits epic <code>crdt</code></h4>
+<ul>
+  <li>
+    <epic-link epic="crdt"></epic-link> is a future epic with no phases, and doesn't conflict in substance: it also
+    picks a referee, and says today's patches may be enough.
+  </li>
+  <li>
+    It's about one running program refereeing, on the editor's server. <code>data</code> may have no running program,
+    only a place holding things.
+  </li>
+  <li>
+    This model answers three gaps it names: browser-made ids in place of counted ones, per-field changes in place of
+    whole things, and changes flowing both ways.
+  </li>
+  <li>
+    The core already mirrors state with last-arrival patches, so a referee may grow from that (<a href="#q5">Q5</a>).
+  </li>
+</ul>

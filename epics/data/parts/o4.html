@@ -1,0 +1,239 @@
+<!-- plan-doc part:  #o4's body in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>A PLACE is where data lives: Spell's word for a back-end.</p>
+<p>
+  Every place answers one small interface and says what else it can do, and the engine covers the rest, the same way for
+  all of them. This is a design from the survey, and nobody has built it.
+</p>
+<h4 id="o4-interface">What a place must do</h4>
+<ul>
+  <li><b>Required:</b> say what it can do, and list the items of a collection.</li>
+  <li>
+    <b>Optional:</b> get several by key, apply changes, run a named operation, watch for changes, and report what
+    changed since a token.
+  </li>
+  <li>
+    <b>It says what it handled:</b> a list comes back naming which of the filter, the sort and the selection the place
+    did itself.
+  </li>
+</ul>
+<epic-code title="The interface, a sketch · 21 lines" language="ts">
+  <pre>
+interface Place {
+  describe(): Capabilities
+  list(collection, query: { filter?, sort?, select?, page? }, ctx: { signal }):
+    Promise&lt;{ rows, nextPage?, version?, handled: { filter?, sort?, select? } }&gt;
+
+  // Everything below is optional.
+  getMany?(collection, keys, select, ctx): Promise&lt;Row[]&gt;
+  apply?(changes, ctx: { identity }): Promise&lt;{ rows, version? }&gt;
+  call?(name, input, select, ctx): Promise&lt;unknown&gt;
+  watch?(target, onEvent): () =&gt; void
+  changesSince?(token): Promise&lt;{ rows, removed, token }&gt;
+}
+
+interface Capabilities {
+  keyOf                      // a key field, or none:  "don't share identity"
+  filter, sort, select       // what it does natively, per field if need be
+  page:   "none" | "offset" | "cursor" | "range"
+  write:  "none" | ("insert" | "update" | "delete")[]
+  atomic: boolean            // many changes, all or nothing
+  live:   "none" | "poll" | "notify" | "push"
+  rateLimit?, abort          // abort "soft":  we only ignore the answer
+}</pre>
+</epic-code>
+<h4 id="o4-lacks">What each one lacks</h4>
+<ui-table celled padding="compact" appearance="striped" unstackable>
+  <table>
+    <tbody>
+      <tr>
+        <th></th>
+        <th>REST</th>
+        <th>GraphQL</th>
+        <th>Chunked files</th>
+        <th>File system</th>
+        <th>Sheet or CSV (<a href="#q6">Q6</a>)</th>
+      </tr>
+      <tr>
+        <td><b>Filter, sort</b></td>
+        <td>varies, declared per API</td>
+        <td>per its schema</td>
+        <td><b>none,</b> or by chunk summaries</td>
+        <td><b>none:</b> names and dates only</td>
+        <td>Sheets: a query; CSV: <b>none</b></td>
+      </tr>
+      <tr>
+        <td><b>Select fields</b></td>
+        <td>often none</td>
+        <td>always</td>
+        <td>by chunk</td>
+        <td><b>none</b></td>
+        <td>Sheets: yes</td>
+      </tr>
+      <tr>
+        <td><b>Write</b></td>
+        <td>POST, PATCH, DELETE</td>
+        <td>mutations</td>
+        <td><b>none,</b> usually</td>
+        <td>yes, with permission</td>
+        <td>Sheets: rate limited; CSV: <b>none</b></td>
+      </tr>
+      <tr>
+        <td><b>Live</b></td>
+        <td><b>none,</b> so poll</td>
+        <td>if offered</td>
+        <td>poll the list</td>
+        <td>an observer, where available</td>
+        <td><b>poll</b></td>
+      </tr>
+      <tr>
+        <td><b>Key</b></td>
+        <td>its id</td>
+        <td>its id</td>
+        <td>stated in the list</td>
+        <td>the path</td>
+        <td><b>stated by the author,</b> or none</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<h4 id="o4-fallbacks">What the engine does instead</h4>
+<ui-table celled padding="compact" appearance="striped" unstackable>
+  <table>
+    <tbody>
+      <tr>
+        <th>Missing</th>
+        <th>The engine</th>
+        <th>Does it say so?</th>
+      </tr>
+      <tr>
+        <td>Get several</td>
+        <td>lists with a filter, or pages until found</td>
+        <td>a note while developing</td>
+      </tr>
+      <tr>
+        <td>Filter, sort</td>
+        <td>loads pages and filters in the browser, up to a ceiling</td>
+        <td>a compile note; an error over the ceiling</td>
+      </tr>
+      <tr>
+        <td>Select</td>
+        <td>fetches everything, then hides the rest</td>
+        <td>no</td>
+      </tr>
+      <tr>
+        <td>Paging</td>
+        <td>loads everything once, then slices</td>
+        <td>a note over the ceiling</td>
+      </tr>
+      <tr>
+        <td>Live</td>
+        <td>polls, and compares by key</td>
+        <td>no: live just means slower</td>
+      </tr>
+      <tr>
+        <td>Write</td>
+        <td>nothing: the compiler refuses, "this data is read only"</td>
+        <td><b>an error at compile time</b></td>
+      </tr>
+      <tr>
+        <td>All or nothing</td>
+        <td>sends one at a time, and puts back what's unsent on a failure</td>
+        <td>a note</td>
+      </tr>
+      <tr>
+        <td>Key</td>
+        <td>keeps rows inside their list, with no shared identity</td>
+        <td>a note</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<ul>
+  <li>
+    <b>The ceiling:</b> filtering a 2 GB file in the browser looks exactly like asking a server. So a place's fallback
+    has a limit in rows or bytes, then a compile note, then an error.
+  </li>
+  <li>
+    <b>One cache, by type and id:</b> two parts showing one recipe show one thing, so an edit appears in both. Saved
+    things already have this shape (<code>Person#owen</code>).
+  </li>
+  <li>
+    <b>Results say what they know:</b> still waiting, complete, or from an earlier visit, in plain words, and changes
+    show as saving, saved or couldn't save.
+  </li>
+  <li>
+    <b>Adapters stay small:</b> whoever writes a new kind of place writes a mapping and a list of capabilities, never a
+    cache or a retry.
+  </li>
+</ul>
+<h4 id="o4-reuse">What it reuses</h4>
+<p>
+  The coherence review found much of this already in the repo, so the plan builds on these, and doesn't rewrite them.
+</p>
+<ul>
+  <li>
+    <b
+      ><a href="/src/util/persist/PrefPlace.ts" target="src-src-util-persist-prefplace-ts"
+        ><code title="src/util/persist/PrefPlace.ts">PrefPlace</code></a
+      >:</b
+    >
+    today's swappable places, for preferences, key and value only, never throwing (<a href="#q4">Q4</a>). It also gives
+    the word "place".
+  </li>
+  <li>
+    <b
+      ><a href="/app/src/spaces/models/SpaceStorage.ts" target="src-app-src-spaces-models-spacestorage-ts"
+        ><code title="app/src/spaces/models/SpaceStorage.ts">SpaceStorage</code></a
+      >:</b
+    >
+    read, write, list, remove and watch by path: nearly the file system place as it stands.
+  </li>
+  <li>
+    <b
+      ><a href="/src/util/spell/Loadable.ts" target="src-src-util-spell-loadable-ts"
+        ><code title="src/util/spell/Loadable.ts">Loadable</code></a
+      >:</b
+    >
+    loaded, failed, unsaved and cancelling state. Reused instead of a third kind of load state, though it holds one
+    resource and not many.
+  </li>
+  <li>
+    <b
+      ><a href="/ui/src/runtime/Api.ts" target="src-ui-src-runtime-api-ts"
+        ><code title="ui/src/runtime/Api.ts">UI.api</code></a
+      >:</b
+    >
+    URL templates and a newer request replacing an older one, the shape cancelling needs. The REST place uses its
+    behaviour, with no fourth fetch client.
+  </li>
+  <li>
+    <b
+      ><a href="/ui/src/runtime/Sources.ts" target="src-ui-src-runtime-sources-ts"
+        ><code title="ui/src/runtime/Sources.ts">Sources</code></a
+      >:</b
+    >
+    a shared load per URL, a reader's signal aborting only its own wait, and saving with a version check.
+  </li>
+  <li>
+    <b
+      ><a href="/epic/src/tool/EpicParts.ts" target="src-epic-src-tool-epicparts-ts"
+        ><code title="epic/src/tool/EpicParts.ts">EpicParts</code></a
+      >
+      and
+      <a href="/ui/src/elements/LoadableBody.ts" target="src-ui-src-elements-loadablebody-ts"
+        ><code title="ui/src/elements/LoadableBody.ts">LoadableBody</code></a
+      >:</b
+    >
+    a list of summaries, each body in its own file, fetched on open. The chunked files place wraps these.
+  </li>
+  <li>
+    <b
+      ><a href="/parser/src/core/saving.ts" target="src-parser-src-core-saving-ts"
+        ><code title="parser/src/core/saving.ts">Saver and Loader</code></a
+      >:</b
+    >
+    how a thing and its references become entries by type and id. The plug-in point is synchronous today, so it has to
+    learn to wait.
+  </li>
+</ul>
+<p>No GraphQL client exists, so that place is new.</p>
