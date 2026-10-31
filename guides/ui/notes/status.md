@@ -10,6 +10,7 @@ A checklist of every component in [the plan](plan.md):  what's done, in progress
   - `<ui-panel appearance="pane">`, `<ui-menu appearance="segmented header">`, `<ui-menu appearance="header">` (a window bar)
     and `appearance="capsule"`
   - `<ui-menu tabs>`, `<ui-toolbar scroll-first>`
+  - `<ui-split-panel>`, panes in rows or columns
   - `<ui-root app>`, `--ui-control-cursor`, `--ui-control-height`
 
 - **Shared states** (2026-10-09, epic `spell-element` P8):
