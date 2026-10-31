@@ -4,7 +4,9 @@ import { For, Show } from "solid-js"
 import {
   GraphPlace,
   Places,
+  RemotePlace,
   RestPlace,
+  type ListQuery,
   type PendingChanges,
   type Place,
   type PlaceConflict,
@@ -23,6 +25,12 @@ import recipeBoxCSS from "./RecipeBox.css?inline"
 /** Where `scripts/recipe-servers.ts` listens. */
 const SERVERS = "http://127.0.0.1:4791"
 
+/**
+ * The token the demo's place server wants:  a real page has its own server's (`window.SPELL_SERVER.token`), but this
+ * page is served by another one, and that server holds no keys.
+ */
+const DEMO_TOKEN = "recipe-box-demo"
+
 /** How often it asks whether anyone else changed anything, in seconds. */
 const POLL_SECONDS = 5
 
@@ -30,6 +38,7 @@ const POLL_SECONDS = 5
  * Each back-end, by its name:  this much is all that differs, so `back-end="graphql"` is the one line that changes.
  * - REST says versions, so a clash merges per field, with a notice.
  * - GraphQL says none:  the last save wins that field.
+ * - A folder is only reachable through a server side, `RemotePlace`:  it has versions, so a clash merges per field.
  */
 const BACK_ENDS: Record<string, () => Place> = {
   rest: () =>
@@ -38,6 +47,7 @@ const BACK_ENDS: Record<string, () => Place> = {
       collections: { recipes: { fields: { title: "name" } } },
       versions: { field: "version" }
     }),
+  folder: () => new RemotePlace({ url: `${SERVERS}/api/places/recipes`, token: DEMO_TOKEN }),
   graphql: () =>
     new GraphPlace({
       url: `${SERVERS}/graphql`,
@@ -59,7 +69,17 @@ const BACK_ENDS: Record<string, () => Place> = {
 const COLLECTION = "recipes"
 
 /** What the page says it's kept in. */
-const BACK_END_NAMES: Record<string, string> = { rest: "a REST server", graphql: "a GraphQL server" }
+const BACK_END_NAMES: Record<string, string> = {
+  rest: "a REST server",
+  graphql: "a GraphQL server",
+  folder: "a folder of files"
+}
+
+/** What each back-end's read asks for:  a folder's list holds no notes, so it has to say, and that's when its bodies are read. */
+const READ_QUERIES: Record<string, ListQuery> = { folder: { select: ["title", "cuisine", "servings", "notes"] } }
+
+/** Where "someone else" goes, for each back-end.  For a folder, it's the file saved behind the page's back. */
+const ELSEWHERE: Record<string, string> = { folder: "folder" }
 
 /** Something to tell the person, with what they can do about it. */
 type Notice = {
@@ -124,7 +144,8 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     const name = this.backEndName
     const places = new Places({ keepPendingAs: `recipe-box-${name}` }).add(COLLECTION, BACK_ENDS[name]!())
     const pending = places.pendingFor(COLLECTION)
-    const result = places.read({ placeName: COLLECTION, collection: COLLECTION })
+    const query = READ_QUERIES[name]
+    const result = places.read({ placeName: COLLECTION, collection: COLLECTION, ...(query && { query }) })
     this.places = places
     this.pending = pending
     this.result = result
@@ -205,7 +226,8 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
    */
   private async someoneElseRenames(recipe: PlaceRow): Promise<void> {
     const name = this.translationForKey("elsewhere-title", { title: `${recipe.title as string}` })
-    await fetch(`${SERVERS}/someone-else/recipes/${encodeURIComponent(`${recipe.id as string}`)}`, {
+    const where = ELSEWHERE[this.backEndName] ?? "recipes"
+    await fetch(`${SERVERS}/someone-else/${where}/${encodeURIComponent(`${recipe.id as string}`)}`, {
       method: "POST",
       body: JSON.stringify({ name })
     })

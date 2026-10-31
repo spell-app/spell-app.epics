@@ -20,7 +20,7 @@ export const recipeBoxVocabulary = {
       name: "back-end",
       kind: "string",
       default: "rest",
-      description: "Which server keeps them:  `rest` or `graphql`.  The page's address can say too:  `?back-end=graphql`."
+      description: "Which back-end keeps them:  `rest`, `graphql` or `folder`.  The page's address can say too:  `?back-end=graphql`."
     }
   ],
   events: [],
