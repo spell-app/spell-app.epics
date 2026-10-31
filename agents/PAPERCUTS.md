@@ -246,6 +246,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   app's `ts` / `lint` / `test` without the format step. · Fix:  one `yarn format` commit on `main` (snapshots left out
   of it, or ignored). · kit (epic `elemental-spell` P28)
 - 2026-10-29 · `yarn vp fmt --check src tests vite.config.ts ...` (the flag FIRST, then several paths mixing folders and files) says "Expected at least one target file. All matched files may have been excluded by ignore rules." and exits 2, though each path alone checks fine;  `vp fmt --check .` and `vp fmt --check src tests` work. · Put the flag after the paths:  `vp fmt src tests vite.config.ts --check` (the kit's `kit:format:check`, epic's `format:check`;  epic `epic-engine` I156). · kit
+- 2026-10-31 · `yarn lint` in parser/ (6) and app/ (1) fails with `no-redundant-type-constituents`:  `TranslatedType` / `UIVocabulary` "is an 'error' type that acts as 'any'", though the code is fine and `yarn ts` passes;  later it passes again. · The linter's type checker (tsgolint) finds only `tsconfig.json`:  a file only `tsconfig.node.json` includes (`src/cli/` ...) is linted in a program of default settings, which reads `dist-types/`, so missing or stale declarations make its imported types `error`.  Every `lint` now runs `spell-types` first (the kit's `AGENTS.md`, "Imports across repos";  epic `epic-engine` I176). · kit
 
 ## ui
 
