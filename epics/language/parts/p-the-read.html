@@ -1,0 +1,87 @@
+<!-- plan-doc part:  #p-the-read's body in language.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"><code>shuffle the stock</code> is an error: "Don't understand".</epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      <code>shuffle the stock</code> compiles to <code>this.stock.shuffle()</code>, <code>self.stock.shuffle()</code> in
+      Python, in English and Spanish.
+    </li>
+    <li>The lookup order in the Overview: local, then property, then every thing of a type, then an error.</li>
+    <li><a href="#q4">Q4</a>: in a loop, <code>the X</code> is still the action's thing, never the item's.</li>
+    <li><a href="#q3">Q3</a>: a bare <code>stock</code> still reads only variables.</li>
+    <li>
+      A property can be declared below the action reading it:
+      <a
+        href="/app/spaces/@spell/examples/Solitaire/Solitaire.spellml"
+        target="src-app-spaces-spell-examples-solitaire-solitaire-spellml"
+        ><code>Solitaire.spellml</code></a
+      >
+      reads <code>its clubs</code> above its property.
+    </li>
+    <li>
+      Multi-word names work, inherited properties too, and enums keep their lookup:
+      <code>the position of the rank</code> must keep its <code>positionOf(Card.Ranks, ...)</code>.
+    </li>
+    <li>Doc pass: <code>README-spell.md</code> and <code>README-spanish.md</code> name the new form.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>Inside an action, <code>the X</code> reads the property of the thing the action runs on, after any local.</li>
+    <li>One shared way to find that thing, instead of several scope walks.</li>
+  </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      Lift <code>insideOurType()</code> into a helper on the method scope that returns the nearest method with a thing
+      to run on, walking through loops. Move <code>DynamicMethodRule</code> to it, then <code>Send.selfOf()</code> and
+      <code>DrawIt</code> where they mean the same; <code>Send.selfOf()</code> stopping at loops looks like a bug, so
+      test it before moving it, and record it as an issue if so.
+    </li>
+    <li>
+      Add the rule as a sibling of <code>ItsKnownProperty</code>, built on <code>MemberReadExpression</code>, so enums,
+      built-ins and target languages come with it. Not a subclass of <code>KnownVariable</code>, which would make the
+      language server call it a variable.
+    </li>
+    <li>
+      Rank it below the variable rules, and use <code>declaredPrefix()</code> for the longest declared name, with a
+      tie-break test for <code>the short rank</code> beside a local <code>short rank</code>.
+    </li>
+    <li>
+      Make properties known before bodies are read, so order doesn't matter; measure this, because the research didn't.
+    </li>
+    <li>
+      Write <code>{definite_article}?</code> in the new syntax, after checking that
+      <code>Translator.saidArticle()</code> still reads it; if it doesn't, fix the translator for this rule.
+    </li>
+    <li>
+      Trace why the research's prototype lost the enum lookup in <code>the position of the rank</code>. Likely the real
+      rule's use of <code>getMemberAST()</code> covers it; a table row holds it either way.
+    </li>
+    <li>Check with the table, the compare command, the parser's tests and the speed test.</li>
+    <li>
+      Left out: writing (P3), warnings (P4), the language server (P5). Until P5, hover and rename are wrong on
+      <code>the X</code>, so this merges with a limit recorded.
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><a href="/parser/src/spell/rules/properties/" target="src-parser-src-spell-rules-properties"
+    ><code>parser/src/spell/rules/properties/</code></a
+  >
+  (a new rule beside <code>ItsKnownProperty</code>);
+  <a href="/parser/src/parser/scope/" target="src-parser-src-parser-scope"><code>parser/src/parser/scope/</code></a>
+  (the shared helper);
+  <a
+    href="/parser/src/spell/rules/methods/DynamicMethodRule.ts"
+    target="src-parser-src-spell-rules-methods-dynamicmethodrule-ts"
+    ><code>DynamicMethodRule.ts</code></a
+  >,
+  <a href="/parser/src/spell/rules/events/Send.ts" target="src-parser-src-spell-rules-events-send-ts"
+    ><code>Send.ts</code></a
+  >,
+  <a href="/parser/src/spell/rules/classes/DrawIt.ts" target="src-parser-src-spell-rules-classes-drawit-ts"
+    ><code>DrawIt.ts</code></a
+  >; the English and Spanish property rules</epic-field
+><epic-field name="verify"
+  >The table's read rows pass. <code>spell app compare</code> lists no change across the corpus. Today's parser tests
+  pass. <code>SP.spellParser.speedTest()</code> on the diff and on HEAD, both reported.</epic-field
+>
