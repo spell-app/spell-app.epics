@@ -30,11 +30,42 @@
     <li>One heal routine: fetch the latest, replay what's pending.</li>
     <li>Writes go out when the action ends, and cancelling drops them.</li>
   </ul></epic-field
+><epic-field name="choices"
+  ><epic-choices
+    ><epic-option letter="A" title="One small helper, both on it" recommended
+      ><p>
+        The pending changes and <code>DraftSaver</code> both save in order, retry, send as the page goes away, keep a
+        browser copy and word where they stand. DraftSaver sits above util, so its core moves down, as a small
+        <code>SaveQueue</code>, and every page that types keeps working through it.
+      </p>
+      <epic-net-effect
+        ><ul>
+          <li>One way to save and retry, a little more to test in this phase.</li>
+          <li>The epic pages' forms get re-checked.</li>
+        </ul></epic-net-effect
+      ></epic-option
+    ><epic-option letter="B" title="Keep two"
+      ><p>
+        They differ in what they send: a draft's latest whole text, against every change, each with an id that must
+        resend until its outcome is known. Leaving DraftSaver alone touches nothing, and the catalog lists the copy.
+      </p>
+      <epic-net-effect
+        ><ul>
+          <li>No risk to the epic pages, one more copy of save-and-retry to keep in step.</li>
+        </ul></epic-net-effect
+      ></epic-option
+    ></epic-choices
+  ></epic-field
 ><epic-field name="plan"
   ><ol>
     <li>
       <code title="src/util/places/PendingChanges.ts">PendingChanges</code>: per field, each with a change id, in the
-      order made, saved on the device.
+      order made, saved on the device. In-order saving, retry, sending as the page goes away and the browser's copy come
+      from one small helper in util, which
+      <a href="/epic/src/answers/DraftSaver.ts" target="src-epic-src-answers-draftsaver-ts"
+        ><code title="epic/src/answers/DraftSaver.ts">DraftSaver</code></a
+      >
+      moves onto (this phase's choice).
     </li>
     <li>
       Hear writes at
@@ -42,9 +73,11 @@
         ><code title="parser/src/core/core.ts">noteSetting()</code></a
       >
       and list changes at
-      <a href="/parser/src/core/classes/List.ts" target="src-parser-src-core-classes-list-ts"
-        ><code title="parser/src/core/classes/List.ts">writeItems()</code></a
-      >, doing nothing at all for a thing with no place, so no existing program changes.
+      <a href="/parser/src/core/core.ts" target="src-parser-src-core-core-ts"
+        ><code title="parser/src/core/core.ts">noteItems()</code></a
+      >, the two points undo already hears, doing nothing at all for a thing with no place, so no existing program
+      changes. Rows being read and heals are guarded, as the page's <code>isReading</code> does, or they'd queue as
+      writes. Undo's put-back already reaches <code>noteSetting()</code>, so a reversing change needs no second path.
     </li>
     <li>
       Browser-made ids for a new saved thing: read how
@@ -64,8 +97,12 @@
       demand. Reading your own write works because pending changes sit on top of what's read.
     </li>
     <li>
-      Drafts: a draft of a thing keeps its changes apart until it's saved. A failed write raises one event the app shows
-      as a notice.
+      Drafts: a draft of a thing keeps its changes apart until it's saved. A failed write raises one event, shown
+      through core's
+      <a href="/parser/src/core/ui.ts" target="src-parser-src-core-ui-ts"
+        ><code title="parser/src/core/ui.ts">notify</code></a
+      >
+      and Spell UI's toast. A toast's buttons carry only text today, so Retry and Show me need handlers added there.
     </li>
     <li>
       Checked by: tests with a place that refuses, fails and swallows answers; offline then back; undo before and after
@@ -82,10 +119,12 @@
     <li>src/util/persist/UndoStack.ts</li>
     <li>parser/src/core/core.ts</li>
     <li>parser/src/core/places.ts</li>
-    <li>parser/src/core/classes/List.ts</li>
     <li>parser/src/core/classes/Thing.ts</li>
     <li>tests/util/places/</li>
     <li>parser/tests/core/places.test.ts</li>
+    <li>parser/src/core/ui.ts</li>
+    <li>epic/src/answers/DraftSaver.ts</li>
+    <li>src/util/places/SaveQueue.ts (new)</li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
