@@ -24,6 +24,7 @@ import {
   type PlaceThingDeleted,
   type PlaceWriteFailure
 } from "spell/util/places"
+import { useRealPlace, useSample } from "spell/util/places/SamplePlace"
 import { pollWhileVisible } from "spell/util/polling"
 import { E } from "spell/ui/core"
 
@@ -146,6 +147,8 @@ type Notice = {
  * - Every write goes through `PendingChanges`:  shown at once, sent soon, in order.
  * - In a live room nothing polls:  what others do arrives (`PlaceHeal.follow()`), and it can add to a number, move a recipe,
  *   and say when someone deleted what you're changing.
+ * - Use a sample:  editable records in place of the place, with nothing above it changed, and nothing reaching the place
+ *   (`useSample()`).  It's what the editor's side bar will offer, for a read-only or slow place.
  * - A GUIDE-ONLY element:  built into `recipe-box.bundle.js` by `epic/src/tools/bundle-experiment.ts`, on the page's Spell UI.
  ****************/
 export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
@@ -172,13 +175,13 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   @E.state accessor isInTheRoom = false
   /** In a live room:  how the last heal went, in words. */
   @E.state accessor lastHeal = ""
+  /** Is a sample in use? */
+  @E.state accessor isSample = false
 
   /** The list of places:  one here, under the name `recipes`. */
   private places: Places | undefined
   /** The one read. */
   private result: PlaceResult | undefined
-  /** The changes on their way. */
-  private pending: PendingChanges | undefined
   /** How many notices there have been. */
   private noticesMade = 0
   /** What's being said about the last read that failed:  taken back when one works. */
@@ -211,11 +214,9 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     const place = BACK_ENDS[name]!(this.sheetAddress)
     this.canWrite = writeAnswerFor(place, { collection: COLLECTION }).canWrite
     const places = new Places({ keepPendingAs: `recipe-box-${name}` }).add(COLLECTION, place)
-    const pending = places.pendingFor(COLLECTION)
     const query = READ_QUERIES[name]
     const result = places.read({ placeName: COLLECTION, collection: COLLECTION, ...(query && { query }) })
     this.places = places
-    this.pending = pending
     this.result = result
     this.isLive = place.describe().live === "push"
     const stops = [
@@ -224,7 +225,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
       places.onWriteFailed((failure) => this.refused(failure)),
       places.onLost((lost) => this.lost(lost)),
       places.onThingDeleted((deleted) => this.deleted(deleted)),
-      pending.onStateChange(() => (this.saving = pending.queue.text)),
+      () => this.stopHearingSaves?.(),
       ...(place instanceof LiveRoomPlace
         ? [
             places.heal.follow({ placeName: COLLECTION, collection: COLLECTION }),
@@ -233,11 +234,43 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
           ]
         : [pollWhileVisible(POLL_SECONDS, () => this.readAgain())])
     ]
+    this.hearSaves()
     void this.read(result.load())
     return () => {
       stops.forEach((stop) => stop())
       result.leave()
     }
+  }
+
+  /** The changes on their way, for whichever place is behind the name:  a sample's are its own. */
+  private get pending(): PendingChanges {
+    return this.places!.pendingFor(COLLECTION)
+  }
+
+  /** Say where saving stands, for whichever place is behind the name. */
+  private hearSaves(): void {
+    this.stopHearingSaves?.()
+    const { pending } = this
+    this.stopHearingSaves = pending.onStateChange(() => (this.saving = pending.queue.text))
+    this.saving = pending.queue.text
+  }
+  /** Stops `hearSaves()`. */
+  private stopHearingSaves: (() => void) | undefined
+
+  /** A sample in place of the real place, or the real place back:  nothing above this line knows. */
+  private async toggleSample(): Promise<void> {
+    const places = this.places!
+    if (this.isSample) await useRealPlace(places, COLLECTION)
+    else await useSample(places, COLLECTION)
+    const place = places.placeForOrDie(COLLECTION)
+    this.isSample = !!place.describe().isSample
+    this.canWrite = writeAnswerFor(place, { collection: COLLECTION }).canWrite
+    this.isLive = place.describe().live === "push"
+    this.hearSaves()
+    const { contents, notes, loadError } = this.result!
+    this.recipes = contents ?? []
+    this.notes = notes
+    if (loadError) this.readFailed(loadError)
   }
 
   /** Ask the place again:  a poll. */
@@ -309,7 +342,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   private setField(recipe: PlaceRow, field: string, value: unknown): void {
     const was = recipe[field]
     if (value === was) return
-    this.pending!.setField({ collection: COLLECTION, id: `${recipe.id as string}`, field, value, was })
+    this.pending.setField({ collection: COLLECTION, id: `${recipe.id as string}`, field, value, was })
   }
 
   /** Add what's been typed, under an id made here, at the end of the list if it's a room. */
@@ -318,7 +351,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     if (!title) return
     const id = `r-${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`
     const place = this.isLive ? { [PLACE_FIELD]: this.placeBetween(this.shownRecipes.at(-1)) } : {}
-    this.pending!.insert({
+    this.pending.insert({
       collection: COLLECTION,
       id,
       fields: { title, cuisine: "", servings: 2, notes: "", ...place }
@@ -343,7 +376,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   /** One more serving, as an addition:  two people pressing it both count. */
   private addServing(recipe: PlaceRow): void {
     const id = `${recipe.id as string}`
-    this.pending!.addToField({
+    this.pending.addToField({
       collection: COLLECTION,
       id,
       field: "servings",
@@ -362,7 +395,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   /** It's gone, at once. */
   private removeRecipe(recipe: PlaceRow): void {
     this.recipes = this.recipes.filter((other) => other !== recipe)
-    this.pending!.delete({ collection: COLLECTION, id: `${recipe.id as string}` })
+    this.pending.delete({ collection: COLLECTION, id: `${recipe.id as string}` })
   }
 
   /**
@@ -439,7 +472,20 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
           <Show when={this.canWrite} fallback={<ui-label size="small">{this.translationForKey("read-only")}</ui-label>}>
             <output>{this.saving}</output>
           </Show>
+          <ui-button
+            size="small"
+            appearance="basic"
+            part={this.partForName("sample")}
+            onClick={() => void this.toggleSample()}
+          >
+            {this.translationForKey(this.isSample ? "use-real" : "use-sample")}
+          </ui-button>
         </div>
+        <Show when={this.isSample}>
+          <ui-message size="small" color="blue" part={this.partForName("using-sample")}>
+            {this.translationForKey("using-sample", { backEnd: BACK_END_NAMES[this.backEndName]! })}
+          </ui-message>
+        </Show>
         <Show when={this.isLive}>
           <div class="bar room">
             <span part={this.partForName("connection")}>
@@ -479,9 +525,18 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
           </form>
         </Show>
         <div class="recipes">
-          <For each={this.shownRecipes} keyed={(recipe: PlaceRow) => recipe.id ?? recipe}>
-            {(recipe) => (this.canWrite ? this.recipe(recipe) : this.recipeToRead(recipe))}
-          </For>
+          <Show
+            when={this.canWrite}
+            fallback={
+              <For each={this.shownRecipes} keyed={(recipe: PlaceRow) => recipe.id ?? recipe}>
+                {(recipe) => this.recipeToRead(recipe)}
+              </For>
+            }
+          >
+            <For each={this.shownRecipes} keyed={(recipe: PlaceRow) => recipe.id ?? recipe}>
+              {(recipe) => this.recipe(recipe)}
+            </For>
+          </Show>
         </div>
       </div>
     )
@@ -517,7 +572,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
               {this.translationForKey("one-more")}
             </ui-button>
           </Show>
-          <Show when={HAS_SOMEONE_ELSE.has(this.backEndName)}>
+          <Show when={HAS_SOMEONE_ELSE.has(this.backEndName) && !this.isSample}>
             <ui-button size="small" appearance="basic" onClick={() => void this.someoneElseRenames(recipe())}>
               {this.translationForKey("elsewhere")}
             </ui-button>

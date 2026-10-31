@@ -36,10 +36,19 @@ export const recipeBoxVocabulary = {
     { name: "box", description: "The whole box." },
     { name: "recipe", description: "One recipe." },
     { name: "note", description: "What the read said about its rows." },
-    { name: "connection", description: "In a live room:  whether it's connected, and its last heal." }
+    { name: "connection", description: "In a live room:  whether it's connected, and its last heal." },
+    { name: "sample", description: "The switch between a sample and the real place." },
+    { name: "using-sample", description: "What's said while a sample is in use." }
   ],
   states: [],
   texts: [
+    { key: "use-sample", text: "Use a sample", description: "Swaps in editable records, for the real place." },
+    { key: "use-real", text: "Use the real place", description: "Puts the real place back." },
+    {
+      key: "using-sample",
+      text: "Using a sample.  What you change stays in this browser, and never reaches {backEnd}.",
+      description: "A sample is in use."
+    },
     { key: "up", text: "Up", description: "Moves a recipe up the list, in a live room." },
     { key: "down", text: "Down", description: "Moves a recipe down the list, in a live room." },
     {
