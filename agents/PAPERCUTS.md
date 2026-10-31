@@ -1908,3 +1908,6 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   ports, from a worktree.  (epic elemental-spell;  kit `spell app serve` / spaces' `EditorServer`)
 - 2026-10-31 · `epic inbox listen <name>`, which the /epic skill's "3. Plan" step 4 names, fails with "no epic page for
   'listen'":  no such verb.  `epic inbox wait <name>` alone works.  The skill should drop it.  (epic editor)
+- 2026-10-31 · An epic page in its `phases` stage hides Judgement Calls, though agents write calls then, and "Accept Phases" asks
+  the person to accept plans those calls shaped:  Owen couldn't see J1-J13, one of them red.  Fix so far:  list them in chat.
+  (epic data;  `PageStages`, `<epic-section>`'s `:state(offstage)`)
