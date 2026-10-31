@@ -2,9 +2,15 @@
 
 A checklist of every component in [the plan](plan.md):  what's done, in progress, deferred.
 - Kept up to date as work lands ([ui's AGENTS.md](/guides/ui/AGENTS.md)).
-- Last updated 2026-10-25.
+- Last updated 2026-10-31.
 
 ## Working on now
+
+- **The app's look** (2026-10-31, epic `editor`):
+  - `<ui-panel appearance="pane">`, `<ui-menu appearance="segmented header">`, `<ui-menu appearance="header">` (a window bar)
+    and `appearance="capsule"`
+  - `<ui-menu tabs>`, `<ui-toolbar scroll-first>`
+  - `<ui-root app>`, `--ui-control-cursor`, `--ui-control-height`
 
 - **Shared states** (2026-10-09, epic `spell-element` P8):
   every element takes them, though its vocabulary never names them.
