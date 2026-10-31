@@ -1792,6 +1792,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   checkout's `bin/spell.mjs`, so the page server ran main's server code over the worktree's routes. · Stop
   them and start with the worktree's own CLI, `node bin/spell.mjs server start all`, from the worktree's root:
   its own ports, and the API answers. · server
+- 2026-10-31 · `spell server start all` in a worktree 22 commits behind `main`:  every API call failed with
+  "handler is not a function", main's router mixed with the worktree's routes.  Fix:  `node bin/spell.mjs server start all`
+  from the worktree, or merge `main` first.  (epic editor;  the `spell` link runs main's CLI)
 
 ## brand
 
@@ -1903,3 +1906,5 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   4747 server and its :3000 editor stopped, and the worktree's served in their place, for every session.  Fix:
   `spell server stop` in the worktree, `spell server start` at `~/www/spell`.  It should refuse, or serve on its own
   ports, from a worktree.  (epic elemental-spell;  kit `spell app serve` / spaces' `EditorServer`)
+- 2026-10-31 · `epic inbox listen <name>`, which the /epic skill's "3. Plan" step 4 names, fails with "no epic page for
+  'listen'":  no such verb.  `epic inbox wait <name>` alone works.  The skill should drop it.  (epic editor)
