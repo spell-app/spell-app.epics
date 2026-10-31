@@ -1086,6 +1086,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   `yarn build:element` in packages/app;  grep the bundle for a new core function to check it's current
   (`grep -c withoutCreate dist-element/spell-runtime.js`).  Better:  `spell run` warns when the bundle is older than
   core's source. · app (outline-spell P25)
+- 2026-10-31 · After merging main, 9 `recipeBox.test.ts` failures (a locator timing out):  the test runs against `app/dist-element`, which a merge leaves stale.  Fix:  `yarn build:element` in app.  (epic editor)
 
 ## cli
 
