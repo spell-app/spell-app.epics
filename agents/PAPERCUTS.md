@@ -1911,3 +1911,5 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-31 · An epic page in its `phases` stage hides Judgement Calls, though agents write calls then, and "Accept Phases" asks
   the person to accept plans those calls shaped:  Owen couldn't see J1-J13, one of them red.  Fix so far:  list them in chat.
   (epic data;  `PageStages`, `<epic-section>`'s `:state(offstage)`)
+
+- 2026-10-31 · app:  `Expectations.test.ts`, "quick enough for every keystroke", fails under a full run's load · not a regression:  on a run's first pass the code before epic `language` takes 2.37 msec a call and after it 2.40, against a 2 msec limit (later passes ~0.62, quiet ~0.41 both);  the limit is on a cold start.  Run it alone. · spell-parser / app
