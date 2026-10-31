@@ -1,0 +1,125 @@
+<!-- plan-doc part:  #o9's body in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  The editor's side bar shows values that come from data, and epic <code>editor</code> asked three things of this epic
+  (request r1). All three fit the Overview, but nothing here is built.
+</p>
+<ul>
+  <li>
+    <b>Already decided:</b> Owen's two side-bar behaviours (<epic-link epic="editor" item="Q12"></epic-link>), live
+    editing (<a href="#q9">Q9</a>), and writes sent when an action ends (<a href="#q8">Q8</a>).
+  </li>
+  <li><b>Proposed here:</b> everything else in this section, the word "sample" and the shape of each call.</li>
+  <li><b>Order:</b> the phases will carry all three once they're written (<a href="#q12">Q12</a>).</li>
+</ul>
+<h4 id="o9-sample">1. Swapping in a sample</h4>
+<p>
+  Yes: a SAMPLE is one more place behind the same interface, swapped in while designing, and the line that declares the
+  real place doesn't change.
+</p>
+<epic-code title="What the swap leaves alone · 3 lines" language="spell">
+  <pre>
+## Still in the program, untouched, with a sample in use
+family cookbook is a web service at "https://api.example.com/v1"
+## The side bar shows:  family cookbook · Using a sample</pre>
+</epic-code>
+<ul>
+  <li>
+    <b>The word:</b> "sample" is free in Spell's words, the catalog and the parser's rules. People only see it in the
+    side bar, so the language gains no word.
+  </li>
+  <li>
+    <b>Where its records live:</b> in a design-time setting of the project, never a line of the program. A built app
+    leaves it out, so it can't ship.
+  </li>
+  <li><b>Its first records:</b> a few from the real place when it can be reached, else made from the type.</li>
+  <li><b>Real data stays local:</b> records copied from a real place stay out of git (<a href="#j2">J2</a>).</li>
+  <li><b>Writing:</b> a sample is always writable, whatever the real place allows, and never touches it.</li>
+  <li><b>Work:</b> the Places engine holds the swap; the editor draws its switch.</li>
+</ul>
+<h4 id="o9-origin">2. Asking where a value came from</h4>
+<p>
+  The editor asks about a thing and one property, because whether a value can be changed can differ by field (Airtable)
+  and by owner (AT Protocol).
+</p>
+<epic-code title="The call, a sketch · 17 lines" language="ts">
+  <pre>
+Places.originOf(recipe, "title")
+// A saved value:
+{
+  place: "family cookbook", kind: "web service", collection: "recipes", key: "r-12",
+  canWrite: false, whyNot: "owner",   // or "place", "field"
+  isSample: false,
+  declaredAt: { path: "RecipeBox.spell", start: 412, end: 470 }
+}
+
+Places.originOf(recipeBox, "matches")
+// A worked-out value has no one place:
+{
+  workedOut: true, canWrite: false,
+  readsFrom: ["family cookbook"],
+  declaredAt: { path: "RecipeBox.spell", start: 588, end: 660 }
+}
+// Not from any place, such as the app's own search:  undefined</pre>
+</epic-code>
+<ul>
+  <li>
+    <b>A worked-out value:</b> it answers read only, with the places it read and the line that works it out. The
+    reactive cells already record who read what.
+  </li>
+  <li>
+    <b>Which line:</b> no run-time call gives this today.
+    <ul>
+      <li>
+        The compiler knows each declaration's file and characters (<a
+          href="/parser/src/parser/rules/rules.types.ts"
+          target="src-parser-src-parser-rules-rules-types-ts"
+          ><code title="parser/src/parser/rules/rules.types.ts">DeclaredAt</code></a
+        >).
+      </li>
+      <li>The language server's definition lookup needs a position in a file, not a running value.</li>
+      <li>
+        The run-time property info holds no source place, and
+        <a href="/parser/src/parser/writers/SourceMarks.ts" target="src-parser-src-parser-writers-sourcemarks-ts"
+          ><code title="parser/src/parser/writers/SourceMarks.ts">SourceMarks</code></a
+        >
+        maps statements for debuggers.
+      </li>
+      <li>
+        So the compiler would write it down for each saved type and property, in design builds only (<a href="#j3">J3</a
+        >).
+      </li>
+    </ul>
+  </li>
+  <li><b>A hint, not a promise:</b> <code>canWrite</code> says what's known, and a place can still refuse.</li>
+  <li>
+    <b>Work:</b> the Places engine answers the place and writability; the compiler's gathering pass supplies the line.
+  </li>
+</ul>
+<h4 id="o9-write">3. The path a write takes</h4>
+<p>
+  A side-bar edit of a data value is a plain set of the property, the program's own path. It isn't a source edit,
+  because the program's text only says where the data lives.
+</p>
+<ol>
+  <li>The editor sets the property inside one undoable step, titled for the field.</li>
+  <li>
+    The set reaches
+    <a href="/parser/src/core/core.ts" target="src-parser-src-core-core-ts"
+      ><code title="parser/src/core/core.ts">noteSetting()</code></a
+    >, the one place every property write is already noted. The undo history records it there.
+  </li>
+  <li>The Places engine would hear of it at that same point, as a pending change (not built).</li>
+  <li>
+    The step ends when the edit does, so the change goes out then, under <a href="#q8">Q8</a> (<a href="#j4">J4</a>).
+  </li>
+  <li>⌘Z undoes it as one step: unsent, it's dropped; sent, a reversing change goes out.</li>
+</ol>
+<ul>
+  <li>
+    <b>A read-only value:</b> the field is read only and names its place and why, with a link to the declaring line and
+    an offer to use a sample.
+  </li>
+  <li><b>If the place refuses anyway:</b> the value heals back to the place's copy, with a notice.</li>
+  <li><b>A sample:</b> the same path, ending at the sample's records.</li>
+  <li><b>Work:</b> the Places engine.</li>
+</ul>
