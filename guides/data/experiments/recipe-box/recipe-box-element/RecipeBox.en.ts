@@ -21,7 +21,7 @@ export const recipeBoxVocabulary = {
       kind: "string",
       default: "rest",
       description:
-        "Which back-end keeps them:  `rest`, `graphql`, `graphql-apart`, `folder`, `room`, `sheet`, `sheet-no-id`, `device` or `google-sheet`.  The page's address can say too:  `?back-end=graphql`."
+        "Which back-end keeps them:  `rest`, `graphql`, `folder`, `room`, `sheet`, `sheet-no-id`, `device` or `google-sheet`.  The page's address can say too:  `?back-end=graphql`."
     },
     {
       name: "sheet",
@@ -85,8 +85,6 @@ export const recipeBoxVocabulary = {
     { key: "new-title", text: "A new recipe's title", description: "The box to name a new recipe in." },
     { key: "add", text: "Add recipe", description: "Adds the new recipe." },
     { key: "remove", text: "Remove", description: "Removes a recipe." },
-    { key: "elsewhere", text: "Someone else renames it", description: "A second person, for trying a clash." },
-    { key: "elsewhere-title", text: "{title} (from elsewhere)", description: "What that second person renames it to." },
     { key: "stored-in", text: "Kept in {backEnd}.", description: "Which server it's reading." },
     { key: "use-theirs", text: "Use theirs", description: "Puts their value back." },
     { key: "retry", text: "Retry", description: "Tries a refused change again." },

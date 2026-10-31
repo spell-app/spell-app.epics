@@ -49,10 +49,11 @@ const POLL_SECONDS = 5
  * Each back-end, by its name:  this much is all that differs, so `back-end="graphql"` is the one line that changes.
  * - REST says versions, so a clash merges per field, with a notice.
  * - GraphQL says none:  the last save wins that field.
- *   - `graphql` has the same recipes as `rest`;  `graphql-apart` has its own, for showing back-ends that share nothing.
+ *   - Both are one CSV file on the servers, so `graphql` has the same recipes as `rest`.
  * - A folder is only reachable through a server side, `RemotePlace`:  it has versions, so a clash merges per field.
- * - A sheet is a CSV file at an address (`sheet`), read only, with no server of ours:  this page's own, or a Google Sheet
- *   shared with "anyone with the link".
+ *   - A live room's referee keeps its recipes in that same folder.
+ * - A sheet is a CSV file at an address (`sheet`), read only, with no server of ours:  this page's own, a Google Sheet
+ *   shared with "anyone with the link", or the servers' own file, which REST can write and it can't.
  *   - `sheet-no-id`:  the same file, with nothing saying which row is which.
  * - A Google Sheet to write to goes through a server side, which holds its key:  the last save wins each cell.
  * - This device needs no server, and only this browser ever sees them.
@@ -75,27 +76,22 @@ const BACK_ENDS: Record<string, (sheet: string) => Place> = {
     }),
   folder: () => new RemotePlace({ url: `${SERVERS}/api/places/recipes`, token: DEMO_TOKEN }),
   room: () => new LiveRoomPlace({ url: `${SERVERS}/api/rooms/recipes`, token: DEMO_TOKEN }),
-  graphql: () => graphPlaceAt(`${SERVERS}/graphql`),
-  "graphql-apart": () => graphPlaceAt(`${SERVERS}/apart/graphql`),
-  device: () => new DevicePlace({ wholeRows: true })
-}
-
-/** The GraphQL service at `url`:  its fields and its mutations are the same at every address. */
-function graphPlaceAt(url: string): Place {
-  return new GraphPlace({
-    url,
-    collections: {
-      recipes: {
-        list: "recipes",
-        one: "recipe",
-        paging: "connection",
-        fields: ["id", "title: name", "cuisine", "servings", "notes"],
-        insert: { mutation: "addRecipe", input: "RecipeInput!" },
-        update: { mutation: "changeRecipe", id: "ID!", input: "RecipePatch!" },
-        delete: { mutation: "removeRecipe", id: "ID!" }
+  graphql: () =>
+    new GraphPlace({
+      url: `${SERVERS}/graphql`,
+      collections: {
+        recipes: {
+          list: "recipes",
+          one: "recipe",
+          paging: "connection",
+          fields: ["id", "title: name", "cuisine", "servings", "notes"],
+          insert: { mutation: "addRecipe", input: "RecipeInput!" },
+          update: { mutation: "changeRecipe", id: "ID!", input: "RecipePatch!" },
+          delete: { mutation: "removeRecipe", id: "ID!" }
+        }
       }
-    }
-  })
+    }),
+  device: () => new DevicePlace({ wholeRows: true })
 }
 
 /** The one collection it shows. */
@@ -109,12 +105,11 @@ const THE_BOX = "box"
 
 /** What the page says it's kept in. */
 const BACK_END_NAMES: Record<string, string> = {
-  rest: "a REST server",
-  graphql: "a GraphQL server",
-  "graphql-apart": "a GraphQL server, with recipes of its own",
+  rest: "a CSV file, through REST",
+  graphql: "a CSV file, through GraphQL",
   device: "this browser",
   folder: "a folder of files",
-  room: "a live room",
+  room: "a folder of files, through a live room",
   sheet: "a CSV file",
   "sheet-no-id": "a CSV file, with no id column",
   "google-sheet": "a Google Sheet"
@@ -124,16 +119,10 @@ const BACK_END_NAMES: Record<string, string> = {
 const SHEET_FILE = "recipes.csv"
 
 /** What needs `scripts/recipe-servers.ts` running:  a CSV file doesn't. */
-const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "graphql-apart", "folder", "google-sheet", "room"])
-
-/** Where the "someone else" button has somewhere to go:  for a Google Sheet, someone else is you, in Google's own page. */
-const HAS_SOMEONE_ELSE = new Set(["rest", "graphql", "folder"])
+const NEEDS_THE_SERVERS = new Set(["rest", "graphql", "folder", "google-sheet", "room"])
 
 /** What each back-end's read asks for:  a folder's list holds no notes, so it has to say, and that's when its bodies are read. */
 const READ_QUERIES: Record<string, ListQuery> = { folder: { select: ["title", "cuisine", "servings", "notes"] } }
-
-/** Where "someone else" goes, for each back-end.  For a folder, it's the file saved behind the page's back. */
-const ELSEWHERE: Record<string, string> = { folder: "folder" }
 
 /** Something to tell the person, with what they can do about it. */
 type Notice = {
@@ -210,6 +199,11 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     return named in BACK_ENDS ? named : "rest"
   }
 
+  /** How often it asks again, in seconds:  the page's address can say, as frames side by side want it sooner. */
+  private get pollSeconds(): number {
+    return Number(new URLSearchParams(location.search).get("poll")) || POLL_SECONDS
+  }
+
   /** The CSV file a sheet reads:  the page's address says, else `sheet`, else the one beside this page. */
   private get sheetAddress(): string {
     const named = new URLSearchParams(location.search).get("sheet") ?? this.sheet ?? SHEET_FILE
@@ -245,7 +239,7 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
             place.onConnection((isConnected) => this.connectionChanged(place, isConnected)),
             () => place.close()
           ]
-        : [pollWhileVisible(POLL_SECONDS, () => this.readAgain())])
+        : [pollWhileVisible(this.pollSeconds, () => this.readAgain())])
     ]
     this.hearSaves()
     void this.read(result.load())
@@ -308,7 +302,8 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
 
   /** Say why a read failed, in place of why the last one did:  a place's own words, or "start the servers". */
   private readFailed(error: unknown): void {
-    const needsServers = NEEDS_THE_SERVERS.has(this.backEndName) && !(error instanceof PlaceError)
+    const onTheServers = NEEDS_THE_SERVERS.has(this.backEndName) || this.sheetAddress.startsWith(SERVERS)
+    const needsServers = onTheServers && !(error instanceof PlaceError)
     const why = `${(error as Error).message}`
     const failure = needsServers ? this.translationForKey("no-server") : this.translationForKey("cant-read", { why })
     this.notices = this.notices.filter(({ text }) => text !== this.readFailure)
@@ -410,19 +405,6 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
   private removeRecipe(recipe: PlaceRow): void {
     this.recipes = this.recipes.filter((other) => other !== recipe)
     this.pending.delete({ collection: COLLECTION, id: `${recipe.id as string}` })
-  }
-
-  /**
-   * A second person renames it, right now, behind this page's back:  for trying a clash.
-   * - Straight to the server:  so it's as if it came from another window.
-   */
-  private async someoneElseRenames(recipe: PlaceRow): Promise<void> {
-    const name = this.translationForKey("elsewhere-title", { title: `${recipe.title as string}` })
-    const where = ELSEWHERE[this.backEndName] ?? "recipes"
-    await fetch(`${SERVERS}/someone-else/${where}/${encodeURIComponent(`${recipe.id as string}`)}`, {
-      method: "POST",
-      body: JSON.stringify({ name })
-    })
   }
 
   ////////////////
@@ -561,7 +543,11 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     )
   }
 
-  /** One recipe:  each field a box to change it in.  `recipe` is an accessor:  the same box stays as it changes. */
+  /**
+   * One recipe:  each field a box to change it in.  `recipe` is an accessor:  the same box stays as it changes.
+   * - Its title on a line, with what a room can do to it;  its servings and notes on the next:  so more of them fit in a frame.
+   * - Remove is an `x` on the card's corner:  never in reach of the line a person is typing on.
+   */
   private recipe(recipe: () => PlaceRow): JSX.Element {
     const field = (name: string, key: "title" | "servings" | "notes", type = "text") => (
       <ui-input
@@ -576,30 +562,33 @@ export class RecipeBox extends E.UIComponent<typeof recipeBoxVocabulary> {
     )
     return (
       <div class="recipe" part={this.partForName("recipe")} data-id={`${recipe().id as string}`}>
-        {field("title", "title")}
+        <ui-button
+          class="remove"
+          part={this.partForName("remove")}
+          size="mini"
+          icon="close"
+          title={this.translationForKey("remove")}
+          aria-label={this.translationForKey("remove")}
+          onClick={() => this.removeRecipe(recipe())}
+        />
+        <div class="title-line">
+          {field("title", "title")}
+          <Show when={this.isLive}>
+            <div class="actions">
+              <ui-button size="small" appearance="basic" onClick={() => this.move(recipe(), -1)}>
+                {this.translationForKey("up")}
+              </ui-button>
+              <ui-button size="small" appearance="basic" onClick={() => this.move(recipe(), 1)}>
+                {this.translationForKey("down")}
+              </ui-button>
+              <ui-button size="small" appearance="basic" onClick={() => this.addServing(recipe())}>
+                {this.translationForKey("one-more")}
+              </ui-button>
+            </div>
+          </Show>
+        </div>
         {field("servings", "servings", "number")}
         {field("notes", "notes")}
-        <div class="actions">
-          <Show when={this.isLive}>
-            <ui-button size="small" appearance="basic" onClick={() => this.move(recipe(), -1)}>
-              {this.translationForKey("up")}
-            </ui-button>
-            <ui-button size="small" appearance="basic" onClick={() => this.move(recipe(), 1)}>
-              {this.translationForKey("down")}
-            </ui-button>
-            <ui-button size="small" appearance="basic" onClick={() => this.addServing(recipe())}>
-              {this.translationForKey("one-more")}
-            </ui-button>
-          </Show>
-          <Show when={HAS_SOMEONE_ELSE.has(this.backEndName) && !this.isSample}>
-            <ui-button size="small" appearance="basic" onClick={() => void this.someoneElseRenames(recipe())}>
-              {this.translationForKey("elsewhere")}
-            </ui-button>
-          </Show>
-          <ui-button size="small" appearance="basic" onClick={() => this.removeRecipe(recipe())}>
-            {this.translationForKey("remove")}
-          </ui-button>
-        </div>
       </div>
     )
   }
