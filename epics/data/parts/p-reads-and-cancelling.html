@@ -1,0 +1,76 @@
+<!-- plan-doc part:  #p-reads-and-cancelling's body in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Nothing stops a read when nobody wants it any more, and a place that can't filter has no safe fallback.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>Two parts reading one list share one request.</li>
+    <li>
+      Moving to another page aborts what only that page was reading, and a search as you type lets the newest win.
+    </li>
+    <li>
+      A place with no filter still answers a filtered read, by loading pages in the browser, up to a limit, then a clear
+      error.
+    </li>
+    <li>Things come back as real Things, one object per id, so what draws them redraws.</li>
+    <li>
+      Try it: nothing to see yet. The tests show a read aborted by leaving, shared by two readers, and stopped at the
+      ceiling.
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>A read lasts as long as something shows it, and the last reader leaving aborts it.</li>
+    <li>What a place can't do, the engine does, up to a ceiling.</li>
+  </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <code title="src/util/places/PlaceReads.ts">PlaceReads</code>: counted sharing per collection and query, each read
+      with its own abort controller, the last reader leaving aborts it, and about ten released results kept for a quick
+      return. Check
+      <a href="/ui/src/util/LoadOnce.ts" target="src-ui-src-util-loadonce-ts"
+        ><code title="ui/src/util/LoadOnce.ts">LoadOnce</code></a
+      >
+      first: it sits above util, so move it down if it fits, and don't write a second one.
+    </li>
+    <li>
+      <code title="src/util/places/PlaceQuery.ts">PlaceQuery</code>: what the place didn't handle is filtered, sorted or
+      sliced here, with a ceiling in rows and bytes that ends in a thrown error naming the place.
+    </li>
+    <li>Newest wins for a read given a key, the shape Spell UI's request helper already has.</li>
+    <li>
+      <code title="parser/src/core/places.ts">places.ts</code> in core: rows into Things. Rows land in the cache first,
+      then the existing
+      <a href="/parser/src/core/saving.ts" target="src-parser-src-core-saving-ts"
+        ><code title="parser/src/core/saving.ts">Loader</code></a
+      >
+      reads them, so it can stay synchronous (J11).
+    </li>
+    <li>A read inside a memo aborts through <code>onCleanup()</code>, as the Overview's Solid check found.</li>
+    <li>
+      Checked by: tests for sharing, abort on leaving, newest wins, the ceiling, and one Thing per id, against the
+      memory place with a slow wrapper.
+    </li>
+    <li>
+      Left out: writes; live updates; how this behaves across thousands of things, which is measured in Gathering Reads.
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>src/util/places/PlaceReads.ts (new)</li>
+    <li>src/util/places/PlaceQuery.ts (new)</li>
+    <li>ui/src/util/LoadOnce.ts</li>
+    <li>parser/src/core/places.ts (new)</li>
+    <li>parser/src/core/saving.ts</li>
+    <li>tests/util/places/</li>
+    <li>parser/tests/core/places.test.ts (new)</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>yarn vp test run --project util</li>
+    <li>cd parser &amp;&amp; yarn test</li>
+    <li>A test on the repo's Solid: a read made inside a memo aborts when its input changes</li>
+  </ul></epic-field
+>

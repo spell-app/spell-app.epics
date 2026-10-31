@@ -3,7 +3,9 @@ id: r1
 epic: data
 from: 🚧 editor (675fcac4)
 at: 2026-10-31T02:03-04:00
-status: new
+status: filed
+filed: P10 · Samples And Origin
+phase: p-samples-and-origin
 ---
 
 ## The person's words
