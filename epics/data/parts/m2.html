@@ -1,12 +1,86 @@
 <!-- plan-doc part:  #m2's details in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field label="Step"
   ><p>
-    In a browser, open the recipe box demo, with a personal access token in the place server's environment and the one
-    line pointing at your base, using the commands this phase's notes give. Edit one record in Airtable, and another in
-    the demo.
-  </p></epic-field
+    <b>Needs:</b> an Airtable account (the free plan is enough for this test, but it stops at 1,000 requests a month,
+    and each poll is one, so stop the servers when you're done). This costs a few hundred requests at most.
+  </p>
+  <ol>
+    <li>
+      In a browser, at airtable.com, make a new base. Name its table <code>Recipes</code>, with these columns, spelled
+      exactly: <code>Spell id</code> (single line text), <code>Title</code> (single line text),
+      <code>Cuisine</code> (single line text), <code>Servings</code> (number), <code>Notes</code> (long text), and
+      <code>Note length</code> (formula: <code>LEN({Notes})</code>). Add one row by hand with a title, and nothing in
+      <code>Spell id</code>.
+    </li>
+    <li>Copy the base's id from its address: the part starting <code>app</code>.</li>
+    <li>
+      At <a href="https://airtable.com/create/tokens" target="ext-airtable-tokens">airtable.com/create/tokens</a>, make
+      a personal access token, with the scopes <code>data.records:read</code>, <code>data.records:write</code> and
+      <code>schema.bases:read</code>, and that base added to it. Copy it.
+    </li>
+    <li>
+      Press <b>Stop</b> on the demo page if its servers are running. In VS Code, in window <b>⎇ data</b>, menu Terminal,
+      New Terminal, run, with your two in place of the capitals:
+      <pre><code>AIRTABLE_BASE=appYOURBASE AIRTABLE_KEY=patYOURTOKEN yarn tsx scripts/recipe-servers.ts</code></pre>
+      It should print <code>your Airtable base appYOURBASE is on /api/places/airtable</code>.
+    </li>
+    <li>
+      In the same window, in a second terminal, run
+      <pre><code>spell server url</code></pre>
+      then in Chrome open that address followed by
+      <a
+        class="epic-test-action"
+        href="/guides/data/experiments/recipe-box/recipe-box.html?back-end=airtable"
+        target="src-guides-data-experiments-recipe-box"
+        >/guides/data/experiments/recipe-box/recipe-box.html?back-end=airtable</a
+      >. Press Command-Option-I for its network tab.
+    </li>
+    <li>Your hand-made row shows. In the demo, add a recipe, then change its title.</li>
+    <li>
+      In Airtable, change that recipe's title; clear another row's <code>Notes</code>; add a row. Wait 10 seconds.
+    </li>
+    <li>
+      Have the same recipe open in the demo and in Airtable, and change one title in both, within a second or two.
+    </li>
+    <li>
+      In the demo's network tab, filter by <code>pat</code>. Then, in the terminal:
+      <pre><code>curl -s -X PATCH "https://api.airtable.com/v0/appYOURBASE/Recipes" -H "Authorization: Bearer patYOURTOKEN" -H "Content-Type: application/json" -d '{"records":[{"id":"recNOPENOPENOPENO","fields":{"Title":"x"}}]}'
+curl -s -X PATCH "https://api.airtable.com/v0/appYOURBASE/Recipes" -H "Authorization: Bearer patYOURTOKEN" -H "Content-Type: application/json" -d '{"records":[{"id":"recA_REAL_RECORD_ID","fields":{"Note length":3}}]}'</code></pre>
+      with a real record's id, from its row's expanded address, in the second. Keep what each answers.
+    </li>
+    <li><b>Stop the servers</b> with Ctrl-C in their terminal, and revoke the token if you won't use it again.</li>
+  </ol></epic-field
 ><epic-field label="Should"
+  ><ul>
+    <li>Your hand-made row shows, and can be changed: its <code>Spell id</code> stays empty.</li>
+    <li>A recipe added in the demo has a new row in Airtable, with an id in <code>Spell id</code>.</li>
+    <li>
+      Each edit reaches the other side within about 10 seconds, the cleared notes clear in the demo, and the new row
+      appears.
+    </li>
+    <li>The two title edits end as whichever saved last, the same on both sides, and nobody is told.</li>
+    <li>The network filter finds nothing: the page never holds the token.</li>
+    <li>The servers' terminal shows no 429.</li>
+  </ul></epic-field
+><epic-field label="If not"
   ><p>
-    Each edit reaches the other side within about 10 seconds, and the browser's network log never shows the token.
+    Paste what the two <code>curl</code> commands answered, whichever way this goes: the stub guesses both
+    (<code>ROW_DOES_NOT_EXIST</code>, and a message with "computed" in it). The place finds a refused field by those
+    words, so a different wording means a change there. Also say which edit didn't arrive, and what the terminal
+    printed.
   </p></epic-field
+><epic-original
+  ><epic-version
+    ><epic-field label="Step"
+      ><p>
+        In a browser, open the recipe box demo, with a personal access token in the place server's environment and the
+        one line pointing at your base, using the commands this phase's notes give. Edit one record in Airtable, and
+        another in the demo.
+      </p></epic-field
+    ><epic-field label="Should"
+      ><p>
+        Each edit reaches the other side within about 10 seconds, and the browser's network log never shows the token.
+      </p></epic-field
+    ></epic-version
+  ></epic-original
 >
