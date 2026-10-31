@@ -1733,6 +1733,9 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 
 ## server
 
+- 2026-10-31 · `spell server start all` in a worktree started a page server mixing main's `Router.ts` with the worktree's
+  routes:  every `/api/...` answered 500, "handler is not a function", and the editor showed that as a red card.  `spell`
+  on the `PATH` runs the MAIN checkout's CLI. · From a worktree, `node bin/spell.mjs server stop all`, then `start all`. · data
 - 2026-10-04 · A brand page framing eleven served pages (`Design System.spell.html`'s live thumbnails) never
   finished loading:  every `<ui-*>` stayed undefined, Playwright's `load` / `networkidle` timed out (on the original
   `Design System.dc.html` too, so `yarn compare` can't shoot it).  Each served page holds a live-reload

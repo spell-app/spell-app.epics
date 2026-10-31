@@ -51,6 +51,16 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- [ ] `core` undo, an action `undone as "..."` that adds new saved things (epic `data` I21, 2026-10-31):  its Undo blanks
+  them and leaves them on the page.
+  - Three `add (a new recipe with title = ...) to the recipes` in one `- undone as "Add Examples"`:  after Undo, three cards
+    with no title and 0 servings.
+  - Guess:  the step records the new things' first property writes (`SettingRecord`), and putting those back empties them.
+    With no `undone as`, each add is its own step, and Undo takes the card away, as it should.
+- [ ] `core`, a list read that `to create it` awaits, when the place can't be reached:  the drawing says so through
+  `if that fails:`, and the rejected `create()` is also an uncaught "Failed to fetch" on the page's console (epic `data` I21).
+- [ ] `draw the fields of its new recipe`, with `- to draw its fields:` on a recipe, compiles to `core.drawItems(this.newRecipe)`:
+  no error, the wrong drawing (epic `data` I21).  A named drawing is a slot of its own thing, so another thing can't draw it.
 - Incremental parsing loses an action's `waits: true` after an edit inside it (2026-10-26, epic `debut` I50):
   `INCREMENTAL_FULL=1 yarn vp test run --project spell tests/spell/parserTests/IncrementalProject.test.ts -t "edits in /Solitaire.spell"`
   fails on spell-app's `main` twin at line 166 ("delete a character", in `to put a card on a pile`, which
