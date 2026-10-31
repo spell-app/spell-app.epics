@@ -413,6 +413,80 @@ PATCH of changed fields narrows it to per-field;  PUT of a whole record loses ot
 
 Lists on REST:  a position field works only if the API will store one.
 
+### Added 2026-10-31:  Airtable as a shared back-end
+
+Airtable is one of epic `data`'s seven back-ends (Owen, 2026-10-31).
+It lands between section 6's two REST rows:  a PATCH per field like the row with versions, but no version check, like plain REST.
+
+| Back-end | Live? | Healed by | Same field | List add | Long text |
+| --- | --- | --- | --- | --- | --- |
+| **Airtable** (PATCH per field, no versions) | poll, through a server side | poll | last save wins that field, silently | new records both kept;  **a link list can lose one** | last save wins:  **loses text** |
+
+**Two people editing one record**
+- A PATCH "will only update the fields included in the request";  a PUT "will perform a destructive update and clear all unincluded cell values".
+  [Update multiple records](https://airtable.com/developers/web/api/update-multiple-records)
+- That page mentions no version, ETag or conflict check, and neither did a search of Airtable's docs and forum.
+  So compare-and-set isn't there, as far as I can find.
+- Last save wins per field is my inference:  **no page I read states what happens to two simultaneous writes.**
+- Different fields of one record:  both survive, with PATCH.  Spell must never send PUT here.
+- Step 3 of the sketch above can't run, because no 412 ever comes.  A client could read just before writing, which narrows the window and doesn't close it.
+- A link field is written as a whole array of record ids, [per its field model](https://airtable.com/developers/web/api/field-model).
+  So two people adding a link at once can drop one (my inference).
+  [One forum report](https://community.airtable.com/automations-8/automation-logic-conflict-data-loss-when-merging-25-linked-record-lists-46793) describes this with automations, unconfirmed by Airtable.
+  Creating the child record with its one parent link avoids it.
+
+**How a client hears changes**
+- Webhooks:  a ping with no data, then you fetch payloads.  At least once, so repeats happen;  rapid changes may be combined.
+  They expire after 7 days unless refreshed, and "Client-side requests are not allowed."
+  [Webhooks overview](https://airtable.com/developers/web/api/webhooks-overview)
+- Payloads are kept for a week, 50 to a request, numbered by a cursor that never resets, and they name who made the change, so a client can skip its own echo.
+  [List webhook payloads](https://airtable.com/developers/web/api/list-webhook-payloads)
+- A browser can't receive a webhook, so a browser alone can only poll.
+- Polling for changes only:  `filterByFormula` with `LAST_MODIFIED_TIME()`, from [Airtable's support pages](https://support.airtable.com/articles/6644451618-returning-record-data-in-airtable) and forum answers.
+  It tracks people's edits to editable fields, not computed fields, and older records can be blank.
+  **A deleted record never matches, so finding deletes takes a full list now and then** (my reasoning).
+
+**Rate limits against the 2-10 second poll**
+
+5 requests a second per base, shared by everyone;  over that, a 429 and 30 seconds of failures.
+[Rate limits](https://airtable.com/developers/web/api/rate-limits)
+A list is at most 100 records a page.  This is arithmetic, not a measurement, with no room left for writes:
+
+| Each browser polls | Whole table of up to 100 records | Whole table of 1,000 records (10 pages) |
+| --- | --- | --- |
+| every 2 seconds | 10 open tabs | 1 open tab |
+| every 10 seconds | 50 open tabs | 5 open tabs |
+
+- The 304 that makes REST polling cheap in the sketch isn't described in anything I read, so assume each poll costs a request.
+- Changes-only polling makes the 1,000-record column look like the 100-record one, until the delete sweep.
+
+**Does it need a referee in front?**
+
+It needs a small server side in any case, and a full referee only for the healing model to hold.
+This is my judgement, and untested.
+1. **The key:**  a browser can technically call the data API (I probed the preflight:  `access-control-allow-origin: *`), but a personal key "should not be shared", and OAuth's token step can't happen in a browser yet.
+2. **Reads:**  one shared poll, about every 10 seconds, passed on to every browser, or a webhook ping to trigger it.  The tab count stops mattering.
+3. **Writes, the choice:**
+   - **Passed straight through:**  last save wins that field, silently.  Warn at compile time, as plain REST does.
+   - **Through a referee:**  the server side orders saves and heals as a room does (section 6, "Files, via one Spell server").  Airtable is then only where it's stored.
+4. **What a referee can't catch:**  people editing in Airtable's own window.  Those arrive at the next poll, and the last save wins.
+
+**What people would see**
+- Two people change one field:  one value flips, up to a poll later, and nobody is told unless the referee is there.
+- Long text:  one person's paragraph is gone, with no notice.  That's stable but wrong, row 2 of section 8's table, and only a text merge in front would help.
+- Past the limit:  every save and read fails for 30 seconds.  The app must say so, and hold pending changes.
+- A retried create with no id column makes a double.  An id column plus upsert (`fieldsToMergeOn`) prevents it.
+
+**What I couldn't verify**
+1. What Airtable does with two simultaneous writes to one field.
+2. That no version check exists at all:  absence from the pages read and from one search.
+3. A 304 or ETag on its list requests.
+4. Whether two simultaneous link writes really lose one:  an inference and one forum report.
+5. `LAST_MODIFIED_TIME()` in the API reference:  support pages and forum only, and its precision wasn't found.
+6. What a webhook payload holds beyond the example's fields:  the payload model page wasn't read.
+7. Whether Airtable's own window sees API changes at once, and how fast either sees the other.
+8. All the rates above:  nothing was run against Airtable.
+
 Background Sync can't be counted on:
 [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Background_Synchronization_API) says it isn't Baseline.
 So unsent writes wait for the next visit.

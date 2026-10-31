@@ -495,3 +495,62 @@ interface Capabilities {
 13. **The fate summary of "against Relay"** is mine:  its docs name Relay as an influence, without a detailed comparison.
 14. **`FileSystemObserver` support by browser:**  MDN's tables didn't load.
 15. **The interface in section 5 is untested:**  a design from these sources, not something anyone has built.
+
+---
+
+## 7. Added 2026-10-31:  AT Protocol and Airtable
+
+Owen's decision, after this report was written:  the list is SEVEN back-ends, all in epic `data`'s scope:
+REST, GraphQL, chunked files, file system, Sheet or CSV, AT Protocol, Airtable.
+Section 5's "the fifth" is what it said at the time.
+
+Read from each system's own docs, through a summarising fetch tool, so check the source before repeating a wording.
+"Probed" means I sent the real server a request on 2026-10-31, with no credentials.
+
+### AT Protocol
+
+- **Repository:**  an account's public data, a key/value map from `<collection>/<record-key>` to records, on its Personal Data Server (PDS).  "Repository contents are entirely public and verifiable."  https://atproto.com/specs/repository
+- **Address:**  `at://AUTHORITY/COLLECTION/RKEY`;  use a DID as the authority, because a handle can change.  https://atproto.com/specs/at-uri-scheme
+- **Schema:**  a lexicon, JSON, named by an NSID whose authority is tied to DNS.  New fields must be optional;  types and names can't change;  a breaking change takes a new name.  By default a PDS validates only lexicons it knows, and accepts the rest ("Fail-Open").  https://atproto.com/specs/lexicon
+- **Read:**  `listRecords`:  repo, collection, limit 1-100 (default 50), cursor, reverse;  no auth;  no filter or sort.  https://raw.githubusercontent.com/bluesky-social/atproto/main/lexicons/com/atproto/repo/listRecords.json
+- **Write:**  `putRecord`:  repo is "the current account", the caller gives the `rkey`, optional `swapRecord` and `swapCommit` compare-and-swap;  error `InvalidSwap`.  https://raw.githubusercontent.com/bluesky-social/atproto/main/lexicons/com/atproto/repo/putRecord.json
+- **Batch:**  `applyWrites`, "a batch transaction", one repo, no stated limit;  `swapCommit` fails the whole call on a mismatch.  https://raw.githubusercontent.com/bluesky-social/atproto/main/lexicons/com/atproto/repo/applyWrites.json
+- **Across accounts:**  App Views, feed generators and search services, not the PDS (the PDS not filtering is my inference from this page plus `listRecords`).  https://atproto.com/guides/overview
+- **Live:**  the firehose is binary (`subscribeRepos`, cursor by `seq`).  https://atproto.com/specs/sync  Jetstream is plain JSON over a websocket, filtered server side by `collections` (up to 100) and `dids` (up to 10,000), at-least-once, public live tail with no auth.  https://bsky.network/docs/jetstream/
+- **Sign-in:**  OAuth with a public client:  PKCE (S256), PAR, DPoP all required;  `client_id` is an https URL of a metadata document;  sessions and refresh tokens for untrusted public clients limited to 2 weeks;  auth servers must allow CORS.  https://atproto.com/specs/oauth
+- **Private data:**  "by design, all data stored on the protocol today is public."  Spaces, in alpha:  "The protocol design, SDKs, and database schema are not final";  access control, not encryption;  a launch is aimed at later this year.  https://atproto.com/blog/atproto-spaces-alpha
+- **Probed:**  `bsky.social` `listRecords` answered 200 with `access-control-allow-origin: *`;  a preflight for `putRecord` allowed `authorization,dpop,content-type`.  `public.api.bsky.app` answered 501 to `listRecords`:  an App View doesn't serve it.
+
+### Airtable
+
+- **List:**  `filterByFormula`, `sort`, `fields`, `view`, `pageSize` max 100, `maxRecords`, `offset`;  no sort and no view means arbitrary order;  `LIST_RECORDS_ITERATOR_NOT_AVAILABLE` means paging timed out and may restart;  URLs under 16,000 characters, else POST.  https://airtable.com/developers/web/api/list-records
+- **Write:**  PATCH touches only the named fields, PUT clears the rest;  `performUpsert` with one to three `fieldsToMergeOn`;  the page mentions no version check.  https://airtable.com/developers/web/api/update-multiple-records
+- **Batch:**  10 records a request:  from support pages and forum posts, not the API reference pages I read.  https://support.airtable.com/docs/managing-api-call-limits-in-airtable
+- **Rate:**  5 requests a second per base, 50 per person or service account;  a 429, then failures for 30 seconds;  a caching proxy suggested for heavy reads.  https://airtable.com/developers/web/api/rate-limits
+- **Webhooks:**  a ping with no data, then you fetch payloads;  at-least-once;  expire after 7 days unless refreshed;  "Client-side requests are not allowed."  https://airtable.com/developers/web/api/webhooks-overview
+- **Links and computed fields:**  `multipleRecordLinks` holds record ids, `inverseLinkFieldId` points back;  lookup, rollup, formula and count are computed.  https://airtable.com/developers/web/api/field-model
+- **Tokens:**  personal access tokens act as your account, and "should not be shared with third-party services or integrations";  nothing on browsers.  https://airtable.com/developers/web/api/authentication
+- **OAuth:**  PKCE in practice;  a client secret is optional;  access tokens 60 minutes, refresh tokens 60 days;  "At present you cannot create tokens directly from the browser."  https://airtable.com/developers/web/api/oauth-reference
+- **Probed:**  a preflight to `api.airtable.com` answered `access-control-allow-origin: *`, and allowed `authorization`.  A preflight to its OAuth token URL answered 200 with no CORS header, which agrees with its docs.
+
+### What this adds to the interface in section 5
+
+These are my judgement, and untested.
+
+1. **`write` isn't one answer per place.**  On AT Protocol it depends on who owns the record;  on Airtable, on the field.
+2. **`keyOf` must allow a key the place makes.**  Airtable makes `rec...` ids;  a column holding the browser's own id, with upsert, is the way around it.
+3. **One place may be many hosts.**  An AT Protocol cookbook spread across people means one read per account, each on its own host.
+4. **No referee on AT Protocol.**  Each record has one writer, so two people never conflict on a record.  Sharing means separate records, put together when read.
+
+### What I couldn't verify
+
+1. Airtable's 10-a-request limit in its API reference.
+2. How long an Airtable `offset` lasts.
+3. How Airtable keeps a two-way link in step.
+4. A real Airtable request from a browser with a key:  only the preflight was tried.
+5. When `InvalidSwap` is returned:  failing on a mismatch is the likely reading for `putRecord`.
+6. Whether `applyWrites` is all-or-nothing:  "batch transaction", never "atomic".
+7. Signatures on Jetstream events, its reach from a browser, its speed.
+8. Writing to AT Protocol from a browser:  one host's preflight only, no real write.
+9. Spaces' status past its August post:  later evidence is third-party code changes.
+10. Cancelling on either system:  not checked.
