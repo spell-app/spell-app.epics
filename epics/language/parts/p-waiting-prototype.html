@@ -40,6 +40,122 @@
     <li>Write each answer on the page. A result that changes a later plan rewrites that plan, for Accept again.</li>
     <li>Left out: any change that ships.</li>
   </ol></epic-field
+><epic-field name="done"
+  ><p>
+    Default waiting looks the same on screen as today, and it needs nothing new from Solid. Solitaire ran in headless
+    Chromium, through the real <code>&lt;spell-viewer&gt;</code> and its built runtime, from hand-patched compiled
+    output with the awaits Python's output has. Nothing shipped.
+  </p>
+  <p>
+    <img
+      src="/epics/language/tests/p8-deal-2.png"
+      alt="Solitaire mid-deal with waiting by default: cards flying to their columns"
+      width="500"
+    />
+  </p>
+  <ul>
+    <li>
+      <strong>What a deal draws:</strong> every step, as today. A deal changed the board 30 times today, and 30 or 31
+      times with waiting, each ending about 1.85 seconds in with the same board. A stock flip and a card move drew their
+      steps too (pictures:
+      <a href="/epics/language/tests/p8-deal-1.png" target="src-epics-language-tests-p8-deal-1-png">deal 1</a>,
+      <a href="/epics/language/tests/p8-deal-3.png" target="src-epics-language-tests-p8-deal-3-png">3</a>,
+      <a href="/epics/language/tests/p8-deal-4.png" target="src-epics-language-tests-p8-deal-4-png">4</a>,
+      <a href="/epics/language/tests/p8-flip-1.png" target="src-epics-language-tests-p8-flip-1-png">flip</a>,
+      <a href="/epics/language/tests/p8-move-1.png" target="src-epics-language-tests-p8-move-1-png">move</a>).
+    </li>
+    <li>
+      <strong>A step with no real pause doesn't paint:</strong> so Solitaire keeps its pauses.
+      <ul>
+        <li>With <code>await 0</code>, or a call to an async action, the whole deal was one jump: 3 board changes.</li>
+        <li>A real 0 ms timer drew about half its steps: 15 board changes.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Waiting at the top level hides the deal:</strong> the first board came at 1856 ms instead of about 110 ms,
+      and no deal was seen (<a
+        href="/epics/language/tests/p8-top-level-waits.png"
+        target="src-epics-language-tests-p8-top-level-waits-png"
+        >picture at 0.9 s</a
+      >). So P10's top level must not wait.
+    </li>
+    <li>
+      <strong>Clicks during an action:</strong> the queue is what keeps the game right.
+      <ul>
+        <li>
+          Waiting with no queue, two restarts mid-deal: 78 cards in the piles, not 52, and
+          <code>TypeError: ... reading 'turnFaceDown'</code>.
+        </li>
+        <li>
+          With Q6's queue: 52 cards, the repeat restarts ignored, and clicks on the stock mid-deal queued, the latest
+          kept and played once the deal ended.
+        </li>
+        <li>
+          <strong>A bug today:</strong> three stock clicks mid-deal leave the second column with 1 card, not 2. The
+          queue fixes it.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <strong>A slow getter in a draw: the frozen deal is real, and only on a later change.</strong> On a second deal,
+      with the value already answered:
+      <ul>
+        <li><code>createMemo</code> froze the drawn counter at 28, then jumped to 56.</li>
+        <li><code>createDeferred</code> kept the counter moving, 29, 30 ... 56, with the old slow value beside it.</li>
+        <li>
+          A getter that lands between steps (20 ms) doesn't freeze either way. So <code>core.waitedValue()</code> must
+          be <code>createDeferred</code>.
+        </li>
+        <li>A value that changes faster than it answers lands only when the changes stop.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Where the "…" goes:</strong> each custom element is its own boundary.
+      <ul>
+        <li>
+          With no <code>&lt;Loading&gt;</code> in a card's element, only that card waits. On the app's own draw, the
+          whole board stayed blank for 1585 ms.
+        </li>
+        <li>
+          A <code>&lt;Loading&gt;</code> around a pile, outside its element, does not cover what's inside: Solid's
+          warning still fired. So it belongs inside <code>drawInBoundary()</code>, as P12 plans.
+        </li>
+        <li>
+          A draw that reads a slow value itself, on the app, hides the whole board under one "…" until the first answer:
+          1587 ms here. Reading it in a small part keeps the deal in view, so P12 warns on a whole-app hold.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <strong>Reading a slow getter from an action: solved.</strong> Bring the writes in, read once, then wait for the
+      latest promise the value started: <code>core.flush()</code>, a read, <code>await</code> that promise.
+      <ul>
+        <li>After a write it gave 50, where <code>resolve()</code> gives the old 30. After two writes, 70.</li>
+        <li>With no write, no extra run. A failure reaches the action.</li>
+        <li>The read matters for a <code>lazy</code> value nobody draws: without it, the old 30.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Reads after a wait:</strong> not followed (it stayed 4 when the bonus changed). A read before the first
+      wait is (103). So P12 moves simple reads up where it safely can, and warns on the rest.
+    </li>
+    <li>
+      <strong>A remembered getter over a slow one:</strong> <code>derive()</code> stayed at 31 where 41 was right, so
+      P12 leaves it off these.
+    </li>
+    <li>
+      <strong>How long each value lives:</strong> about 1.9 KB each, and 500 made in 6 ms. Unless <code>lazy</code>,
+      each runs its slow work again on a change even with nobody reading it: 500 more runs.
+      <code>lazy: true</code> stopped that, and a drawn card still redrew. So P12 uses <code>lazy</code>. Disposal
+      stopped the runs, but this test held on to the values, so it didn't show the memory coming back.
+    </li>
+  </ul>
+  <p>
+    <strong>Plans changed:</strong> P10 and P12, small additions, still accepted. <strong>Not tried:</strong> a real
+    compile (the awaits were patched by hand), the queue at the runtime's door (it sat in the handlers here),
+    <code>ts/solid</code>, Python, drags, and thousands of things. Clicks were the elements' own <code>click()</code>,
+    not a mouse. Scripts are in the session's scratchpad, <code>p8/</code>.
+  </p></epic-field
 ><epic-field name="files"
   >A throwaway patched copy of Solitaire's compiled output in a scratch folder, checked with the headless browser check;
   findings on this epic page.</epic-field
