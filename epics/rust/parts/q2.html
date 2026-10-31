@@ -1,0 +1,51 @@
+<!-- plan-doc part:  #q2's details in rust.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    Spell's things point at each other: a card knows its pile, and the pile knows its cards. Rust wants one owner per
+    value, so compiled programs need a way around that. Every line of compiled code shows the choice.
+  </p></epic-question
+><epic-code title="What the two main ways look like (a sketch, not compiled)" language="rust">
+  <pre>
+// A:  shared pointers, with a check at run time
+let pile = card.borrow().pile.upgrade().unwrap();
+if Rc::ptr_eq(&amp;pile, &amp;solitaire.borrow().stock) { ... }
+
+// B:  a handle is a small id into one store of things
+if card.pile() == solitaire.stock() { ... }</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="Shared pointers (Rc and RefCell)"
+    ><ul>
+      <li>What most people meet first, with no extra machinery.</li>
+      <li>Noisy at every read, and needs "weak" pointers for owners so memory is ever freed.</li>
+      <li>
+        Reading a thing while it's being changed crashes at run time, and Spell programs can easily do that. So can
+        holding one across a wait.
+      </li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="Handles into one store" recommended
+    ><ul>
+      <li>
+        Each thing is a small copyable id, and the runtime holds the things. Spell's saving and references already work
+        by id (<code>Tableau#1</code>).
+      </li>
+      <li>The cleanest compiled code, and no borrow crashes, since nothing stays borrowed.</li>
+      <li>
+        The store is hidden state, which is less "pure" Rust. Things are freed only when the program ends, or by a
+        clean-up we'd add.
+      </li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="A garbage-collector crate"
+    ><ul>
+      <li>Closest to how JavaScript and Python behave.</li>
+      <li>A new dependency, in a corner of Rust with no settled standard. Reads unlike most Rust.</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect option="B" recommended
+  ><ul>
+    <li>The hand-written card and pile are tried this way first, and with A beside it if B reads badly.</li>
+    <li>The runtime gets a store of things.</li>
+    <li>Compiled Rust reads close to compiled Python.</li>
+  </ul></epic-net-effect
+>
