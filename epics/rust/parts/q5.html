@@ -1,0 +1,77 @@
+<!-- plan-doc part:  #q5's details in rust.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    Handlers would get an event with a real type, which clears 12 of the 13 unknowns in Solitaire's TypeScript and gives
+    Rust what it needs. This asks how to do that better than HTML does.
+  </p>
+  <p>
+    HTML's way: there's one family of event classes grouped by device (<code>MouseEvent</code>,
+    <code>KeyboardEvent</code>, <code>DragEvent</code>), and a handler that hears several has to check which one it got.
+    Fields it wants may or may not be there.
+  </p>
+  <p>Spell is already most of the way past this.</p>
+  <ul>
+    <li>
+      What comes with an event is read by name: <code>send flipped with side = 1</code> is read as <code>side</code> in
+      the handler.
+    </li>
+    <li>The mouse and keys can be read anywhere: <code>the shift key is down</code>.</li>
+    <li>A template can already declare an event: <code>it sends "flipped" with side as a direction</code>.</li>
+  </ul>
+  <p>
+    So in the compiled code, the <code>event</code> argument is plumbing that no Spell author sees, and only its type is
+    missing.
+  </p></epic-question
+><epic-code title="One type per event name (a sketch, not compiled)" language="ts">
+  <pre>
+// Spell
+- it sends "flipped" with side as a direction
+- when flipped:
+    show side
+
+// TypeScript:  the name of the handler settles the type, so nothing to check
+type Flipped = SpellEvent &amp; { side: Direction }
+onFlipped(event: Flipped) { ... }
+
+// Rust
+pub struct Flipped { pub side: Direction, pub target: Handle, /* ... */ }
+fn on_flipped(&amp;self, event: Flipped) { ... }</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="One type per event name" recommended>
+    <ul>
+      <li>The handler's name settles what it holds. Nothing to check, and no field that might be missing.</li>
+      <li>
+        <code>click</code> has only the basics, <code>key down</code> adds <code>key</code>, and
+        <code>a card is dropped on it</code> adds the card.
+      </li>
+      <li>
+        Every event shares the same basics: <code>target</code>, <code>the original target</code> and
+        <code>sender</code>.
+      </li>
+      <li>
+        Events a template declares get their types from that declaration. An event only triggered
+        (<code>card-click</code>) gets them from its <code>with</code> properties, as properties already get theirs from
+        what the program gives them.
+      </li>
+      <li>An event sent with nothing declaring it may be unclear, and falls back to <code>Value</code>.</li>
+    </ul>
+  </epic-option>
+  <epic-option letter="B" title="One Event type, with a bag of extras">
+    <ul>
+      <li>Simplest: every handler gets the same type, with its extras looked up by name.</li>
+      <li>
+        Clears the unknowns on paper, but <code>side</code> still has no type. That's HTML's problem turned inside out,
+        and Rust would need <code>Value</code> at each lookup.
+      </li>
+    </ul>
+  </epic-option> </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>
+      A new phase in this epic, after the type knowledge moves to the shared base. It helps TypeScript and Python at
+      once, so it's worth doing even if Rust stops at FizzBuzz.
+    </li>
+    <li>That makes about 6 phases. You can defer it at Accept Phases, since FizzBuzz itself has no events.</li>
+    <li>Spell source doesn't change. Only compiled code gets types.</li>
+  </ul>
+</epic-net-effect>
