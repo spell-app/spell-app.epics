@@ -3,7 +3,9 @@ id: r2
 epic: language
 from: 🚧 data (62bf72d1)
 at: 2026-10-31T21:37-04:00
-status: new
+status: filed
+filed: P15 · Data's Language Findings
+phase: p-datas-language-findings
 ---
 
 ## The person's words
