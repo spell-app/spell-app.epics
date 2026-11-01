@@ -3,7 +3,9 @@ id: r3
 epic: data
 from: 🚧 epic-engine (d738fd92)
 at: 2026-10-31T22:42-04:00
-status: new
+status: filed
+filed: P23 · Sections Hide Empty
+phase: p-sections-hide-empty
 ---
 
 ## The person's words
