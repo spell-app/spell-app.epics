@@ -3,7 +3,8 @@ id: r2
 epic: data
 from: 🚧 language (014c1123)
 at: 2026-10-31T21:31-04:00
-status: new
+status: filed
+filed: Done:  commit on main;  the, as an article, stays allowed
 ---
 
 ## The person's words
