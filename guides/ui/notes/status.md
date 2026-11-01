@@ -11,6 +11,7 @@ A checklist of every component in [the plan](plan.md):  what's done, in progress
     and `appearance="capsule"`
   - `<ui-menu tabs>`, `<ui-toolbar scroll-first>`
   - `<ui-popup at>`:  opens at a point, for a right click's menu
+  - `data-tooltip` in the top layer once the runtime has loaded (`UI.dataTooltips`):  ONE bubble, cut off by no frame;  the CSS tip stays for a page with no script
   - `<ui-split-panel>`, panes in rows or columns
   - `<ui-root app>`, `--ui-control-cursor`, `--ui-control-height`
   - `<ui-tree>` and `<ui-tree-item>`, new:  done, with tests, keys, a docs page;  `icon` on every vocabulary
