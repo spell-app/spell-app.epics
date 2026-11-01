@@ -336,16 +336,17 @@
           </ui-table>
           <ui-markdown
             ><script type="text/markdown">
-              **Who holds a role is always looked up, never copied.**
+              **In our own data, who holds a role is always looked up, never copied.**
 
               - A project names "the Events Officers", not the people who are Officers today, and a page names "the Finance Officers".
               - The one list of who holds each role is kept in one place, and everything asks it when it needs to know.
-              - So a role changing hands is one change, with nothing to update and nothing left behind.
+              - So in our data, a role changing hands is one change.
+              - **A Space's member list is the one exception:** it's AT Protocol's access list, not our data, so Spell works it out from the roles and updates it, as "How it maps to the protocol" says.
               - A person is stored by their permanent id, and their name is looked up too, as AT Protocol does with handles.
 
               **The rules around them:**
 
-              - **An org can change the roles:** it can rename them and add more, and the protocol only asks whether someone's allowed in.
+              - **An org can change the roles:** it can rename them and add more, and the protocol only cares who's on a Space's list.
               - **Where a project lives decides who runs it:** Officers create projects in their office and name its first Lead, and the Board can create one anywhere. A project can't hold another project, in the first version.
               - **Any Lead of a project can add or remove its other Leads:** that's the default, and the people above it stay Leads whatever happens.
               - **A role can have its own rules:** an org can say who's eligible for it, and Spell refuses anyone else, whoever a Lead names.
@@ -354,7 +355,7 @@
                 manage page can change a row where a post couldn't be edited.
               - **A page can narrow who may change it:** "manage attendees" can be for event leads and the Board. The
                 other Leads can still see it, as a Space's read access is all or nothing.
-              - **Terms end on time:** the next look-up says no, and the record of who held the role stays.
+              - **Terms end on time:** Spell takes the person off each Space's member list, and the record of who held the role stays.
               - **Leaving doesn't take anything away:** someone leaving a role or an org can't write any more or see private spaces, and what they added stays. Their own public space goes with them.
             </script></ui-markdown
           >
@@ -370,7 +371,7 @@
             <svg
               viewBox="0 0 900 340"
               role="img"
-              aria-label="Spell apps save through Spell's write server, which writes as the org into the org's Spaces on its host. They read through a small read proxy, which fetches from those Spaces. Another AT Protocol app can read a Space directly if the look-up allows its person, but can't write to the org's repo."
+              aria-label="Spell apps save through Spell's write server, which writes as the org into the org's Spaces on its host. They read through a small read proxy, which passes each person's own credential to the host. Another AT Protocol app can read a Space directly if its person is on that Space's member list, but can't write to the org's repo."
             >
               <defs>
                 <marker
@@ -400,7 +401,7 @@
               <text x="316" y="144">Tells open pages at once</text>
               <rect class="lead" x="300" y="184" width="220" height="56" rx="12" />
               <text x="316" y="207">A read proxy</text>
-              <text class="small" x="316" y="226">just checks and forwards</text>
+              <text class="small" x="316" y="226">only passes things along</text>
               <text class="head" x="610" y="24">The org's host: @rs, one identity</text>
               <rect class="plain" x="610" y="40" width="270" height="200" rx="12" />
               <rect class="public" x="626" y="56" width="112" height="56" rx="8" />
@@ -435,7 +436,9 @@
               <text x="36" y="297">Ana's other app</text>
               <text class="small" x="36" y="316">can read, can't write here</text>
               <path class="line dashed" marker-end="url(#arrow-map)" d="M212 302H745V242" />
-              <text class="small" x="240" y="294">Reads a Space directly, if the look-up says Ana is allowed</text>
+              <text class="small" x="240" y="294">
+                Reads a Space directly, with no Spell involved, if Ana is on its member list
+              </text>
             </svg>
             <figcaption>
               Every write goes through the write server. Spell apps read through a small proxy, and other apps read on
@@ -465,10 +468,7 @@
                 </tr>
                 <tr>
                   <td>Lead and Member</td>
-                  <td>
-                    Looked up by the Space when someone asks to read, from Spell's one list of roles. What each role can
-                    write is Spell's
-                  </td>
+                  <td>A member list on each Space, with a read flag. What each role can write is Spell's</td>
                 </tr>
                 <tr>
                   <td>A page, a sheet, a post, a comment, a sign-up</td>
@@ -513,17 +513,14 @@ A message from Ana to Bo, the copy in Bo's inbox:
             ><script type="text/markdown">
               **Reading is the protocol's job.**
 
-              - Each org Space is a "managed space": when someone asks to read it, the host asks a service Spell runs whether this person may, and refuses a credential if not.
-              - The service answers from the one list of roles: everyone in the org for a public Space, and its Leads and those above for a private one.
-              - No list of people is copied onto any Space, so a role changing hands updates nothing.
-              - A credential already issued runs out within about 10 minutes.
-              - That service is small and separate, like the read proxy. If it's down, new credentials stop, and reading stops as the old ones run out.
-              - **The protocol still does the enforcing:** without a credential, a host refuses, whichever app is asking.
-              - **Spell adds no read rules inside a Space:** anyone allowed in can read all of it with any AT Protocol app, so a rule
-                only Spell's apps obey protects nothing.
-              - **So which Space a thing is in decides who can see it.** What someone mustn't see goes in a Space they aren't allowed into.
-              - **Spell apps read through a small proxy,** because a page likely can't read a Space directly. It checks
-                credentials, forwards, and holds no data, so it's unlikely to go down.
+              - Each org Space uses the member-list policy, so the host refuses anyone not on the list.
+              - A public Space's list holds everyone in the org, and a private Space's holds its Leads and those above them.
+              - **Spell never gates a read.** If a private thing is shown to the wrong person, whoever decided is liable, and checking on every file access would give Spell that exposure every time.
+              - **Spell keeps the lists right instead:** it works out each list from the org's roles, and updates it when someone joins, leaves, changes role or reaches the end of a term. A credential already issued runs out within about 10 minutes.
+              - **That can be audited:** Spell can compare each Space's list with what the roles say, and report any difference. It's a rare, checkable job, not a decision on every read.
+              - **Spell adds no read rules inside a Space:** anyone on a list can read all of it with any AT Protocol app, so a rule only Spell's apps obey protects nothing.
+              - **So which Space a thing is in decides who can see it.** What someone mustn't see goes in a Space they aren't on.
+              - **Spell apps read through a small proxy,** because a page likely can't read a Space directly. It passes each person's own credential to the host, and the host decides. It holds no data, and keeps no copy, as answering from a copy would mean Spell deciding who may read.
 
               **A stricter option:** a Space can name which apps may read it, so only Spell's would get a credential. That
               shuts out other apps and most of the remixing, so it isn't the default.
@@ -686,7 +683,7 @@ A message from Ana to Bo, the copy in Bo's inbox:
               **Each person gets one private Space in the org, their inbox, and everything in it is a pointer to a Spell
               page.**
 
-              - It's made when first needed, has no roles or pages of its own, and only that person is allowed in.
+              - It's made when first needed, has no roles or pages of its own, and only that person is on its list.
               - Each pointer has a title, a line of text, and any private facts the page needs, as a page sees only what its
                 viewer can see.
               - **It's worked out when viewed,** so it's always current, and its links stay live.
@@ -952,7 +949,7 @@ A message from Ana to Bo, the copy in Bo's inbox:
                 - Organizers see every request, which is enough for a group that assumes everyone is a good actor.
                 - A rule that runs on a server comes later. Running people's code on a server is an epic of its own.
 
-                **The letter is one page with personal parts,** in a third Space for the event's attendees. Being confirmed lets someone in.
+                **The letter is one page with personal parts,** in a third Space for the event's attendees. Being confirmed puts someone on its list.
               </script></ui-markdown
             >
             <ui-table celled padding="compact" appearance="striped" unstackable>
@@ -1171,10 +1168,9 @@ A message from Ana to Bo, the copy in Bo's inbox:
 
               - **Uploading a blob into a Space has to work,** and how isn't clear yet, so it's the first thing the trial
                 tests. If it can't, a file's text goes in its record for now, with the same name and steps.
-              - **A draft is readable by everyone allowed into its Space,** so a draft of a public page sits in the private
+              - **A draft is readable by everyone on its Space's list,** so a draft of a public page sits in the private
                 space, where only Leads can see it.
-              - **Git holds a second copy of every file,** including private ones, so nobody reaches it except through
-                Spell, which checks who's allowed into that Space first. It's the one place Spell does guard a read.
+              - **Git holds a second copy of every file,** including private ones, so it mustn't become a read gate of Spell's. To see a file's history, a person presents their credential for that Space, which AT Protocol issued, and Spell only checks its signature. AT Protocol has still decided.
               - **History remembers:** deleting a file leaves it in git, so removing something for good means rewriting
                 history.
               - **A blob's size:** the reference host allows up to 300 MB by default.
@@ -1189,10 +1185,9 @@ A message from Ana to Bo, the copy in Bo's inbox:
 
               **Spell runs these, and no host at first:**
 
-              - ****Spell.spaces**:** the site.
-              - **The write server:** signs people in, checks every write, and writes as each org.
-              - **The role look-up:** answers who may read a Space and who may write, from the org's one list of roles.
-              - **The read proxy:** checks credentials and forwards, with perhaps a copy for speed.
+              - **Spell.spaces:** the site.
+              - **The write server:** signs people in, checks every write, writes as each org, and keeps each Space's member list right.
+              - **The read proxy:** passes each person's own credential to the host, and holds no data.
               - **Git history of every file,** which only Spell commits to or reads.
 
               **What the write server has to get right:**
@@ -1208,7 +1203,7 @@ A message from Ana to Bo, the copy in Bo's inbox:
 
               **The feed** runs in the browser, which is what makes "your algorithm" literal.
 
-              - It needs a whole space's records, so it's the likeliest reason for the proxy to keep a copy.
+              - It reads a whole Space's records with the person's own credential, through the proxy.
               - That should work for communities of hundreds, though it's untested. Millions would need a server.
 
               **Programs** never hold anyone's grant, because they ask the servers.
@@ -1449,7 +1444,6 @@ A message from Ana to Bo, the copy in Bo's inbox:
               The window is open while they're in alpha, and they ask for reports of what's confusing or breaks.
 
               - **Report back with a working app:** one server writing for a whole group, a public and a private Space for each office and project, sign-up without a password, and pushing changes to pages.
-              - **Ask for a member list that points to a group:** today a list on a Space names each account, so the only way not to copy it is a service that answers each time.
               - **Offer Lexicon generation:** Spell becomes an easy way to write schemas.
               - **Build what they asked for, later:** the recipes case "deserves a blogpost & an example app of its own", in
                 their words. The family cookbook can be that example.
@@ -1612,7 +1606,7 @@ A message from Ana to Bo, the copy in Bo's inbox:
                   <a href="https://discourse.atmosphere.community/t/atproto-spaces-alpha-updates/1129" target="ext-at-log">the
                   alpha's change list</a>, not reopened since.
                 - The record limit comes from a constant in Spell's own code, and is about public records.
-                - Whether Spell can write into a Space for an org, and answer as a managed space's service, is read from the spec, not tried.
+                - Whether Spell can write into a Space for an org, and manage its member list, is read from the spec, not tried.
                 - How far a browser feed scales is a guess.
                 - The providers' offers come from their own pages, and the web alert reports from bug trackers and forums.
               </script></ui-markdown
