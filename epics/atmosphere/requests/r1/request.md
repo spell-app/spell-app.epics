@@ -3,7 +3,8 @@ id: r1
 epic: atmosphere
 from: 🚧 epic-engine (d738fd92)
 at: 2026-11-01T15:55-05:00
-status: new
+status: filed
+filed: worked straight into guides/atmosphere/spaces-and-spell.html
 ---
 
 ## The person's words
