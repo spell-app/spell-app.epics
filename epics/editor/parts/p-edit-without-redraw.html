@@ -38,6 +38,200 @@
     Edits apply to the running program, keeping its elements and things. Apps start by themselves. Discard Changes. A
     multi-column palette, and a pinned strip.
   </p></epic-field
+><epic-field name="choices"
+  ><epic-choices>
+    <epic-option letter="A" title="Where you started this session" recommended>
+      <ul>
+        <li>Each file's text as it was when you opened the project, kept until you close it or press "Keep".</li>
+        <li>The simplest to explain: "take me back to before I started messing around".</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="The last point you marked">
+      <ul>
+        <li>A "Keep this" you press when you like where you are, and Discard goes back to it.</li>
+        <li>Better for long sessions, but one more thing to learn, and nothing's there until you press it.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title="A timeline of versions">
+      <ul>
+        <li>Automatic versions you can pick from, with no pressing.</li>
+        <li>The most capable and by far the most work: a later phase, if at all.</li>
+      </ul>
+    </epic-option>
+  </epic-choices></epic-field
+><epic-field name="plan"
+  ><p><b>How add and move work today:</b> a drop edits the source, then compiles and runs the whole program again.</p>
+  <ul>
+    <li>The run first unmounts the app, so every element on the page goes away.</li>
+    <li>
+      The top-level things are kept by name, and what they hold comes over as new things of the new classes, so all 52
+      cards are new objects drawn afresh.
+    </li>
+    <li>
+      The game's state survives, but the page is redrawn. If the program's start changed, it starts afresh and deals
+      again.
+    </li>
+  </ul>
+  <ol>
+    <li>
+      <b>Measure it first:</b> a test on Solitaire that plays a few moves, drops something, and compares the card
+      element objects, the things, and the score before and after. It fails today, and passing it is this phase's check.
+    </li>
+    <li>
+      <b>Prove the live path, with a stop rule.</b> The compile still runs on every edit, but its result is applied to
+      the running program: each class's <code>draw()</code> and methods go onto the live class, and only the views of a
+      changed class draw again, keeping their elements.
+      <ul>
+        <li>
+          <b>What it builds on:</b> Spell UI already swaps a rebuilt element in place on a running page (<a
+            href="/src/element/HotDefinitions.ts"
+            target="src-src-element-hotdefinitions-ts"
+            ><code title="src/element/HotDefinitions.ts">HotDefinitions</code></a
+          >), the kit's one hot swap. It keeps element objects, attributes and property values. This step checks whether
+          a view's element can go through it, before writing a second swap.
+        </li>
+        <li>
+          <b>The hard part:</b> new method bodies close over the NEW module's variables (<code>stock</code>), not the
+          running program's. So the new module's top-level variables must point at the running things. How carry-over
+          already does this is the place to start.
+        </li>
+        <li>
+          <b>The second hard part:</b> when a view draws again, the things it holds must keep their elements, or a
+          redraw of the board still remakes the cards. It's measured in step 1's test.
+        </li>
+        <li>
+          <b>If it can't hold on Solitaire:</b> stop, with today's path untouched, and bring Owen what was found, with
+          the fallback of keeping elements across a carry-over.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Which edits stay live, and which fall back:</b>
+      <table>
+        <tr>
+          <th>Edit</th>
+          <th>Goes</th>
+        </tr>
+        <tr>
+          <td>An attribute or words on a tag in a drawing</td>
+          <td>Live: that view draws again</td>
+        </tr>
+        <tr>
+          <td>A tag added, moved or removed in a drawing</td>
+          <td>Live: that view draws again</td>
+        </tr>
+        <tr>
+          <td>A method or action's body</td>
+          <td>Live: nothing draws, it's used next time it runs</td>
+        </tr>
+        <tr>
+          <td>A property's default</td>
+          <td>Live: things still holding the old value follow, as the side bar already does</td>
+        </tr>
+        <tr>
+          <td>The project's CSS</td>
+          <td>Live: the styles swap, nothing draws</td>
+        </tr>
+        <tr>
+          <td>A new property</td>
+          <td>Live on running things, with its starting value, if that holds in step 2; else as the row below</td>
+        </tr>
+        <tr>
+          <td>A new or renamed type, a property's type changing, top-level code</td>
+          <td>
+            Never a surprise reload: the app keeps running, and the editor says "This takes effect on restart", with a
+            Restart button
+          </td>
+        </tr>
+      </table>
+    </li>
+    <li>
+      <b>One path for all of it:</b> drops, moves, the side bar, and typed code all go through it, so typing in a
+      drawing keeps the page too. It's inside <code>runCompiled()</code>, beside <code>keepThings</code>: no second
+      runner. A drop also draws at once, rather than waiting for a compile.
+    </li>
+    <li>
+      <b>Starting by itself.</b> A project with one <code>&lt;spell-app&gt;</code> or page starts it when the program
+      loads, in both languages, with no line. It's what a notebook already does (<code
+        >if (!core.isCarryingOver) notebook.start()</code
+      >), so it uses that.
+      <ul>
+        <li>The starters lose <code>start the my app</code>.</li>
+        <li>
+          Old <code>start</code> lines stay legal, so existing programs and the 38 lines in the built-in projects keep
+          working. Those that only start the app are removed in the same commit, and the content snapshots should barely
+          move: they're checked and re-blessed.
+        </li>
+        <li>A line that does more (Solitario's <code>empezar el juego</code>) stays as it is.</li>
+        <li>
+          Two apps in one project: the one in the file named for the project starts, or the first, and a written
+          <code>start</code> line wins.
+        </li>
+        <li>
+          With no line to change, an edit can't count as the program's start changing, so that restart goes away in
+          these programs.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Discard Changes.</b> "Revert File" is renamed, in the File menu with its key, and Reset to Saved on a built-in
+      project stays. Autosave has already changed the file, so reading it back does nothing: it needs a baseline.
+      <ul>
+        <li>
+          It goes back to the baseline in this phase's Choices, kept per file, on the local build and in the browser on
+          the static one.
+        </li>
+        <li>It's shown enabled only when the file differs from that.</li>
+        <li>It's one step on the editor's history, so ⌘Z brings your changes back: discarding can't lose work.</li>
+        <li>It's live where it can be, like any other edit.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The palette.</b> This reverses part of Add And Move: the flat list and the pinned side pane go.
+      <ul>
+        <li>
+          <b>As a menu:</b> every component with a snippet, grouped by its vocabulary's topics, in columns, as More
+          Examples does. Search stays on top, and filters across the groups.
+        </li>
+        <li>
+          <b>Pinned:</b> a horizontal strip of icons with a tooltip for each, on <code>&lt;ui-toolbar&gt;</code> with
+          its ‹ › scrolling, as a row of one 40px bar above the panes. That's the height a pin costs, so it's only there
+          when you ask. The strip's search is a glass that opens the menu.
+        </li>
+        <li>Dragging and clicking work the same from both, and a saved pin carries over.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Owen's look notes:</b>
+      <ul>
+        <li>
+          The designer review (its skill, as a real agent) over the whole new look, in Glass and Fruity, light and dark;
+          its obvious fixes made here. His example: "there is no padding at the bottom of a
+          <code>&lt;property-section&gt;</code>".
+        </li>
+        <li>
+          "Lose the line highlight in monaco in all themes": the band across the code's current line goes, in every
+          theme, in the shared code-editor settings.
+        </li>
+        <li>
+          "Dark background behind corners of e.g. monaco panels, loses rounding": in his picture of a light theme, the
+          pane's rounded corner shows a darker square behind it. Found and fixed in the pane or the code editor's own
+          background, for every pane in every theme, with the corners measured from real pixels.
+        </li>
+      </ul>
+    </li>
+  </ol>
+  <p>
+    <b>How it's checked:</b> step 1's test, in Solitaire, Counter and a blank app. A dragged-in button appears with the
+    game's cards untouched. Real typing in a drawing keeps the page. Discard Changes then ⌘Z, with the file's text read
+    each time. A program with no start line runs in English and Spanish, on the static build. The test routing never
+    reaches a real project. <code>yarn review</code> in parser, app and ui, and the parser speed test on the diff and
+    HEAD.
+  </p>
+  <p>
+    <b>Left out:</b> whether a new app opens with its code closed, which is its own question. Python's runner isn't
+    touched.
+  </p></epic-field
 ><epic-field name="files"
   >app/src/app/runner/runCompiled.ts, parser/src/core/carry.ts, parser/src/core/drawing.ts,
   parser/src/spell/rules/Block.ts, parser/src/spell/rules/draw/StartApp.ts, app/src/app/solid/PartEdits.ts,
