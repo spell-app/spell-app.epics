@@ -10,6 +10,7 @@ A checklist of every component in [the plan](plan.md):  what's done, in progress
   - `<ui-panel appearance="pane">`, `<ui-menu appearance="segmented header">`, `<ui-menu appearance="header">` (a window bar)
     and `appearance="capsule"`
   - `<ui-menu tabs>`, `<ui-toolbar scroll-first>`
+  - `<ui-popup at>`:  opens at a point, for a right click's menu
   - `<ui-split-panel>`, panes in rows or columns
   - `<ui-root app>`, `--ui-control-cursor`, `--ui-control-height`
   - `<ui-tree>` and `<ui-tree-item>`, new:  done, with tests, keys, a docs page;  `icon` on every vocabulary
