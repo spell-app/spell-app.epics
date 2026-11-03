@@ -1196,6 +1196,11 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
 - 2026-10-27 · `yarn lsp:scopes --builtins`, run in a worktree, writes the worktree's absolute path into every
   template's `uri` in `parser/src/core/core.scopes.js`, which is committed with the main checkout's. · Put the main
   checkout's path back by hand (`sed`). · cli (elemental-spell P27)
+- 2026-11-02 · In a worktree, `spell content compare --against HEAD` said "2 of 489 files changed" in Star Wars, a
+  file the branch never touched:  its CURRENT side was the main checkout (`main` had moved on), as the PATH's
+  `spell` is main's.  `spell speedtest --against` times main the same way, with plausible numbers.  Nothing says
+  so. · From the worktree's root, `node bin/spell.mjs content compare ...` and `node bin/spell.mjs speedtest ...`. ·
+  cli (language T25, T26)
 
 ## docs
 
