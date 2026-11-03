@@ -3,7 +3,9 @@ id: r6
 epic: language
 from: 🚧 data (62bf72d1)
 at: 2026-11-03T10:01-05:00
-status: new
+status: filed
+filed: P21 · Find the Slowdown
+phase: p-find-the-slowdown
 ---
 
 ## The person's words

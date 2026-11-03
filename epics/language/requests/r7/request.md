@@ -3,7 +3,9 @@ id: r7
 epic: language
 from: 🚧 data (62bf72d1)
 at: 2026-11-03T17:26-05:00
-status: new
+status: filed
+filed: P23 · Numbers With Units
+phase: p-numbers-with-units
 ---
 
 ## The person's words

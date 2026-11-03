@@ -1,6 +1,23 @@
 <!-- plan-doc part:  #p-find-the-slowdown's body in language.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <epic-field name="symptom"
   >The parser's rule tests run 39% slower than before data's P1, and nobody knows which rules got slower.</epic-field
+><epic-field name="requests"
+  ><epic-field label="r6 · 🚧 data (62bf72d1)"
+    ><blockquote>
+      <p>
+        From epic data, Owen: "Send the slowdown to the `language` epic, we should have it work on compiler speed stuff
+        like this as well." data's I42 (now T89): the parser's rule tests average 354 now against 254 before data's P1
+        (3 runs a side, `spell speedtest`), +39%. Each data phase measured itself within noise against the one before,
+        so it crept in across P1-P25 (places rules, &lt;for&gt;, read-ahead names, number/field reads ...). A per-module
+        speed test against the commit before data's P1 would show where. Owen wants compiler speed to be language's to
+        watch from here on.
+      </p>
+    </blockquote>
+    <p>
+      Sent 2026-11-03 10:01-05:00;
+      <a href="/epics/language/requests/r6/request.md" target="src-epics-language-requests-r6-request-md">request.md</a>
+    </p></epic-field
+  ></epic-field
 ><epic-field name="goal"
   ><ul>
     <li>
@@ -22,6 +39,37 @@
     <li>A per-module speed comparison against the commit before data's P1 says where the time went.</li>
     <li>A fixed baseline and a budget guard compiler speed from now on (<a href="#q24">Q24</a>).</li>
   </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>The two ends.</b> Before: the commit before data's P1 · Places Engine (<code>4e8f6ec08</code>'s parent). Now:
+      <code>main</code>. Both timed with THIS checkout's <code>node bin/spell.mjs speedtest</code>, never the
+      <code>spell</code> on the PATH, which runs <code>main</code>'s code whatever folder it's in (the papercut T25's
+      agent logged).
+    </li>
+    <li>
+      <b>Module by module.</b> <code>speedtest</code> learns to print each rule module's time (it can already time one
+      module); 6 runs a side. The modules that grew most are the suspects.
+    </li>
+    <li>
+      <b>Bisect the suspects.</b> For each, time a handful of commits across data's P1-P25 and this epic's phases, to
+      find the commits where it jumped, and profile the slowest rules there (node's <code>--cpu-prof</code>).
+    </li>
+    <li>
+      <b>Write it up.</b> A table on the page: module, before, now, the commits it came in, the cause, what a fix would
+      win. The fixes go in P22.
+    </li>
+    <li>
+      <b>The guard (Q24 A).</b> <code>speedtest --baseline save</code> keeps a commit and its numbers;
+      <code>--budget 5%</code> fails over it, naming the slowest modules. This epic's phase checks run it; the Overview
+      says compiler speed is this epic's to watch.
+    </li>
+    <li>
+      <b>Checks.</b> The table reproduces on a second run within noise; the budget fails on a rule made slow on purpose,
+      and passes without it.
+    </li>
+    <li><b>Left out.</b> The fixes (P22); a CI speed check (Q24 B).</li>
+  </ol></epic-field
 ><epic-field name="files"
   >app/src/cli/commands (speedtest: --module breakdown, --baseline, --budget); a saved baseline beside it; the epic's
   Overview (the standing note); agents/PAPERCUTS.md (the PATH spell runs main)</epic-field
