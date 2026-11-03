@@ -3,7 +3,8 @@ id: r55
 epic: epic-engine
 from: 🚧 editor (675fcac4)
 at: 2026-11-03T17:57-05:00
-status: new
+status: filed
+filed: Fixed directly (P61 caused it):  the edit bar's menu ground is set on the element, not in UIMarkdown.css;  componentTokens.test.ts passes.  Merged into main.
 ---
 
 ## The person's words
