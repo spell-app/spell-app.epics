@@ -3,7 +3,9 @@ id: r53
 epic: epic-engine
 from: 🚧 atmosphere (ff9b5e62)
 at: 2026-11-02T19:31-05:00
-status: new
+status: filed
+filed: P60 · Edit Text in Place
+phase: p-edit-text-in-place
 ---
 
 ## The person's words
