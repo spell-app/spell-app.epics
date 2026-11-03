@@ -3,7 +3,8 @@ id: r54
 epic: epic-engine
 from: 🚧 editor (675fcac4)
 at: 2026-11-02T21:35-05:00
-status: new
+status: filed
+filed: Fixed directly (P60 caused it):  <spell-markdown editable> keeps its Write / Preview tabs, as spell's engine can't edit in place.  Merged into main.
 ---
 
 ## The person's words
