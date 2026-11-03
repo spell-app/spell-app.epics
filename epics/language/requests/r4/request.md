@@ -3,7 +3,9 @@ id: r4
 epic: language
 from: 🚧 editor (675fcac4)
 at: 2026-11-02T20:52-05:00
-status: new
+status: filed
+filed: P18 · Action Titles
+phase: p-action-titles
 ---
 
 ## The person's words

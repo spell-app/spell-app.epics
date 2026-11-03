@@ -3,7 +3,9 @@ id: r3
 epic: language
 from: 🚧 data (62bf72d1)
 at: 2026-11-02T20:25-05:00
-status: new
+status: filed
+filed: P17 · Read-Ahead Names
+phase: p-read-ahead-names
 ---
 
 ## The person's words
