@@ -1,0 +1,72 @@
+<!-- plan-doc part:  #q33's details in editor.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    Owen, on the edit scope page's Q3 (2026-11-04): "I'm thinking that there is utility in maintaining the compiler data
+    (maybe even the AST) semi-persistently. E.g. if you are loading a library, not having to compile the library code
+    each time will make changing the app's or page's code run faster, no? As part of this, we could keep track of what
+    types/files a given file actually uses ... What are the rules for what can modify something else? E.g. I'd think it
+    is not possible for Solitaire to make changes to card's compile path without explicitly saying
+    <code>a card:...</code> and extending it. Is this the case?"
+  </p>
+  <ul>
+    <li>
+      <b>Keeping compile data:</b> yes, and some of it is kept already.
+      <ul>
+        <li>
+          Within one project, each file's parse is memoized and an edit re-parses incrementally; a library imported as
+          <i>compiled</i> isn't parsed at all: its <code>&lt;Project&gt;.declarations.json5</code> is read instead.
+        </li>
+        <li>
+          What isn't kept: a library imported as <i>source</i> parses again with the app, and nothing survives a page
+          reload. Keeping parses on disk, keyed by each file's text, would make an app's edit faster when it imports
+          source libraries.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>What each file uses:</b> not tracked today. The compiler knows it as it resolves each name, so the declaration
+      marks this phase builds can record, per declaration, the file it's in and the types it reads: card uses nothing,
+      deck and pile use card, solitaire uses all. That's the graph a smart cache, or "what does this edit redraw",
+      needs.
+    </li>
+    <li>
+      <b>What may change a type:</b> no, today it's looser than that.
+      <ul>
+        <li>
+          Any file of the project may add to a type: <code>to move a card to a pile:</code> in
+          <code>Pile.spell</code> becomes a method of Card (the compiler moves it into Card's body,
+          <code>hoistClassMembers()</code>).
+        </li>
+        <li>
+          A project importing another may add members to the imported type too: they're patched onto it (<code
+            >Card.prototype.play = ...</code
+          >), with no <code>a card:</code> needed.
+        </li>
+        <li>Only the project's own types are re-built; an import's type is changed only by what's added onto it.</li>
+      </ul>
+    </li>
+  </ul></epic-question
+><epic-choices>
+  <epic-option
+    letter="A"
+    title="Build the marks so they also record what each declaration uses;  caching and a stricter rule go to language"
+    recommended
+    >The editor's marks phase records the graph as it goes (little extra work). Keeping compiles between runs, and
+    whether adding to another file's or project's type needs an explicit <code>a card:</code>, are language decisions:
+    sent to the <code>language</code> epic as a request.</epic-option
+  >
+  <epic-option letter="B" title="The editor builds the cache too"
+    >Faster edits sooner, but the editor epic would own parser internals it doesn't otherwise touch.</epic-option
+  >
+  <epic-option letter="C" title="Marks only, the rest later"
+    >Smallest now; the graph is recomputed when someone needs it.</epic-option
+  > </epic-choices
+><epic-net-effect recommended option="A"
+  ><ul>
+    <li>The declaration marks phase records, for each declaration, its file and the types it uses.</li>
+    <li>
+      <code>language</code> gets a request: compile caching across reloads, and the rule for adding to a type from
+      another file or project.
+    </li>
+  </ul></epic-net-effect
+>
