@@ -3,7 +3,8 @@ id: r56
 epic: epic-engine
 from: 🚧 editor (675fcac4)
 at: 2026-11-03T22:24-05:00
-status: new
+status: filed
+filed: fixed on epic-engine, 8bec8a306:  the test read a copy of the static names
 ---
 
 ## The person's words
