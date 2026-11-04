@@ -4,8 +4,7 @@ epic: language
 from: 🚧 data (62bf72d1)
 at: 2026-11-03T09:34-05:00
 status: filed
-filed: P20 · Nothing, Not Undefined
-phase: p-nothing-not-undefined
+filed: not doing:  Owen dropped P20 (2026-11-03), undefined and is defined stay
 ---
 
 ## The person's words

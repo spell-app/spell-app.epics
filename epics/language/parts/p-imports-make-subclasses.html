@@ -1,0 +1,77 @@
+<!-- plan-doc part:  #p-imports-make-subclasses's body in language.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  >A project importing another changes the library's own type: Solitaire adding to a library's card patches
+  <code>Card.prototype.play = ...</code>, so the base card changes for everyone.</epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen's r8, part 1 (<a
+        href="/epics/language/requests/r8/request.md"
+        target="src-epics-language-requests-r8-request-md"
+        >r8</a
+      >): "modifying the card in another file to make a <b>subclass</b> of card that gets those modifications, so the
+      base card class is not changed", and "yeah, I think we should do this" to <code>a new card</code> inside the
+      library making the app's card.
+    </li>
+    <li>
+      Needs P25's <code>a card:</code>: an importing project says <code>a card:</code> to add to an imported type, and
+      that's what makes the subclass.
+    </li>
+    <li>
+      The lookup reuses the running program's class registry,
+      <code>core.things.classNamed()</code> (<code>ThingRegistry.addClass()</code>), which already knows every class the
+      program and its imports export, by name, a later one winning.
+    </li>
+    <li>JavaScript, TypeScript and Python alike (Q30).</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>
+      An importing project's additions to an imported type make its OWN subclass; the library's class is untouched.
+    </li>
+    <li>
+      <code>a new card</code> inside the library makes the running program's card (Solitaire's) while Solitaire runs: a
+      lookup by name in the running program.
+    </li>
+  </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      Read how an import compiles today, JS and Python: the import line, a member added to an imported type (<code
+        >Card.prototype.play = ...</code
+      >), and <code>new Card()</code> inside the library.
+    </li>
+    <li>
+      An importing project's <code>a card:</code> block on an imported type now writes
+      <code>export class Card extends Library.Card { ... }</code> (Python: <code>class Card(library.Card)</code>) under
+      the same name, and the project's own code uses it.
+    </li>
+    <li>
+      <code>a new card</code> written inside a project that OTHER projects may extend compiles to a by-name make through
+      the running program's registry, <code>core.things.classNamed("Card")</code>, falling back to its own class: so a
+      library's deck makes Solitaire's cards while Solitaire runs. Only for a type the program extends could reach (the
+      project's own exported types); everything else stays a plain <code>new</code>.
+    </li>
+    <li>
+      The registry: an importing project's subclass registers after the library's (<code>addClasses()</code> in import
+      order), so the app's class wins by name, as <code>addClass()</code>'s "a later class of the same name wins"
+      already does. Two importing projects both extending card: Q29.
+    </li>
+    <li><code>it is a card</code> stays true for both classes (instanceof the library's).</li>
+    <li>
+      Checks: a two-project test (library deck making cards, app adding <code>to play it</code>); the library's Card
+      untouched; same on Python; compare JS and Python over every built-in project (0 changes: none imports and extends
+      today, to be confirmed); speed; gates.
+    </li>
+    <li>Left out: extending a built-in type (<code>a list:</code>), still refused.</li>
+  </ol></epic-field
+><epic-field name="files"
+  >parser/src/parser/writers/JSWriter.ts, TSWriter.ts (no more prototype patches across projects; the subclass;
+  <code>new</code> of an imported-and-extended type); parser/src/py/PyBaseWriter.ts; parser/src/core/things.ts
+  (classNamed for making); parser/src/parser/scope/ImportScope.ts; the declarations file an import reads; tests with two
+  projects</epic-field
+><epic-field name="verify"
+  >A two-project test: a library with <code>a deck has cards</code> making <code>a new card</code>, an app adding
+  <code>to play it</code> to card: the library's Card unchanged, the deck's cards are the app's,
+  <code>it is a card</code> true for both; same on Python; compare; gates</epic-field
+>
