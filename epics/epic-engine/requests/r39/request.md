@@ -3,11 +3,12 @@ id: r39
 epic: epic-engine
 from: 🚧 repo-split (1c6fb846)
 at: 2026-10-26T20:46-04:00
-status: new
+status: filed
+filed: done in I144 (follow-up T51, done): the page no longer types into an open tab, it says so and copies the command to paste
 images: image-1.png, image-2.png
 ---
 
-## Owen's words
+## The person's words
 
 When I press "start review" I see this in vscode
 

@@ -3,10 +3,11 @@ id: r37
 epic: epic-engine
 from: 🚧 ui-gaps (2c2064da)
 at: 2026-10-26T20:40-04:00
-status: new
+status: filed
+filed: done in I143: MainMerge.renameOldNames() runs spell ui rename --write after merge-main, and lists what it renamed
 ---
 
-## Owen's words
+## The person's words
 
 From ui-gaps P14 · Move Into Spell UI (epic-engine's P14, built in ui-gaps), as epic-engine Q27 chose (A, "Merging main renames by itself"):
 

@@ -3,11 +3,12 @@ id: r41
 epic: epic-engine
 from: 🚧 repo-split (1c6fb846)
 at: 2026-10-26T20:47-04:00
-status: new
+status: filed
+filed: done in I146 (commit c9352b0ea): the bullhorn over text sits on a disc of the page's paper
 images: image-1.png
 ---
 
-## Owen's words
+## The person's words
 
 bullhorn icon should be in white circle so it's visible above text
 

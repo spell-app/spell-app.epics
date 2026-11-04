@@ -3,11 +3,12 @@ id: r40
 epic: epic-engine
 from: 🚧 repo-split (1c6fb846)
 at: 2026-10-26T20:46-04:00
-status: new
+status: filed
+filed: done in I145 (commit 5425b8473): a two-column table keeps its second column readable at side-bar width
 images: image-1.png, image-2.png
 ---
 
-## Owen's words
+## The person's words
 
 table layout sucks
 
