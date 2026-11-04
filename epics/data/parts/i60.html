@@ -4,3 +4,131 @@
   compiles to a comment, so the drawing is empty, and lint says nothing. The page names it in full,
   <code>&lt;ui-comment&gt;</code>, and says why. Worth either a warning, or another short name for Spell UI's comment.
 </p>
+<epic-reply agent="claude" from="owenoak" at="2026-11-04 07:12" re="details">
+  <p>
+    In spellml, <code>&lt;comment&gt;</code> is Spell's own comment tag, and it means that inside a drawing too. So a
+    drawing that tries to draw Spell UI's comment by its short name draws nothing, and nothing says why.
+  </p>
+  <ul>
+    <li>Found building the JSONPlaceholder page (P30): each post's comments drew as empty boxes.</li>
+    <li>
+      Everywhere else in a drawing, a bare name is a component's: <code>&lt;button&gt;</code> draws
+      <code>&lt;ui-button&gt;</code>. Only Spell's own tag words win over that, and <code>comment</code> is one of them.
+    </li>
+    <li>
+      What a person sees: an empty drawing. No error, no lint warning; the whole <code>&lt;content&gt;</code> block
+      under it became the comment's text.
+    </li>
+    <li>
+      The same trap waits for <code>&lt;description&gt;</code> written straight under <code>&lt;draw&gt;</code>: it's
+      Spell's long description there. Inside markup (as the page now writes it, under
+      <code>&lt;ui-comment&gt;&lt;content&gt;</code>) both are markup, as they should be.
+    </li>
+  </ul>
+  <epic-code
+    title="app/spaces/@spell/examples/PublicServers/JSONPlaceholder.spellml · what it said, and says now · 16 lines"
+    language="html"
+  >
+    <pre>
+&lt;!-- drew nothing:  a comment, its text the four lines under it --&gt;
+&lt;draw&gt;
+	&lt;comment&gt;
+		&lt;content&gt;
+			&lt;author&gt;{its email}&lt;/author&gt;
+			&lt;description&gt;{its body}&lt;/description&gt;
+		&lt;/content&gt;
+	&lt;/comment&gt;
+&lt;/draw&gt;
+
+&lt;!-- now:  named in full --&gt;
+&lt;draw&gt;
+	&lt;ui-comment&gt;
+		&lt;content&gt; ... &lt;/content&gt;
+	&lt;/ui-comment&gt;
+&lt;/draw&gt;</pre>
+  </epic-code>
+  <epic-code title="parser/src/spell/SpellxTokenizer.ts · isTagHere() · 14 lines" language="ts">
+    <pre>
+  private isTagHere(word: TagWord, indent: number): boolean {
+    const owner = this.ownerOfTag(indent, word)
+    // in a notebook's body, a drawing:  a word spellx doesn't know is markup, `&lt;section&gt;`, `&lt;example&gt;` (P16)
+    if (isNotebook(owner)) return word.category !== "unknown"
+    if (!owner || owner.category === "template") return true
+    if (owner.category === "note" || owner.category === "code") return false
+    if (word.category === "code" &amp;&amp; word.kind === "html") return this.isInDrawing()
+    // its actions, and the menus inside it:  sub-menus (epic `language` P19)
+    if (owner.kind === "menu" &amp;&amp; word.category === "declaration" &amp;&amp; (word.kind === "action" || word.kind === "menu"))
+      return true
+    if (word.category === "control" &amp;&amp; isForSlot(word.kind)) return owner.kind === "for each"
+    if (word.category === "note" || word.category === "control") return true
+    return word.category === "declaration" &amp;&amp; word.kind === "draw" &amp;&amp; this.isInDrawing()
+  }</pre>
+  </epic-code>
+  <ul>
+    <li>
+      A note (<code>comment</code>, <code>description</code>, <code>property-editor</code>) is taken as spellx's in a
+      drawing, then
+      <a href="/parser/src/spell/SpellxTokenizer.ts" target="src-parser-src-spell-spellxtokenizer-ts"
+        ><code title="parser/src/spell/SpellxTokenizer.ts">readTag()</code></a
+      >
+      reads everything up to <code>&lt;/comment&gt;</code> as its prose.
+    </li>
+    <li>
+      The tokenizer can already say what's wrong with a tag (<code>spellx-mismatched-closer</code> ...), each message a
+      key in the language's parser messages.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Say so when a note in a drawing holds markup" recommended
+      ><ul>
+        <li>
+          A <code>&lt;comment&gt;</code> or <code>&lt;description&gt;</code> in a drawing whose text starts with a tag
+          gets a message on its line: "In a drawing, &lt;comment&gt; is a comment, and draws nothing; for Spell UI's
+          comment, write &lt;ui-comment&gt;".
+        </li>
+        <li>A real comment in a drawing, plain words, is untouched.</li>
+        <li>
+          Cost: about 10 lines in <code>readTag()</code>'s note branch, a key in English's and Spanish's parser messages
+          (<code>comentario</code> too), a test in the spellx tokenizer's tests.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="In a drawing, a comment holding markup IS Spell UI's"
+      ><ul>
+        <li>
+          Read a note in a drawing as markup when its text is tags: <code>&lt;comment&gt;</code> then draws
+          <code>&lt;ui-comment&gt;</code>.
+        </li>
+        <li>Cost: about 15 lines, and the spellx writer has to write it back the same way.</li>
+        <li>
+          But one word means two things by what's inside it: a commented-out piece of drawing would start drawing.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Another short name for Spell UI's comment"
+      ><ul>
+        <li>
+          Spell UI gives <code>&lt;ui-comment&gt;</code> a second bare name a drawing can use
+          (<code>&lt;remark&gt;</code>, say).
+        </li>
+        <li>Cost: Spell UI's vocabulary, its docs page, and every language's word for it.</li>
+        <li>
+          But <code>&lt;comment&gt;</code> still draws nothing, silently: the trap stays for whoever tries the obvious
+          name.
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>
+        <code>&lt;comment&gt;&lt;content&gt;...</code> in a drawing compiles with a message naming
+        <code>&lt;ui-comment&gt;</code>, in the editor and in <code>spell lint</code>.
+      </li>
+      <li>The same for <code>&lt;description&gt;</code> straight under a drawing.</li>
+      <li>
+        The JSONPlaceholder page keeps <code>&lt;ui-comment&gt;</code>, and its note about why can stay or shorten.
+      </li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>

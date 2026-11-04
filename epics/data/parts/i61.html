@@ -4,3 +4,117 @@
   <code>add its new todo to the todos</code> add to that property's list, so nothing was saved, and nothing said so. The
   page calls its property <code>own todos</code>. Worth a warning where a property's words are a saved type's plural.
 </p>
+<epic-reply agent="claude" from="owenoak" at="2026-11-04 07:16" re="details">
+  <p>
+    <code>the todos</code> means every saved todo, unless the thing the action is about has a property of that name:
+    then it means the property. So a page with a property called <code>todos</code> silently changes what
+    <code>add its new todo to the todos</code> does: it adds to the property's list, never to the server.
+  </p>
+  <ul>
+    <li>
+      Found building the JSONPlaceholder page (P30), which first had
+      <code>&lt;property "todos"&gt;every todo where its user id is 1&lt;/property&gt;</code>.
+    </li>
+    <li>
+      What a person sees: the Add button does nothing lasting. The server is never asked, no notice comes, and the next
+      read of the list doesn't have the new todo.
+    </li>
+    <li>Why: the property's value is what a read gave back, a list of its own. Adding to it is adding to that copy.</li>
+    <li>
+      The page now calls the property <code>own todos</code>, so <code>the todos</code> is every todo again, and the add
+      compiles to a save.
+    </li>
+  </ul>
+  <epic-code title="JSONPlaceholder.spellml · the page, as it is now · 7 lines" language="html">
+    <pre>
+&lt;property "own todos" description="Theirs, from every todo ..."&gt;every todo where its user id is 1&lt;/property&gt;
+
+&lt;action "add the new todo"&gt;
+	add its new todo to the todos
+	set its new todo to a new todo with user id = 1
+&lt;/action&gt;
+// compiles to:  core.saveThing(await core.answerOf(this, "newTodo"))</pre>
+  </epic-code>
+  <epic-code title="parser/src/spell/rules/classes/TheThings.ts · parse() · the property wins · 4 lines" language="ts">
+    <pre>
+    const own = ownListOf(scope, words)
+    if (!own) return EveryThing.refusedIfFoundByName(match, type)
+    if (own.isAction || (own.variable &amp;&amp; isBare) || Wording.reads(scope, "definite_article", first)) return undefined
+    ;(match.data as { own?: OwnList }).own = own</pre>
+  </epic-code>
+  <epic-code title="parser/src/spell/rules/lists/ListAdd.ts · getAST() · 11 lines" language="ts">
+    <pre>
+  getAST(match: P.MatchFor&lt;this&gt;): P.ASTCoreMethodInvocation {
+    if (savedPlaceOfMatch(savedTypeMatchOf(match.groups.list))) {
+      return new P.ASTCoreMethodInvocation(match, { methodName: "saveThing", args: [P.matchAST(match.groups.thing)] })
+    }
+    const { thing, list, method } = match.groups
+    const spellMethod = Wording.meaningOf(method) === "start" ? "prepend" : "append"
+    return new P.ASTCoreMethodInvocation(match, {
+      methodName: spellMethod,
+      args: [P.matchAST(list), P.matchAST(thing)]
+    })
+  }</pre>
+  </epic-code>
+  <ul>
+    <li>
+      <code>the todos</code>, with a member called <code>todos</code>: the type's plural rule steps aside (by design,
+      its docstring says a property keeps its meaning), and a property read takes it.
+    </li>
+    <li>
+      <code>add</code> saves only when its list is every thing of a saved type; a property read isn't, so it's a plain
+      append.
+    </li>
+    <li>
+      The same quiet append happens today with <code>add its new todo to its own todos</code>: any list that is a read
+      of saved things, by any name.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Warn where adding to a read of saved things saves nothing" recommended
+      ><ul>
+        <li>
+          A warning on the <code>add</code> (and <code>remove</code>, <code>append</code>) line when its list is a
+          property worked out from a place: "This adds only to what was read, and saves nothing; to save it, add it to
+          the todos."
+        </li>
+        <li>Catches the name clash, and <code>its own todos</code> too.</li>
+        <li>
+          The compiler already knows a property reads from a place (it writes <code>readsFrom</code> into the property's
+          declaration).
+        </li>
+        <li>
+          Cost: a check shared by the three list rules, about 15 lines; a key in English's and Spanish's parser
+          messages; tests in the lists module.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Warn on a property named like a saved type's plural"
+      ><ul>
+        <li>A warning where it's declared: "todos is every todo too; here, the todos will mean this property".</li>
+        <li>What I61 first suggested.</li>
+        <li>Cost: about 10 lines in the property declaration's rule, a message key, a test.</li>
+        <li>But it misses <code>add ... to its own todos</code>, the same trap under a different name.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Adding to a read of saved things saves it"
+      ><ul>
+        <li>Compile that <code>add</code> as a save, as for <code>the todos</code>.</li>
+        <li>Cost: about 10 lines.</li>
+        <li>
+          But the read may not take the new thing back (a todo for user 2, added to user 1's list), and a property list
+          that merely holds things would start writing to the server. Too surprising.
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>
+        An add or remove that would only change a copy of what was read compiles with a warning naming the list to use.
+      </li>
+      <li>The JSONPlaceholder page's first version would have warned on its add line.</li>
+      <li><code>the todos</code> keeps meaning a property of that name where there is one.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>

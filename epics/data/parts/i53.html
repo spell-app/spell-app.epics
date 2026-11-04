@@ -4,3 +4,111 @@
   <code>locked</code> and <code>site admin</code>, false on every row read, are noted as never filled. So are
   PokéSpell's <code>baby</code>, <code>legendary</code>, <code>mythical</code>.
 </p>
+<epic-reply agent="claude" from="owenoak" at="2026-11-04 07:05" re="details">
+  <p>
+    After it writes a place's Spell, the ingest reads a page of rows through it, and lists each field no row filled: a
+    hint that the line naming it may be wrong. It decides "filled" by comparing each value with a brand-new thing's, so
+    a yes/no field that is <b>no</b> on every row it read looks the same as one the server never sent.
+  </p>
+  <ul>
+    <li>
+      What a person sees: the description's notes say a field was never filled, when the server sent it on every row.
+      <ul>
+        <li>GitHub: <code>locked</code> on issues, <code>site admin</code> on users and contributors.</li>
+        <li>
+          PokéSpell: <code>baby</code>, <code>legendary</code>, <code>mythical</code>, <code>gender differences</code>,
+          <code>forms switchable</code> on the first page of species.
+        </li>
+      </ul>
+    </li>
+    <li>So the real notes (a list the server leaves empty, a field it never sends) are hidden among wrong ones.</li>
+    <li>
+      The same comparison catches a number that is 0 on every row, and text that is always empty: the same trap, not
+      seen yet.
+    </li>
+  </ul>
+  <epic-code title="parser/src/cli/placeIngest.ts · fieldsNeverFilled() · 20 lines" language="ts">
+    <pre>
+/** Each field `Class` declares that all of `things` left at its usual value. */
+function fieldsNeverFilled(Class: new () =&gt; unknown, things: readonly unknown[]): string[] {
+  if (!things.length) return []
+  const usual = new Class() as Record&lt;string, unknown&gt;
+  const isFilled = (value: unknown, field: string) =&gt; {
+    if (value instanceof Date) return true
+    if (value &amp;&amp; typeof value === "object" &amp;&amp; "items" in value) return (value.items as unknown[]).length &gt; 0
+    return value !== usual[field] &amp;&amp; value !== undefined
+  }
+  return [...schemaOf(Class).declared.keys()].filter(
+    // only looking:  a field holding an address isn't following it
+    (field) =&gt;
+      !things.some((thing) =&gt;
+        isFilled(
+          whileOnlyShowing(() =&gt; (thing as Record&lt;string, unknown&gt;)[field]),
+          field
+        )
+      )
+  )
+}</pre>
+  </epic-code>
+  <ul>
+    <li>
+      The wrong line: <code>value !== usual[field]</code>. A new thing's yes/no reads as <code>false</code>, its type's
+      default, and so does a row's <code>"locked": false</code>.
+    </li>
+    <li>
+      The reactive engine already tells the two apart: a value a row SET is stored on the thing, a default is not.
+      <a href="/src/util/reactive/extend.ts" target="src-src-util-reactive-extend-ts"
+        ><code title="src/util/reactive/extend.ts">peekProp()</code></a
+      >
+      reads only what's stored.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Filled means a row set it" recommended
+      ><ul>
+        <li>
+          A field is filled when some row stored a value in it that isn't nothing (<code>null</code>), read with
+          <code>peekProp()</code>.
+        </li>
+        <li>
+          A yes/no that's always no, a count that's always 0, text that's always empty: all filled, as the server sent
+          them.
+        </li>
+        <li>A field the server left out, or sent as <code>null</code>: still noted, as now.</li>
+        <li>Lists and dates keep their own checks.</li>
+        <li>
+          Cost: about 5 lines in <code>fieldsNeverFilled()</code>, one test in the ingest's tests (a yes/no that's false
+          on every row isn't noted), then <code>spell place update</code> on GitHub, PokéSpell and Open Library. That
+          last step leaves the old notes in place until the fix for keeping old notes (I54) lands too.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Never note a yes/no"
+      ><ul>
+        <li>Skip every yes/no field in the check.</li>
+        <li>Cost: one line.</li>
+        <li>But a yes/no the server really never sends goes unsaid, and a number always 0 is still noted wrongly.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Say it softer for a default"
+      ><ul>
+        <li>
+          Keep the check, but word a field that's always its default differently: "Every row read said no to issue's
+          locked".
+        </li>
+        <li>Cost: about 10 lines, and a second kind of note to read.</li>
+        <li>True, but noise: no is a fine answer, and nothing needs doing about it.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>"No row read filled ..." means the server sent nothing there, never "it said no".</li>
+      <li>
+        GitHub's descriptions lose 3 wrong notes (locked, two site admins), PokéSpell's 5 or so, once each is looked at
+        again.
+      </li>
+      <li>A count that's always 0, or text always empty, can't be noted wrongly later.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>

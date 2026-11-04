@@ -3,3 +3,101 @@
   <code>updateOne()</code>, when the shape's the same, keeps the old notes and adds the new: a "No row read filled
   user's login" fixed since stays in the description.
 </p>
+<epic-reply agent="claude" from="owenoak" at="2026-11-04 07:08" re="details">
+  <p>
+    <code>spell place update</code> looks at a place again. When the place's shape hasn't changed, it keeps the last
+    look's notes and adds this look's: so a note about something since fixed never leaves the description.
+  </p>
+  <ul>
+    <li>
+      What a person sees: a description's notes saying "No row read filled user's login" after the Spell was fixed and
+      the read now fills it. The notes only ever grow.
+    </li>
+    <li>
+      Why it keeps them: on a look with the same shape, the agent isn't asked again, so its notes ("what someone using
+      it should know") would be lost.
+    </li>
+    <li>
+      But most notes are worked out again on every look, so keeping the old ones only keeps stale ones:
+      <ul>
+        <li>
+          the read through the Spell: "No row read filled ...", "Expected ... to be type ...", "... is a number, but its
+          place sent ..."
+        </li>
+        <li>the look itself: a collection that answered with no rows, one that couldn't be read</li>
+        <li>the pictures tried: "... isn't a picture's id"</li>
+        <li>a line Spell can't read: "Left out ..."</li>
+      </ul>
+    </li>
+  </ul>
+  <epic-code title="parser/src/spell/ingest/PlaceIngest.ts · updateOne() · 8 lines" language="ts">
+    <pre>
+const shapeSame = (await fingerprintOf(description)) === old.about.fingerprint
+if (shapeSame) {
+  description.canDo = old.canDo
+  description.about.readBy = old.about.readBy
+  if (old.checkEverySeconds !== undefined) description.checkEverySeconds = old.checkEverySeconds
+  // what was said stays, and what this look found to say joins it:  a list answering from somewhere new
+  description.notes = [...new Set([...old.notes, ...look.notes])]
+}</pre>
+  </epic-code>
+  <epic-code title="parser/src/spell/ingest/PlaceIngest.ts · readThroughIt() · 3 lines" language="ts">
+    <pre>
+const { byType, complaints } = await readThrough({ spell, types, byName, bySearch, fetch: reader.fetch })
+// ...
+// looking again, the last look's notes are there already:  each said once
+description.notes = [...new Set([...description.notes, ...complaints])]</pre>
+  </epic-code>
+  <ul>
+    <li>The read's complaints join a list that already holds the old ones, so they're never dropped either.</li>
+    <li>
+      The agent's notes come from
+      <a href="/parser/src/spell/ingest/PlaceReading.ts" target="src-parser-src-spell-ingest-placereading-ts"
+        ><code title="parser/src/spell/ingest/PlaceReading.ts">applyReading()</code></a
+      >, pushed into the same one <code>notes</code> list, so nothing tells them apart today.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Keep only the agent's notes" recommended
+      ><ul>
+        <li>
+          The description keeps the agent's notes in their own list (<code>agentNotes</code>), beside
+          <code>notes</code>.
+        </li>
+        <li>Looking again with the same shape: the agent's are kept, everything else is said afresh by this look.</li>
+        <li>
+          A description written before: the first update sorts its old notes once, by what the checks write ("No row
+          read filled", "Expected", "Left out" ... are this look's to say again), the rest kept as the agent's.
+        </li>
+        <li>
+          Cost: a field on the description and its file form, about 25 lines, one test (a fixed note is gone after an
+          update, an agent's note stays).
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Drop the old notes the checks would say"
+      ><ul>
+        <li>No new field: before merging, take out of the old notes the ones that look like a check's.</li>
+        <li>Cost: about 10 lines and a list of patterns.</li>
+        <li>But every new kind of note must join that list, or it sticks again.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Drop every old note"
+      ><ul>
+        <li>Each look's notes are only its own.</li>
+        <li>Cost: one line.</li>
+        <li>
+          But a look with the same shape loses the agent's advice (limits, how to search), since the agent isn't asked
+          again.
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>After <code>spell place update</code>, the notes are what is true now, plus what the agent said.</li>
+      <li>The descriptions get an <code>agentNotes</code> list when they're next looked at.</li>
+      <li>Together with I53's fix, GitHub's, PokéSpell's and Open Library's wrong notes go at their next update.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
