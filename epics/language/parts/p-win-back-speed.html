@@ -41,11 +41,48 @@
     </li>
     <li><b>Left out.</b> Speeding up the language server or the editor beyond what the parser fixes give them.</li>
   </ol></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      Built: the parser does the same work about a fifth faster. The same 1,008 rule tests take 347ms a pass, from 428ms
+      (-19%, CPU, best of 4 runs, against <code>main</code> just before P22); the whole speed test's average 356 from
+      419 (-15%). Every program compiles to the same code: <code>spell content compare</code>, 0 of 488 files changed,
+      JavaScript and Python.
+    </li>
+    <li>
+      Three fixes, each from P21's table:
+      <ul>
+        <li>
+          A scope's parser with no rules of its own shares the language's rule map, and a rule added to it changes only
+          that rule's entry (<code>Parser.updateRule()</code>): before, each rule test's scope copied every rule group
+          of the language, and each type or property a program declares merged the whole map again.
+        </li>
+        <li>
+          A sequence that starts with a word it can't do without checks that one word first, making nothing
+          (<code>Sequence.leadingWord</code>): most of the 241 statements and 109 operands tried at each place are
+          turned away there.
+        </li>
+        <li>
+          The waiting pass and read gathering walk a program without an array per node (<code>forEachNode()</code>).
+        </li>
+      </ul>
+    </li>
+    <li>
+      Left: every rule of a group is still tried at every place, so the 27% more rule tries since data's P1 are still
+      made, just cheaper. An index by first word would skip most of them: <a href="#t32">T32</a>, which needs an opt-in
+      on the rule classes, since all but one override <code>parse()</code>.
+    </li>
+    <li>
+      The baseline moved: <code>speedtest --baseline save</code> on the merged commit, so the budget guards this win.
+    </li>
+  </ul></epic-field
 ><epic-commit sha="b277f9a4cbfed7b25629e91945c081a21219c599"
   >the same rule tests 19% faster (347ms a pass from 428), every program compiled the same (content compare 0 of 488, JS
   and Python): a scope's parser shares the language's rule map until it adds one, and an added rule changes only its own
   entry (Parser.updateRule()); a sequence that must start with a word checks that word first (Sequence.leadingWord); the
   waiting pass walks a program without an array per node</epic-commit
+><epic-commit sha="bccf72669622784ae7b3bcf8173e500730e27a64"
+  >the speed baseline moves to the faster compiler (5ee1694b9), so the budget guards the win</epic-commit
 ><epic-field name="files"
   >Whichever rules P21 names (parser/src/spell/rules/...), and parser/src/parser where the cost is in the parser
   itself</epic-field
