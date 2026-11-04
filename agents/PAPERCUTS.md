@@ -248,6 +248,13 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 - 2026-10-29 · `yarn vp fmt --check src tests vite.config.ts ...` (the flag FIRST, then several paths mixing folders and files) says "Expected at least one target file. All matched files may have been excluded by ignore rules." and exits 2, though each path alone checks fine;  `vp fmt --check .` and `vp fmt --check src tests` work. · Put the flag after the paths:  `vp fmt src tests vite.config.ts --check` (the kit's `kit:format:check`, epic's `format:check`;  epic `epic-engine` I156). · kit
 - 2026-10-31 · `yarn lint` in parser/ (6) and app/ (1) fails with `no-redundant-type-constituents`:  `TranslatedType` / `UIVocabulary` "is an 'error' type that acts as 'any'", though the code is fine and `yarn ts` passes;  later it passes again. · The linter's type checker (tsgolint) finds only `tsconfig.json`:  a file only `tsconfig.node.json` includes (`src/cli/` ...) is linted in a program of default settings, which reads `dist-types/`, so missing or stale declarations make its imported types `error`.  Every `lint` now runs `spell-types` first (the kit's `AGENTS.md`, "Imports across repos";  epic `epic-engine` I176). · kit
 
+- 2026-11-04 · Every `tsx` start got slower the longer the machine ran:  epic's worktree-hook tests took ~28% longer
+  in one checkout than another and crossed vitest's 5s timeout, looking like a regression in the branch. · tsx's
+  compile cache (`$TMPDIR/tsx-501`) had grown to 953MB, ~107k files, 8 days of every checkout, and tsx scans its
+  whole list for each module it loads (`FileCache.get()`, a `find()` over every entry).  Emptying the folder fixed it
+  (a hook run 2.5s → 0.9s);  it refills as files run.  Check its size first when tsx-run commands slow down. · spell
+  (epic `coherence` I26)
+
 ## ui
 
 - 2026-10-25 · After `yarn site:data` rewrote `src/jsx.ts`, Spell UI's `yarn ts` still failed on JSX attributes the new
