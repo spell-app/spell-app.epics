@@ -118,3 +118,93 @@
     </ul>
   </epic-net-effect>
 </epic-reply>
+<epic-reply
+  agent="claude"
+  from="owenoak"
+  at="2026-11-04 07:25"
+  re="Hard for me to make a call on this without seeing a concrete example.  Maybe `the saved todos` is always unambiguous for the list from the server?"
+>
+  <p>
+    The example, in full: a page showing one person's todos, with an Add button. Spell has no
+    <code>the saved todos</code> today; it would be a new phrase, and a good one.
+  </p>
+  <epic-code title="JSONPlaceholder.spellml, as P30 first wrote it · 8 lines" language="spell">
+    <pre>
+&lt;spell-page "my todos"&gt;
+	&lt;property "todos"&gt;every todo where its user id is 1&lt;/property&gt;   // a page property, read from the server
+	&lt;property "new todo" type="todo" /&gt;
+	&lt;action "add the new todo"&gt;
+		add its new todo to the todos      // which "todos"?
+	&lt;/action&gt;
+	&lt;draw&gt;&lt;for its todos&gt; ... &lt;/for&gt; &lt;button "add the new todo" /&gt;&lt;/draw&gt;
+&lt;/spell-page&gt;</pre>
+  </epic-code>
+  <ul>
+    <li>
+      You'd read line 5 as "add it to the server's todos". Spell reads <code>the todos</code> as the PAGE's property,
+      because a thing's own member wins over a type's plural.
+    </li>
+    <li>
+      So it compiles to a plain <code>append</code> onto the copy the page read: the todo shows until the next read, the
+      server is never asked, nothing says so.
+    </li>
+    <li>
+      The same happens with <code>add its new todo to its todos</code>, or to any property that is a read of saved
+      things.
+    </li>
+  </ul>
+  <p>What each way would make of it:</p>
+  <table>
+    <tr>
+      <th>Line 5 written as</th>
+      <th>Today</th>
+      <th>A: warn</th>
+      <th>D: your <code>the saved todos</code></th>
+      <th>A + D</th>
+    </tr>
+    <tr>
+      <td><code>add its new todo to the todos</code></td>
+      <td>adds to the page's copy, silently</td>
+      <td>same, with a warning naming the fix</td>
+      <td>same, silently</td>
+      <td>same, with a warning: "write the saved todos to save it"</td>
+    </tr>
+    <tr>
+      <td><code>add its new todo to the saved todos</code></td>
+      <td>doesn't compile</td>
+      <td>doesn't compile</td>
+      <td>saves to the server, whatever the page calls its properties</td>
+      <td>saves to the server</td>
+    </tr>
+    <tr>
+      <td><code>add its new todo to its own todos</code> (P30's fix: renamed)</td>
+      <td>adds to the copy, silently</td>
+      <td>warning</td>
+      <td>silently</td>
+      <td>warning</td>
+    </tr>
+  </table>
+  <epic-choices>
+    <epic-option letter="A" title="Warn where adding to a read of saved things saves nothing"
+      >As in the earlier reply: catches every case, but gives no way to say "the server's" when a property took the
+      name.</epic-option
+    >
+    <epic-option letter="D" title="`the saved todos` always means the server's (your idea)"
+      >A new phrase, en and es (<code>los todos guardados</code>): every saved thing of that type, never a member. Clear
+      when you write it, but nothing tells you that you needed it.</epic-option
+    >
+    <epic-option letter="E" title="A + D together" recommended
+      >The warning on the quiet add, and its fix is your phrase: "this adds only to what the page read; to save it, add
+      it to the saved todos". About 15 lines for the warning, 20 for the phrase, message keys, tests.</epic-option
+    >
+  </epic-choices>
+  <epic-net-effect
+    ><ul>
+      <li>
+        E: P30's page could keep calling its property <code>todos</code>, and write
+        <code>add its new todo to the saved todos</code>.
+      </li>
+      <li>A quiet add to a copy always gets a warning, which names the phrase that saves.</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
