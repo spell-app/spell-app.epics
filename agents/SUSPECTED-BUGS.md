@@ -470,6 +470,11 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   Suspect `sourceMapFileFor()` resolving before the project knows its build folder.  Prove:  restart the editor's dev
   server on Solitaire, then `git status` in spell-app.  (The `people.lib.ts` half was fixed 2026-10-25:  a library
   target writes no source map, epic `elemental-spell`.)
+- [ ] The javascript writer starts a top-level line with `(`, so it runs on from the line before:
+  `bump` then `tap a new card` compiled to `bump()` / `(new Card()).tap()`, which javascript reads as
+  `bump()(new Card()).tap()` and throws "bump(...) is not a function".
+  Found writing epic `data` I44's tests (2026-11-04);  worked round there with `set card to a new card`.
+  Prove:  `runSpell(["to bump:\n\tprint 1", "a card is a thing where:\n\t- to tap it:\n\t\tprint 2", "bump", "tap a new card"])`.
 
 ## py
 
