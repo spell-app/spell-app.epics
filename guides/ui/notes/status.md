@@ -70,6 +70,10 @@ A checklist of every component in [the plan](plan.md):  what's done, in progress
 - **`<ui-root>`** (P17-P20, 2026-10-01):  built.
   - P21 (D48-D50:  table `stack-by`, WebKit fixes):  built.
   - P22 doc review:  done.
+  - `defaults` (epic `language` P28, 2026-11-03):  built, in the worktree `language`.
+    Attribute values for the elements inside that don't set them, by tag (`{ "ui-button": { appearance: "pill" } }`);
+    nested roots inherit and override, live;  content attributes and bad values warn once.
+    Tests:  `UIRoot.defaults.test.tsx`, the kit's `DOMElement.test.tsx` "root defaults".
 - **`stack-with="container | page"`** (2026-10-03, epic `spell-ui-pages` P10, D40):
   - grid, cards, steps, form, items and statistics stack by their own width (the default), or the screen's
   - `<ui-root stack-with>` sets the inherited `--ui-stack-with` for a page.
