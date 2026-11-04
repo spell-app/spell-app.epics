@@ -3,7 +3,9 @@ id: r8
 epic: language
 from: 🚧 editor (675fcac4)
 at: 2026-11-03T19:52-05:00
-status: new
+status: filed
+filed: P25 · Saying Which Type
+phase: p-saying-which-type
 ---
 
 ## The person's words

@@ -3,7 +3,9 @@ id: r9
 epic: language
 from: 🚧 editor (675fcac4)
 at: 2026-11-03T19:52-05:00
-status: new
+status: filed
+filed: P27 · Compiles Kept On Disk
+phase: p-compiles-kept-on-disk
 ---
 
 ## The person's words
