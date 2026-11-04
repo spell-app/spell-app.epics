@@ -4,3 +4,190 @@
   nothing says so. <code>for one in every favourite where ...: remove one from the favourites</code> works
   (<code>core.removeSaved()</code>), and is what PokéSpell says.
 </p>
+<epic-reply agent="claude" from="owenoak" at="2026-11-04 06:58" re="details">
+  <p>
+    Removing favourites with a <code>where</code> takes them out of a copy the program read, never out of the database
+    on this device: the next read brings them all back, and the heart stays red. Two rules can say "remove", and only
+    one of them knows about places.
+  </p>
+  <ul>
+    <li>
+      <b>The one that works</b>,
+      <a href="/parser/src/spell/rules/lists/ListRemove.ts" target="src-parser-src-spell-rules-lists-listremove-ts"
+        ><code title="parser/src/spell/rules/lists/ListRemove.ts">ListRemove</code></a
+      >
+      (<code>remove one from the favourites</code>):
+      <ul>
+        <li>
+          it asks "is the list every thing of a saved type?"; yes, so it compiles to <code>core.removeSaved(one)</code>
+        </li>
+        <li>that takes the row out of its place, and records an undo step</li>
+        <li>it also refuses to compile for a read-only place</li>
+      </ul>
+    </li>
+    <li>
+      <b>The one that doesn't</b>,
+      <a
+        href="/parser/src/spell/rules/lists/ListRemoveWhere.ts"
+        target="src-parser-src-spell-rules-lists-listremovewhere-ts"
+        ><code title="parser/src/spell/rules/lists/ListRemoveWhere.ts">ListRemoveWhere</code></a
+      >
+      (<code>remove favourites in every favourite where ...</code>):
+      <ul>
+        <li>it never asks that question: it always compiles to <code>core.removeWhere(list, test)</code></li>
+        <li>
+          <a href="/parser/src/core/collection-other.ts" target="src-parser-src-core-collection-other-ts"
+            ><code title="parser/src/core/collection-other.ts">core.removeWhere()</code></a
+          >
+          is a plain list helper: it filters, then takes the matches out of that list object
+        </li>
+        <li>
+          the list is what
+          <a href="/parser/src/core/saved.ts" target="src-parser-src-core-saved-ts"
+            ><code title="parser/src/core/saved.ts">core.savedThings()</code></a
+          >
+          answered, the read's own list, so the place never hears of it
+        </li>
+        <li>no read-only check either, so a web server's things "remove" too, silently</li>
+      </ul>
+    </li>
+    <li>
+      PokéSpell's heart (in its
+      <a
+        href="/app/spaces/@spell/examples/PokeSpell/Pokemon.spellml"
+        target="src-app-spaces-spell-examples-pokespell-pokemon-spellml"
+        ><code title="app/spaces/@spell/examples/PokeSpell/Pokemon.spellml">love it</code></a
+      >
+      action) says the loop instead, so the example works today.
+    </li>
+  </ul>
+
+  <p>What each line compiles to, from <code>spell parse --in @spell/examples/PokeSpell</code>:</p>
+  <epic-code title="spell parse · 4 lines" language="ts">
+    <pre>
+// remove favourites in every favourite where its address is "x"
+core.removeWhere(await core.savedThings(Favourite), (favourite) =&gt; favourite.address === "x")
+// for one in every favourite where its address is "x": remove one from the favourites
+core.map(await core.savedThings(Favourite, { filter: { address: "x" } }), (one) =&gt; core.removeSaved(one))</pre>
+  </epic-code>
+
+  <epic-code title="ListRemoveWhere.ts · getAST() · 8 lines" language="ts">
+    <pre>
+getAST(match: P.MatchFor&lt;this&gt;): P.ASTCoreMethodInvocation {
+  const { arg, list } = match.groups
+  const filter = getWhereMethod(match, arg, this.getBody(match))
+  return new P.ASTCoreMethodInvocation(match, {
+    methodName: "removeWhere",
+    args: [P.matchAST(list), filter]
+  })
+}</pre>
+  </epic-code>
+
+  <epic-code title="ListRemove.ts · parse() and getAST() · 14 lines" language="ts">
+    <pre>
+parse(scope: P.Scope, tokens: P.Token[]): P.Match | undefined {
+  const match = super.parse(scope, tokens) as P.MatchFor&lt;this&gt; | undefined
+  if (match) refuseWriteIfReadOnly(match, EveryThing.kindOf(savedTypeMatchOf(match.groups.list) ?? match))
+  return match
+}
+
+getAST(match: P.MatchFor&lt;this&gt;): P.ASTCoreMethodInvocation {
+  if (savedPlaceOfMatch(savedTypeMatchOf(match.groups.list))) {
+    return new P.ASTCoreMethodInvocation(match, { methodName: "removeSaved", args: [P.matchAST(match.groups.thing)] })
+  }
+  const { thing, list } = match.groups
+  return new P.ASTCoreMethodInvocation(match, { methodName: "remove", args: [P.matchAST(list), P.matchAST(thing)] })
+}</pre>
+  </epic-code>
+
+  <epic-code title="collection-other.ts · core.removeWhere() · 6 lines" language="ts">
+    <pre>
+removeWhere&lt;T = unknown&gt;(collection?: CollectionOf&lt;T&gt;, condition?: CollectionIterationCallback&lt;NoInfer&lt;T&gt;&gt;): void {
+  if (!assert.isDefined(collection, "core.removeWhere(collection)")) return
+  const itemsToRemove = core.filter(collection, condition)
+  if (core.isArrayLike(collection)) core.remove(collection, ...(itemsToRemove as unknown[]))
+  else core.removeItemsAt(collection, ...Object.keys(itemsToRemove as object))
+}</pre>
+  </epic-code>
+
+  <epic-aside title="a third way to say it, also broken">
+    <ul>
+      <li>
+        <code>remove favourites from the favourites where its address is "x"</code> (with "from", not "in") is read as
+        the OTHER rule: "take the thing <i>favourites</i> out of the list <i>the favourites where ...</i>"
+      </li>
+      <li>
+        that list has a <code>where</code>, so it isn't "every thing of a saved type", so it compiles to a plain
+        <code>core.remove(...)</code>: nothing leaves the place here either
+      </li>
+      <li>the fix below should cover it: "remove things from a saved list where ..." means the same as "in"</li>
+    </ul>
+    <epic-code title="spell parse · 2 lines" language="ts">
+      <pre>
+// remove favourites from the favourites where its address is "x"
+core.remove(await core.savedThings(Favourite, { filter: { address: "x" } }), await core.savedThings(Favourite))</pre>
+    </epic-code>
+  </epic-aside>
+
+  <epic-choices>
+    <epic-option letter="A" title="It compiles to what the loop compiles to" recommended
+      ><ul>
+        <li>
+          In <code>ListRemoveWhere</code>, when its list is every thing of a saved type (the same two helpers
+          <code>ListRemove</code> uses), it writes "each one that passes the test, removed from its place".
+        </li>
+        <li>
+          Wrapped in one undo step and one send (<code>core.inOneGo()</code>), so removing five favourites is one Undo,
+          not five.
+        </li>
+        <li>It gets the read-only refusal too, so a web server's things won't compile, saying why.</li>
+        <li>
+          The test is handed through <code>core.filter()</code>, so the writer turns a simple one into a query for the
+          place, as it already does for the loop (<code>{ filter: { address } }</code>).
+        </li>
+        <li>Cost: one rule file, about 15 lines, and a rule test in English and Spanish ("quitar ... donde").</li>
+        <li>
+          PokéSpell's heart could then say it in one line,
+          <code>remove favourites in every favourite where its address is address</code>.
+        </li>
+      </ul>
+      <epic-code title="what it would compile to · 3 lines" language="ts">
+        <pre>
+await core.inOneGo(async () =&gt;
+  core.map(core.filter(await core.savedThings(Favourite), (favourite) =&gt; favourite.address === "x"), (one) =&gt; core.removeSaved(one))
+)</pre>
+      </epic-code></epic-option
+    >
+    <epic-option letter="B" title="core.removeWhere() notices saved things when it runs"
+      ><ul>
+        <li>The runtime helper asks each item it removes "are you kept in a place?" and, if so, removes it there.</li>
+        <li>No compiler change, and it catches every way of saying it.</li>
+        <li>
+          But it would also delete from the device when someone filters their OWN list that happens to hold saved things
+          (<code>remove favourites in my picks where ...</code>): a surprise, and data lost.
+        </li>
+        <li>No read-only check at compile time: only a failure when it runs.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Refuse it, pointing at the loop"
+      ><ul>
+        <li>
+          A compile error on a saved list: "say
+          <i>for each one in every favourite where ...: remove it from the favourites</i>".
+        </li>
+        <li>Smallest change, and nothing silently does nothing any more.</li>
+        <li>But it turns away a sentence that reads exactly right, and makes people write three lines for one.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li><code>remove favourites in every favourite where ...</code> removes them from the database on this device</li>
+      <li>the same with "from" instead of "in"</li>
+      <li>removing several is one Undo</li>
+      <li>removing from a read-only place (a web server) won't compile, and says why</li>
+      <li>a plain list, not saved anywhere, works as it does today</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>

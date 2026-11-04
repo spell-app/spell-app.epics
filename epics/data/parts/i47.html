@@ -8,3 +8,243 @@
   PokéSpell names its six bars by their place in the list instead (PokéAPI always lists them in one order). Better: a
   small type with a <code>name</code>, held inside, never fetched.
 </p>
+<epic-reply agent="claude" from="owenoak" at="2026-11-04 06:58" re="details">
+  <p>
+    PokéAPI points at other things with a small pair, a name and an address:
+    <code>"stat": { "name": "hp", "url": ".../stat/1/" }</code>. The ingest keeps only the address, so
+    <code>the stat of stat</code> reads <code>https://pokeapi.co/api/v2/stat/1/</code> where a person wants
+    <code>hp</code>.
+  </p>
+  <ul>
+    <li>
+      <b>How it gets there</b>, in three steps:
+      <ol>
+        <li>
+          While it looks at the rows,
+          <a href="/parser/src/spell/ingest/PlaceShape.ts" target="src-parser-src-spell-ingest-placeshape-ts"
+            ><code title="parser/src/spell/ingest/PlaceShape.ts">fieldsOf()</code></a
+          >
+          turns every name-and-address pair into its address (<code>linkIn()</code>), so the field is a "link" (epic
+          <code>data</code>'s P27, More REST Servers).
+        </li>
+        <li>
+          Then <code>findLinks()</code> asks "is that address one of the collections I was asked to read?" PokéSpell's
+          ingest asked for pokemon, species, types, abilities, moves, evolution chains and generations: not stats. So
+          the link points nowhere.
+        </li>
+        <li>
+          Writing the Spell,
+          <a href="/parser/src/spell/ingest/PlaceSpell.ts" target="src-parser-src-spell-ingest-placespell-ts"
+            ><code title="parser/src/spell/ingest/PlaceSpell.ts">typeWordsFor()</code></a
+          >
+          writes a link that points nowhere as <code>text</code>, and when it's read the runtime does the same swap
+          again (<a href="/parser/src/core/places.ts" target="src-parser-src-core-places-ts"
+            ><code title="parser/src/core/places.ts">addressesOf()</code></a
+          >): the address.
+        </li>
+      </ol>
+    </li>
+    <li>
+      Where the address IS one of its collections, it works: <code>its "kind" is a type</code> and
+      <code>its "generation" is a generation</code> follow the address and read the real thing.
+    </li>
+    <li>
+      P28 (GitHub REST) didn't touch this; P29 (Open Library) only added links by id, and left this case as it was.
+    </li>
+    <li>
+      <b>It isn't only <code>stat</code>.</b>
+      In PokéSpell's API file, 15 fields at the top of a type say <code>// an address</code> (growth rate, colour,
+      shape, habitat, the move's target ...), and more inside the small types say nothing at all (a stat's
+      <code>stat</code>, a flavour text's <code>language</code> and <code>version</code>, a move's
+      <code>version group</code>).
+    </li>
+    <li>
+      Side find: the lines of a type written for what's INSIDE a row never get the <code>// an address</code> comment
+      (<code>typesInside()</code> never calls <code>commentFor()</code>), which is why <code>its "stat" is text</code>
+      gives no warning.
+    </li>
+  </ul>
+
+  <epic-code
+    title="PokeSpell.api.json5 · a stat, as PokéAPI sends it, and as the ingest saw it · 14 lines"
+    language="json"
+  >
+    <pre>
+// one of a pokemon's "stats"
+{ "base_stat": 45, "effort": 0, "stat": { "name": "hp", "url": "https://pokeapi.co/api/v2/stat/1/" } }
+
+// what fieldsOf() made of its "stat"
+"stat": {
+  "words": "stat",
+  "type": "link",
+  "example": "https://pokeapi.co/api/v2/stat/1/"
+}
+
+// what PlaceSpell wrote, in PokeSpell.api.spell
+a "stat" is a thing:
+	- its "base stat" is a number
+	- its "effort" is a number
+	- its "stat" is text</pre>
+  </epic-code>
+
+  <epic-code title="PlaceShape.ts · linkIn(), isNamedLink() · 11 lines" language="ts">
+    <pre>
+/** A `{ name, url }`, or a list of them, as its address:  anything else as it is. */
+function linkIn(value: unknown): unknown {
+  if (Array.isArray(value)) return value.every(isNamedLink) ? value.map((each) =&gt; (each as { url: string }).url) : value
+  return isNamedLink(value) ? (value as { url: string }).url : value
+}
+
+/** Is this a link with its name, PokéAPI's way:  `{ "name": "pikachu", "url": "https://..." }`? */
+function isNamedLink(value: unknown): boolean {
+  if (!isObject(value)) return false
+  const { url, ...rest } = value as Record&lt;string, unknown&gt;
+  return typeof url === "string" &amp;&amp; IS_LINK.test(url) &amp;&amp; Object.keys(rest).every((key) =&gt; key === "name")
+}</pre>
+  </epic-code>
+
+  <epic-code title="PlaceSpell.ts · typeWordsFor(), its end, and SPELL_TYPES · 9 lines" language="ts">
+    <pre>
+const target = linksTo === undefined ? undefined : collections[linksTo]
+if (!target || target.leftOut) return SPELL_TYPES[type]!     // a link to nowhere:  "text"
+// an address, or an id of one found by name:  Open Library's `author_key`
+if (type === "link" || type === "text") return articled(target.type)
+
+const SPELL_TYPES = {
+  // what isn't one of the place's own types:  its address, as text
+  link: "text",
+  "list of links": "a list of text",</pre>
+  </epic-code>
+
+  <p>
+    <b>What PokéSpell's strength bars read like.</b>
+    Today the six bars are named by their place in the list (PokéAPI always sends them in one order):
+  </p>
+  <ui-table celled padding="compact" appearance="striped" unstackable>
+    <table>
+      <thead>
+        <tr>
+          <th>Way</th>
+          <th>The label</th>
+          <th>What the first bar says</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Today</td>
+          <td><code>word place of strength words</code></td>
+          <td>Health: 45</td>
+        </tr>
+        <tr>
+          <td>Today, by its stat</td>
+          <td><code>the stat of stat</code></td>
+          <td>https://pokeapi.co/api/v2/stat/1/: 45</td>
+        </tr>
+        <tr>
+          <td>A, B</td>
+          <td><code>the name of the stat of stat</code> (A) or <code>the stat of stat</code> (B)</td>
+          <td>hp: 45</td>
+        </tr>
+        <tr>
+          <td>C</td>
+          <td>the stat's English name, from its <code>names</code></td>
+          <td>HP: 45</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ul>
+    <li>
+      PokéAPI's names are its own codes (<code>hp</code>, <code>special-attack</code>), not words for a child: with A or
+      B, PokéSpell still keeps its own words ("Health", "Special attack"), but could pick each one by the stat's name
+      instead of trusting the order.
+    </li>
+  </ul>
+
+  <epic-choices>
+    <epic-option letter="A" title="A small thing with a name and an address, never fetched" recommended
+      ><ul>
+        <li>
+          A name-and-address pair whose collection wasn't asked for becomes ONE small type for the whole place, written
+          once, held inside the row: nothing is ever fetched for it.
+        </li>
+        <li>Every such field uses it, so dozens of fields don't make dozens of types.</li>
+        <li>
+          <code>the name of the stat of stat</code> is <code>hp</code>; its address is still there, to follow later.
+        </li>
+        <li>
+          Asking for that collection later (<code>spell place update</code> with <code>stat</code> added) turns the
+          field into a real link, <code>its "stat" is a stat</code>, with nothing else to change.
+        </li>
+        <li>
+          Cost: the ingest (the shape and the writer, both languages' words), the runtime reading the pair whole instead
+          of swapping it for its address, and PokéSpell's snapshots.
+        </li>
+        <li>
+          The missing <code>// an address</code> comment inside types goes away with it: nothing reads as an address any
+          more.
+        </li>
+      </ul>
+      <epic-code title="what the ingest would write · 8 lines" language="spell">
+        <pre>
+a "stat" is a thing:
+	- its "base stat" is a number
+	- its "effort" is a number
+	- its "stat" is a poke api name
+
+a "poke api name" is a thing:  // what PokéAPI points at, by its name;  never read
+	- its "name" is text
+	- its "address" is text, stored as "url"</pre>
+      </epic-code></epic-option
+    >
+    <epic-option letter="B" title="It stays text, and reads as the name"
+      ><ul>
+        <li>
+          The ingest writes <code>its "stat" is text // its name</code>, and a text field holding a pair reads its name.
+        </li>
+        <li>
+          <code>the stat of stat</code> is <code>hp</code>: the shortest program, the smallest change (two small
+          functions).
+        </li>
+        <li>
+          But the address is gone for good: asking for stats later can't follow anything that was written as plain text,
+          and it undoes P27's "a pair held as text reads as its address".
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="The ingest asks for those collections too"
+      ><ul>
+        <li>
+          Each collection a pair points at is read as well (or the ingest says which to add), so every pair is a real
+          link: <code>its "stat" is a stat</code>.
+        </li>
+        <li>
+          Reading one fetches it: the stat's names in every language, so the bar could say "HP" in English and Spanish.
+        </li>
+        <li>
+          But PokéAPI points at about 20 other collections this way: a much longer ingest, a much bigger API file, and a
+          read per thing followed.
+        </li>
+        <li>
+          Possible today, by hand, for just stats: add <code>stat</code> to the ingest's collections. Better as a choice
+          a person makes than the default.
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>the ingest writes <code>its "stat" is a poke api name</code>, not <code>is text</code></li>
+      <li>
+        <code>the name of the stat of stat</code> reads <code>hp</code>, and nothing reads as an address by surprise
+      </li>
+      <li>the same for every other name-and-address pair whose collection wasn't asked for</li>
+      <li>PokéSpell's bars can match their words by the stat's name, not by its place in the list</li>
+      <li>
+        asking for the collection later turns each into a real link, its lines rewritten by
+        <code>spell place update</code>
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
