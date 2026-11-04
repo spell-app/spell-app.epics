@@ -35,21 +35,56 @@
     walk over it, a node's docstring, the comments. The translation-pack check, the core's method list, the code
     examples' comments and <code>epic pages fuss</code> read through it; their hand scanners go.
   </p></epic-field
+><epic-field name="choices"
+  ><epic-choices>
+    <epic-option letter="A" title="Move the app's component reader onto oxc" recommended
+      ><ul>
+        <li>
+          <code>ComponentSource</code> reads the syntax only (no type checker), so oxc can do it: its walk over props
+          types (intersections, <code>Pick&lt;&gt;</code> and <code>Omit&lt;&gt;</code>, imported types, the JSX tags it
+          draws), about 20 TypeScript node checks in 271 lines, rewritten to oxc's node shapes. About 2 hours; its own
+          test checks it.
+        </li>
+        <li>
+          The app's manifest drops <code>@typescript/typescript6</code>, but the install keeps it: the kit's JSX help
+          (<code>JsxElementHelp</code>) uses it, and Spell UI's declaration build (<code>vite-plugin-dts</code>) needs
+          it.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Leave it on TypeScript 6"
+      ><ul>
+        <li>Nothing to rewrite; the app keeps a second TypeScript reader beside the kit's.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>one TypeScript reader for the app's tools; TypeScript 6 stays in the install for its two other users</li>
+    </ul></epic-net-effect
+  >
+  <epic-net-effect option="B"
+    ><ul>
+      <li>two readers in the tools, as today</li>
+    </ul></epic-net-effect
+  ></epic-field
 ><epic-field name="plan"
   ><ol>
     <li>
       <b>The reader.</b> A new <code>spell/util/node/typescript</code>: <code>readTypeScript(file, text)</code> gives
-      the tree, its comments and the text; <code>walk(node, visit)</code>; <code>docstringOf(node)</code> (the
-      <code>/** */</code> right above it, its stars gone); <code>lineOf(offset)</code>; one
-      <code>SourceNode</code> type. Lifted from the two readers already on oxc (the rule tests' and the syntax page's),
-      which then import it. Tests: a class, a call, an import, a docstring, JSX text holding <code>//</code>, a regex
-      literal, a template string.
+      the tree, its comments, its imports and exports (oxc's own list) and the text; <code>walk(node, visit)</code>;
+      <code>docstringOf(node)</code> (the <code>/** */</code> right above it, its stars gone); one
+      <code>SourceNode</code> type. It gives OFFSETS only, no line numbers: <code>spell/util</code> can't import the
+      parser, whose <code>P.positionForOffset()</code> turns an offset into a line. Lifted from the two readers already
+      on oxc (the rule tests' and the syntax page's), which then import it. Tests: a class, a call, an import, a
+      docstring, JSX text holding <code>//</code>, a regex literal, a template string.
     </li>
     <li>
       <b>The translation-pack check.</b> Its registrations (<code>addRule(...)</code> calls, with the statement around
-      each and the comments above), its imports and exported classes from the tree; <code>maskCode()</code> and the
-      scanners around it go. It becomes node only: its one importer is the command line. First, its output on today's
-      rule files saved, so the change is checked against it.
+      each and the comments above), its imports (its <code>IMPORT</code> regular expression goes) and exported classes
+      from the tree; <code>maskCode()</code> and the scanners around it go. Its line numbers, and the syntax page's,
+      from <code>P.positionForOffset()</code>, not by counting newlines. It becomes node only: its one importer is the
+      command line. First, its output on today's rule files saved, so the change is checked against it.
     </li>
     <li>
       <b>The core's method list.</b> Parameter names from oxc (the method's source parsed as a class member), docstrings
@@ -60,16 +95,28 @@
       <b>Comments.</b> The code examples' JavaScript and TypeScript comments through the reader (<code
         >commentsBlanked()</code
       >
-      keeps only Python's scanner); <code>epic pages fuss</code> reads comments and line starts from it, its 100-line
-      lexer gone.
+      keeps only Python's scanner); <code>epic pages fuss</code> reads comments from it, its 100-line lexer gone, and
+      its own table of line starts goes onto <code>P.positionForOffset()</code>.
+    </li>
+    <li>
+      <b>Import lists.</b> The five tools that find imports with a regular expression read oxc's import list instead:
+      the code map's import links, the pack build's, Spell UI's declaration check and bundle measure, and the
+      translation-pack check (step 2). Checked by their output before and after: <code>spell map</code>'s links, a pack
+      build, <code>yarn measure</code>.
+    </li>
+    <li>
+      <b>The app's component reader</b> (the App UI docs set's props reader): as this phase's choice says. On A, its
+      walk over props types moves onto the reader and its own test checks it.
     </li>
     <li>
       <b>Docs and catalog.</b> The util and parser
       <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> files; the catalog's "Comments in code" and
-      "A new syntax" say it's done. <code>yarn review</code>; the parser's speed test on the diff and on main.
+      "A new syntax" say it's done, and name the import list. <code>yarn review</code>; the parser's speed test on the
+      diff and on main.
     </li>
     <li>
-      <b>Left out.</b> The app's App UI prop reader: it needs TypeScript's own type checker, which oxc doesn't have.
+      <b>Left out.</b> The kit's JSX help for the VS Code extension stays on TypeScript 6 for now: the extension bundles
+      it, and oxc's parser ships as a native add-on.
     </li>
   </ol></epic-field
 ><epic-field name="files"
@@ -79,21 +126,33 @@
       <a href="/src/util/AGENTS.md" target="src-src-util-agents-md"><code>src/util/AGENTS.md</code></a>
     </li>
     <li>
-      <a href="/parser/src/spell/languages/packs.ts" target="src-parser-src-spell-languages-packs-ts"
-        ><code>parser/src/spell/languages/packs.ts</code></a
+      parser: <code>src/spell/languages/packs.ts</code>, <code>src/core/coreDeclarations.ts</code>,
+      <code>src/spell/node/spellSyntax.ts</code>, <code>src/parser/test/RuleTestSource.ts</code>
+    </li>
+    <li>epic: <code>src/tools/fuss.ts</code></li>
+    <li>
+      the import readers:
+      <a href="/src/cli/map/importLinks.ts" target="src-src-cli-map-importlinks-ts"
+        ><code>src/cli/map/importLinks.ts</code></a
       >,
-      <a href="/parser/src/core/coreDeclarations.ts" target="src-parser-src-core-coredeclarations-ts"
-        ><code>parser/src/core/coreDeclarations.ts</code></a
+      <a href="/src/element-tools/ComponentPack.ts" target="src-src-element-tools-componentpack-ts"
+        ><code>src/element-tools/ComponentPack.ts</code></a
       >,
-      <a href="/parser/src/spell/node/spellSyntax.ts" target="src-parser-src-spell-node-spellsyntax-ts"
-        ><code>parser/src/spell/node/spellSyntax.ts</code></a
+      <a href="/ui/src/tools/DeclarationCheck.ts" target="src-ui-src-tools-declarationcheck-ts"
+        ><code>ui/src/tools/DeclarationCheck.ts</code></a
       >,
-      <a href="/parser/src/parser/test/RuleTestSource.ts" target="src-parser-src-parser-test-ruletestsource-ts"
-        ><code>parser/src/parser/test/RuleTestSource.ts</code></a
+      <a href="/ui/src/tools/BundleMeasure.ts" target="src-ui-src-tools-bundlemeasure-ts"
+        ><code>ui/src/tools/BundleMeasure.ts</code></a
       >
     </li>
     <li>
-      <a href="/epic/src/tools/fuss.ts" target="src-epic-src-tools-fuss-ts"><code>epic/src/tools/fuss.ts</code></a>
+      on choice A:
+      <a href="/app/src/app/tools/ComponentSource.ts" target="src-app-src-app-tools-componentsource-ts"
+        ><code>app/src/app/tools/ComponentSource.ts</code></a
+      >
+      and its test, <a href="/app/package.json" target="src-app-package-json"><code>app/package.json</code></a> (and
+      <a href="/parser/package.json" target="src-parser-package-json"><code>parser/package.json</code></a
+      >'s unused TypeScript 6 entry)
     </li>
     <li>
       <a href="/agents/coherence/catalog.md" target="src-agents-coherence-catalog-md"
