@@ -1,0 +1,102 @@
+<!-- plan-doc part:  #p-csv-writes's body in zzcheck.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"><p>A CSV can only be read, except through the demo's test servers.</p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Saving changes only the lines that changed: an added row, a moved row, an edited cell. The rest of the file stays
+      byte for byte, so a diff in git or VS Code shows just that.
+    </li>
+    <li>With an id column, a row is matched by its id, so an edit and a move at once are both understood.</li>
+    <li>
+      With no id column, rows are matched by their whole text: an added or moved row is found, but an edited row reads
+      as one removed and one added. Saving a change to a row with no id says so.
+    </li>
+    <li>
+      The file changed since it was read: merged per row and field with what's there, as a refused save is; a clash gets
+      the usual notice.
+    </li>
+    <li>Columns the program doesn't know are kept, as are the file's quoting and line endings.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>A CSV behind the place server takes writes, saved by comparing new rows with old.</li>
+    <li>The compiler lets a program write to a CSV with a server in front.</li>
+  </ul></epic-field
+><epic-field name="plan" accepted="2026-10-31 11:05"
+  ><ol>
+    <li>
+      <b>Keeping every byte:</b> <code>parseCsv()</code> keeps each line's raw cells and line end; a new
+      <code>CsvFile</code> (spell/util/places) compares new rows with old: by id, or by whole text with a
+      longest-common-subsequence, and rewrites only the lines that differ. Checked in tests/util/places: quoted cells,
+      embedded newlines and commas, CRLF, no last newline, unknown columns, a BOM.
+    </li>
+    <li>
+      <b>The place:</b> a new <code>CsvPlace</code> (spell/server/places): read, <code>apply()</code> under the file's
+      lock and all at once, a row's version as a hash of its content, a stale version refused so the engine merges per
+      field; a half-saved, non-UTF-8 or unclear file refuses and says so; no id: inserts and a whole-list save only, a
+      change says why not. A file's order reaches a program as a position field, so a move is what a live room's move
+      is.
+    </li>
+    <li>
+      <b>The compiler:</b> no new word: a sheet whose address is a place server (<code>/api/places/...</code>) is
+      written through <code>RemotePlace</code>; a plain address stays refused. Parser tests, and a compiled program
+      writing a row.
+    </li>
+    <li>
+      <b>The demo:</b> <code>RecipeFile</code> stands on <code>CsvPlace</code>, its own writer and hash gone;
+      <code>/api/places/recipes-csv</code> serves the file; the sheet frame on all-back-ends writes and moves, with its
+      text rewritten; bundle rebuilt.
+    </li>
+    <li>
+      <b>Checked:</b> the gates, then headless Playwright on my own port: add, move, edit, remove, with the file's real
+      diff after each.
+    </li>
+  </ol>
+  <p>
+    <b>Left out:</b> a whole-list save merging with a file changed underneath (it says out of date); a move made from an
+    old copy lands by position, not re-checked; watching the file (it polls); Google Sheets are untouched.
+  </p></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      Where to see it: all-back-ends, press Restart, then add, move, edit and remove in the sheet frame with the file's
+      diff open.
+    </li>
+    <li>
+      A CSV behind a server can be written: each save compares new rows with old, and changes only the lines that
+      differ. An edit and a move at once shows as just that row's line.
+    </li>
+    <li>
+      Quoting, line ends, blank lines and a BOM stay as written; a file changed underneath merges per field; two writers
+      both stand.
+    </li>
+    <li>With no id column, a row can be added, but a change or delete is refused and says why.</li>
+    <li>
+      Rough: a no-id sheet is only refused by the server, not at compile; a whole-list save doesn't merge (T53); no
+      ceiling on the server (T55).
+    </li>
+  </ul></epic-field
+><epic-commit sha="c3ae8208a1ab2cd5d181eb3e6ece8961b733da77"
+  >a CSV behind a place server takes writes, each save comparing new rows with old and changing only the lines that
+  differ</epic-commit
+><epic-field name="files"
+  ><ul>
+    <li>src/util/places/csv.ts</li>
+    <li>src/server/places/ (a CSV store)</li>
+    <li>src/util/places/SheetPlace.ts</li>
+    <li>the compiler's table of what each kind of place can do</li>
+    <li>src/server/test/recipeServers.ts</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>yarn vp test run --project util --project server</li>
+    <li>Tests: add, move, edit, remove, a quoted cell, a file changed underneath, with and without an id column</li>
+    <li>The recipe box's frames, with the file open and diffed after each change</li>
+  </ul></epic-field
+>
+<epic-field name="to-review"
+  ><epic-mark item="j86" link></epic-mark>, <epic-mark item="j87" link></epic-mark>,
+  <epic-mark item="j88" link></epic-mark>, <epic-mark item="j89" link></epic-mark>,
+  <epic-mark item="j90" link></epic-mark>, <epic-mark item="t53" link></epic-mark>,
+  <epic-mark item="t54" link></epic-mark>, <epic-mark item="t55" link></epic-mark
+></epic-field>

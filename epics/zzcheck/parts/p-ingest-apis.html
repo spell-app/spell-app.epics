@@ -1,0 +1,130 @@
+<!-- plan-doc part:  #p-ingest-apis's body in zzcheck.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>Pointing a program at someone's server means reading its docs by hand and working out its fields.</p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen, 2026-10-31: "Spell command to ingest one of our data sources via agent and make an api description doc for
+      it. Do this before StarWars and use it to extract the data for SW."
+    </li>
+    <li>
+      <code>spell place ingest &lt;address&gt;</code> samples the source for real, has an agent read what comes back and
+      any docs, and writes one description: its collections, fields and types, ids, links between things, paging,
+      limits, what it can do.
+    </li>
+    <li>
+      The description includes the Spell to paste: the place's line and details, and a type per collection. The command
+      checks that this Spell compiles, and that a read through it really returns rows.
+    </li>
+    <li>
+      It works for any kind of place, starting with a web server; GraphQL can read its schema, a CSV its header row.
+    </li>
+    <li>Never sends a write; a key is named, and never written into the description.</li>
+    <li>
+      Owen, 2026-10-31: "flag for type, if no flag, attempt to discover by hitting the URL, if you can't figure it out,
+      ask them. We'll want to be able to do this in the editor soon."
+    </li>
+    <li>
+      <code>--kind &lt;kind&gt;</code> names the kind of place. With none, the command works it out by reading the
+      address. If it can't tell, it asks, and with no one to ask, it stops and says which kinds it tried.
+    </li>
+    <li>
+      The work sits in a library the command calls, with the question handed in, so the editor can run the same steps
+      and ask in its own way later.
+    </li>
+    <li>
+      Owen, 2026-10-31: "they should specify a file to put it in". <code>--into &lt;file&gt;</code> says where the Spell
+      goes. With none, the command asks, and with no one to ask, it stops. An existing file is added to, never
+      overwritten, and the same place isn't added twice.
+    </li>
+    <li>
+      Owen, 2026-10-31: "We should keep track of the API version if we can, and allow them to upgrade spell doc when API
+      changes". The description records the version where the source says one (in its address, a header, its docs), and
+      always the date and a fingerprint of the shape it saw, since many sources name no version.
+    </li>
+    <li>
+      <code>spell place ingest --update &lt;file&gt;</code> looks again and says what changed: fields added, gone or a
+      different type, and a new version. It updates the description and the Spell, keeps what a person wrote by hand,
+      and says plainly what it couldn't change for them, such as a field a program still uses that's gone.
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>A <code>spell</code> command has an agent look at one data source and write a description of it.</li>
+    <li>Star Wars is built from what it writes for swapi.info.</li>
+  </ul></epic-field
+><epic-field name="plan" accepted="2026-10-31 15:25"
+  ><ol>
+    <li>
+      Spell's small gaps first: a web server's <code>its id is its "url"</code> really reaches the place (and an id
+      that's an address is fetched as one), and two new detail lines say where a wrapped list's rows are and where its
+      next page is.
+    </li>
+    <li>
+      A library,
+      <a href="/parser/src/spell/ingest/" target="src-parser-src-spell-ingest"><code>parser/src/spell/ingest/</code></a
+      >, browser-safe with everything handed in (fetch, Claude, files, the question): find the kind, sample politely and
+      bounded (GET only, a write can't get out), work out the shape, have the agent read samples and docs, write the
+      Spell in the settled words, check it compiles and a read through it returns rows.
+    </li>
+    <li>
+      The description goes beside the file: <code>&lt;File&gt;.&lt;place&gt;.place.json5</code>, with version, date and
+      fingerprint. An existing file is added to, the same place never twice.
+    </li>
+    <li>
+      <code>--update</code>: look again, say what changed, change only lines the tool wrote and nobody edited, say what
+      it couldn't change.
+    </li>
+    <li>
+      The command, <code>spell place ingest</code> (<a href="/parser/src/cli/" target="src-parser-src-cli"
+        ><code>parser/src/cli/</code></a
+      >), <code>commands.json5</code>, docs, tests against the demo's servers with a stubbed agent.
+    </li>
+    <li>
+      Real runs: swapi.info, pokeapi, a CSV, the demo's GraphQL. Report what Spell couldn't say, on the page and as
+      items.
+    </li>
+  </ol></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      Where to see it: <code>spell place ingest https://swapi.info/api --into StarWars.spell</code>; also
+      <code>--kind</code>, <code>--update</code>, <code>--key-secret</code>, <code>--no-ai</code>.
+    </li>
+    <li>
+      An agent reads real samples and writes the Spell and a description beside it; the command checks a read through
+      that Spell really returns rows.
+    </li>
+    <li>Run for real on swapi.info and pokeapi, and on the demo's GraphQL, CSV and REST.</li>
+    <li>
+      New words: <code>its rows are its "results"</code>, <code>its next page is its "next"</code>; ids from a URL work;
+      numbers written as text read as numbers.
+    </li>
+    <li>
+      Rough: following a link by URL can't be said (I33); a list that only points elsewhere (I34); no line for what a
+      server can filter (I35); an unknown height reads as 0.
+    </li>
+  </ul></epic-field
+><epic-commit sha="26fcd3841410efd9d0ebefecd43ebb113724a5b0"
+  >spell place ingest looks at a data source for real, and writes a description beside the file and Spell that compiles
+  and really reads, never sending a write</epic-commit
+><epic-field name="files"
+  ><ul>
+    <li>parser/src/cli/ (the command, on the same way of asking Claude as spell translate)</li>
+    <li>guides/dev/commands/commands.json5, in the epic repo</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>Tests against the demo's servers, with a stubbed agent</li>
+    <li>One real run on swapi.info, its description read by a person</li>
+    <li>spell commands check</li>
+  </ul></epic-field
+>
+<epic-field name="to-review"
+  ><epic-mark item="j110" link></epic-mark>, <epic-mark item="j111" link></epic-mark>,
+  <epic-mark item="j112" link></epic-mark>, <epic-mark item="j113" link></epic-mark>,
+  <epic-mark item="j114" link></epic-mark>, <epic-mark item="t71" link></epic-mark>,
+  <epic-mark item="t72" link></epic-mark>, <epic-mark item="t73" link></epic-mark>,
+  <epic-mark item="i34" link></epic-mark>, <epic-mark item="i35" link></epic-mark>,
+  <epic-mark item="i36" link></epic-mark
+></epic-field>

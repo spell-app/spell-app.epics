@@ -1,0 +1,161 @@
+<!-- plan-doc part:  #p-writes-and-healing's body in zzcheck.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    A set on a Thing goes nowhere beyond the page, and nothing recovers when a place says no or a message is lost.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      <epic-change id="ch80" item="q8" at="2026-10-31 02:12" answer="Shown at once, sent when the action ends"
+        >An action's changes show at once and go out when it ends, so cancelling an unfinished action really drops
+        them.</epic-change
+      >
+    </li>
+    <li>
+      <epic-change id="ch81" item="q9" at="2026-10-31 02:12" answer="Live by default, a draft when asked"
+        >Live by default; a draft holds its changes until saved, for an Edit screen with a Cancel button.</epic-change
+      >
+    </li>
+    <li>
+      A sent change that gets no answer resends with the same id until the outcome is known, and pending changes survive
+      closing the tab.
+    </li>
+    <li>Undo drops a change not yet sent, and sends a reversing one once it has gone.</li>
+    <li>A refused change heals back to the place's copy, with a notice anywhere in the app: Retry, or Show me.</li>
+    <li>Try it: nothing to see yet. Tests drive a place that fails, refuses and loses answers on purpose.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>Every property write becomes a pending change, shown at once.</li>
+    <li>One heal routine: fetch the latest, replay what's pending.</li>
+    <li>Writes go out when the action ends, and cancelling drops them.</li>
+  </ul></epic-field
+><epic-field name="choices"
+  ><epic-choices chosen="A" chosen-on="2026-10-31" chosen-note="recorded;  adjust P3's plan to it"
+    ><epic-option letter="A" title="One small helper, both on it" recommended
+      ><p>
+        The pending changes and <code>DraftSaver</code> both save in order, retry, send as the page goes away, keep a
+        browser copy and word where they stand. DraftSaver sits above util, so its core moves down, as a small
+        <code>SaveQueue</code>, and every page that types keeps working through it.
+      </p>
+      <epic-net-effect
+        ><ul>
+          <li>One way to save and retry, a little more to test in this phase.</li>
+          <li>The epic pages' forms get re-checked.</li>
+        </ul></epic-net-effect
+      ></epic-option
+    ><epic-option letter="B" title="Keep two"
+      ><p>
+        They differ in what they send: a draft's latest whole text, against every change, each with an id that must
+        resend until its outcome is known. Leaving DraftSaver alone touches nothing, and the catalog lists the copy.
+      </p>
+      <epic-net-effect
+        ><ul>
+          <li>No risk to the epic pages, one more copy of save-and-retry to keep in step.</li>
+        </ul></epic-net-effect
+      ></epic-option
+    ></epic-choices
+  ></epic-field
+><epic-field name="plan" accepted="2026-10-31 02:51"
+  ><ol>
+    <li>
+      <a href="/src/util/places/PendingChanges.ts" target="src-src-util-places-pendingchanges-ts"
+        ><code title="src/util/places/PendingChanges.ts">PendingChanges</code></a
+      >: per field, each with a change id, in the order made, saved on the device. In-order saving, retry, sending as
+      the page goes away and the browser's copy come from one small helper in util, which
+      <a href="/epic/src/answers/DraftSaver.ts" target="src-epic-src-answers-draftsaver-ts"
+        ><code title="epic/src/answers/DraftSaver.ts">DraftSaver</code></a
+      >
+      moves onto (this phase's choice).
+    </li>
+    <li>
+      Hear writes at
+      <a href="/parser/src/core/core.ts" target="src-parser-src-core-core-ts"
+        ><code title="parser/src/core/core.ts">noteSetting()</code></a
+      >
+      and list changes at
+      <a href="/parser/src/core/core.ts" target="src-parser-src-core-core-ts"
+        ><code title="parser/src/core/core.ts">noteItems()</code></a
+      >, the two points undo already hears, doing nothing at all for a thing with no place, so no existing program
+      changes. Rows being read and heals are guarded, as the page's <code>isReading</code> does, or they'd queue as
+      writes. Undo's put-back already reaches <code>noteSetting()</code>, so a reversing change needs no second path.
+    </li>
+    <li>
+      Browser-made ids for a new saved thing: read how
+      <a href="/parser/src/core/classes/Thing.ts" target="src-parser-src-core-classes-thing-ts"
+        ><code title="parser/src/core/classes/Thing.ts">Thing.id</code></a
+      >
+      is made, and what happens when it's unique only on this page.
+    </li>
+    <li>
+      A step that groups an action's changes, on
+      <a href="/src/util/persist/UndoStack.ts" target="src-src-util-persist-undostack-ts"
+        ><code title="src/util/persist/UndoStack.ts">UndoStack</code></a
+      >'s transactions. The connection to language's <code>core.runAction()</code> comes with the words.
+    </li>
+    <li>
+      <a href="/src/util/places/PlaceHeal.ts" target="src-src-util-places-placeheal-ts"
+        ><code title="src/util/places/PlaceHeal.ts">PlaceHeal</code></a
+      >: fetch, replay, on opening, on a refusal and on demand. Reading your own write works because pending changes sit
+      on top of what's read.
+    </li>
+    <li>
+      Drafts: a draft of a thing keeps its changes apart until it's saved. A failed write raises one event, shown
+      through core's
+      <a href="/parser/src/core/ui.ts" target="src-parser-src-core-ui-ts"
+        ><code title="parser/src/core/ui.ts">notify</code></a
+      >
+      and Spell UI's toast. A toast's buttons carry only text today, so Retry and Show me need handlers added there.
+    </li>
+    <li>
+      Checked by: tests with a place that refuses, fails and swallows answers; offline then back; undo before and after
+      sending; a draft cancelled.
+    </li>
+    <li>
+      Left out: other people, which is The Referee; the four cases that end stable but wrong, which need the compiler.
+    </li>
+  </ol></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>Nothing to see yet: proved by tests, the first Spell program comes with the words.</li>
+    <li>
+      A change is one field of one thing, kept on the device, sent when its action ends, and shown on top of what's
+      read; undo before sending drops it, undo after sends a reversing change.
+    </li>
+    <li>One heal routine, fetch then replay, runs on opening, on a refusal and on demand.</li>
+    <li>A failed write shows a notice with Retry and Show me.</li>
+    <li><code>DraftSaver</code> now sits on the new <code>SaveQueue</code>.</li>
+    <li>
+      Rough: two tabs can overwrite each other's kept copy (I4); an insert into a place that makes ids can double on a
+      lost answer (I5); a cancelled action's undo step stays (I6); a list write still sends the whole list (T17).
+    </li>
+  </ul></epic-field
+><epic-commit sha="36bc0a3544684c2dc071541d96a0ff513491a603"
+  >every write to a saved thing is a pending change, shown at once, sent in order until its outcome is known, and healed
+  back when refused</epic-commit
+><epic-field name="files"
+  ><ul>
+    <li>src/util/places/PendingChanges.ts (new)</li>
+    <li>src/util/places/PlaceHeal.ts (new)</li>
+    <li>src/util/persist/UndoStack.ts</li>
+    <li>parser/src/core/core.ts</li>
+    <li>parser/src/core/places.ts</li>
+    <li>parser/src/core/classes/Thing.ts</li>
+    <li>tests/util/places/</li>
+    <li>parser/tests/core/places.test.ts</li>
+    <li>parser/src/core/ui.ts</li>
+    <li>epic/src/answers/DraftSaver.ts</li>
+    <li>src/util/places/SaveQueue.ts (new)</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>yarn vp test run --project util</li>
+    <li>cd parser &amp;&amp; yarn test</li>
+    <li>The parser speed test, on this branch and on HEAD, since core's write path changes</li>
+  </ul></epic-field
+>
+<epic-field name="to-review"
+  ><epic-mark item="j22" link></epic-mark>, <epic-mark item="j23" link></epic-mark>,
+  <epic-mark item="j24" link></epic-mark>, <epic-mark item="j25" link></epic-mark>,
+  <epic-mark item="j26" link></epic-mark>, <epic-mark item="i6" link></epic-mark
+></epic-field>

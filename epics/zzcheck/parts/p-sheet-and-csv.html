@@ -1,0 +1,162 @@
+<!-- plan-doc part:  #p-sheet-and-csv's body in zzcheck.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    The people Spell is for already keep their data in spreadsheets, and those have no stable keys, no filter and tight
+    limits.
+  </p></epic-field
+><epic-reply from="owenoak" at="2026-10-31 02:44" re="revisit soon"
+  ><p>move after the words unless doing this now helps keep things honest</p></epic-reply
+><epic-reply agent="claude" from="Claude" at="2026-10-31 03:05" re="revisit"
+  ><p>You asked: "move after the words unless doing this now helps keep things honest".</p>
+  <p>This one stays before the words, because it does keep things honest:</p>
+  <ul>
+    <li>
+      A read-only CSV file with no id and no filter is the hardest test of the interface, and it's the case the other
+      back-ends so far don't raise.
+    </li>
+    <li>The CSV half needs no account or server.</li>
+    <li>It owns the rate queue that Airtable uses later.</li>
+  </ul>
+  <p>Moving it is one drag if you'd rather. Its plan is unchanged, and still waits for your Accept.</p></epic-reply
+><epic-field name="goal"
+  ><ul>
+    <li>
+      <epic-change id="ch83" item="q6" at="2026-10-31 02:13" answer="Sheet or CSV"
+        >Sheet or CSV is one of the seven back-ends, chosen because it tests the hard gaps together.</epic-change
+      >
+    </li>
+    <li>
+      A CSV file works read only. The author
+      <epic-change
+        id="ch100"
+        item="q16"
+        at="2026-10-31 02:23"
+        answer="It's an id; a key means a secret"
+        was="names a key column,"
+        >names an id column,</epic-change
+      >
+      or its rows share no identity, and Spell says so.
+    </li>
+    <li>A Google Sheet reads, and writes through the server side, within its rate limits.</li>
+    <li>Try it: change the demo's one line to a CSV file, then to your own Google Sheet.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>
+      A sheet place: CSV is read only with
+      <epic-change
+        id="ch101"
+        item="q16"
+        at="2026-10-31 02:23"
+        answer="It's an id; a key means a secret"
+        was="an author-named key,"
+        >an author-named id,</epic-change
+      >
+      a Google Sheet goes further.
+    </li>
+    <li>It's the hardest test of the interface's optional parts.</li>
+  </ul></epic-field
+><epic-field name="plan" accepted="2026-10-31 02:58"
+  ><ol>
+    <li>
+      Read the coherence catalog first for a CSV reader; none showed up in the code. If there's none, a small
+      <a href="/src/util/places/csv.ts" target="src-src-util-places-csv-ts"
+        ><code title="src/util/places/csv.ts">csv.ts</code></a
+      >
+      for quoted fields, with no dependency. Util can't reach the parser's tokenizer, so this is one small copy under
+      the catalog's Reading text, listed there with that reason.
+    </li>
+    <li>
+      <a href="/src/util/places/SheetPlace.ts" target="src-src-util-places-sheetplace-ts"
+        ><code title="src/util/places/SheetPlace.ts">SheetPlace</code></a
+      >: rows, a stated id column, column names as fields, filtered in the browser up to the ceiling.
+    </li>
+    <li>
+      <a href="/src/server/places/GoogleSheetPlace.ts" target="src-src-server-places-googlesheetplace-ts"
+        ><code title="src/server/places/GoogleSheetPlace.ts">GoogleSheetPlace</code></a
+      >
+      behind the place server, checked against Google's own docs as it's written, since the survey didn't read them
+      closely.
+    </li>
+    <li>
+      <a href="/src/server/places/RateQueue.ts" target="src-src-server-places-ratequeue-ts"
+        ><code title="src/server/places/RateQueue.ts">RateQueue</code></a
+      >, here because this is the first place with a limit: one queue per named limit, waiting as a 429 says. It lifts
+      <code>retryAfter()</code> and <code>backoffFor()</code> out of
+      <a href="/parser/src/cli/claudeRunners.ts" target="src-parser-src-cli-clauderunners-ts"
+        ><code title="parser/src/cli/claudeRunners.ts">claudeRunners</code></a
+      >
+      into util, and that file uses them from there. Polling is <code>pollWhileVisible()</code>, from REST And GraphQL.
+    </li>
+    <li>
+      Checked by: tests with
+      <epic-change
+        id="ch102"
+        item="q16"
+        at="2026-10-31 02:23"
+        answer="It's an id; a key means a secret"
+        was="rows that have no key, a duplicate key,"
+        >rows that have no id, a duplicate id,</epic-change
+      >
+      an edited sheet found by polling, and a limit hit.
+    </li>
+    <li>Left out: Excel files; other spreadsheets; formulas.</li>
+  </ol></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      Where to see it: the recipe box with <code>?back-end=sheet</code>, no servers needed, and
+      <code>?back-end=sheet-no-id</code> for rows with no id. A real Google Sheet is manual test M1.
+    </li>
+    <li>
+      It kept the interface honest and it held, with four changes: an answer can carry notes, a file is one collection,
+      a key can be a token made from a key, and a sheet stops itself at the ceiling.
+    </li>
+    <li>
+      CSV is read only; a Google Sheet shared by link reads with no key; writing needs a service-account key on the
+      server side.
+    </li>
+    <li>
+      Rough: a write can land on the wrong row if someone moves rows at that moment, and writing to a formula cell
+      replaces the formula (I10); the engine's ceiling doesn't count a plain read (I11); Google answers cross-origin on
+      that address but doesn't promise to (T26).
+    </li>
+  </ul></epic-field
+><epic-commit sha="1f402fa3ce6c4073a885c22ff1466df4d18a6fe5"
+  >a CSV file reads with no key or server, a Google Sheet reads and writes behind one, and answers can now say what's
+  wrong with their rows</epic-commit
+><epic-field name="files"
+  ><ul>
+    <li>src/util/places/SheetPlace.ts (new)</li>
+    <li>src/util/places/csv.ts (new)</li>
+    <li>src/server/places/GoogleSheetPlace.ts (new)</li>
+    <li>tests/util/places/</li>
+    <li>src/server/places/RateQueue.ts (new)</li>
+    <li>parser/src/cli/claudeRunners.ts</li>
+    <li>agents/coherence/catalog.md</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      Tests for CSV quoting, and for reading
+      <epic-change
+        id="ch103"
+        item="q16"
+        at="2026-10-31 02:23"
+        answer="It's an id; a key means a secret"
+        was="with and without a key"
+        >with and without an id</epic-change
+      >
+    </li>
+    <li>A stub of the Sheets API for writes</li>
+    <li>Manual test: a real Google Sheet</li>
+  </ul></epic-field
+>
+<epic-field name="to-review"
+  ><epic-mark item="j38" link></epic-mark>, <epic-mark item="j39" link></epic-mark>,
+  <epic-mark item="j40" link></epic-mark>, <epic-mark item="j41" link></epic-mark>,
+  <epic-mark item="j42" link></epic-mark>, <epic-mark item="j43" link></epic-mark>,
+  <epic-mark item="j44" link></epic-mark>, <epic-mark item="j45" link></epic-mark>,
+  <epic-mark item="t25" link></epic-mark>, <epic-mark item="t26" link></epic-mark>,
+  <epic-mark item="i10" link></epic-mark>, <epic-mark item="i11" link></epic-mark
+></epic-field>
