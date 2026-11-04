@@ -70,6 +70,96 @@
     </li>
     <li><b>Left out.</b> The fixes (P22); a CI speed check (Q24 B).</li>
   </ol></epic-field
+><epic-field name="done"
+  ><ul>
+    <li>
+      What changed for you: <code>spell speedtest --by-module</code> times each rule test on its own (CPU time, its best
+      run) and compares only the tests both sides have, module by module, then the rules that grew most.
+      <code>--baseline save</code> keeps a commit; <code>--budget 5</code> times against it and fails over 5%, naming
+      the modules that grew most. The baseline is <code>main</code> just before P22.
+    </li>
+    <li>
+      Checked: a rule made slow on purpose fails the budget (+25%, OVER); the same code passes (-3%). The Overview's new
+      "Compiler speed" says it's this epic's to watch, and every phase runs the budget.
+    </li>
+    <li>
+      Rough: timing on this machine moved between +8% and +50% for the same two commits today, under other sessions'
+      load; the budget can trip on noise below about 10%, so run it twice before believing a small change. Counting rule
+      tries is steady: that's what found the causes.
+    </li>
+  </ul>
+
+  <p>The same 949 rule tests do about a quarter more work than before data's P1, in every module alike.</p>
+  <ul>
+    <li>
+      Counted, not timed: rule tries (a rule's <code>parse()</code> and quick <code>test()</code>) on the same tests,
+      before data's P1 and now. Counting is the same on a busy machine; timing wasn't, today.
+      <epic-code title="rule tries per module, the tests both have" language="text">
+        <pre>
+module        before      now   change
+classes       532,088   675,366   +27%
+lists         303,726   397,846   +31%
+methods       273,076   338,400   +24%
+if            182,205   229,351   +26%
+properties    111,595   141,310   +27%
+expressions   108,133   131,957   +22%
+events         64,647    81,934   +27%
+(every other module +17% to +31%;  variables and constants 0%)
+all         1,850,547 2,342,077   +27%</pre>
+      </epic-code>
+    </li>
+    <li>
+      Timed, CPU at each test's best of 4 runs (<code>speedtest --by-module --against 90857e3e8</code>): the tests both
+      have take 320ms a pass before, 482ms now, +50%, every module +30% to +68%.
+      <ul>
+        <li>
+          The same command gave +8% and +24% on other runs today: the machine was running other sessions' tests (load 5
+          to 25). The counts above are the steady number.
+        </li>
+        <li>The tests added since (P16's possessives above all, 38ms) add their own time on top: shown apart.</li>
+      </ul>
+    </li>
+    <li>
+      When it came in, counted along <code>main</code>:
+      <epic-code title="rule tries on the same tests, by commit" language="text">
+        <pre>
+before data P1  90857e3e8   1,850,547
+10-31 morning   7515965de   1,868,283
+data P11        5f6c50c86   2,001,607   +7%   the places rules:  The Words
+10-31 noon      706790aee   2,022,858
+11-01 morning   cf4035628   2,194,336   +8%   elemental-spell P31-P32 (json, tree nodes), editor P9 (spellml)
+11-02 noon      fd54c49e5   2,194,336
+11-02 night     82cb9a74d   2,305,714   +5%   language P16 (possessives) and T23-T26, data P15-P22
+now             01dcc26a2   2,342,077   +2%   language P17-P19 (menus), data P23</pre>
+      </epic-code>
+    </li>
+  </ul>
+  <p>The causes, each a fix for P22:</p>
+  <ol>
+    <li>
+      <b>More words, tried everywhere.</b> Each new rule is one more alternative tried at every place its group is: a
+      statement on every line, an operand inside every expression. data's places rules alone are tried 6,549 times each
+      on these tests (<code>total_of</code>, <code>people_here</code>, <code>their_field</code> ...), P16's possessives
+      about 7,000, P19's <code>define_menu</code> 15,000 more. Nearly every try is turned away by its quick test, but
+      each costs its walk: a few small arrays a try. Fix: a sequence that starts with a word checks just that word
+      first, with nothing made.
+    </li>
+    <li>
+      <b>Every new scope rebuilds the language's rule map.</b> Each rule test makes a scope; its parser's first look at
+      its rules copied every rule group of the language, and a rule the test declares (a type, a property) copied them
+      all again. The more rules, the longer. Fix: a scope with no rules of its own shares the language's map, and groups
+      are shared until one changes.
+    </li>
+    <li>
+      <b>The waiting pass reads every program in full, several times.</b> P9's waiting pass and data's read gathering
+      walk each compiled program's whole tree 3 to 4 times, making an array at every node. Fix: walk without making the
+      arrays.
+    </li>
+  </ol>
+  <p>
+    Profiled with node's <code>--cpu-prof</code>, both ends: the quick tests (+472ms of 8s), the rule maps (+257ms), the
+    program walks (+190ms) grew most; the rest is the new tests themselves.
+  </p></epic-field
 ><epic-commit sha="70e939da6eabb23398423c3f11b26d1d1ece279e"
   >spell speedtest --by-module times each rule test too (CPU time, its best run) and compares the tests both sides have,
   module by module, with the rules that grew most; --baseline save keeps a commit, --budget 5 times against it and fails
