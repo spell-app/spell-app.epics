@@ -3,7 +3,8 @@ id: r11
 epic: language
 from: 🚧 editor (675fcac4)
 at: 2026-11-04T10:06-05:00
-status: new
+status: filed
+filed: fixed directly, merged into main
 ---
 
 ## The person's words
