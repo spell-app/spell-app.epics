@@ -25,7 +25,7 @@ Correction to the brief:  the built-in projects are at `app/spaces/@spell/`, not
 
 Three surface forms:  code spell (`.spell`), spellx (`.spellml`), each language's twin (`.es.spell`).
 
-Types and properties, code spell ([HabitTracker.spell](app/spaces/@spell/examples/habit-tracker/HabitTracker.spell)):
+Types and properties, code spell ([HabitTracker.spell](/app/spaces/@spell/examples/habit-tracker/HabitTracker.spell)):
 
 ```text
 a "habit" is a view where:
@@ -50,7 +50,7 @@ habit tracker is an app where:
 		clear its draft
 ```
 
-Spellx ([TaskList.spellml](app/spaces/@spell/examples/TaskList/TaskList.spellml)), filtering and binding:
+Spellx ([TaskList.spellml](/app/spaces/@spell/examples/TaskList/TaskList.spellml)), filtering and binding:
 
 ```text
 <spell-view "task" selectable draggable>
@@ -59,7 +59,7 @@ Spellx ([TaskList.spellml](app/spaces/@spell/examples/TaskList/TaskList.spellml)
 <ui-form value={it}> ... <ui-checkbox name="done" aria-label="Done"/>
 ```
 
-The closest thing to a data declaration ([People.spell](app/spaces/@spell/library/people/People.spell)), which compiles
+The closest thing to a data declaration ([People.spell](/app/spaces/@spell/library/people/People.spell)), which compiles
 only to `ts/lib` for the TypeScript `PeopleStore`:
 
 ```text
@@ -80,7 +80,7 @@ Observations for the language design:
 - `<ui-form value={it}>` with `name="done"` is two-way binding by name:  typing writes the property.
   Every write already goes through one function (`noteSetting()`, below).
 - `Every thing has an id, built in:  nobody declares it`, made up on first read unless set
-  ([PARSING.md](parser/src/spell/PARSING.md), "Ids and saving").
+  ([PARSING.md](/parser/src/spell/PARSING.md), "Ids and saving").
 
 Existing words near "data":
 - `a person is saved in its own file`, `a dated-event is saved inline`:  shapes the save
@@ -101,9 +101,9 @@ Corpus today:  examples are all in-memory, started by top-level `add` lines or `
 ## 2. What the compiler knows, and could gather
 
 The compile:  `SP.SpellProject` parses every file into matches, then ASTs;  `combineCompiled()` hoists members across
-files;  a WRITER writes each target ([PARSING.md](parser/src/spell/PARSING.md), "Compile").
+files;  a WRITER writes each target ([PARSING.md](/parser/src/spell/PARSING.md), "Compile").
 
-- Whole-program facts already exist:  [WriterProject.ts](parser/src/parser/writers/WriterProject.ts), `WriterProject.of(files, scope)`,
+- Whole-program facts already exist:  [WriterProject.ts](/parser/src/parser/writers/WriterProject.ts), `WriterProject.of(files, scope)`,
   "What a javascript writer must know about a whole project BEFORE it writes any of it".
   - "Made once per compile, from every file's statements."  "Plain facts, worked out from the tree alone".
   - Holds `members`, `properties`, `getterMethods`, `superTypes`, `itemTypes`, `givenValues` (every value given to a
@@ -139,7 +139,7 @@ A GraphQL-fragment-shaped gather looks feasible (inference, nothing prototyped).
 - Custom elements and hand-written library code are opaque.
 
 There's a SECOND, run-time way to know, already built:  reactive cells record who read what.
-- [cells.ts](src/util/reactive/cells.ts):  "Cells only say WHO read WHAT, and tell them when it changes."
+- [cells.ts](/src/util/reactive/cells.ts):  "Cells only say WHO read WHAT, and tell them when it changes."
   `linkCell(source)` on every `getProp()`.
 - So a first draw could discover what's needed, one "not ready" at a time, then be batched (`Observable` / Meteor shape),
   with the compiler's gather as the optimisation that sends it all in one trip.
@@ -156,7 +156,7 @@ How classes become reactive:
 
 - Spell cells are SYNCHRONOUS on purpose, not Solid signals ("`set x to 1` then `print x` must print 1"),
   bridged to Solid by `bridgeSolid()`.  Record truth:  a `Map` per object (`reactive/extend.ts`).
-- ONE choke point for writes:  `noteSetting(target, property, value)` ([core.ts:89](parser/src/core/core.ts)), which feeds
+- ONE choke point for writes:  `noteSetting(target, property, value)` ([core.ts:89](/parser/src/core/core.ts)), which feeds
   the undo history, `core.remote?.set()` (a page's write going to a program elsewhere) and `when changes` handlers.
   And for lists:  `List.writeItems()` => `noteItems()`.
   - An optimistic write-through to a back-end hooks in the same place `core.remote` does.
@@ -216,7 +216,7 @@ What's left for `data`:
 `shared-spell`.  Kickoff:  "The python-created 'send updat bits to elements' could be used as the base of multi-edit spell
 editor."
 
-What Owen answered ([analysis.answer.json5](spell.epics/epics/crdt/details/analysis.answer.json5)):
+What Owen answered ([analysis.answer.json5](/guides/data/surveys/spell.epics/epics/crdt/details/analysis.answer.json5)):
 - Q1, C:  people share a RUNNING program, not the source text.  Shared source editing is out of scope.
 - Q2, A with a condition:  "As long as CRDT does not imply anything as per how a .spell file or a component is saved.
   Explore both options."  No pick until a comparison (library vs our patches grown).
@@ -249,29 +249,29 @@ Conflict with "no full CRDT"?  **No conflict in substance.**
 Can a compiled Spell app talk to a server today?
 - **As spell code:  no.**  There's no statement for it.
 - **As a whole program running on a server:  yes, Python only.**  A browser page mirrors it over a WebSocket:
-  - [parser/src/core/page.ts](parser/src/core/page.ts):  `startPage()`, `receive()`, `sendCall()`, `sendTrigger()`, `connectPage()`.
+  - [parser/src/core/page.ts](/parser/src/core/page.ts):  `startPage()`, `receive()`, `sendCall()`, `sendTrigger()`, `connectPage()`.
     "ONE page at a time."
   - Messages:  `{ "call": "turn_over", "on": "Card#queen-of-spades", "args": [] }`,
     `{ "trigger": "card-click", "target": "Card#..." }`, `set_prop`.
-  - [spell_quart/sessions.py](app/src/spaces/server/py/spell_quart/sessions.py):  "A game per visitor, a page per WebSocket".
+  - [spell_quart/sessions.py](/guides/data/surveys/app/src/spaces/server/py/spell_quart/sessions.py):  "A game per visitor, a page per WebSocket".
     "Their game lives in this process's memory:  a restart ends it."  State down at open, then a patch per message and per pause.
   - So state is per visitor;  nothing is shared between people yet, and nothing persists.
 - **Compiled JS in the editor:** runs in the browser, with prefs through `core.remember()`.
 
 Persistence pieces (not reachable from spell):
-- [saving.ts](parser/src/core/saving.ts):  `new Saver().save(thing)` => `{ root, entries }`, by key `"Person#owen"`;
+- [saving.ts](/parser/src/core/saving.ts):  `new Saver().save(thing)` => `{ root, entries }`, by key `"Person#owen"`;
   `new Loader({ entryFor }).load(key)`.  References `{ "$ref": "Person#matt" }`, `"$in"`, places `Person#matt@three-degrees`.
   "Where entries live is the caller's."  **`entryFor` is synchronous**, so it must become async, or entries be prefetched.
   Python twin `spell_core.saving`, pinned to one expected file.
-- [checking.ts](parser/src/core/checking.ts):  `checkEntry()`, `jsonSchemaFor()`.
-- [state.ts](parser/src/core/state.ts):  `StateWriter`, `StateMirror`:  reads each state INTO the things it read before, by id.
+- [checking.ts](/parser/src/core/checking.ts):  `checkEntry()`, `jsonSchemaFor()`.
+- [state.ts](/parser/src/core/state.ts):  `StateWriter`, `StateMirror`:  reads each state INTO the things it read before, by id.
   This is an identity map:  what a normalised client store needs.
-- [SpaceStorage](app/src/spaces/models/SpaceStorage.ts) / [DiskStorage.ts](app/src/spaces/server/node/storage/DiskStorage.ts):
+- [SpaceStorage](/guides/data/surveys/app/src/spaces/models/SpaceStorage.ts) / [DiskStorage.ts](/guides/data/surveys/app/src/spaces/server/node/storage/DiskStorage.ts):
   read, write, list, remove, watch, by path.  "File system semantics" is nearly this interface.
-- [PeopleStore.ts](app/src/spaces/server/node/people/PeopleStore.ts) + `peopleRoutes.ts`:  the ONE worked example, a spell
+- [PeopleStore.ts](/guides/data/surveys/app/src/spaces/server/node/people/PeopleStore.ts) + `peopleRoutes.ts`:  the ONE worked example, a spell
   type library (`ts/lib`) over files, one file per thing, with comments kept.  Hand-written TypeScript;  "Nobody's refused
   a save yet":  no permissions.
-- [src/util/persist/](src/util/persist/):  `PrefPlace` (abstract), `StoragePlace`, `DatabasePlace`, `ServerPlace`;
+- [src/util/persist/](/guides/data/surveys/src/util/persist/):  `PrefPlace` (abstract), `StoragePlace`, `DatabasePlace`, `ServerPlace`;
   `WaitedOnPlace` reads whole at start, "so one that must be waited on answers every read at once after that".
   A precedent for "swap the back-end, keep the front", though for key / value prefs only, values as text.
 - Live push:  prefs saves are told to every open page over the page server's channel (`pref-saved`).
@@ -287,10 +287,10 @@ Python target:  could a data source be server-side spell?  Yes, it looks very pl
   mode;  a data source would be a different one, with a server spell holding the data and a browser spell drawing it.
 
 Chunked files model:  the epic page.
-- [EpicParts.ts](epic/src/tool/EpicParts.ts) splits a page into a skeleton and `parts/<id>.html`.
+- [EpicParts.ts](/epic/src/tool/EpicParts.ts) splits a page into a skeleton and `parts/<id>.html`.
   Host in the skeleton:  `source="parts/p3.html"`, plus `part-ids` (the ids inside, so a link loads the body first) and
   `commits`.  "the title stays in the skeleton, so the line shows without the body".
-- The read:  [EpicFold.tsx](epic/src/components/epic-section/EpicFold.tsx), `E.DOMLoadableBodyElement`, `LoadableBody`:
+- The read:  [EpicFold.tsx](/epic/src/components/epic-section/EpicFold.tsx), `E.DOMLoadableBodyElement`, `LoadableBody`:
   fetched the first time it opens.  A changed body file re-fetches while open (`spell-server:changed`).
 - The write:  whole doc read, then written back split, "each file once, atomically, only when changed".
 - As a data pattern:  a list of summaries in one file, each item's details in its own file, an index of ids so deep links

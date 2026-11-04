@@ -16,7 +16,7 @@ The proposal in one breath:
 
 ## 1. How Spell reads today
 
-What I read:  [TaskList](app/tests/spell/__spell__/TaskList/TaskList.spell), [Solitaire](app/spaces/@spell/examples/Solitaire/), HabitTracker, FlashCards, ListaDeTareas,
+What I read:  [TaskList](/guides/data/surveys/app/tests/spell/__spell__/TaskList/TaskList.spell), [Solitaire](/guides/data/surveys/app/spaces/@spell/examples/Solitaire/), HabitTracker, FlashCards, ListaDeTareas,
 `@spell/library/people`, `parser/README-spell.md`, `spellSyntax.json`, `languages/es/GLOSSARY.md`, `agents/coherence/words.md`, epic `language`'s Overview and questions.
 
 Spell's shape, which any proposal must fit:
