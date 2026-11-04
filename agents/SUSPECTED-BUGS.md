@@ -54,6 +54,11 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- 2026-11-04 (atmosphere P10, Statusphere's `who`):  a `return` inside `for each ... in ...` is lost.
+  `for each person in everyone here / if the id of the person is its owner / return the name of the person`
+  compiled to `core.map(core.peopleHere(), (person) => { if (person.id === person.owner) return person.name })`:
+  the `return` leaves the callback, never the getter;  and `its owner` inside the loop read the loop's item, not the
+  type's own thing.  The example sets a variable instead.  Epic `atmosphere` I6.
 - [ ] `core`, a list read that `to create it` awaits, when the place can't be reached:  the drawing says so through
   `if that fails:`, and the rejected `create()` is also an uncaught "Failed to fetch" on the page's console (epic `data` I21).
 - Incremental parsing loses an action's `waits: true` after an edit inside it (2026-10-26, epic `debut` I50):
