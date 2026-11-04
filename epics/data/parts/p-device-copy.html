@@ -1,0 +1,98 @@
+<!-- plan-doc part:  #p-device-copy's body in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Owen: “are you caching server responses, e.g. for swapi where we say to refresh after 24 hours?” Then: “yes new
+    phase, should be a limit to size of files kept on disk, discard according to last read”.
+  </p>
+  <p>
+    Nothing a place reads is kept on the device: every page load reads the server again, and
+    <code>check it once a day at 5am</code> only says when an open page reads again (T97).
+  </p></epic-field
+><epic-field name="goal"
+  ><p>
+    A reload of Star Wars before 5am makes no request to swapi, and what's kept on the device never grows past its
+    limit.
+  </p></epic-field
+><epic-field name="changes"
+  ><p>
+    Each read is kept on the device, fresh until the place's next check time: a page draws from it with no request while
+    it's fresh, and from it at once, re-reading behind it, once it's stale. What's kept has a size limit, discarding
+    what was read least recently.
+  </p></epic-field
+><epic-field name="plan" accepted="2026-11-03 20:47"
+  ><p><b>Today</b></p>
+  <ul>
+    <li>
+      <code>PlaceCache</code> is in memory only: one row per id, shared by everyone reading it, gone with the page.
+    </li>
+    <li>A drawing that leaves lets its read go, so coming back to a tab reads again.</li>
+    <li>Nothing is kept on the device.</li>
+    <li>
+      Reads don't bypass the browser's HTTP cache: swapi sends only an <code>ETag</code>, so it asks every time; PokéAPI
+      sends <code>max-age=86400</code>, so the browser may answer for a day.
+    </li>
+  </ul>
+  <p><b>Build</b></p>
+  <ol>
+    <li><b>A copy on the device</b> (IndexedDB) of each read: its rows, its pages, the things its links reach.</li>
+    <li>
+      <b>Fresh until the place's next check time:</b> <code>check it once a day at 5am</code> or
+      <code>check it every 5 minutes</code>.
+      <ul>
+        <li>Fresh: draw from the copy, no request.</li>
+        <li>
+          Stale: draw from the copy at once, re-read behind it with <code>If-None-Match</code> (a 304 costs almost
+          nothing), and redraw only what changed.
+        </li>
+        <li>A server's longer <code>Cache-Control</code> wins.</li>
+        <li><code>reload the films</code> reads the server whatever the copy says.</li>
+      </ul>
+    </li>
+    <li>
+      <b>A size limit</b> (Owen): what one program keeps on the device has a cap, 50 MB unless a place's line says
+      otherwise (its words in English and Spanish, settled as it's built).
+      <ul>
+        <li>Over the cap: discard what was <b>read</b> least recently, not what was written least recently.</li>
+        <li>Every read moves its copy's last-read time on.</li>
+        <li>The browser refusing room (a quota error) discards the same way, then tries again.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Never kept:</b> rows from a place that needs a key or a sign-in, unless the place says to keep them; signing
+      out clears that person's copies.
+    </li>
+  </ol>
+  <p><b>Tests</b></p>
+  <ul>
+    <li>A fake IndexedDB and a fake clock: fresh, stale, the 304 path, the cap, the order things are discarded in.</li>
+    <li>A headless Star Wars reload making no swapi requests while fresh.</li>
+  </ul>
+  <p>Starts after P27 · More REST Servers, which is changing the REST place now.</p></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="/src/util/places/" target="src-src-util-places"><code>src/util/places/</code></a
+      >: <code>PlaceCache</code>, a new device copy beside it, <code>RestPlace</code>, <code>Places</code>
+    </li>
+    <li>
+      <a href="/parser/src/core/saved.ts" target="src-parser-src-core-saved-ts"><code>parser/src/core/saved.ts</code></a
+      >,
+      <a href="/parser/src/core/placeKinds.ts" target="src-parser-src-core-placekinds-ts"><code>placeKinds.ts</code></a>
+    </li>
+    <li>
+      <a href="/parser/src/spell/rules/places/" target="src-parser-src-spell-rules-places"
+        ><code>parser/src/spell/rules/places/</code></a
+      >: the limit's line, en and es
+    </li>
+    <li>
+      tests under <a href="/tests/util/places/" target="src-tests-util-places"><code>tests/util/places/</code></a
+      >, <a href="/parser/tests/" target="src-parser-tests"><code>parser/tests/</code></a
+      >, an app browser test
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>fake IndexedDB and a fake clock: fresh, stale, the limit and the order things are discarded in</li>
+    <li>a headless Star Wars reload making no swapi requests while fresh, then one quiet re-read once stale</li>
+  </ul></epic-field
+>
