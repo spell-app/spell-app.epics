@@ -15,11 +15,16 @@
       and comment folders, what pages may write, what the page server watches, what airplane mode copies, what a new
       repo makes.
     </li>
-    <li>The page-finding walks share one walk and one skip list.</li>
-    <li>The two content migrations that rewrite pages as text run through one pass, under each page's lock.</li>
+    <li>The page-finding walks share one walk and one skip list, the commit remap's too.</li>
     <li>
-      <code>epic migrate --step root-links</code> also mends the old file paths in tooltips (81 in 55 files when sweep 2
-      ran); then
+      The content migrations that rewrite pages as text (root links, relink, the commit remap) run through one pass,
+      under each page's lock.
+    </li>
+    <li>
+      The table of child repos merged into the kit is written once, from the folders themselves, not twice by hand.
+    </li>
+    <li>
+      The old file paths in tooltips are mended (33 in 26 files today), as this phase's choice says; then
       <a href="/tools/content-links.ts" target="src-tools-content-links-ts"><code>tools/content-links.ts</code></a> and
       its test go.
     </li>
@@ -27,9 +32,54 @@
 ><epic-field name="changes"
   ><p>
     One table of the content folder's areas in the kit's <code>contentFolder.ts</code>, each saying what it holds, every
-    list a named filter of it; one walk over its pages; one locked text pass for the content migrations; the Linker's
-    moved-path table takes the tool's last rules, and the tool goes.
+    list a named filter of it; one walk over its pages; one locked text pass for the content migrations; the
+    merged-repos table derived from <code>kitFolders()</code>; the old tooltip paths mended once, and the tool goes.
   </p></epic-field
+><epic-field name="choices"
+  ><epic-choices>
+    <epic-option letter="A" title="Carry content-links' rules into the Linker"
+      ><ul>
+        <li>
+          The plan as first written: the Linker's moved-path table takes the tool's rules, and the root-links migration
+          mends tooltips.
+        </li>
+        <li>
+          The rules point at the homes from before repo-split P20 (<code>spell-ui/src/...</code>,
+          <code>spell-epic/...</code>), so each is rewritten to today's first, and they then live on in the Linker for
+          paths that, once mended, no page writes again.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Run content-links once, then delete it" recommended
+      ><ul>
+        <li>
+          Its dry run today, against the main checkout: 33 tooltips in 26 files, every one to a path that exists (<a
+            href="/src/server/page/cli.ts"
+            target="src-src-server-page-cli-ts"
+            ><code>src/server/page/cli.ts</code></a
+          >, <a href="/bin/spell.mjs" target="src-bin-spell-mjs"><code>bin/spell.mjs</code></a> ...), 2 left with no
+          home.
+        </li>
+        <li>
+          Run against THIS worktree it would write 37 stale paths (<code>spell-ui/...</code>,
+          <code>spell-app/...</code>): the worktree still holds the old child-repos' folders, and the tool takes the
+          first path that exists. So it runs with <code>--kit</code> set to the main checkout, and the paths it writes
+          are checked first.
+        </li>
+        <li>No stale rules left anywhere; the tool, its test and its skip-list entry go.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A"
+    ><ul>
+      <li>the Linker grows a table of old homes, rewritten by hand, for a one-time mend</li>
+    </ul></epic-net-effect
+  >
+  <epic-net-effect option="B" recommended
+    ><ul>
+      <li>the tooltips mended once, in one run; nothing old kept in the Linker</li>
+    </ul></epic-net-effect
+  ></epic-field
 ><epic-field name="plan"
   ><ol>
     <li>
@@ -41,22 +91,33 @@
     </li>
     <li>
       <b>One walk.</b> <code>contentPages(content, { areas, kinds })</code> beside it, one skip list; the page finder,
-      the notes finder, the home page's walk and the root-links migration's walk use it.
+      the notes finder, the home page's walk, the root-links migration's walk and the commit remap's
+      <code>htmlFiles()</code> use it.
     </li>
     <li>
-      <b>One locked pass.</b> The root-links and relink migrations hand their rewrite to one pass that writes only a
-      change, under each page's lock (the relink took the lock in P19; this makes it one shape).
+      <b>One locked pass.</b> The root-links and relink migrations and the commit remap hand their rewrite to one pass
+      that writes only a change, under each page's lock (the relink took the lock in P19, the commit remap has its own
+      <code>FileLock.run()</code> loop; this makes them one shape).
     </li>
     <li>
-      <b>One moved-path table.</b> The Linker's <code>mendedPath()</code> takes content-links' remaining rules
-      (<code>spell-util/</code>, <code>spell-server/</code> ...), and the root-links migration mends old paths in
-      tooltips too. Dry run first over the epic repo (it found 81 in 55 files), then run; then
+      <b>The merged repos, once.</b> The Linker's <code>MERGED_REPOS</code> and the import-rename codemod's
+      <code>FOLDERS</code> both write out "spell-parser is
+      <a href="/parser/" target="src-parser"><code>parser/</code></a> ..." by hand. Both come from
+      <code>kitFolders()</code> plus each folder manifest's <code>name</code>, as <code>spell commands check</code>'s
+      <code>folders()</code> already does; that helper moves beside <code>kitFolders()</code> and all three use it.
+    </li>
+    <li>
+      <b>Old tooltip paths.</b> As this phase's choice says. On B: <code>content-links</code>' dry run over the epic
+      repo, each path it would write checked to exist and none starting <code>spell-</code>, then
+      <code>--apply</code> once, then
       <a href="/tools/content-links.ts" target="src-tools-content-links-ts"><code>tools/content-links.ts</code></a
-      >, its test and its skip-list entry go.
+      >, its test and its skip-list entry go. On A: the Linker's <code>mendedPath()</code> takes the tool's rules,
+      rewritten to today's homes, and the root-links migration mends tooltips too.
     </li>
     <li>
       <b>Catalog and check.</b> "The epic folder" names the table; <code>epic pages list</code> and the home page the
-      same before and after; <code>yarn review</code>.
+      same before and after; <code>spell rename imports</code> (dry run) the same;
+      <code>epic migrate --step root-links --dry-run</code>; <code>yarn review</code>.
     </li>
     <li>
       <b>Left out.</b> The epic repo's own <code>page-server.json5</code> <code>writable</code> list: it's data, read by
@@ -70,15 +131,31 @@
         ><code>src/server/contentFolder.ts</code></a
       >
       (the areas table),
+      <a href="/src/server/kitFolders.ts" target="src-src-server-kitfolders-ts"
+        ><code>src/server/kitFolders.ts</code></a
+      >
+      (the folders by name),
       <a href="/src/server/Linker.ts" target="src-src-server-linker-ts"><code>src/server/Linker.ts</code></a
       >, <code>page/PageServer.ts</code>; their tests
+    </li>
+    <li>
+      the kit's command line:
+      <a href="/src/cli/commands/renameImports.ts" target="src-src-cli-commands-renameimports-ts"
+        ><code>src/cli/commands/renameImports.ts</code></a
+      >
+      (<code>FOLDERS</code>, its skip list),
+      <a href="/src/cli/commands/commandsCommand.ts" target="src-src-cli-commands-commandscommand-ts"
+        ><code>commandsCommand.ts</code></a
+      >
+      (<code>folders()</code>)
     </li>
     <li>
       epic: <code>src/tools/AirplaneInbox.ts</code>, <code>GuideChanges.ts</code>, <code>PageInboxes.ts</code>,
       <code>pages.js</code>, <code>migrate.js</code>, <code>offline.ts</code>, <code>notesOnDisk.ts</code>,
       <code>index.js</code>, <code>src/server/EpicServer.ts</code>, <code>src/tool/SagaCommands.ts</code>,
-      <code>src/command/PersonCommands.ts</code>, <code>RepoInit.ts</code>, <code>src/config/EpicConfig.ts</code>,
-      <code>src/tool/migrations/RootLinks.ts</code>, <code>ContentRelink.ts</code>,
+      <code>src/tool/CommitRemap.ts</code>, <code>src/command/PersonCommands.ts</code>, <code>RepoInit.ts</code>,
+      <code>src/config/EpicConfig.ts</code>, <code>src/tool/migrations/RootLinks.ts</code>,
+      <code>ContentRelink.ts</code>,
       <code>vscode/src/DocPreview.ts</code>
     </li>
     <li>
@@ -86,10 +163,7 @@
       >,
       <a href="/tests/tools/content-links.test.ts" target="src-tests-tools-content-links-test-ts"
         ><code>tests/tools/content-links.test.ts</code></a
-      >;
-      <a href="/src/cli/commands/renameImports.ts" target="src-src-cli-commands-renameimports-ts"
-        ><code>src/cli/commands/renameImports.ts</code></a
-      >'s skip list
+      >
     </li>
     <li>
       <a href="/agents/coherence/catalog.md" target="src-agents-coherence-catalog-md"
