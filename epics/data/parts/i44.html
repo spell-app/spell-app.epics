@@ -10,3 +10,222 @@
   <code>to pick (a type)</code>, <code>to guess (a pokemon)</code>), and the app draws the cry itself. Not fixed: a
   project-wide variable needs the root scope to hold variables, and the incremental parse to stub them.
 </p>
+<epic-reply from="owenoak" at="2026-11-04 06:52" re="revisit now"
+  ><p>options? Is this a spell thing, or a package.json thing?</p></epic-reply
+><epic-reply
+  agent="claude"
+  from="owenoak"
+  at="2026-11-04 06:55"
+  re="options?  Is this a spell thing, or a package.json thing?"
+>
+  <p>
+    It's a Spell thing: the parser keeps every top-level variable in its own file's scope. The project's settings file
+    only lists the files, and changing it can't fix this.
+  </p>
+
+  <p>
+    <b>Why another file can't say <code>the hearing of the pokedex</code></b>
+  </p>
+  <ul>
+    <li>
+      Each file of a project is read with a scope of its own, a FILE scope, and every file scope hangs off the ONE
+      project scope.
+      <ul>
+        <li>
+          A name looked up in a file is looked for in its own file, then the project, then the language's built-ins.
+        </li>
+        <li>It's never looked for in the file before it: the files sit side by side, not one inside the next.</li>
+      </ul>
+    </li>
+    <li>
+      <a
+        href="/parser/src/spell/rules/classes/CreateOneOfAKind.ts"
+        target="src-parser-src-spell-rules-classes-createoneofakind-ts"
+        ><code title="parser/src/spell/rules/classes/CreateOneOfAKind.ts">CreateOneOfAKind</code></a
+      >, which reads <code>&lt;spell-app "pokedex"&gt;</code>, puts the app's one variable, <code>pokedex</code>, into
+      the scope of the line that declared it: that file's.
+    </li>
+    <li>
+      Types, methods and properties are different:
+      <ul>
+        <li>the project knows them all before any file is read, from a quick scan of every file</li>
+        <li>so a later file, or a line above the declaration, can name a type or call a method</li>
+        <li>variables get no such scan, and no place in the project to live</li>
+      </ul>
+    </li>
+    <li>
+      The compiled program doesn't care: every file goes into ONE module, so
+      <code>export const pokedex = new Pokedex()</code> would be in reach of every file's code. The parser is the only
+      thing saying no.
+    </li>
+  </ul>
+
+  <p><b>What the project's settings file does, and doesn't</b></p>
+  <ul>
+    <li>
+      Its <code>imports</code> list (the "package.json thing") names which files are in the project, and the order
+      they're read and written out in.
+    </li>
+    <li>It says nothing about which file sees which names.</li>
+    <li>
+      Putting the app's file first wouldn't help: the later files still look in the project, not in the app's file.
+    </li>
+    <li>PokéSpell lists its app file last only so its <code>start the pokedex</code> runs after everything else.</li>
+  </ul>
+
+  <p><b>How PokéSpell gets round it</b></p>
+  <ul>
+    <li>
+      Its app file defines four free functions, <code>to pick (a type)</code>, <code>to hear (a pokemon)</code>,
+      <code>to guess (a pokemon)</code>, <code>to open (a pokemon)</code>, which reach into the pokedex.
+    </li>
+    <li>Free functions ARE project-wide, so the card and the guessing game call those instead.</li>
+    <li>It works, but it's a go-between every multi-file app would have to write.</li>
+  </ul>
+
+  <epic-code title="parser/src/spell/rules/classes/CreateOneOfAKind.ts · 10 lines" language="ts">
+    <pre>
+  mutateScope(match: P.MatchFor&lt;this&gt;) {
+    super.mutateScope(match)
+    const words = `${match.groups.type.value}`
+    match.scope.variables?.add({
+      name: CreateOneOfAKind.variableName(match),
+      datatype: match.scope.getType(words)?.name ?? words,
+      kind: "only",
+      declaredBy: match
+    })
+  }</pre>
+  </epic-code>
+
+  <epic-code title="parser/src/spell/SpellFile.ts · getScope(), 11 lines" language="ts">
+    <pre>
+    // If we were passed a `parentScope` with `types`, set up as a `FileScope` and use same parser.
+    if (parentScope &amp;&amp; parentScope.types) {
+      const parser = parentScope.parser as SP.SpellParser | undefined
+      const twin = parser?.twinFor?.(this.language, this.form)
+      return new P.FileScope({
+        name: this.file,
+        path: this.path,
+        parentScope,
+        ...(twin &amp;&amp; twin !== parser ? { parser: twin } : {})
+      })
+    }</pre>
+  </epic-code>
+
+  <epic-code title="parser/src/parser/scope/FileScope.ts, ProjectScope.ts · 14 lines" language="ts">
+    <pre>
+/**
+ * `FileScope` -- a scope which encapsulates a discrete file.
+ *  - `methods` (from BlockScope) are methods defined at the root of the file.
+ *  - `variables` (from BlockScope) are variables defined at the root of the file.
+ */
+export class FileScope extends BlockScope {}
+
+/**
+ * A `ProjectScope` manages a set of `FileScope`s.
+ *
+ * Like `RootScope`, it manages `.rules`, `.types` and `.constants`
+ * for things that are defined in the project.
+ */
+export class ProjectScope extends RootScope {}   // RootScope extends BlockScope:  it HAS variables, unused</pre>
+  </epic-code>
+
+  <epic-code
+    title="parser/src/parser/Parser.ts · stubDeclaredTypes(), the scan that knows types ahead · 8 lines"
+    language="ts"
+  >
+    <pre>
+  stubDeclaredTypes(scope: P.Scope, texts: string[]): string[] {
+    return this.inPlay(() =&gt; {
+      const names = texts.flatMap((text) =&gt; this.declaredTypes(text, scope))
+      const lang = this.inflector?.lang
+      for (const name of names) if (!scope.types?.get(name)) scope.types?.add({ name, stub: true, lang })
+      return names
+    })
+  }</pre>
+  </epic-code>
+
+  <epic-code
+    title="app/spaces/@spell/examples/PokeSpell/PokeSpell.spellml · the workaround · 14 lines"
+    language="spell"
+  >
+    <pre>
+# What a Pokémon or a kind can do, from anywhere
+Only this file can name the pokedex:  so its other files ask these.
+
+&lt;spell&gt;
+	to pick (a type):
+		set the picked kind of the pokedex to it
+		set the showing of the pokedex to nothing
+
+	to hear (a pokemon):
+		set the hearing of the pokedex to nothing
+		pause for 50 msec
+		set the hearing of the pokedex to it
+	...
+&lt;/spell&gt;</pre>
+  </epic-code>
+
+  <p><b>The options</b></p>
+  <epic-choices>
+    <epic-option letter="A" title="The one-of-a-kind's variable belongs to the project" recommended>
+      <ul>
+        <li>
+          <code>pokedex</code> goes into the project's scope instead of its file's: every file can say
+          <code>the hearing of the pokedex</code>.
+        </li>
+        <li>
+          The scan that already finds <code>pokedex</code> as a type, before any file is read, adds its variable too: so
+          a file read before the app's knows it.
+        </li>
+        <li>Plain <code>set x to 3</code> at a file's top stays private to its file.</li>
+        <li>
+          One catch: a TOP-LEVEL line in an earlier file that reads the pokedex would run before it exists. The parser
+          says so ("say it inside an action"), as a run-time crash would otherwise. Inside actions and drawings it just
+          works.
+        </li>
+        <li>
+          Cost: small. Two parser files (the one-of-a-kind rule, the scan), the incremental parse's journal, and tests;
+          PokéSpell's four go-betweens can then go, or stay as nice verbs.
+        </li>
+        <li>Why recommended: an app is one of a kind by definition, so there's no clash to worry about.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="Every top-level variable is project-wide">
+      <ul>
+        <li>Any <code>set score to 0</code> at a file's top is seen by every file, as in one big script.</li>
+        <li>Needs a new scan for every <code>set ... to</code> line at a file's top, ahead of parsing.</li>
+        <li>Two files using the same name quietly share one variable: a surprise, and a hard one to find.</li>
+        <li>The "read before it exists" catch from A, on every variable, not just the app.</li>
+        <li>Cost: larger, and it takes away a file's own private names.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title="Say what's shared, in the file or in the settings">
+      <ul>
+        <li>
+          A line like <code>share the pokedex</code>, or a <code>shares</code> list in the project's settings file: the
+          "package.json" way, as JavaScript's <code>export</code> does.
+        </li>
+        <li>Anything can be shared, not only apps.</li>
+        <li>Cost: new syntax or a new setting, in two languages, and one more thing a kid has to know to write.</li>
+        <li>For the app it buys nothing over A: it's already the only one.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="D" title="Leave it, and say so">
+      <ul>
+        <li>Keep the go-between functions; write the rule down in the parsing notes and the guide.</li>
+        <li>Cost: none now; every multi-file app pays it later.</li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>a one-of-a-kind app or page (<code>pokedex</code>, <code>solitaire</code>) can be named from any file</li>
+      <li>the project's settings file doesn't change</li>
+      <li>other top-level variables stay private to their file</li>
+      <li>a top-level line reading the app before its file runs gets a parse error saying to move it into an action</li>
+      <li>I44 becomes a todo for a later phase; PokéSpell may drop its go-between functions then</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>

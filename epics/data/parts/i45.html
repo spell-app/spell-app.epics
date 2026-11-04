@@ -12,3 +12,217 @@
   PokéSpell guards it (<code>if its sprites</code>), which a kid shouldn't need. Two things to decide: whether
   <code>the X of nothing</code> is nothing, and why a failed drawing retries without end.
 </p>
+<epic-reply from="owenoak" at="2026-11-04 06:54" re="revisit now"
+  ><p>
+    `the x of nothing` should be nothing Maybe `a pokemon is a loadable thing` and we need a gate on methods inside for
+    if it is loaded or not? Other options?
+  </p></epic-reply
+><epic-reply
+  agent="claude"
+  from="owenoak"
+  at="2026-11-04 06:56"
+  re="`the x of nothing` should be nothing
+
+Maybe `a pokemon is a loadable thing` and we need a gate on methods inside for if it is loaded or not?  Other options?"
+>
+  <p>
+    Yes: <code>the X of nothing</code> should be nothing, and Spell already does it in some places. It just doesn't do
+    it for a thing's own fields yet, which is where PokéSpell tripped.
+  </p>
+  <ul>
+    <li>
+      When the compiler thinks a value might be nothing, it reads through it with <code>?.</code> (in Python,
+      <code>getattr(..., None)</code>), so reading off nothing gives nothing.
+      <ul>
+        <li>
+          Its test is
+          <a href="/parser/src/parser/writers/ProgramWriter.ts" target="src-parser-src-parser-writers-programwriter-ts"
+            ><code title="parser/src/parser/writers/ProgramWriter.ts">ProgramWriter.mayBeNothing()</code></a
+          >, from epic <code>output-targets</code> Q38.
+        </li>
+        <li>
+          Today it says "maybe nothing" only for an item taken from a list (<code>the last card of the pile</code>), a
+          thing found by name or place, and anything read off one of those.
+        </li>
+        <li>
+          A field such as <code>its sprites</code> is never on that list, because its type says it's always a sprite. So
+          <code>the other of its sprites</code> compiles to a plain <code>.</code>, and it throws until the Pokémon's
+          own page has been read.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Why the field is empty at first: PokéAPI's lists give only each Pokémon's name (<code
+        >- its lists give only each one's "name"</code
+      >). Reading any other field fetches that Pokémon's own page, once, and the field fills in when the page arrives
+      (<a href="/parser/src/core/saved.ts" target="src-parser-src-core-saved-ts"
+        ><code title="parser/src/core/saved.ts">readWholeOnGet()</code></a
+      >). Until then the field is nothing.
+    </li>
+  </ul>
+  <epic-code title="PokeSpell.snapshot.js · what Pokemon.spellml compiles to today · 5 lines" language="js">
+    <pre>
+get picture() {
+  // the kid's guard:  without it, `.other` throws while sprites is still nothing
+  if (this.sprites) return this.sprites.other.officialArtwork.frontDefault
+  return ""
+}</pre>
+  </epic-code>
+
+  <p>
+    <b>Your idea: <code>a pokemon is a loadable thing</code>, with methods gated on whether it's loaded.</b>
+  </p>
+  <ul>
+    <li>
+      Spell already knows which Pokémon fields come later. The place's line
+      <code>its lists give only each one's "name"</code> says so, and reading one of those fields already starts the
+      load. A <code>loadable</code> word would only repeat that line.
+    </li>
+    <li>
+      A gate written in the program (<code>if it is loaded</code>) is the same as today's
+      <code>if its sprites</code> with a new name. The kid still has to remember to write it.
+    </li>
+    <li>
+      <a href="/src/util/spell/Loadable.ts" target="src-src-util-spell-loadable-ts"
+        ><code title="src/util/spell/Loadable.ts">Loadable</code></a
+      >
+      in Spell's util folder is a different thing. It holds one resource's contents and whether that resource has
+      loaded, such as a file loaded by its address. A thing that comes from a place isn't built that way, and a Pokémon
+      has no single "contents".
+    </li>
+    <li>
+      The part of your idea worth keeping is <b>waiting</b>: the program doesn't have to say anything at all.
+      <ul>
+        <li>
+          A field the list didn't give could wait the way a slow value already waits (<a
+            href="/parser/src/core/waiting.ts"
+            target="src-parser-src-core-waiting-ts"
+            ><code title="parser/src/core/waiting.ts">core.waitedValue()</code></a
+          >).
+        </li>
+        <li>
+          In a drawing it shows the "…" stand-in until the Pokémon's page arrives. An action reading it waits for the
+          answer.
+        </li>
+        <li>That's option C below.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><b>Why the page froze: a drawing that throws runs again and again.</b></p>
+  <ul>
+    <li>
+      Each drawn thing has its own error boundary: when its drawing throws, the boundary shows a small "can't draw"
+      stand-in and the rest of the page keeps drawing (<a
+        href="/parser/src/core/drawing.ts"
+        target="src-parser-src-core-drawing-ts"
+        ><code title="parser/src/core/drawing.ts">drawInBoundary()</code></a
+      >, built on Solid's <code>&lt;Errored&gt;</code>).
+    </li>
+    <li>
+      Solid's boundary heals itself: whenever something the failed part read changes, it tries that part again. Each new
+      try that fails logs one more console line and sends one more <code>ui-error</code> event.
+    </li>
+    <li>
+      Here the failure wasn't in the card's <code>draw()</code>. It was in a value that keeps updating inside the
+      drawing: the picture's <code>src: () =&gt; this.picture</code>. The tests check a throwing <code>draw()</code>,
+      and a throw while an element is first made, and each logs one line. No test checks a throw inside a value that
+      keeps updating.
+    </li>
+    <li>
+      PokéSpell writes into those Pokémon over and over. The list arrives a page at a time, and each card's own page
+      lands one by one. If every write retries every broken card, that's cards × writes: 207,205 lines in 30 seconds.
+      <b>That's the likely cause, but nobody has measured it yet.</b> The first step of the fix is a test that shows it.
+    </li>
+  </ul>
+
+  <epic-choices>
+    <epic-option letter="A" title="Read through nothing: a thing's field may be nothing" recommended
+      ><ul>
+        <li>
+          <code>mayBeNothing()</code> also says yes for a field whose type is another kind of thing (a sprite, a pile,
+          an owner), since a thing nobody has set yet is nothing. So everything read off it uses <code>?.</code>.
+        </li>
+        <li>
+          The kid's program is one line again:
+          <code>return the front default of the official artwork of the other of its sprites</code>. The picture is
+          blank, then appears when the page arrives.
+        </li>
+        <li>Python gets the same, through the same test (<code>getattr(..., None)</code>).</li>
+        <li>
+          Cost: small, one rule in the writer. Every example's saved compiler output (its snapshots) that reads a field
+          of a field changes from <code>.</code> to <code>?.</code>. TypeScript accepts <code>?.</code> on a field
+          that's never empty.
+        </li>
+        <li>On its own, it doesn't stop the endless retries for some other thing that throws.</li>
+      </ul>
+      <epic-code title="what the getter would compile to · 3 lines" language="js">
+        <pre>
+get picture() {
+  return this.sprites?.other?.officialArtwork?.frontDefault
+}</pre>
+      </epic-code></epic-option
+    >
+    <epic-option letter="B" title="A drawing that fails says so once"
+      ><ul>
+        <li>
+          The boundary logs and sends <code>ui-error</code> once for each time it breaks, not once for each try. It
+          shows the stand-in until the thing draws without throwing.
+        </li>
+        <li>
+          Add a test with a value that keeps updating and throws (<code>src: () =&gt; ...</code>): one console line, and
+          the page doesn't spin.
+        </li>
+        <li>
+          Cost: small to medium, in the drawing code and its tests. First measure whether the retries come from Solid
+          healing or from a write made inside the read.
+        </li>
+        <li>
+          On its own, the kid still needs the <code>if</code> guard, because the picture shows "can't draw" until the
+          page arrives.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Your idea, automatic: a field still coming waits"
+      ><ul>
+        <li>
+          A field the place's lists don't give waits like a slow value. The card shows "…" until its page lands, and an
+          action waits for it.
+        </li>
+        <li>No new word: the place's <code>lists give only</code> line already says which fields.</li>
+        <li>
+          Cost: larger. The field's getter has to wait, and actions need it too. A card's name, which comes with the
+          list, must still show at once, so only the late fields can wait.
+        </li>
+        <li>It still needs B for anything else that throws, and A for a field that's really empty on the server.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="D" title="A compile-time warning: “its sprites may not be there yet”"
+      ><ul>
+        <li>The compiler warns about a read of a late field without a guard.</li>
+        <li>Cost: small. But it asks the kid to write the guard we want gone, so it goes against your note.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <p>
+    Recommended: <b>A and B together</b>. A is exactly your "the X of nothing is nothing". B makes sure any other failed
+    drawing costs one line on the console, not a frozen page. C can come later, if a blank picture that pops in looks
+    worse than a "…".
+  </p>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>
+        <code>the X of Y</code> is nothing when Y is a field holding nothing, in JavaScript, TypeScript and Python.
+      </li>
+      <li>
+        PokéSpell's <code>picture</code> and <code>sound</code> each lose their guard and their <code>return ""</code>,
+        and are one line each.
+      </li>
+      <li>Every example's snapshots change wherever a field of a field is read.</li>
+      <li>
+        With B: a failed drawing logs once and sends one <code>ui-error</code>, plus a new drawing test with a value
+        that keeps updating and throws.
+      </li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
