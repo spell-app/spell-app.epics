@@ -103,6 +103,10 @@ a "recipe" is a thing:
             </li>
             <li>Writes go through Spell's server, as the space; programs read a space straight from its files.</li>
             <li>When Spaces is ready, Bluesky's server can take over the same data.</li>
+            <li>
+              It has now been tried on Bluesky's own Spaces alpha, with two accounts there, and it worked: below,
+              "Trying it on the Spaces alpha".
+            </li>
           </ul>
         </ui-section>
 
@@ -317,6 +321,68 @@ a "status" is a thing:
               <li>A length rule counts an emoji as one letter, and <code>a new date</code> is now.</li>
             </ul>
           </ui-section>
+
+          <ui-section id="spaces-alpha" label="Trying it on the Spaces alpha" sticky collapsible dividing open="false">
+            <p>
+              The recipe box was saved to a real Space on Bluesky's alpha host, on 2026-11-05: the test org's account
+              made the space, and a second account joined it as a member. Every step passed.
+            </p>
+            <ul>
+              <li>
+                <b>Making it:</b> the org made a members-only space of Spell's own type,
+                <code>app.spell.data.space</code>. The alpha took it, though nothing publishes that type yet.
+              </li>
+              <li>
+                <b>Reading:</b> a read credential lasts 10 minutes, and is tied to a key the program holds. Each read is
+                signed with that key, and each record's checksum is checked.
+              </li>
+              <li>
+                <b>A member:</b> added with a read and a write flag, the second account read the org's recipe, wrote one
+                of its own (kept in its own account), and joined the list of writers.
+              </li>
+              <li>
+                <b>Someone outside:</b> asking for a credential, they're told the space isn't found
+                (<code>SpaceNotFound</code>), so a private space doesn't give itself away.
+              </li>
+              <li>
+                <b>Only the owner manages:</b> the member trying to add someone was refused
+                (<code>NotSpaceOwner</code>).
+              </li>
+              <li>
+                <b>Removing someone:</b> they leave the writers at once, and a new credential is refused. The catch: the
+                one they already hold still reads, until its 10 minutes are up.
+              </li>
+              <li>
+                <b>Public read:</b> turned on, a signed-out reader got in; turned off again, the box was copied in (2
+                recipes) and listed back, then the records cleared and the space deleted.
+              </li>
+            </ul>
+            <p>
+              <b>Not yet:</b> each member's own host has to run Spaces. An ordinary bsky.social account could be added
+              to the list, but its host answered "not implemented" (501) when it asked to read or clear its records. The
+              alpha also took an app password's sign-in for every call, though Spaces' proposal says OAuth only, so a
+              later release may not.
+            </p>
+            <ui-accordion class="spell-aside" appearance="styled">
+              <ui-title>Running the trial again</ui-title>
+              <ui-content>
+                <p>
+                  It's a test that skips itself unless the alpha accounts are given; it writes a line per step to its
+                  log. The code:
+                  <a href="/src/util/places/AtProtoSpace.ts" target="src-src-util-places-atprotospace-ts"
+                    ><code title="src/util/places/AtProtoSpace.ts">AtProtoSpace</code></a
+                  >,
+                  <a href="/src/util/places/AtProtoSpacePlace.ts" target="src-src-util-places-atprotospaceplace-ts"
+                    ><code title="src/util/places/AtProtoSpacePlace.ts">AtProtoSpacePlace</code></a
+                  >
+                  and
+                  <a href="/tests/server/spacesTrial.test.ts" target="src-tests-server-spacestrial-test-ts"
+                    ><code title="tests/server/spacesTrial.test.ts">spacesTrial.test.ts</code></a
+                  >.
+                </p>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
         </ui-section>
 
         <ui-section id="4-how-it-works" label="4. How it works" sticky collapsible dividing open="false">
@@ -376,7 +442,11 @@ a "status" is a thing:
         <ui-section id="6-limits" label="6. Limits" sticky collapsible dividing open="false">
           <ul>
             <li>No public address yet, and no real mail: codes are read from the catcher.</li>
-            <li>One real atmosphere write, and the Spaces trial, are still to do; the trial waits for Spaces' beta.</li>
+            <li>
+              Spaces is tried, not used: Spell's data stays on its own server until Spaces leaves its alpha, and a
+              removed member reads for up to 10 more minutes there.
+            </li>
+            <li>A Spaces member needs an account on a host that runs Spaces: a bsky.social account can't join yet.</li>
             <li>Drafts still belong to this machine's person, whoever's signed in.</li>
             <li>Pending sign-ins live in memory: a restart loses them. Nothing limits how often one email can ask.</li>
             <li>A hidden account stays signed in where it already was.</li>
@@ -534,6 +604,23 @@ a "status" is a thing:
                   </td>
                 </tr>
                 <tr>
+                  <td>Spaces</td>
+                  <td>
+                    <a href="/src/util/places/AtProtoSpace.ts" target="src-src-util-places-atprotospace-ts"
+                      ><code title="src/util/places/AtProtoSpace.ts">AtProtoSpace</code></a
+                    >,
+                    <a href="/src/util/places/AtProtoSpacePlace.ts" target="src-src-util-places-atprotospaceplace-ts"
+                      ><code title="src/util/places/AtProtoSpacePlace.ts">AtProtoSpacePlace</code></a
+                    >,
+                    <a href="/src/util/places/SpaceCredential.ts" target="src-src-util-places-spacecredential-ts"
+                      ><code title="src/util/places/SpaceCredential.ts">SpaceCredential</code></a
+                    >,
+                    <a href="/src/server/test/fakeSpaces.ts" target="src-src-server-test-fakespaces-ts"
+                      ><code title="src/server/test/fakeSpaces.ts">FakeSpaces</code></a
+                    >
+                  </td>
+                </tr>
+                <tr>
                   <td>Lexicons</td>
                   <td>
                     <a href="/parser/src/core/lexicon.ts" target="src-parser-src-core-lexicon-ts"
@@ -577,13 +664,13 @@ a "status" is a thing:
                 <li>
                   Epic page:
                   <a href="/epics/atmosphere/atmosphere.plan.html" target="atmosphere">Atmosphere</a>, started
-                  2026-10-31, built 2026-11-04.
+                  2026-10-31, built 2026-11-04, its Spaces trial run 2026-11-05.
                 </li>
                 <li>
-                  P1 Folder Addresses, P3 Sign-In By Code, P4 Space Server, P5 Reading Direct, P6 Takedowns And Abuse,
-                  P7 Keeping Data Safe, P8 The Cloud Line, P9 Publishing A Guide, P10 Statusphere And Lexicon.
+                  P1 Folder Addresses, P2 Real Atmosphere Write, P3 Sign-In By Code, P4 Space Server, P5 Reading Direct,
+                  P6 Takedowns And Abuse, P7 Keeping Data Safe, P8 The Cloud Line, P9 Publishing A Guide, P10
+                  Statusphere And Lexicon, P11 Spaces Trial (run on the Spaces alpha, 2026-11-05).
                 </li>
-                <li>Still to do: P2 Real Atmosphere Write; P11 Spaces Trial, deferred to Spaces' beta.</li>
               </ul>
             </ui-content>
           </ui-accordion>
@@ -591,7 +678,7 @@ a "status" is a thing:
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">Last checked 2026-11-04 against branch <code>atmosphere</code>.</p>
+          <p class="meta">Last checked 2026-11-05 against branch <code>atmosphere</code>.</p>
         </footer>
       </main>
     </div>
