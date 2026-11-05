@@ -1,0 +1,136 @@
+<!-- plan-doc part:  #q38's details in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    Owen's comment on the guide's "Where the code is" (C22, "Places, the cache, the copy on this device, writes,
+    healing"): "this is worth its own top-level folder next to <code>util</code>". Whether the browser half of places
+    becomes a folder of the kit's own <a href="/src/" target="src-src"><code>src/</code></a
+    >, named <code>spell/places</code>.
+  </p>
+  <p>
+    <b>Earlier:</b> <a href="#j5">J5</a> chose a folder of util over a new kit folder, because a new one means more
+    exports, TypeScript settings and test projects "for no gain". The census below is that cost.
+  </p></epic-question
+>
+<p><b>What moves:</b></p>
+<ul>
+  <li>
+    <a href="/src/util/places/" target="src-src-util-places"><code>src/util/places/</code></a
+    >: 42 files, about 13,000 lines, to <code>src/places/</code>.
+  </li>
+  <li>
+    Its tests, <a href="/tests/util/places/" target="src-tests-util-places"><code>tests/util/places/</code></a
+    >: 34 files, to <code>tests/places/</code>.
+  </li>
+  <li>util's AGENTS.md section "Where data lives" becomes the new folder's own AGENTS.md (and its CLAUDE.md).</li>
+</ul>
+<p><b>Who imports it</b> (<code>spell/util/places</code>, 2026-11-05, this branch):</p>
+<ui-table celled padding="compact" appearance="striped" unstackable>
+  <table>
+    <thead>
+      <tr>
+        <th>Folder</th>
+        <th>Files</th>
+        <th>Lines</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          the kit's <a href="/src/" target="src-src"><code>src/</code></a> (server's places 14, sign-in 3, test servers
+          4, two util comments)
+        </td>
+        <td>26</td>
+        <td>42</td>
+      </tr>
+      <tr>
+        <td>
+          <a href="/parser/" target="src-parser"><code>parser/</code></a> (core's places and saved things, the ingest)
+        </td>
+        <td>22</td>
+        <td>50</td>
+      </tr>
+      <tr>
+        <td>
+          <a href="/epic/" target="src-epic"><code>epic/</code></a>
+        </td>
+        <td>9</td>
+        <td>17</td>
+      </tr>
+      <tr>
+        <td>
+          <a href="/app/" target="src-app"><code>app/</code></a>
+        </td>
+        <td>9</td>
+        <td>15</td>
+      </tr>
+      <tr>
+        <td>
+          <a href="/tests/" target="src-tests"><code>tests/</code></a>
+        </td>
+        <td>47</td>
+        <td>60</td>
+      </tr>
+      <tr>
+        <td>
+          <a href="/ui/" target="src-ui"><code>ui/</code></a>
+        </td>
+        <td>0</td>
+        <td>0</td>
+      </tr>
+    </tbody>
+  </table>
+</ui-table>
+<p><b>What else changes:</b></p>
+<ul>
+  <li>
+    The kit's <a href="/package.json" target="src-package-json"><code>package.json</code></a
+    >: its <code>./util/places</code> entry becomes <code>./places</code>; the <code>./util/*</code> wildcard stops
+    covering it, so a <code>./places/*</code> one too.
+  </li>
+  <li>
+    <a href="/tsconfig.json" target="src-tsconfig-json"><code>tsconfig.json</code></a
+    >: <code>src/places</code> joins its browser-safe list.
+  </li>
+  <li>
+    The kit's Vitest config: two projects, <code>places</code> (a real browser, for the device place) and
+    <code>places:node</code> (the web places, against real local servers), out of util's two.
+  </li>
+  <li>
+    The kit's AGENTS.md: a row in its folder table, and "Which folder may use which": places uses util (its loads,
+    reactive engine, preferences, <code>Api</code>, sockets, timing); server uses places; places never uses server.
+  </li>
+  <li>
+    Lint: nothing. The <code>spell/no-upward-import</code> rule orders only the big folders (<code>parser</code>,
+    <code>ui</code>, <code>epic</code>, <code>app</code>), not the kit's own folders.
+  </li>
+  <li>Spell UI never imports it, so no bundle changes.</li>
+  <li>The rename is mechanical: every import rewritten, as <code>spell rename imports</code> does.</li>
+</ul>
+<epic-choices>
+  <epic-option letter="A" title="spell/places, the server half stays in server" recommended
+    ><ul>
+      <li><code>src/places/</code>, imported as <code>spell/places</code>, <code>spell/places/DeviceCopy</code>.</li>
+      <li>The server half stays <code>spell/server/places</code>, beside the rest of the server.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="spell/places, both halves"
+    ><ul>
+      <li><code>src/places/</code> and <code>src/places/server/</code>: every place in one folder.</li>
+      <li>
+        Its server half needs node: the node program takes <code>src/places/server</code>, and the browser one leaves it
+        out, as util's <code>node/</code> is today.
+      </li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="Stays in util (J5)"
+    ><ul>
+      <li>No change.</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li><a href="#j5">J5</a> is turned round: places is a kit folder of its own, <code>spell/places</code></li>
+    <li>about 200 import lines rewritten, in 113 files, across the kit, parser, epic and app</li>
+    <li>one exports entry, one TypeScript line, two test projects, an AGENTS.md of its own</li>
+  </ul>
+</epic-net-effect>
