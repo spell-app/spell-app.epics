@@ -51,6 +51,13 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
   Older than typed defaults (epic `prefs-and-undo` P7, which only changed what a found declaration answers).
   Prove it:  a plain class with `@prop({ type: "text", default: "down" }) accessor direction`, read before it's set.
   README-util's typed-defaults section says so as a caveat.  Seen 2026-10-25 (epic `prefs-and-undo` P9).
+- `spell/util/places` + core's `PlaceThings`:  after a sample goes back out (`useRealPlace()`), a field changed while the sample
+  was in reads BLANK on its thing, not the real place's value, until the page loads again.
+  The real place's records are untouched (its `list()` still says "Pizza Margherita"):  only the thing in memory is wrong.
+  Likely the order:  `PlaceThings.swapped()` resets each field written while the sample was in to nothing, and the readers' read
+  after the swap (`readAfterSwap()`) then doesn't change it back, though `changeInPlace()` would.
+  Prove it:  Recipe Box, `useSample(places, "family_cookbook")`, `recipe.title = "x"` (a plain set, no side bar), `useRealPlace()`:
+  `recipe.title` is `""`.  Seen 2026-11-04 (epic `editor` P26, Data In Side Bar), on epic `data`'s code.
 
 ## spell
 
