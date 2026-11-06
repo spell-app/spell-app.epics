@@ -26,8 +26,8 @@ import {
   type PlaceRowsChange,
   type PlaceThingDeleted,
   type PlaceWriteFailure
-} from "spell/util/places"
-import { useRealPlace, useSample } from "spell/util/places/SamplePlace"
+} from "spell/places"
+import { useRealPlace, useSample } from "spell/places/SamplePlace"
 import { pollWhileVisible } from "spell/util/polling"
 import { FakeSignIn } from "spell/server/test/FakeSignIn"
 import { E } from "spell/ui/core"
