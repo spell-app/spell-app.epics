@@ -1079,3 +1079,10 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
   `data-color`, where the check wants `grey`.  `<epic-item>`'s `chipMark()` gives a skip no colour, or the check is
   older than the "own mark in flight keeps the state colour" rule (`EpicItem.css`, about line 377).  Not looked for;
   nothing P16 touched draws it.
+
+- `epic change` records the NEW words as a mark's `was` ("Originally") when the old words never reached a commit
+  (2026-11-07, epic `notebook`, four times:  ch1-ch4, the Q8 mark in P1's plan).  Each time the marks were written
+  and `epic change` run in the same turn, as the skill says;  the part had been written (or last changed) earlier
+  the same session, before any turn-end commit of the epic repo.  So its "the page as it was, on disk, else its last
+  commits" finds no older copy and falls back to the marked text itself.  Fixed by hand each time.  Likely:  when no
+  committed copy differs, it should leave `was` empty (or say so) rather than copy the new words.
