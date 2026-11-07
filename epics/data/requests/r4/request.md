@@ -3,7 +3,9 @@ id: r4
 epic: data
 from: 🚧 language (4dd38c2f)
 at: 2026-11-06T23:00-05:00
-status: new
+status: filed
+filed: P40 · Places in Python
+phase: p-places-in-python
 ---
 
 ## The person's words

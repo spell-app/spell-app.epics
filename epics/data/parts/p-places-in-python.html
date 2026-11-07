@@ -1,0 +1,268 @@
+<!-- plan-doc part:  #p-places-in-python's body in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>A project that keeps things in a place can't compile to Python, so Task List no longer runs there.</p></epic-field
+><epic-field name="requests"
+  ><epic-field label="r4 · 🚧 language (4dd38c2f)"
+    ><blockquote>
+      <p>
+        Owen, on epic language's J54 (comment C4): "can we do python implementation of the apis?" -- then: "send this
+        over to `data` epic"
+      </p>
+      <p>
+        What it means (from language's draft, its P33 · Places in Python): - Task List
+        (app/spaces/@spell/examples/TaskList) now keeps its tasks in four places: a database on this device, a JSON data
+        folder on the server, a CSV file on the server (new in language P31, T65), and the Atmosphere. A project with a
+        place can't compile to Python ("browser work first", epic data J10), so TaskList was taken out of
+        PYTHON_FIXTURES (language J54). - Python's spell_core lacks the 25 place helpers listed in
+        parser/src/py/core/not_ported_yet.json5 (place, savedThings, saveThing, removeSaved, drafts, people ...). -
+        Proposed: port them; JSON folder and CSV file through the page server's same routes (with its write token, as
+        the editor's vite proxy does since language T68); the Atmosphere through its HTTP API; "this device" as a JSON
+        file beside the program; lift the py refusal in parser/src/spell/targets.ts; TaskList back in PYTHON_FIXTURES;
+        check with pytest, content compare --target py, the contract test, and a live Python Task List keeping a task
+        over a restart in each backend. About 4-6h. - Note: language P30 + P31 (the examples rewrite and its fixes) are
+        merging into main now; build on main after that.
+      </p>
+    </blockquote>
+    <p>
+      Looking at: From epic language's page, J54 / comment C4 (epics/language/language.plan.html#j54); session 🚧
+      language, after P30-P31 rewrote the examples
+    </p>
+    <p>
+      Sent 2026-11-06 23:00-05:00;
+      <a href="/epics/data/requests/r4/request.md" target="src-epics-data-requests-r4-request-md">request.md</a>
+    </p></epic-field
+  ></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen, 2026-11-06, via epic <code>language</code> (its J54, comment C4): "can we do python implementation of the
+      apis?" (<a href="/epics/data/requests/r4/request.md" target="src-epics-data-requests-r4-request-md">r4</a>).
+    </li>
+    <li>
+      A project that keeps things in a place compiles to Python, for the kinds that can work there: today every one is
+      refused, "browser work first" (<a href="#j10">J10</a>).
+    </li>
+    <li>
+      Task List compiles to Python again, its four places working there: a database on this device, a JSON data folder
+      on the server, a CSV file on the server, and the Atmosphere.
+    </li>
+    <li>
+      Python's <code>spell_core</code> has the place helpers JavaScript's core has (<code>place</code>,
+      <code>saved_things</code>, <code>save_thing</code>, <code>remove_saved</code>, drafts, who's here ...), each taken
+      off the not-ported list.
+    </li>
+    <li>
+      The JSON data folder and the CSV file go through the page server's own routes, with its write token, as the editor
+      does since epic <code>language</code>'s T68; an Excel workbook on the server comes along for free, the server
+      reading it.
+    </li>
+    <li>Task List is back among the Python test projects, and prints the same as JavaScript in the contract test.</li>
+    <li>A Python Task List keeps a task over a restart, in each of its four places.</li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>Python's core learns places: the helpers JavaScript's core has, and four kinds behind them.</li>
+    <li>The Python target stops refusing a place of those kinds; any other kind is still refused, by name.</li>
+    <li>Task List is back among the Python test projects.</li>
+  </ul></epic-field
+><epic-field name="choices"
+  ><p>
+    Where a Python program keeps "a database on this device": a browser keeps it in its own storage, but a Python
+    program has no browser, and <code>spell run</code> runs it from a temporary folder it deletes after.
+  </p>
+  <epic-choices>
+    <epic-option letter="A" title="One file per project, in your own folder" recommended
+      ><ul>
+        <li>
+          <code>~/.spell/this-device/&lt;project&gt;.json</code>: one machine's, as a browser's storage is one
+          browser's.
+        </li>
+        <li>Survives <code>spell run</code>'s temporary folder, so a task is still there after a restart.</li>
+        <li>Easy to read and delete by hand.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="A file beside the program"
+      ><ul>
+        <li>What the request said: <code>TaskList.device.json</code> next to the compiled program.</li>
+        <li>
+          Lost on every <code>spell run</code>, which compiles into a temporary folder: the restart check would fail
+          there; fine for a Quart app run by hand.
+        </li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="SQLite"
+      ><ul>
+        <li>Python's own <code>sqlite3</code>, no new dependency; a real database, safe if two runs write at once.</li>
+        <li>More code for what is a handful of rows, and not a file you can open in an editor.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <p>The Atmosphere: a browser signs in to it through Bluesky's sign-in page; a Python program can't show one.</p>
+  <epic-choices>
+    <epic-option letter="A" title="Now, with an app password" recommended
+      ><ul>
+        <li>
+          The program signs in with your handle and an app password from two environment variables, as the kit's
+          password sign-in already does for tests.
+        </li>
+        <li>Then reads and writes its records over the account's HTTP API.</li>
+        <li>Task List's fourth place works, so the whole project compiles: about 2h of the estimate.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Later, a phase of its own"
+      ><ul>
+        <li>The Python target refuses the Atmosphere by name, for now.</li>
+        <li>
+          Task List still can't compile to Python (it names all four places), so it stays out of the Python test
+          projects until then.
+        </li>
+        <li>4-6h instead of 6-8h.</li>
+      </ul></epic-option
+    >
+  </epic-choices></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      First, <code>epic worktree merge-main</code> once epic <code>language</code>'s P30 and P31 are in
+      <code>main</code>: they bring Task List's four places and the editor's write-token pass-through (its T68). Not
+      merged yet today.
+    </li>
+    <li>
+      <b>The helpers.</b> A new <code>places.py</code> in Python's core, the twin of JavaScript's
+      <a href="/parser/src/core/saved.ts" target="src-parser-src-core-saved-ts"><code>saved.ts</code></a> and
+      <a href="/parser/src/core/places.ts" target="src-parser-src-core-places-ts"><code>places.ts</code></a
+      >, smaller:
+      <ul>
+        <li>
+          a program's places, each made when it's first named; its things by id, one object each, however often they're
+          read
+        </li>
+        <li>
+          <code>saved_things()</code> (awaited, as a Python page already waits for its values),
+          <code>save_thing()</code>, <code>remove_saved()</code>, a saved thing writing itself as it changes, drafts,
+          <code>reload_saved()</code>, who's here (<code>current_person()</code> is this machine's person)
+        </li>
+        <li>
+          the drawing helpers in the same group (<code>first_few</code>, <code>total_of</code>,
+          <code>with_commas</code>, <code>date_shown</code> ...) as plain functions; <code>scroll_to_top</code>, a
+          page's, is sent to the page
+        </li>
+        <li>
+          each name taken off
+          <a href="/parser/src/py/core/not_ported_yet.json5" target="src-parser-src-py-core-not-ported-yet-json5"
+            ><code>not_ported_yet.json5</code></a
+          >; the core-declarations test checks the rest
+        </li>
+        <li>standard library only, as the core is today: HTTP through <code>urllib</code>, off the main loop</li>
+      </ul>
+    </li>
+    <li>
+      <b>The kinds</b>, in <code>place_kinds.py</code>:
+      <ul>
+        <li>
+          a data folder and a sheet on the server: ONE client for the page server's place routes
+          (<code>/api/places/...</code>), the same requests the browser's <code>RemotePlace</code> sends, with the
+          <code>x-server-token</code> header; an Excel workbook on the server rides along, as the server reads it (one
+          test)
+        </li>
+        <li>a database on this device: one JSON file, where the choice below says</li>
+        <li>a personal atmosphere account: its HTTP API, signed in with an app password, as the choice below says</li>
+        <li>
+          any other kind (a web server, GraphQL, Airtable, a Google sheet, a room, the cloud): still refused while
+          compiling, naming the kind
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The writer.</b> The Python writer writes what the JavaScript one does for a place: its line
+      (<code>place(...)</code>), a kind's <code>saved_in</code>, and the reads awaited, so a function that reads one
+      becomes <code>async def</code>.
+    </li>
+    <li>
+      <b>The refusal.</b> The Python target's ability becomes a list of the kinds it keeps, and
+      <code>SpellProject</code> refuses only a place of another kind.
+    </li>
+    <li>
+      <b>Running it.</b> <code>spell run --target py</code> hands the Python program the page server's address and write
+      token, as the editor's dev server gets them; run by hand with no token, it reads, and a write says why it can't.
+    </li>
+    <li>
+      <b>Task List</b> back in <code>PYTHON_FIXTURES</code>, its Python snapshots written again
+      (<code>.snapshot.py</code>, <code>.pyright.txt</code>, <code>.elements.snapshot.js</code>).
+    </li>
+    <li>
+      <b>Checks:</b> pytest per kind (the server's against a page server the test starts),
+      <code>spell content compare --target py</code>, the contract test, <code>yarn review</code> in
+      <a href="/parser/" target="src-parser"><code>parser/</code></a> and
+      <a href="/app/" target="src-app"><code>app/</code></a
+      >; live, a task kept over a restart in each of the four places.
+    </li>
+    <li>
+      <b>Left out:</b> the other kinds above; signing in to the Atmosphere through a browser (OAuth); live rooms; a
+      sheet or workbook read straight from a web address with no server (it would need a library to read Excel).
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="/parser/src/py/core/spell_core/" target="src-parser-src-py-core-spell-core"
+        ><code>parser/src/py/core/spell_core/</code></a
+      >: a new <code>places.py</code> (the helpers) and <code>place_kinds.py</code> (each kind)
+    </li>
+    <li>
+      <a href="/parser/src/py/core/not_ported_yet.json5" target="src-parser-src-py-core-not-ported-yet-json5"
+        ><code>parser/src/py/core/not_ported_yet.json5</code></a
+      >
+    </li>
+    <li>
+      <a href="/parser/src/py/PyWriter.ts" target="src-parser-src-py-pywriter-ts"
+        ><code>parser/src/py/PyWriter.ts</code></a
+      >,
+      <a href="/parser/src/py/PyBaseWriter.ts" target="src-parser-src-py-pybasewriter-ts"
+        ><code>PyBaseWriter.ts</code></a
+      >: a place's line, a kind's <code>saved_in</code>, the reads awaited
+    </li>
+    <li>
+      <a href="/parser/src/spell/targets.ts" target="src-parser-src-spell-targets-ts"
+        ><code>parser/src/spell/targets.ts</code></a
+      >,
+      <a href="/parser/src/spell/SpellProject.ts" target="src-parser-src-spell-spellproject-ts"
+        ><code>SpellProject.ts</code></a
+      >: the refusal, kind by kind
+    </li>
+    <li>
+      <a href="/app/src/cli/runTarget.ts" target="src-app-src-cli-runtarget-ts"><code>app/src/cli/runTarget.ts</code></a
+      >: the page server's address and token handed to the Python program
+    </li>
+    <li>
+      <a href="/app/src/spaces/test/fixtures.ts" target="src-app-src-spaces-test-fixtures-ts"
+        ><code>app/src/spaces/test/fixtures.ts</code></a
+      >
+      (<code>PYTHON_FIXTURES</code>), Task List's Python snapshots
+    </li>
+    <li>
+      <a href="/parser/tests/py/core/tests/" target="src-parser-tests-py-core-tests"
+        ><code>parser/tests/py/core/tests/</code></a
+      >: pytest for each kind
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      pytest over <code>spell_core</code>, a test per kind of place (the server ones against a page server the test
+      starts)
+    </li>
+    <li>
+      <code>spell content compare --target py</code>, and the contract test: Task List prints the same in Python as in
+      JavaScript
+    </li>
+    <li>
+      <code>yarn review</code> in <a href="/parser/" target="src-parser"><code>parser/</code></a> and
+      <a href="/app/" target="src-app"><code>app/</code></a>
+    </li>
+    <li>
+      Live: <code>spell run TaskList --target py</code>, add a task in each place, stop it, run it again, the task still
+      there
+    </li>
+  </ul></epic-field
+>
