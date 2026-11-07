@@ -4,7 +4,8 @@ epic: mockup
 from: 🚧 notebook (88dd5402)
 at: 2026-11-07T10:05-05:00
 status: filed
-filed: Overview 1.3 (a site is one unit, each page says its own address) and Q3;  Spell UI's notebooks as the second site
+filed: P1 · Site File
+phase: p-site-file
 ---
 
 ## The person's words
