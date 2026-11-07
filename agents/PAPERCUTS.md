@@ -1099,6 +1099,12 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   core's source. · app (outline-spell P25)
 - 2026-10-31 · After merging main, 9 `recipeBox.test.ts` failures (a locator timing out):  the test runs against `app/dist-element`, which a merge leaves stale.  Fix:  `yarn build:element` in app.  (epic editor)
 
+- 2026-11-07 · The editor's page tests (`tests/app/pages/`) fail a different handful on each full `yarn vp test run` in
+  `app/`, under load:  19 at HEAD, 17 to 23 on a branch, every one passing when its file runs alone.  Once, the
+  worktree's servers died partway through the run (cause not found). · Compare against a run at HEAD, then rerun each
+  failing file alone;  restart a worktree's servers with its own cli (the "server" section, "handler is not a
+  function"). · app (epic `notebook` P3)
+
 ## cli
 
 Entries before 2026-09-30 are from when the command line lived in the parser repo, on its `CLI` branch.
