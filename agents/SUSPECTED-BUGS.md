@@ -61,6 +61,10 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- 2026-11-07 (atmosphere P27, the Sign-Up Sheet):  a type named `sign up` beside a place named `sign up sheet`:
+  `add the new sign up to the sign ups` doesn't parse ("Don't understand"), though `set the person of the new sign up
+  to their id` does, and the same line with `attendee` / `the attendees` does.  Its plural, `the sign ups`, may be
+  read as the start of `sign up sheet`.  The example calls each row a `volunteer` instead.  Epic `atmosphere` J126.
 - 2026-11-04 (atmosphere P10, Statusphere's `who`):  a `return` inside `for each ... in ...` is lost.
   `for each person in everyone here / if the id of the person is its owner / return the name of the person`
   compiled to `core.map(core.peopleHere(), (person) => { if (person.id === person.owner) return person.name })`:

@@ -1035,6 +1035,10 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 ## app
 
+- 2026-11-07 · `yarn examples:readme <name>` timed out on every example (OrgAdmin too):  `page.goto(..., { waitUntil:
+  "networkidle" })` on the worktree's editor never settled, 30s, after the page server restarted. · Took the picture
+  with a one-off Playwright script, `waitUntil: "load"` and a 12s wait, then `yarn examples:readme --no-pictures`
+  for the table. · app (atmosphere P27)
 - 2026-10-25 · In an epic's worktree, http://localhost:3000 is the MAIN checkout's editor (its vite, `~/www/spell`),
   answering every path with the app:  a worktree's own editor is on another port, in its `.spell-server.editor.json`.
   And a new project group in `projectGroups.ts` needs the page server restarted (`spell server stop`, `start`):  its
