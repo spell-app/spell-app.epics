@@ -123,7 +123,7 @@ NOTE:  links are relative, so they work on GitHub and in VS Code.
 | segment | A | `ui-segment`, `ui-segments` | ✅ | 65 | 7.37 | — | [✅](/guides/ui/docs/ui-segment.html) | 🚧 local | |
 | container | A | `ui-container` | ✅ | 32 | 3.24 | — | [✅](/guides/ui/docs/ui-container.html) | 🚧 local | |
 | grid | A | `ui-grid`, `ui-row`, `ui-column` | ✅ | 77 | 7.84 | — | [✅](/guides/ui/docs/ui-grid.html) | 🚧 local | stackable / doubling / per-device widths / `reversed` by container query, or the screen with `stack-with="page"` (rows and columns follow the grid) |
-| image | A | `ui-image`, `ui-images` | ✅ | 57 | 5.57 | — | [✅](/guides/ui/docs/ui-image.html) | 🚧 local | `zoom`:  a click or Enter shows it full size in the page's `<ui-zoom>` (epic `ui-gaps` P14) |
+| image | A | `ui-image`, `ui-images` | ✅ | 57 | 5.57 | — | [✅](/guides/ui/docs/ui-image.html) | 🚧 local | `zoom`:  a click or Enter shows it full size in the page's `<ui-zoom>` (epic `ui-gaps` P14);  `aspect-ratio` and `crop` (`ui top cropped image`;  epic `language` I18) |
 | text | A | `ui-text`, `ui-link` | ✅ | 48 | 2.70 | — | [✅](/guides/ui/docs/ui-text.html) | 🚧 local | `paragraph` (a `<p>`), `link` and `font` (epic `ui-gaps` P3, P9);  `<ui-link>`, a link of its own;  `disabled` drops a link |
 | stack | — | `ui-stack` | ✅ | 12 | — | — | [✅](/guides/ui/docs/ui-stack.html) | — | a layout box, no look:  Web Awesome's stack and cluster (epic `ui-gaps` P8) |
 | JSON data | — | `ui-json` | ✅ | 17 | — | — | [✅](/guides/ui/docs/ui-json.html) | — | data held in a page, as its text or a `source` file:  draws nothing;  `value`, `ui-changed`;  `<ui-tree-diagram>` reads it (epic `elemental-spell` P31) |
