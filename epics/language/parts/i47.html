@@ -6,3 +6,178 @@
   and so do value-if lines (<code>"" if ... / ... otherwise</code>). The message doesn't say to add <code>return</code>,
   and the first guess (it can't see the app in another file) was wrong.
 </p>
+<epic-reply
+  agent="claude"
+  from="owenoak"
+  at="2026-11-07 08:50"
+  re="A property with a single line should return the value. Some languages do this automatically for functions as well, should we?"
+>
+  <p>
+    Today a one-line property returns its line only when that line can't be read as a statement. So the case in this
+    issue works now, but a property whose one line is a CALL compiles to a getter that returns nothing, with no error.
+    Actions and <code>to ...</code> methods never return a bare line.
+  </p>
+
+  <p><b>What Spell does today</b> (checked by compiling a scratch project, code spell and spellml side by side):</p>
+  <ui-table celled padding="compact" appearance="striped" unstackable>
+    <table>
+      <thead>
+        <tr>
+          <th>The one line</th>
+          <th>In a property</th>
+          <th>In an action / <code>to ...</code></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>On the tag's line: <code>the n * 2</code></td>
+          <td>returns it</td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td>On the line below: <code>the n * 2</code></td>
+          <td>returns it (fixed by P31's T58)</td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td>A value only: <code>"hey"</code></td>
+          <td>returns it</td>
+          <td>Don't understand</td>
+        </tr>
+        <tr>
+          <td>A call, on the line below: <code>quadrupled n of it</code></td>
+          <td><b>returns nothing, silently</b></td>
+          <td>runs it, returns nothing</td>
+        </tr>
+        <tr>
+          <td>A call, on the tag's line</td>
+          <td>returns it</td>
+          <td>runs it, returns nothing</td>
+        </tr>
+        <tr>
+          <td><code>return the n * 4</code></td>
+          <td>returns it</td>
+          <td>returns it</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+  <ul>
+    <li>
+      Why: a body below a line is read as statements first.
+      <ul>
+        <li>
+          Only when that fails, and the line takes a value (a property), is the one line tried again as a value:
+          <a href="/parser/src/spell/rules/Statement.ts" target="src-parser-src-spell-rules-statement-ts"
+            ><code title="parser/src/spell/rules/Statement.ts">oneLineValue()</code></a
+          >.
+        </li>
+        <li>A call reads fine as a statement, so it never gets that second try.</li>
+        <li>An action's body never takes a value, so a bare value there is always Don't understand.</li>
+      </ul>
+    </li>
+    <li>The Spanish side is the same parser, so it behaves the same way.</li>
+  </ul>
+
+  <epic-code title="What the scratch project compiles to · the silent case" language="ts">
+    <pre>
+// &lt;property "call below"&gt;
+//   quadrupled n of it
+// &lt;/property&gt;
+get callBelow() {
+  this.quadrupledN()          // no return:  the property is always undefined
+}
+
+// &lt;property "call inline"&gt;quadrupled n of it&lt;/&gt;
+get callInline() {
+  return this.quadrupledN()
+}
+
+// &lt;action "a word"&gt;
+//   "hey"
+// &lt;/action&gt;
+aWord() {
+  /* PARSE ERROR: Don't understand ""hey"" */
+}</pre>
+  </epic-code>
+
+  <epic-code title="The fallback today · Statement.ts" language="ts">
+    <pre>
+private oneLineValue(statement: P.Match, nestedBlock: P.BlockToken, block: P.Match | undefined) {
+  if (this.bodySpec?.inlineAs !== "expression" || !block?.is(Block)) return undefined
+  if (!Block.getParseErrors(block)?.length) return undefined   // read as statements:  kept
+  ...
+}</pre>
+  </epic-code>
+
+  <p><b>The rule to choose.</b> Other languages:</p>
+  <ul>
+    <li>Ruby and Rust: every block's last expression is its value.</li>
+    <li>Kotlin and C#: a one-expression function (<code>= expr</code>, <code>=&gt; expr</code>) returns it.</li>
+    <li>Python: only a lambda; every other function needs <code>return</code>.</li>
+  </ul>
+
+  <epic-choices>
+    <epic-option letter="A" title="A one-line property always returns its line">
+      <ul>
+        <li>A property is a value, so its one line IS the value, even a call: <code>quadrupled n of it</code>.</li>
+        <li>Fixes the silent case above.</li>
+        <li>
+          A line that can only be a statement (<code>print 3</code>) is an error that says a property gives a value.
+        </li>
+        <li>Actions stay as they are: a bare <code>"hey"</code> in one is still Don't understand.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="B" title="A, and a one-line action returns its line when it can only be a value" recommended>
+      <ul>
+        <li>Properties as in A.</li>
+        <li>
+          An action or <code>to ...</code> whose one line can only be a value returns it:
+          <code>to shout of a bill: "hey"</code>, <code>the n * 2</code>.
+        </li>
+        <li>A call line in an action stays a call: <code>play the opening</code> plays it, and nothing is returned.</li>
+        <li>So no line that worked before changes meaning, and nothing is ambiguous.</li>
+        <li>It's today's fallback, widened to actions.</li>
+      </ul>
+    </epic-option>
+    <epic-option letter="C" title="Every block's last expression is its value">
+      <ul>
+        <li>As Ruby and Rust do: the last line of any property or action, if it's an expression, is returned.</li>
+        <li>
+          The cost: <code>to deal the cards</code> ending in <code>shuffle the deck</code> would return what shuffling
+          returns.
+        </li>
+        <li>
+          Spell records what each method returns, so a call to it could then be used as a value by mistake, and the
+          editor would offer it as one.
+        </li>
+        <li>
+          People reading it can't tell "do this" from "give this back": in English or in Spanish (<code
+            >jugar la apertura</code
+          >).
+        </li>
+      </ul>
+    </epic-option>
+  </epic-choices>
+  <ul>
+    <li>
+      Why B: it goes by what the definition IS, not by how a line is worded.
+      <ul>
+        <li>A property gives a value; an action does something.</li>
+        <li>The rule reads the same in English and Spanish, with no word lists.</li>
+        <li>A reader never has to wonder whether an action's last line is being returned.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <epic-net-effect option="B" recommended>
+    <ul>
+      <li>A property whose one line is a call returns the call's result, instead of nothing.</li>
+      <li>
+        A property whose one line is only a statement says "a property gives a value", instead of compiling to nothing.
+      </li>
+      <li>An action or <code>to ...</code> whose one line is only a value returns it, instead of Don't understand.</li>
+      <li>Nothing that works today changes meaning; this issue (I47) closes with it.</li>
+    </ul>
+  </epic-net-effect>
+</epic-reply>
