@@ -715,6 +715,11 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- The Inspector's ring test fails on `main` as it stands (2026-11-06, epic `atmosphere` P23):
+  `Inspector.browser.test.tsx`, "the rings are the part's own", expects a selected part's ring `solid`, and finds `none`
+  (line 80), run alone too, with P23's changes set aside.  Suspect a recent change to the selected ring's style,
+  not the test.
+
 - A saving `<spell-editor>` POSTs its compiled output even when the compile had parse errors (2026-10-29, epic
   `repo-split` P25):  on the page server it wrote a broken Solitaire build into the checkout's `build/`, which the runner
   then served.  Suspect its save step doesn't check the compile's errors first.
