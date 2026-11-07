@@ -61,6 +61,11 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- 2026-11-07 (notebook P1):  in Spanish, a default set in a type's body on a member it inherits compiles under the
+  Spanish name and value:  a page's `- su candado es "bloqueado"` => `get candado() { return "bloqueado" }`, not
+  `get lock()`;  a two sided view's `- su dirección es abajo` => `get dirección() { return "abajo" }`.
+  The member's `output` (a built-in member's, or a template's with its `valueOutputs`) isn't used by that line.
+  Nothing locks a notebook yet, so nothing draws differently.  Epic `notebook` I1.
 - 2026-11-07 (atmosphere P27, the Sign-Up Sheet):  a type named `sign up` beside a place named `sign up sheet`:
   `add the new sign up to the sign ups` doesn't parse ("Don't understand"), though `set the person of the new sign up
   to their id` does, and the same line with `attendee` / `the attendees` does.  Its plural, `the sign ups`, may be
