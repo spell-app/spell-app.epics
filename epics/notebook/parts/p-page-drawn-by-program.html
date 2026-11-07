@@ -1,0 +1,137 @@
+<!-- plan-doc part:  #p-page-drawn-by-program's body in notebook.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    The editor draws a notebook with a second renderer of its own, one compiled chunk per cell, while the real program
+    runs hidden behind it, and the page keeps its own copy of the file, its own save timer and its own undo.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      <epic-change id="ch9" item="q4" at="2026-11-06 23:56" answer="Draw the page with the running program"
+        >Opening a page with the <code>notebook</code> flag shows the running program's own drawing of it, in the app
+        area, with the docs look: title, sticky foldable sections, "On this page" (<a href="#q4">Q4</a>).</epic-change
+      >
+    </li>
+    <li>
+      Each example's code still edits in place: its code editor keeps its text, cursor and focus while its example draws
+      again.
+    </li>
+    <li>
+      The Spellx / Spell code views stay, and so do <code>&lt;ui-toc&gt;</code> and
+      <code>&lt;ui-docs-api&gt;</code> loading on the page.
+    </li>
+    <li>
+      <epic-change id="ch10" item="q5" at="2026-11-06 23:56" answer="Save as the editor does"
+        >An edit on the page is an edit like any other: one step of the editor's undo, saved when AutoSave saves, the
+        code column beside it always showing the same text (<a href="#q5">Q5</a>).</epic-change
+      >
+    </li>
+    <li>
+      <code>locked</code> is one check before an edit is kept: locked, every edit is a try-out, gone on reload or Reset.
+    </li>
+    <li>
+      A change made outside (another window, git) redraws the page through the editor's reload of changed files; the
+      watch that notices it covers any open project file, not just a notebook.
+    </li>
+    <li>
+      Gone: the notebook's own renderer (<code>compileChunk()</code>, <code>NotebookPatch</code>,
+      <code>NotebookKeys</code>), its copy of the text, its 600ms save timer, its whole-file undo, and the unused
+      <code>NotebookCells</code>.
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>
+    A <code>notebook</code> page is drawn by the running program, in the app area, and redrawn by the editor's
+    edit-without-redraw.
+  </p>
+  <p>Its edits go through the editor: its undo, AutoSave, its reload of files changed outside.</p></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>Show the program.</b> In the app pane, a page with the <code>notebook</code> flag no longer hides the running
+      program behind <code>&lt;NotebookPage&gt;</code>: the program draws in the app area, inside the docs frame the
+      page keeps (its scroller, "On this page" at the right, the masthead).
+      <ul>
+        <li>
+          The sections: the twin wraps each <code>##</code> run, its heading and what follows, in a sticky foldable
+          <code>&lt;ui-section&gt;</code>, so the program draws them; <code>&lt;ui-toc&gt;</code> lists them as today.
+        </li>
+        <li>
+          Which page: a component's project holds several (Usage, Examples, API); the runner draws the page of the file
+          open in the editor, not the one a project starts by itself (<a href="#j3">J3</a>), and switching tabs draws
+          the other page without a restart.
+        </li>
+        <li>
+          <code>NotebookDocs</code> still loads <code>&lt;ui-toc&gt;</code> and <code>&lt;ui-docs-api&gt;</code>;
+          <code>&lt;spell-example&gt;</code> still defined.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Code in place.</b> Each <code>&lt;spell-example&gt;</code> the program draws carries its source mark; the page
+      finds its span by it and moves that example's code editor into its <code>source</code> slot.
+      <ul>
+        <li>
+          The editor is made once per example and moved back in after a redraw, so its text, cursor and focus stay.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Edits are the editor's</b> (<a href="#q5">Q5</a>). Typing in an example's code calls
+      <code>editor.applySourceEdits()</code> on that span: one undo step, kept when AutoSave keeps it; the compile and
+      LiveEdit redraw the example.
+      <ul>
+        <li>
+          <code>locked</code>: one check before <code>keepEdit()</code>, so a locked page's edits run but are never
+          saved; Reset reloads the file.
+        </li>
+        <li>
+          To check: keystroke to redraw on the biggest component page; slow, it waits for typing to pause as the code
+          column does.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Outside changes.</b> The page's file watch moves to the editor, for any open project file, and hands a changed
+      file to <code>reloadFiles()</code>; the notebook's cell matcher goes.
+    </li>
+    <li>
+      <b>Gone:</b> <code>compileChunk()</code>, <code>NotebookPatch</code>, <code>NotebookKeys</code>, the controller's
+      copy of the text, its save timer and undo, the hidden program's <code>hidden</code> class, and
+      <code>NotebookCells.ts</code>, which only its test reads.
+    </li>
+    <li>
+      <b>Checked:</b> the notebook browser test rewritten for the program-drawn page; headless, the Button page:
+      sections, "On this page", an example edited in place, locked, undo; app tests; <code>yarn vscode</code>.
+    </li>
+    <li><b>Left out:</b> the cell tools and moving cells (P4); the code views' tags (P5).</li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      app: <code>pages/SpellEditor.tsx</code> (<code>&lt;AppPane&gt;</code>, <code>notebookOf()</code>),
+      <code>solid/notebook/*</code> (<code>NotebookController</code>, <code>NotebookPage</code>,
+      <code>NotebookCell</code>, <code>NotebookPageCells</code>, <code>NotebookHeader</code>, <code>SpellExample</code>;
+      <code>NotebookPatch</code>, <code>NotebookKeys</code> gone), <code>solid/NotebookCells.ts</code> (gone),
+      <code>editor.ts</code> (<code>applySourceEdits()</code>, <code>reloadFiles()</code>, the file watch),
+      <code>EditorHistory.ts</code>, <code>runner/LiveEdit.ts</code>
+    </li>
+    <li>
+      parser:
+      <a href="/parser/src/spell/SpellProject.ts" target="src-parser-src-spell-spellproject-ts"
+        ><code>SpellProject.ts</code></a
+      >
+      (<code>compileChunk()</code> gone)
+    </li>
+    <li>tests: <code>app/tests/app/solid/notebook/*</code>, <code>NotebookCells.test.ts</code> (gone)</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>app tests; <code>NotebookPage.browser.test.tsx</code> rewritten against the program-drawn page</li>
+    <li>
+      headless check of a component page (<code>@spell/notebooks/Button</code>): title, sections, "On this page", an
+      example edited in place, a locked try-out, undo
+    </li>
+    <li><code>yarn vscode</code> rebuilt</li>
+  </ul></epic-field
+>
