@@ -3,7 +3,8 @@ id: r58
 epic: epic-engine
 from: 🚧 language (4dd38c2f)
 at: 2026-11-07T00:25-05:00
-status: new
+status: filed
+filed: I225:  a command's HTML quotes stray tags as text;  merged
 ---
 
 ## The person's words
