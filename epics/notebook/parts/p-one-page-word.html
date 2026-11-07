@@ -16,13 +16,14 @@
       <code>draggable</code> and <code>locked</code> do on a template tag.
     </li>
     <li>
-      One "is this a notebook" test, which the tokenizer, the code-spell twin, the chunk view, the code-spell writer and
-      the editor all ask; the editor stops matching the tag with its own pattern.
+      One parser test, "this page draws its body", kept on the tag as it's read: the tokenizer, the code-spell twin, the
+      chunk view and the code-spell writer read it there; the editor alone asks about the <code>notebook</code> flag,
+      from the file's parse, not its own pattern.
     </li>
     <li>
-      The core has no <code>Notebook</code> class: its template (English and Spanish), its generated class and Python's
-      twin are gone, and <code>Page</code> has the <code>lock</code> property (<code>unlocked</code> or
-      <code>locked</code>).
+      The core has no <code>Notebook</code> class: <code>lock</code> and the <code>content</code> slot are a built-in
+      page template written in spell (English and Spanish), which <code>Page</code> is built from (<a href="#q8">Q8</a>
+      A).
     </li>
     <li>Writing code spell back to spellx keeps the flag: today a notebook comes back as a plain page.</li>
     <li>
@@ -56,37 +57,57 @@
       </ul>
     </li>
     <li>
-      <b>One test.</b> One function, "is this tag a notebook page" (kind <code>page</code> with the flag), in the spell
-      folder, beside <code>isSpellxTag()</code>.
+      <b>One parser test: "this page draws its body".</b> Worked out once, when the tokenizer opens the tag, and kept on
+      the tag (<code>SP.SpellxTag</code>); for now it's true for a page with the <code>notebook</code> flag (P2 changes
+      only how it's worked out).
       <ul>
         <li>
-          The tokenizer's <code>isNotebook()</code>, the twin's <code>kind === "notebook"</code>, the chunk view's, and
-          the code-spell writer's search of the templates table all ask it.
+          The tokenizer's <code>isNotebook()</code>, the twin's <code>kind === "notebook"</code>, the chunk view
+          (<code>SpellxView</code>'s <code>Where = "notebook"</code> and its four checks) and the code-spell writer's
+          search of the templates table all read the tag, never scan.
         </li>
         <li>
-          The editor's <code>notebooksIn()</code> asks the file's chunk tree instead of its
-          <code>NOTEBOOK_TAG</code> pattern of both languages' words.
+          Renamed for what they mean: <code>liftNotebooks()</code>, <code>isNotebook()</code>,
+          <code>Where = "notebook"</code>, the twin words <code>notebookContent</code> / <code>notebookLocked</code>
+          become the page's.
+        </li>
+        <li>
+          The <code>notebook</code> FLAG test is the editor's alone: <code>notebooksIn()</code> asks the file's parse
+          instead of its <code>NOTEBOOK_TAG</code> pattern of both languages' words.
         </li>
       </ul>
     </li>
     <li>
-      <b>The core.</b> <code>Page</code> takes the <code>lock</code> property (<code>unlocked</code> or
-      <code>locked</code>); the twin writes a flagged page as <code>x is a page :</code> with
-      <code>- its lock is locked</code>.
+      <b>The core</b>, on <a href="#q8">Q8</a>'s recommended A (still open). <code>lock</code> and the
+      <code>content</code> slot stay in a built-in template written in spell, now the PAGE's:
+      <a href="/parser/src/core/templates/Notebook.spell" target="src-parser-src-core-templates-notebook-spell"
+        ><code>Notebook.spell</code></a
+      >
+      and <code>.es.spell</code> become <code>Page.spell</code> / <code>.es.spell</code>, every page built from it.
       <ul>
         <li>
-          Gone: <code>templates/Notebook.spell</code> and <code>.es.spell</code>, the generated
+          The generator writes its class as the base of <code>Page</code> (a generated <code>PageTemplate</code>, in
+          <code>BUILT_IN_TEMPLATES</code>), and the hand-written <code>Page</code> extends it, keeping only
+          <code>start()</code>; Python's
+          <a href="/parser/src/py/core/spell_core/page.py" target="src-parser-src-py-core-spell-core-page-py"
+            ><code>page.py</code></a
+          >
+          the same way.
+        </li>
+        <li>The twin writes a flagged page as <code>x is a page :</code> with <code>- its lock is locked</code>.</li>
+        <li>
+          Gone: the generated
           <a href="/parser/src/core/classes/Notebook.ts" target="src-parser-src-core-classes-notebook-ts"
             ><code>Notebook.ts</code></a
-          >, Python's
+          >
+          and
           <a href="/parser/src/py/core/spell_core/notebook.py" target="src-parser-src-py-core-spell-core-notebook-py"
             ><code>notebook.py</code></a
-          >, and <code>Notebook</code> in the core's class lists, the runtime's exports and
-          <code>builtInTemplates</code>.
+          >, and <code>Notebook</code> in the core's class lists and the runtime's exports.
         </li>
         <li>
-          Python's <code>Page</code> takes <code>lock</code> too; then <code>yarn core:gen:templates</code>,
-          <code>core:gen:declarations</code>, <code>lsp:scopes --builtins</code>.
+          Then <code>yarn core:gen:templates</code>, <code>core:gen:declarations</code>,
+          <code>lsp:scopes --builtins</code>.
         </li>
       </ul>
     </li>
@@ -96,12 +117,14 @@
     </li>
     <li>
       <b>Checked:</b> the notebook tests run over both spellings, in both languages; a round trip through code spell
-      keeps the flag; parser and app tests; <code>spell content check</code>.
+      keeps the flag; <code>builtInTemplateFiles.test.ts</code> stays green; parser and app tests;
+      <code>spell content check</code>.
     </li>
     <li>
       <b>Left out:</b> drawing the body of a page without the flag (P2); the editor's page (P3); rewriting the content
       (P6).
     </li>
+    <li>(coherence) Steps 2 and 3 changed: one test kept on the tag; <code>lock</code> stays in spell (Q8 A).</li>
   </ol></epic-field
 ><epic-field name="files"
   ><ul>
@@ -109,7 +132,12 @@
       parser: <code>languages/en/words.ts</code>, <code>languages/es/words.ts</code>,
       <a href="/parser/src/spell/languages/Language.ts" target="src-parser-src-spell-languages-language-ts"
         ><code>Language.ts</code></a
-      >,
+      >
+      (the twin words),
+      <a href="/parser/src/spell/SpellxTokens.ts" target="src-parser-src-spell-spellxtokens-ts"
+        ><code>SpellxTokens.ts</code></a
+      >
+      (<code>SpellxTag</code>),
       <a href="/parser/src/spell/SpellxTokenizer.ts" target="src-parser-src-spell-spellxtokenizer-ts"
         ><code>SpellxTokenizer.ts</code></a
       >,
@@ -119,13 +147,19 @@
       <a href="/parser/src/spell/builtInTemplates.ts" target="src-parser-src-spell-builtintemplates-ts"
         ><code>builtInTemplates.ts</code></a
       >,
+      <a
+        href="/parser/src/spell/node/builtInTemplateFiles.ts"
+        target="src-parser-src-spell-node-builtintemplatefiles-ts"
+        ><code>spell/node/builtInTemplateFiles.ts</code></a
+      >,
       <a href="/parser/src/spell/builtinTypes.ts" target="src-parser-src-spell-builtintypes-ts"
         ><code>builtinTypes.ts</code></a
       >, <code>spellx/SpellxView.ts</code>, <code>spellx/CodeSpellWriter.ts</code>, <code>spellx/SpellxWriter.ts</code>
     </li>
     <li>
-      core: <code>classes/Page.ts</code>, <code>classes/Notebook.ts</code> (gone),
-      <code>templates/Notebook.spell</code> and <code>.es.spell</code> (gone),
+      core: <code>templates/Notebook.spell</code> and <code>.es.spell</code> (become <code>Page.spell</code> /
+      <code>.es.spell</code>), <code>classes/Page.ts</code>, <code>classes/Notebook.ts</code> (gone, a generated
+      <code>PageTemplate.ts</code> instead),
       <a href="/parser/src/core/things.ts" target="src-parser-src-core-things-ts"><code>things.ts</code></a
       >, <code>classes/index.ts</code>,
       <a href="/parser/src/core/coreDeclarations.ts" target="src-parser-src-core-coredeclarations-ts"
@@ -135,23 +169,14 @@
       >, the generated declarations; py: <code>spell_core/notebook.py</code> (gone),
       <a href="/parser/src/py/core/spell_core/page.py" target="src-parser-src-py-core-spell-core-page-py"
         ><code>page.py</code></a
-      >
-      /
-      <a href="/parser/src/py/core/spell_core/apps.py" target="src-parser-src-py-core-spell-core-apps-py"
-        ><code>apps.py</code></a
       >,
       <a href="/parser/src/py/core/spell_core/__init__.py" target="src-parser-src-py-core-spell-core-init-py"
         ><code>__init__.py</code></a
-      >,
-      <a
-        href="/parser/src/py/core/spell_core/thing_methods.py"
-        target="src-parser-src-py-core-spell-core-thing-methods-py"
-        ><code>thing_methods.py</code></a
       >
     </li>
     <li>
       app: <code>runner/spellPage.ts</code>, <code>runner/spellRuntime.ts</code>,
-      <code>solid/notebook/NotebookController.ts</code> (its <code>NOTEBOOK_TAG</code>)
+      <code>solid/notebook/NotebookController.ts</code> (<code>notebooksIn()</code>, its <code>NOTEBOOK_TAG</code> gone)
     </li>
   </ul></epic-field
 ><epic-field name="verify"
