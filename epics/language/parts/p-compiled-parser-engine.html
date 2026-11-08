@@ -2,13 +2,421 @@
 <epic-field name="symptom"
   ><p>
     The parser engine (tokenizer, base rules, Rulex matching) is plain TypeScript, and its time grows as the grammar
-    grows.
+    grows: every statement rule is tried on every line, about 600 quick tests per line of Solitaire, and 94% of them say
+    no.
   </p></epic-field
 ><epic-field name="goal"
-  ><p>Decide from measurements whether a compiled engine is worth it, and which way; build it if so.</p></epic-field
+  ><p>
+    Parse faster, with evidence: each line tries only the rules that can start with its first word, shipped builds stop
+    checking every match's types, and the question of a compiled engine is answered with numbers and written down.
+  </p></epic-field
 ><epic-field name="changes"
   ><p>
-    Owen's idea: write the tokenizer, base rules and Rulex engine in WebAssembly, or a compiled variant of JavaScript.
-    What happens with each match stays in TypeScript. Build plan to come, from measurements.
+    Owen's idea: write the tokenizer, base rules and Rulex engine in WebAssembly or a compiled variant of JavaScript,
+    leaving what happens with each match in TypeScript.
+  </p>
+  <p>
+    Measured, the compilable parts are at most 54% of the time, and each rule's TypeScript would still be called 63,000
+    to 155,000 times per Solitaire parse. So this phase makes the TypeScript faster instead: a first-word index on
+    <code>Choice</code>, and no type checks on each <code>Match</code> outside tests. The compiled engine is recorded as
+    rejected for now, with what would change that.
   </p></epic-field
-><epic-field name="files">TBD</epic-field><epic-field name="verify">TBD</epic-field>
+><epic-field name="plan"
+  ><p>
+    <strong>Recommendation: don't compile the engine now. Make the TypeScript faster first.</strong>
+    A throwaway first-word index, about 40 lines patched in, took 21% off a warm Solitaire parse with identical output.
+    A compiled engine could not honestly promise more than that, and it would mean rewriting the engine and adding a
+    build step the whole repo depends on.
+  </p>
+  <p>
+    This plan builds the TypeScript speedup, measures it, and writes down when a compiled engine would be worth another
+    look.
+  </p>
+
+  <h4>What was measured</h4>
+  <p>
+    The test: Solitaire, 5 files, 530 lines. The machine was busy (load 20 to 33 from other sessions), so the
+    percentages are more trustworthy than the milliseconds, and the comparisons take turns inside one process so the
+    load hits every side alike.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Where a warm parse-and-compile spends its time</th>
+        <th>Share</th>
+        <th>Could be compiled?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          Rule matching: <code>Choice</code>, <code>Sequence</code>, <code>Subrule</code>, literals, making
+          <code>Match</code> objects, finding rules by name
+        </td>
+        <td>44%</td>
+        <td>Yes, in principle</td>
+      </tr>
+      <tr>
+        <td>Tokenizing (4.3 of the 9.9 points are the scan for declarations before the real parse)</td>
+        <td>10%</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>
+          Each rule's own TypeScript during matching: <code>parse()</code> and <code>test()</code> overrides, scope
+          lookups, reading groups
+        </td>
+        <td>31%</td>
+        <td>No: this is what stays in TypeScript</td>
+      </tr>
+      <tr>
+        <td>After matching: changing scopes, building the AST, writing code, warnings</td>
+        <td>13%</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td>Garbage collection and native code</td>
+        <td>2%</td>
+        <td>No</td>
+      </tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>
+      <strong>The ceiling is 54%.</strong> If the compiled parts took no time at all, the whole job would be 2.2 times
+      faster, and no real compiled engine gets close to "no time at all".
+    </li>
+    <li>On the very first, cold parse the compilable share is smaller: about 41%.</li>
+    <li>
+      Warm Solitaire took about 336 ms of processor time. The docs' older figure (about 110 ms) is from a smaller
+      grammar and a quieter machine.
+    </li>
+  </ul>
+
+  <h4>The boundary: how often the engine would have to call TypeScript</h4>
+  <p>Counted in one real Solitaire parse:</p>
+  <table>
+    <thead>
+      <tr>
+        <th>What</th>
+        <th>Count</th>
+        <th>Per line</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Quick syntax tests (<code>Sequence.test()</code>), 94% saying no</td>
+        <td>320,566</td>
+        <td>605</td>
+      </tr>
+      <tr>
+        <td>Calls into a rule's TypeScript the engine could not skip, at most</td>
+        <td>155,000</td>
+        <td>290</td>
+      </tr>
+      <tr>
+        <td>The same, if hooks only ran after a full syntax match, at least</td>
+        <td>63,000</td>
+        <td>120</td>
+      </tr>
+      <tr>
+        <td><code>Match</code> objects made / still in the final tree</td>
+        <td>18,079 / 4,590</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Rules added while parsing or just before</td>
+        <td>212</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>
+      Why the hooks can't simply go away:
+      <ul>
+        <li>
+          Whether <code>card</code> is a word in this line depends on what's declared so far.
+          <code>KnownVariable</code>, <code>KnownType</code> and <code>KnownConstant</code> ask the scope, and those
+          three rejected about 2,000 syntax matches here.
+        </li>
+        <li>
+          Rules with real logic, such as <code>DynamicMethodRule</code> checking that arguments fit, can't become data.
+        </li>
+        <li>
+          There are 188 <code>parse()</code> overrides and 46 <code>test()</code> overrides in the language's code; 128
+          and 28 of them ran in this one parse.
+        </li>
+      </ul>
+    </li>
+    <li>
+      To run without those calls, all of this would have to change:
+      <ul>
+        <li>
+          a copy of every scope's names kept inside the engine, rewound and replayed with the journal for incremental
+          parsing
+        </li>
+        <li>
+          compiled rule tables updated on each of those 212 additions, since rules appear mid-parse and Rulex compiles
+          at run time
+        </li>
+        <li>give-back, and expecting mode for editor completion, rewritten in the engine</li>
+        <li>
+          <code>Pattern</code> rules (26,000 regular-expression checks) given a regex engine of their own, or calling
+          back to JavaScript
+        </li>
+      </ul>
+    </li>
+    <li>
+      And <code>Match</code> objects and token strings still have to exist in JavaScript, because the AST, the writers
+      and the language server all read them. So part of the 44% doesn't move.
+    </li>
+  </ul>
+
+  <h4>The ways to do it</h4>
+  <p>
+    The toy below is a small tokenizer and the quick-test step in AssemblyScript, run on Solitaire's real text and its
+    real rule tries. <strong>These numbers are for the toy only</strong>, not a forecast for the real engine.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Toy, best of many runs</th>
+        <th>Tokenizer</th>
+        <th>Quick tests</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>JavaScript, today's shape (an object and string per token; strings and sets)</td>
+        <td>0.082 ms</td>
+        <td>5.97 ms</td>
+      </tr>
+      <tr>
+        <td>JavaScript, typed arrays and words as numbers</td>
+        <td>0.035 ms</td>
+        <td>2.24 ms</td>
+      </tr>
+      <tr>
+        <td>WebAssembly, same data, text already copied in</td>
+        <td>0.026 ms</td>
+        <td>1.81 ms</td>
+      </tr>
+      <tr>
+        <td>WebAssembly, copying the text in first</td>
+        <td>0.042 ms</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>WebAssembly, then building the JavaScript tokens the rules read</td>
+        <td>0.079 ms</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>
+      What it says: nearly all the gain comes from the data shape (words as numbers, flat arrays), and plain JavaScript
+      gets that too. WebAssembly adds about 1.2 to 1.35 times on top, and the tokenizer's lead disappears once the
+      strings have to come back.
+    </li>
+    <li>
+      A call from WebAssembly into JavaScript cost 3.8 ns against 0.5 ns between JavaScript functions, with only numbers
+      passed. Handing over a match costs more; I did not measure that.
+    </li>
+    <li>
+      <strong>AssemblyScript</strong> (what "compiled TypeScript" means in practice): 1 KB module, starts in 1 ms,
+      builds in a second. But it is its own language with no closures or regular expressions, and still 0.x (0.28.20).
+      Every class in the engine would be rewritten, not recompiled.
+    </li>
+    <li>
+      <strong>Rust to WebAssembly</strong>: not installed here and not tried; a second language and toolchain in a
+      TypeScript-only repo. Expect about AssemblyScript's speed on the same flat data.
+    </li>
+    <li>
+      <strong>WasmGC</strong>: would let matches be garbage-collected objects, but no TypeScript-like language compiles
+      to it for us, and the string support it needs arrived in Safari only at 26.2, too new for the two-year rule. Not
+      tried.
+    </li>
+    <li>
+      All three need a build step before anything runs, in Vite, Vitest, <code>tsx</code>, the published package, the
+      app and the VS Code extension. The runner's page has a content security policy, which would need checking for
+      WebAssembly too. Python output isn't affected either way.
+    </li>
+    <li><strong>First-word index, in TypeScript</strong>: measured on the real parser, below.</li>
+  </ul>
+  <table>
+    <thead>
+      <tr>
+        <th>Real parser, processor time, median (best)</th>
+        <th>Solitaire, 530 lines</th>
+        <th>PublicServers, 1,334 lines</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Today</td>
+        <td>336 ms (267)</td>
+        <td>1,055 ms (643)</td>
+      </tr>
+      <tr>
+        <td>Type checks off</td>
+        <td>322 ms (255), -4%</td>
+        <td>1,034 ms (582), -2%</td>
+      </tr>
+      <tr>
+        <td>First-word index</td>
+        <td>266 ms (219), -21%</td>
+        <td>725 ms (497), -31%</td>
+      </tr>
+      <tr>
+        <td>Both</td>
+        <td>249 ms (202), -26%</td>
+        <td>654 ms (445), -38%</td>
+      </tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>
+      PublicServers' medians are noisy on this machine: a shorter run gave -4% by median and -21% by best time for the
+      index, where this one gives -31% and -23%. Solitaire's 21% is the steadier number.
+    </li>
+    <li>
+      Compiled output was byte-identical on both projects, and the 1,109 rule tests gave the same answers (18 of them
+      fail with or without the index).
+    </li>
+    <li>
+      Estimated, not measured: a compiled engine on top of today's code would save perhaps 15 to 20%, assuming it runs
+      the engine's share twice as fast and pays for the crossings. After this phase's speedups, perhaps 10 to 15% more.
+      That is weeks of rewrite against a few hours here.
+    </li>
+  </ul>
+
+  <h4>What this phase builds</h4>
+  <ol>
+    <li>
+      <strong>Each line tries only the rules that can start with its first word.</strong>
+      <ul>
+        <li>
+          <code>Choice.parse()</code> keeps, per list of alternatives, a table from first word to the alternatives worth
+          trying, in their original order so ties still go to the earliest rule.
+        </li>
+        <li>
+          Example: for a line starting <code>remove</code>, the statement list goes straight to the rules that start
+          with <code>remove</code>, plus every rule that can start with anything. Today it tries them all, about 600
+          quick tests a line.
+        </li>
+        <li>
+          A rule goes under a first word only if its syntax demands it, which is the existing
+          <code>Sequence.leadingWord</code>.
+        </li>
+        <li>
+          Rules that don't start with their syntax must say so. 22 <code>parse()</code> overrides skip
+          <code>super.parse()</code>; audit those and the <code>test()</code> overrides, mark the ones that matter, and
+          add a test so a new one can't slip through. The throwaway checked each function's source text, which won't
+          ship.
+        </li>
+        <li>Expecting mode (editor completion) keeps the full list.</li>
+        <li>
+          <code>addChoice()</code> already replaces the list, so the table is rebuilt only when the list changes; the
+          212 additions are already in the measurement.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <strong>Stop checking every <code>Match</code>'s types outside tests.</strong>
+      <ul>
+        <li>
+          <code>Match.DEBUG_MATCH_INITIALIZATION</code> is on everywhere today, shipped builds included, and costs about
+          4%.
+        </li>
+        <li>Default it off; turn it on in the parser's test setup, so tests still catch a bad match.</li>
+      </ul>
+    </li>
+    <li>
+      <strong>Measure and write it down.</strong>
+      <ul>
+        <li>
+          Update "Rules and matching" in
+          <a href="/parser/src/spell/PARSING.md" target="src-parser-src-spell-parsing-md"><code>PARSING.md</code></a>
+          with the index and the new costs.
+        </li>
+        <li>
+          Record the rejected compiled engine in <code>Choice</code>'s docstring, with the numbers above, so nobody
+          re-proposes it blind.
+        </li>
+        <li>
+          Next places to look, if more is wanted, not built here: the scope name lookups (9%), and the declaration
+          scan's tokenizing (4.3%).
+        </li>
+      </ul>
+    </li>
+  </ol>
+
+  <h4>When a compiled engine is worth another look</h4>
+  <ul>
+    <li>
+      After this phase, if parsing a large project still feels slow and matching is still over about 35% of the time.
+    </li>
+    <li>
+      Even then, try the flat data shape in plain JavaScript first: the toy says it gets most of the gain with no new
+      toolchain.
+    </li>
+    <li>WebAssembly comes after that, for the tokenizer and quick tests only, leaving each rule's TypeScript alone.</li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="/parser/src/parser/rules/Choice.ts" target="src-parser-src-parser-rules-choice-ts"
+        ><code title="parser/src/parser/rules/Choice.ts">Choice.ts</code></a
+      >: the first-word table
+    </li>
+    <li>
+      <a href="/parser/src/parser/rules/Sequence.ts" target="src-parser-src-parser-rules-sequence-ts"
+        ><code title="parser/src/parser/rules/Sequence.ts">Sequence.ts</code></a
+      >
+      and
+      <a href="/parser/src/parser/rules/Rule.ts" target="src-parser-src-parser-rules-rule-ts"
+        ><code title="parser/src/parser/rules/Rule.ts">Rule.ts</code></a
+      >: which rules can be filed under a first word
+    </li>
+    <li>
+      The 22 rule files whose <code>parse()</code> skips <code>super.parse()</code>, as the audit finds (under
+      <a href="/parser/src/spell/rules/" target="src-parser-src-spell-rules"
+        ><code title="parser/src/spell/rules">spell/rules</code></a
+      >)
+    </li>
+    <li>
+      <a href="/parser/src/parser/Match.ts" target="src-parser-src-parser-match-ts"
+        ><code title="parser/src/parser/Match.ts">Match.ts</code></a
+      >, and the parser's test setup: type checks on only in tests
+    </li>
+    <li>
+      <a href="/parser/src/spell/PARSING.md" target="src-parser-src-spell-parsing-md"
+        ><code title="parser/src/spell/PARSING.md">PARSING.md</code></a
+      >: the new costs
+    </li>
+    <li>
+      <a href="/parser/tests/parser/rules/RuleClass.test.ts" target="src-parser-tests-parser-rules-ruleclass-test-ts"
+        ><code title="parser/tests/parser/rules/RuleClass.test.ts">RuleClass.test.ts</code></a
+      >: a test that a rule which doesn't start with its syntax says so
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      From the worktree's root, in a terminal: <code>node bin/spell.mjs speedtest --against HEAD</code>, reporting the
+      Previous / Current / Change table. Rule tests parse one line each, so the whole-project timing below is the one
+      that counts.
+    </li>
+    <li>
+      Same output as before: <code>yarn review</code> in
+      <a href="/parser/" target="src-parser"><code>parser/</code></a> and
+      <a href="/app/" target="src-app"><code>app/</code></a
+      >, and <code>spell content check</code> at the root, with no snapshot changes.
+    </li>
+    <li>Editor completion still offers the same words: the parser folder's expectations tests pass, unchanged.</li>
+    <li>Incremental parsing agrees with a full parse: the app folder's <code>IncrementalProject.test.ts</code>.</li>
+    <li>Solitaire and PublicServers re-timed against the numbers in this plan, reported the same way.</li>
+  </ul></epic-field
+>
