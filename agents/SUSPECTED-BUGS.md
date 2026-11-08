@@ -479,6 +479,16 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## parser
 
+- 2026-11-07 · epic `atmosphere` P31 · four parse surprises met writing the picnic's examples:
+  - `every published volunteer where its person is them`, a two-word type before `where`, in a property:  "Don't
+    understand";  a one-word type (`every listing where ...`) reads.
+  - `<for message in every message where its thread is "invitations">`:  the quoted text ends the tag early ("<for> never
+    ends");  a property holding the read works (`<for message in its counts>`).
+  - `set the invitations of attendee to the invitations of attendee + the number of volunteers where ...` reads as
+    `the invitations of (attendee + ...)`;  a variable first works.
+  - `<action "ask for a ticket">`:  `a ticket` reads as the action's argument, so `the new ticket` in its body is "Don't
+    understand";  `ask for the ticket` works.
+
 ### 1. Behavior bugs
 
 - [V] `spell-lang/src/parser/rules/Literals.ts` `matchAtStart()`: a multi-symbol literal like `**` also matches `* *`
