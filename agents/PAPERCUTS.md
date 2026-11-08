@@ -1834,6 +1834,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `data-spell-needs-server`. · brand
 
 ## epics
+- 2026-11-08 · `epic update <epic>#J3 fixed` is refused ("fixed"?), though its help and the inbox tell you to use it:  `CARD_STATES` in `epicArgs.ts` lacks "fixed" · workaround:  `yarn plan-doc status <epic> J3 fixed "..."` in `epic/` · language
 
 - 2026-10-27 · `epic commit debut#I77 <sha>` from a kit worktree finds only the KIT's commits:  a child repo's sha
   (spell-ui's `e384f311`) says "no commit ... in /Users/owen/www/spell.worktrees/debut";  `PlanDocFiles.repoFolders()`
