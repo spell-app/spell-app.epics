@@ -1,4 +1,50 @@
 <!-- plan-doc part:  #t56's details in repo-split.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field label="Problem"
+  ><p>
+    Found watching CI after the push, 2026-10-23 (run 39905557803, on spell-app 91cf8830f; cancelled to read its log).
+  </p>
+  <ul>
+    <li>
+      70 test files reported, then 26 minutes of silence: the 26 that never did are all 25 app:browser files
+      (Playwright's chromium) and <code>tests/cli/cli.test.ts</code> (its <code>spell app serve --headless</code> starts
+      a page server and the editor).
+    </li>
+    <li>
+      The run before (39897900577, on 1254abc95) ran all of them, so something merged since makes them hang on Linux.
+    </li>
+    <li>Locally (macOS) the whole suite passes in about 2 minutes: 972 tests.</li>
+    <li>The workflows set no time limit, so a hang runs for GitHub's 6 hours.</li>
+    <li>
+      Handed to intellisense's session, whose merge came between the two runs, with a suggestion:
+      <code>timeout-minutes: 30</code> in all six workflows.
+    </li>
+  </ul></epic-field
+><epic-field label="Proposed fix"
+  ><p>
+    <b>The hang: only one file, spell-app's <code>tests/cli/cli.test.ts</code>.</b> The browser tests weren't part of
+    it.
+  </p>
+  <ul>
+    <li>
+      In the cancelled run (39905557803), all 25 <code>app:browser</code> files passed between 05:25:42 and 05:26:29.
+      The same 94 files reported as in the run before, except <code>cli.test.ts</code>, which never reported.
+    </li>
+    <li>
+      When GitHub cleaned up, what was still running fits a test waiting on a <code>spell</code> command that never
+      ended:
+      <ul>
+        <li>yarn, <code>vp</code> and Vitest, with its chromium and esbuild</li>
+        <li>the Vitest worker that had been running <code>cli.test.ts</code> since the start</li>
+        <li>one more node process, started much later, with nothing running under it</li>
+      </ul>
+    </li>
+    <li>
+      Why it hung silently: that file runs <code>spell</code> and waits for it synchronously (<code>spawnSync</code>,
+      with no time limit). Vitest's test timeout can't interrupt a synchronous wait. So a run that never ends holds the
+      file, and <code>yarn test</code>, forever, with nothing printed.
+    </li>
+  </ul></epic-field
+>
 <p>
   From <a href="#i73">I73</a> (issue), marked "Make Todo" on the page: spell-app's CI hangs: its browser tests and
   cli.test.ts never finish on Linux
