@@ -3,3 +3,116 @@
   From <a href="#i81">I81</a> (issue), marked "Make Todo" on the page: A draft kept in a property can't be saved or
   discarded
 </p>
+<p>
+  An Edit screen with separate Save and Cancel buttons can't be written in Spell today: a draft only works while it sits
+  in a local name, inside one action. Checked again on 2026-11-08, on the <code>data</code> branch: still broken.
+</p>
+<ul>
+  <li>A draft is a scratch copy of a saved thing: the form changes the copy, and nothing goes out until it's saved.</li>
+  <li>
+    Save and Cancel are two buttons, so two actions. The draft has to live between them, in the view's own property.
+  </li>
+  <li>That's exactly the case that fails.</li>
+</ul>
+<h4>What a person writes</h4>
+<epic-code title="A recipe edit screen, with Save and Cancel" language="spell"
+  >a recipe editor is a view: - its "recipe" is a recipe - its "draft" is a draft of its recipe - to keep it: save its
+  draft - to drop it: discard its draft</epic-code
+>
+<ul>
+  <li>
+    <b>Today:</b>
+    <ul>
+      <li>
+        <code>save its draft</code> is refused:
+        <em>"its draft" isn't a draft: a change is kept as it's made, with no save step.</em>
+      </li>
+      <li><code>discard its draft</code> is <em>Don't understand "discard its draft"</em>.</li>
+      <li>
+        The property also starts empty:
+        <code>is a draft of its recipe</code> makes no draft when the view opens.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <b>Should:</b>
+    both lines compile, as they already do for a local name, and the property holds a fresh draft of the recipe.
+    <ul>
+      <li>Save sends every changed field as one group, one Undo.</li>
+      <li>Cancel forgets the copy; the real recipe never changed.</li>
+    </ul>
+  </li>
+  <li>
+    <b>What works today</b>, in one action only: <code>set d to a draft of the recipe</code>, then
+    <code>save d</code> or <code>discard d</code>.
+  </li>
+</ul>
+<h4>Why it happens</h4>
+<ul>
+  <li>
+    <a href="/parser/src/spell/rules/places/SaveDraft.ts" target="src-parser-src-spell-rules-places-savedraft-ts"
+      ><code title="parser/src/spell/rules/places/SaveDraft.ts">save</code></a
+    >
+    and
+    <a href="/parser/src/spell/rules/places/DiscardDraft.ts" target="src-parser-src-spell-rules-places-discarddraft-ts"
+      ><code title="parser/src/spell/rules/places/DiscardDraft.ts">discard</code></a
+    >
+    only accept something whose type is "a draft".
+  </li>
+  <li>
+    A local name gets that type from
+    <a href="/parser/src/spell/rules/places/DraftOf.ts" target="src-parser-src-spell-rules-places-draftof-ts"
+      ><code title="parser/src/spell/rules/places/DraftOf.ts">a draft of ...</code></a
+    >.
+  </li>
+  <li>
+    A property line doesn't: <code>its "draft" is a draft of its recipe</code> reads like
+    <code>its "suit" is a suit of its deck</code>, so "draft" becomes a type named Draft that doesn't exist.
+    <ul>
+      <li>So the property's type is <code>Draft</code>, where the rules look for the draft type.</li>
+      <li>
+        <code>save</code> then says "no save step"; <code>discard</code> has no such message, so it's "Don't
+        understand".
+      </li>
+    </ul>
+  </li>
+  <li>
+    A trap beside it: name the actions <code>save</code> and <code>cancel</code>, as a form's buttons would be, and
+    <code>save its draft</code> is read as the view's own <code>save</code> action, with no error at all.
+  </li>
+</ul>
+<h4>Why it matters</h4>
+<ul>
+  <li>
+    The whole-form question (Q36) was answered B: no new words, a form over a draft kept in a property. That answer only
+    works once this is fixed.
+  </li>
+  <li>Showing it in the guide and in RecipeBox's Edit screen (T134) waits on this.</li>
+</ul>
+<h4>The fix, roughly</h4>
+<ul>
+  <li>
+    Teach the property line <code>is a draft of {thing}</code>: the property gets the draft type, and starts as a fresh
+    draft of that thing.
+  </li>
+  <li>Then <code>save its draft</code> and <code>discard its draft</code> compile as they do for a local name.</li>
+  <li>The same in Spanish, with its word for a draft, <code>borrador</code>.</li>
+  <li>Make the action-name trap say so, or prefer the draft rules over an action of the same name.</li>
+  <li>Size: small to medium, a day or less. Two rules and the property line, plus tests in English and Spanish.</li>
+</ul>
+<epic-net-effect>
+  <ul>
+    <li>a view can keep a draft in a property, made when the view opens</li>
+    <li><code>save its draft</code> and <code>discard its draft</code> work from separate Save and Cancel actions</li>
+    <li>an action named <code>save</code> or <code>cancel</code> no longer silently swallows those lines</li>
+    <li>Q36's answer (B) can be shown, and T134 can start</li>
+  </ul> </epic-net-effect
+><epic-reply from="owenoak" at="2026-11-08 10:34" re="revisit now"><p>clarify</p></epic-reply
+><epic-original
+  ><epic-version
+    ><p>
+      From <a href="#i81">I81</a> (issue), marked "Make Todo" on the page: A draft kept in a property can't be saved or
+      discarded
+    </p></epic-version
+  ></epic-original
+>
