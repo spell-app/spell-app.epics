@@ -479,6 +479,11 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## parser
 
+- 2026-11-07 · epic `atmosphere` P32 · two parse surprises met writing the Org Events example:
+  - `onClick={set its stage to its next stage}` (and `its following stage`, `the following stage of it`):  "Don't
+    understand";  a one-word property reads (`set its stage to its onward`).
+  - `<spell-app "org events">` beside a place named `org events`:  the app's name collides, so "Don't understand"
+    (`events page` works);  the error points at the app's line, not at the clash.
 - 2026-11-07 · epic `atmosphere` P31 · four parse surprises met writing the picnic's examples:
   - `every published volunteer where its person is them`, a two-word type before `where`, in a property:  "Don't
     understand";  a one-word type (`every listing where ...`) reads.
