@@ -747,6 +747,17 @@ every entry below that date was fixed or disproven;  what's left:
 
 ### 1. Behavior bugs
 
+- A running program's right-click menu sometimes never opens, about 1 time in 5 (2026-11-08, epic `mockup` I2):
+  `addAndMove.test.ts`, "cards are a list ... and in Run a program keeps its right click".
+  - What's seen when it sticks, on a fresh page in Run:
+    - the `<ui-popup>` is added with `visible`, and its component says `isReady` and `isVisible`
+    - but it's never `:popover-open`, its `popover` attribute is unset, and its `ready` never resolves
+      (timed once, still stuck after 45 seconds;  Escape can't close it:  it isn't in `UI.overlays`)
+    - a NEW `<ui-popup>` added to that page gets `isReady` too, and its `ready` doesn't resolve either
+  - So Solid's after-update work looks wedged for the whole page (`E.afterSolidUpdate()`, `markReady()`), not one popup.
+  - Unconfirmed:  why the page's updates stop.  No console error or page error showed.
+  - Not a load problem:  it also fails with one test file running, at least 8 of about 44 runs of that test alone.
+
 - The Inspector's ring test fails on `main` as it stands (2026-11-06, epic `atmosphere` P23):
   `Inspector.browser.test.tsx`, "the rings are the part's own", expects a selected part's ring `solid`, and finds `none`
   (line 80), run alone too, with P23's changes set aside.  Suspect a recent change to the selected ring's style,
