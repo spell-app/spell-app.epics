@@ -483,6 +483,10 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   - `<for post in every post where its weight is 1 sorted by its posted newest first>`:  "Don't understand ">"" and
     "<for> never ends";  `where it is a favourite` (an alias) followed by the same sort reads, so a number before
     `sorted by` looks to be what trips it.  Worked round with an alias, `<alias "is ordinary">if its weight is 1</>`.
+- 2026-11-07 · epic `atmosphere` P35 · a two-word type's plural in an action:  with `an "event stage" is a thing`,
+  `remove it from the event stages` and `add the new stage to the event stages` are "Don't understand", though
+  `every event stage` reads, and so does `the approved apps` for `an "approved app"`.  Worked round with a one-word
+  type, `a "stage" is a thing`, and `- stages live at "event_stages"` on its place.
 - 2026-11-07 · epic `atmosphere` P32 · two parse surprises met writing the Org Events example:
   - `onClick={set its stage to its next stage}` (and `its following stage`, `the following stage of it`):  "Don't
     understand";  a one-word property reads (`set its stage to its onward`).
