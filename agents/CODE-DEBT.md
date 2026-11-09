@@ -766,6 +766,21 @@ knowingly kept:
 
 ## every package (WWOD)
 
+### Dependency problems left open (`deps-known-open.json5`)
+
+- **Cost**: `spell deps check` and `spell publish` allow two known problems, and anyone adding the app-only packages
+  to an npm install gets them (2026-11-09, epic `epic-engine` P67):
+  - `zod` 3, a high advisory (GHSA-mrhx-c7xc-m3w5):  memory exhaustion validating oversized collections.
+  - `dompurify` 3.4.15, a critical and a high advisory, on an npm install only:  the repo forces 3.4.17.
+  - Below the check's bar:  `deepmerge`, low, through `@inkjs/ui`.
+- **Cause**: `@atproto`'s packages depend on zod 3, and the fix is in zod 4.6.6.  `monaco-editor` 0.57.0, its latest,
+  pins DOMPurify 3.4.15.  `resolutions` don't reach people installing from npm.
+- **Fix**: move when `@atproto` takes zod 4 and Monaco 0.58 ships.  An entry that stops matching fails the check, so
+  the list says when.
+- **Pinned at**: `deps-known-open.json5`, at the kit's root;  `"resolutions"` in the kit's `package.json` for DOMPurify.
+
+---
+
 Where code knowingly doesn't follow a WWOD rule yet (`agents/wwod/`, epic `wwod`, 2026-10-04).
 
 ### Error classes without `prototype.name`, across packages
