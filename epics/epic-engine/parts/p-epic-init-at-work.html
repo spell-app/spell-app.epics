@@ -1,0 +1,359 @@
+<!-- plan-doc part:  #p-epic-init-at-work's body in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    The first real run of <code>epic init</code>, on a company's GitLab, made a public repo where private was the
+    default, could not share the plans, and still ended with "Epics are set up".
+  </p></epic-field
+><epic-field name="goal"
+  ><p>
+    This phase fixes what the first run outside Spell showed. You ran <code>npx spell@next epic init</code> (version
+    0.8.9) in the <code>jarvis</code> repo, on your work laptop, against your company's GitLab. The transcript won't be
+    kept, so the parts that matter are here.
+  </p>
+
+  <epic-code title="What the run printed · shortened" language="text">
+    <pre>
+? What do you want to be called? (Owen)
+? Which colour should your words be?
+  1. red
+  ...
+❯ 8. violet
+  9. purple
+  10. pink
+  11. brown
+  12. grey
+  13. black
+^[[B^[[A
+? What should the shared epics repo be called? (jarvis.epics)
+? Private or public?
+  1. private  -- only the people you add can see the plans
+❯ 2. public  -- anyone can read every epic page, guide and comment
+&gt; Epic repo:  software/quantum-os/jarvis.epics, public
+...
+  made      software/quantum-os/jarvis.epics on GitLab, public  (git@gitlab.psiquantum.com:software/quantum-os/jarvis.epics.git)
+...
+the push failed:  remote: GitLab:
+remote: You cannot push the initial commit because the default branch is
+remote: protected and your role does not allow it.
+remote:
+remote: To resolve this, either:
+remote: - Ask a Maintainer to push the initial commit.
+remote: - Contact an Owner or administrator for help.
+remote:
+remote: Find a Maintainer, Owner, or administrator at:
+remote:
+remote:   https://gitlab.psiquantum.com/software/quantum-os/jarvis.epics/-/project_members
+remote:
+To gitlab.psiquantum.com:software/quantum-os/jarvis.epics.git
+ ! [remote rejected] HEAD -&gt; main (pre-receive hook declined)
+error: failed to push some refs to 'gitlab.psiquantum.com:software/quantum-os/jarvis.epics.git'
+  push it by hand:  git -C /Users/mwilliams/psi/qos/jarvis.epics push -u origin HEAD
+it's PUBLIC:  everything in the plans (epic pages, guides, comments) can be read by anyone
+...
+&gt; Merge request:  https://gitlab.psiquantum.com/software/quantum-os/jarvis/-/merge_requests/1454
+...
+Epics are set up, and start here once that merge request is merged.</pre>
+  </epic-code>
+
+  <p><b>1. The pause, and the stray keys.</b> You said there was a problem with keys when selecting a colour.</p>
+  <ul>
+    <li>The picker itself is fine: on the real 0.8.9, in a pseudo-terminal, the arrows and Enter worked.</li>
+    <li>
+      What the log suggests: <code>^[[B^[[A</code> (down, then up) is printed after the list, so those keys came after
+      the pick.
+      <ul>
+        <li>
+          Right after the colour,
+          <a href="/epic/src/command/RepoInit.ts" target="src-epic-src-command-repoinit-ts"
+            ><code title="epic/src/command/RepoInit.ts">willMakeRepo()</code></a
+          >
+          asks GitLab whether you're logged in, and who owns the repo.
+        </li>
+        <li>
+          Nothing shows while it does, and the terminal has gone back to its normal mode, so it prints the keys you
+          press.
+        </li>
+        <li>This is read from the log. It has not been reproduced.</li>
+      </ul>
+    </li>
+    <li>
+      What you'll see instead:
+      <ul>
+        <li>Once you pick, the list folds into one line: the question and your answer.</li>
+        <li>During the wait, a line says what's happening ("checking GitLab…").</li>
+        <li>
+          Keys pressed before a question appears are thrown away, so a stray arrow can't move the next pick, and a stray
+          Enter can't answer it.
+        </li>
+      </ul>
+    </li>
+  </ul>
+
+  <p>
+    <b>2. Numbers 10 to 13.</b> Today a digit picks at once, so <code>1</code> takes red and you can never reach pink by
+    number.
+  </p>
+  <ul>
+    <li>
+      In a list longer than 9, digits move the mark: <code>1</code> then <code>3</code> lands on 13, and Enter takes it.
+    </li>
+    <li>A list of 9 or fewer still picks at once, as it does now.</li>
+  </ul>
+
+  <p>
+    <b>3. Public by accident.</b> Private is the default, yet the run shows public picked, on a company's GitLab. Stray
+    keys may have done it.
+  </p>
+  <ul>
+    <li>
+      Picking public now asks a second question, before anything is made: it says anyone can read the plans, and its
+      default is no.
+    </li>
+    <li>No, or Enter, makes it private, and says so.</li>
+    <li><code>--public</code> on the command line asks nothing: you already said it.</li>
+  </ul>
+
+  <p>
+    <b>4. An honest ending.</b> When the epic repo's first push fails, the run still says "Epics are set up", and offers
+    a "push it by hand" line that fails exactly the same way.
+  </p>
+  <ul>
+    <li>The last lines say that sharing isn't working yet, and exactly why.</li>
+    <li>The "push it by hand" line goes when it can't help.</li>
+    <li>The colour line stops saying "pushed at your next turn" while no push can succeed.</li>
+  </ul>
+
+  <p>
+    <b>5. A first push to a protected main.</b> Your decision: ask a Maintainer, and keep <code>main</code>. No other
+    branch is added.
+  </p>
+  <ul>
+    <li>
+      <code>epic init</code> recognises GitLab's refusal, "You cannot push the initial commit because the default branch
+      is protected and your role does not allow it."
+      <ul>
+        <li>
+          GitLab breaks that sentence across two <code>remote:</code> lines, so the words are joined up before they're
+          compared.
+        </li>
+      </ul>
+    </li>
+    <li>
+      It says a Maintainer has to push the first commit and allow pushes to main, and gives GitLab's members page, to
+      find one.
+    </li>
+    <li>It prints exactly what the Maintainer runs (below), filled in for your repo.</li>
+    <li>
+      Every teammate needs push rights to main too, and it says that as well: the plans sync by pushing to main at the
+      end of every turn.
+    </li>
+    <li>
+      Once the Maintainer is done, running <code>epic init</code> again finishes it, or the next turn's sync does.
+    </li>
+  </ul>
+
+  <epic-code title="What the Maintainer runs, for jarvis.epics" language="sh">
+    <pre>
+git clone git@gitlab.psiquantum.com:software/quantum-os/jarvis.epics.git
+cd jarvis.epics
+git commit --allow-empty -m "First commit of the epic repo"
+git push -u origin HEAD:main
+glab api --hostname gitlab.psiquantum.com --method DELETE projects/software%2Fquantum-os%2Fjarvis.epics/protected_branches/main</pre>
+  </epic-code>
+
+  <ul>
+    <li>The first commit is empty because the Maintainer doesn't have your plans. Your commits go on top of it.</li>
+    <li>
+      The last line is what
+      <a href="/epic/src/config/GitLab.ts" target="src-epic-src-config-gitlab-ts"
+        ><code title="epic/src/config/GitLab.ts">letTeamPush()</code></a
+      >
+      runs today: it lifts the protection from main. A Maintainer who'd rather keep main protected can set "Allowed to
+      push and merge" to Developers and Maintainers, under Settings › Repository › Protected branches.
+    </li>
+  </ul>
+
+  <p>
+    <b>Two things that don't work yet, found while planning.</b> "Running it again or the next sync finishes it" needs
+    both fixed.
+  </p>
+  <ul>
+    <li>
+      <b>Running <code>epic init</code> again does nothing about the push.</b> The epic repo already has its remote, so
+      <a href="/epic/src/command/RepoInit.ts" target="src-epic-src-command-repoinit-ts"
+        ><code title="epic/src/command/RepoInit.ts">remoteStep()</code></a
+      >
+      reports "shared with" and stops. It will push when the remote doesn't have your commits yet, then open main up for
+      the team.
+    </li>
+    <li>
+      <b>The sync would fail after the Maintainer's push.</b> The Maintainer's commit and yours share no history, so
+      finding where they meet makes git fail, and
+      <a href="/epic/src/command/SharedSync.ts" target="src-epic-src-command-sharedsync-ts"
+        ><code title="epic/src/command/SharedSync.ts">SharedSync</code></a
+      >
+      throws at every turn's end, with nothing said. With no shared history, it will put your commits on top of theirs,
+      and push. Tried in a scratch repo: git's rebase and the push both work.
+    </li>
+  </ul>
+
+  <p>
+    <b>While the push is refused, at each turn's end.</b> Read from the code, this is what happens today, and it mostly
+    stays.
+  </p>
+  <ul>
+    <li>Nothing is lost: your commits wait in the epic repo on your machine.</li>
+    <li>
+      Claude Code's end-of-turn hook runs quietly, and the session-start notice only speaks about conflicts, so you
+      aren't nagged.
+    </li>
+    <li>Each turn tries the push again, which is how it finishes by itself.</li>
+    <li>Until the setup merge request is merged, the repo isn't set up on main, so no sync runs at all.</li>
+    <li>
+      Two small changes:
+      <ul>
+        <li>
+          An agent that runs <code>epic turn end</code> by hand (Codex) sees one short line, not GitLab's fifteen.
+        </li>
+        <li>
+          <code>epic shared status</code> says the plans aren't shared yet, and why, so there is somewhere to ask.
+        </li>
+      </ul>
+    </li>
+  </ul>
+
+  <p><b>Not fixed here, so you know.</b></p>
+  <ul>
+    <li>
+      The <code>jarvis.epics</code> project was made public, and stays public until you change it. That's in GitLab,
+      under the project's Settings › General › Visibility.
+    </li>
+    <li>
+      The "npm warn deprecated" lines in that run are the ones P66 · Split Epic's Dependencies and P67 · Dependency
+      Safety dealt with. They stay until the next publish.
+    </li>
+    <li>Nothing goes to GitHub or npm until you say so.</li>
+  </ul>
+
+  <p><b>Rejected.</b></p>
+  <ul>
+    <li>
+      An unprotected <code>epics</code> branch in the epic repo: no Maintainer needed, but the epic repo's default
+      branch would no longer be what everyone clones.
+    </li>
+    <li>
+      The plans on a branch of the code repo: they'd no longer be a repo of their own, which every checkout's sync and
+      link depends on.
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>The questions stop taking stray keys, and a two-digit colour number works.</p>
+  <p>Choosing public asks you to confirm, with no as the default.</p>
+  <p>
+    When GitLab refuses the first push, <code>epic init</code> says so plainly, says who has to do what, and finishes by
+    itself once they have.
+  </p></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="/src/cli/run.ts" target="src-src-cli-run-ts"><code>src/cli/run.ts</code></a
+      >: <code>ask()</code>, <code>choose()</code>, the wait with a progress line
+    </li>
+    <li>
+      <a href="/epic/src/command/RepoInit.ts" target="src-epic-src-command-repoinit-ts"
+        ><code>epic/src/command/RepoInit.ts</code></a
+      >: <code>questions()</code>, <code>willMakeRepo()</code>, <code>askVisibility()</code>, <code>remoteStep()</code>,
+      <code>remoteNotesFor()</code>, <code>doneLines()</code>, its class docstring
+    </li>
+    <li>
+      <a href="/epic/src/config/GitLab.ts" target="src-epic-src-config-gitlab-ts"
+        ><code>epic/src/config/GitLab.ts</code></a
+      >
+      and
+      <a href="/epic/src/config/CodeHost.ts" target="src-epic-src-config-codehost-ts"
+        ><code>epic/src/config/CodeHost.ts</code></a
+      >: recognising the refusal, the members page, the Maintainer's commands
+    </li>
+    <li>
+      <a href="/epic/src/config/GitHub.ts" target="src-epic-src-config-github-ts"
+        ><code>epic/src/config/GitHub.ts</code></a
+      >: the same operation, which says nothing
+    </li>
+    <li>
+      <a href="/epic/src/command/SharedSync.ts" target="src-epic-src-command-sharedsync-ts"
+        ><code>epic/src/command/SharedSync.ts</code></a
+      >: no shared history
+    </li>
+    <li>
+      <a href="/epic/src/command/Shared.ts" target="src-epic-src-command-shared-ts"
+        ><code>epic/src/command/Shared.ts</code></a
+      >: <code>syncLines()</code>, <code>statusLines()</code>
+    </li>
+    <li>
+      <a href="/tests/cli/run.test.ts" target="src-tests-cli-run-test-ts"><code>tests/cli/run.test.ts</code></a
+      >,
+      <a href="/epic/tests/command/RepoInit.test.ts" target="src-epic-tests-command-repoinit-test-ts"
+        ><code>epic/tests/command/RepoInit.test.ts</code></a
+      >,
+      <a href="/epic/tests/command/SharedSync.test.ts" target="src-epic-tests-command-sharedsync-test-ts"
+        ><code>epic/tests/command/SharedSync.test.ts</code></a
+      >,
+      <a href="/epic/tests/config/CodeHost.test.ts" target="src-epic-tests-config-codehost-test-ts"
+        ><code>epic/tests/config/CodeHost.test.ts</code></a
+      >
+    </li>
+    <li>
+      <a href="/epic/README-setup.md" target="src-epic-readme-setup-md"><code>epic/README-setup.md</code></a
+      >: "On GitLab"; <a href="/src/cli/AGENTS.md" target="src-src-cli-agents-md"><code>src/cli/AGENTS.md</code></a
+      >: what <code>choose()</code> does
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ol>
+    <li>
+      The kit's tests for the command base, and the <a href="/epic/" target="src-epic"><code>epic/</code></a> folder's
+      tests, type check and lint, with the counts and what changed.
+    </li>
+    <li>
+      Stray keys, in a pseudo-terminal (a driver in the session's scratchpad, which is not shipped):
+      <ul>
+        <li>
+          a stand-in for <code>glab</code>, named by <code>$SPELL_EPIC_GLAB</code>, that sleeps before it answers, so
+          there's a real wait
+        </li>
+        <li>
+          send arrow keys and Enter during the wait: the next pick stays where it started, and nothing is answered
+        </li>
+        <li>the list folds to one line after a pick</li>
+      </ul>
+    </li>
+    <li>
+      Two-digit numbers, in the same driver: <code>1</code>, <code>3</code>, Enter picks the 13th colour; a list of two
+      still picks on one key.
+    </li>
+    <li>
+      Public: picking it and pressing Enter at the confirmation makes a private repo; answering <code>y</code> makes a
+      public one; <code>--public</code> asks nothing.
+    </li>
+    <li>
+      The refusal, simulated: the stand-in hands back the address of a local bare repo whose
+      <code>pre-receive</code> hook prints GitLab's exact words and refuses.
+      <ul>
+        <li>the ending says sharing isn't working, names the Maintainer's job, and prints the commands</li>
+        <li>the "push it by hand" line is gone</li>
+      </ul>
+    </li>
+    <li>
+      The way out, on the same repos: take the hook away, make an empty first commit there as a Maintainer would, then
+      <ul>
+        <li><code>epic init</code> again pushes your commits on top, and says the plans are shared</li>
+        <li>from the refused state instead, <code>epic shared sync</code> does the same</li>
+      </ul>
+    </li>
+    <li>
+      While refused, <code>epic turn end --quiet</code> prints nothing, keeps every commit, and starts no notice next
+      session; without <code>--quiet</code>, one short line.
+    </li>
+    <li>Nothing is tried against a real GitLab here. That's a manual test on your work laptop, listed under Tests.</li>
+  </ol></epic-field
+>
