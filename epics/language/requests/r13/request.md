@@ -3,7 +3,9 @@ id: r13
 epic: language
 from: 🚧 mockup (006bc5ee)
 at: 2026-11-09T09:38-05:00
-status: new
+status: filed
+filed: P38 · Quoted Words On Tags
+phase: p-quoted-words-on-tags
 ---
 
 ## The person's words
