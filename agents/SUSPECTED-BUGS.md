@@ -551,6 +551,11 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## ui
 
+- `<ui-split-panel>` (`UISplitPanel.tsx`):  a `<ui-segment>` as a direct pane ignores its size.  The panel sets each pane's inline
+  `flex` and `order` on the child element, but a segment's host is `display: contents`, so those do nothing and its inner box
+  shrinks to its text:  `columns="30%,*"` drew 62px and 70px panes in a 994px panel, 2026-11-09 (epic `notebook` T8).
+  Any `display: contents` child will do the same.  Adding `::slotted(ui-segment) { display: block }` in a live page changed nothing.
+  Worked around in the Split Panel docs and site pages, whose panes are now `<ui-panel appearance="pane">`.
 - `<ui-section>` (`UISection.css`):  a `dividing` section's private token, `--_section-title-border`, inherits down
   the flat tree into every section it holds, so an untitled, non-dividing `<ui-section>` inside one draws a rule under
   its (empty) title.  Seen on spell-app's notebook page, a `<section>` drawn inside a `##` section, 2026-10-25 (epic
