@@ -8,29 +8,27 @@
 </p>
 <epic-field label="Proposed fix">
   <p>
-    The rule tests got slower mostly because there are more of them, but a real program's parse really did get 55%
-    slower: every line tried far more rules. Look the rules up by the line's first word.
+    Found by measuring, and already fixed on main: epic <code>language</code>'s P37 landed the same fix while this one
+    was being built, so this branch adds nothing to the parser.
   </p>
   <ul>
     <li>
-      The same 949 rule tests on both sides, by processor time: 445 ms before, 449.5 now, so +1%. The rest of the rise
-      is new tests, 148 of them adding 123 ms, most of that <code>possessive_property</code>'s 47 ms.
+      The cause: the list of statements grew from 177 rules to 299, and the operands from 89 to 129, and each line tried
+      them all. Parsing five test programs start to end tried a rule's first word 95,422 times, up from 58,885, and took
+      145 ms, up from 92.
     </li>
     <li>
-      Whole files show what those tests hide, as each test names its own rule. Six test programs, parsed start to end:
-      92 ms before, 145 now. The list of statements grew from 177 rules to 299, and the operands from 89 to 129, so a
-      parse of those files tried a rule's first word 95,422 times, up from 58,885. Most rules were turned away at once,
-      but each try still cost time.
+      The rule tests hid most of that, as each names its own rule: the same 949 tests went from 445 ms to 449.5, +1%. The
+      rest of the 39% was 148 new tests adding 123 ms, 47 of it <code>possessive_property</code>'s.
     </li>
     <li>
-      The fix: a <code>Choice</code> of 16 or more rules looks them up by the first token, and tries only the rules that
-      can start with it, plus those that can start with anything. Tries drop to 45,600, and the files parse in 70 ms
-      beside the old commit's 70.
+      The fix: each line tries only the rules that can start with its first word. This branch built that as well, and
+      dropped its copy for <code>language</code>'s, which is shared by a list's clones.
     </li>
     <li>
-      What parses doesn't change: it only skips a rule whose own first-word check would say no, and a rule with its own
-      check is always tried. Every project compiles the same (content compare, 0 of 511 files), and a test confirms no
-      rule left out would have matched, for every one of Spell's rule tests.
+      Today against the commit before epic <code>data</code>, by <code>spell speedtest --runs 3 --by-module</code>: the
+      949 tests both sides have take 267 ms, down from 415, -36%; the whole run averages 501, down from 545, -8%, with
+      162 more tests passing. Those five programs parse in 47 ms, level with 47 before.
     </li>
   </ul>
 </epic-field>
