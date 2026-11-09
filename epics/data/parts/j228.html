@@ -7,3 +7,92 @@
   <li>Only a page handed the same function shows the change at once.</li>
   <li>Those changes carry no <code>modified</code> stamp.</li>
 </ul>
+<epic-field label="Proposed fix">
+  <p>
+    <b
+      >Not built: the design with no new words can't work, because a compiled program has no function to hand the
+      page.</b
+    >
+    It needs your pick of the three ways below.
+  </p>
+  <p><b>Why it can't work</b></p>
+  <ul>
+    <li>
+      Spell has no words for what a room action does. A program can only name one:
+      <code>to take a seat of a show is at "take-seat"</code>. I compiled that under a room, and its whole body is
+      <code>core.callPlace("show_night", "take_a_seat_of_show", this)</code>.
+    </li>
+    <li>
+      So no Spell code runs on a referee. Its actions are TypeScript someone writes on the server, and today only tests
+      give a referee any. The rooms Spell's own server opens give it none.
+    </li>
+    <li>
+      The compiler already warns on that line: "This room takes no action at an address of its own, so this would fail
+      when it runs".
+    </li>
+    <li><a href="#j84">J84</a> recorded the same limit: a program's code is in the browser, and a referee is node.</li>
+  </ul>
+  <p><b>A (recommended): the program's own action, and the referee checks nothing it looked at has changed</b></p>
+  <p>No new words, and no code on the server. This compiles today:</p>
+  <pre><code>show night is a room at "/api/rooms/shows"
+a show is a thing:
+	- it is saved in the show night
+	- its "seats left" is a number
+	- to take a seat:
+		in one go:
+			if its seats left &gt; 0:
+				set its seats left to its seats left - 1</code></pre>
+  <ul>
+    <li>Press it and the page runs it. The seat shows as taken at once, as every saved change already does.</li>
+    <li>
+      The changes go to the referee as one group, with what the action looked at: "seats left of this show was 1".
+    </li>
+    <li>
+      The referee compares that with its own copy, in the one order. Still the same: it makes the change, and the second
+      page sees it then. <code>modified</code> is stamped already, as these are ordinary changes.
+    </li>
+    <li>
+      Different: it refuses. The page drops the group, what it changed goes back, and the page runs the action once more
+      on the fresh copy, so a press that lost a race for one of five seats still gets a seat.
+    </li>
+    <li>
+      Still refused after three tries: it goes back for good, and the usual refusal notice shows. Sold out by then, the
+      action's own <code>if</code> simply does nothing.
+    </li>
+    <li>The action throws: the group is dropped and nothing is sent, as <code>in one go:</code> does today.</li>
+    <li>
+      It reads something this page can't see: nothing new. It waits for that value as any read does, and what it saw is
+      what gets compared.
+    </li>
+    <li>
+      What changes for you:
+      <ul>
+        <li>An <code>in one go:</code> on a room can now be refused, where today the last to arrive wins.</li>
+        <li>Lines outside <code>in one go:</code> stay as they are, last to arrive wins.</li>
+        <li>Anything else inside it, such as showing a message, runs again on a retry.</li>
+      </ul>
+    </li>
+    <li>Not the design you picked in T29: nothing re-runs on the referee, it only compares. About a day of work.</li>
+  </ul>
+  <p><b>B: new words, a body that says only what to show</b></p>
+  <pre><code>show night is a room at "/api/rooms/shows":
+	- to take a seat of a show is at "take-seat":
+		set its seats left to its seats left - 1</code></pre>
+  <ul>
+    <li>The body runs on the page, for the instant change. The referee's own TypeScript still decides.</li>
+    <li>About 4 hours. The two copies have to be kept in step by hand.</li>
+    <li>
+      Only useful to someone running their own referee with actions: Spell's own rooms have none. Stamping
+      <code>modified</code> also needs the page to tell the referee, as a referee knows nothing of types.
+    </li>
+  </ul>
+  <p><b>C: the same function on both sides, as T29 said</b></p>
+  <ul>
+    <li>Words for a body like B's, compiled to a function that runs on the page and on the referee.</li>
+    <li>
+      The program's actions have to reach the server, and run there safely: Spell's server is shared, and nothing in the
+      repo can run a person's code in a sandbox today.
+    </li>
+    <li>Several days at least. It belongs with The Cloud, as J84 says.</li>
+  </ul>
+</epic-field>
