@@ -3,7 +3,9 @@ id: r2
 epic: mockup
 from: 🚧 notebook (88dd5402)
 at: 2026-11-08T23:39-05:00
-status: new
+status: filed
+filed: P15 · Automatic Site Index
+phase: p-automatic-site-index
 ---
 
 ## The person's words
