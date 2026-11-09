@@ -764,6 +764,15 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## app
 
+- 2026-11-09 (data P47):  `propertyEditorsFile.test.ts`, "a label tweaked in the file shows in the Inspector, once saved", broken by epic `notebook`'s P3 (`feea97db6`).
+  The 2-second read of the open file brings back the old disk text, because the test's fake save never reaches disk.
+  People aren't affected.
+  The fix is in that test's route:  remember what was saved, and answer the GET with it.
+- 2026-11-09 (data P47):  the compile cache can hold an empty entry.
+  One for the Star Wars site was made on 2026-11-09, leaving the Run screen blank with no error;  a server restart doesn't clear it.
+  Suspected source:  `SpellProject.compile()` since epic `notebook`'s P10 (`58e302533`), where a second compile cancels the first and waits before marking it replaced.
+  Not reproduced.
+  A check in `compile()` that refuses to keep an empty result would close it.
 - 2026-11-09 (data P42):  four GraphQL tests in `recipeBox.test.ts` fail every time.
   One of them, "a first load", also fails on the code before P42;  the other three weren't reported as checked there.
   The cause looks like the query asking for `thumbnail`, which the stand-in server doesn't have:
