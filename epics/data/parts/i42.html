@@ -6,3 +6,31 @@
   +2%, P23 +3%), so it crept in over 23 phases, or a phase measured against the wrong base. Not looked into further
   tonight: <code>spell speedtest &lt;module&gt;</code> per module, against the same commit, says where.
 </p>
+<epic-field label="Proposed fix">
+  <p>
+    The rule tests got slower mostly because there are more of them, but a real program's parse really did get 55%
+    slower: every line tried far more rules. Look the rules up by the line's first word.
+  </p>
+  <ul>
+    <li>
+      The same 949 rule tests on both sides, by processor time: 445 ms before, 449.5 now, so +1%. The rest of the rise
+      is new tests, 148 of them adding 123 ms, most of that <code>possessive_property</code>'s 47 ms.
+    </li>
+    <li>
+      Whole files show what those tests hide, as each test names its own rule. Six test programs, parsed start to end:
+      92 ms before, 145 now. The list of statements grew from 177 rules to 299, and the operands from 89 to 129, so a
+      parse of those files tried a rule's first word 95,422 times, up from 58,885. Most rules were turned away at once,
+      but each try still cost time.
+    </li>
+    <li>
+      The fix: a <code>Choice</code> of 16 or more rules looks them up by the first token, and tries only the rules
+      that can start with it, plus those that can start with anything. Tries drop to 45,600, and the files parse in 70
+      ms beside the old commit's 70.
+    </li>
+    <li>
+      What parses doesn't change: it only skips a rule whose own first-word check would say no, and a rule with its own
+      check is always tried. Every project compiles the same (content compare, 0 of 511 files), and a test confirms no
+      rule left out would have matched, for every one of Spell's rule tests.
+    </li>
+  </ul>
+</epic-field>
