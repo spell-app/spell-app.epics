@@ -767,7 +767,8 @@ every entry below that date was fixed or disproven;  what's left:
 
 - 2026-11-09 (data P42):  four GraphQL tests in `recipeBox.test.ts` fail every time.
   One of them, "a first load", also fails on the code before P42;  the other three weren't reported as checked there.
-  Cause not looked into.
+  The cause looks like the query asking for `thumbnail`, which the stand-in server doesn't have:
+  `View` declares it since epic `mockup`'s P16.
 - 2026-11-09 (notebook I5):  after a notebook page is mounted a second time in one runtime, editing one example redraws its siblings too.
   `NotebookPage.browser.test.tsx`:  alone, the edit keeps the sibling's element;  after another test mounted the same page, it's a new element.
   Not from the part boundary added in I5:  the same with it taken out.
