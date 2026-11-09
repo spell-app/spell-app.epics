@@ -20,14 +20,15 @@ Spell UI (`spell/ui`).
   - React is GONE from `app`, `core` and `util`:  no React kits, no `view()`, no `@vitejs/plugin-react`.
     Only the `spell` CLI keeps it, for its terminal screens (Ink).
   - Items still marked (planned) below wait on an open todo:  they are NOT in code.
-- Target Solid `2.0.0-rc.17` (2026-10-22, epic `solid-17`), every package pinned EXACTLY:
+- Target Solid `2.0.0-rc.21` (2026-11-09, epic `epic-engine` P67;  rc.17 from 2026-10-22, epic `solid-17`), every package
+  pinned EXACTLY:
 
   ```text
   solid-js, @solidjs/web, @solidjs/h, @solidjs/signals,
-  @solidjs/compiler, @solidjs/babel-plugin         2.0.0-rc.17
-  @solidjs/vite-plugin                             3.0.0-next.51
-  @solidjs/router                                  2.0.0-next.41
-  seroval, seroval-plugins                         1.6.7   (solid-js pins them:  1.6.8 changed the stream format)
+  @solidjs/compiler, @solidjs/babel-plugin         2.0.0-rc.21
+  @solidjs/vite-plugin                             3.0.0-next.57
+  @solidjs/router                                  2.0.0-next.44
+  seroval, seroval-plugins                         1.7.0   (solid-js pins them)
   ```
 
   - every repo is on them:  ONE copy at the kit's root, pinned in the root `resolutions`;
@@ -486,7 +487,7 @@ expect(button.textContent).toBe("Clicks: 1")
 
 ## Router (`@solidjs/router@next`)
 
-- `2.0.0-next.41` runs on rc.15 and later, pinned exactly (was next.35 on rc.13).
+- `2.0.0-next.44` runs on rc.19 and later, pinned exactly (was next.41 on rc.15 and later, next.35 on rc.13).
   Config objects, no `<Route>` / `<A>` components.
 - Since next.35:
   - params are DECODED, per segment (next.40):
