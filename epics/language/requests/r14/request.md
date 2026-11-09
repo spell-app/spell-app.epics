@@ -3,7 +3,9 @@ id: r14
 epic: language
 from: 🚧 notebook (88dd5402)
 at: 2026-11-09T10:18-05:00
-status: new
+status: filed
+filed: P39 · Bare Word Values
+phase: p-bare-word-values
 ---
 
 ## The person's words
