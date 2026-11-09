@@ -757,6 +757,11 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## app
 
+- 2026-11-09 (notebook I5):  after a notebook page is mounted a second time in one runtime, editing one example redraws its siblings too.
+  `NotebookPage.browser.test.tsx`:  alone, the edit keeps the sibling's element;  after another test mounted the same page, it's a new element.
+  Not from the part boundary added in I5:  the same with it taken out.
+  Suspect `core.drawAgain()`'s `takePartEdit()` not finding a part, which falls back to drawing the whole type.
+
 ### 1. Behavior bugs
 
 - The Inspector's ring test fails on `main` as it stands (2026-11-06, epic `atmosphere` P23):
