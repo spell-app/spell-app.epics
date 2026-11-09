@@ -554,6 +554,8 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## ui
 
+- 2026-11-09 · epic `data` P43 · `LintPatterns` fails on `UIDocsIndex` in the UI folder's tests.
+  Unrelated to epic `data`.  Cause not looked into.
 - `<ui-split-panel>` (`UISplitPanel.tsx`):  a `<ui-segment>` as a direct pane ignores its size.  The panel sets each pane's inline
   `flex` and `order` on the child element, but a segment's host is `display: contents`, so those do nothing and its inner box
   shrinks to its text:  `columns="30%,*"` drew 62px and 70px panes in a 994px panel, 2026-11-09 (epic `notebook` T8).
