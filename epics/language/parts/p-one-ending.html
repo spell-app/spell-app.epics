@@ -1,0 +1,201 @@
+<!-- plan-doc part:  #p-one-ending's body in language.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Spell has two file endings for one language: <code>.spell</code> and <code>.spellml</code>. People have to learn the
+    difference and type the longer one, and the 33 <code>.api.spell</code> files are the only large group still written
+    the other way.
+  </p></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen's words, 2026-11-09: “I want it to just be <code>.spell</code> everywhere, simpler for people to grok and
+      less to type.” And, for the API files: “<code>&lt;web-server "wikipedia" address="..."&gt;</code>”.
+    </li>
+    <li>Every Spell file ends <code>.spell</code>.</li>
+    <li>
+      A file is tag-shaped when any line starts with <code>&lt;</code> in the very first column, other than
+      <code>&lt;ui-defaults&gt;</code>. Otherwise it's plain Spell. Lines inside comments don't count.
+      <ul>
+        <li>
+          Owen picked this rule. Measured on all 593 files (the built-in projects, the core templates, his own
+          projects): right on every one.
+        </li>
+        <li>
+          Owen's first idea was the first line that isn't a comment or a heading. It was wrong on 69 files, because a
+          tag file usually opens with a <code># Heading</code> and a line of prose.
+        </li>
+      </ul>
+    </li>
+    <li>
+      The 454 built-in <code>.spellml</code> files become <code>.spell</code>. No two files collide on the new name
+      (checked).
+    </li>
+    <li>
+      <code>.spellml</code> and the older <code>.spellx</code> keep opening, so nobody's own project breaks. Nothing
+      writes them any more.
+    </li>
+    <li>
+      The places in the 33 <code>.api</code> files are written as tags:
+      <code>&lt;web-server "wikipedia" address="..."&gt;</code>, in both languages, with the same program compiled.
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><ul>
+    <li>A file's shape comes from what it says, not its name.</li>
+    <li>The built-in projects, the editor's own pieces, the starter projects and the docs say <code>.spell</code>.</li>
+    <li>The Monaco editor and VS Code each treat <code>.spell</code> as one language that colours both shapes.</li>
+    <li>
+      A place has a tag of its own, and <code>spell place ingest</code> and <code>spell place update</code> write it.
+    </li>
+    <li><code>spell spellx convert</code> rewrites a file in place, as it can no longer write one beside it.</li>
+  </ul></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <strong>The shape, from the text.</strong> One function, <code>SP.formOfText()</code>, holds the rule;
+      <code>SpellFile.form</code> asks it. An old ending still decides by itself: <code>.spellml</code> and
+      <code>.spellx</code> are always tag-shaped. The test helper's <code>SP.formOfName()</code> call moves to it, and
+      the name check keeps only the jobs that really are about the name.
+    </li>
+    <li>
+      <strong>When the shape flips.</strong> Parsers are already kept per shape (<code>SpellParser.twinFor()</code>). A
+      file whose shape changes while it's edited gets a new scope and is parsed whole; incremental parsing never carries
+      lines from one shape to the other.
+    </li>
+    <li>
+      <strong>Editors.</strong> Merge VS Code's two languages and grammars into one for <code>.spell</code>: a language
+      is chosen by ending, and its first-line match can't express this rule, so one grammar colours tags and plain
+      lines. Monaco's language is set from the file's text and updated when the shape flips (<code>SpellMonaco</code>).
+      The language server's file watchers keep the old endings.
+    </li>
+    <li>
+      <strong>Everything that names the ending.</strong> The file dropdown, the project manifest's list, the notebook's
+      page cells, the fixtures helper, the starter projects, and the Vite import of the editor's own pieces
+      (<code>compiledSpell()</code>, the <code>*.spellml</code> module type, <code>MenuBar</code>,
+      <code>FileTabs</code>, <code>SpellEditor</code>). Property editors files become <code>Card.editor.spell</code>,
+      their name check taking both endings.
+    </li>
+    <li>
+      <strong>Rename.</strong> Reuse <code>spell rename spellml</code> (<code>SpellmlRenamer</code>, already
+      <code>git mv</code> plus each mention in text), giving it the new target. Run it over the built-in projects, then
+      the 172 test files and 22 Markdown files that mention the ending. The frozen test projects don't move: they're all
+      <code>.spell</code> already.
+    </li>
+    <li>
+      <strong>Convert.</strong> <code>spell spellx convert</code> rewrites each plain file in place, since a tag-shaped
+      file now has the same name as its source. It already skips tag-shaped files and refuses the test projects;
+      <code>--dry-run</code> still prints. Today's warning that a project holding both declares everything twice goes
+      away. Update <code>commands.json5</code> and run <code>spell commands check</code>.
+    </li>
+    <li>
+      <strong>Place tags.</strong> One tag per kind of place, each reading as its plain line
+      (<code>SP.SpellxTwin</code>), so <code>&lt;web-server "wikipedia" address="..."&gt;</code> reads as
+      <code>wikipedia is a web server at "...":</code> and compiles to the same program.
+      <ul>
+        <li>
+          The kinds the 33 files use: web server (9), data folder (12), database on this device (6), personal atmosphere
+          account (3), room (1), sheet (1). The tags: <code>&lt;web-server&gt;</code>, <code>&lt;data-folder&gt;</code>,
+          <code>&lt;database-on-this-device&gt;</code>, <code>&lt;personal-atmosphere-account&gt;</code>,
+          <code>&lt;room&gt;</code>, <code>&lt;sheet&gt;</code>; each other kind Spell knows gets its tag from the same
+          table. A bare <code>personal</code> says the “one folder for each person” form.
+        </li>
+        <li>
+          Spanish: <code>&lt;servidor-web "..." dirección="..."&gt;</code> and the rest, in its language pack's Spellx
+          words.
+        </li>
+        <li>
+          A place tag's body is plain Spell, as an <code>&lt;action&gt;</code>'s is, not a template's prose:
+          <code>- its id is its "title"</code> stays as it is written today. In a template, a line that isn't a tag
+          would be prose.
+        </li>
+        <li>
+          Stays in a <code>&lt;spell&gt;</code> block, having no tag of its own: <code>is a projection of</code>,
+          <code>is saved in the cloud</code>, <code>is saved in the status board</code>,
+          <code>has an owner as text</code> (5 lines in all).
+        </li>
+      </ul>
+    </li>
+    <li>
+      <strong>Move the 33 files.</strong> <code>SpellxWriter</code> writes a place's line as its tag. Run convert over
+      them, read the diff, and keep each header comment (<a
+        href="/app/spaces/@spell/examples/StarWars/Wikipedia.api.spell"
+        target="src-app-spaces-spell-examples-starwars-wikipedia-api-spell"
+        ><code>Wikipedia.api.spell</code></a
+      >'s long one says how it was made).
+    </li>
+    <li>
+      <strong>Ingest.</strong> <code>spell place ingest</code> and <code>update</code> write the tag form
+      (<code>spellTextOf()</code>, <code>PlaceSpell</code>). A later look merges into a file in either shape, and leaves
+      a person's own lines alone (<code>mergedSpell()</code>). The saved description
+      (<code>PlaceDescription.spell</code>) remembers older lines in plain form: those must still match.
+    </li>
+    <li>
+      <strong>Words that follow.</strong> <code>README-spellx.md</code>,
+      <a href="/parser/src/spell/PARSING.md" target="src-parser-src-spell-parsing-md"><code>PARSING.md</code></a
+      >, <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> files, the docstrings that say “<a
+        href="/app/spaces/@spell/examples/Solitaire/Card.spellml"
+        target="src-app-spaces-spell-examples-solitaire-card-spellml"
+        ><code>Card.spellml</code></a
+      >”, and <a href="/app/AGENTS.md" target="src-app-agents-md"><code>app/AGENTS.md</code></a
+      >'s “Always spellml”, which becomes “always the tag shape”.
+    </li>
+  </ol>
+  <p>Facts to keep in mind:</p>
+  <ul>
+    <li>
+      Deleting a file's last tag flips it to plain while you edit, and its prose shows as errors until a tag is back.
+    </li>
+    <li>A new empty file is plain until its first <code>&lt;</code>.</li>
+    <li>
+      <code>&lt;web-server&gt;</code> has no <code>spell-</code> prefix, though template tags carry it
+      (<code>&lt;spell-view&gt;</code>). It's written as Owen wrote it: shorter, and nothing else at the top of a file
+      takes those words.
+    </li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>parser/src/spell/spell.types.ts, SpellFile.ts, SpellParser.ts: the shape, from the text</li>
+    <li>
+      parser/src/spell/SpellxTwin.ts, SpellxTokenizer.ts, languages/en/words.ts, languages/es/words.ts: the place tags
+    </li>
+    <li>parser/src/spellx/SpellxWriter.ts, CodeSpellWriter.ts: writing them</li>
+    <li>parser/src/spell/ingest/PlaceSpell.ts, PlaceIngest.ts: ingest writes tags</li>
+    <li>parser/src/spell/test/parseSpellProject.ts, parser/tests/spell/spellmlNames.test.ts</li>
+    <li>
+      app/src/app/ui/monaco/SpellMonaco.ts, app/src/lsp/SpellLanguageServer.ts, app/vscode/package.json,
+      app/vscode/syntaxes/, app/scripts/vscode-grammar.ts: editors
+    </li>
+    <li>
+      app/src/app/solid/FileDropdown.tsx, MenuBar.tsx, FileTabs.tsx, notebook/NotebookPageCells.ts,
+      pages/SpellEditor.tsx, types/spellml.d.ts, app/app/vite.shared.ts
+    </li>
+    <li>app/src/spaces/models/starterProjects.ts, server/node/projects/project-utils.ts, test/fixtures.ts</li>
+    <li>app/src/cli/commands/spellxConvertCommand.ts; src/cli/commands/renameSpellml.ts</li>
+    <li>app/spaces/@spell/: 454 files renamed, 33 <code>.api</code> files in tags</li>
+    <li>172 test files, 22 Markdown files; AGENTS.md files; commands.json5</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      Every file gets the same shape from its text as it had from its name, on all built-in projects and Owen's own.
+    </li>
+    <li>
+      Each renamed or converted project compiles to the same program: <code>spell content check</code> with nothing
+      blessed but what the new paths force, and that diff read.
+    </li>
+    <li>Each place tag, in both languages, compiles as its plain line does.</li>
+    <li>A <code>.spellml</code> and a <code>.spellx</code> file still open, compile and colour.</li>
+    <li>
+      Editing: deleting the last tag flips the shape and adding one flips it back, with the code correct both times, by
+      incremental parse and by whole parse.
+    </li>
+    <li>
+      <code>spell place update</code> on a tag-shaped file keeps a person's own lines, and on a plain one still merges.
+    </li>
+    <li>Monaco and VS Code colour both shapes under <code>.spell</code>; <code>spell app vscode</code> rebuilt.</li>
+    <li>
+      The kit's <code>yarn review</code>; <code>spell readme check</code>; <code>spell commands check</code>;
+      <code>spell speedtest --against HEAD</code>.
+    </li>
+  </ul></epic-field
+>
