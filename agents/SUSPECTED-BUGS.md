@@ -901,6 +901,8 @@ every entry below that date was fixed or disproven;  what's left:
   `define()`).  So a Solid component a `node` test renders can't import `./loadUI` or the `spell-app/app/solid` barrel
   (P6d's explorers don't, and say so).  Prove:  import `./loadUI` in any `src/**/*.test.tsx`.
 
+- 2026-11-09 · found by epic `data` · `sharedUI.browser.test.tsx`, `<MoreMenu stub>` is a disabled item, fails:  epic `editor`'s 2dc235d37 replaced the slotted `<ui-icon>` with `icon=`, and the test still looks for the child.
+
 ## cli
 
 - `spell compile <file>.spell --stdout --target py` on a LOOSE file ignores `--target` (2026-10-22, found by epic
@@ -1037,6 +1039,12 @@ every entry below that date was fixed or disproven;  what's left:
   server` ran in -- the root's `yarn server` runs `yarn workspace ... server`, whose nested yarn resets `INIT_CWD`.
   Prove:  `yarn server url pages/index.html` at the repo root prints
   `.../packages/server/packages/docs/index.html`.  An absolute path works.
+
+- 2026-11-09 · found by epic `data` · two sign-in tests fail now and then in a full `--project server` run, and pass alone (16/16).
+  - "a mail's link starts with the address it was asked at" (`SignInCheck.test.ts`):  2 of 11 runs, getting the first mail instead of the newest.
+  - Likely:  `MailCatcher` names its files `<ms>-<random>`, so two mails in one millisecond sort at random and `newestTo` can return the older.  Inferred from the code;  no tie was forced.
+  - The sibling "behind a tunnel":  1 of 11;  not looked into.
+- 2026-11-09 · found by epic `data` · `AirtablePlace` "behind a room" failed 2 of 11 full server runs (`expected 'Dal' to be 'From Airtable'`), passes 8/8 alone.  Not checked whether `data` I36 made it more likely.
 
 ## vscode
 
