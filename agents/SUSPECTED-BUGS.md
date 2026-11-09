@@ -172,6 +172,13 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ### 1. Behavior bugs
 
+- A two-word property set in an inline handler (epic `atmosphere` T61, 2026-11-08):  `onClick={set its drawer open to yes}`
+  in a drawing compiled to a local, `const itsDrawerOpen = true`, and changed nothing;  the same line in an `<action>`
+  sets the property.  OrgChat uses actions.  Probably `set its <words> to` not finding a several-word member in a
+  handler's scope, as `set its stage to` (one word) does.
+- An `<if>` doesn't guard a child's read:  it hides the element, and its children still draw
+  (epic `atmosphere` T61):  `{the name of its picked}` inside `<if its picked>` threw with nothing picked, and took
+  the whole drawing with it (`whileWaiting()` only holds while the read is out).  A property with an `if` guards it.
 - Calculator example [V]:  its operator buttons say `onClick={set its operator to "+"}`, which compiles to the
   PROPERTY write `this.operator = "+"`, NOT the action `to set the operator of (a calculator) to (op)` (which also
   clears `input`).  So `7 x 6 + 1 2` shows `7 + 7612 = 7619`.  Same on HEAD before P11:  the language picks the
