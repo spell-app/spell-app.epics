@@ -72,6 +72,24 @@
       (<code>"locked"</code>, as today), and anything that isn't a plain quoted text (<code>its lock is x</code>), which
       can only be known when it runs.
     </li>
+
+    <li>
+      Owen's words (C4): “would be cool if <code>it is locked|unlocked</code> worked”. In a type's body,
+      <code>- it is locked</code> gives the value to whichever property lists that word: <code>- it is down</code> on a
+      two sided view, <code>- it is a queen</code> on a card with a <code>one of</code>
+      rank.
+    </li>
+    <li>
+      <code>a</code> or <code>an</code> is optional and means nothing, so nobody has to decide whether a value is a verb
+      or a noun. Spanish says <code>- es bloqueada</code>, <code>- está bloqueada</code>, <code>- es una reina</code>,
+      and takes <code>bloqueado</code> as well as <code>bloqueada</code>.
+    </li>
+    <li>Reading works the same way: <code>if the page is locked</code>, <code>if it is a queen</code>.</li>
+    <li>
+      A wrong plain value in a drawing, <code>&lt;card suit="banana"/&gt;</code>, warns when compiling, naming the
+      values it can be. Only plain quoted values: <code>suit={x}</code> and <code>[rank]</code> can only be known when
+      it runs.
+    </li>
   </ul></epic-field
 ><epic-field name="changes"
   ><ul>
@@ -96,6 +114,17 @@
       Giving such a property a quoted value not on its list is an error on that line, in both languages. A comparison or
       a new thing with one gets a warning on its line.
     </li>
+
+    <li>
+      A new line in a type's body, <code>- it is &lt;value&gt;</code>, with an optional <code>a</code> or
+      <code>an</code>, for every property with a list of values.
+    </li>
+    <li>
+      <code>- it is down</code> stops silently compiling to a stray <code>const it = "down"</code>. A word on no list is
+      the “can't be” error on that line.
+    </li>
+    <li><code>is a &lt;value&gt;</code> reads a listed value when no type has that name.</li>
+    <li>A plain quoted value in a drawing's tag is checked against its list when compiling, as a warning.</li>
   </ul></epic-field
 ><epic-update id="up22" at="2026-11-09 10:31" summary="Also checks quoted values: fix lock is banana"
   ><p>Owen asked to “fix lock is banana”, so this phase now also checks quoted values.</p>
@@ -116,7 +145,44 @@
     </li>
     <li>Estimate: 1h became 2h.</li>
   </ul></epic-update
-><epic-field name="plan"
+><epic-update
+  id="up23"
+  at="2026-11-09 15:59"
+  summary="it is &lt;value&gt;, reading too, and a warning on a tag's wrong value"
+  ><p>
+    Owen's answers on C4 and the banana tag, talked over 2026-11-09: the phase now adds
+    <code>it is &lt;value&gt;</code>.
+  </p>
+  <ul>
+    <li>
+      <code>- it is (a|an)? &lt;value&gt;</code> in a type's body gives a value to whichever property lists it, for
+      every property with a list of values. The article is optional and means nothing.
+    </li>
+    <li>Reading too: <code>if it is (a|an)? &lt;value&gt;</code>, as in <code>if the page is locked</code>.</li>
+    <li>
+      The “Not checked” bullet in the last update no longer holds: <code>&lt;card suit="banana"/&gt;</code> will warn
+      when compiling, for plain quoted values only.
+    </li>
+    <li>
+      Why the new line has to outrank setting a variable: today <code>- it is down</code> silently compiles to
+      <code>const it = "down"</code>.
+    </li>
+    <li>
+      Measured today:
+      <ul>
+        <li>179 of the 59,376 lines in the built-in projects start with <code>it</code> (0.3%).</li>
+        <li>
+          The 7 bullet lines starting <code>- it is</code> are all several words (<code>saved ...</code>,
+          <code>published as ...</code>), so none reads differently.
+        </li>
+        <li>1 bullet line starts <code>es</code> or <code>está</code>.</li>
+        <li><code>- it is a queen</code> and <code>if it is a queen</code> both say “Don't understand”.</li>
+      </ul>
+    </li>
+    <li>The speed cost is an estimate until the phase's speed test runs.</li>
+    <li>Estimate: 2h became 3h.</li>
+  </ul></epic-update
+><epic-field name="plan" accepted="2026-11-09 16:00"
   ><ol>
     <li>
       In the built-in types table, let a member say its values, and give <code>lock</code> <code>unlocked</code> and
@@ -166,6 +232,46 @@
       Tests, in both languages: each wrong case above fails or warns, each legal case still compiles to the same code, a
       value from a variable isn't checked, and an imported project's <code>one of</code> is checked.
     </li>
+
+    <li>
+      Add the rule for the line, in its own file, registered in both languages' class rules. It starts with the literal
+      words <code>it is</code> in English and <code>es</code> or <code>está</code> in Spanish, so it's filed under those
+      first words and no other line ever tries it. A rule starting with Spanish's left-out subject would be tried on
+      every line.
+    </li>
+    <li>
+      It takes one bare word to the end of the line, after an optional article, and outranks the reading that sets a
+      variable named <code>it</code>. It finds the property as <code>IsEqual.listedPropertyFor()</code> does, walking
+      the type and what it inherits from, and compiles to the same getter as <code>- its lock is locked</code>.
+    </li>
+    <li>
+      What it does with each word:
+      <ul>
+        <li>On one property's list: that property gets the value.</li>
+        <li>On no list: the <code>not-one-of-its-values</code> error, not the stray variable.</li>
+        <li>On two properties' lists: an error on the line, saying to name the property.</li>
+        <li>A real variable or property with that name: it wins, as it does in a comparison.</li>
+        <li>A number (<code>- it is 2</code>): doesn't count, only words do.</li>
+        <li>
+          A word that is also a type's name: setting takes the value, as setting has no type meaning.
+          <code>- it is a locked</code> is accepted, with no warning for now.
+        </li>
+      </ul>
+    </li>
+    <li>
+      For reading, add a fallback to <code>IsA</code>, used only when the word after <code>is a</code> is no known type,
+      so a known type still wins (<code>instanceof Queen</code>). Plain <code>if it is clubs</code> already works,
+      through <code>listedPropertyFor()</code>; a page's lock needs only its list from step 1.
+    </li>
+    <li>
+      In <code>SpellJSXAttribute</code>, warn on a plain quoted value that isn't on the attribute's list, naming the
+      legal values. The warning when it runs stays.
+    </li>
+    <li>
+      Tests, in both languages: with and without an article, setting and reading, a word on no list, a word on two
+      properties, a variable of the same name, a type and a value of the same name, a wrong tag value warns,
+      <code>suit={x}</code> doesn't.
+    </li>
   </ol>
   <p>
     Assumes, as <code>down</code> and <code>up</code> work today: <code>locked</code> and <code>unlocked</code> become
@@ -189,6 +295,14 @@
     </li>
     <li>parser/src/spell/SpellDeclarations.ts: the list, read back</li>
     <li>parser/src/spell/languages/en/parserMessages.ts, es/parserMessages.ts: the message</li>
+
+    <li>
+      parser/src/spell/rules/classes/classes.en.ts, classes.es.ts, and a new rule file there: the
+      <code>- it is &lt;value&gt;</code> line
+    </li>
+    <li>parser/src/spell/rules/expressions/IsA.ts: <code>is a &lt;value&gt;</code>, reading</li>
+    <li>SpellJSXAttribute.ts: the warning on a tag's plain quoted value</li>
+    <li>parser/src/spell/PARSING.md: the new line and how it finds its property</li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
@@ -211,6 +325,22 @@
     <li>
       <code>spell content check</code> shows no built-in project now refused. One that is had a real wrong value,
       reported rather than blessed.
+    </li>
+
+    <li>
+      <code>- it is locked</code>, <code>- it is down</code> and <code>- it is a queen</code> compile to the same getter
+      as naming the property does, in both languages, and no line compiles to a <code>const it</code>.
+    </li>
+    <li>
+      <code>if it is a queen</code> compares the rank; with a type named <code>queen</code> it still tests the type.
+    </li>
+    <li>
+      <code>&lt;card suit="banana"/&gt;</code> warns when compiling, naming the suits; <code>suit={x}</code> and
+      <code>[rank]</code> don't.
+    </li>
+    <li>
+      The speed cost is measured by <code>spell speedtest --against HEAD</code>: about 0.3% of lines should try the new
+      rule.
     </li>
   </ul></epic-field
 >
