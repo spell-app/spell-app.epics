@@ -3,7 +3,9 @@ id: r64
 epic: epic-engine
 from: 🚧 data (9c13d16f)
 at: 2026-11-09T14:54-05:00
-status: new
+status: filed
+filed: P69 · Empty Sections Hide
+phase: p-empty-sections-hide
 ---
 
 ## The person's words
