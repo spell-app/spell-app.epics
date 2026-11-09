@@ -58,6 +58,20 @@
       Only these two built-in members have fixed values, and <code>direction</code> already works. So only the lock
       changes today, but any table member can list values from now on.
     </li>
+
+    <li>
+      Owen's words: “fix lock is banana”. A quoted value that isn't one of a property's values stops being accepted
+      silently: <code>- its lock is "banana"</code> says what's wrong on its line, naming the values it can be.
+    </li>
+    <li>
+      The same for every property with a list of values: a page's lock, a two sided view's <code>direction</code>, and a
+      project's own <code>one of</code> property, in both languages.
+    </li>
+    <li>
+      Still fine: a Spanish word that stands for a value (<code>"bloqueado"</code>), the value itself in a Spanish file
+      (<code>"locked"</code>, as today), and anything that isn't a plain quoted text (<code>its lock is x</code>), which
+      can only be known when it runs.
+    </li>
   </ul></epic-field
 ><epic-field name="changes"
   ><ul>
@@ -73,7 +87,35 @@
       What Spell writes for a <code>locked</code> tag, and what the docs show, drop the quotes. The quoted form keeps
       working.
     </li>
+
+    <li>
+      A property remembers its list of values while parsing, however it got one: a built-in table, a built-in template,
+      or the project's own <code>one of</code>.
+    </li>
+    <li>
+      Giving such a property a quoted value not on its list is an error on that line, in both languages. A comparison or
+      a new thing with one gets a warning on its line.
+    </li>
   </ul></epic-field
+><epic-update id="up22" at="2026-11-09 10:31" summary="Also checks quoted values: fix lock is banana"
+  ><p>Owen asked to “fix lock is banana”, so this phase now also checks quoted values.</p>
+  <ul>
+    <li>
+      Measured today: <code>- its lock is "banana"</code>, <code>su candado es "plátano"</code>,
+      <code>its direction is "sideways"</code> and a project's own <code>one of</code> given <code>"banana"</code> all
+      compile with no error or warning, and set, compare and a new thing do too.
+    </li>
+    <li>
+      After this phase a line giving one of those a wrong quoted value is an error naming the legal values; a comparison
+      or a new thing warns.
+    </li>
+    <li>
+      Not checked: a value in a drawing's markup, <code>&lt;card suit="banana"/&gt;</code>, which still only warns when
+      it runs. A wrong <code>lock=</code> on a tag already fails, as <code>&lt;spell-page&gt;</code> has no
+      <code>lock</code> attribute.
+    </li>
+    <li>Estimate: 1h became 2h.</li>
+  </ul></epic-update
 ><epic-field name="plan"
   ><ol>
     <li>
@@ -100,6 +142,30 @@
       Run <code>yarn lsp:scopes --builtins</code> in the app folder, and regenerate the syntax tables if their test
       asks.
     </li>
+
+    <li>
+      Add a list of legal values to a scope's property record, filled in three places: the built-in table (step 1), a
+      project's <code>one of</code> (<code>DefinePropertyHas.declareEnumeration()</code>), and declarations read back
+      (<code>SpellDeclarations</code>, so an imported project's and a built-in template's values count). A value is
+      legal if it's on the list or is a word that stands for one (<code>valueOutputs</code>).
+    </li>
+    <li>
+      Add the check where a value is already matched to its property, <code>SpellConstant.sayFor()</code> and
+      <code>sayForMember()</code>, only for a plain quoted text. Its callers are the lines that give a value
+      (<code>property_value_getter</code>, <code>property_value_either</code>, assignment), which refuse the line with
+      <code>SpellStatement.refuse()</code>, and the comparison (<code>is_equal</code>), which warns with
+      <code>SP.SpellWarnings.note()</code>.
+    </li>
+    <li><code>a new card whose suit is "banana"</code> (<code>NewThing</code>) warns the same way.</li>
+    <li>
+      Add the message to both language packs, <code>not-one-of-its-values</code>:
+      <code>{what} can't be {value}: it's one of {values}</code>, and
+      <code>{what} no puede ser {value}: es uno de {values}</code>. A Spanish file's list shows Spanish's words.
+    </li>
+    <li>
+      Tests, in both languages: each wrong case above fails or warns, each legal case still compiles to the same code, a
+      value from a variable isn't checked, and an imported project's <code>one of</code> is checked.
+    </li>
   </ol>
   <p>
     Assumes, as <code>down</code> and <code>up</code> work today: <code>locked</code> and <code>unlocked</code> become
@@ -114,6 +180,15 @@
     </li>
     <li>parser/src/spell/SpellxTwin.ts, PARSING.md: their comments and examples</li>
     <li>parser/tests/spell/SpellxPage.test.ts: bare and quoted, in both languages</li>
+
+    <li>parser/src/parser/scope/ScopeVariable.ts, TypeScope.ts: a property's list of values</li>
+    <li>parser/src/spell/rules/constants/SpellConstant.ts: the check</li>
+    <li>
+      parser/src/spell/rules/classes/PropertyValueGetter.ts, PropertyValueEither.ts, DefinePropertyHas.ts, NewThing.ts;
+      rules/assignment/AssignmentStatement.ts; rules/expressions/IsEqual.ts: refusing or warning
+    </li>
+    <li>parser/src/spell/SpellDeclarations.ts: the list, read back</li>
+    <li>parser/src/spell/languages/en/parserMessages.ts, es/parserMessages.ts: the message</li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
@@ -126,6 +201,16 @@
     <li>
       <code>spell content check</code> blesses nothing; parser tests; <code>yarn ts</code>; lint;
       <code>spell speedtest --against HEAD</code>.
+    </li>
+
+    <li>
+      Wrong quoted values are errors or warnings on their own lines: lock and direction in both languages, a project's
+      own <code>one of</code>, set, compare and a new thing.
+    </li>
+    <li>Legal values, Spanish's words, and values from variables compile exactly as before.</li>
+    <li>
+      <code>spell content check</code> shows no built-in project now refused. One that is had a real wrong value,
+      reported rather than blessed.
     </li>
   </ul></epic-field
 >
