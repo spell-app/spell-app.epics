@@ -3,7 +3,8 @@ id: r1
 epic: notebook
 from: 🚧 mockup (006bc5ee)
 at: 2026-11-09T08:37-05:00
-status: new
+status: filed
+filed: Already fixed by I12 (ce500fb86, on main since a770c2896): these four are the only pages of the site with an attribute written across several lines, which compiled to unparsable javascript. mockup saw main at bb4b5a79e, before the fix. Checked 2026-11-09 on a770c2896: all four open directly and draw, no errors. Their pictures stay with mockup T31.
 ---
 
 ## The person's words
