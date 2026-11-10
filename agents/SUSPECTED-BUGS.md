@@ -491,6 +491,10 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## parser
 
+- 2026-11-09 · epic `data` I99 · a GraphQL place may never ask for a field line about Spell's own times:
+  - `declaredFields()` leaves out `created` and `modified`, so `- a recipe's created is its "created at"` may not be asked for.
+  - Read in the code, not tested.
+
 - 2026-11-07 · epic `atmosphere` P33 · a parse surprise met writing the Feed example:
   - `<for post in every post where its weight is 1 sorted by its posted newest first>`:  "Don't understand ">"" and
     "<for> never ends";  `where it is a favourite` (an alias) followed by the same sort reads, so a number before
