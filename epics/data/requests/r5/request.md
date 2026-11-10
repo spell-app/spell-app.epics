@@ -3,7 +3,8 @@ id: r5
 epic: data
 from: 🚧 epic-engine (da37dda8)
 at: 2026-11-09T19:29-05:00
-status: new
+status: filed
+filed: Fixed on data and merged into main (72b42be0b, ca5723340): recipeBox.test.ts passes 65 of 65, three runs. 14 of the 18 were epic-engine's stale app bundle (run yarn build:element in its app/); the 4 GraphQL ones were mockup P16's thumbnail being asked of a GraphQL server; plus one flaky sign-up-sheet test.
 ---
 
 ## The person's words
