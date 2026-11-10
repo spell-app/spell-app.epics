@@ -111,6 +111,28 @@ Epics are set up, and start here once that merge request is merged.</pre>
     </li>
     <li>No, or Enter, makes it private, and says so.</li>
     <li><code>--public</code> on the command line asks nothing: you already said it.</li>
+    <li>
+      The question itself says who can read the plans and how access is controlled, naming the real server. You took
+      public to mean "controlled by roles on the repo", and today's words don't correct that.
+      <ul>
+        <li>The confirmation says the same about public, in one line.</li>
+        <li>There are still two choices: no third "internal" one.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <epic-code title="What the question will say, on your GitLab" language="text">
+    <pre>
+? Private or public?
+❯ 1. private  -- only people added to the project, and members of its group, can read it;  roles control access
+  2. public  -- anyone who can reach gitlab.psiquantum.com can read every epic page, guide and comment, without signing in;  roles only control who can write</pre>
+  </epic-code>
+
+  <ul>
+    <li>
+      On GitHub, the private line leaves out the group ("only people added to the repo can read it"), and the public
+      line names <code>github.com</code>.
+    </li>
   </ul>
 
   <p>
@@ -253,7 +275,32 @@ glab api --hostname gitlab.psiquantum.com --method DELETE projects/software%2Fqu
     When GitLab refuses the first push, <code>epic init</code> says so plainly, says who has to do what, and finishes by
     itself once they have.
   </p></epic-field
-><epic-field name="plan"
+><epic-update
+  id="up30"
+  at="2026-11-09 19:40"
+  summary="Local mode added: epic init --local leaves nothing in the repo"
+  phase="70"
+  ><p>
+    Added local mode, <code>epic init --local</code>, because a colleague at work doesn't want any of this in the
+    <code>jarvis</code> repo, and you chose this from the modal.
+  </p>
+  <ul>
+    <li>
+      Added section 6 to the details, eleven plan steps, the files, and four checks. Everything that was here stays.
+    </li>
+    <li>Decided: with an open setup merge request, it says to close it and doesn't touch it.</li>
+    <li>
+      Added two rules the brief didn't name: local stays local on a re-run, and a setup already committed is refused.
+    </li>
+    <li>Decided: <code>--local</code> alone never makes anything on the code host.</li>
+    <li>
+      Found three things in the code that local mode depends on: <code>--no-remote</code> loses to a folder's existing
+      remote, <code>--remote</code> doesn't clone, and <code>epic worktree merge-main</code> lists the plan links as
+      uncommitted. The plan fixes all three.
+    </li>
+    <li>The estimate goes from 3-5h to 5-8h.</li>
+  </ul></epic-update
+><epic-field name="plan" accepted="2026-11-09 19:41"
   ><ol>
     <li>
       <b>The picker.</b> In
@@ -295,6 +342,21 @@ glab api --hostname gitlab.psiquantum.com --method DELETE projects/software%2Fqu
       <a href="/epic/src/command/RepoInit.ts" target="src-epic-src-command-repoinit-ts"
         ><code title="epic/src/command/RepoInit.ts">askVisibility()</code></a
       >, a pick of public asks to confirm, suggesting no. No makes it private, and a line says so.
+      <ul>
+        <li>
+          <code>VISIBILITY_CHOICES</code> becomes per host: each client's words (<code>CodeHostWords</code>) give the
+          two lines and the server's name, GitLab's from its own <code>host</code>, GitHub's <code>github.com</code>.
+        </li>
+        <li>
+          <code>askVisibility()</code> takes those words, from both its callers, <code>questions()</code> and
+          <code>remoteStep()</code>. The confirmation reuses the public line.
+        </li>
+        <li>
+          The <code>--public</code> help, in <code>epicGroups</code> and <code>EpicProgram</code>, and the setup guide's
+          line say the same. Help knows no server, so it says "anyone who can reach your code host".
+        </li>
+        <li>No third "internal" choice.</li>
+      </ul>
     </li>
     <li>
       <b>The refusal.</b> A new operation on
@@ -344,6 +406,96 @@ glab api --hostname gitlab.psiquantum.com --method DELETE projects/software%2Fqu
       says the plans aren't shared yet. No session-start notice: it would repeat in every session until a Maintainer
       acts.
     </li>
+    <li>
+      <b>Local mode, the flag.</b> <code>--local</code> in
+      <a href="/epic/src/command/RepoInit.ts" target="src-epic-src-command-repoinit-ts"
+        ><code title="epic/src/command/RepoInit.ts">run()</code></a
+      >, an option of <code>init()</code>, and in the usage line and help text of <code>EpicProgram</code> and
+      <code>epicGroups</code>.
+    </li>
+    <li>
+      <b>Local stays local.</b> A new setting in <code>EpicConfig</code>, <code>localSetup</code>, written into the
+      config. <code>init()</code> treats the flag or the setting alike, so a plain re-run changes nothing in the repo.
+    </li>
+    <li>
+      <b>A committed setup is refused.</b> At the top of <code>init()</code>, before anything is written: when the base
+      branch tracks the config, throw an <code>EpicCommandError</code> that says the files have to come out by merge
+      request first.
+    </li>
+    <li>
+      <b>One writer of the private ignore list.</b> A new method on the kit's <code>Git</code> takes lines and a note,
+      finds the file with <code>git rev-parse --git-path info/exclude</code>, and adds only the lines missing.
+      <ul>
+        <li>
+          <code>restoreBase()</code> and <code>CheckoutPatches</code> each write that file their own way today: both
+          move onto it.
+        </li>
+        <li>
+          Links keep the form <a href="/epics/" target="src-epics"><code>/epics</code></a> with no trailing slash, which
+          is the form that matches a link.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The exclude step.</b> In local mode, <code>init()</code> skips the
+      <a href="/.gitignore" target="src-gitignore"><code>.gitignore</code></a> block and adds
+      <a href="/.epic/" target="src-epic"><code>/.epic/</code></a> and each path that is a link now to the list, under a
+      note of its own. A folder the repo tracks itself stays out. <code>fileLines()</code> shows that row in place of
+      <a href="/.gitignore" target="src-gitignore"><code>.gitignore</code></a
+      >.
+    </li>
+    <li>
+      <b>No commit.</b> In local mode <code>commitStep()</code> and <code>commitViaPullRequest()</code> don't run, from
+      <code>run()</code> or from <code>init()</code>. The server still starts: a local setup isn't waiting on anything.
+    </li>
+    <li>
+      <b>Where the plans go.</b>
+      <ul>
+        <li>
+          <code>remoteStep()</code>: the <code>noRemote</code> check moves ahead of the look at the folder's remote, for
+          every run.
+        </li>
+        <li>
+          <code>willMakeRepo()</code> and <code>remoteStep()</code>: in local mode, make nothing on the code host unless
+          <code>--content-repo</code> asks.
+        </li>
+        <li>
+          In <code>questions()</code> and <code>init()</code>: a missing epic folder with a <code>--remote</code> that
+          holds commits (<code>git ls-remote --heads</code>) clones it. An empty one goes on as today.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>A setup request already open.</b> In local mode, ask the code host through <code>openPullRequestOf()</code> for
+      the <code>epic-setup</code> branch, then fall back to whether that branch exists. A note says to close it, with
+      its address. Nothing on the code host or in the branch is touched.
+    </li>
+    <li>
+      <b>Saying it.</b> In local mode <code>summaryLines()</code> and <code>doneLines()</code> say that nothing was
+      added to this repo, what's on this machine only, and that each teammate runs their own
+      <code>epic init --local</code>, with the epic repo's address when there is one.
+    </li>
+    <li>
+      <b>Merging with no tracked config.</b> In
+      <a href="/epic/src/command/MainMerge.ts" target="src-epic-src-command-mainmerge-ts"
+        ><code title="epic/src/command/MainMerge.ts">MainMerge</code></a
+      >'s <code>changedFiles()</code>, use git's standard ignore rules. The <code>ignored</code> check in
+      <code>run()</code> stays on <a href="/.gitignore" target="src-gitignore"><code>.gitignore</code></a> files only,
+      and its comment says why.
+    </li>
+    <li>
+      <b>Local mode's docs.</b>
+      <a href="/epic/README-setup.md" target="src-epic-readme-setup-md"
+        ><code title="epic/README-setup.md">The setup guide</code></a
+      >
+      gets the option, what stays on your machine, and its limit on generated files.
+      <a href="/epic/README-teams.md" target="src-epic-readme-teams-md"
+        ><code title="epic/README-teams.md">The teams guide</code></a
+      >
+      gets what each teammate has to do. The class docstring in <code>RepoInit</code> and <code>EpicConfig</code>'s
+      settings docs follow.
+    </li>
+
     <li>
       <b>Tests.</b> Unit tests for each of the above, then the pseudo-terminal driver in the Verify list, run against
       the worktree's code.
@@ -474,11 +626,14 @@ glab api --hostname gitlab.psiquantum.com --method DELETE projects/software%2Fqu
           <a href="/epic/tests/config/EpicConfig.test.ts" target="src-epic-tests-config-epicconfig-test-ts"
             ><code>epic/tests/config/EpicConfig.test.ts</code></a
           >,
-          <a href="/tests/server/Git.test.ts" target="src-tests-server-git-test-ts"><code>tests/server/Git.test.ts</code></a>
+          <a href="/tests/server/Git.test.ts" target="src-tests-server-git-test-ts"
+            ><code>tests/server/Git.test.ts</code></a
+          >
         </li>
         <li>
           Not changed, checked:
-          <a href="/epic/hooks/worktree.mjs" target="src-epic-hooks-worktree-mjs"><code>epic/hooks/worktree.mjs</code></a
+          <a href="/epic/hooks/worktree.mjs" target="src-epic-hooks-worktree-mjs"
+            ><code>epic/hooks/worktree.mjs</code></a
           >,
           <a href="/epic/src/command/PullRequest.ts" target="src-epic-src-command-pullrequest-ts"
             ><code>epic/src/command/PullRequest.ts</code></a
@@ -535,6 +690,56 @@ glab api --hostname gitlab.psiquantum.com --method DELETE projects/software%2Fqu
     <li>
       While refused, <code>epic turn end --quiet</code> prints nothing, keeps every commit, and starts no notice next
       session; without <code>--quiet</code>, one short line.
+    </li>
+    <li>
+      Local mode, in a scratch repo, against the worktree's code (no plugin, no server):
+      <ul>
+        <li><code>git status</code> is empty after <code>epic init --local --no-remote</code></li>
+        <li>it's still empty after a worktree is made, in the main checkout and in the worktree</li>
+        <li>
+          the repo's <a href="/.gitignore" target="src-gitignore"><code>.gitignore</code></a> is byte for byte as it
+          was, and there's no new commit or branch
+        </li>
+        <li>each hook's set-up check says yes, from the main checkout and from the worktree</li>
+        <li>the worktree reads the main checkout's settings, shown by <code>epic config</code> run in it</li>
+        <li>
+          a fresh clone of the repo has no <a href="/.epic/" target="src-epic"><code>.epic/</code></a
+          >, no links, and no epic lines in its ignore list
+        </li>
+      </ul>
+    </li>
+    <li>
+      Working with no tracked config, on the same repo:
+      <ul>
+        <li><code>epic worktree merge-main</code> merges, and lists none of the plan links as uncommitted</li>
+        <li>
+          <code>epic pr</code>, with a stand-in <code>glab</code> and a local bare <code>origin</code>, pushes the
+          branch and opens a request
+        </li>
+        <li>
+          a plain <code>epic init</code> afterwards stays local: no
+          <a href="/.gitignore" target="src-gitignore"><code>.gitignore</code></a> change, no commit
+        </li>
+      </ul>
+    </li>
+    <li>
+      The refusals and the open request:
+      <ul>
+        <li>with the config committed, <code>--local</code> stops and changes nothing</li>
+        <li>
+          with a stand-in <code>glab</code> reporting an open <code>epic-setup</code> request, the ending names it and
+          says to close it; the branch and the bare repo are untouched
+        </li>
+        <li>
+          <code>--no-remote</code> on an epic folder that has a remote writes no <code>contentRemote</code>, and a
+          turn's sync doesn't push
+        </li>
+      </ul>
+    </li>
+    <li>
+      The teammate, against a local bare epic repo that holds commits: from a fresh clone,
+      <code>epic init --local --remote &lt;address&gt;</code> clones it, and the next sync pushes. Against an empty bare
+      repo it still makes the first commit and pushes.
     </li>
     <li>Nothing is tried against a real GitLab here. That's a manual test on your work laptop, listed under Tests.</li>
   </ol></epic-field
