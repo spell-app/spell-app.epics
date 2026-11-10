@@ -3,7 +3,9 @@ id: r12
 epic: language
 from: 🚧 editor (675fcac4)
 at: 2026-11-07T00:11-05:00
-status: new
+status: filed
+filed: P41 · Short Tags
+phase: p-short-tags
 ---
 
 ## The person's words
