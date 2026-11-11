@@ -85,7 +85,9 @@
   /****** a body:  the gutter down its left, its white, the foot under it ******/
   --bubbly-gutter: 4px;
   /* the body's white corners where they meet the gutter:  the top one curves out of the band, the bottom into the foot */
-  --bubbly-inner-top: 5px;
+  --bubbly-inner-top: var(--bubbly-pill-radius);
+  /* how far a rail reaches under its body, to fill behind the body's round corners */
+  --bubbly-gutter-reach: max(var(--bubbly-inner-top), var(--bubbly-block-inner-corner));
   --bubbly-block-inner-corner: 8px;
   --bubbly-foot-width: 13px;
   --bubbly-foot-height: 4px;
@@ -232,7 +234,7 @@
     grid-row: 2;
     grid-column: 1;
     /* reaches under the body's rounded left corners, so they curve into the band */
-    width: calc(100% + var(--bubbly-block-inner-corner));
+    width: calc(100% + var(--bubbly-gutter-reach));
     background: var(--bubbly-pill);
   }
   .bubbly-block > .bubbly-body {
@@ -565,8 +567,17 @@
   --bubbly-monaco-input-room: calc((var(--bubbly-gap) + 8px) * var(--bubbly-monaco-scale));
   /* room outside a quoted input's marks, for the curly ones drawn wider than the file's own */
   --bubbly-monaco-quote-room: calc(var(--bubbly-quote-room) / 2 * var(--bubbly-monaco-scale));
+  /* ... before an opening one:  half that, so `its` sits close to its quote (Owen) */
+  --bubbly-monaco-quote-room-before: calc(var(--bubbly-quote-room) / 4 * var(--bubbly-monaco-scale));
   /* the room each foot takes under a body:  the body's padding under its last line, then the foot */
-  --bubbly-monaco-foot-room: calc(var(--bubbly-foot-height) + 5px);
+  --bubbly-monaco-foot-room: calc(var(--bubbly-foot-height) + 1px);
+  /* how much lower a pill's top sits than an even pill's (negative:  higher):  its words sit high in their line */
+  --bubbly-monaco-input-trim: -1px;
+  /* how far every shape sits below where the code puts it:  the words sit that much higher in their bands and pills */
+  --bubbly-monaco-shapes-drop: 1px;
+  /* a band's height in the editor:  a little less than the page's, still centred on its line,
+     so a band, a pill or a block on the next line has a blank pixel more before it (Owen) */
+  --bubbly-monaco-band-height: calc(var(--bubbly-pill-height) - 1px);
 
   /* the drawing's box is the editor's:  its paper behind the code, but no border, padding, margin or font of its own */
   position: relative;
@@ -623,6 +634,9 @@
   .bubbly-room-quote {
     width: var(--bubbly-monaco-quote-room);
   }
+  .bubbly-room-quote.bubbly-room-before {
+    width: var(--bubbly-monaco-quote-room-before);
+  }
 
   /****** the shapes:  a layer behind the editor, moved with its code, drawn at the drawing's size ******/
   .bubbly-layer {
@@ -635,7 +649,11 @@
     position: absolute;
     inset: 0 auto auto 0;
     transform-origin: 0 0;
-    transform: translate(var(--bubbly-monaco-x, 0), var(--bubbly-monaco-y, 0)) scale(var(--bubbly-monaco-scale));
+    transform: translate(
+        var(--bubbly-monaco-x, 0),
+        calc(var(--bubbly-monaco-y, 0px) + var(--bubbly-monaco-shapes-drop))
+      )
+      scale(var(--bubbly-monaco-scale));
   }
   /* a declaration:  its hue, and its shapes, placed by the code */
   .bubbly-layer .bubbly-block {
@@ -657,11 +675,16 @@
   .bubbly-layer :is(.bubbly-head, .bubbly-pill, .bubbly-input) {
     translate: 0 -50%;
   }
+  /* a pill's top comes down to its words:  as much white over them as under them (Owen) */
+  .bubbly-layer .bubbly-block > :is(.bubbly-head, .bubbly-pill) {
+    height: var(--bubbly-monaco-band-height);
+  }
   .bubbly-layer .bubbly-input {
-    height: var(--bubbly-input-height);
+    height: calc(var(--bubbly-input-height) - var(--bubbly-monaco-input-trim));
+    translate: 0 calc(-50% + var(--bubbly-monaco-input-trim) / 2);
   }
   .bubbly-layer .bubbly-block > .bubbly-gutter {
-    width: calc(var(--bubbly-gutter) + var(--bubbly-block-inner-corner));
+    width: calc(var(--bubbly-gutter) + var(--bubbly-gutter-reach));
     /* on beside its foot:  the code stops it at the foot's top */
     box-sizing: content-box;
     padding-bottom: var(--bubbly-foot-height);
