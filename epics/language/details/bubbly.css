@@ -7,7 +7,7 @@
  *   tune it HERE, in the settings just below.
  * - Sizes are in `em` of the drawing's text, measured from Owen's picture (`bubbly-look.png`):  its capitals are 28px
  *   tall, so its text is about 39px;  the gutter 12px (0.31em), the foot 62 x 16px (1.6 x 0.42em), a head's band 60px
- *   (1.54em), a pill 50px (1.3em);  a quote mark overlaps its pill's round end (C16).
+ *   (1.54em), a pill 50px (1.3em);  a quoted pill's curly quotes sit just inside its white (C16, C25).
  * - Colours by PART OF SPEECH, repo-split's (its shelved `spellx-blocks`, commit bff9f92a3):  things purple, actions
  *   green, properties amber, the rest grey;  a band is its hue 20% over the paper, as there.
  *   - A group is grey, a setting like `- it is draggable` (Owen, 2026-11-10, C2 on card-bubbly.html).
@@ -39,21 +39,28 @@
   --bub-pill-pad: 0.02em 0.55em;
   --bub-pill-radius: 999px;
   /*
-   * a faint quote mark against its pill:  NEGATIVE, so it overlaps the pill's round end, drawn over it
-   * (Owen, 2026-11-10, C16 on card-bubbly.html:  "make the quotes overlap the bubble ... a prettier curly quote")
+   * a quoted pill's quote marks:  bold curly ones (C16), a little darker than other marks, just INSIDE the pill's
+   * white, with room between them and its words (Owen, C25:  "I like the curlies!  Make them slightly darker ...
+   * pulling the quotes just inside the white bit, with some extra padding to the left and right of the text")
    */
-  --bub-quote-gap: -0.3em;
   --bub-quote-font: "Playfair Display", Georgia, serif;
   --bub-quote-size: 1.6em;
+  --bub-quote-ink: color-mix(in srgb, var(--bub-ink) 46%, var(--bub-pill));
+  /* between a quote mark and its pill's words */
+  --bub-quote-gap: 0.14em;
+  /* a quoted pill's padding, its quote marks inside it */
+  --bub-qpill-pad: 0.02em 0.42em;
   /* room either side of a pill, between it and the words or marks beside it */
   --bub-gap: 0.1em;
 
   /****** bands, gutter and foot ******/
   /*
-   * where a line's words start:  in a band, and in a body (4px nearer the gutter than before, C14);  one setting, so a
-   * band inside a body starts at the body's edge and its words line up with the lines around it (C1, C12)
+   * where a line's words start, in a band;  a body's lines start 4px further in, and a band inside a body starts 4px
+   * from its gutter, so its words line up with the lines around it (C1, C12, C22:  "4px of white space between the
+   * purple line and the start of these bubbles", C23:  "add 4px back to the left of these lines")
    */
   --bub-line-inset: calc(0.72em - 4px);
+  --bub-inner-gap: 4px;
   /* a head's band:  one line, 1.54em tall;  its corners round but the bottom-left, where the gutter drops */
   --bub-band-line: 1.54;
   --bub-band-radius: 0.77em;
@@ -67,7 +74,7 @@
    */
   --bub-inner-top: 0.3em;
   --bub-inner-bottom: 0.3em;
-  --bub-body-pad: 0.12em 0.9em 0.18em var(--bub-line-inset);
+  --bub-body-pad: 0.12em 0.9em 0.18em calc(var(--bub-line-inset) + var(--bub-inner-gap));
   /* the foot under a bracket */
   --bub-foot-width: 1.6em;
   --bub-foot-height: 0.42em;
@@ -151,6 +158,14 @@ body.spell-doc-page .spell-doc-main .bubs p,
 .bubs p {
   margin: 0;
   font-size: inherit;
+}
+/*
+ * no prose measure on a band or a line:  the docs pages cap a paragraph's width (`spell-doc.css`), which cut a long
+ * band short of its words, its last pill running on past its colour (Owen, C24:  "white text extends beyond the pill")
+ */
+body.spell-doc-page .bubs p:not(#bub-none),
+.bubs p {
+  max-width: none;
 }
 /*
  * A block the page's comments anchor to (`card-bubbly.html`):  a `<ui-section>` with an id and no look of its own.
@@ -323,29 +338,14 @@ body.spell-doc-page .bubs ui-section.bub-section > :not(#bub-none),
   max-width: 46em;
 }
 
-/****** what a person typed:  a pill;  a quoted one keeps its quotes, faint, just outside ******/
+/****** what a person typed:  a pill;  a quoted one keeps its quotes, just inside its white (C25) ******/
 .bubs q.bub-t {
-  quotes: "\201C" "\201D";
   white-space: nowrap;
   margin: 0 var(--bub-gap);
 }
-/* over the pill's round end:  positioned, so it paints above the pill that follows it */
 .bubs q.bub-t::before,
 .bubs q.bub-t::after {
-  position: relative;
-  z-index: 1;
-  color: var(--bub-faint);
-  font-family: var(--bub-quote-font);
-  font-size: var(--bub-quote-size);
-  font-weight: 700;
-  line-height: 0;
-  vertical-align: -0.3em;
-}
-.bubs q.bub-t::before {
-  margin-right: var(--bub-quote-gap);
-}
-.bubs q.bub-t::after {
-  margin-left: var(--bub-quote-gap);
+  content: none;
 }
 .bubs q.bub-t > span,
 .bubs .bub-v {
@@ -357,6 +357,28 @@ body.spell-doc-page .bubs ui-section.bub-section > :not(#bub-none),
   line-height: var(--bub-pill-height);
   color: var(--bub-ink);
   white-space: nowrap;
+}
+.bubs q.bub-t > span {
+  quotes: "\201C" "\201D";
+  padding: var(--bub-qpill-pad);
+}
+/* the marks take no height of their own (`line-height: 0`), so a quoted pill is as tall as a bare one */
+.bubs q.bub-t > span::before,
+.bubs q.bub-t > span::after {
+  color: var(--bub-quote-ink);
+  font-family: var(--bub-quote-font);
+  font-size: var(--bub-quote-size);
+  font-weight: 700;
+  line-height: 0;
+  vertical-align: -0.3em;
+}
+.bubs q.bub-t > span::before {
+  content: open-quote;
+  margin-right: var(--bub-quote-gap);
+}
+.bubs q.bub-t > span::after {
+  content: close-quote;
+  margin-left: var(--bub-quote-gap);
 }
 /* a typed word with no quotes in the file (a list's values, a number, a test's name):  a pill, no marks */
 .bubs .bub-v {
