@@ -1,0 +1,240 @@
+<!-- plan-doc part:  #p-format-on-save's body in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    In every window, saving one of the kit's files formats nothing: the settings that make oxfmt format on save are
+    app's, which VS Code never reads since the kit became one repo.
+  </p></epic-field
+><epic-field name="requests"
+  ><epic-field label="r65 · 🚧 language (4dd38c2f)"
+    ><blockquote>
+      <p>Owen: "why is bubbly.css not auto-formatting on save" ... "fix vscode settings here"</p>
+      <p>(Owen picked "Send to epic-engine" for the part below, which the language session found while fixing that.)</p>
+      <p>
+        The kit's own files don't format on save in an epic's window (seen in ⎇ language): - The window's first folder
+        is the worktree's root, which has no `.vscode/settings.json`. - Only `app/.vscode/settings.json` and
+        `ui/.vscode/settings.json` pin oxfmt (`oxc.oxc-vscode`) with `editor.formatOnSave`, and VS Code reads a folder's
+        settings only when that folder is itself a workspace folder. - So `src/**/*.ts`, `app/**`, `ui/**` ... fall back
+        to Owen's user settings, which name Prettier (`esbenp.prettier-vscode`), not installed: nothing formats. - Fix:
+        a root `.vscode/settings.json` in the kit (the app one's formatter block), or the same settings in the window
+        files `epic window init` writes.
+      </p>
+      <p>
+        Done in the language session already, for the epic repo folder only: - `spell.epics/.vscode/settings.json`:
+        `[css]` pinned to `oxc.oxc-vscode`, format on save - `spell.epics/.oxfmtrc.json`: the kit's `fmtConfig` values
+        (no semicolons, double quotes, no trailing commas, 120 wide)
+      </p>
+    </blockquote>
+    <p>
+      Looking at: From epic language's session (worktree ⎇ language), fixing format-on-save for
+      spell.epics/epics/language/details/bubbly.css
+    </p>
+    <p>
+      Sent 2026-11-10 23:46-05:00;
+      <a href="/epics/epic-engine/requests/r65/request.md" target="src-epics-epic-engine-requests-r65-request-md"
+        >request.md</a
+      >
+    </p></epic-field
+  ></epic-field
+><epic-field name="goal"
+  ><p>
+    Saving a file in any of your windows formats it with oxfmt again, as it did before the kit became one repo: the
+    kit's own <code>.ts</code>, <code>.css</code> and <code>.json</code> files, in the main window and every epic's
+    window.
+  </p>
+  <ul>
+    <li>
+      Your ask, from the language session (window ⎇ language), saving a CSS file there:
+      <a href="/epics/epic-engine/requests/r65/request.md" target="src-epics-epic-engine-requests-r65-request-md"
+        >r65</a
+      >
+      -- "why is bubbly.css not auto-formatting on save" ... "fix vscode settings here"
+    </li>
+  </ul>
+
+  <p><b>Why it broke</b></p>
+  <ul>
+    <li>
+      VS Code reads a folder's
+      <a href="/ui/.vscode/settings.json" target="src-ui-vscode-settings-json"><code>.vscode/settings.json</code></a>
+      only when that folder is one of the window's own folders.
+    </li>
+    <li>
+      Every window's first folder is the kit's root (a worktree's root, in an epic's window), and the kit's root has no
+      <a href="/ui/.vscode/" target="src-ui-vscode"><code>.vscode/</code></a> at all.
+    </li>
+    <li>
+      The settings that pin oxfmt and turn on format-on-save are app's own,
+      <a href="/app/.vscode/settings.json" target="src-app-vscode-settings-json"
+        ><code title="app/.vscode/settings.json">app's VS Code settings</code></a
+      >: written when spell-app was its own repo and its own window's first folder.
+      <ul>
+        <li>
+          Since the one repo (repo-split's P20 · One Repo), <a href="/app/" target="src-app"><code>app/</code></a> is
+          just a folder inside the root, so VS Code never reads them.
+        </li>
+        <li>
+          Spell UI's VS Code settings don't pin a formatter at all (only how the Markdown preview opens links), and are
+          never read either.
+        </li>
+      </ul>
+    </li>
+    <li>
+      So every file falls back to your user settings, which name the Prettier extension. It isn't installed, so nothing
+      formats.
+    </li>
+    <li>
+      The same goes for everything else in app's settings: the Quick Open and Find exclusions the kit's guide points at
+      ("Windows"), the <code>.json5</code> files opening as JSON with comments, the people library's schemas, the Oxc
+      linter's settings.
+    </li>
+  </ul>
+
+  <p><b>The fix: one settings file at the kit's root, tracked</b></p>
+  <ul>
+    <li>
+      App's settings move to the kit's root, as
+      <a href="/ui/.vscode/settings.json" target="src-ui-vscode-settings-json"><code>.vscode/settings.json</code></a
+      >; Spell UI's one setting joins them.
+      <ul>
+        <li>
+          the paths in them are from the root now (the people schemas are under
+          <a href="/app/" target="src-app"><code>app/</code></a
+          >)
+        </li>
+        <li>
+          the extension recommendations move too (the Oxc extension in, Prettier and ESLint "unwanted"), so a fresh
+          machine is told what to install
+        </li>
+        <li>app's and Spell UI's settings files go: nothing reads them</li>
+      </ul>
+    </li>
+    <li>
+      One change in them: the Oxc extension reads EACH folder's
+      <a href="/vite.config.ts" target="src-vite-config-ts"><code>vite.config.ts</code></a> again, not only the root's.
+      <ul>
+        <li>
+          App's settings told it to read only the root's config ("disable nested config"); that was right when app's
+          config WAS the root's.
+        </li>
+        <li>
+          The kit's root config now leaves the big folders out of its lint (each lints by its own config), and Spell
+          UI's own config holds its pattern rules and its formatter's ignore list (its hand-laid-out docs pages).
+        </li>
+        <li>
+          Read only from the root, a save in a Spell UI docs page would reformat what <code>yarn format</code> leaves
+          alone, and Spell UI's pattern rules would never show in the editor.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Every checkout gets it at once, not only when its branch merges main: a checkout patch (the kit's epic settings'
+      <code>checkoutPatches</code>) copies main's file into each checkout that doesn't track it yet, git-excluded there.
+    </li>
+    <li>The kit's guide ("Windows") and the window script's header name the root's file, not app's.</li>
+  </ul>
+
+  <p><b>Why there, and not in the window files</b></p>
+  <ul>
+    <li>
+      The window files' own settings (<code>windows.settings</code> in the kit's epic settings, written by
+      <code>epic window init</code>) were made for the settings a folder CAN'T give, ones that apply to the whole
+      window, such as which TypeScript the editor runs (intellisense's P4 · HTML and CSS Data).
+      <ul>
+        <li>Which formatter runs, per language, is a folder's setting: it belongs in the folder.</li>
+      </ul>
+    </li>
+    <li>
+      Both aren't needed. For a per-file setting like these, a folder's own settings beat the window file's, so the
+      window file's copy would only ever be a fallback.
+    </li>
+    <li>
+      A tracked file reaches everyone who opens the kit: a window opened on the plain folder, someone without the epic
+      engine's windows, Codex's people. The window files are each machine's own, in the epic repo.
+    </li>
+    <li>
+      Open windows take it live: VS Code watches each window folder's settings file, so nothing reloads, and no window
+      file is rewritten (no risk of a window's colours changing).
+    </li>
+    <li>
+      Another repo set up with <code>epic init</code> gets nothing from this, and that's right: which formatter a repo
+      uses is its own choice, in its own <a href="/ui/.vscode/" target="src-ui-vscode"><code>.vscode/</code></a
+      >. The engine only writes what's about windows.
+    </li>
+  </ul>
+
+  <p><b>Not in this phase</b></p>
+  <ul>
+    <li>
+      App's run and build tasks (F5, "Run Spell Extension") are in app's own
+      <a href="/ui/.vscode/" target="src-ui-vscode"><code>.vscode/</code></a> too, and are just as unread; they need
+      their paths moved, a separate fix.
+    </li>
+    <li>
+      The epic repo's own settings, and its oxfmt settings, the language session already wrote (its CSS formats on
+      save).
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>
+    App's VS Code settings move to the kit's root, where every window's first folder reads them, with the Oxc extension
+    reading each folder's own config. A checkout patch copies them into every worktree at once.
+  </p></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      <a href="/ui/.vscode/settings.json" target="src-ui-vscode-settings-json"
+        ><code title=".vscode/settings.json">the kit's VS Code settings</code></a
+      >
+      (new), <code title=".vscode/extensions.json">its extension recommendations</code> (new)
+    </li>
+    <li>
+      <a href="/app/.vscode/settings.json" target="src-app-vscode-settings-json"
+        ><code title="app/.vscode/settings.json">app's VS Code settings</code></a
+      >,
+      <a href="/app/.vscode/extensions.json" target="src-app-vscode-extensions-json"
+        ><code title="app/.vscode/extensions.json">app's recommendations</code></a
+      >,
+      <a href="/ui/.vscode/settings.json" target="src-ui-vscode-settings-json"
+        ><code title="ui/.vscode/settings.json">Spell UI's VS Code settings</code></a
+      >
+      (removed)
+    </li>
+    <li>
+      <a href="/.epic/config.json5" target="src-epic-config-json5"
+        ><code title=".epic/config.json5">the kit's epic settings</code></a
+      >
+      (a <code>checkoutPatches</code> copy entry)
+    </li>
+    <li>
+      <a href="/AGENTS.md" target="src-agents-md"><code title="AGENTS.md">the kit's AGENTS.md</code></a> ("Windows"),
+      <a href="/epic/src/window.mjs" target="src-epic-src-window-mjs"
+        ><code title="epic/src/window.mjs">the window script</code></a
+      >'s header
+    </li>
+    <li><code title="tests/toolchain/vscodeSettings.test.ts">a kit test of the settings</code> (new)</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li>
+      A kit test reads the root's VS Code settings and checks: the Oxc extension is the formatter, globally and for each
+      language oxfmt formats (TypeScript, JavaScript, JSON, JSON with comments, CSS, Less, YAML), with format on save;
+      nested configs are NOT turned off; every schema path it names is under
+      <a href="/app/" target="src-app"><code>app/</code></a
+      >.
+    </li>
+    <li>
+      Manual test, for you: in the window ⎇ epic-engine (its worktree, after the build), open
+      <a href="/src/util/string.ts" target="src-src-util-string-ts"><code>src/util/string.ts</code></a
+      >, add a semicolon at the end of any line, and press Cmd+S: the semicolon goes. Then the same in
+      <a href="/ui/src/components/ui-button/UIButton.css" target="src-ui-src-components-ui-button-uibutton-css"
+        ><code>ui/src/components/ui-button/UIButton.css</code></a
+      >: break a rule's indentation, Cmd+S, and it's put back. Then the main window (spell), once merged: the same two
+      files.
+    </li>
+    <li>
+      <code>epic worktree patch --all --dry-run</code> lists the copy for the worktrees behind main, and nothing for
+      main.
+    </li>
+    <li><code>yarn kit:review</code> passes.</li>
+  </ul></epic-field
+>
