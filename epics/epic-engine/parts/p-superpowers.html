@@ -1,0 +1,483 @@
+<!-- plan-doc part:  #p-superpowers's body in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Devs you know like the superpowers skills plugin, and we don't know what it does, how it overlaps epic, or what
+    happens with both installed.
+  </p></epic-field
+><epic-field name="goal"
+  ><p>
+    This phase is an evaluation first: what superpowers is, where it overlaps epic, where the two would trip over each
+    other, and how epic could live with it. Its build is the way recommended in the question at the end.
+  </p>
+  <epic-aside title="Your words, 2026-11-10"
+    ><p>
+      "new phase: superpowers. A couple of devs I know really like the <code>superpowers</code> agent skills. Evaluate
+      and give me a summary of what it does, how it overlaps with epiic, how we could integrate it / integrate with it"
+    </p></epic-aside
+  >
+
+  <p><b>1. What superpowers is</b></p>
+  <ul>
+    <li>
+      A free plugin of 15 agent skills by Jesse Vincent (Prime Radiant):
+      <a href="https://github.com/obra/superpowers" target="ext-github-com-obra-superpowers">obra/superpowers</a>, MIT
+      licence. Copies under other names on GitHub are forks of it; this is the one people mean.
+    </li>
+    <li>
+      It's a whole way of working, not a set of tools: talk the idea through, write a design, write a plan of 2-5 minute
+      tasks, build each task test first, review, then finish the branch.
+    </li>
+    <li>
+      It switches itself on. A session-start hook puts its "using superpowers" skill into every session, after
+      <code>/clear</code> and after compaction too. That skill tells the agent that if there's "even a 1% chance" a
+      skill applies, it MUST use it, before answering or even asking a question.
+    </li>
+    <li>
+      Very active and very popular: v7.0.2 on 2026-11-03, a release every two or three weeks; GitHub showed about
+      300,000 stars when this was written.
+    </li>
+    <li>
+      Runs in 15 agents: Claude Code (in Anthropic's official plugin list, and its own marketplace), Codex, Cursor,
+      Gemini CLI, OpenCode, GitHub Copilot CLI, Devin, Factory, Grok, Kimi, Qwen, Pi, Hermes, Antigravity and Muse.
+    </li>
+    <li>
+      It writes nothing outside the repo but a git-ignored scratch folder, and has no server of its own (the
+      brainstorming skill's optional "visual companion" starts a small local page).
+    </li>
+  </ul>
+
+  <epic-aside title="Its 15 skills, one line each"
+    ><table>
+      <thead>
+        <tr>
+          <th>Skill</th>
+          <th>What it does</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>brainstorming</td>
+          <td>
+            Asks why, lays out two or three approaches with a pick, writes a design doc you approve, before anything is
+            built. Its description says to use it before ANY creative work.
+          </td>
+        </tr>
+        <tr>
+          <td>writing-plans</td>
+          <td>
+            Turns the design into a plan file of small tasks: exact files, exact code, the failing test, the command to
+            run, a commit.
+          </td>
+        </tr>
+        <tr>
+          <td>executing-plans</td>
+          <td>Runs the plan in this session, task after task, no stopping; one fresh review at the end.</td>
+        </tr>
+        <tr>
+          <td>subagent-driven-development</td>
+          <td>
+            Runs the plan with a fresh agent per task and a reviewer after each (does it match the plan, then is it good
+            code); keeps a progress ledger on disk so a compacted session doesn't redo work.
+          </td>
+        </tr>
+        <tr>
+          <td>dispatching-parallel-agents</td>
+          <td>Splits independent problems across agents at once.</td>
+        </tr>
+        <tr>
+          <td>test-driven-development</td>
+          <td>
+            Red, green, refactor. "No production code without a failing test first": code written before its test is
+            deleted.
+          </td>
+        </tr>
+        <tr>
+          <td>systematic-debugging</td>
+          <td>Four steps to a root cause before any fix: "no fixes without root cause investigation first".</td>
+        </tr>
+        <tr>
+          <td>verification-before-completion</td>
+          <td>Run the check and read its output before saying "done" or "fixed".</td>
+        </tr>
+        <tr>
+          <td>requesting-code-review</td>
+          <td>Hands a diff to a fresh reviewer agent with a template.</td>
+        </tr>
+        <tr>
+          <td>receiving-code-review</td>
+          <td>Weigh review comments on their merits: no "you're absolutely right", no blind changes.</td>
+        </tr>
+        <tr>
+          <td>using-git-worktrees</td>
+          <td>
+            Makes sure work happens in a worktree: Claude Code's own tool first, else
+            <code>git worktree add</code> under <code>.worktrees/</code>; then installs and runs the tests for a clean
+            start.
+          </td>
+        </tr>
+        <tr>
+          <td>finishing-a-development-branch</td>
+          <td>Runs the tests, then offers merge, pull request, keep or discard, and cleans the worktree up.</td>
+        </tr>
+        <tr>
+          <td>writing-skills</td>
+          <td>How to write and test a new skill.</td>
+        </tr>
+        <tr>
+          <td>using-superpowers</td>
+          <td>The always-on introduction the hook injects: "invoke relevant skills BEFORE any response".</td>
+        </tr>
+        <tr>
+          <td>diagnosing-superpowers</td>
+          <td>Works out why a superpowers session went wrong, and builds a bug report.</td>
+        </tr>
+      </tbody>
+    </table></epic-aside
+  >
+
+  <p><b>2. Where they overlap</b></p>
+  <p>
+    Both run a piece of work from idea to merge in a worktree, with a written plan and agents. They keep the record in
+    different places, and care about different things.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Step</th>
+        <th>superpowers</th>
+        <th>epic</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Working out what you want</td>
+        <td>brainstorming: a conversation in the chat, one question at a time</td>
+        <td>the Overview stage: questions on the epic page, answered when you have time</td>
+      </tr>
+      <tr>
+        <td>The design</td>
+        <td>a Markdown design doc, committed in the code repo (<code>docs/superpowers/specs/</code>)</td>
+        <td>the Overview, on the epic page, in the epic repo</td>
+      </tr>
+      <tr>
+        <td>The plan</td>
+        <td>a Markdown plan, committed (<code>docs/superpowers/plans/</code>): tiny tasks with the code written out</td>
+        <td>phases, each with a short build plan; one Accept Phases</td>
+      </tr>
+      <tr>
+        <td>Building</td>
+        <td>straight through, no stopping; decisions written as "Rulings" in a ledger file</td>
+        <td>straight through, no stopping; decisions written as judgement calls (J items) on the page</td>
+      </tr>
+      <tr>
+        <td>Worktrees</td>
+        <td>one per piece of work, Claude Code's own tool when there is one</td>
+        <td>one per epic, its own branch and VS Code window, made by epic's worktree hook</td>
+      </tr>
+      <tr>
+        <td>Agents</td>
+        <td>a fresh agent per task, a reviewer after each</td>
+        <td>named, listed background agents for page work, coherence and designer reviews</td>
+      </tr>
+      <tr>
+        <td>Review</td>
+        <td>an agent checks each task against the plan, then for quality</td>
+        <td>you review on the page; the coherence and designer agents review plans and pages</td>
+      </tr>
+      <tr>
+        <td>Tests</td>
+        <td>test first, always</td>
+        <td>no rule of its own; Spell's house style writes tests after, to match the code</td>
+      </tr>
+      <tr>
+        <td>Debugging</td>
+        <td>a four-step root-cause method</td>
+        <td>nothing; issues (I items) record what was found</td>
+      </tr>
+      <tr>
+        <td>Finishing</td>
+        <td>merge, pull request, keep or discard</td>
+        <td><code>/epic done</code>: merge or pull request, changelog, worktree gone, the page kept</td>
+      </tr>
+      <tr>
+        <td>Other agents</td>
+        <td>15</td>
+        <td>Claude Code, and Codex; any other agent from <code>epic guide</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><b>3. What each has that the other doesn't</b></p>
+  <ul>
+    <li>
+      Only superpowers:
+      <ul>
+        <li>engineering discipline inside the work: test first, root cause before a fix, proof before "done"</li>
+        <li>a reviewer agent that checks each piece of work against the plan</li>
+        <li>very small, very exact plan tasks, which a cheaper model can carry out</li>
+        <li>a progress file that survives compaction</li>
+        <li>15 agents, and a large community</li>
+      </ul>
+    </li>
+    <li>
+      Only epic:
+      <ul>
+        <li>
+          a live page you read and answer on, instead of the chat; questions wait for you instead of stopping the agent
+        </li>
+        <li>
+          the record after the merge: decisions, judgement calls, issues, manual tests, commits, how long each phase
+          took
+        </li>
+        <li>several epics at once, each in its own window, with sagas above them</li>
+        <li>requests from other sessions (<code>/send</code>), parking, bedtime runs, airplane mode</li>
+        <li>a page shared by a team, in a git repo of its own</li>
+      </ul>
+    </li>
+    <li>
+      In one line: superpowers is about how the agent works; epic is about how you and the agent agree, and what's kept.
+    </li>
+  </ul>
+
+  <p><b>4. Where they'd clash, both installed</b></p>
+  <ol>
+    <li>
+      Who plans. superpowers' brainstorming says to run before "planning anything new", and before plan mode.
+      <code>/epic seo ...</code> would likely start a chat-style brainstorm and a design doc, instead of (or as well as)
+      the Overview on the page. (A guess until tried: superpowers says your own instructions win over its skills.)
+    </li>
+    <li>
+      Two plans. writing-plans commits a plan file into the code repo; the epic page already holds the plan. Two records
+      drift, and the committed files land in the branch's diff.
+    </li>
+    <li>
+      Worktrees, mostly fine. superpowers uses Claude Code's own worktree tool when it has one, which runs epic's
+      worktree hook, so the worktree lands where epic puts it. But:
+      <ul>
+        <li>it asks first, unless your instructions already say</li>
+        <li>
+          its set-up step runs <code>npm install</code> for any
+          <a href="/package.json" target="src-package-json"><code>package.json</code></a
+          >: wrong in a yarn repo like Spell; epic runs the install command its config names
+        </li>
+        <li>without the tool (Codex) it makes its own under <code>.worktrees/</code>, beside epic's</li>
+      </ul>
+    </li>
+    <li>
+      Two ways to finish. finishing-a-development-branch offers merge, pull request, keep or discard, and removes the
+      worktree; <code>/epic done</code> does the merge with the changelog and its own checks. Its "discard" deletes the
+      branch.
+    </li>
+    <li>
+      Commits the page doesn't see. superpowers commits after every small task, with its own messages. epic finds a
+      phase's commits by their subject (<code>P3: Name -- ...</code>), so those commits never reach the page.
+    </li>
+    <li>
+      Agents nobody listed. superpowers starts an agent per task, plus reviewers. Spell's rule is that every agent is
+      named and listed (<code>epic agents</code>); these wouldn't be, and many more would run than Spell's five.
+    </li>
+    <li>
+      Decisions in two places. superpowers writes its "Rulings" into a ledger file that's deleted at the end; epic
+      writes judgement calls onto the page for you to review.
+    </li>
+    <li>
+      Tests first vs. tests after. superpowers deletes code written before its test; Spell's house style (WWOD §1) says
+      the code is the spec and tests are rewritten to match it. A real difference of taste, not a bug.
+    </li>
+    <li>
+      Session start. Both plugins hook session start; they don't collide, but superpowers adds about 65 lines of
+      "EXTREMELY IMPORTANT" text to every session, every <code>/clear</code> and every compaction.
+    </li>
+    <li>
+      No skill names collide: every superpowers skill is named <code>superpowers:...</code>, and none shares a name with
+      epic's.
+    </li>
+  </ol>
+
+  <p><b>5. The ways to go</b></p>
+  <p>The four ways, what each takes and what breaks, are in the question below (<a href="#q71">Q71</a>). In short:</p>
+  <ul>
+    <li>
+      Side by side, epic in charge, borrowing two disciplines (recommended): epic says where superpowers stands aside,
+      and uses its test, debugging and proof skills inside a phase.
+    </li>
+    <li>Side by side only: the same rules, nothing borrowed.</li>
+    <li>
+      Compatible: epic writes its phase plans as superpowers plan files, and reads a superpowers design doc in as a new
+      epic.
+    </li>
+    <li>Nothing: say what epic gives a superpowers user, and leave it there.</li>
+  </ul>
+
+  <p><b>6. Sources</b> (read 2026-11-10)</p>
+  <ul>
+    <li>
+      <a href="https://github.com/obra/superpowers" target="ext-github-com-obra-superpowers">obra/superpowers</a>: its
+      README, licence and release notes (<a
+        href="https://github.com/obra/superpowers/blob/main/RELEASE-NOTES.md"
+        target="ext-github-com-obra-superpowers-blob-main-release-notes-md"
+        >RELEASE-NOTES.md</a
+      >)
+    </li>
+    <li>
+      the skills read in full:
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/using-superpowers/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-using-superpowers-skill-md"
+        >using-superpowers</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/brainstorming/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-brainstorming-skill-md"
+        >brainstorming</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-writing-plans-skill-md"
+        >writing-plans</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/executing-plans/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-executing-plans-skill-md"
+        >executing-plans</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-subagent-driven-development-skill-m"
+        >subagent-driven-development</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/test-driven-development/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-test-driven-development-skill-md"
+        >test-driven-development</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/systematic-debugging/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-systematic-debugging-skill-md"
+        >systematic-debugging</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/using-git-worktrees/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-using-git-worktrees-skill-md"
+        >using-git-worktrees</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/finishing-a-development-branch/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-finishing-a-development-branch-skil"
+        >finishing-a-development-branch</a
+      >,
+      <a
+        href="https://github.com/obra/superpowers/blob/main/skills/requesting-code-review/SKILL.md"
+        target="ext-github-com-obra-superpowers-blob-main-skills-requesting-code-review-skill-md"
+        >requesting-code-review</a
+      >
+    </li>
+    <li>
+      the session-start hook:
+      <a
+        href="https://github.com/obra/superpowers/blob/main/hooks/session-start"
+        target="ext-github-com-obra-superpowers-blob-main-hooks-session-start"
+        >hooks/session-start</a
+      >
+    </li>
+    <li>
+      its marketplace:
+      <a href="https://github.com/obra/superpowers-marketplace" target="ext-github-com-obra-superpowers-marketplace"
+        >obra/superpowers-marketplace</a
+      >
+    </li>
+    <li>
+      epic's side: the epic skill, its plain guide, the isolate, bg, coherence, designer and park skills, the plugin's
+      hooks, and the kit's epic README.
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>
+    An evaluation of superpowers against epic, its clashes and the ways to integrate, on this page; then the way you
+    pick, built: recommended, epic stays in charge and borrows superpowers' test, debugging and proof disciplines inside
+    a phase.
+  </p></epic-field
+><epic-field name="plan"
+  ><p>
+    The recommended way, option A of the question: epic stays in charge of the plan, the worktree and the finish, and
+    uses superpowers' disciplines inside a phase. If you pick another option, this plan is rewritten before anything is
+    built.
+  </p>
+  <ol>
+    <li>
+      <b>Try both together first, in a throwaway repo</b> (as P71's proof did), with superpowers loaded for that one
+      session only (<code>claude --plugin-dir</code>), never installed into your Claude Code.
+      <ul>
+        <li>
+          Run <code>/epic sp-test</code> with one small phase, and write down what really happens for each clash in
+          section 4: does brainstorming take over, where the worktree lands, whether a plan file or
+          <code>npm install</code> appears, what the commits say.
+        </li>
+        <li>The clashes marked "a guess" become facts, or drop out.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Tell superpowers where to stand aside</b>, in the words it already obeys (its skills say your own instructions
+      win, and that a plan's or worktree's place set there is used without asking).
+      <ul>
+        <li>
+          One short paragraph, "With superpowers installed", in the epic skill and in its plain guide (one copy of the
+          words, as the guide's rule says): in an epic, the epic page is the design and the plan;
+          <a href="/epic/" target="src-epic"><code>/epic</code></a> makes the worktree;
+          <code>/epic done</code> finishes; so no brainstorming, writing-plans, executing-plans,
+          subagent-driven-development, using-git-worktrees or finishing-a-development-branch.
+        </li>
+        <li>
+          Inside a phase, DO use superpowers' test-driven-development (where the repo wants tests first),
+          systematic-debugging (for any issue found) and verification-before-completion (before closing the phase).
+        </li>
+        <li>
+          The same few lines added to session start in an epic's worktree only, through one of epic's existing
+          session-start hooks (no new hook), and only when superpowers is enabled: it's what reaches the agent at the
+          same moment superpowers' own text does.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Borrow two disciplines for every epic, superpowers or not</b>, in epic's own words, crediting superpowers (MIT,
+      so a copy is allowed with its notice; borrowing the idea needs none):
+      <ul>
+        <li>
+          Proof before done: a phase's Done list names the checks run and what they printed (test count, lint, the
+          command), as Spell's house style already asks of a reply.
+        </li>
+        <li>
+          A plan check before a phase closes: one named agent (<code>&lt;epic&gt;-p&lt;N&gt;-check</code>) reads the
+          accepted build plan and the phase's diff, and lists what the plan said that wasn't built, and what was built
+          that it didn't say. Each miss is filed as an issue, calm unless it changes what you asked for. The coherence
+          review checks it against the coherence and designer agents first, so it's one more kind of review, not a
+          second review mechanism.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Say so for people who use superpowers</b>: a short section in epic's settings README ("With superpowers"): what
+      to expect, what epic tells it, and that test-first is the repo's call.
+    </li>
+    <li>
+      <b>Left out, as todos</b>: epic writing a phase plan as a superpowers plan file, and reading a superpowers design
+      doc in as a new epic (option C). Worth it only if the devs you know ask for it.
+    </li>
+    <li>
+      Checked by: the throwaway run again after steps 2-3, each clash in section 4 marked fixed, stands, or never
+      happened; the epic tests and lint pass.
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>epic/skills/epic/SKILL.md, epic/skills/epic/guide.md</li>
+    <li>one of epic/hooks/ session-start hooks (behind-main.mjs or worktree-guard.mjs)</li>
+    <li>epic/README-config.md</li>
+    <li>a new plan-check step in the phase close (epic skill, 5. Each phase)</li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><p>
+    A throwaway repo with epic and superpowers (loaded with claude --plugin-dir) runs one small epic; each clash in
+    section 4 marked fixed, stands, or never happened.
+  </p></epic-field
+>
