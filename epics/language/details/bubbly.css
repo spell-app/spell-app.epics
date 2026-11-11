@@ -33,7 +33,7 @@
   --bub-bold-ink: light-dark(#1f1f26, #f6f5fb);
   --bub-bold: 650;
   /* a name used again, and what's declared elsewhere:  lighter than its first mention (Owen, 2026-11-11) */
-  --bub-semibold: 600;
+  --bub-semibold: 550;
   /* how much of its hue a band takes, over the paper */
   --bub-band-mix: 20%;
   --bub-band-mix-dark: 34%;
@@ -44,19 +44,18 @@
   --bub-pill-pad: 0 9px;
   --bub-pill-radius: 999px;
   /*
-   * a quoted pill's quote marks:  bold curly ones (C16), a little darker than other marks, just INSIDE the pill's
-   * white, with room between them and its words (Owen, C25:  "I like the curlies!  Make them slightly darker ...
-   * pulling the quotes just inside the white bit, with some extra padding to the left and right of the text")
+   * a quoted pill's quote marks:  the file's own `"`, as text OUTSIDE the pill's white, so a copied line copies them,
+   * drawn as bold curly ones over it (C16, C25;  Owen, 2026-11-11:  "the quotes need to be outside of the white
+   * bubbles, and the quotes must copy when you copy the line")
    */
   --bub-quote-font: "Playfair Display", Georgia, serif;
   --bub-quote-size: 26px;
-  /* how far a quote mark drops below the text's baseline */
-  --bub-quote-drop: -8px;
-  --bub-quote-ink: color-mix(in srgb, var(--bub-ink) 46%, var(--bub-pill));
-  /* between a quote mark and its pill's words */
-  --bub-quote-gap: 4px;
-  /* a quoted pill's padding, its quote marks inside it:  4px nearer the round ends (C29) */
-  --bub-quoted-pill-pad: 0 3px;
+  /* how far a curly mark sits below the middle of the `"` it's drawn over */
+  --bub-quote-drop: 4px;
+  /* how much of the text's ink a mark takes, over its band:  darker than other marks */
+  --bub-quote-strength: 60%;
+  /* between a quote mark and its pill */
+  --bub-quote-gap: 1px;
   /* room either side of a pill, between it and the words or marks beside it */
   --bub-gap: 2px;
 
@@ -318,6 +317,14 @@ body.spell-doc-page .bubs ui-section.bub-section > :not(#bub-none),
 .bubs .bub-body :is(.bub, .bub-band):not(ui-section.bub-section > *) {
   margin-left: calc(-1 * var(--bub-head-pad-left));
 }
+/*
+ * the same at the top of a file:  `a "card"`'s `a` starts where the file's own lines (`// A card ...`) do
+ * (Owen, 2026-11-11:  "`a` in `a "card"` needs to move left 8px")
+ */
+.bubs > ui-section.bub-section,
+.bubs > :is(.bub, .bub-band) {
+  margin-left: calc(-1 * var(--bub-head-pad-left));
+}
 
 /*
  * Each declaration's LEVEL, how deep it sits, on its block (`.bub`) or band (`.bub-band`):  empty, to style each
@@ -400,7 +407,7 @@ body.spell-doc-page .bubs ui-section.bub-section > :not(#bub-none),
   max-width: 736px;
 }
 
-/****** what a person typed:  a pill;  a quoted one keeps its quotes, just inside its white (C25) ******/
+/****** what a person typed:  a pill;  a quoted one keeps its file's quotes, just outside its white ******/
 .bubs q.bub-quoted {
   white-space: nowrap;
   margin: 0 var(--bub-gap);
@@ -409,7 +416,7 @@ body.spell-doc-page .bubs ui-section.bub-section > :not(#bub-none),
 .bubs q.bub-quoted::after {
   content: none;
 }
-.bubs q.bub-quoted > span,
+.bubs q.bub-quoted > .bub-quoted-words,
 .bubs .bub-pill {
   display: inline-block;
   background: var(--bub-pill);
@@ -421,33 +428,38 @@ body.spell-doc-page .bubs ui-section.bub-section > :not(#bub-none),
   color: var(--bub-ink);
   white-space: nowrap;
 }
-.bubs q.bub-quoted > span {
-  quotes: "\201C" "\201D";
-  padding: var(--bub-quoted-pill-pad);
+/*
+ * a quote mark:  the file's own `"`, transparent, so it takes its room and copies;  its curly mark drawn over it
+ * (the curly mark is drawing, so it never copies)
+ */
+.bubs .bub-quote-mark {
+  position: relative;
+  display: inline-block;
+  color: transparent;
 }
-/* the marks take no height of their own (`line-height: 0`), so a quoted pill is as tall as a bare one */
-.bubs q.bub-quoted > span::before,
-.bubs q.bub-quoted > span::after {
-  color: var(--bub-quote-ink);
+.bubs .bub-quote-open {
+  margin-right: var(--bub-quote-gap);
+}
+.bubs .bub-quote-close {
+  margin-left: var(--bub-quote-gap);
+}
+.bubs .bub-quote-mark::after {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + var(--bub-quote-drop));
+  transform: translate(-50%, -50%);
+  color: color-mix(in srgb, var(--bub-ink) var(--bub-quote-strength), var(--bub-band));
   font-family: var(--bub-quote-font);
   font-size: var(--bub-quote-size);
   font-weight: 700;
-  line-height: 0;
-  vertical-align: var(--bub-quote-drop);
-  /* turned about its own middle:  an inline mark can't turn, a box of its own can */
-  display: inline-block;
+  line-height: 1;
+  pointer-events: none;
 }
-.bubs q.bub-quoted > span::before {
-  content: open-quote;
-  margin-right: var(--bub-quote-gap);
-  transform: rotate(40deg);
-  position: relative;
-  top:-4px; left:-4px;
+.bubs .bub-quote-open::after {
+  content: "\201C";
 }
-.bubs q.bub-quoted > span::after {
-  content: close-quote;
-  margin-left: var(--bub-quote-gap);
-  transform: rotate(var(--bub-quote-turn));
+.bubs .bub-quote-close::after {
+  content: "\201D";
 }
 /* a typed word with no quotes in the file (a list's values, a number, a test's name):  a pill, no marks */
 .bubs .bub-pill {
