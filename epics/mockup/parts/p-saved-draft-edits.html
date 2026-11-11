@@ -27,37 +27,146 @@
       >): "even if I'm editing a draft, the changes should be saved."
     </li>
     <li>
-      An edit saved to a built-in example (<code>@spell/examples/Solitaire/Solitaire.spell</code>) shows again on
-      reload, in the code editor and in the running app.
+      In the dev editor, saving <code>@spell/examples/Solitaire/Solitaire.spell</code> changes that file:
+      <code>git status</code> shows it.
     </li>
-    <li>The editor says when it's showing your draft, not the published file, and how to go back to it (Discard).</li>
-    <li>No edit ever looks lost: a test saves, reloads, and finds it.</li>
+    <li>
+      In your own project, a saved edit is your draft, and it shows again on reload, in the code and in the running app;
+      nobody else sees it until you Publish.
+    </li>
+    <li>The editor says when it's showing your draft, and Discard sits right beside it.</li>
+    <li>No edit ever looks lost: tests save, reload, and find it, both ways.</li>
   </ul></epic-field
 ><epic-field name="changes"
-  ><p>A saved edit is your draft, and the editor opens your draft again, every way it reads the file.</p>
-  <p>When it shows your draft of a built-in, it says so, with the way to drop it.</p></epic-field
+  ><p>Two halves, from Owen's answer (<a href="#q18">Q18</a>):</p>
+  <ul>
+    <li>In dev, saving a built-in project's file writes the file itself, so git sees it. No draft.</li>
+    <li>
+      Everywhere a draft stays (your own projects, your org's, the house-network site, the live site), every place that
+      reads the file shows your draft: the code, the project's list of files, and the running app (<a href="#j86">J86</a
+      >).
+    </li>
+    <li>The editor says <q>Your draft</q> on a file you've drafted, with Discard beside it.</li>
+  </ul></epic-field
 ><epic-field name="plan"
   ><ol>
     <li>
-      Reproduce: save an edit to Solitaire.spell in the editor, then read it back each way the editor does:
-      <code>GET /spaces/...</code>, the project index (<code>/api/projects/index/...</code>), the file poll
-      (<code>readOpenFile()</code>), and the compiled app. Find which one hands back the published file. The server's
-      file and index routes already ask <code>ProjectDrafts.read()</code>, so the likely gap is the compiled app, a
-      cached read, or the person a read is made as (the draft is named <code>owen</code>).
-    </li>
-    <li>Fix that read so it returns your draft; the compiled app builds from your drafts when you're editing.</li>
-    <li>
-      The editor says "Your draft" on a file you've drafted, with Discard beside it (the drafts list it already keeps,
-      <code>refreshDrafts()</code>).
-    </li>
-    <li>
-      A test: save a built-in's file as a draft, then read it back through the file route and the index; both give the
-      edit.
+      <b>Reproduce, both ways.</b>
+      <ul>
+        <li>Symptom: a saved edit to Solitaire comes back as the original after a reload.</li>
+        <li>
+          Changes: none yet. Save an edit in the dev editor, then read it back each way: the file route, the project's
+          list of files, the editor's poll of the open file (<code>readOpenFile()</code>), and the running app, inside
+          the editor and on the app's own page. Note which hand back the published file; the next steps fix those.
+        </li>
+      </ul>
     </li>
     <li>
-      Check in the editor (Solitaire, save, reload), then <code>yarn review</code> in
+      <b>In dev, a built-in's save writes its file.</b>
+      <ul>
+        <li>
+          Symptom: a save to <code>@spell/...</code> lands in <code>__draft/</code>, which git ignores, so the change
+          never reaches a commit.
+        </li>
+        <li>
+          Changes: <code>request_saveFile()</code> writes the real file when all three hold:
+          <ul>
+            <li>the project is a built-in (<code>@spell/...</code>, its test projects aside)</li>
+            <li>
+              the server runs from a checkout, as the kit's page server does: a setting in <code>environment</code>, on
+              by default there, which the cloud and any build without its source leave off (as the home page's order of
+              cards is refused where there's no list to write)
+            </li>
+            <li>
+              the request didn't come through the house-network site: its Caddy block, which already refuses this Mac's
+              own routes, marks what it passes on, and a marked save stays a draft
+            </li>
+          </ul>
+        </li>
+        <li>
+          Saving the file this way also drops your draft of it, if one is there: you were looking at the draft's text
+          when you saved, so nothing is lost, and the file route stops serving the old draft over your save.
+        </li>
+        <li>
+          A draft already sitting there (Owen's <code>__draft/Solitaire.owen-2026-11-11.spell</code>, in the language
+          worktree) is still listed and shown: the Draft pill's Publish writes it to the file, Discard drops it.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Your build: the running app shows your drafts (<a href="#j86">J86</a>).</b>
+      <ul>
+        <li>
+          Symptom: inside the editor your draft runs, but its compile saves the program into the project's one shared
+          build, so everyone's app page runs your unpublished draft; and once the server rebuilds from the files on
+          disk, your draft's program is gone, even for you.
+        </li>
+        <li>
+          Changes:
+          <ul>
+            <li>
+              A save of a built file (<code>Solitaire.spell.js</code>, its words, maps) while you have drafts of the
+              project goes to YOUR build, beside your drafts in <code>ProjectDrafts</code>' private folder, never the
+              shared one.
+            </li>
+            <li>The file route serves your build to you first, the shared one to everyone else.</li>
+            <li>
+              Publish and Discard of your last draft drop your build; the shared build is then redone from the published
+              files, as <code>ProjectBuild</code> does now.
+            </li>
+            <li>
+              Check the app's own page (<code>/apps/...</code>) reads its program through that route; if it reads the
+              build folder some other way, it asks the same question there.
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The language server and the poll.</b>
+      <ul>
+        <li>
+          The language server (VS Code's) reads and writes the files on disk: that's VS Code editing the real file, not
+          the editor's drafts, so it stays as it is. Its docs say so.
+        </li>
+        <li>
+          The editor's poll of the open file goes through the file route, so it already gets your draft; checked in step
+          1, changed only if it doesn't.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>"Your draft", with Discard beside it.</b>
+      <ul>
+        <li>
+          Symptom: today a drafted file has a ring on its tab with no words, the project has a Draft | Publish pill, and
+          Discard Changes is only in the File menu (⌘⇧R). Nothing beside the file says what you're looking at.
+        </li>
+        <li>
+          Changes: while the open file has your draft (<code>editor.hasDraft()</code>), a small note above the code,
+          beside the tabs: <q>Your draft</q>, its tooltip <q>Only you see this until you publish</q>, and a Discard
+          button that does Discard Changes. The tab's ring gets the same tooltip. New words in English and Spanish.
+        </li>
+        <li>Never in the public preview, and never for a built-in in dev (it has no draft, after step 2).</li>
+      </ul>
+    </li>
+    <li>
+      <b>Tests.</b>
+      <ul>
+        <li>
+          Dev: with the setting on, saving a built-in's file writes the file and drops an old draft; marked as from the
+          house site, it's a draft; with the setting off, a draft.
+        </li>
+        <li>
+          Drafts: save a person's project's file, read it back through the file route and the project's list: the edit.
+          Save its built file as that person: they get theirs, someone else gets the shared one; Publish drops theirs.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Check it live and finish.</b> The Verify steps below, then <code>yarn review</code> in
       <a href="/app/" target="src-app"><code>app/</code></a
-      >.
+      >, and the tests' count with its change.
     </li>
   </ol></epic-field
 ><epic-field name="files"
@@ -67,42 +176,100 @@
         href="/app/src/spaces/server/node/projects/project-utils.ts"
         target="src-app-src-spaces-server-node-projects-project-utils-ts"
         ><code title="app/src/spaces/server/node/projects/project-utils.ts">request_saveFile()</code></a
-      >, <code>request_getFile()</code>, <code>getIndex()</code>: where a save becomes your draft, and where it's read
-      back
+      >, <code>isDraftable()</code>, <code>request_getFile()</code>: where a save becomes the file or your draft, and
+      where your build is served to you
+    </li>
+    <li>
+      <a href="/app/src/spaces/server/node/environment.ts" target="src-app-src-spaces-server-node-environment-ts"
+        ><code title="app/src/spaces/server/node/environment.ts">environment</code></a
+      >
+      and
+      <a
+        href="/app/src/spaces/server/node/routes/LocalSiteServer.ts"
+        target="src-app-src-spaces-server-node-routes-localsiteserver-ts"
+        ><code title="app/src/spaces/server/node/routes/LocalSiteServer.ts">LocalSiteServer</code></a
+      >: the switch that says built-ins are written in place, and the house-network site's mark on what it passes on
     </li>
     <li>
       <a
         href="/app/src/spaces/server/node/projects/ProjectDrafts.ts"
         target="src-app-src-spaces-server-node-projects-projectdrafts-ts"
         ><code title="app/src/spaces/server/node/projects/ProjectDrafts.ts">ProjectDrafts</code></a
-      >: <code>save()</code>, <code>read()</code>, <code>draftPathOf()</code>
+      >: your build beside your drafts; Publish and Discard drop it
+    </li>
+    <li>
+      <a href="/parser/src/spell/SpellProject.ts" target="src-parser-src-spell-spellproject-ts"
+        ><code title="parser/src/spell/SpellProject.ts">SpellProject.saveOutput()</code></a
+      >
+      (parser): where the editor's compile saves what it built; unchanged unless the route can't tell (step 4)
+    </li>
+    <li>
+      <a
+        href="/app/src/spaces/server/node/routes/ProjectBuild.ts"
+        target="src-app-src-spaces-server-node-routes-projectbuild-ts"
+        ><code title="app/src/spaces/server/node/routes/ProjectBuild.ts">ProjectBuild</code></a
+      >: only the published files, as now; its docs say so
     </li>
     <li>
       <a href="/app/src/app/editor.ts" target="src-app-src-app-editor-ts"
         ><code title="app/src/app/editor.ts">editor</code></a
-      >: <code>readOpenFile()</code>, <code>reloadFiles()</code>, <code>refreshDrafts()</code>; the editor's note that a
-      file is your draft
+      >
+      (<code>hasDraft()</code>, <code>discardChanges()</code>),
+      <a href="/app/src/app/solid/FileTabs.tsx" target="src-app-src-app-solid-filetabs-tsx"
+        ><code title="app/src/app/solid/FileTabs.tsx">&lt;FileTabs&gt;</code></a
+      >,
+      <a
+        href="/app/spaces/@spell/editor/file-tabs/FileTabs.spell"
+        target="src-app-spaces--spell-editor-file-tabs-filetabs-spell"
+        ><code title="app/spaces/@spell/editor/file-tabs/FileTabs.spell">FileTabs.spell</code></a
+      >: <q>Your draft</q> and Discard beside the open file
     </li>
     <li>
-      the compiled app the editor runs (<code>projectBuild.builtFirst()</code>): built from the draft, not the published
-      file
+      <a href="/app/src/app/ui/AppTexts.en.ts" target="src-app-src-app-ui-apptexts-en-ts"
+        ><code title="app/src/app/ui/AppTexts.en.ts">AppTexts.en.ts</code></a
+      >,
+      <a href="/app/src/app/ui/AppTexts.es.ts" target="src-app-src-app-ui-apptexts-es-ts"
+        ><code title="app/src/app/ui/AppTexts.es.ts">AppTexts.es.ts</code></a
+      >: the new words, in English and Spanish
     </li>
-    <li>a test beside <code>ProjectDrafts</code>'s: save a built-in's file, read it back each way</li>
+    <li>
+      <a
+        href="/app/tests/spaces/server/node/projects/project-utils.test.ts"
+        target="src-app-tests-spaces-server-node-projects-project-utils-test-ts"
+        ><code title="app/tests/spaces/server/node/projects/project-utils.test.ts">project-utils.test.ts</code></a
+      >,
+      <a
+        href="/app/tests/spaces/server/node/routes/api.test.ts"
+        target="src-app-tests-spaces-server-node-routes-api-test-ts"
+        ><code title="app/tests/spaces/server/node/routes/api.test.ts">api.test.ts</code></a
+      >: the new tests
+    </li>
   </ul></epic-field
 ><epic-field name="verify"
   ><ul>
     <li>
-      Open the editor on Solitaire, change a word in
+      Dev editor (the kit's page server, on this Mac): open Solitaire, change a word in
       <a
         href="/app/spaces/@spell/examples/Solitaire/Solitaire.spell"
         target="src-app-spaces-spell-examples-solitaire-solitaire-spell"
         ><code>Solitaire.spell</code></a
-      >, save, reload: the change is there, in the text and in the running game.
+      >, save; <code>git status</code> in the worktree shows
+      <a
+        href="/app/spaces/@spell/examples/Solitaire/Solitaire.spell"
+        target="src-app-spaces-spell-examples-solitaire-solitaire-spell"
+        ><code>Solitaire.spell</code></a
+      >
+      changed, and no new <code>__draft/</code> file. Put the word back.
     </li>
-    <li>The editor shows it's your draft; Discard brings back the published file.</li>
     <li>
-      <code>yarn test</code> in <a href="/app/" target="src-app"><code>app/</code></a
-      >, with the new save-and-reload test.
+      Your own project (one under <code>spell.spaces</code>): change a word, save, reload; the code and the running app
+      both show it, and the file says <q>Your draft</q>. Open the app's own page in a private window: the published
+      version. Discard: back to the published file everywhere.
+    </li>
+    <li>Through the house-network address, a built-in's save is a draft, not the file.</li>
+    <li>
+      <code>yarn review</code> in <a href="/app/" target="src-app"><code>app/</code></a
+      >, with the new tests for both halves.
     </li>
   </ul></epic-field
 >
