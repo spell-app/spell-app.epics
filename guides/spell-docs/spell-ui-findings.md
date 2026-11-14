@@ -160,7 +160,7 @@ Each finding:  component, symptom, repro, the workaround used here, a suggested 
 18. **`ui-segment`:  a top-`attached` `ui-label` takes no room, so it covers the segment's first line**
     - symptom:  Fomantic pads the element after a `.ui.attached.label:first-child`;  as elements the label and the
       next child are both slotted light DOM, and `::slotted()` takes only a compound selector, so nothing makes room
-    - repro:  `<ui-segment><ui-label attach="top">For</ui-label><ul><li>covered</li></ul></ui-segment>`
+    - repro:  `<ui-segment><ui-label attach-to="top">For</ui-label><ul><li>covered</li></ul></ui-segment>`
     - workaround:  `ui-grid.spell-pros-cons ul { margin-top: 2.2em }` (durable template, "Trade-offs")
     - suggest:  the segment pads its top while it has a top-attached label (`:has()` on the host, or a state the
       label sets), as Fomantic does
