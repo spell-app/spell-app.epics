@@ -540,6 +540,8 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   Found writing epic `data` I44's tests (2026-11-04);  worked round there with `set card to a new card`.
   Prove:  `runSpell(["to bump:\n\tprint 1", "a card is a thing where:\n\t- to tap it:\n\t\tprint 2", "bump", "tap a new card"])`.
 
+- 2026-11-14 · `SpellProject.compile()` goes on compiling while a `parse()` that started during it rebuilds the scope:  the parse cancels the compile's own, and one forced run logged about 120 "Don't understand ..." lines before ending compiled and parsed.  compile() should probably wait for, or restart after, a parse that takes over.  Found by epic editor I127 (probe:  a parse 300ms into the compile behind a cached reload).  (epic editor)
+
 ## py
 
 - The Python writer doubles the braces of an f-string's placeholder in two rules' outputs:
