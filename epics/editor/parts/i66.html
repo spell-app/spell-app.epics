@@ -49,3 +49,57 @@
     </li>
   </ul>
 </epic-field>
+<epic-reply agent="claude" from="owenoak">
+  <p>
+    Fixed in commit 00d66da65 on <code>editor</code>, not merged yet. I checked it by opening this worktree's editor
+    headless, with the old <code>asYouType</code> choice stored, and counting every console error and warning:
+  </p>
+  <ul>
+    <li>Solitaire: 34 before, 5 after</li>
+    <li>Tic-Tac-Toe: 37 before, 11 after</li>
+    <li>The editor's own project: 58 before, 12 after</li>
+    <li>In all: 129 before, 28 after. Every line of your list is gone.</li>
+  </ul>
+  <p>What changed:</p>
+  <ul>
+    <li>
+      PrefStore: a pref can now list renamed values, so <code>asYouType</code> reads as Everywhere, quietly, and is
+      stored that way from then on.
+    </li>
+    <li>Thing warnings: the editor's Spell has its own type for the holes the editor fills, "editor part" (J105).</li>
+    <li>
+      Solid: both <code>onCleanup()</code>s in ref callbacks now run in <code>onSettled()</code>. The file tabs' effect
+      reads the Spell where it's tracked. The Tint dropdown uses a listener instead of <code>on-ui-changed</code>. The
+      theme list keeps the same rows while the themes stay the same.
+    </li>
+    <li>Compile cache: a miss is now a 204, not a 404.</li>
+  </ul>
+  <p>The 28 left aren't from your list. I didn't fix them here:</p>
+  <ol>
+    <li>
+      Two missing files ask for a 404 on every open: <code>Solitaire.es.names.json5</code> and
+      <code>spell-editor.es.names.json5</code>. SpellProject looks for a Spanish names dictionary that doesn't exist,
+      and the project's file list doesn't include names files.
+    </li>
+    <li>
+      "Meta+z" and "Meta+Shift+z" are each registered twice in the page's keyboard, once for each runtime that mounts an
+      app (the editor's own Spell and the program). The newer one wins, so ⌘Z may go to the wrong history.
+    </li>
+    <li>Solitaire: one REACTIVE_WRITE_IN_OWNED_SCOPE, with no stack.</li>
+    <li>Tic-Tac-Toe: 9 STRICT_READ_UNTRACKED warnings in a <code>&lt;For&gt;</code>, from the program's drawing.</li>
+    <li>
+      The editor's own project: "SpellEditor does not implement draw()", plus Monaco's "Overlapping semantic tokens".
+    </li>
+  </ol>
+</epic-reply>
+<epic-commit sha="00d66da650d37b082d19e27e6f7e17c3c27039cb"
+  >an old code-suggest choice (asYouType) reads as Everywhere, by a pref's renamed values (PrefStore,
+  ValueInfo.renamed); the editor's Spell holds editor parts (an "editor part" is a thing), handed over by
+  EditorSpell.parts(), so no "Expected code to be type 'Thing'"; the code pane's width and the app pane's Inspector
+  watch in onSettled, not a ref's onCleanup; the file tabs' effect reads the Spell in its compute; the theme menu's Tint
+  dropdown listens for ui-changed, and its theme list keeps its entries while they say the same; the compile cache
+  answers a miss 204, not 404</epic-commit
+><epic-commit sha="36e6b98bb27158d37df5196323103cd954fc6107"
+  >the Inspector test finds Inspect app in the card's header; Spell UI's help data regenerated (ui-segment's newer
+  attributes)</epic-commit
+>
