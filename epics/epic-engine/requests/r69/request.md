@@ -3,7 +3,8 @@ id: r69
 epic: epic-engine
 from: 🚧 editor (5de24f81)
 at: 2026-11-14T17:30-05:00
-status: new
+status: filed
+filed: fixed as I282:  the spell bin hands off to the caller's checkout
 ---
 
 ## The person's words
