@@ -4,3 +4,149 @@
   sidebar is not visible, it's super quick. How can we make it quick either way?" Likely since P28's I51: the selection
   now follows the cursor by arrow keys, and each new selection draws the Inspector's card again.
 </p>
+<p>
+  Measured headless, before any change: 30 presses of the down arrow, from the top of Solitaire's main file, and from
+  <code>to draw it</code> in Tic-Tac-Toe's. "Caret" is the key until the code's cursor moved; "frame" is the key until
+  the next frame could paint, which is when you see the caret move.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Down arrow, every 250ms</th>
+      <th>Inspector hidden</th>
+      <th>Inspector showing</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Solitaire, key to frame (median / worst)</td>
+      <td>11 / 23 ms</td>
+      <td><b>185 / 469 ms</b></td>
+    </tr>
+    <tr>
+      <td>Solitaire, held key (every 33ms)</td>
+      <td>17 / 35 ms</td>
+      <td><b>225 / 480 ms</b>, then 4.6 s to settle</td>
+    </tr>
+    <tr>
+      <td>Tic-Tac-Toe, key to frame</td>
+      <td>6 / 16 ms</td>
+      <td><b>80 / 252 ms</b></td>
+    </tr>
+    <tr>
+      <td>Solitaire, long tasks in the 30 presses</td>
+      <td>3 (185 ms)</td>
+      <td>36 (5.8 s)</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  The cursor itself always moved in under 1ms. The pause is the Inspector drawing its card again, in the same task as
+  the key, before the frame that shows the caret. Where the time went, Inspector showing (Solitaire, a CPU profile):
+</p>
+<ul>
+  <li>
+    <b>~60ms a line:</b> the Code band makes a new code editor for each event and action of the new selection, and a new
+    editor measures every line of its file, the whole of Solitaire.spell, for its careful wrapping (I33).
+  </li>
+  <li>~17ms: the Views tree scrolls its selected row into sight, which makes the page lay itself out early.</li>
+  <li>~11ms: the outline's ants find their box; ~10ms: the property editor's fields.</li>
+</ul>
+<epic-field label="Proposed fix"
+  ><ul>
+    <li>
+      The arrow keys' follow waits until the cursor has rested 120ms on a line, then updates the Inspector once: a run
+      of presses, or a held key, is one update, and never in the key's task. A click follows at once, as now.
+    </li>
+    <li>Another line of the same tag changes nothing (no new selection).</li>
+    <li>
+      The Code band's slices keep their code editors for the next selection, so a new selection no longer makes and
+      measures new ones.
+    </li>
+  </ul></epic-field
+>
+<epic-reply agent="claude" from="owenoak" at="2026-11-14">
+  <p>
+    Fixed: the caret moves at once whether or not the Inspector shows. The Inspector catches up once the cursor rests.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Key to frame, median / worst</th>
+        <th>Before</th>
+        <th>After</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Solitaire, Inspector showing, every 250ms</td>
+        <td>185 / 469 ms</td>
+        <td><b>4 / 45 ms</b></td>
+      </tr>
+      <tr>
+        <td>Solitaire, Inspector showing, held key</td>
+        <td>225 / 480 ms</td>
+        <td><b>4 / 19 ms</b></td>
+      </tr>
+      <tr>
+        <td>Tic-Tac-Toe, Inspector showing, every 250ms</td>
+        <td>80 / 252 ms</td>
+        <td><b>2 / 26 ms</b></td>
+      </tr>
+      <tr>
+        <td>Tic-Tac-Toe, Inspector showing, held key</td>
+        <td>84 / 248 ms</td>
+        <td><b>5 / 19 ms</b></td>
+      </tr>
+      <tr>
+        <td>Solitaire, Inspector hidden, every 250ms</td>
+        <td>11 / 23 ms</td>
+        <td>2 / 20 ms</td>
+      </tr>
+      <tr>
+        <td>Solitaire, work while 30 presses are held</td>
+        <td>33 long tasks, 6.0 s</td>
+        <td>2 long tasks, 0.3 s</td>
+      </tr>
+      <tr>
+        <td>Solitaire, one Inspector update (a new part)</td>
+        <td>~160 ms</td>
+        <td>~100 ms, after the cursor rests</td>
+      </tr>
+    </tbody>
+  </table>
+  <ul>
+    <li>
+      <b>The arrow keys wait for the cursor to rest.</b> The selection follows once the cursor has stayed on a line
+      120ms: a run of presses, or a held key, is one Inspector update, on the line it stops on. A click follows at once,
+      as before. Typing still never moves the selection; a line that draws nothing still selects nothing.
+    </li>
+    <li><b>Another line of the same tag does nothing again.</b> Same selection, no new outline or card.</li>
+    <li>
+      <b>The Code band keeps its code editors.</b> Each event's and action's code is a code editor, and making one
+      measured every line of the file: ~60ms each new selection. They're now kept for the next selection, which only
+      changes the lines they show.
+    </li>
+  </ul>
+  <p>
+    Left as it was: the Views tree scrolling its row into sight (~17ms) and the property editor drawing the fields of a
+    new kind of part (most of Tic-Tac-Toe's ~120ms, a tag's many attributes). Both now come after the caret has moved.
+  </p>
+  <p>
+    Checked: editorPolish 5 of 6 (a new I69 test passes; I53/I59's paste test fails on the paste work committed
+    meanwhile, 9a7955d05, not this), selectionOutline 16/16, codeFollowsAlong 6/6, Inspector browser tests 26/26; app's
+    ts and lint clean. eventsInCode fails 4/4 before and after: it still looks for Solitaire's old code (<code
+      >play it</code
+    >, <code>- clickable when</code>).
+  </p>
+  <epic-net-effect
+    ><ul>
+      <li>Moving between lines is as quick with the Inspector showing as without it.</li>
+      <li>Holding an arrow key, the Inspector follows only when you stop, about a tenth of a second later.</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
+<epic-commit sha="f8041c42596569a054f67f3b11610e04813674ae"
+  >the arrow keys' follow waits for the cursor to rest, one Inspector update a run; the Code band keeps its code editors
+  (SlicePool)</epic-commit
+>
