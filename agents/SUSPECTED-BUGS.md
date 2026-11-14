@@ -491,6 +491,10 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## parser
 
+- 2026-11-14 · epic `mockup` J114 · Spanish `al clic` compiles to an `onClic` handler, an event nothing ever sends:
+  - Solitario's empty stock ignored clicks for this;  `cuando se pulsa` (which compiles to `onClick`) works.
+  - Nothing warns about it, so a Spanish program can wire a handler to an event that never comes.
+
 - 2026-11-09 · epic `data` I99 · a GraphQL place may never ask for a field line about Spell's own times:
   - `declaredFields()` leaves out `created` and `modified`, so `- a recipe's created is its "created at"` may not be asked for.
   - Read in the code, not tested.
