@@ -5,3 +5,31 @@
   <code>CodeOutput.tsx</code>, a marked HACK: the first rested caret parses once, about 300ms). The root cause isn't
   traced.
 </p>
+<p><b>Proposed fix</b>: the cause is traced.</p>
+<ul>
+  <li>
+    On a reload the compile behind (<a href="/app/src/app/editor.ts" target="src-app-src-app-editor-ts"
+      ><code title="app/src/app/editor.ts">editor.compileBehind()</code></a
+    >) runs the project's parse. If a parse was started again while it ran, the step the old run left over moved the new
+    run on one step too many, and skipped one.
+  </li>
+  <li>
+    The compile behind then threw (<code>reading 'parser'</code> in devtools), so nothing was parsed till an edit.
+  </li>
+  <li>
+    That step-skipping is what I134 fixed in
+    <a href="/src/util/spell/TaskList.ts" target="src-src-util-spell-tasklist-ts"
+      ><code title="src/util/spell/TaskList.ts">TaskList</code></a
+    >, this afternoon: with it, the compile behind parses every time.
+  </li>
+</ul>
+<p>The fix, in the editor:</p>
+<ul>
+  <li>a compile behind that fails still leaves a parse: it parses on its own, so hover and go to definition work</li>
+  <li>
+    T64's HACK goes:
+    <a href="/app/src/app/solid/CodeOutput.tsx" target="src-app-src-app-solid-codeoutput-tsx"
+      ><code title="app/src/app/solid/CodeOutput.tsx">parsedBehind()</code></a
+    >
+  </li>
+</ul>
