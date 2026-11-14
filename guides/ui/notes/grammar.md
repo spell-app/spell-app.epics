@@ -1245,7 +1245,7 @@ Give the element `rows` and NO slotted `<table>`, and it draws one into its LIGH
 ## Tabs:  `<ui-tabs>` of `<ui-tab>` panes
 
 ```html
-<ui-tabs appearance="tabular" attach="top" aria-label="Profile" history>
+<ui-tabs appearance="tabular" attach-to="top" aria-label="Profile" history>
   <ui-tab label="Bio" value="bio">...</ui-tab>
   <ui-tab label="Photos" value="photos" icon="image" lazy><template>...</template></ui-tab>
 </ui-tabs>
