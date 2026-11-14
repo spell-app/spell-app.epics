@@ -3,7 +3,9 @@ id: r66
 epic: epic-engine
 from: 🚧 editor (5de24f81)
 at: 2026-11-13T21:40-05:00
-status: new
+status: filed
+filed: P74 · Test Site Follows The Editor
+phase: p-test-site-follows-the-editor
 ---
 
 ## The person's words
