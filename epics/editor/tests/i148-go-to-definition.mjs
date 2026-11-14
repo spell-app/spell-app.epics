@@ -74,7 +74,7 @@ for (const scheme of ["light", "dark"]) {
     const box = await page.locator(".monaco-editor").first().boundingBox()
     await page.screenshot({
       path: `${OUT}/i148-${name}-${scheme}.png`,
-      clip: { x: box.x, y: box.y, width: Math.min(box.width, 900), height: Math.min(box.height, 520) }
+      clip: { x: box.x, y: box.y, width: Math.min(box.width, 1200), height: Math.min(box.height, 520) }
     })
   }
   const check = (what, ok, detail) => {
