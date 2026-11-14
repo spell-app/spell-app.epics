@@ -381,7 +381,10 @@ const Active = dynamic(() => (editing() ? Editor : Viewer))
     - so on OUR elements (`ui-*`, `epic-*` ...), write the event's own name after `on-`:  `on-ui-change={f}`
       - our elements take it in their own `setAttribute()` (`spell/element`'s `RichAttributes`, epic `solid-17`)
       - data the same way, a plain prop:  `options={[...]}` arrives as the array itself;  no `prop:`
-      - Solid's dev build warns `LOWERCASE_EVENT_ATTRIBUTE` once per such name:  expected, harmless
+      - Solid's dev build warns `LOWERCASE_EVENT_ATTRIBUTE` once per such name:  harmless, but the editor's console
+        must stay clean (Owen, 2026-11-14, epic `editor` I98), so the editor's code, and the Spell UI elements
+        it draws, listen with a ref instead:  the app's `ref={on("ui-changed", f)}`, a component's
+        `ref={(menu) => menu.addEventListener("ui-choosing", ...)}`
     - any other element's hyphenated event:  a ref directive (below)
   - native options (capture, passive):  a ref directive too
 - Form inputs:  `value={x()}` writes the input only when its binding re-runs,
