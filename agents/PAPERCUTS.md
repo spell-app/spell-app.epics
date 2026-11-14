@@ -1822,7 +1822,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   "handler is not a function", main's router mixed with the worktree's routes.  Fix:  `node bin/spell.mjs server start all`
   from the worktree, or merge `main` first.  (epic editor;  the `spell` link runs main's CLI)
 
-- 2026-11-14 · A worktree's page server, started with the `spell` on the PATH (`spell server start all`), answered every `/api` request with 500 "handler is not a function":  the PATH's `spell` is the MAIN checkout's, and its stack mixed main's `Router.ts` with the worktree's route modules.  Fix:  stop it, then start from the worktree with its own `node bin/spell.mjs server start all`.  (epic editor)
+- 2026-11-14 · A worktree's page server, started with the `spell` on the PATH (`spell server start all`), answered every `/api` request with 500 "handler is not a function":  the PATH's `spell` is the MAIN checkout's, and its stack mixed main's `Router.ts` with the worktree's route modules.  Fix:  stop it, then start from the worktree with its own `node bin/spell.mjs server start all`.  (epic editor)  Fixed 2026-11-14 (epic `epic-engine` I282):  the `spell` bin, run inside another checkout of the kit, hands off to that checkout's own `bin/spell.mjs` once it's installed;  the workaround isn't needed after that.
 
 ## brand
 
