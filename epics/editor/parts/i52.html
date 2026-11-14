@@ -1,2 +1,47 @@
 <!-- plan-doc part:  #i52's details in editor.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>Owen, 2026-11-13, pasted in the session's chat.</p>
+<epic-reply agent="claude" from="owenoak" at="2026-11-13">
+  <p>
+    Found: a click in a drawing's markup selects its element only in one case, the line its tag starts on, and only for
+    a tag drawn on the page itself.
+  </p>
+  <ul>
+    <li>
+      <b>Lines inside a tag select nothing.</b> The app knows where each element's tag STARTS (line and column), and a
+      click matches that line only. In Tic-Tac-Toe, clicking <code>{the label of the square}</code>, inside the board's
+      <code>&lt;button&gt;</code>, selects nothing; <code>&lt;/content&gt;</code> and
+      <code>{draw its board}</code> leave the old selection.
+    </li>
+    <li>
+      <b>Tags inside a drawn thing's own drawing are never found.</b> A pile's placeholder, a card's face: these are
+      drawn inside the thing's own element, and the search only walks the parts tree, which doesn't go in there. In
+      Solitaire, clicking the stock pile's <code>&lt;text part="placeholder"&gt;</code> selects nothing.
+    </li>
+    <li>
+      What works today: clicking the first line of <code>&lt;container&gt;</code>, <code>&lt;card&gt;</code>,
+      <code>&lt;header&gt;</code> or a button selects it.
+    </li>
+  </ul>
+  <epic-code title="Inspector.tsx · selectWrittenAt()" language="ts">
+    <pre>
+static selectWrittenAt(path: string, line: number): void {
+  const area = appArea
+  if (!area) return
+  const written = Inspector.partsIn(area)       // the parts tree:  not inside a drawn thing
+    .map((row) =&gt; row.element)
+    .filter((element) =&gt; {
+      const place = placeOfPart(element)
+      return place?.path === path &amp;&amp; place.line === line   // the tag's first line only
+    })
+  if (written.length) Inspector.selectAll(written)
+}</pre>
+  </epic-code>
+  <epic-net-effect
+    ><ul>
+      <li>
+        A click anywhere in a tag, its content and closing tag included, selects the innermost element drawn from it.
+      </li>
+      <li>That works inside a drawn thing's own drawing too: a pile's placeholder, a card's face.</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
