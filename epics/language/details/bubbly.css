@@ -87,6 +87,9 @@
   --bubbly-pill-pad-right: 16px;
   /* in the editor, a head line's words this much further in than the lines under it, its band where it was (Owen) */
   --bubbly-pill-left-shift: 8.5px;
+  /* an HTML block's start tag's `⟨` this far into its band, clear of its cut top-left corner;  its end tag's */
+  --bubbly-tag-pad-left: 6px;
+  --bubbly-tag-end-pad-left: 7px;
 
   /****** a body:  the gutter down its left, its white, the foot under it ******/
   --bubbly-gutter: 3px;
@@ -127,8 +130,9 @@
   quotes: "\201C" "\201D";
 
   /****** the drawing's box ******/
-  /* the system font:  Spell's default */
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* the system font:  Spell's default;  a tag's brackets are drawn in it in the editor too, not the editor's font */
+  --bubbly-font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--bubbly-font-family);
   font-size: var(--bubbly-font-size);
   line-height: var(--bubbly-line-height);
   color: var(--bubbly-ink);
@@ -660,6 +664,11 @@
   }
   .bubbly-angle::before {
     position: relative;
+    /*
+     * the drawing's font, never the editor's:  the system font has no `⟨`, so the browser borrows one, and with the
+     * editor's list (`…, Menlo, …`) it borrows Menlo's, half as slanted as the bands' ends are cut
+     */
+    font-family: var(--bubbly-font-family);
     font-size: var(--bubbly-font-size);
     font-weight: 800;
     /* line up > point with the pill corner. */
@@ -731,7 +740,7 @@
     /* a quoted value's marks snug beside it:  less room outside them than Spell's */
     --bubbly-quote-margin: 11px;
     /* a block's band's words clear of its cut top-left corner */
-    --bubbly-pill-pad-left: 6px;
+    --bubbly-pill-pad-left: var(--bubbly-tag-pad-left);
 
     :is(.bubbly-head-pill, .bubbly-pill, .bubbly-foot, .bubbly-tag-end, .bubbly-gutter, .bubbly-body) {
       corner-shape: bevel;
@@ -858,7 +867,7 @@
       width: auto;
       height: var(--bubbly-foot-pill-height);
       margin-left: 0;
-      padding-left: 7px;
+      padding-left: var(--bubbly-tag-end-pad-left);
       line-height: calc(var(--bubbly-foot-pill-height) + 2 * var(--bubbly-pill-nudge));
       border-top-left-radius: 0;
       /* a start tag's corners, which the browser shrinks to fit its shorter height, the outer one with them */
@@ -943,6 +952,10 @@
     }
     .bubbly-block > .bubbly-body:has(> ui-section:last-child > .bubbly-block.bubbly-group) {
       padding-bottom: 0;
+    }
+    /* ... and its foot is the group's:  the same place, the group's drawn over it, as the editor draws them */
+    .bubbly-block:has(> .bubbly-body > ui-section:last-child > .bubbly-block.bubbly-group) > .bubbly-foot {
+      margin-top: calc(-1 * var(--bubbly-foot-height));
     }
 
     /*
@@ -1076,8 +1089,11 @@
       padding: 0;
       box-sizing: border-box;
     }
-    /* placed by the code:  not the page's room round a pill or an input */
-    .bubbly-layer :is(.bubbly-pill, .bubbly-input, .bubbly-tag-pill) {
+    /*
+     * placed by the code:  not the page's room round a band, a pill or an input
+     * - HTML's start tag's band has a margin above it on the page, which moved it a pixel down here, under its `⟩`
+     */
+    .bubbly-layer :is(.bubbly-head-pill, .bubbly-pill, .bubbly-input, .bubbly-tag-pill, .bubbly-tag-end) {
       margin: 0;
     }
     /* a band sits on its line's middle;  an input's own rule places it */
@@ -1125,8 +1141,8 @@
      * the text knows no band, so a little darker than the paper's faint ink instead
      */
     --bubbly-band-mark: color-mix(in srgb, var(--bubbly-ink) 32%, var(--bubbly-paper));
-    /* ... an end tag's fainter still */
-    --bubbly-end-mark: color-mix(in srgb, var(--bubbly-ink) 22%, var(--bubbly-paper));
+    /* ... an end tag's a little fainter (Owen:  at 22%, and its name faded on top, it didn't read) */
+    --bubbly-end-mark: color-mix(in srgb, var(--bubbly-ink) 28%, var(--bubbly-paper));
     .view-line .bubbly-mark {
       color: var(--bubbly-band-mark);
     }
@@ -1142,9 +1158,12 @@
     .view-line :is(.bubbly-equals, .bubbly-attribute-name) {
       margin: 0;
     }
-    /* an end tag's name not bold, as the page's */
+    /* an end tag's name not bold, as the page's;  a block's in its marks' ink, not faded under it too */
     .view-line .bubbly-tag-name.bubbly-tag-end {
       font-weight: 400;
+    }
+    .view-line .bubbly-mark.bubbly-tag-name.bubbly-tag-end {
+      opacity: 1;
     }
 
     /* spacers:  where the page has a tag's margin and padding */
@@ -1155,6 +1174,16 @@
     /* between an empty element's tags:  their points touch */
     .bubbly-touch-spacer {
       width: calc(var(--bubbly-bracket-pad) * var(--bubbly-monaco-scale));
+    }
+    /*
+     * before a block's start tag, and its end tag:  its `⟨` as far into its band as the page's, an HTML file's and a
+     * Spell file's drawing's alike;  the band starts a bracket's room left of the tag
+     */
+    .bubbly-tag-head-spacer {
+      width: calc((var(--bubbly-tag-pad-left) - var(--bubbly-bracket-pad)) * var(--bubbly-monaco-scale));
+    }
+    .bubbly-tag-foot-spacer {
+      width: calc((var(--bubbly-tag-end-pad-left) - var(--bubbly-bracket-pad)) * var(--bubbly-monaco-scale));
     }
     /* before an attribute's name, and its `=`:  the page's margins */
     .bubbly-attribute-spacer {
@@ -1189,10 +1218,6 @@
     display: block;
 
     /* spacers:  where the page has a line's inset */
-    /* before a block's start tag:  its words as far into its band as the page's */
-    .bubbly-head-spacer {
-      width: calc((var(--bubbly-pill-pad-left) - var(--bubbly-bracket-pad)) * var(--bubbly-monaco-scale));
-    }
     /* before a line of text:  in from the tags beside it, as on the page */
     .bubbly-line-spacer {
       width: calc((var(--bubbly-line-inset) - var(--bubbly-bracket-pad)) * var(--bubbly-monaco-scale));
