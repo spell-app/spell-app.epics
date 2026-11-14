@@ -25,7 +25,7 @@
             saga="spell-language"
             away-read="2026-11-03T17:49-05:00"
             away-seen="m1=2026-11-03T20:55-05:00 p-nothing-not-undefined=2026-11-03T20:55-05:00 p-find-the-slowdown=2026-11-03T21:25-05:00 p-win-back-speed=2026-11-03T21:25-05:00 p-saying-which-type=2026-11-04T07:02-05:00 p-numbers-with-units=2026-11-04T07:02-05:00 p-units-the-person-reads=2026-11-04T07:02-05:00 p-imports-make-subclasses=2026-11-04T09:14-05:00 p-theme-defaults=2026-11-04T09:14-05:00 i69=2026-11-13T22:36-05:00 i70=2026-11-13T22:36-05:00 m3=2026-11-13T22:36-05:00 m4=2026-11-13T22:36-05:00 m5=2026-11-13T22:36-05:00 m6=2026-11-13T22:36-05:00 m7=2026-11-13T22:36-05:00 m8=2026-11-13T22:36-05:00 m9=2026-11-13T22:36-05:00 m10=2026-11-13T22:36-05:00 m11=2026-11-13T22:36-05:00 m12=2026-11-13T22:36-05:00 m13=2026-11-13T22:36-05:00 m14=2026-11-13T22:36-05:00 m15=2026-11-13T22:36-05:00 m16=2026-11-13T22:36-05:00 m17=2026-11-13T22:36-05:00 m18=2026-11-13T22:36-05:00 done=2026-11-14T00:28-05:00 p-solitaires-new-forms=2026-11-14T03:49-05:00"
-            recent-since="2026-11-14T05:27:46-05:00"
+            recent-since="2026-11-14T05:29:12-05:00"
             repo="https://github.com/spell-app/spell"
           >
             <epic-section
@@ -7592,37 +7592,133 @@
                 id="i88"
                 status="open"
                 state="attention"
-                changed="2026-11-14T05:36:49-05:00"
+                changed="2026-11-14T05:42:23-05:00"
                 phase="52"
                 source="parts/i88.html"
                 ><span slot="title"
                   >Recipe Box / Caja de Recetas: Undo after Save removes the first recipe ("Pizza Margherita") instead
                   of putting its old title back; fails alone too; probably P55 Q60's undo changes (ede9faf70)
-                  <epic-update phase="52"></epic-update></span></epic-item
+                  <epic-update phase="52"></epic-update></span
+                ><epic-status slot="status" state="noted" at="2026-11-14 05:42" from="owenoak" agent="claude"
+                  ><p>
+                    <b>Cause</b> (reproduced in the Edit-screen test, reading the run's undo history): after the page
+                    opens, the history already holds three steps, <code>Add</code>, <code>Add</code>, <code>Add</code>;
+                    after Save it still holds those three, nothing more.
+                  </p>
+                  <ul>
+                    <li>
+                      Save adds no step: <code>save it</code> is <code>can't be undone</code> (J155), and nothing is
+                      recorded while such an action runs, the draft's own <code>Edit</code> step included.
+                    </li>
+                    <li>
+                      The opening's three recipes are steps: the box's <code>when creating it</code> runs as the
+                      one-of-a-kind is made, outside every action, and each saved thing added records a step of its own
+                      (<code>noteUndo()</code> calls <code>record()</code> directly, which no
+                      <code>can't be undone</code> stops either).
+                    </li>
+                    <li>So Undo took back the last one, Pizza Margherita.</li>
+                  </ul>
+                  <p>
+                    <b>Proposed fix</b> (the core's
+                    <a href="/parser/src/core/undoing.ts" target="src-parser-src-core-undoing-ts"
+                      ><code>undoing.ts</code></a
+                    >, <code>Thing</code> / <code>List</code>, <code>places.ts</code>):
+                  </p>
+                  <ol>
+                    <li>
+                      A creation hook run while no action runs (the program's opening) is no undo step, as
+                      <code>core.holdWhile()</code> is.
+                    </li>
+                    <li>
+                      The history's <code>record()</code> leaves out what a <code>can't be undone</code> action changes
+                      too, as its notes of settings and lists already do: so a saved thing added or removed there is no
+                      step either.
+                    </li>
+                    <li>
+                      A draft's save is a step of its own, <code>Edit</code>, even inside an action that can't be
+                      undone: that action leaves out only what it changes itself (which screen shows). Inside an
+                      undoable action it still joins that one's step.
+                    </li>
+                  </ol></epic-status
+                ></epic-item
               ><epic-item
                 id="i89"
                 status="open"
-                state="open"
-                changed="2026-11-14T05:37:08-05:00"
+                state="progress"
+                changed="2026-11-14T05:42:41-05:00"
                 phase="52"
                 calm
+                unmerged="language"
                 source="parts/i89.html"
                 ><span slot="title"
                   >Python Solitaire's Auto Play makes a 53rd card (seed 1: a new ace of spades in C1 while the spades
                   foundation holds one); the page's patch no longer adds up (PatchMismatchError); quartApp's "AutoPlay's
-                  pauses reach the page" fails <epic-update phase="52"></epic-update></span></epic-item
+                  pauses reach the page" fails <epic-update phase="52"></epic-update></span
+                ><epic-status slot="status" state="underway" at="2026-11-14 05:42" from="owenoak" agent="claude"
+                  ><p>
+                    Proposed fix (language-pycore): the 53rd card is the TEST's, not the game's.
+                    <code>play_page()</code>'s mirror (<code>StateMirror</code>, what checks the patches add up) makes
+                    its own copy of every pile and card, and each copy was counted as one of the program's things. So
+                    <code>every pile</code> (<code>core.every_thing(Pile)</code>) in Auto Play found the mirror's piles
+                    too, and a card was played onto the mirror's spades foundation and C1: the next patch wrote that
+                    copy as a new card, <code>$id 68</code>. Fix: the mirror reads <code>quietly()</code>, so its copies
+                    are never the program's; a pytest that Auto Play keeps 52 cards and its patches add up. The real
+                    page has no mirror: the quartApp test passed twice in a row here unchanged, so its earlier fail
+                    looks like timing, checked again after.
+                  </p></epic-status
+                ></epic-item
               ><epic-item
                 id="i90"
                 status="open"
-                state="open"
-                changed="2026-11-14T05:37:25-05:00"
+                state="progress"
+                changed="2026-11-14T05:45:38-05:00"
                 phase="52"
                 calm
                 source="parts/i90.html"
                 ><span slot="title"
                   >`core.alert` is missing from Python's core: Python Solitaire would crash at "You won!"; pyright has
-                  said so in the snapshots for several commits <epic-update phase="52"></epic-update></span></epic-item
-            ></epic-section>
+                  said so in the snapshots for several commits <epic-update phase="52"></epic-update></span
+                ><epic-status slot="status" state="underway" at="2026-11-14 05:45" from="owenoak" agent="claude"
+                  ><p>
+                    Proposed fix (language-pycore), widened by Owen to all of the core's UI calls. The JavaScript core's
+                    dialogs (its
+                    <a href="/parser/src/core/ui.ts" target="src-parser-src-core-ui-ts"><code>ui.ts</code></a
+                    >) are five: <code>notify</code>, <code>alert</code>, <code>warn</code>, <code>confirm</code>,
+                    <code>prompt</code>. There's no <code>choose</code>: it's commented out in spell's rules, so nothing
+                    compiles to it.
+                  </p>
+                  <ul>
+                    <li>
+                      Python gets each one, the same shape as JavaScript's, in a new <code>ui_methods.py</code>:
+                      <code>alert</code> and <code>warn</code> wait until the dialog's closed;
+                      <code>confirm</code> answers yes or no; <code>prompt</code> answers the text, or nothing on
+                      cancel; <code>notify</code> shows a toast, and <code>notify ... and wait</code> waits for it to
+                      go.
+                    </li>
+                    <li>
+                      With a page (a Quart app): the program asks the page,
+                      <code>{"ui": "confirm", "args": [...], "asks": 3}</code>, sending what changed first; the page
+                      shows Spell UI's own dialog (the JavaScript core's <code>core.confirm()</code> ...) and answers
+                      <code>{"answer": 3, "value": true}</code>. It asks the tab that sent the last message.
+                    </li>
+                    <li>
+                      With no page (<code>spell run</code>): printed as JavaScript prints them, and the default answer
+                      taken (confirm yes, prompt its starting text); in a terminal, confirm and prompt read the answer
+                      typed.
+                    </li>
+                    <li>The Python writer awaits them, so the function holding one waits.</li>
+                    <li>
+                      The five come off
+                      <a
+                        href="/parser/src/py/core/not_ported_yet.json5"
+                        target="src-parser-src-py-core-not-ported-yet-json5"
+                        ><code>not_ported_yet.json5</code></a
+                      >; a pytest each, and the page side's in <code>page.test.ts</code>.
+                    </li>
+                  </ul></epic-status
+                ></epic-item
+              ></epic-section
+            >
             <epic-section id="tests" kind="tests"
               ><epic-item
                 id="m1"
