@@ -3,3 +3,41 @@
   Found by I66: the editor's own Spell and the running program each mount an app, and each registers the undo keys
   (UI.keyboard: "Meta+z" registered twice in scope "page").
 </p>
+<epic-reply agent="claude" from="owenoak" at="2026-11-14">
+  <p>You asked: "What's the fix for this?"</p>
+  <p>Looked closer: it isn't a wrong-history bug, only a warning about something done on purpose.</p>
+  <ul>
+    <li>
+      The editor puts ⌘Z on the page's keyboard first (<code>editorHotkeys()</code>); the running program puts its own
+      on after it, as every Spell app does (core's <code>listenForUndoKeys()</code>).
+    </li>
+    <li>
+      The newer one, the program's, is asked first, and it asks the editor before its own history
+      (<code>core.pageUndoKey</code>): in Edit the editor's undo wins (the side bar's change, the code), in Run the
+      program's. A key it doesn't take goes on to the editor's.
+    </li>
+    <li>
+      Spell UI's keyboard warns whenever two registrations claim one key in one scope, so this layering shows as
+      "registered twice".
+    </li>
+  </ul>
+  <epic-field label="Proposed fix">
+    <ul>
+      <li>
+        Spell UI's <code>UI.keyboard.register()</code> takes an option saying a registration goes over an earlier one on
+        purpose (<code>over: true</code>): no warning for it; a handler returning <code>false</code> still passes the
+        key on, as now.
+      </li>
+      <li>The program's undo keys register with it. Two registrations that don't say so still warn.</li>
+      <li>
+        A test: the editor and a running app both registered, ⌘Z in Edit undoes the editor's change, in Run the
+        program's, and the console stays quiet.
+      </li>
+    </ul>
+  </epic-field>
+  <epic-net-effect
+    ><ul>
+      <li>Nothing changes in what ⌘Z does; the two warnings go. Press Do this to have it built.</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
