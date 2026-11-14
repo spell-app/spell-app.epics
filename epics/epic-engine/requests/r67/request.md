@@ -3,7 +3,8 @@ id: r67
 epic: epic-engine
 from: 🚧 editor (5de24f81)
 at: 2026-11-14T01:01-05:00
-status: new
+status: filed
+filed: Same as I273, being built now: a calm judgement call stays blue, not grey, until its work is on main
 ---
 
 ## The person's words
