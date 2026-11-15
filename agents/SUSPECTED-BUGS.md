@@ -1124,6 +1124,16 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
 
 ## epics
 
+- `epic/src/review/ServerLink.ts` `get()` (2026-11-15, epic `epic-engine` I293):  while the page server restarts,
+  an open epic page logs uncaught `TypeError: Failed to fetch` from `ServerLink.get` (`$fetch`'s `OfflineError`),
+  6 in a 3s restart.  A reload used to hide them;  since I293 a restart no longer reloads the page.
+  Some poller calls `get()` without a catch.  Prove it:  open an epic page in headless Chromium, `spell server stop`
+  then `start`, and count `pageerror`s;  their stacks name `ServerLink.get`.
+
+- `epic turns run` (2026-11-15, epic `epic-engine` I293):  flags after `--` are still read as its own,
+  `epic turns run test -- yarn vp test run --project server` says "--project?  no such flag".
+  Its help shows `epic turns run test -- yarn test`, which has no flags.  Worked around with `sh -c "..."`.
+
 - A kit worktree made without its `spell.epics` link (2026-10-22, epic `readme`'s worktree, made 2026-10-21):  the
   kit tracks `agents/PAPERCUTS.md`, `SUSPECTED-BUGS.md` and `CODE-DEBT.md` as links to `../spell.epics/agents/`,
   which dangle in a worktree with no `spell.epics` at its root (the kit's AGENTS.md says an epic's worktree has one).
