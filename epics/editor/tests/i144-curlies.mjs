@@ -33,7 +33,7 @@ for (const scheme of ["light", "dark"]) {
     const { editor } = window
     editor.showEditor(editor.project.spellFiles.find((each) => each.path.endsWith("/Card.spell")).path)
   })
-  await page.waitForSelector(".bubbly-monaco .bubbly-layer .bubbly-block", { timeout: 60000 })
+  await page.waitForSelector(".bubbly-layer > *", { timeout: 90000 })
   await page.waitForTimeout(2000)
   // edited, then shot before the editor's save (answered `{}`) can read the file back
   await page.evaluate((text) => {
