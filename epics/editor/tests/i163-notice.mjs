@@ -22,10 +22,7 @@ for (const scheme of ["light", "dark"]) {
   await page.waitForTimeout(4000)
   // select a part under where the notice shows:  the element of the running app at the notice's middle
   const picked = await page.evaluate(() => {
-    const under = [...document.querySelectorAll(".AppRoot *, [class*=AppRoot] *")].find((el) => {
-      const r = el.getBoundingClientRect()
-      return r.top < 90 && r.bottom > 70 && r.width > 60 && r.width < 600 && r.height < 200
-    })
+    const under = document.querySelector(".AppRoot ui-container")
     if (under) window.Inspector.select(under)
     const r = under?.getBoundingClientRect()
     return under ? `${under.tagName} ${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}` : "none"
@@ -55,6 +52,7 @@ for (const scheme of ["light", "dark"]) {
       box: box && `${Math.round(box.left)},${Math.round(box.top)} ${Math.round(box.width)}x${Math.round(box.height)}`,
       popoverOpen: notice?.matches(":popover-open"),
       ants: ants && getComputedStyle(ants).zIndex,
+      stacking: (() => { const out = []; for (let e = notice; e; e = e.parentElement) { const s = getComputedStyle(e); if (s.zIndex !== "auto" || s.isolation !== "auto" || s.transform !== "none" || s.contain !== "none") out.push(`${e.tagName}.${e.className} z=${s.zIndex} iso=${s.isolation} tf=${s.transform} contain=${s.contain}`) } return out })(),
       topAtMiddle: mid && (mid.closest(".Notice") ? "notice" : mid.className || mid.tagName)
     }
   })
