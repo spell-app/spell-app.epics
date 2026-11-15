@@ -18,7 +18,7 @@ const TEXT = `a "probe" is an app
 `
 const browser = await chromium.launch()
 for (const scheme of ["light", "dark"]) {
-  const context = await browser.newContext({ viewport: { width: 1800, height: 900 }, colorScheme: scheme })
+  const context = await browser.newContext({ viewport: { width: 1800, height: 900 }, colorScheme: scheme, deviceScaleFactor: 2 })
   await context.route(/\/api\/(projects\/file|prefs)\//, async (route) => {
     // Card.spell read as the sample, so the editor shows it as the file
     if (route.request().method() === "GET" && /Card\.spell/.test(route.request().url())) {
@@ -33,7 +33,7 @@ for (const scheme of ["light", "dark"]) {
   const page = await context.newPage()
   const errors = []
   page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 300)))
-  await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
+  await page.goto(`${EDITOR}edit/@spell/examples/Solitaire?scheme=${scheme}`, { timeout: 90000 })
   await page.waitForSelector(".InputEditor .monaco-editor .view-line", { timeout: 90000 })
   await page.waitForTimeout(3000)
   await page.evaluate(() => {
@@ -42,14 +42,31 @@ for (const scheme of ["light", "dark"]) {
   })
   await page.waitForSelector(".bubbly-layer > *", { timeout: 90000, state: "attached" })
   await page.waitForTimeout(2000)
-  // edited, then shot before the editor's save (answered `{}`) can read the file back
-  await page.evaluate((text) => {
-    // the file's own text, as if it loaded so:  the editor's model follows it, and nothing saves
-    const card = window.editor.project.spellFiles.find((each) => each.path.endsWith("/Card.spell"))
-    card.contents = text
-  }, TEXT)
-  // shot before the file is read back (about half a second on):  the layout follows an edit in 300 msec
-  await page.waitForTimeout(380)
+  // edited, then shot before the file is read back (about half a second on):  the layout follows an edit in 300 msec;
+  // again till the drawing shows it
+  for (let tries = 0; tries < 8; tries++) {
+    await page.evaluate((text) => {
+      const card = window.editor.project.spellFiles.find((each) => each.path.endsWith("/Card.spell"))
+      card.contents = text
+    }, TEXT)
+    await page.waitForTimeout(380)
+    const drawn = await page.evaluate(
+      () =>
+        !!document.querySelector(".bubbly-monaco .view-line .bubbly-code-brace") &&
+        /probe/.test(document.querySelector(".monaco-editor")?.textContent ?? "")
+    )
+    if (drawn) break
+    await page.waitForTimeout(1500)
+  }
+  if (process.env.DEBUG)
+    console.log(
+      await page.evaluate(() =>
+        [...document.querySelectorAll(".view-line span")]
+          .filter((each) => /[{}]/.test(each.textContent) && !each.children.length)
+          .map((each) => `${each.textContent} ${each.className} ${getComputedStyle(each).color}`)
+          .join("\n")
+      )
+    )
   const box = await page.locator(".monaco-editor", { hasText: "probe" }).first().boundingBox({ timeout: 2000 })
   await page.screenshot({
     path: `${OUT}/I144-editor-${TAG}-${scheme}.png`,
