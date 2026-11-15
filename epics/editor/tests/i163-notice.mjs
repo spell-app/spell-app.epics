@@ -1,5 +1,5 @@
 // Epic `editor` I163:  the "Published" notice on one line, drawn above the selection's marching ants.
-// - Usage:  node i163-notice.mjs [editorUrl] [after | before]   (before:  restyled as it was, to compare)
+// - Usage:  node i163-notice.mjs [editorUrl] [after | before | long]   (before:  restyled as it was, to compare;  long:  past the window's width)
 // - Saves nothing:  every non-GET to /api is answered `{}`.
 import { readFileSync } from "node:fs"
 import { chromium } from "/Users/owen/www/spell/node_modules/playwright/index.mjs"
@@ -33,7 +33,8 @@ for (const scheme of ["light", "dark"]) {
   })
   await page.waitForTimeout(600)
   const english = scheme === "light"
-  await page.evaluate(async (english) => {
+  const long = SUFFIX === "long"
+  await page.evaluate(async ({ english, long }) => {
     const { appTexts } = await import("/src/app/ui/AppTexts.ts")
     const params = { count: english ? 1 : 3, version: "Solitaire.2026-11-15-182322.zip" }
     let text
@@ -42,8 +43,8 @@ for (const scheme of ["light", "dark"]) {
     } catch {
       text = appTexts.text("published", params) // before I163:  one text, "file(s)"
     }
-    window.editor.showNotice(text)
-  }, english)
+    window.editor.showNotice(long ? `${text} ${text} ${text}\nA second line, its own line:  ${text} ${text} ${text}` : text)
+  }, { english, long })
   await page.waitForTimeout(700)
   // "before":  the notice as it was before I163, to compare:  under the ants (z-index 100), 500px wide, wrapping
   if (SUFFIX === "before")
@@ -72,7 +73,7 @@ for (const scheme of ["light", "dark"]) {
   })
   console.log(scheme, "picked", picked, JSON.stringify(report), errors.length ? errors : "")
   const box = await page.locator(".Notice").boundingBox()
-  await page.screenshot({ path: `${OUT}/I163-notice-${SUFFIX}-${scheme}.png`, clip: { x: 300, y: 0, width: 1200, height: 300 } })
+  await page.screenshot({ path: `${OUT}/I163-notice-${SUFFIX}-${scheme}.png`, clip: long ? { x: 0, y: 0, width: 1500, height: 300 } : { x: 300, y: 0, width: 1200, height: 300 } })
   await context.close()
 }
 await browser.close()
