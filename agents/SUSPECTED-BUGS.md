@@ -2,6 +2,9 @@
 
 Things that look like bugs but haven't been confirmed.  Add to the right section, under its package;  when one is confirmed and
 fixed, or disproven, delete it (note a disproof in a line at the top if the reasoning is worth keeping).
+- Fixed 2026-11-15 (epic-engine I294):  the uncaught "Failed to fetch" errors while the page server restarted came from
+  `abortableFetch()`'s `void promise.finally()`, a second promise rejecting with every failed fetch that nothing
+  handled;  not `ServerLink.get()`'s callers, which all caught theirs.
 - Fixed 2026-11-08 (mockup I8):  a running program's right-click menu sometimes never opened, about 1 run in 5, because the whole
   page had stopped.  Vite turns on `server.forwardConsole` when an agent starts its dev server, and turns each `console.*` argument into
   text with `JSON.stringify()`;  a Solid dev warning handed it a live element, the walk ran a `<Show>`'s `children` getter though its
@@ -1123,12 +1126,6 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
   `epic worktree merge` (epic `commands`).
 
 ## epics
-
-- `epic/src/review/ServerLink.ts` `get()` (2026-11-15, epic `epic-engine` I293):  while the page server restarts,
-  an open epic page logs uncaught `TypeError: Failed to fetch` from `ServerLink.get` (`$fetch`'s `OfflineError`),
-  6 in a 3s restart.  A reload used to hide them;  since I293 a restart no longer reloads the page.
-  Some poller calls `get()` without a catch.  Prove it:  open an epic page in headless Chromium, `spell server stop`
-  then `start`, and count `pageerror`s;  their stacks name `ServerLink.get`.
 
 - `epic turns run` (2026-11-15, epic `epic-engine` I293):  flags after `--` are still read as its own,
   `epic turns run test -- yarn vp test run --project server` says "--project?  no such flag".
