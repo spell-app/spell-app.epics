@@ -3,7 +3,8 @@ id: r71
 epic: epic-engine
 from: language-5d (6799a2ab)
 at: 2026-11-15T14:14-05:00
-status: new
+status: filed
+filed: built as T79:  details pages take bullhorn comments, sent by the page's own Send
 ---
 
 ## The person's words
