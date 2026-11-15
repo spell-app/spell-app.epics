@@ -1,5 +1,5 @@
 // Epic `editor` I163:  the "Published" notice on one line, drawn above the selection's marching ants.
-// - Usage:  node i163-notice.mjs [editorUrl] [suffix]
+// - Usage:  node i163-notice.mjs [editorUrl] [after | before]   (before:  restyled as it was, to compare)
 // - Saves nothing:  every non-GET to /api is answered `{}`.
 import { readFileSync } from "node:fs"
 import { chromium } from "/Users/owen/www/spell/node_modules/playwright/index.mjs"
@@ -22,7 +22,11 @@ for (const scheme of ["light", "dark"]) {
   await page.waitForTimeout(4000)
   // select a part under where the notice shows:  the element of the running app at the notice's middle
   const picked = await page.evaluate(() => {
-    const under = document.querySelector(".AppRoot ui-container")
+    // the running app's own box at the notice's right end:  its ants cross the notice
+    const under = [...document.querySelectorAll(".AppRoot *")].find((el) => {
+      const r = el.getBoundingClientRect()
+      return r.left > 700 && r.left < 1000 && r.top > 55 && r.top < 90 && r.height < 80 && r.width > 200
+    })
     if (under) window.Inspector.select(under)
     const r = under?.getBoundingClientRect()
     return under ? `${under.tagName} ${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}` : "none"
@@ -41,6 +45,14 @@ for (const scheme of ["light", "dark"]) {
     window.editor.showNotice(text)
   }, english)
   await page.waitForTimeout(700)
+  // "before":  the notice as it was before I163, to compare:  under the ants (z-index 100), 500px wide, wrapping
+  if (SUFFIX === "before")
+    await page.evaluate(() => {
+      const notice = document.querySelector(".Notice")
+      Object.assign(notice.style, { zIndex: "100", width: "500px", minWidth: "0", whiteSpace: "normal", left: "calc(50% - 250px)", translate: "none" })
+      const message = notice.querySelector("ui-message")
+      message.setAttribute("heading", message.getAttribute("heading").replace(/ files?:/, " file(s):"))
+    })
   const report = await page.evaluate(() => {
     const notice = document.querySelector(".Notice")
     const message = notice?.querySelector("ui-message")
@@ -53,6 +65,8 @@ for (const scheme of ["light", "dark"]) {
       popoverOpen: notice?.matches(":popover-open"),
       ants: ants && getComputedStyle(ants).zIndex,
       stacking: (() => { const out = []; for (let e = notice; e; e = e.parentElement) { const s = getComputedStyle(e); if (s.zIndex !== "auto" || s.isolation !== "auto" || s.transform !== "none" || s.contain !== "none") out.push(`${e.tagName}.${e.className} z=${s.zIndex} iso=${s.isolation} tf=${s.transform} contain=${s.contain}`) } return out })(),
+      antsBox: ants && (() => { const r = ants.getBoundingClientRect(); return `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}` })(),
+      topAtAnts: ants && box && (() => { const r = ants.getBoundingClientRect(); const x = r.left + 3, y = Math.max(r.top + 3, box.top + 10); const e = document.elementFromPoint(x, y); return e?.closest(".Notice") ? "notice" : e?.className || e?.tagName })(),
       topAtMiddle: mid && (mid.closest(".Notice") ? "notice" : mid.className || mid.tagName)
     }
   })
