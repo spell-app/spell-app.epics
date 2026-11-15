@@ -69,6 +69,13 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- 2026-11-15 (language T138, Solitaire's `card image`):  two things a view drawn inside another view's drawing does.
+  - Solitaire's run page logs Solid's `EFFECT_WRITES_OWN_SOURCE` ("effect re-ran because of its own write") once a
+    two sided view's side draws ANY view of the project:  even a `card image` whose `to draw it` is only
+    `<text>x</text>`.  Before T138 (its sides `<text>`s) there was no warning.  Nothing looks wrong on screen.
+  - `<card-image card={it} />` compiles to `h("...-card-image", { card: this })`:  the card is set as a property
+    (the right face draws), but also written as an attribute, `card="[object Object]"`, in the drawn page's
+    snapshots (the contract test's `Solitaire.out.txt`).  A changing value gets `"prop:suit": () => ...` instead.
 - 2026-11-07 (notebook P1):  in Spanish, a default set in a type's body on a member it inherits compiles under the
   Spanish name and value:  a page's `- su candado es "bloqueado"` => `get candado() { return "bloqueado" }`, not
   `get lock()`;  a two sided view's `- su dirección es abajo` => `get dirección() { return "abajo" }`.
