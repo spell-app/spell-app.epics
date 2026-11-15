@@ -43,25 +43,17 @@ for (const scheme of ["light", "dark"]) {
   await page.waitForSelector(".bubbly-layer > *", { timeout: 90000, state: "attached" })
   await page.waitForTimeout(2000)
   // edited, then shot before the editor's save (answered `{}`) can read the file back
-  console.log(await page.evaluate((text) => {
+  await page.evaluate((text) => {
     // the file's own text, as if it loaded so:  the editor's model follows it, and nothing saves
     const card = window.editor.project.spellFiles.find((each) => each.path.endsWith("/Card.spell"))
     card.contents = text
-    return window.editor.shownCodeEditor.getModel().getValue().slice(0, 20)
-  }, TEXT))
-  for (const wait of [100, 400, 800]) {
-    await page.waitForTimeout(wait)
-    console.log(wait, await page.evaluate(() => { const m = window.editor.shownCodeEditor.getModel(); return m.uri.toString() + " " + m.getValue().slice(0, 12) + " v" + m.getVersionId() }))
-  }
-  const info = await page.evaluate(() => ({
-    value: window.editor.shownCodeEditor?.getModel().getValue().slice(0, 30),
-    editors: [...document.querySelectorAll(".monaco-editor")].map((each) => each.textContent.slice(0, 30))
-  }))
-  console.log(JSON.stringify(info))
-  const box = await page.locator(".monaco-editor", { hasText: "probe" }).first().boundingBox()
+  }, TEXT)
+  // shot before the file is read back (about half a second on):  the layout follows an edit in 300 msec
+  await page.waitForTimeout(380)
+  const box = await page.locator(".monaco-editor", { hasText: "probe" }).first().boundingBox({ timeout: 2000 })
   await page.screenshot({
     path: `${OUT}/I144-editor-${TAG}-${scheme}.png`,
-    clip: { x: box.x, y: box.y, width: Math.min(box.width, 900), height: 260 }
+    clip: { x: box.x, y: box.y, width: Math.min(box.width, 900), height: 210 }
   })
   console.log(scheme, "errors:", errors.slice(0, 5))
   await context.close()
