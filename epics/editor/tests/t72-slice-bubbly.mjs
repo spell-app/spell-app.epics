@@ -11,7 +11,7 @@ const EDITOR =
 
 const browser = await chromium.launch()
 for (const scheme of ["light", "dark"]) {
-  const context = await browser.newContext({ viewport: { width: 1500, height: 950 }, colorScheme: scheme })
+  const context = await browser.newContext({ viewport: { width: 1500, height: 1300 }, colorScheme: scheme })
   await context.route(/\/api\/(projects\/file|prefs)\//, (route) => {
     if (route.request().method() === "GET") return route.continue()
     return route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
@@ -51,12 +51,12 @@ for (const scheme of ["light", "dark"]) {
   await restart.screenshot({ path: `${OUT}/t72-${TAG}-restart-${scheme}.png` })
   if (scheme === "light" && TAG === "after") {
     // typing in the slice:  the caret lands and the text follows (answered, never saved)
-    const slice = restart.locator(".CodeSlice .view-lines").first()
+    const slice = restart.locator(".CodeSlice .view-line").first()
     await slice.click()
     await page.keyboard.press("End")
     await page.keyboard.type(" xyz")
     await page.waitForTimeout(800)
-    const typed = await page.evaluate(() => window.editor?.file?.contents?.includes("restart the game xyz") ?? "?")
+    const typed = await page.evaluate(() => window.project.spellFiles.some((file) => file.contents.includes("clear the score xyz")))
     console.log("typed reaches the file:", typed)
     await restart.screenshot({ path: `${OUT}/t72-${TAG}-typed-${scheme}.png` })
     for (let i = 0; i < 4; i++) await page.keyboard.press("Backspace")
