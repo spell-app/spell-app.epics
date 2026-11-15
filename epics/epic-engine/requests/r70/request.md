@@ -3,7 +3,8 @@ id: r70
 epic: epic-engine
 from: language-5d (6799a2ab)
 at: 2026-11-15T13:46-05:00
-status: new
+status: filed
+filed: fixed as I287:  a kit's page server runs that kit's own code
 images: image-1.png
 ---
 
