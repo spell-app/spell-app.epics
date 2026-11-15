@@ -32,7 +32,8 @@ if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.insp
 await page.waitForTimeout(1500)
 const path = await page.evaluate(() => {
   const el = document.querySelector(".AppPaneBody ui-toolbar > ui-action:nth-of-type(2)")
-  const box = el.getBoundingClientRect()
+  // drawn as its shadow root's button:  the host itself is `display: contents`
+  const box = (el.shadowRoot?.querySelector("button") ?? el).getBoundingClientRect()
   document.querySelector(".AppPaneBody").addEventListener("click", (event) => {
     window.__path = event.composedPath().filter((at) => at instanceof Element).slice(0, 8)
       .map((at) => at.localName + (at.getAttribute("data-spell-at") ? "@" + at.getAttribute("data-spell-at") : ""))
