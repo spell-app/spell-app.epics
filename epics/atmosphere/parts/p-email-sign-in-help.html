@@ -1,0 +1,180 @@
+<!-- plan-doc part:  #p-email-sign-in-help's body in atmosphere.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    After signing in by email, nothing offers a password, so you sign in by email every time without knowing why; and on
+    a local cloud, “Email me a link instead” says “check your email” for mail that never leaves the machine (<a
+      href="/epics/atmosphere/requests/r2/request.md"
+      target="src-epics-atmosphere-requests-r2-request-md"
+      >r2</a
+    >).
+  </p></epic-field
+><epic-field name="requests"
+  ><epic-field label="r2 · 🚧 mockup (0bcde415)"
+    ><blockquote>
+      <p>
+        So when you sign in by email, give you and option to set a password. On that screen, explain that if you don't
+        give a password you'll have to sign in by email every time.
+      </p>
+      <p>Tried "Send me an email" and I can't see it in my mail program including in junk folder</p>
+    </blockquote>
+    <p>
+      Looking at: From the mockup session, about test.spell.space. The local cloud never sends mail: it's caught in
+      ~/.spell/cloud/mail/. Today's (1794765663590-b4dbcdf7.json, to owenoak@gmail.com) has the code and the confirm
+      link. Owen has no password set there (no passwords.json in ~/.spell/cloud). Until the Real Sign-In Mail phase
+      sends real mail, the 'Send me an email' screen should at least say where a local cloud's mail went.
+    </p>
+    <p>
+      Sent 2026-11-15 13:12-05:00;
+      <a href="/epics/atmosphere/requests/r2/request.md" target="src-epics-atmosphere-requests-r2-request-md"
+        >request.md</a
+      >
+    </p></epic-field
+  ></epic-field
+><epic-field name="goal"
+  ><ul>
+    <li>
+      Owen signs in to test.spell.space by an emailed code; before going on, the page offers “Set a password”, saying
+      that without one he'll sign in by email every time; “Not now” goes on as today (<a
+        href="/epics/atmosphere/requests/r2/request.md"
+        target="src-epics-atmosphere-requests-r2-request-md"
+        >r2</a
+      >).
+    </li>
+    <li>
+      Asked once a sign-in: someone who skips it isn't nagged on every page; the person menu's “Set a password” still
+      works (T64).
+    </li>
+    <li>
+      While mail isn't really sent (the server's mailer only catches it), the “check your email” screen says the mail
+      isn't in your inbox, and where it is: <code>~/.spell/cloud/mail/</code> on the machine the cloud runs on, or
+      <code>spell space cloud mail</code> (<a
+        href="/epics/atmosphere/requests/r2/request.md"
+        target="src-epics-atmosphere-requests-r2-request-md"
+        >r2</a
+      >).
+    </li>
+    <li>
+      Once real mail goes out (Real Sign-In Mail, the next phase, or <code>SPELL_MAIL=sendmail</code>), that notice is
+      gone by itself.
+    </li>
+  </ul></epic-field
+><epic-field name="changes"
+  ><p>
+    Signed in by an emailed link or code with no password yet, you're offered one, told plainly what skipping it means.
+    While a server only catches its mail, the waiting screen says where the mail went instead of sending you to your
+    inbox.
+  </p></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>Does mail leave the machine?</b> Each mailer says so: the
+      <a href="/src/server/signIn/MailCatcher.ts" target="src-src-server-signin-mailcatcher-ts"
+        ><code title="src/server/signIn/MailCatcher.ts">MailCatcher</code></a
+      >
+      alone keeps it in a folder;
+      <a href="/src/server/signIn/SendmailSender.ts" target="src-src-server-signin-sendmailsender-ts"
+        ><code title="src/server/signIn/SendmailSender.ts">SendmailSender</code></a
+      >
+      (and the next phase's sender) really sends it.
+      <ul>
+        <li>
+          A new read-only field on the
+          <a href="/src/server/signIn/signIn.types.ts" target="src-src-server-signin-signin-types-ts"
+            ><code title="src/server/signIn/signIn.types.ts">Mailer</code></a
+          >
+          shape, e.g. <code>caughtIn</code>: the folder, only when nothing is sent.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The ask answer:</b>
+      <a href="/src/server/signIn/SignInCheck.ts" target="src-src-server-signin-signincheck-ts"
+        ><code title="src/server/signIn/SignInCheck.ts">SignInCheck</code></a
+      >'s “email me” answer adds, when mail is only caught, where it went.
+      <ul>
+        <li>On this Mac's page server: its mail page, <code>/sign-in/mail</code>, as a link.</li>
+        <li>
+          On the cloud, which hides that page (it would hand anyone every code): the folder on the cloud's machine, and
+          the command <code>spell space cloud mail</code>, as text only.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The waiting screen:</b> the
+      <a
+        href="/app/src/spaces/server/node/routes/cloudSignIn.html"
+        target="src-app-src-spaces-server-node-routes-cloudsignin-html"
+        ><code title="app/src/spaces/server/node/routes/cloudSignIn.html">cloud sign-in page</code></a
+      >
+      and the
+      <a href="/parser/src/core/signInBar.ts" target="src-parser-src-core-signinbar-ts"
+        ><code title="parser/src/core/signInBar.ts">sign-in bar</code></a
+      >
+      show, under “Check your email”, a line in its own short lines: “This server doesn't send real mail yet: it isn't
+      in your inbox. It's in … on the machine it runs on.”
+      <ul>
+        <li>
+          New texts beside the bar's others in
+          <a href="/parser/src/core/core.types.ts" target="src-parser-src-core-core-types-ts"
+            ><code title="parser/src/core/core.types.ts">core's sign-in texts</code></a
+          >
+          (and Python's copy), Spanish too.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The password offer:</b> after signing in by an emailed link or code, with no password yet (the
+      <code>me</code> answer's password state already says so), the page shows its existing “Your password” form before
+      going on, with a lead saying: “Set a password to sign in with it next time. Without one, you'll sign in by email
+      every time.” Plus a “Not now” button that goes on.
+      <ul>
+        <li>The sign-in bar does the same: its “Set a password” form opens by itself once, with the same lead.</li>
+        <li>Not after a password sign-in, and not when one is set.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Checked by:</b> SignInCheck's tests (caught vs sent answers); the cloud's browser test signs in by code and
+      sees the offer, saves a password, and on a second run skips it; the recipe box's bar test sees the caught-mail
+      line. Then Owen on test.spell.space.
+    </li>
+    <li>
+      <b>Left out:</b> real mail (Real Sign-In Mail, the next phase); asking again on later sign-ins (once a sign-in
+      only); a “never ask me” setting.
+    </li>
+  </ol></epic-field
+><epic-field name="files"
+  ><p>
+    the
+    <a
+      href="/app/src/spaces/server/node/routes/cloudSignIn.html"
+      target="src-app-src-spaces-server-node-routes-cloudsignin-html"
+      ><code title="app/src/spaces/server/node/routes/cloudSignIn.html">cloud sign-in page</code></a
+    >, the
+    <a href="/parser/src/core/signInBar.ts" target="src-parser-src-core-signinbar-ts"
+      ><code title="parser/src/core/signInBar.ts">sign-in bar</code></a
+    >
+    and its texts in
+    <a href="/parser/src/core/core.types.ts" target="src-parser-src-core-core-types-ts"
+      ><code title="parser/src/core/core.types.ts">core's sign-in texts</code></a
+    >,
+    <a href="/src/server/signIn/SignInCheck.ts" target="src-src-server-signin-signincheck-ts"
+      ><code title="src/server/signIn/SignInCheck.ts">SignInCheck</code></a
+    >'s ask answer, the
+    <a href="/src/server/signIn/signIn.types.ts" target="src-src-server-signin-signin-types-ts"
+      ><code title="src/server/signIn/signIn.types.ts">Mailer</code></a
+    >
+    shape with
+    <a href="/src/server/signIn/MailCatcher.ts" target="src-src-server-signin-mailcatcher-ts"
+      ><code title="src/server/signIn/MailCatcher.ts">MailCatcher</code></a
+    >
+    and
+    <a href="/src/server/signIn/SendmailSender.ts" target="src-src-server-signin-sendmailsender-ts"
+      ><code title="src/server/signIn/SendmailSender.ts">SendmailSender</code></a
+    >, their tests
+  </p></epic-field
+><epic-field name="verify"
+  ><p>
+    SignInCheck's tests (the ask answer says caught or sent); the cloud's browser test signs in by code and sees the
+    password offer, and the caught-mail notice; then Owen on test.spell.space.
+  </p></epic-field
+>

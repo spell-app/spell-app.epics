@@ -3,7 +3,9 @@ id: r2
 epic: atmosphere
 from: 🚧 mockup (0bcde415)
 at: 2026-11-15T13:12-05:00
-status: new
+status: filed
+filed: P40 · Email Sign-In Help
+phase: p-email-sign-in-help
 ---
 
 ## The person's words
