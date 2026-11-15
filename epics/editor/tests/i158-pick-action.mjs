@@ -10,7 +10,7 @@ const EDITOR =
   process.argv[3] ?? JSON.parse(readFileSync("/Users/owen/www/spell.worktrees/editor/.spell-server.editor.json", "utf8")).url
 
 const browser = await chromium.launch()
-const context = await browser.newContext({ viewport: { width: 1500, height: 1000 }, colorScheme: "dark" })
+const context = await browser.newContext({ viewport: { width: 2400, height: 1100 }, colorScheme: "dark" })
 await context.route(/\/api\/(projects\/file|prefs)\//, (route) => {
   if (route.request().method() === "GET") return route.continue()
   return route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
@@ -31,26 +31,20 @@ if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.insp
 }
 await page.waitForTimeout(1500)
 const path = await page.evaluate(() => {
-  const find = (root) => {
-    for (const el of root.querySelectorAll("*")) {
-      if (/^\s*cheat\s*$/i.test(el.textContent ?? "") && /button|action/.test(el.localName)) return el
-      if (el.shadowRoot) {
-        const inner = find(el.shadowRoot)
-        if (inner) return inner
-      }
-    }
-  }
-  const el = find(document.querySelector(".AppPaneBody"))
-  window.__cheat = el
-  const chain = []
-  for (let at = el; at; at = at.parentElement ?? at.getRootNode().host) {
-    chain.push(`${at.localName}${at.getAttribute("data-spell-at") ? "@" + at.getAttribute("data-spell-at") : ""}`)
-    if (at.classList?.contains("AppPaneBody")) break
-  }
+  const el = document.querySelector(".AppPaneBody ui-toolbar > ui-action:nth-of-type(2)")
   const box = el.getBoundingClientRect()
-  return { chain, x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  document.querySelector(".AppPaneBody").addEventListener("click", (event) => {
+    window.__path = event.composedPath().filter((at) => at instanceof Element).slice(0, 8)
+      .map((at) => at.localName + (at.getAttribute("data-spell-at") ? "@" + at.getAttribute("data-spell-at") : ""))
+  }, { capture: true })
+  return { at: el.getAttribute("data-spell-at"), x: box.x + box.width / 2, y: box.y + box.height / 2, w: box.width }
 })
-console.log("cheat:", path.chain.join(" < "))
+console.log("cheat:", JSON.stringify(path))
+console.log(await page.evaluate(() => {
+  const el = document.querySelector(".AppPaneBody ui-toolbar > ui-action:nth-of-type(2)")
+  const r = (e) => { const b = e.getBoundingClientRect(); return [e.localName, getComputedStyle(e).display, Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)].join(" ") }
+  return [r(el), ...[...(el.shadowRoot?.querySelectorAll("*") ?? [])].slice(0, 4).map(r), r(document.querySelector(".AppPaneBody ui-toolbar")), r(document.querySelector(".AppPaneBody"))].join("\n")
+}))
 await page.mouse.click(path.x, path.y)
 await page.waitForTimeout(2000)
 const state = await page.evaluate(() => {
@@ -63,7 +57,8 @@ const state = await page.evaluate(() => {
     file: editor.file?.file,
     caret: position && { line: position.lineNumber, text: code.getModel().getLineContent(position.lineNumber).trim() },
     marks: document.querySelectorAll(".InputEditor .FollowedLine").length,
-    focus: code?.hasTextFocus()
+    focus: code?.hasTextFocus(),
+    path: window.__path
   }
 })
 console.log(JSON.stringify(state, null, 1))
