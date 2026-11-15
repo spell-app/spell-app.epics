@@ -43,7 +43,22 @@ for (const scheme of ["light", "dark"]) {
   await page.waitForTimeout(1500)
   const bulb = page.locator(".lightBulbWidget, .lightBulbWidget .codicon").first()
   const hasBulb = await bulb.isVisible().catch(() => false)
-  await page.evaluate(() => window.__code.trigger("probe", "editor.action.codeAction", {}))
+  // the right-click menu's rows
+  const target = await page.evaluate(() => {
+    const { left, top } = window.__code.getScrolledVisiblePosition(window.__code.getPosition())
+    const rect = window.__code.getDomNode().getBoundingClientRect()
+    return { x: rect.left + left + 2, y: rect.top + top + 8 }
+  })
+  await page.mouse.click(target.x, target.y, { button: "right" })
+  await page.waitForTimeout(800)
+  const rows = await page.locator(".monaco-menu .action-label").allTextContents().catch(() => [])
+  console.log(scheme, "context menu:", rows.filter(Boolean).join(" | "))
+  await page.screenshot({ path: `${OUT}/T74-context-menu-${scheme}.png` })
+  await page.keyboard.press("Escape")
+  await page.evaluate(() => window.__code.focus())
+  await page.waitForTimeout(400)
+  // the light bulb's menu, as a click on it shows:  every action, never applied by itself
+  await page.evaluate(() => window.__code.trigger("probe", "editor.action.codeAction", { apply: "never" }))
   await page.waitForTimeout(1200)
   const menu = await page.evaluate(() =>
     [...document.querySelectorAll(".action-widget .action-label, .action-widget .title")].map((e) => e.textContent).join(" | ")
@@ -55,7 +70,7 @@ for (const scheme of ["light", "dark"]) {
   await page.keyboard.press("Enter")
   await page.waitForTimeout(800)
   const after = await page.evaluate((line) => window.__code.getModel().getLineContent(line), found.line)
-  console.log(scheme, "after Make it code:", after)
+  console.log(scheme, "after Make it code:", JSON.stringify(after))
   // and back by typing `"` right after its `{`
   await page.evaluate((line) => {
     const text = window.__code.getModel().getLineContent(line)
