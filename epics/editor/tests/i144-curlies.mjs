@@ -19,7 +19,14 @@ const TEXT = `a "probe" is an app
 const browser = await chromium.launch()
 for (const scheme of ["light", "dark"]) {
   const context = await browser.newContext({ viewport: { width: 1800, height: 900 }, colorScheme: scheme })
-  await context.route(/\/api\/(projects\/file|prefs)\//, (route) => {
+  await context.route(/\/api\/(projects\/file|prefs)\//, async (route) => {
+    // Card.spell read as the sample, so the editor shows it as the file
+    if (route.request().method() === "GET" && /Card\.spell/.test(route.request().url())) {
+      const response = await route.fetch()
+      const body = await response.text()
+      console.log("GET", route.request().url(), body.slice(0, 120))
+      return route.fulfill({ response, body: body.startsWith("{") ? body : TEXT })
+    }
     if (route.request().method() === "GET") return route.continue()
     return route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   })
@@ -42,7 +49,10 @@ for (const scheme of ["light", "dark"]) {
     model.pushEditOperations([], [{ range: model.getFullModelRange(), text }], () => null)
     return model.getValue().slice(0, 20)
   }, TEXT))
-  await page.waitForTimeout(1200)
+  for (const wait of [100, 400, 800]) {
+    await page.waitForTimeout(wait)
+    console.log(wait, await page.evaluate(() => { const m = window.editor.shownCodeEditor.getModel(); return m.uri.toString() + " " + m.getValue().slice(0, 12) + " v" + m.getVersionId() }))
+  }
   const info = await page.evaluate(() => ({
     value: window.editor.shownCodeEditor?.getModel().getValue().slice(0, 30),
     editors: [...document.querySelectorAll(".monaco-editor")].map((each) => each.textContent.slice(0, 30))
