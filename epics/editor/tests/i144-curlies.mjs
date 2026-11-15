@@ -33,13 +33,15 @@ for (const scheme of ["light", "dark"]) {
     const { editor } = window
     editor.showEditor(editor.project.spellFiles.find((each) => each.path.endsWith("/Card.spell")).path)
   })
-  await page.waitForSelector(".bubbly-layer > *", { timeout: 90000 })
+  await page.waitForSelector(".bubbly-layer > *", { timeout: 90000, state: "attached" })
   await page.waitForTimeout(2000)
   // edited, then shot before the editor's save (answered `{}`) can read the file back
-  await page.evaluate((text) => {
+  console.log(await page.evaluate((text) => {
     const code = window.editor.shownCodeEditor
-    code.executeEdits("probe", [{ range: code.getModel().getFullModelRange(), text }])
-  }, TEXT)
+    const model = code.getModel()
+    model.pushEditOperations([], [{ range: model.getFullModelRange(), text }], () => null)
+    return model.getValue().slice(0, 20)
+  }, TEXT))
   await page.waitForTimeout(1200)
   const info = await page.evaluate(() => ({
     value: window.editor.shownCodeEditor?.getModel().getValue().slice(0, 30),
