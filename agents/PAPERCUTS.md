@@ -1823,6 +1823,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   from the worktree, or merge `main` first.  (epic editor;  the `spell` link runs main's CLI)
 
 - 2026-11-14 · A worktree's page server, started with the `spell` on the PATH (`spell server start all`), answered every `/api` request with 500 "handler is not a function":  the PATH's `spell` is the MAIN checkout's, and its stack mixed main's `Router.ts` with the worktree's route modules.  Fix:  stop it, then start from the worktree with its own `node bin/spell.mjs server start all`.  (epic editor)  Fixed 2026-11-14 (epic `epic-engine` I282):  the `spell` bin, run inside another checkout of the kit, hands off to that checkout's own `bin/spell.mjs` once it's installed;  the workaround isn't needed after that.
+- 2026-11-15 · MAIN's page server (4747) ran a worktree's code (`node ... spell.worktrees/epic-engine/src/server/page/cli.ts serve --root ~/www/spell`), so every `/api` call answered 500 "handler is not a function" and Solitaire broke:  a worktree's `epic merge` found main's server stale after the merge and restarted it with the caller's own `cli.ts`.  Fix:  restart it from main (`node bin/spell.mjs server start`).  (epic language, r70)  Fixed 2026-11-15 (epic `epic-engine` I287):  `PageServer.ensure()` starts the kit's OWN `src/server/page/cli.ts`, and `serve` refuses another kit's code.
 
 ## brand
 
