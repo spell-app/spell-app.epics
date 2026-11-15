@@ -3,7 +3,8 @@ id: r19
 epic: language
 from: 🚧 editor (5de24f81)
 at: 2026-11-15T14:10-05:00
-status: new
+status: filed
+filed: Fixed directly in the session (commit a9185de54):  the shapes layer is clipped at the text's left edge while scrolled sideways
 images: image-1.png
 ---
 
