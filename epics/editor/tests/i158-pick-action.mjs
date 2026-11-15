@@ -56,7 +56,7 @@ const state = await page.evaluate(() => {
     selected: Inspector.allSelected.map(({ element, label }) => `${element.localName} ${label ?? ""}`),
     followed: editor.followed,
     file: editor.file?.file,
-    caret: position && { line: position.lineNumber, text: code.getModel().getLineContent(position.lineNumber).trim() },
+    caret: position && { line: position.lineNumber, column: position.column, at: code.getModel().getLineContent(position.lineNumber).slice(position.column - 1, position.column + 7), text: code.getModel().getLineContent(position.lineNumber).trim() },
     marks: document.querySelectorAll(".InputEditor .FollowedLine").length,
     focus: code?.hasTextFocus(),
     path: window.__path
