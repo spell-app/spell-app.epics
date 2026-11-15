@@ -30,7 +30,7 @@ for (const scheme of ["light", "dark"]) {
     await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
   }
   await page.waitForTimeout(1500)
-  await page.locator("solitaire-app").getByText("Restart", { exact: true }).locator("visible=true").first().click()
+  await page.locator(".InspectorViews").getByText("Solitaire", { exact: true }).first().click({ force: true })
   await page.waitForTimeout(3000)
   const restart = page.locator("ui-section.InspectorEvent.action").filter({ hasText: "restart the game" }).first()
   await restart.scrollIntoViewIfNeeded()
