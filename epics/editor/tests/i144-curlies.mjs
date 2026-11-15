@@ -44,10 +44,10 @@ for (const scheme of ["light", "dark"]) {
   await page.waitForTimeout(2000)
   // edited, then shot before the editor's save (answered `{}`) can read the file back
   console.log(await page.evaluate((text) => {
-    const code = window.editor.shownCodeEditor
-    const model = code.getModel()
-    model.pushEditOperations([], [{ range: model.getFullModelRange(), text }], () => null)
-    return model.getValue().slice(0, 20)
+    // the file's own text, as if it loaded so:  the editor's model follows it, and nothing saves
+    const card = window.editor.project.spellFiles.find((each) => each.path.endsWith("/Card.spell"))
+    card.contents = text
+    return window.editor.shownCodeEditor.getModel().getValue().slice(0, 20)
   }, TEXT))
   for (const wait of [100, 400, 800]) {
     await page.waitForTimeout(wait)
