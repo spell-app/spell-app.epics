@@ -84,14 +84,32 @@ function drawn() {
     const items = [...draft.querySelectorAll("ui-button, ui-icon, a, span")].map((e) => (e.shadowRoot?.querySelector("[part~=icon], [part~=button]") ?? e).getBoundingClientRect()).filter((b) => b.width)
     out.draftBar = { height: r(draft.getBoundingClientRect().height) }
   }
+  // each Inspector card:  its fold chevron's and ✕'s glyphs from its edges, its body's first box from its edges and its bar
+  const glyph = (el) => (el?.shadowRoot?.querySelector("svg") ?? el)?.getBoundingClientRect()
   const cards = [...document.querySelectorAll(".InspectorCard")].filter((c) => c.getBoundingClientRect().height > 0)
   out.inspector = cards.map((card) => {
-    const header = card.shadowRoot?.querySelector("[part~=header]")?.getBoundingClientRect()
     const box = card.getBoundingClientRect()
-    const first = [...card.querySelectorAll("ui-property-editor, ui-tree, .CodeCard, .InspectorBody, *")].map((e) => e.getBoundingClientRect()).find((b) => header && b.height > 4 && b.top >= header.bottom - 0.5)
-    const title = card.shadowRoot?.querySelector("[part~=title], [part~=label]")?.getBoundingClientRect()
-    return { panel: card.dataset.panel, headerH: header ? r(header.height) : null, titleLeft: title ? r(title.left - box.left) : null, headerToFirst: first && header ? r(first.top - header.bottom) : null }
+    const bar = card.shadowRoot.querySelector("[part~=title]").getBoundingClientRect()
+    const fold = card.shadowRoot.querySelector("[part~=fold-icon]")?.getBoundingClientRect()
+    const close = glyph(card.querySelector(":scope > .PanelClose"))
+    const body = card.querySelector(".InspectorSection")
+    const first = body && [...body.querySelectorAll("*")].map((e) => e.getBoundingClientRect()).find((b) => b.height > 4 && b.width > 4)
+    return {
+      panel: card.dataset.panel,
+      bar: r(bar.height),
+      foldLeft: fold ? r(fold.left - box.left) : null,
+      closeRight: close ? r(box.right - close.right) : null,
+      bodyLeft: first ? r(first.left - box.left) : null,
+      bodyTop: first ? r(first.top - bar.bottom) : null
+    }
   })
+  const hide = (function find(root) {
+    for (const el of root.querySelectorAll("*")) {
+      if (el.classList?.contains("HideCode")) return el
+      if (el.shadowRoot) { const f = find(el.shadowRoot); if (f) return f }
+    }
+  })(document)
+  if (hide && tabs) out.fileTabs.rightToGlyph = r(tabs.getBoundingClientRect().right - glyph(hide).right)
   return out
 }
 
