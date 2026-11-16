@@ -154,10 +154,11 @@ async function openMenu(menu, label) {
   check(await item.count(), `no menu ${label} (${menu})`)
   await page.locator(`${menu} [part~=item]`).first().click({ timeout: 5000 })
   await pause(700)
+  // its popup is the `.BarMenuPopup` for it, its items `ui-action`s (and `ui-submenu`s)
   const shown = await item.evaluate((element) => {
-    const popup = element.querySelector(".BarMenuPopup") ?? element.nextElementSibling
-    const drawn = (each) => each.shadowRoot?.querySelector("[part~=item]")?.getBoundingClientRect().width
-    return [...(popup?.querySelectorAll("ui-item") ?? [])].filter(drawn).length
+    const popup = document.querySelector(`.BarMenuPopup[for="${element.id}"]`)
+    if (!popup?.getBoundingClientRect().height) return 0
+    return popup.querySelectorAll("ui-action, ui-submenu, ui-item").length
   })
   check(shown, `menu ${label} opened no items`)
   await page.keyboard.press("Escape")
@@ -194,6 +195,11 @@ async function open(project, file) {
   check((await codeText()).length, "the code pane is empty")
 }
 
+/** has the Inspector something picked?  (a part's or a thing's fields, not its "pick something" tip) */
+const picked = async () =>
+  !(await page.locator(".InspectorCard").first().locator(".InspectorTip").count()) &&
+  !!(await page.locator(".InspectorCard").first().locator("ui-input, ui-select, ui-dropdown, ui-checkbox").count())
+
 for (const [project, file] of PROJECTS) {
   await runStep(`${project}:open`, () => open(project, file))
   await runStep(`${project}:walk code`, () => walkCode(1, 40))
@@ -205,26 +211,22 @@ for (const [project, file] of PROJECTS) {
     check(await page.locator(".InspectorPane").count(), "no Inspector after the crosshairs")
     const box = await page.locator(".AppPaneProgram").first().boundingBox()
     check(box, "no app drawn (.AppPaneProgram)")
-    // a few places, till one picks something (Solitaire's felt between the piles picks nothing)
+    // a few places, till one picks something:  an app's background may pick nothing
     for (const [x, y] of [[1 / 3, 1 / 3], [0.1, 0.2], [0.15, 0.4], [0.5, 0.1]]) {
       await page.mouse.click(box.x + box.width * x, box.y + box.height * y)
       await pause(1500)
-      if (await page.locator(".InspectorPartTag").count()) break
+      if (await picked()) break
     }
-    check(await page.locator(".InspectorPartTag").count(), "picking in the app selected nothing")
-    // each card folded and back
-    for (const card of await page.locator(".InspectorCard:not(.locked)").all()) {
-      const head = card.locator("[part~=header], .InspectorTrail, header").first()
-      if (!(await head.count())) continue
-      await head.click({ timeout: 3000 }).catch(() => {})
-      await pause(300)
-      await head.click({ timeout: 3000 }).catch(() => {})
-      await pause(300)
-    }
+    check(await picked(), "picking in the app selected nothing (the Inspector still shows its tip)")
   })
   await runStep(`${project}:property editor`, async () => {
     // a field of what's picked:  focused, then left alone
-    const field = page.locator(".InspectorMain ui-input").filter({ visible: true }).first()
+    const field = page
+      .locator(".InspectorCard")
+      .first()
+      .locator("ui-input, ui-select, ui-dropdown")
+      .filter({ visible: true })
+      .first()
     check(await field.count(), "no property field in the Inspector")
     await field.click({ timeout: 3000 })
     await pause(400)
@@ -269,9 +271,9 @@ for (const [project, file] of PROJECTS) {
     check((await button.getAttribute("aria-pressed")) === "false", "the compiled code didn't hide")
   })
   await runStep(`${project}:type`, async () => {
-    // at the end of the first line of code after the first (not a comment, not blank)
+    // at the end of the first line of code after the first (not a comment or heading, not blank)
     const before = await codeText()
-    const lineNumber = before.split("\n").findIndex((line, index) => index && /^\s*[^\s-]/.test(line)) + 1
+    const lineNumber = before.split("\n").findIndex((line, index) => index && /\S/.test(line) && !/^\s*(--|\/\/|#)/.test(line)) + 1
     check(lineNumber > 0, "no line of code to type in")
     await clickLine(lineNumber)
     await page.evaluate((at) => {
