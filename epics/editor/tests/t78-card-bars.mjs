@@ -1,4 +1,4 @@
-// Epic `editor` T78, T79:  the Inspector's card headers -- no crosshairs, no ✕;  the Code card's Add Event and Add Action.
+// Epic `editor` T78, T79:  the Inspector's card headers -- the Inspector card's crosshairs kept, no ✕;  the Code card's Add Event and Add Action.
 // - Usage:  node t78-card-bars.mjs [editorUrl] [--add]
 // - Saves nothing:  every non-GET to /api is answered `{}`;  a file written is kept in the run, and read back from there.
 import { readFileSync } from "node:fs"
