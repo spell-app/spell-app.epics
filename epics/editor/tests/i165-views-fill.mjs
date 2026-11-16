@@ -35,6 +35,7 @@ const browser = await chromium.launch()
 for (const scheme of ["light", "dark"]) {
   for (const [width, height, kind] of [
     [1500, 1100, "desk"],
+    [1500, 640, "short-window"],
     [390, 844, "phone"]
   ]) {
     const context = await browser.newContext({ viewport: { width, height }, colorScheme: scheme, deviceScaleFactor: 2 })
@@ -46,8 +47,8 @@ for (const scheme of ["light", "dark"]) {
     const errors = []
     page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 300)))
     await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
-    await page.waitForSelector(".InputEditor .monaco-editor .view-line", { timeout: 90000, state: "attached" })
-    await page.waitForTimeout(3000)
+    await page.waitForSelector("solitaire-app", { timeout: 90000, state: "attached" })
+    await page.waitForTimeout(5000)
     if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.inspecting")))) {
       await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
     }
