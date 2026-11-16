@@ -47,7 +47,9 @@ page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 
 await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
 await page.waitForFunction(() => window.Inspector && document.querySelector("solitaire-card"), undefined, { timeout: 90000 })
 await page.waitForTimeout(2500)
+await page.waitForTimeout(2500)
 if (!(await page.evaluate(() => window.Inspector.isOpen))) await page.evaluate(() => window.Inspector.showOrHide())
+await page.waitForSelector(".InspectorColumn > .InspectorSplit", { timeout: 30000 })
 // a card selected, so the Code card has something to show
 await page.evaluate(() => {
   window.Inspector.stopInspecting?.()
