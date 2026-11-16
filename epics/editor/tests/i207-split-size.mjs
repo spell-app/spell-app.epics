@@ -45,21 +45,16 @@ const page = await context.newPage()
 const errors = []
 page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 300)))
 await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
-await page.waitForSelector("solitaire-app", { timeout: 90000, state: "attached" })
-await page.waitForTimeout(5000)
-for (let tries = 0; tries < 5 && !(await page.locator(".InspectorColumn .InspectorSplit").count()); tries++) {
-  await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
-  await page.waitForTimeout(2000)
-}
-// select a card, so the Code card has something to show
+await page.waitForFunction(() => window.Inspector && document.querySelector("solitaire-card"), undefined, { timeout: 90000 })
+await page.waitForTimeout(2500)
+if (!(await page.evaluate(() => window.Inspector.isOpen))) await page.evaluate(() => window.Inspector.showOrHide())
+// a card selected, so the Code card has something to show
+await page.evaluate(() => {
+  window.Inspector.stopInspecting?.()
+  window.Inspector.select([...document.querySelectorAll("solitaire-card")].at(-1))
+})
+await page.waitForTimeout(2500)
 const hasCode = () => page.evaluate(() => !!document.querySelector(".InspectorCard[data-panel=code]:not(.locked)"))
-for (let tries = 0; tries < 6 && !(await hasCode()); tries++) {
-  if (!(await page.locator(".InspectorColumn .InspectorSplit").count()))
-    await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
-  await page.waitForTimeout(1500)
-  await page.locator("solitaire-card").nth(3).click({ force: true }).catch(() => {})
-  await page.waitForTimeout(2500)
-}
 console.log("code card selectable:", await hasCode())
 if (process.env.INJECT)
   await page.addStyleTag({
