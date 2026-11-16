@@ -77,7 +77,7 @@ async function open(project, file) {
 
 /** click the bar menu titled `title`, then close it */
 async function openMenu(title) {
-  await page.locator("ui-menu.AppMenu").getByText(title, { exact: true }).first().click({ timeout: 3000 })
+  await page.locator(".AppMenu").getByText(title, { exact: true }).first().click({ timeout: 3000 })
   await pause(600)
   await page.keyboard.press("Escape")
   await pause(300)
@@ -131,7 +131,7 @@ for (const [project, file] of [
   await tryStep(`${project}:compiled code`, async () => {
     // View › Compiled Code, its languages' tabs, a walk through the code beside it, then View › Compiled Code again
     const toggle = async () => {
-      await page.locator("ui-menu.AppMenu").getByText("View", { exact: true }).first().click({ timeout: 3000 })
+      await page.locator(".AppMenu").getByText("View", { exact: true }).first().click({ timeout: 3000 })
       await pause(800)
       await page.getByText("Compiled Code", { exact: true }).filter({ visible: true }).first().click({ timeout: 3000 })
       await pause(2500)
