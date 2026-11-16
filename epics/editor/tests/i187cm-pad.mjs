@@ -20,15 +20,25 @@ const MEASURE = (root, box) => {
   })
   const rects = painted.map((e) => e.getBoundingClientRect())
   // a line's rails:  its own left plus the first stop of `--cmb-rails`
-  const lines = [...root.querySelectorAll(".cm-line")].filter((l) => getComputedStyle(l).backgroundImage !== "none")
-  const railLeft = lines.length
-    ? Math.min(...lines.map((l) => l.getBoundingClientRect().left + parseFloat(getComputedStyle(l).backgroundPositionX || "0")))
-    : null
   const content = root.querySelector(".cm-content").getBoundingClientRect()
   const firstLine = root.querySelector(".cm-line").getBoundingClientRect()
   const visibleRects = rects.filter((b) => b.bottom > box.top && b.top < box.bottom)
+  // a band off its line:  outside the line it's in, up or down
+  const offLine = painted.filter((e) => {
+    const line = e.closest(".cm-line")
+    if (!line) return false
+    const b = e.getBoundingClientRect()
+    const l = line.getBoundingClientRect()
+    return b.top < l.top - 0.5 || b.bottom > l.bottom + 0.5
+  }).length
+  const chevron = root.querySelector(".cmb-fold path")?.getBoundingClientRect()
+  const described = [...root.querySelectorAll(".cmb-band-described")].map((e) => +(box.right - e.getBoundingClientRect().right).toFixed(1))
   return {
     box: r(box),
+    bands: painted.length,
+    offLine,
+    chevron: chevron && chevron.width ? { l: +(chevron.left - box.left).toFixed(1), r: +(chevron.right - box.left).toFixed(1) } : null,
+    describedRight: described.slice(0, 3),
     contentTop: +(content.top - box.top).toFixed(1),
     firstLineTop: +(firstLine.top - box.top).toFixed(1),
     firstLineLeft: +(firstLine.left - box.left).toFixed(1),
@@ -36,7 +46,6 @@ const MEASURE = (root, box) => {
     bandLeft: +(Math.min(...visibleRects.map((b) => b.left)) - box.left).toFixed(1),
     bandBottom: +(box.bottom - Math.max(...visibleRects.map((b) => b.bottom))).toFixed(1),
     bandRight: +(box.right - Math.max(...visibleRects.map((b) => b.right))).toFixed(1),
-    railLeft: railLeft === null ? null : +(railLeft - box.left).toFixed(1),
     gutter: (() => {
       const g = root.querySelector(".cm-gutters")
       if (!g || getComputedStyle(g).display === "none") return null
