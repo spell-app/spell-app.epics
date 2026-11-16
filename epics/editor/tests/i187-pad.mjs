@@ -59,8 +59,10 @@ for (const scheme of ["light", "dark"]) {
   const clip = { x: Math.max(0, top.paneLeft - 20), y: Math.max(0, top.tabsBottom - 40), width: 700, height: 180 }
   await page.screenshot({ path: `${OUT}/i187-${TAG}-pane-${scheme}.png`, clip })
   await page.mouse.move(top.paneLeft + 300, top.tabsBottom + 300)
-  await page.mouse.wheel(0, 137)
+  for (let step = 0; step < 4; step++) { await page.mouse.wheel(0, 60); await page.waitForTimeout(150) }
   await page.waitForTimeout(900)
+  console.log(scheme, TAG, "scrolled by", await page.evaluate(() => [...document.querySelectorAll(".monaco-editor")].find((each) => !each.closest(".CodeSlice") && each.getBoundingClientRect().width > 400).querySelector(".lines-content").style.top))
+  await page.screenshot({ path: `${OUT}/i187-${TAG}-scrolled-${scheme}.png`, clip })
   console.log(scheme, TAG, "pane scrolled", JSON.stringify((({ lineMinusBandTop, bandLeftFromPane }) => ({ lineMinusBandTop, bandLeftFromPane }))(await page.evaluate(measurePane))))
   // a fold arrow still folds:  press the first visible one
   const folded = await page.evaluate(() => {
