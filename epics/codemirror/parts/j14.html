@@ -1,2 +1,255 @@
 <!-- plan-doc part:  #j14's details in codemirror.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p data-title-body><em>What it says on the tin.</em><epic-clarify></epic-clarify></p>
+<epic-more
+  ><p>
+    When you switch the bubbly look off, a page file in the CodeMirror editor shows fewer colours than it did in Monaco.
+    The words inside a tag, and any markup it draws, stay plain black text.
+  </p>
+
+  <p>Three words first:</p>
+  <ul>
+    <li>
+      <b>A page file</b> is a Spell file written as a page rather than as code.
+      <ul>
+        <li>It starts with a head line, <code>"card api" is a notebook page</code>.</li>
+        <li>
+          Under it come lines of prose, and tags like <code>&lt;for card in its cards&gt;</code> that say what the page
+          draws.
+        </li>
+        <li>
+          The editor knows one by its first line (<a
+            href="/parser/src/spell/spell.types.ts"
+            target="src-parser-src-spell-spell-types-ts"
+            ><code title="parser/src/spell/spell.types.ts">SP.formOfText()</code></a
+          >
+          says <code>"page"</code>).
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The bubbly look off</b> means the code pane draws plain text with coloured words, instead of Spell's bands,
+      rails and pills.
+      <ul>
+        <li>With the look off, the colours come from the words alone, the way any code editor colours code.</li>
+      </ul>
+    </li>
+    <li>
+      <b>A tag's Spell twin</b> is the line of ordinary Spell code the tag stands for.
+      <ul>
+        <li>
+          <code>&lt;for card in its cards loading="Wait"&gt;</code> stands for <code>for card in its cards</code>.
+        </li>
+        <li>The head <code>"card api" is a notebook page</code> stands for <code>card api is a page :</code>.</li>
+        <li>
+          A page compiles by reading each tag as its twin (<a
+            href="/parser/src/spell/PageTwin.ts"
+            target="src-parser-src-spell-pagetwin-ts"
+            ><code title="parser/src/spell/PageTwin.ts">SP.PageTwin</code></a
+          >), so a page and its code twin do exactly the same thing.
+        </li>
+      </ul>
+    </li>
+  </ul>
+
+  <p>
+    What CodeMirror colours today, from the page's own pieces alone (<a
+      href="/app/src/app/ui/codemirror/CodeMirrorTokens.ts"
+      target="src-app-src-app-ui-codemirror-codemirrortokens-ts"
+      ><code title="app/src/app/ui/codemirror/CodeMirrorTokens.ts">CodeMirrorTokens.pageSpans()</code></a
+    >):
+  </p>
+  <ul>
+    <li>the prose lines, and <code>&lt;!-- ... --&gt;</code> comments, as comments</li>
+    <li>the head: its name as text, the rest of it as keywords</li>
+    <li>a tag's <code>&lt;</code> and its first word (<code>for</code>), and closers like <code>&lt;/for&gt;</code></li>
+    <li>quoted text and numbers inside a tag</li>
+  </ul>
+
+  <p>A real page file, from the CodeMirror colouring test, and what each piece of it gets in each editor:</p>
+  <epic-code title="A page file (CodeMirrorTokens.test.ts)" language="spell">
+    <pre>
+"card api" is a notebook page
+	A card, face up or down.
+	&lt;!-- note --&gt;
+	&lt;for card in its cards loading="Wait"&gt;
+		&lt;card /&gt;
+	&lt;/for&gt;</pre>
+  </epic-code>
+
+  <ui-table celled padding="compact" appearance="striped" unstackable>
+    <table>
+      <thead>
+        <tr>
+          <th>Piece</th>
+          <th>CodeMirror today</th>
+          <th>Monaco did</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>"card api"</code></td>
+          <td>text</td>
+          <td>text</td>
+        </tr>
+        <tr>
+          <td><code>is a notebook page</code></td>
+          <td>all keywords</td>
+          <td><code>is a</code> and <code>page</code> keywords, <code>notebook</code> an attribute name</td>
+        </tr>
+        <tr>
+          <td><code>A card, face up or down.</code></td>
+          <td>comment</td>
+          <td>comment</td>
+        </tr>
+        <tr>
+          <td><code>&lt;!-- note --&gt;</code></td>
+          <td>comment</td>
+          <td>comment</td>
+        </tr>
+        <tr>
+          <td><code>&lt;</code> and <code>for</code></td>
+          <td>punctuation, keyword</td>
+          <td>punctuation, keyword</td>
+        </tr>
+        <tr>
+          <td><code>card in its cards</code></td>
+          <td><b>plain</b></td>
+          <td>coloured as Spell colours its twin, <code>for card in its cards</code></td>
+        </tr>
+        <tr>
+          <td><code>loading</code></td>
+          <td><b>plain</b></td>
+          <td>attribute name</td>
+        </tr>
+        <tr>
+          <td><code>"Wait"</code></td>
+          <td>text</td>
+          <td>text</td>
+        </tr>
+        <tr>
+          <td>the tag's closing <code>&gt;</code></td>
+          <td><b>plain</b></td>
+          <td>punctuation</td>
+        </tr>
+        <tr>
+          <td><code>&lt;card /&gt;</code> (markup)</td>
+          <td><b>plain</b></td>
+          <td>coloured as HTML</td>
+        </tr>
+        <tr>
+          <td><code>&lt;/for&gt;</code></td>
+          <td>punctuation</td>
+          <td>punctuation</td>
+        </tr>
+      </tbody>
+    </table>
+  </ui-table>
+
+  <p>
+    The simple route, colouring a page with the colourer every other Spell file uses (<a
+      href="/parser/src/spell/highlight/SpellHighlighter.ts"
+      target="src-parser-src-spell-highlight-spellhighlighter-ts"
+      ><code title="parser/src/spell/highlight/SpellHighlighter.ts">SP.SpellHighlighter.spans()</code></a
+    >), gives wrong colours, for two reasons:
+  </p>
+  <ul>
+    <li>
+      It reads the page's text as if it were plain Spell code.
+      <ul>
+        <li>
+          A prose line like <code>A card, face up or down.</code> would be coloured as code words, not as a comment.
+        </li>
+      </ul>
+    </li>
+    <li>
+      Its finer colours come from the file's parse, and a page's parse is a parse of the TWINS, not of the text you see.
+      <ul>
+        <li>
+          The twins hold words the file doesn't have (<code>to draw it</code>), and drop ones it does
+          (<code>&lt;</code>, <code>loading=</code>).
+        </li>
+        <li>So a word's place in the parse isn't its place in the file, and its colour lands on the wrong letters.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p>
+    Matching Monaco means doing what Monaco's colourer did, in CodeMirror: it was deleted when Monaco went (phase P6,
+    The Swap), but its code is in git (<code
+      title="app/src/app/ui/monaco/SpellTokensProvider.ts, before commit 3b810b602"
+      >SpellTokensProvider</code
+    >).
+  </p>
+  <ul>
+    <li>
+      For each tag, build its twin, and colour only the twin's tokens that are really in the file, at their own places.
+    </li>
+    <li>
+      Colour attribute names (<code>loading</code>), the head's flags (<code>notebook</code>), and the closing
+      <code>&gt;</code> or <code>/&gt;</code>.
+    </li>
+    <li>
+      Colour markup as HTML: the bubbly look's own reading of markup (<a
+        href="/app/src/app/ui/codemirror/CodeMirrorMarkup.ts"
+        target="src-app-src-app-ui-codemirror-codemirrormarkup-ts"
+        ><code title="app/src/app/ui/codemirror/CodeMirrorMarkup.ts">CodeMirrorMarkup</code></a
+      >'s shared marks) could give the pieces.
+    </li>
+    <li>Roughly 100 lines in <code>CodeMirrorTokens</code>, and a few more cases in its test: half a day.</li>
+  </ul>
+
+  <epic-code title="Monaco's twin colouring, the part to port (SpellTokensProvider, before 3b810b602)" language="ts">
+    <pre>
+// what the tag holds of spell, as its twin would colour it;  else as it's written
+const twin = this.twinTokens(parser, tokens).filter((token) =&gt; token.start &gt;= tag.start &amp;&amp; token.start &lt; tag.end)
+if (twin.length) addTokens(twin)
+...
+private twinTokens(parser: SP.SpellParser, tokens: P.Token[]): P.Token[] {
+  const [root] = parser.tokenizer.breakIntoIndentedBlocks(tokens)
+  const line = root &amp;&amp; firstLineIn(root)
+  const twin = line &amp;&amp; SP.PageTwin.lineOf(line, undefined, parser)
+  if (!twin) return []
+  const own: P.Token[] = []
+  P.Tokenizer.forEachToken([twin.line, ...(twin.body ? [twin.body] : [])], (token) =&gt; {
+    if (!SP.PageTwin.isSynthetic(token) &amp;&amp; !(token instanceof P.LineToken)) own.push(token)
+  })
+  return own
+}</pre>
+  </epic-code>
+
+  <epic-choices>
+    <epic-option letter="A" title="Leave it as it is"
+      ><ul>
+        <li>
+          A page file with the bubbly look off keeps today's colours: prose, head, tag words, closers, text and numbers.
+        </li>
+        <li>The words inside a tag, attribute names and markup stay plain.</li>
+        <li>Costs nothing; the bubbly look, on by default, draws all of it anyway.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Colour tag words by each tag's twin, as Monaco did" recommended
+      ><ul>
+        <li>
+          Port Monaco's twin colouring into <code>CodeMirrorTokens.pageSpans()</code>, with attribute names, the closing
+          <code>&gt;</code> and markup as HTML.
+        </li>
+        <li>A page file looks as it did in Monaco: nothing is lost in the swap.</li>
+        <li>Cost: about 100 lines and a few test cases, half a day; the code to port already exists.</li>
+        <li>Recommended: the swap promised nothing gets worse than Monaco, and this is a small, known port.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+
+  <epic-net-effect option="B" recommended>
+    <ul>
+      <li>
+        with the bubbly look off, a page file's tag words (<code>card in its cards</code>) are coloured as their Spell
+        twin's
+      </li>
+      <li>attribute names, the head's flags and a tag's closing <code>&gt;</code> get their colours back</li>
+      <li>markup in a page (<code>&lt;card /&gt;</code>) is coloured as HTML</li>
+      <li>
+        <code>CodeMirrorTokens</code>' docstring loses its "isn't done yet" line; its test gains the twin's colours
+      </li>
+    </ul>
+  </epic-net-effect></epic-more
+>
