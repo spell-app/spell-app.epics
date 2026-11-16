@@ -1,6 +1,6 @@
 // Epic `editor` T78, T79:  the Inspector's card headers -- no crosshairs, no ✕;  the Code card's Add Event and Add Action.
 // - Usage:  node t78-card-bars.mjs [editorUrl] [--add]
-// - Saves nothing:  every non-GET to /api is answered `{}`.
+// - Saves nothing:  every non-GET to /api is answered `{}`;  a file written is kept in the run, and read back from there.
 import { readFileSync } from "node:fs"
 import { chromium } from "/Users/owen/www/spell/node_modules/playwright/index.mjs"
 
@@ -25,8 +25,16 @@ function headers() {
 const browser = await chromium.launch()
 for (const scheme of ["light", "dark"]) {
   const context = await browser.newContext({ viewport: { width: 1400, height: 820 }, colorScheme: scheme, deviceScaleFactor: 2 })
-  await context.route(/\/api\//, (route) => {
-    if (route.request().method() === "GET") return route.continue()
+  // a file "saved" is kept here, and served back when the page reads it again, so an edit stays for the run
+  const kept = new Map()
+  await context.route(/\/(api|spaces)\//, (route) => {
+    const request = route.request()
+    const path = decodeURIComponent(new URL(request.url()).pathname).replace(/^\/(api\/projects\/file|spaces)\//, "")
+    if (request.method() === "GET") {
+      if (kept.has(path)) return route.fulfill({ status: 200, contentType: "text/plain", body: kept.get(path) })
+      return route.continue()
+    }
+    if (/\/api\/projects\/file\//.test(request.url())) kept.set(path, request.postData() ?? "")
     return route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   })
   const page = await context.newPage()
@@ -83,6 +91,7 @@ for (const scheme of ["light", "dark"]) {
     const before = await page.evaluate(() => [...document.querySelectorAll(".InspectorEvent.action .InspectorEventWords")].map((each) => each.textContent.trim()))
     await page.locator("ui-button.InspectorAddAction").first().click()
     await page.waitForTimeout(5000)
+    await page.mouse.move(5, 5)
     const after = await page.evaluate(() => [...document.querySelectorAll(".InspectorEvent.action .InspectorEventWords")].map((each) => each.textContent.trim()))
     const focused = await page.evaluate(() => document.activeElement?.closest?.(".InspectorEvent")?.textContent?.trim().slice(0, 40) ?? document.activeElement?.localName)
     console.log("actions before", JSON.stringify(before))
