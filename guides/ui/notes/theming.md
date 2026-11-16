@@ -482,8 +482,8 @@ theme to match each theme, in both light and dark").
   - Merlot, Paper, Midnight, Crisp and Pop take the recipe.
 - Read by:
   - `<ui-code>` (`number` and `title` take `constant` and `action`)
-  - the Spell editor's code:  `CodeThemes` builds Monaco's theme off the page as it draws, so the theme bench's tuning
-    shows at once
+  - the Spell editor's code (CodeMirror, since epic `codemirror`):  `CodeRules` colours each role with its
+    `--ui-code-<role>` variable, so the theme bench's tuning shows at once
   - the Spell extension's VS Code themes, 18 of them (`CodeThemeFile`, `VscodeThemes`)
 - `colors.contrast.test.ts` holds every role to 4.5:1 on the theme's panel and in a code block, comments too.
 
