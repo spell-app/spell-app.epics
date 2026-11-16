@@ -33,7 +33,7 @@ function measure() {
 
 const browser = await chromium.launch()
 for (const scheme of ["light", "dark"]) {
-  for (const [width, height, kind] of [
+  for (const [width, height, kind] of (process.env.ONLY === "phone" ? [[390, 844, "phone"]] : null) ?? [
     [1500, 1100, "desk"],
     [1500, 640, "short-window"],
     [390, 844, "phone"]
@@ -49,7 +49,8 @@ for (const scheme of ["light", "dark"]) {
     await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
     await page.waitForSelector("solitaire-app", { timeout: 90000, state: "attached" })
     await page.waitForTimeout(5000)
-    if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.inspecting")))) {
+    if (kind === "phone") await page.evaluate(() => document.querySelector("#InspectApp")?.click())
+    else if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.inspecting")))) {
       await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
     }
     await page.waitForTimeout(1500)
