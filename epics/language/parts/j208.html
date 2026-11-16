@@ -1,0 +1,101 @@
+<!-- plan-doc part:  #j208's details in language.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Q67's second half, "<code>it</code> = the thing just named", is <b>built but not shipped</b>: its census found example
+  lines whose meaning it would change, which their authors clearly didn't mean. The first half, the error with a hint,
+  is shipped (I106).
+</p>
+<p>
+  The rule as built (branch <code>language-I106-named-it</code>, one commit on top of <code>language</code>, not
+  merged):
+</p>
+<ul>
+  <li>
+    A line names a thing when its verb acts on one: a call of a project's or a built-in method (<code
+      >turn X face up</code
+    >, <code>put X on Y</code>, <code>play X</code>), and <code>add</code>, <code>append</code>, <code>prepend</code>,
+    <code>add X to Y before Z</code>, <code>move</code>, <code>remove</code>.
+  </li>
+  <li>
+    Its thing: the verb's direct object, its first slot (<code>X</code>), never where it goes (<code>Y</code>); only a
+    thing of a type the program declares (<code>Card</code>), never text, a number or a list.
+  </li>
+  <li>
+    From the next line on, <code>it</code> and <code>its X</code> mean that thing, in the same body and the bodies under
+    it, until another such line, a <code>get</code> or a <code>set it to</code>; a loop's <code>it</code> (its item) and
+    an <code>if ... and it</code> keep their own inside them. A line inside an <code>if</code> names it for that
+    <code>if</code>'s body only, as <code>get</code> does.
+  </li>
+  <li>
+    Compiled: a variable (<code>the card</code>, a loop's item, an argument) is read as itself; anything else is kept
+    first, <code>const it = this.stock.lastItem</code>, then <code>it?.turnFaceUp()</code>, so <code>it</code> stays the
+    card even after the line moved it.
+  </li>
+</ul>
+<p>The census: every frozen test project, every example and library app, every Spell guide, English and Spanish.</p>
+<ul>
+  <li>
+    <b>Bare <code>it</code>: 0 reads change</b>, anywhere.
+  </li>
+  <li>
+    <b><code>its X</code>: 13 reads change, in 2 examples, none of them meant:</b>
+    <ul>
+      <li>
+        PublicServers'
+        <a
+          href="/app/spaces/@spell/examples/PublicServers/OpenMeteo.spell"
+          target="src-app-spaces-spell-examples-publicservers-openmeteo-spell"
+          ><code>OpenMeteo.spell</code></a
+        >
+        12-15, <code>when creating an open meteo page</code>:
+        <code>add a new city with name "New York" ... to its cities</code>, three times after the first, then
+        <code>set its city to the first item of its cities</code>. Each <code>its cities</code> became the city just
+        added (<code>it.cities</code>), and <code>its city</code> the last city's. The author meant the page's.
+      </li>
+      <li>
+        StarWars 57-58, <code>to punch it</code>: <code>open landing</code>, then <code>set its jumping to no</code>:
+        <code>its</code> became the character landed on, not the film.
+      </li>
+      <li>
+        StarWars 273, 349, 351, 385, 388, 389, 390, the <code>facts</code> getters:
+        <code>add (a new fact with label "Produced by", value = its producer) to known</code>, after another such line:
+        each <code>its producer</code>, <code>its terrain</code>, <code>its crew</code> ... became the fact just added.
+      </li>
+    </ul>
+  </li>
+  <li>
+    Compiled code: 21 projects change even where no read does, about 600 lines: each object that isn't a variable kept
+    in an <code>it</code> of its own first, e.g. FizzBuzz's <code>const it = new Result({ ... })</code>, then
+    <code>this.tally.append(it)</code>.
+  </li>
+  <li>
+    One more thing found: a test's lines echo what they do (<code>echoTestAction</code>); a line kept as two (<code
+      >const it = ...</code
+    >, then the call) lost its echo.
+  </li>
+</ul>
+<p>
+  Owen's draft line (<code>turn the top card of the stock face up</code> ... <code>add it to the discard pile</code>)
+  compiles, under the rule, to <code>const it = this.stock.lastItem</code>, <code>it?.turnFaceUp()</code> ...
+  <code>this.discardPile.append(it)</code>. Without it, it's now the error:
+  <code
+    >it is solitaire here, which isn't a card, and the discard pile holds cards: say which card, or "get" it first</code
+  >.
+</p>
+<p>The choices:</p>
+<ol>
+  <li>
+    <b>Only <code>it</code> follows the thing just named; <code>its X</code> stays the thing the action is on.</b>
+    Changes no example, and your draft line works. But after <code>turn the top card face up</code>, <code>it</code> is
+    the card while <code>its rank</code> is still the game's.
+  </li>
+  <li>
+    Ship it as built, <code>its</code> too, and rewrite the two examples' 13 lines (<code>its cities</code> =&gt;
+    <code>the cities</code>).
+  </li>
+  <li>Don't ship it: the new error catches the mistake, and its hint says to <code>get</code> the card first.</li>
+</ol>
+<epic-choices
+  ><epic-option letter="A" title="Only it follows, its stays the action's thing" recommended></epic-option
+  ><epic-option letter="B" title="Ship it with its, rewrite the 2 examples"></epic-option
+  ><epic-option letter="C" title="Don't ship it:  the error is enough"></epic-option
+></epic-choices>
