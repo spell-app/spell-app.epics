@@ -46,7 +46,7 @@ for (const scheme of ["light", "dark"]) {
     const errors = []
     page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 300)))
     await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
-    await page.waitForSelector(".InputEditor .monaco-editor .view-line, .InspectAppButton", { timeout: 90000 })
+    await page.waitForSelector(".InputEditor .monaco-editor .view-line", { timeout: 90000, state: "attached" })
     await page.waitForTimeout(3000)
     if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.inspecting")))) {
       await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
