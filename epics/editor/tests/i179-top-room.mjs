@@ -19,8 +19,7 @@ function measure() {
   const paneBox = pane.getBoundingClientRect()
   const firstLine = [...pane.querySelectorAll(".view-line")].sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0]
   const lineBox = firstLine.getBoundingClientRect()
-  const container = pane.closest(".MonacoEditor") ?? pane.parentElement
-  const shapes = [...(container.querySelectorAll(".bubbly-shapes > *") ?? [])].map((each) => each.getBoundingClientRect()).filter((box) => box.height > 0)
+  const shapes = [...window.__all(".bubbly-shapes *")].filter((each) => pane.parentElement.contains(each) || pane.contains(each)).map((each) => each.getBoundingClientRect()).filter((box) => box.height > 0)
   const topShape = shapes.sort((a, b) => a.top - b.top)[0]
   return {
     tabsBottom: tabs?.bottom,
