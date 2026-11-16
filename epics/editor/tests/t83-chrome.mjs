@@ -105,6 +105,7 @@ for (const scheme of ["light", "dark"]) {
   await page.mouse.move(720, 500)
   await page.waitForTimeout(1500)
   await page.screenshot({ path: `${OUT}/t83-${STAGE}-${scheme}.png` })
+  await page.locator(".InspectorColumn").first().screenshot({ path: `${OUT}/i190-column-${STAGE}-${scheme}.png` })
   const at = await page.evaluate(layout)
   console.log(scheme, JSON.stringify(at, null, 0))
   const colours = {

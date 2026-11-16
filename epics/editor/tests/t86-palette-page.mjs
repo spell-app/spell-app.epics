@@ -7,14 +7,14 @@ const URL = "http://127.0.0.1:4747/worktrees/editor/components/ui/palette.html"
 const browser = await chromium.launch()
 for (const scheme of ["light", "dark"]) {
   const context = await browser.newContext({ viewport: { width: 1290, height: 900 }, colorScheme: scheme })
-  // the API is the main checkout's server:  answer with this worktree's table
+  await context.route(/\/api\//, (route) =>
+    route.request().method() === "GET" ? route.continue() : route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
+  )
+  // the API is the main checkout's server:  answer with this worktree's table (routes run newest first)
   await context.route(/palette-groups/, (route) =>
     route.request().method() === "GET"
       ? route.fulfill({ status: 200, contentType: "application/json", body: readFileSync("/Users/owen/www/spell.worktrees/editor/ui/src/components/paletteGroups.json", "utf8") })
       : route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
-  )
-  await context.route(/\/api\//, (route) =>
-    route.request().method() === "GET" ? route.continue() : route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   )
   const page = await context.newPage()
   const errors = []
