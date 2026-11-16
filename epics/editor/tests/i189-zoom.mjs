@@ -37,12 +37,25 @@ await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
 await page.waitForFunction(`!!${FIND}?.querySelector(":scope > ui-item")`, undefined, { timeout: 90000 })
 await page.waitForTimeout(3000)
 if (CSS) await page.addStyleTag({ content: CSS })
+/** `script` in the page, again after a reload (another session's edit reloads the editor):  the bar found, zoom put back. */
+async function inPage(script, zoom) {
+  for (let tries = 0; ; tries++) {
+    try {
+      return await page.evaluate(script)
+    } catch (error) {
+      if (tries > 3 || !/context was destroyed|navigation/.test(String(error))) throw error
+      await page.waitForFunction(`!!${FIND}?.querySelector(":scope > ui-item")`, undefined, { timeout: 90000 })
+      await page.waitForTimeout(3000)
+      await page.evaluate((z) => (document.documentElement.style.zoom = String(z)), zoom)
+    }
+  }
+}
 let toggled = 0
 for (const zoom of [2, 3]) {
-  await page.evaluate((z) => (document.documentElement.style.zoom = String(z)), zoom)
+  await inPage(`document.documentElement.style.zoom = "${zoom}"`, zoom)
   for (let width = 1440; width >= 700; width -= 30) {
     await page.setViewportSize({ width, height: 860 })
-    const seen = await page.evaluate(`(${RECORD})(400)`)
+    const seen = await inPage(`(${RECORD})(400)`, zoom)
     if (seen.changes > 1) {
       toggled++
       console.log("zoom", zoom, "width", width, "TOGGLES", JSON.stringify(seen))
@@ -51,7 +64,7 @@ for (const zoom of [2, 3]) {
 }
 await page.evaluate(() => (document.documentElement.style.zoom = "3"))
 await page.setViewportSize({ width: 1200, height: 860 })
-const settled = await page.evaluate(`(${RECORD})(2000)`)
+const settled = await inPage(`(${RECORD})(2000)`, 3)
 console.log("zoom 3, 1200 wide, 2s:", JSON.stringify(settled))
 await page.screenshot({ path: `${OUT}/i189-zoom3.png` })
 console.log("steps that toggled:", toggled)
