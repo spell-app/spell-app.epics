@@ -101,6 +101,7 @@ for (const scheme of ["light", "dark"]) {
     const box = line?.getBoundingClientRect()
     return box && { x: box.left, y: box.top }
   })
+  if (process.env.PROBE) console.log(scheme, "after the jump", JSON.stringify(await page.evaluate(ifBlock)))
   if (paneLine) await page.screenshot({ path: `${OUT}/i215-${TAG}-pane-${scheme}.png`, clip: { x: paneLine.x - 16, y: paneLine.y - 300, width: 620, height: 440 } })
   await context.close()
 }
