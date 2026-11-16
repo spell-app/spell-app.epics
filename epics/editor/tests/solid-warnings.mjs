@@ -2,7 +2,8 @@
 // - Standing rule (Owen, 2026-11-14):  after each merge into main, run it, and fix what it finds.
 // - Usage:  NODE_PATH=/Users/owen/www/spell/node_modules node solid-warnings.mjs [editorUrl] [--verbose] [--stacks]
 //   (default:  this worktree's editor, `.spell-server.editor.json`;  main's:  http://localhost:3001/)
-// - Saves nothing:  every non-GET to `/api` and every `.spell` write is answered `{}` here.
+// - Saves nothing:  every non-GET to `/api` and every `.spell` write is answered here (a file's save kept in memory,
+//   so the editor reads back what it saved).
 // - Drives today's editor (CodeMirror 6, epic `codemirror`;  the top bar of T76 / T83), as the page tests do:
 //   the code through `window.editor.shownCodeEditor.view` (app/tests/app/pages/runningEditor.ts, `CodeEditor`).
 // - A step that can't find what it needs FAILS LOUDLY:  `STEP FAILED` lines, a list at the end, and exit code 1,
@@ -27,10 +28,24 @@ const PROJECTS = [["Solitaire", "Card.spell"], ["TaskList"], ["calculator"]]
 const browser = await chromium.launch()
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } })
 const blocked = []
-await context.route(/\/api\/|\.spell(\?.*)?$/, (route) => {
-  if (route.request().method() === "GET") return route.continue()
-  blocked.push(`${route.request().method()} ${new URL(route.request().url()).pathname}`)
-  return route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
+/**
+ * Each file "saved" this run, by its address under `/spaces/`:  read back from here, as the server would have kept it.
+ * - Why:  after a save the editor may read the file again (`GET /spaces/<project>/<file>`);  the old text on disk
+ *   would put back what was typed, as if the edit were undone.
+ */
+const saved = new Map()
+const SAVE = /\/api\/projects\/file(\/[^?]*)/
+await context.route(/\/api\/|\/spaces\/|\.spell(\?.*)?$/, (route) => {
+  const request = route.request()
+  const { pathname } = new URL(request.url())
+  if (request.method() === "GET") {
+    const kept = saved.get(pathname.replace(/^\/api\/projects\/file\//, "/spaces/"))
+    return kept === undefined ? route.continue() : route.fulfill({ status: 200, contentType: "text/plain", body: kept })
+  }
+  blocked.push(`${request.method()} ${pathname}`)
+  const file = pathname.match(SAVE)?.[1]
+  if (file) saved.set(`/spaces${file}`, request.postData() ?? "")
+  return route.fulfill({ status: 200, contentType: "application/json", body: file ? "true" : "{}" })
 })
 // no hot reloads from other sessions' edits mid-run
 await context.routeWebSocket(/.*/, () => {})
