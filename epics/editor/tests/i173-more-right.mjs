@@ -10,11 +10,11 @@ const EDITOR =
 
 /** The file tab bar's toolbar, its More button, the pane's bar around it:  their right edges, and the tabs showing. */
 function measure() {
-  const bar = document.querySelector(".FileTabs ui-toolbar")
+  const bar = (() => { const walk = (root) => { for (const el of root.querySelectorAll("*")) { if (el.localName === "ui-toolbar" && el.getAttribute("label") === "Files") return el; if (el.shadowRoot) { const f = walk(el.shadowRoot); if (f) return f } } }; return walk(document) })()
   if (!bar) return null
   const more = bar.shadowRoot.querySelector("[part~=all-items]")
   const row = bar.shadowRoot.querySelector("[part~=toolbar]")
-  const pane = bar.closest(".FileTabs")
+  const pane = document.querySelector(".FileTabs")
   const right = (el) => (el ? Math.round(el.getBoundingClientRect().right * 10) / 10 : null)
   const tabs = [...bar.querySelectorAll("ui-item")].filter((each) => !each.hidden).length
   const lastTab = [...bar.querySelectorAll("ui-item")].filter((each) => !each.hidden).at(-1)
@@ -46,18 +46,18 @@ for (const scheme of ["light", "dark"]) {
     await page.evaluate(() => localStorage.removeItem("ui-toolbar-open-items"))
     await page.goto(`${EDITOR}edit/@spell/examples/PublicServers`, { timeout: 90000 })
     await page.waitForFunction(
-      () => document.querySelector(".FileTabs ui-toolbar")?.shadowRoot?.querySelector("[part~=all-items]"),
+      () => (() => { const walk = (root) => { for (const el of root.querySelectorAll("*")) { if (el.localName === "ui-toolbar" && el.getAttribute("label") === "Files") return el; if (el.shadowRoot) { const f = walk(el.shadowRoot); if (f) return f } } }; return walk(document) })()?.shadowRoot?.querySelector("[part~=all-items]"),
       undefined,
       { timeout: 90000 }
     )
     await page.waitForTimeout(3000)
     for (const index of picks) {
       await page.evaluate(() =>
-        document.querySelector(".FileTabs ui-toolbar").shadowRoot.querySelector("[part~=all-items]").click()
+        (() => { const walk = (root) => { for (const el of root.querySelectorAll("*")) { if (el.localName === "ui-toolbar" && el.getAttribute("label") === "Files") return el; if (el.shadowRoot) { const f = walk(el.shadowRoot); if (f) return f } } }; return walk(document) })().shadowRoot.querySelector("[part~=all-items]").click()
       )
       await page.waitForTimeout(400)
       await page.evaluate((at) => {
-        const rows = document.querySelector(".FileTabs ui-toolbar").shadowRoot.querySelectorAll("[part~=overflow-menu] .row")
+        const rows = (() => { const walk = (root) => { for (const el of root.querySelectorAll("*")) { if (el.localName === "ui-toolbar" && el.getAttribute("label") === "Files") return el; if (el.shadowRoot) { const f = walk(el.shadowRoot); if (f) return f } } }; return walk(document) })().shadowRoot.querySelectorAll("[part~=overflow-menu] .row")
         rows[at]?.click()
       }, index)
       await page.waitForTimeout(1200)
