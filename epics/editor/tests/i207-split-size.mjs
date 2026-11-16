@@ -51,9 +51,14 @@ for (let tries = 0; tries < 5 && !(await page.locator(".InspectorColumn .Inspect
   await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
   await page.waitForTimeout(2000)
 }
-// select the app, so the Code card shows
-await page.evaluate(() => document.querySelector(".InspectorCard[data-panel=views] [part~=item], .InspectorViews ui-item")?.click())
-await page.waitForTimeout(2000)
+// select a card, so the Code card has something to show
+await page.locator("solitaire-card").first().click({ force: true }).catch(() => {})
+await page.waitForTimeout(2500)
+if (process.env.INJECT)
+  await page.addStyleTag({
+    content: `.SpellPage .InspectorColumn > .InspectorSplit > .SplitPane { min-height: 40px }
+      .SpellPage .InspectorColumn > .InspectorSplit > .SplitPane:has(> .InspectorCard.folded) { max-height: 40px }`
+  })
 const shot = async (name) => {
   const b = await page.locator(".InspectorColumn").first().boundingBox()
   await page.screenshot({ path: `${OUT}/i207-${TAG}-${name}.png`, clip: { x: b.x - 8, y: 0, width: b.width + 16, height: 1000 } })
