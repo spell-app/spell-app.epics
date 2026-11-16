@@ -59,6 +59,12 @@ for (const scheme of ["light", "dark"]) {
     if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.inspecting")))) {
       await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
     }
+    // the Inspector open:  click again if the first click came before the button was ready
+    for (let tries = 0; tries < 5 && !(await page.locator(".InspectorColumn .InspectorSplit").count()); tries++) {
+      await page.waitForTimeout(2000)
+      if (!(await page.locator(".InspectorColumn .InspectorSplit").count()))
+        await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
+    }
     await page.waitForTimeout(1500)
     const shot = async (name) => {
       const column = page.locator(".InspectorColumn").first()
