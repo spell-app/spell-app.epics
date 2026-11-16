@@ -99,8 +99,9 @@ for (const scheme of ["light", "dark"]) {
       // inside the border
       const inner = { l: box.left + parseFloat(style.borderLeftWidth), t: box.top + parseFloat(style.borderTopWidth), r: box.right - parseFloat(style.borderRightWidth), b: box.bottom - parseFloat(style.borderBottomWidth) }
       const shapes = [...slice.querySelectorAll(".bubbly-shapes *")].map((e) => e.getBoundingClientRect()).filter((b) => b.height > 0 && b.width > 0)
-      const right = Math.max(...shapes.map((e) => e.right))
+      const right = Math.max(...shapes.map((e) => Math.min(e.right, inner.r)))
       return {
+        editorRightGap: +(inner.r - slice.querySelector(".monaco-editor").getBoundingClientRect().right).toFixed(1),
         lines: [...slice.querySelectorAll(".view-line")].map((l) => l.innerText.trim()).filter(Boolean).slice(0, 3),
         bandsInside: {
           top: +(Math.min(...shapes.map((e) => e.top)) - inner.t).toFixed(1),
