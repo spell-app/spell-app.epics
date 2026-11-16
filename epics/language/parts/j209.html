@@ -1,0 +1,28 @@
+<!-- plan-doc part:  #j209's details in language.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>
+  Measured first (Solitaire, in node): an edit to a step in Card.spell's body took 165-230ms, because a type's body
+  declares its members, so it was never re-parsed alone: Card from that type on, then Pile (~25ms), Deck (~17ms) and
+  Solitaire (~100ms) again.
+</p>
+<p>
+  Built: the innermost body that changed is re-parsed (one action's steps, one getter's lines), the type, its other
+  members, later items and every later file kept as they are: 5-11ms. The same safety rules as a top-level body's
+  re-parse (nothing global in it, the same return type).
+</p>
+<p>
+  Not built: the plan's outline per file, keeping a later file whose lookups didn't change after a rename, a new member
+  or a new kind. The parse journal undoes and redoes by swapping whole lists, so a later file's replay puts back the
+  earlier file's OLD records (Pile adds a member to Card's type; rules merge into groups holding the old ones), and
+  later lines hold the old records themselves. Keeping a later file would need the journal to record operations, not
+  snapshots, and every kept line re-pointed at the new records. So a rename, a new member or a new kind still re-parses
+  every file after it, as before (~150-230ms on Solitaire).
+</p>
+<p>
+  Also fixed on the way: the incremental parse losing an action's waits: true after an edit inside it (a re-bodied
+  statement's records now read its new body, Match.current); a step declaring no NEW value no longer counts as global;
+  what a compile notes as read whole is taken back at the next compile.
+</p>
+<epic-net-effect
+  >Typing in an action's steps in Card.spell re-parses in about 10ms instead of about 200ms; renaming a member or adding
+  a kind still re-parses the files after it.</epic-net-effect
+>
