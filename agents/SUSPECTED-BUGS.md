@@ -2,6 +2,10 @@
 
 Things that look like bugs but haven't been confirmed.  Add to the right section, under its package;  when one is confirmed and
 fixed, or disproven, delete it (note a disproof in a line at the top if the reasoning is worth keeping).
+- Fixed 2026-11-15 (language P58, branch `language`):  incremental parsing lost an action's `waits: true` after an edit
+  inside it.  The method's record still named the statement first parsed (`declaredBy`), whose body the edit had
+  replaced with a clone's (`BlockLine.reparseBody()`):  the declarations read whether it waits from the OLD body.
+  Now the old statement's `replacedBy` is the clone, and what reads a body reads `declaredBy.current`.
 - Fixed 2026-11-15 (epic-engine I294):  the uncaught "Failed to fetch" errors while the page server restarted came from
   `abortableFetch()`'s `void promise.finally()`, a second promise rejecting with every failed fetch that nothing
   handled;  not `ServerLink.get()`'s callers, which all caught theirs.
@@ -85,13 +89,6 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
   type's own thing.  The example sets a variable instead.  Epic `atmosphere` I6.
 - [ ] `core`, a list read that `to create it` awaits, when the place can't be reached:  the drawing says so through
   `if that fails:`, and the rejected `create()` is also an uncaught "Failed to fetch" on the page's console (epic `data` I21).
-- Incremental parsing loses an action's `waits: true` after an edit inside it (2026-10-26, epic `debut` I50):
-  `INCREMENTAL_FULL=1 yarn vp test run --project spell tests/spell/parserTests/IncrementalProject.test.ts -t "edits in /Solitaire.spell"`
-  fails on spell-app's `main` twin at line 166 ("delete a character", in `to put a card on a pile`, which
-  has `pause for 200 msec`):  the full parse declares `put a card on a pile` with `waits: true`, the incremental
-  update without it.  The default run (every 7th line) passed only by which lines it sampled;  I50's two new deal
-  lines shifted them, and it now fails at line 169 (`pause for 200 msecx`).
-
 - A Spanish property whose first `devolver` returns an item of a list of text gets the datatype `Texte`
   (2026-10-26, epic `debut` I50):  Solitario's `su "cara" es:` (the lookup `el elemento columna de ["🃑", ...]`)
   declared `datatype: "Texte"`, and a subclass's override of it compiled as `get cara(): Texte`, TS2552.
