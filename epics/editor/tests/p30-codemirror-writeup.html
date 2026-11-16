@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>P30 · CodeMirror Test</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        max-width: 860px;
+        margin: 24px auto;
+        padding: 0 16px;
+        font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: light-dark(#fff, #1c1b22);
+        color: light-dark(#26252e, #e6e5ee);
+      }
+      h1 {
+        font-size: 22px;
+      }
+      h2 {
+        margin-top: 28px;
+        font-size: 17px;
+      }
+      li {
+        margin: 2px 0;
+      }
+      table {
+        border-collapse: collapse;
+        margin: 8px 0;
+      }
+      th,
+      td {
+        padding: 4px 10px;
+        border-bottom: 1px solid light-dark(#e6e4ee, #34323f);
+        text-align: left;
+      }
+      td.n {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      code {
+        font-size: 13px;
+      }
+      .verdict {
+        padding: 10px 14px;
+        border-left: 4px solid #2f9e5b;
+        background: light-dark(#eef8f1, #1f2b24);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>P30 · CodeMirror Test:  what it showed</h1>
+    <p>
+      Solitaire's Spell in CodeMirror 6, beside today's Monaco, on one page.<br />
+      A test, not a switch:  Monaco is still the editor, and only the test page reaches the new code.
+    </p>
+    <ul>
+      <li>The page:  <code>/demo/codemirror.html</code> on the worktree's editor (its address is in <code>.spell-server.editor.json</code>).</li>
+      <li>Its bar:  Edit, Diff (Publish's two sides), Compiled (the javascript);  Solitaire.spell or Card.spell;  English or Español;  light or dark.</li>
+      <li>Nothing is saved:  the page answers every write itself.</li>
+      <li>The code:  <code title="app/src/app/ui/codemirror/">spell/app/app/ui/codemirror</code>, 2,217 lines with its CSS and the test page.</li>
+    </ul>
+
+    <h2>The verdict first</h2>
+    <p class="verdict">
+      <strong>Move the editor to CodeMirror 6, everywhere, as an epic of its own.</strong><br />
+      The bubbly look became real elements in the lines, with no layer to keep lined up.<br />
+      It is a sixth of Monaco's size, draws sooner, and types a little faster.<br />
+      Monaco gives the compiled TS / JS / Python views only colouring today, which CodeMirror gives too:  keep it nowhere.
+    </p>
+
+    <h2>What was easy</h2>
+    <ul>
+      <li>
+        The look.  The page's own <code>bubbly.css</code> rules work on CodeMirror's marks as they are:<br />
+        white pills, curly quote marks, bold names, italic values, dotted underlines, inverted code pills.
+      </li>
+      <li>Padding round a pill is the pill's own padding:  CodeMirror measures what the browser drew, so the caret still lands on the letters.</li>
+      <li>
+        Bands are a mark round a head's words;  rails are a stripe per enclosing block on each line's background;<br />
+        a foot is a thin block widget under the last line.  No layer behind the text, no injected text, no view zones.
+      </li>
+      <li>
+        The layout code is 342 lines (<code>CodeMirrorBubbly</code>), from the same <code>SP.BubblyLayout</code> and
+        <code>SP.BubblyStretches</code> Monaco reads.<br />
+        Monaco's side of the same job:  <code>SpellBubbly</code>, <code>BubblyMarks</code>, <code>MarkupMarks</code>,
+        <code>TextMarks</code>, <code>FoldArrows</code>, about 2,300 lines.
+      </li>
+      <li>
+        The language service, in-process, as Monaco and VS Code use it:  suggestions, hover, problems, folding, go to
+        definition (F12, ⌘-click), code actions.  378 lines.
+      </li>
+      <li>Find and replace, folding and the merge view come with CodeMirror;  each change in the merge view is taken by its arrow, and ⌘Z puts yours back.</li>
+      <li>CodeMirror has no right-click menu of its own, so Spell UI's is the only one:  Cut, Copy, Paste, Go to Definition, "Make it text", Find.</li>
+      <li>Typing helps reuse Monaco's own line readers:  Enter keeps the indent and goes in after a <code>:</code> or an opening tag;  <code>&lt;action </code> writes <code>&lt;action "|" /&gt;</code>;  <code>its </code> opens a name's quotes.</li>
+    </ul>
+
+    <h2>What was hard</h2>
+    <ul>
+      <li>
+        An editor made in an element that isn't in the page yet put its style sheet in that detached element:<br />
+        the editor drew with none of CodeMirror's CSS.  Fixed by giving it its root once it's in the page.
+      </li>
+      <li>Two marks over exactly the same stretch nest in no set order:  a quoted name's pill came out inside or outside its marks at random.  Fixed by one mark per stretch.</li>
+      <li>A found word or a problem cut a pill in two, until the look's marks were given the lowest precedence:  CodeMirror draws a lower source's marks outside a higher's.</li>
+      <li>A foot (a block widget) can't come from a view plugin:  the layout lives in the editor's state.</li>
+      <li><code>bubbly.css</code>'s "laid out as the editor" section zooms a page's drawing;  it had to leave this editor out (J127).</li>
+      <li>The selection is drawn behind the text, so the bands hid it:  it's drawn over the text now, see-through.</li>
+      <li>
+        Left for a real move:  tags with pointed ends as Monaco draws them, a head's description at its band's right end,
+        HTML files drawn bubbly, five of the nine typing helps, rename, signature help, the value picker and choices,
+        link clicks, a file per editor state.
+      </li>
+    </ul>
+
+    <h2>Size and speed, side by side</h2>
+    <table>
+      <tr><th></th><th>Monaco</th><th>CodeMirror 6</th></tr>
+      <tr><td>Its code, minified</td><td class="n">4,018 KB</td><td class="n">564 KB</td></tr>
+      <tr><td>... plus its worker, CSS and icon font</td><td class="n">+635 KB</td><td class="n">none</td></tr>
+      <tr><td>... plus JS and Python colouring</td><td class="n">(in the above)</td><td class="n">+45 KB</td></tr>
+      <tr><td><strong>All of it, gzipped</strong></td><td class="n"><strong>1,241 KB</strong></td><td class="n"><strong>206 KB</strong></td></tr>
+      <tr><td>Page start to Solitaire drawn bubbly</td><td class="n">1,802 ms</td><td class="n">1,293 ms</td></tr>
+      <tr><td>... after the project had loaded and parsed</td><td class="n">686 ms</td><td class="n">226 ms</td></tr>
+      <tr><td>Typing, key to the frame after (median)</td><td class="n">14.1 ms</td><td class="n">10.3 ms</td></tr>
+      <tr><td>Typing, slowest 5%</td><td class="n">21.5 ms</td><td class="n">18.0 ms</td></tr>
+    </table>
+    <ul>
+      <li>Sizes:  esbuild, minified, the same packages and languages the app loads for each (<code>monaco.ts</code>'s imports;  the test's CodeMirror imports).</li>
+      <li>
+        Times:  the editor's dev server on this machine, each editor alone (<code>?only=cm</code>, <code>?only=monaco</code>),
+        the median of 3 loads and 138 keys.<br />
+        Monaco came from Vite's ready-made bundle on local disk:  over a network its 1.2 MB would cost more.
+      </li>
+      <li>The probes:  <code>p30-measure.mjs</code>, <code>p30-interact.mjs</code>, <code>p30-probe.mjs</code>, beside this page.</li>
+    </ul>
+
+    <h2>Translatability</h2>
+    <ul>
+      <li>
+        CodeMirror asks for every word it shows through one setting, <code>EditorState.phrases</code>:<br />
+        about 30 phrases for find and replace, folds, suggestions, problems and the merge view.
+      </li>
+      <li>The test hands it a Spanish table (<code>CodeMirrorTexts</code>), swapped in live by the bar's Español.</li>
+      <li>
+        Monaco's words are English unless its translated bundles are swapped in when the app is built:<br />
+        "3 hidden lines" and T75's "Revert Change" stay English in a Spanish page, beside CodeMirror's "10 líneas sin cambios".
+      </li>
+      <li>Our own words (the right-click menu) are <code>AppTexts</code>' in both.</li>
+      <li>Pictures:  <a href="p30-find-light-es.png">find panel in Spanish</a>, <a href="p30-diff-light-es.png">merge view in Spanish beside Monaco's</a>, <a href="p30-menu-light-es.png">menu in Spanish</a>.</li>
+    </ul>
+
+    <h2>"Seems like we should keep Monaco for TS/JS/Python views?"</h2>
+    <p>No:  Monaco gives those views nothing CodeMirror can't, and keeping it costs a second editor.</p>
+    <ul>
+      <li>
+        Where the editor shows TS, JS or Python:  only the compiled-code pane (<code>CodeOutput</code>),
+        and it's read only (<code>readOnly: true</code>), for <code>js/solid</code>, <code>ts/solid</code> and <code>py</code>.
+      </li>
+      <li>
+        No project has a hand-written <code>.ts</code>, <code>.js</code> or <code>.py</code> file:  none in
+        <code>@spell</code>'s projects nor in your spaces.<br />
+        What's beside a source is written by Spell (<code>.lib.ts</code>, <code>.app.py</code>), and edited, if ever, in VS Code.
+      </li>
+      <li>
+        What Monaco gives them today:  colouring only.  <code>monaco.ts</code> registers TypeScript and Python as Monarch
+        colouring, "none of them needs a language worker":<br />
+        no TypeScript worker, so no types and no IntelliSense.  CodeMirror's <code>lang-javascript</code> (TypeScript too) and
+        <code>lang-python</code> colour the same, for 45 KB.
+      </li>
+      <li>
+        Keeping both would mean:  4.6 MB more to load, two looks to keep in step (Monaco's themes and CodeMirror's CSS),
+        two find panels, two right-click menus, two sets of keys, and Monaco's words in English.
+      </li>
+      <li>On the test page, Compiled shows Card's javascript in both:  <a href="p30-compiled-light.png">light</a>, <a href="p30-compiled-dark.png">dark</a>.</li>
+      <li>If people ever edit hand-written TypeScript in the editor and want its types, load Monaco then, lazily, for that file alone.</li>
+    </ul>
+
+    <h2>What moving over would take (a rough phase list)</h2>
+    <ol>
+      <li>The core:  a CodeMirror twin of <code>SpellModels</code> (a state per file, its undo, parses as typing pauses, problems), the code pane on it behind a setting.</li>
+      <li>The look whole:  tags as Monaco draws them, descriptions at the band's end, HTML files (<code>MarkupMarks</code>), the look turned off, page files coloured.</li>
+      <li>Typing:  all nine helps and "make it code / text", on the pure helpers lifted out of <code>SpellTyping</code>.</li>
+      <li>Language features:  rename, signature help, highlights, the value picker and choices, link clicks, error hover, accent fixes.</li>
+      <li>Every place Monaco is:  the Inspector's Code card, Publish's diff, the compiled-code pane, notebooks, <code>&lt;spell-editor&gt;</code>, CSS, markdown and HTML files.</li>
+      <li>Keys, menus and words:  <code>EDITOR_HOTKEYS</code>, the code pane's "..." settings, the find panel's look, Spanish.</li>
+      <li>Tests and clean-up:  15 of the 35 page tests reach into Monaco;  then Monaco, its worker and <code>CodeThemes</code> go, and the build tests change.</li>
+    </ol>
+
+    <h2>Pictures</h2>
+    <ul>
+      <li>Edit:  <a href="p30-edit-light.png">light</a>, <a href="p30-edit-dark.png">dark</a></li>
+      <li>Diff:  <a href="p30-diff-light.png">light</a>, <a href="p30-diff-dark.png">dark</a> (Monaco's diff isn't drawn bubbly on the test page, though Publish's is in the app)</li>
+      <li>Compiled:  <a href="p30-compiled-light.png">light</a>, <a href="p30-compiled-dark.png">dark</a></li>
+      <li>
+        Typing, hover, suggestions, a problem, the menu, find:
+        <a href="p30-typing-light.png">typing</a>, <a href="p30-hover-light.png">hover</a>,
+        <a href="p30-completions-light.png">suggestions</a>, <a href="p30-problem-light.png">problem</a>,
+        <a href="p30-menu-light.png">menu</a>, <a href="p30-find-light.png">find</a>;
+        each in <a href="p30-find-dark.png">dark</a> too
+      </li>
+    </ul>
+  </body>
+</html>
