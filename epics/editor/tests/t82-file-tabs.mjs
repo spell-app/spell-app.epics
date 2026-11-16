@@ -60,6 +60,8 @@ for (const scheme of ["light", "dark"]) {
   for (const [name, project] of [["one-tab", "Counter"], ["three-tabs", "fizzbuzz"], ["overflow", "PublicServers"]]) {
     await page.goto(`${EDITOR}edit/@spell/examples/${project}`, { timeout: 90000 })
     await page.waitForFunction(`(${FIND}, window.__bar?.querySelector(":scope > ui-item"))`, undefined, { timeout: 90000 })
+    // the editor keeps its own scheme:  dark asked for on the page itself
+    if (scheme === "dark") await page.evaluate(() => { document.documentElement.classList.add("ui-dark"); document.documentElement.style.colorScheme = "dark" })
     await page.waitForTimeout(2500)
     if (name === "overflow") {
       for (const index of [3, 6, 9]) {
