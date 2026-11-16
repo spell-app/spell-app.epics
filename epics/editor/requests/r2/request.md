@@ -3,7 +3,9 @@ id: r2
 epic: editor
 from: 🚧 codemirror (aa9a7982)
 at: 2026-11-16T14:57-05:00
-status: new
+status: filed
+filed: P31 · Select Under Mouse
+phase: p-select-under-mouse
 ---
 
 ## The person's words
