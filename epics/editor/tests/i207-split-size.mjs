@@ -52,8 +52,15 @@ for (let tries = 0; tries < 5 && !(await page.locator(".InspectorColumn .Inspect
   await page.waitForTimeout(2000)
 }
 // select a card, so the Code card has something to show
-await page.locator("solitaire-card").first().click({ force: true }).catch(() => {})
-await page.waitForTimeout(2500)
+const hasCode = () => page.evaluate(() => !!document.querySelector(".InspectorCard[data-panel=code]:not(.locked)"))
+for (let tries = 0; tries < 6 && !(await hasCode()); tries++) {
+  if (!(await page.locator(".InspectorColumn .InspectorSplit").count()))
+    await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
+  await page.waitForTimeout(1500)
+  await page.locator("solitaire-card").nth(3).click({ force: true }).catch(() => {})
+  await page.waitForTimeout(2500)
+}
+console.log("code card selectable:", await hasCode())
 if (process.env.INJECT)
   await page.addStyleTag({
     content: `.SpellPage .InspectorColumn > .InspectorSplit > .SplitPane { min-height: 40px }
