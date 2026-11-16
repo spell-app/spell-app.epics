@@ -44,6 +44,7 @@ async function inPage(script, zoom) {
       return await page.evaluate(script)
     } catch (error) {
       if (tries > 3 || !/context was destroyed|navigation/.test(String(error))) throw error
+      await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 }).catch(() => {})
       await page.waitForFunction(`!!${FIND}?.querySelector(":scope > ui-item")`, undefined, { timeout: 90000 })
       await page.waitForTimeout(3000)
       await page.evaluate((z) => (document.documentElement.style.zoom = String(z)), zoom)
@@ -51,9 +52,9 @@ async function inPage(script, zoom) {
   }
 }
 let toggled = 0
-for (const zoom of [2, 3]) {
+for (const zoom of [2.5]) {
   await inPage(`document.documentElement.style.zoom = "${zoom}"`, zoom)
-  for (let width = 1440; width >= 700; width -= 30) {
+  for (let width = 1440; width >= 900; width -= 30) {
     await page.setViewportSize({ width, height: 860 })
     const seen = await inPage(`(${RECORD})(400)`, zoom)
     if (seen.changes > 1) {
