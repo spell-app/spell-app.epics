@@ -121,6 +121,18 @@ for (const scheme of ["light", "dark"]) {
       )
       const m = MEASURE(root, inner)
       m.text = root.querySelector(".cm-content").innerText.slice(0, 40)
+      // scrolled to its right end:  the last word's room to the box's right border
+      const scroller = root.querySelector(".cm-scroller")
+      if (scroller.scrollWidth > scroller.clientWidth) {
+        scroller.scrollLeft = 99999
+        const rights = [...root.querySelectorAll(".cm-line")].map((line) => {
+          const range = document.createRange()
+          range.selectNodeContents(line)
+          return range.getBoundingClientRect().right
+        })
+        m.scrolledEndRight = +(inner.right - Math.max(...rights)).toFixed(1)
+        scroller.scrollLeft = 0
+      }
       m.padding = s.padding
       return m
     }, MEASURE.toString())
