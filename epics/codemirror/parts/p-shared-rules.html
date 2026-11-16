@@ -28,6 +28,64 @@
 ><epic-field name="changes"
   ><p>Spell's own rules move out of Monaco into one place each; Monaco and the test page both read them.</p>
   <p>Monaco stays the editor, its tests green.</p></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>Typing rules out of Monaco.</b> <code>SpellTyping</code>'s pure half (the static line readers: indent to add,
+      indent to snap, opens quotes, tag before a space, open tag, comment indent, pasted lines, lines under) and its
+      word tables move to a new <code>LSP.SpellTyping</code> in the language service, beside <code>SpellKeywords</code>.
+      They read lines and columns only, so the language service stays browser-safe and editor-free.
+      <ul>
+        <li>Monaco's <code>SpellTyping</code> keeps only its event wiring and calls the shared one.</li>
+        <li>
+          The Enter rules (<code>SpellMonaco.CONFIGURATION</code>'s <code>onEnterRules</code>) become one editor-neutral
+          table there; Monaco's configuration is built from it, and the VS Code check in the keywords test compares
+          <code>language-configuration.json</code> with that table.
+        </li>
+        <li>
+          Its unit tests move with it to the language service's tests; the browser tests stay with Monaco until the
+          swap.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The test page uses them.</b> <code>CodeMirrorTyping</code> drops its own copies of next-line indent, open
+      quotes and space after a tag, and calls the shared readers; trim-on-Enter likewise.
+    </li>
+    <li>
+      <b>One address helper.</b> <code>AppAddresses</code> is rewritten without Monaco's <code>URI</code> (plain string
+      work on <code>spell:/</code> plus <code>encodeURI</code>) and moves up to the app's <code>ui</code> folder.
+      CodeMirror's <code>CodeMirrorAddresses</code> goes; the scope explorer's hand-built <code>spell:/</code> asks the
+      same rule (a shared constant in the language service, since it can't import the app).
+    </li>
+    <li>
+      <b>Language features, editor-neutral.</b> What <code>SpellLanguageFeatures</code> works out without Monaco (which
+      row the rename sits in, what a hover says, which code actions apply) is lifted into plain functions the CodeMirror
+      side calls too, so the test page's <code>CodeMirrorLanguage</code> stops re-deriving it.
+    </li>
+    <li>
+      <b>One table each.</b> <code>CodeMirrorLanguage</code> drops its own <code>SUGGEST_WHERE_IT_HELPS</code> and
+      <code>HOVER_MSEC</code> and reads <code>codePopups</code> (<code>suggestsByItself()</code>, the hover delay); its
+      menu's shortcut labels read <code>EDITOR_HOTKEYS</code>.
+    </li>
+    <li>
+      <b>One rule for a drawn tag.</b> Both bubbly drawers ask the parser whether a tag is one of the project's own
+      views (<code>SpellJSX.isDrawnType()</code>, reached through <code>SP</code>; exported there if it isn't yet), and
+      drop their copies of its list of base types.
+    </li>
+    <li>
+      <b>Checked:</b> <code>yarn review</code> in <a href="/app/" target="src-app"><code>app/</code></a> passes with the
+      Monaco tests unchanged in what they check; the test page loads headlessly, and typing a letter on a blank line,
+      <code>group </code> and <code>&lt;action </code> do the same in both editors (<code
+        >node epic/src/tools/check-spell.js</code
+      >
+      from the kit's root).
+    </li>
+    <li>
+      <b>Left out:</b> the Monaco-wired half of the typing helps (snap, paste, Shift+Tab ...) stays as it is; P4 gives
+      CodeMirror its own wiring over the same readers.
+    </li>
+  </ol></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
