@@ -217,6 +217,11 @@ const picked = async () =>
 
 for (const [project, file] of PROJECTS) {
   await runStep(`${project}:open`, () => open(project, file))
+  // its other steps need it open:  one failure, not eight
+  if (failed.at(-1)?.startsWith(`${project}:open:`)) {
+    failed.push(`${project}:  every other step skipped, as it didn't open`)
+    continue
+  }
   await runStep(`${project}:walk code`, () => walkCode(1, 40))
   await runStep(`${project}:inspect`, async () => {
     // the crosshairs, then a click on something the app drew:  the Inspector shows what was picked
