@@ -16,7 +16,7 @@ function measure() {
     const card = pane.querySelector(".InspectorCard")
     const head = card?.shadowRoot?.querySelector("[part~=header]") ?? card?.querySelector("[slot=header]")
     return `${card?.dataset.panel}${card?.classList.contains("folded") ? "(f)" : ""}:${Math.round(pane.getBoundingClientRect().height)}`
-  }).join(" ") + "  rows=" + split.getAttribute("rows")
+  }).join(" ") + "  rows=" + split.rows + " flex=" + [...split.querySelectorAll(":scope > .SplitPane")].map((p) => p.style.flex).join("|")
 }
 /** The bars' middles, top to bottom. */
 function bars() {
