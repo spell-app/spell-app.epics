@@ -33,6 +33,64 @@
 <epic-reply from="owenoak" at="2026-11-16 18:02" re="revisit soon"
   ><p>Coming up empty for me. Is it in main?</p>
   <p><img src="/epics/codemirror/tests/i5-20261116-1802.png" alt="owenoak's screenshot" /></p></epic-reply
+><epic-reply agent="claude" from="owenoak">
+  <p>You asked: <q>Coming up empty for me. Is it in main?</q></p>
+  <p>
+    Yes, Peek was in main (merged at 13:02 today), and the editor you run serves main's source live, so nothing was
+    stale: there was no bundle to rebuild.
+  </p>
+  <p><b>Why it came up empty:</b></p>
+  <ul>
+    <li>
+      The language service itself answers right: from <code>pile</code> in <code>a "pile" is ...</code> it lists 17
+      uses, the same as Find All References, from every spot on the word, in main's editor, at localhost:3001 and at
+      test.spell.app.
+    </li>
+    <li>
+      But Peek, Go to Definition and Find All References asked only once. When the file's parse wasn't in yet, they got
+      no answer and the box said "0 uses".
+    </li>
+    <li>
+      The parse isn't in for a second or two after the page loads, and again while a parse from scratch runs after some
+      edits.
+    </li>
+    <li>
+      <b
+        >I couldn't make it fail on the declaration's name once its parse was in, so I can't be sure this was your
+        case.</b
+      >
+    </li>
+    <li>
+      A word that names nothing (<code>a</code>, <code>is</code>, an action's <code>move</code>) also says "0 uses".
+      That's the right answer, but the box was just as tall and empty as in your screenshot.
+    </li>
+  </ul>
+  <p><b>What changed:</b></p>
+  <ul>
+    <li>
+      Peek Definition, Peek References, Go to Definition and Find All References now wait for the file's parse, up to 10
+      seconds, before they answer. Hovers and suggestions still never wait.
+    </li>
+    <li>With no uses, the box is its head and one row of message, 72px, not 268px.</li>
+    <li>The box looks like the rest of the code pane now (J57).</li>
+    <li>
+      New test: the running editor opens Pile.spell and asks Peek References on <code>pile</code> as soon as the file
+      shows. It checks the uses match Find All References, Peek Definition from a use (<code>a new pile</code>), and the
+      short box for a word nothing declares.
+    </li>
+  </ul>
+  <p>Peek References from the declaration's name, light and dark:</p>
+  <img src="/epics/codemirror/tests/i5-j57-after-references-declaration-light.png" /><img
+    src="/epics/codemirror/tests/i5-j57-after-references-declaration-dark.png"
+  />
+  <p>Peek Definition from a use:</p>
+  <img src="/epics/codemirror/tests/i5-j57-after-definition-use-light.png" /><img
+    src="/epics/codemirror/tests/i5-j57-after-definition-use-dark.png"
+  />
+  <p>A word inside an action that names nothing (<code>move</code>): before, then after:</p>
+  <img src="/epics/codemirror/tests/i5-j57-before-references-action-word-light.png" /><img
+    src="/epics/codemirror/tests/i5-j57-after-references-action-word-light.png"
+  /><img src="/epics/codemirror/tests/i5-j57-after-references-action-word-dark.png" /> </epic-reply
 ><epic-commit sha="6d29dc086d9f6fc265de7313801dfdd5a515926c"
   >Peek Definition (⌥F12) and Peek References (⇧⌥F12), in the code's right-click menu and EDITOR_HOTKEYS: a box under
   the caret's line showing the place's file, read only, a slice of its state (FileStates.showSlice()), drawn bubbly when
