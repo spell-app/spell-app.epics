@@ -49,7 +49,25 @@ for (const scheme of ["light", "dark"]) {
     const columns = Array.from({ length: image.width }, (_, x) => inked(x))
     const hatEnd = columns.indexOf(false, columns.indexOf(true))
     const wordStart = columns.indexOf(true, hatEnd)
-    return { hatEnd, wordStart, gap: wordStart - hatEnd }
+    // each piece's drawn top and bottom:  the hat's columns, and the word's first letter's ("S", no descender)
+    const rowsOf = (from, to) => {
+      let top = image.height
+      let bottom = -1
+      for (let x = from; x < to; x++)
+        for (let y = 0; y < image.height; y++) {
+          const p = at(x, y)
+          if (Math.abs(p[0] - ground[0]) + Math.abs(p[1] - ground[1]) + Math.abs(p[2] - ground[2]) > 90) {
+            top = Math.min(top, y)
+            bottom = Math.max(bottom, y)
+          }
+        }
+      return { top, bottom, centre: (top + bottom + 1) / 2 }
+    }
+    const hatStart = columns.indexOf(true)
+    const letterEnd = columns.indexOf(false, wordStart) > 0 ? Math.min(columns.indexOf(false, wordStart), wordStart + 9) : wordStart + 9
+    const hat = rowsOf(hatStart, hatEnd)
+    const letter = rowsOf(wordStart, letterEnd)
+    return { hatEnd, wordStart, gap: wordStart - hatEnd, hat, letter, centreOff: hat.centre - letter.centre }
   }, shot.toString("base64"))
   const word = await page.evaluate(() => {
     const style = getComputedStyle(document.querySelector(".AppMarkLabel"))
