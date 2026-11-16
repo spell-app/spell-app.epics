@@ -20,6 +20,13 @@ for (const scheme of ["light", "dark"]) {
   await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
   await page.waitForSelector(".AppMarkLabel", { timeout: 90000 })
   await page.waitForTimeout(3000)
+  // the palette kept open, its pin under the hat (I191)
+  if (!(await page.locator(".PaletteStrip").count())) {
+    await page.locator(".AddPartButton [part~=item]").first().click()
+    await page.waitForTimeout(1200)
+    await page.locator(".PalettePin").first().click()
+    await page.waitForTimeout(800)
+  }
   if (scheme === "dark")
     await page.evaluate(() => {
       document.documentElement.classList.replace("ui-light", "ui-dark")
@@ -74,7 +81,7 @@ for (const scheme of ["light", "dark"]) {
     return { weight: style.fontWeight, family: style.fontFamily.slice(0, 40), tracking: style.letterSpacing }
   })
   console.log(scheme, "drawn gap", JSON.stringify(gap), "word", JSON.stringify(word))
-  await page.screenshot({ path: `${OUT}/t93-${STAGE}-${scheme}.png`, clip: { x: 0, y: 0, width: 360, height: 38 } })
+  await page.screenshot({ path: `${OUT}/t93-${STAGE}-${scheme}.png`, clip: { x: 0, y: 0, width: 360, height: 72 } })
   await context.close()
 }
 await browser.close()
