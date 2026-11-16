@@ -70,6 +70,15 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
   after the swap (`readAfterSwap()`) then doesn't change it back, though `changeInPlace()` would.
   Prove it:  Recipe Box, `useSample(places, "family_cookbook")`, `recipe.title = "x"` (a plain set, no side bar), `useRealPlace()`:
   `recipe.title` is `""`.  Seen 2026-11-04 (epic `editor` P26, Data In Side Bar), on epic `data`'s code.
+- `src/util/spell/Loadable.ts` `save()`:  an edit made while a save is in flight may never be saved, now AutoSave is on
+  by default (epic `mockup` P20).
+  - Its `onSuccess` sets `isDirty: false` whatever changed meanwhile, so `editor.keepNow()`, which the edit scheduled,
+    finds the file clean and saves nothing;  the disk keeps the older text until the next edit.
+  - And a second `save()` with equal params while one is in flight returns the first's saver, never saving the newer text.
+  - The other half, the save's answer writing the OLDER text back into `contents` (undo lost, the edit reverted),
+    is fixed (epic `editor` I172, `LoadableFile.getSaver()`).
+  - Prove it:  type, wait 0.8s, type again while the save is out (a slow server), then reload:  the second edit is gone.
+    Seen 2026-11-15 (epic `editor` I172), by reading the code, not run.
 
 ## spell
 
