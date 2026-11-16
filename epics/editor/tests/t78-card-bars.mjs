@@ -17,8 +17,9 @@ function headers() {
     const buttons = [...bar.querySelectorAll("ui-icon, ui-dropdown, ui-button")]
       .filter((each) => !each.closest("ui-item") && each.parentElement.closest("ui-dropdown, ui-button") === null)
       .map((each) => `${each.localName}.${[...each.classList].join(".")}${each.getAttribute("name") ? `[${each.getAttribute("name")}]` : ""}`)
-    const words = [...bar.querySelectorAll(".InspectorAddWords")].map((each) => getComputedStyle(each).display)
-    return { panel: card.dataset.panel, height: Math.round(bar.getBoundingClientRect().height), width: Math.round(card.getBoundingClientRect().width), buttons, words }
+    const words = [...bar.querySelectorAll(".InspectorAddWords")].map((each) => { const box = each.getBoundingClientRect(); return `${getComputedStyle(each).display} ${Math.round(box.top)}-${Math.round(box.bottom)}` })
+    const tall = [...bar.querySelectorAll(":scope > *")].map((each) => `${each.localName}:${Math.round(each.getBoundingClientRect().height)}`)
+    return { panel: card.dataset.panel, height: Math.round(bar.getBoundingClientRect().height), width: Math.round(card.getBoundingClientRect().width), buttons, words, tall }
   })
 }
 
