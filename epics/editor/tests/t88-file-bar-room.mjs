@@ -21,12 +21,13 @@ for (const scheme of ["light", "dark"]) {
   const page = await context.newPage()
   await page.goto(`${EDITOR}edit/owen@spell/jarvis-new/home.spell`, { timeout: 90000 })
   await page.waitForFunction(`!!${FIND}?.querySelector(":scope > ui-item")`, undefined, { timeout: 90000 })
+  await page.waitForTimeout(4000)
   if (scheme === "dark")
     await page.evaluate(() => {
       document.documentElement.classList.replace("ui-light", "ui-dark")
       document.documentElement.style.colorScheme = "dark"
     })
-  await page.waitForTimeout(4000)
+  await page.waitForTimeout(500)
   const room = await page.evaluate(`(() => {
     const bar = ${FIND}
     const band = document.querySelector(".FileTabs").getBoundingClientRect()
