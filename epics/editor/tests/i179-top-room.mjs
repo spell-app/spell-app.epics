@@ -41,24 +41,30 @@ function alignment() {
 const browser = await chromium.launch()
 for (const scheme of ["light", "dark"]) {
   const context = await browser.newContext({ viewport: { width: 1300, height: 800 }, colorScheme: scheme, deviceScaleFactor: 2 })
-  await context.route(/\/api\//, (route) => {
-    if (route.request().method() === "GET") return route.continue()
+  await context.route(/Pile\.spell(\?|$)/, async (route) => {
+    if (route.request().resourceType() === "document") return route.continue()
+    const response = await route.fetch()
+    const body = await response.text()
+    if (process.env.DEBUG) console.log("PILE", route.request().url(), body.slice(0, 40))
+    return route.fulfill({ response, body: body.startsWith("#") ? body.split("\n").slice(5).join("\n") : body })
+  })
+  await context.route(/\/api\//, async (route) => {
+    // as Owen saw it:  Pile.spell's first line a band, its heading and comments left out (nothing saved)
+    if (route.request().method() === "GET" && /Pile\.spell/.test(route.request().url())) {
+      const response = await route.fetch()
+      const body = await response.text()
+      console.log("GET", route.request().url(), body.slice(0, 80))
+      if (body.startsWith("{")) return route.fulfill({ response, body })
+      return route.fulfill({ response, body: body.split("\n").slice(5).join("\n") })
+    }
+    if (route.request().method() === "GET") { if (process.env.DEBUG) console.log("GET", route.request().url().slice(0, 140)); return route.continue() }
     return route.fulfill({ status: 200, contentType: "application/json", body: "{}" })
   })
   const page = await context.newPage()
   const errors = []
   page.on("pageerror", (error) => errors.push(String(error)))
-  page.on("console", (message) => /no model/.test(message.text()) && console.log(message.text()))
   await page.goto(`${EDITOR}edit/@spell/examples/Solitaire/Pile.spell?scheme=${scheme}`, { timeout: 90000 })
   await page.waitForFunction(`(${HELPERS}, window.__all(".monaco-editor .view-line").length > 3 && window.__all(".bubbly-shapes > *").length > 0)`, undefined, { timeout: 90000 })
-  await page.waitForTimeout(2500)
-  // as Owen saw it:  the file's first line a band, its heading and comments left out (nothing saved)
-  await page.evaluate(() => {
-    const model = window.monaco?.editor.getModels().find((each) => /Pile\.spell$/.test(each.uri.path))
-    if (!model) return console.log("no model", !!window.monaco)
-    console.log("no model? edited", model.getLineCount())
-    model.pushEditOperations([], [{ range: { startLineNumber: 1, startColumn: 1, endLineNumber: 5, endColumn: 1 }, text: "" }], () => null)
-  })
   await page.waitForTimeout(2500)
   const top = await page.evaluate(measure)
   console.log(scheme, TAG, "top", JSON.stringify(top), "gap band-tabs", (top.bandTop - top.tabsBottom).toFixed(1), "gap line-tabs", (top.firstLineTop - top.tabsBottom).toFixed(1))
