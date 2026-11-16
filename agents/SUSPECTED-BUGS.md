@@ -82,6 +82,11 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- 2026-11-16 (mockup T39):  in Spanish, a quoted slot drawing whose first body line is a comment doesn't read the markup
+  after it:  `para "dibujar su menú de página"`, then `// ...`, then `<ui-site-tabs />` is "No entiendo" at the tag.
+  The same body without the comment reads;  English's `to draw its page menu` with the comment first reads too.
+  Worked round in `PageLayout.es.spell` by putting the comment above the method's line.
+
 - 2026-11-07 (notebook P1):  in Spanish, a default set in a type's body on a member it inherits compiles under the
   Spanish name and value:  a page's `- su candado es "bloqueado"` => `get candado() { return "bloqueado" }`, not
   `get lock()`;  a two sided view's `- su dirección es abajo` => `get dirección() { return "abajo" }`.
