@@ -3,7 +3,8 @@ id: r21
 epic: language
 from: 🚧 codemirror (aa9a7982)
 at: 2026-11-16T18:07-05:00
-status: new
+status: filed
+filed: Taken up as I143, fixed directly
 ---
 
 ## The person's words
