@@ -39,20 +39,33 @@
 ><epic-field name="plan"
   ><ol>
     <li>
-      <b>One state per file.</b> <code>CodeMirrorModels</code>, the twin of <code>SpellModels</code>: one CodeMirror
-      state per file path, made on first use, kept across tab switches (text, undo history, folds, selection).
+      <b>One shared base</b> (<a href="#j4">J4</a>). The editor-free half of <code>SpellModels</code> moves into
+      <code>FileStatesBase</code>, which both editors' file states extend, so epic <code>editor</code>'s changes to it
+      land once:
       <ul>
+        <li>the parse wait and save wait, reading the existing <code>PARSE_WAIT</code> / <code>SAVE_WAIT</code></li>
+        <li><code>use()</code> / <code>disposeProject()</code>, <code>saveAfterEdit()</code></li>
+        <li><code>applyEdits()</code> and <code>EditWay</code>: the one way in for outside edits</li>
+      </ul>
+      <code>SpellModels</code> keeps only Monaco's half. Its waits move to util's <code>after()</code> as they move,
+      never a raw timer.
+    </li>
+    <li>
+      <b>One state per file</b> (<a href="#j5">J5</a>). <code>FileStates</code>, on that base: one CodeMirror state per
+      file path, made on first use, kept across tab switches (text, undo history, folds, selection).
+      <ul>
+        <li>The same timings as Monaco's, from the base; problems from the language service.</li>
         <li>
-          The same timings as Monaco's: parse after 200 ms of quiet, save 2 s after an edit, problems from the language
-          service. The waits use util's <code>after()</code>, never a raw timer.
+          The Inspector, the side bar, rename and the value picker hand <code>applyEdits()</code> ranges and text, one
+          undo step each.
         </li>
         <li>
-          One way in for outside edits, as <code>SpellModels.applyEdits()</code>: the Inspector, the side bar, rename
-          and the value picker hand it ranges and text, one undo step each.
+          <b>One "not typed" mark.</b> Every edit that comes in this way carries one transaction annotation holding its
+          <code>EditWay</code>, defined here with the file states; P4's typing helps read it to leave such edits alone.
         </li>
         <li>
-          The code pane, every Inspector slice and both diff sides will read these states (P3, P6): nothing else keeps
-          its own copy of a file's text.
+          The code pane, every Inspector slice and both diff sides will read these file states (P3, P6): nothing else
+          keeps its own copy of a file's text.
         </li>
       </ul>
     </li>
@@ -87,7 +100,8 @@
     </li>
     <li>
       <b>Checked:</b> new unit tests for the file states (switch and back keeps undo and folds; an outside edit is one
-      undo step) and the converter; <code>yarn review</code> in
+      undo step and carries its <code>EditWay</code>) and the converter; Monaco's <code>SpellModels</code> tests still
+      green on the shared base; <code>yarn review</code> in
       <a href="/app/" target="src-app"><code>app/</code></a> passes; headless checks of the test page (<code
         >node epic/src/tools/check-spell.js</code
       >
@@ -102,7 +116,13 @@
 ><epic-field name="files"
   ><ul>
     <li>
-      new: <code>app/src/app/ui/codemirror/CodeMirrorModels.ts</code> (the file states),
+      new: <code>app/src/app/ui/FileStatesBase.ts</code> (the editor-free half, lifted from
+      <a href="/app/src/app/ui/monaco/SpellModels.ts" target="src-app-src-app-ui-monaco-spellmodels-ts"
+        ><code>SpellModels.ts</code></a
+      >, which keeps Monaco's half)
+    </li>
+    <li>
+      new: <code>app/src/app/ui/codemirror/FileStates.ts</code> (the file states and their "not typed" annotation),
       <code>LspToCodeMirror.ts</code>, <code>CodeMirrorSetup.ts</code> (the base setup and gutter)
     </li>
     <li>
@@ -118,10 +138,11 @@
     <li>
       <a href="/app/src/app/ui/AppTexts.en.ts" target="src-app-src-app-ui-apptexts-en-ts"
         ><code>app/src/app/ui/AppTexts.en.ts</code></a
-      >, <code>AppTexts.es.ts</code>
+      >,
+      <code>AppTexts.es.ts</code>
     </li>
     <li>
-      new tests: <code>app/tests/app/ui/codemirror/</code> (<code>CodeMirrorModels</code>, <code>LspToCodeMirror</code>)
+      new tests: <code>app/tests/app/ui/codemirror/</code> (<code>FileStates</code>, <code>LspToCodeMirror</code>)
     </li>
   </ul></epic-field
 ><epic-field name="verify"
