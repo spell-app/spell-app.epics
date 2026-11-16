@@ -101,6 +101,7 @@ for (const scheme of ["light", "dark"]) {
       const shapes = [...slice.querySelectorAll(".bubbly-shapes *")].map((e) => e.getBoundingClientRect()).filter((b) => b.height > 0 && b.width > 0)
       const right = Math.max(...shapes.map((e) => Math.min(e.right, inner.r)))
       return {
+        rawRight: +(Math.max(...shapes.map((e) => e.right)) - inner.r).toFixed(1), layerW: slice.querySelector(".bubbly-layer")?.getBoundingClientRect().width, edW: slice.querySelector(".monaco-editor").getBoundingClientRect().width, holderW: slice.querySelector(".MonacoEditor").getBoundingClientRect().width, scrollW: slice.querySelector(".monaco-editor .lines-content")?.getBoundingClientRect().width,
         editorRightGap: +(inner.r - slice.querySelector(".monaco-editor").getBoundingClientRect().right).toFixed(1),
         lines: [...slice.querySelectorAll(".view-line")].map((l) => l.innerText.trim()).filter(Boolean).slice(0, 3),
         bandsInside: {
