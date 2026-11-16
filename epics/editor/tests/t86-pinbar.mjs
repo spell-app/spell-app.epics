@@ -38,6 +38,7 @@ function layout() {
     strip: box(strip),
     overflowing: toolbar?.matches(":state(overflowing)"),
     menuScroll: menu ? [menu.scrollWidth, menu.clientWidth] : null,
+    pin: box(strip?.querySelector(".PalettePin")?.shadowRoot?.querySelector("svg") ?? strip?.querySelector(".PalettePin")),
     label: label && { ...box(label), text: label.textContent, weight: getComputedStyle(label).fontWeight },
     first: names[0] && { ...box(item(names[0])), text: names[0].textContent, icon: glyph(names[0]) },
     last: names.at(-1) && { ...box(item(names.at(-1))), text: names.at(-1).textContent, icon: glyph(names.at(-1)) },
