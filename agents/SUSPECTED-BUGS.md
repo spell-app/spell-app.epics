@@ -1138,6 +1138,13 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
 
 ## epics
 
+- `check-send-header.mjs` fails on `main`'s header (2026-11-16, seen during epic `epic-engine` I316):  no countdown
+  ring round the plane on the `epic-engine` copy (its marked item `j10`), the plane 77px left of the header's middle
+  at 1200px, Send in each stage copy saying "Send to Claude" where the check wants the bare plane, the theme sub-menu
+  wider than the window, and the stage countdown's tooltip 3-4s short.  HEAD's copy of the check fails the first two
+  the same way, then crashed on the missing ring (now guarded).  Either the check is stale against Send's newer look,
+  or Auto Send's ring stopped drawing in it:  not looked into.
+
 - `epic turns run` (2026-11-15, epic `epic-engine` I293):  flags after `--` are still read as its own,
   `epic turns run test -- yarn vp test run --project server` says "--project?  no such flag".
   Its help shows `epic turns run test -- yarn test`, which has no flags.  Worked around with `sh -c "..."`.
