@@ -91,7 +91,7 @@ for (const scheme of ["light", "dark"]) {
   if (!(await page.evaluate(() => window.Inspector.isOpen))) await page.evaluate(() => window.Inspector.showOrHide())
   // the palette pinned:  its popup's pin
   if (!(await page.locator(".PaletteStrip").count())) {
-    await page.locator(".AddPartButton").first().click()
+    await page.locator(".AddPartButton [part~=item]").first().click()
     await page.waitForTimeout(1500)
     await page.locator(".PalettePin").first().click()
     await page.waitForTimeout(800)
