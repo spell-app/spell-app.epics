@@ -15,7 +15,8 @@ const FIND = `window.__bar = (() => { const walk = (root) => { for (const el of 
 function measure() {
   const bar = window.__bar
   const tabs = [...bar.querySelectorAll(":scope > ui-item")].filter((each) => !each.hidden)
-  const centre = (el) => { const b = el.getBoundingClientRect(); return Math.round((b.left + b.width / 2) * 10) / 10 }
+  // a `<ui-icon>` draws no box of its own:  its glyph's box, in its shadow
+  const centre = (el) => { const b = (el.shadowRoot?.querySelector("[part~=icon]") ?? el).getBoundingClientRect(); return Math.round((b.left + b.width / 2) * 10) / 10 }
   const button = bar.shadowRoot.querySelector("[part~=all-items]")
   const barBox = bar.shadowRoot.querySelector("[part~=toolbar]").getBoundingClientRect()
   return {
@@ -86,14 +87,6 @@ for (const scheme of ["light", "dark"]) {
     await page.waitForTimeout(300)
     await shot(`${name}-hover`)
     if (name === "overflow") {
-      // the keyboard:  Tab focus on a tab shows its ✕ too
-      await page.mouse.move(5, 650)
-      await page.evaluate(() => window.__bar.querySelector(":scope > ui-item:not([hidden]):not([selected])").shadowRoot.querySelector("[part~=item]").focus({ focusVisible: true }))
-      await page.keyboard.press("ArrowRight")
-      await page.keyboard.press("ArrowLeft")
-      await page.waitForTimeout(300)
-      console.log(scheme, name, "keyboard focus", JSON.stringify((await page.evaluate(measure)).tabs.map(({ label, shows }) => `${label} ${shows}`)))
-      await shot(`${name}-focus`)
       // click a hovered tab's ✕:  it closes
       const target = before.tabs.find((each) => each.label !== before.tabs[0].label) ?? last
       await page.mouse.move(target.box.x, target.box.y)
