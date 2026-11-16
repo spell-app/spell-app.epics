@@ -48,8 +48,17 @@ for (const scheme of ["light", "dark"]) {
   const page = await context.newPage()
   const errors = []
   page.on("pageerror", (error) => errors.push(String(error)))
+  page.on("console", (message) => /no model/.test(message.text()) && console.log(message.text()))
   await page.goto(`${EDITOR}edit/@spell/examples/Solitaire/Pile.spell?scheme=${scheme}`, { timeout: 90000 })
   await page.waitForFunction(`(${HELPERS}, window.__all(".monaco-editor .view-line").length > 3 && window.__all(".bubbly-shapes > *").length > 0)`, undefined, { timeout: 90000 })
+  await page.waitForTimeout(2500)
+  // as Owen saw it:  the file's first line a band, its heading and comments left out (nothing saved)
+  await page.evaluate(() => {
+    const model = window.monaco?.editor.getModels().find((each) => /Pile\.spell$/.test(each.uri.path))
+    if (!model) return console.log("no model", !!window.monaco)
+    console.log("no model? edited", model.getLineCount())
+    model.pushEditOperations([], [{ range: { startLineNumber: 1, startColumn: 1, endLineNumber: 5, endColumn: 1 }, text: "" }], () => null)
+  })
   await page.waitForTimeout(2500)
   const top = await page.evaluate(measure)
   console.log(scheme, TAG, "top", JSON.stringify(top), "gap band-tabs", (top.bandTop - top.tabsBottom).toFixed(1), "gap line-tabs", (top.firstLineTop - top.tabsBottom).toFixed(1))
