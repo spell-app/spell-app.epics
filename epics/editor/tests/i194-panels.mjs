@@ -29,7 +29,15 @@ function layout() {
     fileTabs: box(document.querySelector(".FileTabs")),
     code: box(document.querySelector(".InputEditor")),
     codePane: box(document.querySelector(".FileTabs")?.closest(".SplitPane")),
-    cards
+    cards,
+    slices: [...document.querySelectorAll(".InspectorColumn .CodeSlice")].map(box),
+    remove: (() => {
+      const button = document.querySelector(".InspectorRemoveEvent")
+      const inner = button?.shadowRoot?.querySelector("[part~=button]")
+      const icon = button?.shadowRoot?.querySelector("[part~=icon]")
+      const glyph = icon?.shadowRoot?.querySelector("svg") ?? icon
+      return inner && { box: box(glyph), color: getComputedStyle(inner).color, fontSize: getComputedStyle(inner).fontSize }
+    })()
   }
 }
 
@@ -82,14 +90,15 @@ for (const scheme of ["light", "dark"]) {
     data: shot.toString("base64"),
     points: Object.fromEntries(
       [
-        ["bar", [at.bar.x + Math.round(at.bar.w * 0.4), at.bar.y + 4]],
-        ["bar(right)", [at.bar.x + at.bar.w - 200, at.bar.y + 4]],
-        at.fileTabs && ["fileTabs", [at.fileTabs.x + at.fileTabs.w - 60, at.fileTabs.y + 3]],
-        at.codePane && ["codePanelBody", [at.codePane.x + 3, at.codePane.y + at.codePane.h - 5]],
+        at.fileTabs && ["fileTabs", [at.fileTabs.x + at.fileTabs.w - 50, at.fileTabs.y + 3]],
+        at.fileTabs && ["fileTabs:bar", [at.fileTabs.x + at.fileTabs.w - 50, 3]],
+        at.codePane && ["codePanelBody", [at.codePane.x + 4, at.codePane.y + at.codePane.h - 12]],
+        ...at.slices.map((slice, i) => [`slice${i}`, [slice.x + slice.w - 8, slice.y + slice.h - 4]]),
         at.code && ["code", [at.code.x + at.code.w - 30, at.code.y + at.code.h - 30]],
         ...at.cards.flatMap((card, i) => [
-          card.bar && [`card${i}Bar`, [card.bar.x + card.bar.w - 70, card.bar.y + 3]],
-          card.card && [`card${i}Body`, [card.card.x + 4, card.card.y + card.card.h - 5]]
+          card.bar && [`card${i}Bar`, [card.bar.x + 30, card.bar.y + 3]],
+          card.bar && [`card${i}Bar:bar`, [card.bar.x + 30, 3]],
+          card.card && [`card${i}Body`, [card.card.x + 6, card.card.y + card.card.h - 12]]
         ])
       ].filter(Boolean)
     )
