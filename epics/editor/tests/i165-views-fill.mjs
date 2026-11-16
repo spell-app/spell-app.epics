@@ -49,8 +49,14 @@ for (const scheme of ["light", "dark"]) {
     await page.goto(`${EDITOR}edit/@spell/examples/Solitaire`, { timeout: 90000 })
     await page.waitForSelector("solitaire-app", { timeout: 90000, state: "attached" })
     await page.waitForTimeout(5000)
-    if (kind === "phone") await page.evaluate(() => document.querySelector("#InspectApp")?.click())
-    else if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.inspecting")))) {
+    if (kind === "phone") {
+      // a phone only runs (epic `debut` P32):  no Inspector, so the page as it is
+      await page.screenshot({ path: `${OUT}/i165-${TAG}-phone-${scheme}.png` })
+      console.log(scheme, kind, "inspector shown:", await page.evaluate(() => !!document.querySelector(".InspectorColumn")))
+      await context.close()
+      continue
+    }
+    if (!(await page.evaluate(() => !!document.querySelector(".InspectAppButton.inspecting")))) {
       await page.locator(".InspectAppButton [part~=item]").first().click({ force: true })
     }
     await page.waitForTimeout(1500)
