@@ -92,6 +92,7 @@ for (const scheme of ["light", "dark"]) {
     const top = first.y - 8, bottom = second.y + second.height + 8
     await page.screenshot({ path: `${OUT}/i215-${TAG}-card-${scheme}.png`, clip: { x: first.x - 24, y: top, width: first.width + 40, height: bottom - top } })
   }
+  if (process.env.PROBE) console.log(scheme, JSON.stringify(await page.evaluate(measure)), JSON.stringify(await page.evaluate(ifBlock)))
   // the same blocks in the code pane:  line 142, `when the score changes`, its `if` under it
   await page.evaluate(() => window.editor.showFileAt("@spell/examples/Solitaire/Solitaire.spell", { anchor: { line: 141, ch: 1 }, head: { line: 141, ch: 1 }, quiet: true }))
   await page.waitForTimeout(5000)
@@ -101,8 +102,6 @@ for (const scheme of ["light", "dark"]) {
     return box && { x: box.left, y: box.top }
   })
   if (paneLine) await page.screenshot({ path: `${OUT}/i215-${TAG}-pane-${scheme}.png`, clip: { x: paneLine.x - 16, y: paneLine.y - 300, width: 620, height: 440 } })
-  await page.screenshot({ path: `${OUT}/i215-${TAG}-${scheme}.png` })
-  if (process.env.PROBE) console.log(scheme, JSON.stringify(await page.evaluate(measure), null, 1), JSON.stringify(await page.evaluate(ifBlock)))
   await context.close()
 }
 await browser.close()
