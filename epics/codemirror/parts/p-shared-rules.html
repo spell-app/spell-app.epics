@@ -17,8 +17,8 @@
       gains the two it drops.
     </li>
     <li>
-      File addresses (<code>spell:/…</code>) are written by one helper with no Monaco in it, which the language
-      service's scope explorer uses too.
+      File addresses (<code>spell:/…</code>) are written by one rule with no Monaco in it, in the language service,
+      which its scope explorer and both editors use.
     </li>
     <li>
       The settings table (hover with ⌥, suggestions where they help), the shortcut table and the colour table each stay
@@ -53,15 +53,28 @@
       quotes and space after a tag, and calls the shared readers; trim-on-Enter likewise.
     </li>
     <li>
-      <b>One address helper.</b> <code>AppAddresses</code> is rewritten without Monaco's <code>URI</code> (plain string
-      work on <code>spell:/</code> plus <code>encodeURI</code>) and moves up to the app's <code>ui</code> folder.
-      CodeMirror's <code>CodeMirrorAddresses</code> goes; the scope explorer's hand-built <code>spell:/</code> asks the
-      same rule (a shared constant in the language service, since it can't import the app).
+      <b>One address rule, in the language service.</b> <code>AppAddresses</code> is rewritten without Monaco's
+      <code>URI</code> (plain string work on <code>spell:/</code> plus <code>encodeURI</code>) and moves to
+      <a href="/app/src/lsp/" target="src-app-src-lsp"><code>app/src/lsp/</code></a
+      >, beside <code>LSP.FileAddresses</code>, not the app's <code>ui</code> folder. The scope explorer's hand-built
+      <code>spell:/</code> and both editors call it; <code>CodeMirrorAddresses</code> goes.
     </li>
     <li>
-      <b>Language features, editor-neutral.</b> What <code>SpellLanguageFeatures</code> works out without Monaco (which
-      row the rename sits in, what a hover says, which code actions apply) is lifted into plain functions the CodeMirror
-      side calls too, so the test page's <code>CodeMirrorLanguage</code> stops re-deriving it.
+      <b>Language features, editor-neutral: only what P5 doesn't lift.</b> What a hover says and which code actions
+      apply are lifted once, into their one home, so the test page's <code>CodeMirrorLanguage</code> stops re-deriving
+      them:
+      <ul>
+        <li>
+          about the program: the language service, reusing what it has (<code>subjectAt()</code>,
+          <code>renameActionAt()</code>) before adding anything
+        </li>
+        <li>words: AppTexts, as <code>renameRefusal()</code> is</li>
+        <li>
+          editor-side but not Monaco's: ONE app file, <code>ui/CodeEditorFeatures.ts</code>, which P5 adds to rather
+          than starting another
+        </li>
+        <li>the rename row, rename's refusal and the rest of the features are P5's, lifted there and not here</li>
+      </ul>
     </li>
     <li>
       <b>One table each.</b> <code>CodeMirrorLanguage</code> drops its own <code>SUGGEST_WHERE_IT_HELPS</code> and
@@ -72,6 +85,10 @@
       <b>One rule for a drawn tag.</b> Both bubbly drawers ask the parser whether a tag is one of the project's own
       views (<code>SpellJSX.isDrawnType()</code>, reached through <code>SP</code>; exported there if it isn't yet), and
       drop their copies of its list of base types.
+    </li>
+    <li>
+      <b>Timers:</b> any wait this phase touches (the hover delay) goes through util's <code>after()</code>, never a raw
+      <code>setTimeout</code>.
     </li>
     <li>
       <b>Checked:</b> <code>yarn review</code> in <a href="/app/" target="src-app"><code>app/</code></a> passes with the
@@ -93,10 +110,23 @@
       moved from <code>tests/app/ui/monaco/SpellTyping.test.ts</code>
     </li>
     <li>
+      <code>app/src/lsp/AppAddresses.ts</code> (moved from
+      <a href="/app/src/app/ui/monaco/AppAddresses.ts" target="src-app-src-app-ui-monaco-appaddresses-ts"
+        ><code>app/src/app/ui/monaco/AppAddresses.ts</code></a
+      >, Monaco-free),
+      <a href="/app/src/lsp/ScopeExplorer.ts" target="src-app-src-lsp-scopeexplorer-ts"
+        ><code>app/src/lsp/ScopeExplorer.ts</code></a
+      >,
+      <a href="/app/src/lsp/SpellLanguageService.ts" target="src-app-src-lsp-spelllanguageservice-ts"
+        ><code>app/src/lsp/SpellLanguageService.ts</code></a
+      >
+      (hover and code-action answers, reusing <code>subjectAt()</code>)
+    </li>
+    <li>new: <code>app/src/app/ui/CodeEditorFeatures.ts</code> (editor-side, not Monaco's; P5 adds to it)</li>
+    <li>
       <a href="/app/src/app/ui/monaco/SpellTyping.ts" target="src-app-src-app-ui-monaco-spelltyping-ts"
         ><code>app/src/app/ui/monaco/SpellTyping.ts</code></a
       >, <code>SpellMonaco.ts</code> (<code>CONFIGURATION</code> reads the shared Enter rules),
-      <code>AppAddresses.ts</code> (moves to <code>app/src/app/ui/AppAddresses.ts</code>),
       <code>SpellLanguageFeatures.ts</code>
     </li>
     <li>
@@ -104,7 +134,7 @@
         href="/app/src/app/ui/codemirror/CodeMirrorTyping.ts"
         target="src-app-src-app-ui-codemirror-codemirrortyping-ts"
         ><code>app/src/app/ui/codemirror/CodeMirrorTyping.ts</code></a
-      >, <code>CodeMirrorLanguage.ts</code>, <code>CodeMirrorTexts.ts</code>
+      >, <code>CodeMirrorLanguage.ts</code> (its <code>CodeMirrorAddresses</code> goes), <code>CodeMirrorTexts.ts</code>
     </li>
     <li>
       <a href="/app/src/app/ui/monaco/SpellBubbly.ts" target="src-app-src-app-ui-monaco-spellbubbly-ts"
@@ -122,9 +152,6 @@
       >,
       <a href="/app/src/app/pages/editorHotkeys.ts" target="src-app-src-app-pages-editorhotkeys-ts"
         ><code>app/src/app/pages/editorHotkeys.ts</code></a
-      >,
-      <a href="/app/src/lsp/ScopeExplorer.ts" target="src-app-src-lsp-scopeexplorer-ts"
-        ><code>app/src/lsp/ScopeExplorer.ts</code></a
       >,
       <a href="/app/tests/lsp/SpellKeywords.test.ts" target="src-app-tests-lsp-spellkeywords-test-ts"
         ><code>app/tests/lsp/SpellKeywords.test.ts</code></a
