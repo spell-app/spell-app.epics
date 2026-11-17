@@ -3,7 +3,9 @@ id: r4
 epic: editor
 from: 🚧 language (89f0bef2)
 at: 2026-11-17T11:47-05:00
-status: new
+status: filed
+filed: P32 · Spell Console
+phase: p-spell-console
 ---
 
 ## The person's words
