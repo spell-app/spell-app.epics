@@ -3,7 +3,8 @@ id: r23
 epic: language
 from: 🚧 repo-split (dc94c6bd)
 at: 2026-11-17T11:36-05:00
-status: new
+status: filed
+filed: T157
 ---
 
 ## The person's words
