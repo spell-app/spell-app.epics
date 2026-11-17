@@ -1,2 +1,32 @@
 <!-- plan-doc part:  #i154's details in language.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p data-title-body><em>What it says on the tin.</em><epic-clarify></epic-clarify></p>
+<p><b>Proposed fix</b> (language-readahead):</p>
+<ul>
+  <li>
+    Why: read-ahead (P22's <code>stubDeclaredMethods()</code>) only scans for lines starting <code>to ...</code> /
+    <code>animation ...</code>. A type's yes/no question, <code>it "can go up" if ...</code> (or
+    <code>a card "can go up" if ...</code> at a file's top), isn't one of them, so nothing knows it until its own line
+    has parsed.
+  </li>
+  <li>
+    And even if found, <code>MethodDefinition.callAhead()</code> skips a quoted phrase on purpose ("only a call").
+  </li>
+  <li>
+    Fix:
+    <ol>
+      <li>
+        the declaration scan also finds a quoted phrase's head: <code>it "can go up" if</code>,
+        <code>"can go up" if</code>, <code>a card "can go up" if</code> (Spanish <code>si</code> / <code>es</code>), cut
+        before its body, so the body isn't parsed ahead
+      </li>
+      <li>
+        <code>callAhead()</code> registers its question rule too (<code>MethodPostfixRule</code> /
+        <code>MethodInfixRule</code>), marked <code>ahead</code>, which steps aside once the real line has run, as a
+        call ahead does
+      </li>
+    </ol>
+  </li>
+  <li>
+    Test: a type's question declared below the app is used by an action above it, in a <code>where</code> and in T146's
+    <code>or</code>.
+  </li>
+</ul>
