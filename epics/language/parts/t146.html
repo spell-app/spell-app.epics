@@ -5,6 +5,176 @@
   and can play the card ? (Today `the last card of the discard pile or the first card of the stock` compiles to
   core.thingAtPlace(Card, -1), dropping both.)”
 </p>
+<p>
+  Owen's statement now reads as written, as one statement, and Solitaire's auto play uses it. The first commit is on
+  main; the follow-ups below are on <code>language</code>,
+  <b>merging into main once the agents working there now commit</b>.
+</p>
+<pre><code>set card to the last card in the discard pile
+	or a random card in the columns where it is face down
+	or the first card in the columns where it is face up and can play the card</code></pre>
+<p>compiles to</p>
+<pre><code>const card = this.discardPile.lastItem
+  || core.randomItemOf(core.filter(core.mergeLists(core.everyThing(Column)), (card) =&gt; card.isFaceDirection("down")))
+  || await core.itemWhereInTurn(core.mergeLists(core.everyThing(Column)), async (card) =&gt; card.isFaceDirection("up") &amp;&amp; (await card.play()), 0)</code></pre>
+<h4>What reads what</h4>
+<table>
+  <tr>
+    <th>Spell</th>
+    <th>Before</th>
+    <th>Now</th>
+  </tr>
+  <tr>
+    <td><code>the last card of the discard pile or the first card of the stock</code></td>
+    <td>
+      <code>core.thingAtPlace(Card, -1)</code> in the repl (the rest dropped); in a file <code>||</code>, but a yes/no,
+      so <code>if card is face up</code> after it failed
+    </td>
+    <td><code>discardPile.lastItem || stock.firstItem</code>, a card</td>
+  </tr>
+  <tr>
+    <td><code>the last card of the stock and the first card of the stock</code></td>
+    <td><code>core.thingAtPlace(Card, -1)</code> in the repl; <code>&amp;&amp;</code> in a file</td>
+    <td><code>[stock.lastItem, stock.firstItem]</code></td>
+  </tr>
+  <tr>
+    <td><code>for each card in the stock and the discard pile</code></td>
+    <td><code>core.map(stock &amp;&amp; discardPile, ...)</code>: the discard pile only</td>
+    <td><code>core.map(core.mergeLists([stock, discardPile]), (card) =&gt; ...)</code></td>
+  </tr>
+  <tr>
+    <td><code>for each pile in the stock and the discard pile</code></td>
+    <td>the discard pile only</td>
+    <td>both piles</td>
+  </tr>
+  <tr>
+    <td><code>set done to the stock is empty and the deck is empty</code></td>
+    <td colspan="2">unchanged: both true</td>
+  </tr>
+  <tr>
+    <td><code>if its page and its page's fits</code> (StarWars), <code>if its title and its picture</code></td>
+    <td colspan="2">unchanged: in a condition a value is a test of whether it's there</td>
+  </tr>
+  <tr>
+    <td><code>the stock or the discard pile and the stock</code></td>
+    <td><code>stock || (discardPile &amp;&amp; stock)</code></td>
+    <td>
+      refused: <i>say which goes first with parentheses</i>;
+      <code>(the stock or the discard pile) and the stock</code> reads
+    </td>
+  </tr>
+  <tr>
+    <td><code>cards in the columns where it is face up and the discard pile</code></td>
+    <td><code>... &amp;&amp; this.discardPile</code></td>
+    <td>refused: <i>In a "where", "and" joins conditions ... "(... where ...) and the discard pile"</i></td>
+  </tr>
+  <tr>
+    <td>
+      <code>the stock and 3</code>, <code>the stock is empty or the first card of the stock</code>,
+      <code>if the card is face up and red</code>
+    </td>
+    <td>compiled</td>
+    <td>refused, each saying why</td>
+  </tr>
+  <tr>
+    <td><code>shuffle and deal</code>, an action of that name</td>
+    <td colspan="2">unchanged: the action</td>
+  </tr>
+  <tr>
+    <td><code>the first card in the columns where it can play the card</code></td>
+    <td>error</td>
+    <td><code>core.itemWhere(..., (card) =&gt; card.play(), 0)</code>: stops at the first yes</td>
+  </tr>
+</table>
+<h4>Choices (calm J items)</h4>
+<ul>
+  <li>
+    <epic-link epic="language" item="J226"></epic-link> value or question, by the sides and the place; "there" as
+    javascript and Python say it (0 and "" count as not there).
+  </li>
+  <li>
+    <epic-link epic="language" item="J227"></epic-link> a line starting with <code>or</code> is one alternative, its
+    <code>where</code> its own; on one line a <code>where</code> still takes the rest.
+  </li>
+  <li>
+    <epic-link epic="language" item="J228"></epic-link> <code>where it can play the card</code> /
+    <code>... and can play the card</code> / Spanish <code>donde puede jugar la carta</code> runs the action;
+    <code>the first ... where</code> stops at the first yes (new <code>core.itemWhere()</code>, JavaScript and Python).
+  </li>
+  <li><epic-link epic="language" item="J229"></epic-link> auto play plays one card a round.</li>
+</ul>
+<h4>Solitaire's auto play</h4>
+<p>Before:</p>
+<pre><code>to "auto play" with shortcut "A", icon "play"
+	-- Play every card that can go somewhere, until none can
+	set anything changed to no
+	if the discard pile is not empty
+		set test card to the last card of the discard pile
+		if play test card
+			set anything changed to yes
+			pause for 500 msec
+	-- each column's last card onto its foundation
+	for pile in the columns
+		if the pile is empty return
+		...
+	-- each column's face-up cards, all together, onto another column
+	for pile in the columns
+		...
+	if anything changed auto play</code></pre>
+<p>Now:</p>
+<pre><code>to "auto play" with shortcut "A", icon "play"
+	-- Play one card that can go somewhere, then the next, until none can:  the discard pile's top card, a column's top card onto its foundation, or a column's face-up cards onto another column
+	set played to the last card in the discard pile where it can play the card
+		or the first card in the columns where it is the top card of its pile and (the first pile in every pile where it can take the card) is a foundation and can play the card
+		or the first card in the columns where (it is not a king or it is not the first card of its pile) and it is (the first card in its pile which is face up) and can play the card
+	if played exists
+		pause for 300 msec
+		auto play</code></pre>
+<ul>
+  <li>
+    The two "bugs": <code>if the pile is empty return</code> inside <code>for pile in the columns</code> compiled to a
+    <code>return</code> from that pile's turn only (a bare <code>return</code> in a loop ends its turn, epic
+    <code>atmosphere</code> I6), so it skipped the pile, as meant; and <code>something changed</code> /
+    <code>anything changed</code> are two names only in Owen's draft
+    (<code>__draft/Solitaire.owen-2026-11-16.spell</code>), not in Solitaire.spell. The rewrite has neither.
+  </li>
+  <li>
+    Behaviour: the same moves; their order differs (one card a round, the discard pile first). 8 seeded games, 60 turns
+    each: 5 ended the same, 1 better, 1 worse, 1 the same 13 in the foundations with one more card face down (J229).
+  </li>
+  <li>
+    Each alternative says its own condition. Two card questions (<code>it "can go up"</code>,
+    <code>it "can move its run"</code>) read better, but a question used above its declaration isn't found (now I154,
+    language-readahead), a reopened <code>a card</code> at the file's top doesn't lay out from its text as from its
+    parse, and Card.spell is shared with the grammar probes' projects, which have no foundation. Once I154 lands they
+    can come back.
+  </li>
+  <li>
+    Solitaire's snapshots re-blessed (its JavaScript, TypeScript, Python, words, declarations, drawing; SpellProject's
+    and SpellDeclarations'); pyright's and tsc's only moved lines. T147's <code>discard-pile</code> id in them is its
+    own commit.
+  </li>
+  <li>
+    Also: I153 (a loop's <code>where</code> over the columns tested each column) fixed in its own commit; the grammar
+    probe P2b (<code>x ends with y and 1</code>) now also says <code>and 1</code> asks nothing.
+  </li>
+  <li>
+    Tests: <code>joinedValues.test.ts</code> (17: every rule above, English and Spanish, and a run asking cards only up
+    to the first yes), <code>itemsAcross.test.ts</code> (21), the rules' own; the parser folder 6339 passed, pytest 566;
+    the app's node projects: every Solitaire-dependent test passes after its re-bless. Failing, not from this:
+    ScopeExplorer (a <code>theme</code> property and
+    <a href="/parser/src/core/core.scopes.js" target="src-parser-src-core-core-scopes-js"
+      ><code>core.scopes.js</code></a
+    >
+    from main), IncrementalEdits' "a new type in Card.spell keeps Solitaire" (fails on main too:
+    <code>pause for</code> and measures list every type, <code>dimensionsIn()</code>), quartApp's Python game in a
+    browser (<i>Undo Turn Card</i> for <i>Undo Play Card</i>, main too).
+  </li>
+  <li>
+    Speed (<code>spell speedtest --against HEAD</code>, once, other agents running): HEAD 713 ms average, this 969 ms;
+    minimum 520 vs 543 (+4%), the maximum one 4.2 s outlier; 1271 example lines parse, was 1268.
+  </li>
+</ul>
 <epic-commit sha="f006d1dac8cdb874e8c9da9af9b08a7059a7e814"
   >(1) `or` between two values of one kind is the first that's there, its datatype theirs (`the last card of the discard
   pile or the first card of the stock` is a card: `if it is face up` after it read); `and` between them is both, in a
@@ -22,3 +192,7 @@
   Spanish, a run asking only up to the first yes); readThroughNothing's `both` and outline's whose-phrase test follow
   the new reading; PARSING.md</epic-commit
 >
+<epic-commit sha="f006d1dac8cdb874e8c9da9af9b08a7059a7e814">T146</epic-commit
+><epic-commit sha="1eab57f93568923c66514b0d2d29135ea3e2f035">T146: auto play's conditions in its own lines</epic-commit
+><epic-commit sha="b1e5bf1ca9973374f068578bbf007fbedbe47cfd">T146: the cheap test first</epic-commit
+><epic-commit sha="5380b4688cafc26d475c926d071581553927f12f">I153</epic-commit>
