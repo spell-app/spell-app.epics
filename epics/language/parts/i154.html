@@ -30,6 +30,60 @@
     <code>or</code>.
   </li>
 </ul>
+<p><b>Fixed, merged into main</b> (language-readahead; commits e867987d8 and 73ad50c20).</p>
+<ul>
+  <li>
+    Why it broke, two causes:
+    <ol>
+      <li>
+        Reading ahead only looked for lines starting <code>to ...</code>, so a question like
+        <code>it "can go up" if ...</code> was never found. Even if it had been, the step that makes a method usable
+        early skipped questions on purpose.
+      </li>
+      <li>
+        The <code>a card</code> line in Solitaire ends in a comment (<code>a card -- play the card on click ...</code>).
+        The scan didn't count that line as starting a type, so it read nothing in that type's body ahead.
+      </li>
+    </ol>
+  </li>
+  <li>
+    The fix:
+    <ul>
+      <li>
+        the scan finds a question up to its <code>if</code> and leaves its body out: <code>it "can go up" if</code>,
+        <code>"is high" if:</code>, <code>a card "can go up" if</code>, and Spanish <code>si</code> / <code>es</code>
+      </li>
+      <li>a question is now usable early too. Once its real line has parsed, the early version gives way to it.</li>
+      <li>a type's line can end in a comment</li>
+      <li>
+        left out on purpose: a question about a value kind (<code>a rank "is a face card"</code>), and one about a type
+        the scan can't tell isn't a value kind. Read early, those would compile wrong.
+      </li>
+    </ul>
+  </li>
+  <li>
+    Checked:
+    <ul>
+      <li>
+        Solitaire with its <code>a card</code> block moved below the app compiles with no errors. Apart from the
+        reordering, it compiles the same as with the block on top.
+      </li>
+      <li>All 21 examples compile byte for byte the same as before.</li>
+      <li>
+        New tests in outline.test.ts: the scan, in English and Spanish, and a question declared below the app being
+        asked in its action
+      </li>
+      <li>
+        The parser's full unit tests: 6342 passed, 0 failed. The syntax tables were regenerated because two rule files
+        moved by two lines.
+      </li>
+      <li>
+        Speed test against HEAD: 668ms before, 615ms after. That's noise: the same 40 rule tests fail on both, and they
+        were already failing.
+      </li>
+    </ul>
+  </li>
+</ul>
 <epic-commit sha="e867987d8b5da42abc30a67f60f179b406373981"
   >`it "can go up" if ...` below the app is asked above it, in a `where` and T146's `or` lines</epic-commit
 ><epic-commit sha="73ad50c20a6258b26780031b08ee6152da12e7c2"
