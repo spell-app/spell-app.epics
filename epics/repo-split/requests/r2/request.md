@@ -3,7 +3,9 @@ id: r2
 epic: repo-split
 from: 🚧 mockup (2964811f)
 at: 2026-11-17T09:08-05:00
-status: new
+status: filed
+filed: P30 · spell.app on a Phone
+phase: p-spell-app-on-a-phone
 images: image-1.jpg, image-2.png
 ---
 
