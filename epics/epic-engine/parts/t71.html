@@ -26,3 +26,181 @@
     installed.
   </li>
 </ul>
+<epic-reply agent="claude" from="Claude" at="2026-11-16 22:48"
+  ><p>
+    Ran the live trial (agent <code>epic-engine-t71</code>). The words hold for all three clashes, and two of the three
+    bite only when the words are missing. Two new issues: I318 and I319.
+  </p>
+  <epic-aside title="How it was run"
+    ><ul>
+      <li>
+        A throwaway yarn repo (<code>sp-proj</code>: yarn.lock, one dev dependency, <code>node --test</code>), set up
+        with <code>epic init --no-remote --no-plugin --no-server</code>. Its epic repo and worktrees were throwaway too.
+      </li>
+      <li>
+        superpowers v7.0.2 (commit 22f0b46), cloned and loaded with <code>claude --plugin-dir</code>. It was never
+        installed.
+      </li>
+      <li>
+        The epic plugin was loaded from this worktree, with <code>--setting-sources project,local</code>, so Owen's own
+        CLAUDE.md, settings and plugins weren't loaded. The default model, Opus 5.5, ran every check, plus Sonnet and
+        Haiku for the install check.
+      </li>
+      <li>
+        Headless <code>claude -p</code> hung on the epic plugin's inbox-poller hook (I319). So the epic plugin was
+        loaded as a copy of its folder (links to this worktree's files) whose <code>hooks.json</code> leaves out the
+        poller and the restart wake.
+      </li>
+      <li>
+        <code>/epic sp-test</code> from the main checkout stopped at <code>epic window launch</code>, which was denied
+        so no window would open. So the worktree was made with <code>epic worktree create sp-test</code>, and
+        <code>/epic sp-test</code> ran inside it.
+      </li>
+      <li>
+        The hook's words appear only when <code>~/.claude/settings.json</code> turns superpowers on. That file wasn't
+        changed. Instead, a second copy's <code>hooks.json</code> ran the worktree guard with
+        <code>CLAUDE_CONFIG_DIR</code> pointed at a throwaway folder whose settings turn superpowers on. That printed
+        the real notice ("superpowers is on: in epic sp-test it stands aside for planning, worktrees and finishing").
+      </li>
+      <li>
+        Each check ran the skill by name (<code>/superpowers:using-git-worktrees</code>,
+        <code>/superpowers:finishing-a-development-branch</code>) in four kinds of session:
+        <ul>
+          <li>a fresh session with no words</li>
+          <li>a fresh session with the hook's words</li>
+          <li>
+            a fresh session with the words in the repo's
+            <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a>
+          </li>
+          <li>
+            the session <a href="/epic/" target="src-epic"><code>/epic</code></a> had started, which has the epic
+            skill's words
+          </li>
+        </ul>
+      </li>
+      <li>
+        About $12 in all. Every run's full stream is in the t71 folder in the agent's scratchpad, one
+        <code>run*.jsonl</code> per run.
+      </li>
+    </ul></epic-aside
+  >
+  <ol>
+    <li>
+      <b>Who plans (clash 1): doesn't happen.</b>
+      <ul>
+        <li>
+          superpowers' always-on text was in the session ("&lt;EXTREMELY_IMPORTANT&gt; You have superpowers."), but
+          after <code>/epic sp-test add a subtract(a, b) function ...</code> nothing called a superpowers skill (0 Skill
+          calls) and no line said "brainstorm".
+        </li>
+        <li>
+          The epic wrote its Overview on the page and recorded its one decision there (<code>epic add sp-test#D</code>,
+          Q1). It asked nothing in the chat but "Press Accept Overview on the page, or say "go" here". No
+          <a href="/docs/" target="src-docs"><code>docs/</code></a> folder was made.
+        </li>
+        <li>
+          On "go" it wrote P1 and the Doc Review with <code>epic add-phase</code>, then built test first ("Fails as
+          expected (no export yet)"). It committed <code>P1: Subtract And Test -- ...</code> and recorded the commit on
+          the page ("1 commit listed on the page").
+        </li>
+        <li>
+          Control: <code>/epic sp-ctl</code>, with the epic skill's superpowers paragraph taken out, did the same: 0
+          Skill calls, and an Overview on the page. Typing
+          <a href="/epic/" target="src-epic"><code>/epic</code></a> wins by itself.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The install (clash 11): happens without the words, never with them.</b>
+      <ul>
+        <li>
+          No words, a fresh session in the epic's worktree, <code>node_modules</code> emptied: 1 of 4 Opus runs (3 of
+          them with a dependency to install) ran <code>npm install</code> ("added 1 package, and audited 2 packages").
+          It wrote a <code>package-lock.json</code> and rewrote
+          <a href="/yarn.lock" target="src-yarn-lock"><code>yarn.lock</code></a
+          >'s resolved line to <code>registry.npmjs.org</code>, with no hash. The other 3 ran <code>yarn install</code>.
+          Sonnet ran <code>yarn install</code>; Haiku ran no install and used <code>npm test</code>.
+        </li>
+        <li>
+          The hook's words: 3 of 3 ran no install ("Your instructions for this epic take priority over this skill, so I
+          didn't create another worktree or run an install").
+        </li>
+        <li>
+          The epic skill's words, in the <a href="/epic/" target="src-epic"><code>/epic</code></a> session: 2 of 2 ran
+          no install ("I didn't run <code>npm install</code>. The repo uses yarn ... and the epic workflow skips this
+          step").
+        </li>
+        <li>
+          The words in <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a
+          >: 3 of 3 ran no install ("This repo's AGENTS.md overrides two of its steps"). It still ran
+          <code>npm test</code>, which is harmless here.
+        </li>
+        <li>I257's fix holds: not reopened.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Its finish (clash 12): the worktree is never removed. The bare merge (clash 4) happens without the words.</b>
+      <ul>
+        <li>
+          No words, fresh session, option 1: it ran <code>git -C &lt;main checkout&gt; merge sp-test</code> and the
+          tests, but left the worktree: "That isn't one of the <code>.worktrees/</code> or <code>worktrees/</code>
+          folders this process sets up and cleans, so something else made it and I left it alone." Nothing of
+          <code>/epic done</code> ran.
+        </li>
+        <li>
+          The hook's words: it merged nothing and offered no options ("your epic rules say an epic only finishes through
+          <code>/epic done</code>").
+        </li>
+        <li>
+          The words in <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a
+          >: the same ("I didn't run finishing-a-development-branch").
+        </li>
+        <li>
+          The <a href="/epic/" target="src-epic"><code>/epic</code></a> session: it ran the skill's test step, and when
+          told "1. Merge back to main locally" it ran <code>epic merge sp-test</code>. That is a fast-forward through
+          epic's own merge, which listed the commits; it removed no worktree and ran no bare git merge. It did skip the
+          Doc Review and <code>/epic done</code>'s changelog, but that was a direct request.
+        </li>
+        <li>I258's fix holds: not reopened.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Where the words must live (clash 13): all three places work. The hook only reaches part of its audience.</b>
+      <ul>
+        <li>
+          The epic skill's words work, but only in a session
+          <a href="/epic/" target="src-epic"><code>/epic</code></a> started. A session opened in the worktree some other
+          way has only the skill's one-line description.
+        </li>
+        <li>
+          The hook's words work in any session in the epic's worktree. But they appear only when superpowers is turned
+          on in <code>~/.claude/settings.json</code>; turned on in a project's settings, or with
+          <code>--plugin-dir</code>, nothing is said, and the install and bare merge above happen (I318).
+        </li>
+        <li>
+          <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> works for every session, however
+          superpowers was turned on. Claude Code put it in the session; a probe quoted it back.
+        </li>
+      </ul>
+    </li>
+  </ol>
+  <epic-net-effect
+    ><ul>
+      <li>
+        P72's words do their job wherever they're read. No superpowers clash bites in a session
+        <a href="/epic/" target="src-epic"><code>/epic</code></a> started.
+      </li>
+      <li>
+        I318: superpowers turned on any other way than the person's own settings gets no words. Fix it by reading
+        project settings too, or by having <code>epic init</code> offer the words for the repo's
+        <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a
+        >.
+      </li>
+      <li>I319: the epic plugin hangs headless <code>claude -p</code>.</li>
+      <li>
+        Not tried: a real <a href="/epic/" target="src-epic"><code>/epic</code></a> from the main checkout with its
+        window move, and <code>/epic done</code> itself. Both need a VS Code window.
+      </li>
+    </ul></epic-net-effect
+  ></epic-reply
+>
