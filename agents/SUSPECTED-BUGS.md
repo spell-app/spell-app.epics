@@ -82,6 +82,9 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- 2026-11-17 (mockup T50, the Counter starter):  a total worked out on a list (`its "total" is the sum of the count of its counters`)
+  didn't update when one counter's count changed;  moved onto the app, it did.
+  Likely the list's derived property follows the list's items but not each item's fields.
 - 2026-11-17 (mockup T42):  `spell place ingest` writes words its own Spell can't read, then leaves the field out:
   Open-Meteo's `is_day` became `its "is day" is a number`, and `temperature_2m_max` `its "temperature 2m max" is a temperature in °C`,
   both "Don't understand".  Changing their `words` in the `.api.json5` and running `spell place update` changed nothing:  the words came back.
