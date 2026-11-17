@@ -3,6 +3,46 @@
   owenoak: “how can we set a header on an `alert` and/or change the text size within it (Owen picked all three: a header
   with `titled`, a size word, Markdown)”
 </p>
-<epic-commit sha="541175de343531d016034270495731c031f7510e"
+<epic-reply agent="claude" from="owenoak">
+  <p>
+    A dialog's message is read as Markdown now. <code>alert "# You won!\nYour score: **{score}**"</code> draws a heading
+    and bold text.
+  </p>
+  <ul>
+    <li>
+      Nothing changes in what the line compiles to. The core asks Spell UI's dialog for <code>markdown: true</code> on
+      every <code>alert</code>, <code>warn</code> and <code>confirm</code>.
+    </li>
+    <li>
+      Spell UI uses <code>&lt;ui-markdown sanitized breaks&gt;</code> only when the message actually has Markdown in it:
+      a heading, a list, a quote, bold or italic, code, or a link.
+      <ul>
+        <li>
+          A plain message stays the plain paragraph it always was, so it looks exactly as before. A test checks this.
+        </li>
+        <li><code>5 * 3 = 15</code> and <code>snake_case_name</code> don't count as Markdown.</li>
+      </ul>
+    </li>
+    <li>
+      It's safe. The message is set as the element's text, never as markup. Then DOMPurify cleans what it draws: no
+      scripts, event handlers or <code>javascript:</code> links. The test puts an <code>&lt;img onerror&gt;</code> in
+      the message, and it comes out without the handler.
+    </li>
+    <li>
+      <code>breaks</code> keeps each <code>\n</code> as a line break, as the plain paragraph did. The Markdown also
+      keeps the paragraph's 16px margins, so the spacing doesn't change.
+    </li>
+    <li>
+      The <code>&lt;ui-markdown&gt;</code> family loads the first time a message needs it. The dialog waits for it to
+      draw (at most 1 second), so it never opens half-drawn.
+    </li>
+    <li><code>prompt</code>'s message stays plain, because it's the label for the input.</li>
+  </ul>
+  <p>Markdown, light and dark:</p>
+  <img src="/epics/language/tests/t145-markdown-light.png" alt="a Markdown message, light" style="max-width: 100%" />
+  <img src="/epics/language/tests/t145-markdown-dark.png" alt="a Markdown message, dark" style="max-width: 100%" />
+  <p>A plain message, the same as before:</p>
+  <img src="/epics/language/tests/t145-plain-light.png" alt="a plain message" style="max-width: 100%" /> </epic-reply
+><epic-commit sha="541175de343531d016034270495731c031f7510e"
   >Spell UI's dialogs take a message size and Markdown</epic-commit
 >
