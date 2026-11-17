@@ -512,6 +512,12 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## parser
 
+- 2026-11-17 · epic `mockup` T43 · a Spanish view saved in a place that draws `<formulario value={eso}>` is read whole,
+  with a warning (`Encanto no ve qué lee de ello este elemento, así que la tarea se lee entero`, Lista de tareas'
+  `Tarea.es.spell`);  English's `<form value={it}>` reads only the fields its form names:
+  - `P.ReadGathering` knows a form only by its English tag, `FORM_TAG = "ui-form"`;  Spanish's compiles to `es-formulario`.
+  - Harmless on this device (a whole row is read anyway), but a Spanish program on a server place reads every field.
+
 - 2026-11-14 · epic `mockup` J114 · Spanish `al clic` compiles to an `onClic` handler, an event nothing ever sends:
   - Solitario's empty stock ignored clicks for this;  `cuando se pulsa` (which compiles to `onClick`) works.
   - Nothing warns about it, so a Spanish program can wire a handler to an event that never comes.
