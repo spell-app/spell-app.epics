@@ -3,7 +3,57 @@
   owenoak: “Feet come back propertly on the same line, but they show in the old wierd for about 1-2 seconds. Too fast
   for me to get (his comment C2, on I147)”
 </p>
-<epic-commit sha="1e52bbe87d035451db63d8d908306793a8cb9837"
+<epic-reply agent="claude" from="owenoak">
+  <p>
+    When you open a file, the code now shows once, already drawn the way it ends up. Nothing gets redrawn a second
+    later.
+  </p>
+  <ul>
+    <li>
+      Why: the editor opens Solitaire from the compile cache, so nothing has been parsed yet. The code was first drawn
+      from a parse of that one file on its own, which knows nothing of Card, Pile or Deck. About 1.3s later the
+      project's parse arrived and everything was drawn again. That's the change you caught.
+    </li>
+    <li>
+      It wasn't only the feet. The tags that make members (<code>&lt;stock-pile "stock"/&gt;</code> ...) went from plain
+      bands to round ones, from 1 to 12. The underlines went from 1 to 4. A plain-text frame came before all of it.
+    </li>
+    <li>
+      Now, while a file's project parse is on its way, its lines stay hidden on the paper. They appear in the same
+      update that lays them out from the project's parse. A parse that never comes still shows them after 4 seconds.
+    </li>
+    <li>
+      A new parse is also laid out straight away now. Before, it waited another 150ms, showing the old layout in the
+      meantime.
+    </li>
+    <li>
+      This covers anything drawn from the parse, in the code pane and the Inspector's Code card: the feet, the laid-out
+      tags and their <code>⟩</code>, plain-line indents, group colours.
+    </li>
+  </ul>
+  <p>Measured frame by frame in the real editor, opening Solitaire headless, light and dark:</p>
+  <ul>
+    <li>
+      Before (main): first drawn at 1.65s from the file's own parse (1 round tag, 1 underline). The project's drawing
+      replaced it at 3.0s (12 round tags, 4 underlines), a 1.35s flash. In dark mode: 2.0s, then 3.5s.
+    </li>
+    <li>
+      After: hidden from 1.4s to 1.97s (light, worktree's own project) and 1.8s to 3.2s (Solitaire in dark). The first
+      frame shown is the project's drawing: 12 round tags, 4 underlines, both feet 22.6 x 14.1px, level. Nothing changes
+      after that.
+    </li>
+    <li>Switching from Card.spell to Solitaire.spell (already parsed): shown at once, from the first frame.</li>
+  </ul>
+  <p>
+    Commit 1e52bbe87, merged. The CodeMirrorRelayout browser test checks that a file waiting for its parse is hidden,
+    and is drawn the moment the parse comes with its row of two feet. A parse that never comes still shows the file, and
+    a file that's already parsed shows from the first frame. The test fails without the fix.
+  </p>
+  <p>Before, frames at 250ms steps:</p>
+  <img src="/epics/language/tests/i148-before.png" alt="Before" style="max-width: 100%" />
+  <p>After: blank paper, then the final drawing:</p>
+  <img src="/epics/language/tests/i148-after.png" alt="After" style="max-width: 100%" /> </epic-reply
+><epic-commit sha="1e52bbe87d035451db63d8d908306793a8cb9837"
   >the editor opens a project from the compile cache with nothing parsed, so the code pane drew Solitaire as plain text,
   then from a parse of Solitaire.spell alone (no Card, Pile, Deck: 1 member-declaring tag round, 1 underline), then
   ~1.35s later from the project's parse (12 round, 4 underlines); now while a project file has no parse its lines are
