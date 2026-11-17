@@ -81,6 +81,11 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
     Seen 2026-11-15 (epic `editor` I172), by reading the code, not run.
 
 ## spell
+
+- 2026-11-17 (mockup T42):  `spell place ingest` writes words its own Spell can't read, then leaves the field out:
+  Open-Meteo's `is_day` became `its "is day" is a number`, and `temperature_2m_max` `its "temperature 2m max" is a temperature in °C`,
+  both "Don't understand".  Changing their `words` in the `.api.json5` and running `spell place update` changed nothing:  the words came back.
+  Likely the words chooser never checks a word that starts with `is`, or holds a number-led word (`2m`), against the parser.
 - 2026-11-17 (language T146, found writing Solitaire's auto play):  a quoted alias used ABOVE its declaration isn't found.
   `a card` + `it "can go up" if ...` declared after a line saying `where it can go up` (in the same project, a later file or further down)
   reads `Don't understand "can go up"`;  declared above it, it reads.  Types and actions are stubbed ahead (`stubDeclaredMethods()`),
