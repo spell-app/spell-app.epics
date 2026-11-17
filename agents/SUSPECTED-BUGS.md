@@ -81,6 +81,13 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
     Seen 2026-11-15 (epic `editor` I172), by reading the code, not run.
 
 ## spell
+- 2026-11-17 (language T146, found writing Solitaire's auto play):  a quoted alias used ABOVE its declaration isn't found.
+  `a card` + `it "can go up" if ...` declared after a line saying `where it can go up` (in the same project, a later file or further down)
+  reads `Don't understand "can go up"`;  declared above it, it reads.  Types and actions are stubbed ahead (`stubDeclaredMethods()`),
+  a quoted alias seemingly not.  Solitaire's two auto play questions sit at the top of Solitaire.spell for now.
+- 2026-11-17 (language I152):  `where it isn't red or black` compiles to `!core.includes(["red", "black"], card)`, the CARD
+  compared, never true of a card;  `where it is red or black` was the same, and now reads `card.color === "red" || ...` by
+  carrying the verb (`withVerbCarried()`), which skips a negated verb before `or`.  Wanted:  `card.color !== "red" && ...`.
 
 - 2026-11-16 (mockup T39):  in Spanish, a quoted slot drawing whose first body line is a comment doesn't read the markup
   after it:  `para "dibujar su menú de página"`, then `// ...`, then `<ui-site-tabs />` is "No entiendo" at the tag.
