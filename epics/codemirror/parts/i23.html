@@ -10,9 +10,98 @@
   I21 no longer shows that layout while typing (it waits for the parse), but a slice or a file with no project parse
   still draws it.
 </p>
-<epic-commit sha="f75c4d68026b3cffdc1ef6bd946661a52461ec89"
+<epic-reply agent="claude" from="owenoak">
+  <p>
+    <b>Why the two differed:</b> laid out from its text alone, a file has no idea what its other files declare. So a
+    line naming one (<code>if the stock is empty</code>, <code>for each card in the deck</code>,
+    <code>after moving a card to a pile</code>, <code>a card</code>) didn't parse at all. A line that doesn't parse was
+    drawn as a plain step, so its block, its band and its foot were gone, and every line after it moved up.
+  </p>
+  <p><b>Fixed in the parser's layout:</b></p>
+  <ul>
+    <li>
+      A line with lines under it that doesn't parse now takes its shape from its first word:
+      <code>if</code>, <code>for</code>, <code>repeat</code>, <code>otherwise</code> start only control lines, so it's a
+      control block; <code>after</code>, <code>when</code>, <code>on</code> start only actions, so it's an action.
+    </li>
+    <li>
+      The words come from the language's own rules (each statement rule's first word), so Spanish's <code>si</code>,
+      <code>para</code>, <code>cuando</code> work the same.
+    </li>
+    <li>A word that starts steps too (<code>to</code>, <code>the</code>, <code>a</code>) is left a step.</li>
+    <li>But a type's name alone, <code>a card</code>, is a thing's head: it reopens a type declared elsewhere.</li>
+    <li>
+      And <code>it "can go up" if ...</code> (a pronoun, then a quoted name) is a property's head, as the two at the top
+      of Solitaire.spell now are.
+    </li>
+  </ul>
+  <p>
+    <b>Measured</b> in Solitaire.spell, every line's height in the bubbly code editor (with its feet), from the text
+    alone against the project's parse:
+  </p>
+  <table>
+    <tr>
+      <th></th>
+      <th>before</th>
+      <th>after</th>
+    </tr>
+    <tr>
+      <td>lines a different height</td>
+      <td>10</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>whole file's height (parse's: 5584px)</td>
+      <td>5475px, 109px short</td>
+      <td>5592px, 8px over</td>
+    </tr>
+  </table>
+  <p>
+    The one line left is the end of the foundation's <code>it is droppable when</code>: alone, it reads as another rule
+    (a plain band, not a property's), because only the project knows a foundation is a pile. That's I26, with the same
+    kind of thing in Pile.spell.
+  </p>
+  <p>The file's top, from its text alone, before and after, then from the project's parse:</p>
+  <p>
+    <img
+      src="/epics/codemirror/tests/i23-before-1-text.png"
+      alt="before:  a card and its two properties drawn as plain lines"
+    />
+  </p>
+  <p>
+    <img src="/epics/codemirror/tests/i23-after-1-text.png" alt="after:  a card's band, its two properties' bands" />
+  </p>
+  <p><img src="/epics/codemirror/tests/i23-after-1-parse.png" alt="from the project's parse" /></p>
+  <p>Restart the Game, from its text alone, before and after, then from the project's parse:</p>
+  <p>
+    <img
+      src="/epics/codemirror/tests/i23-before-52-text.png"
+      alt="before:  from the text alone, the for each and if blocks have no band or foot"
+    />
+  </p>
+  <p>
+    <img
+      src="/epics/codemirror/tests/i23-after-52-text.png"
+      alt="after:  from the text alone, the same blocks and feet as the parse's"
+    />
+  </p>
+  <p><img src="/epics/codemirror/tests/i23-after-52-parse.png" alt="from the project's parse" /></p>
+  <p>Further down, before and after:</p>
+  <p><img src="/epics/codemirror/tests/i23-before-120-text.png" alt="before:  control lines drawn as plain steps" /></p>
+  <p><img src="/epics/codemirror/tests/i23-after-120-text.png" alt="after:  control blocks with their feet" /></p>
+  <p>
+    Names and underlines still differ (alone, it can't know <code>card</code> is a name): that changes no height.
+    Checked by a new test: Solitaire's files laid out from their text have the same blocks, heads, levels and feet as
+    from the parse.
+  </p> </epic-reply
+><epic-commit sha="f75c4d68026b3cffdc1ef6bd946661a52461ec89"
   >a line that doesn't parse alone, for a name another file declares (if the stock is empty, after moving a card to a
   pile, a card), takes its block from its first word: the statement rules starting with it, a control line or one part
   of speech's declaration (BubblyLayout.shapeOf()); a type's name alone reopens it; test: Solitaire's files' blocks from
   text equal the parse's</epic-commit
+>
+<epic-commit sha="6f4138c8ef43a079f5365e1fec1a9ad3c6db14d6"
+  >a property's head that doesn't parse alone, a pronoun then a quoted name (it "can go up" if ...), draws as a
+  property's band from its text too, as the two new ones at Solitaire.spell's top; a declaration's shape no longer needs
+  lines under it, a control line's still does</epic-commit
 >
