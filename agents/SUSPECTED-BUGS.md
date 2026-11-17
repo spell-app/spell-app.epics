@@ -512,6 +512,15 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## parser
 
+- 2026-11-17 · epic `mockup` T46 · `spell translate @spell/examples/flash-cards --to es` wrote a two sided view's sides
+  as `para dibujar su anverso` / `su reverso`, and passed its own shape check ("65 of 65 statements compile to the same
+  program"), yet the card never drew:
+  - Spanish's words for the sides are `su frente` / `su dorso` (Solitario's `Carta.es.spell`);  `anverso` compiles to a
+    plain method, so the view has no front to draw.
+  - The same run also wrote English Spell UI tags (`<segment>`, `<button>`) into the `.es.spell` files, and left
+    `menu="quiz menu"` naming the English menu.
+  - Likely the shape check compares statement shapes, not which built-in a method fills.
+
 - 2026-11-17 · epic `mockup` T43 · a Spanish view saved in a place that draws `<formulario value={eso}>` is read whole,
   with a warning (`Encanto no ve qué lee de ello este elemento, así que la tarea se lee entero`, Lista de tareas'
   `Tarea.es.spell`);  English's `<form value={it}>` reads only the fields its form names:
