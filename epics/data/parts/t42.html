@@ -1,2 +1,51 @@
 <!-- plan-doc part:  #t42's details in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p data-title-body>An action reading a field nothing else names gets its default until the answer</p>
+<epic-reply agent="claude" from="owenoak">
+  <blockquote><p>"compiled reads are plain synchronous getters" -- "what is this?"</p></blockquote>
+  <p>
+    It's about the JavaScript a Spell program compiles to, and why an action can't wait for a read that nothing else has
+    started.
+  </p>
+  <ul>
+    <li>
+      A <b>getter</b> is what a property compiles to: code that runs each time something reads the property. Family
+      Cookbook's <code>its "title" is text</code> becomes <code>get title()</code>, and a property worked out from the
+      place, its <code>matches</code>, becomes <code>get matches()</code>.
+    </li>
+    <li>
+      <b>Synchronous</b> means it hands back a value at once, with no <code>await</code>. The code that reads it never
+      pauses for the server.
+    </li>
+  </ul>
+  <epic-code title="FamilyCookbook.snapshot.js, the compiled code" language="ts">
+    <pre>
+export class Recipe extends Thing {
+  get title() { return this.getProp("title") }
+}
+
+  get matches() { return core.waitedValue(this, "matches", async () =&gt; {
+    return core.sortedBy(core.filter(await core.savedThings(Recipe, {}, "looks through"), ...), ...)
+  }, () =&gt; [this.search]) }</pre>
+  </epic-code>
+  <ul>
+    <li>
+      <code>get matches()</code> can't wait itself, so <code>core.waitedValue()</code> starts the read in the background
+      and hands back what it has now: an empty list the first time. When the server answers, it keeps the rows, and
+      everything drawn from <code>matches</code> draws again.
+    </li>
+    <li>For the page that's fine: it shows "loading", then the rows.</li>
+    <li>
+      For an action it isn't. If <code>show the first of the matches</code> runs before anything on the page has read
+      <code>matches</code>, the action gets the empty list, the default, and goes on with it. Nothing tells it to wait.
+    </li>
+  </ul>
+  <p>
+    <b>Why it's T42's limit, not fixed:</b> the only way to make the action wait would be to stop it when it reads a
+    value not there yet, then run it again from the start once the answer comes. But that runs again whatever the action
+    did before the read, such as a save or a notice, twice. P43's plan allowed leaving it out.
+  </p>
+  <p>
+    In practice it rarely bites: a field the page shows has been read before anyone can press a button. It only hits an
+    action reading a field nothing on the page shows.
+  </p>
+</epic-reply>
+<epic-reply from="owenoak" at="2026-11-17 18:39" re="revisit soon"><p>see my comments in its text: C3</p></epic-reply>
