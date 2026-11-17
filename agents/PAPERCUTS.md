@@ -255,6 +255,12 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   (a hook run 2.5s → 0.9s);  it refills as files run.  Check its size first when tsx-run commands slow down. · spell
   (epic `coherence` I26)
 
+- 2026-11-17 · test.spell.app's page loaded but every `/api` call answered 502 (home page empty, "this machine's person stays
+  owen@spell").  Main's page server had restarted at 12:29 on a new port (63515);  the OLD editor (vite on 3001, which Caddy
+  proxies to) kept proxying to the dead server's port (`PORT=52070`), and the new editor started on 3002, which nothing uses.
+  · `spell server stop all`, kill the stale vite on 3001, `spell server start all` in `~/www/spell`.  The page server's
+  restart should stop or re-point the editor it started, not leave it running.  · spell (server), repo-split.
+
 ## ui
 
 - 2026-10-25 · After `yarn site:data` rewrote `src/jsx.ts`, Spell UI's `yarn ts` still failed on JSX attributes the new
