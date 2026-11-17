@@ -3,7 +3,9 @@ id: r4
 epic: mockup
 from: 🚧 language (89f0bef2)
 at: 2026-11-17T11:02-05:00
-status: new
+status: filed
+filed: P25 · Device Frame
+phase: p-device-frame
 ---
 
 ## The person's words
