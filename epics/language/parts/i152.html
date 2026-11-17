@@ -6,6 +6,113 @@
   piles&gt;` always means each pile's cards put together, in pile order; a phrase Spell can't read is refused, never
   dropped.)”
 </p>
+<p>
+  A list of piles, read by its items' word, now always means every pile's cards together, in pile order. A line Spell
+  can't read whole is an error, never a shorter program. <b>Merged into main.</b>
+</p>
+<table>
+  <tr>
+    <th>Spell</th>
+    <th>Before</th>
+    <th>Now</th>
+  </tr>
+  <tr>
+    <td><code>cards in the columns</code></td>
+    <td><code>core.everyThing(Card)</code>, "in the columns" dropped (in the repl); an error in a file</td>
+    <td><code>core.mergeLists(core.everyThing(Column))</code></td>
+  </tr>
+  <tr>
+    <td><code>the first card in the columns where it is face up</code></td>
+    <td>
+      <code>core.filter(core.everyThing(Column), (card) =&gt; card.isFaceDirection("up"))</code>: the first column, each
+      column tested as a card
+    </td>
+    <td>
+      <code
+        >core.getItemAt(core.filter(core.mergeLists(core.everyThing(Column)), (card) =&gt; card.isFaceDirection("up")),
+        0)</code
+      >
+    </td>
+  </tr>
+  <tr>
+    <td><code>the first card in the columns</code></td>
+    <td><code>core.getItemAt(core.everyThing(Column), 0)</code>: the first column</td>
+    <td><code>core.getItemAt(core.mergeLists(core.everyThing(Column)), 0)</code></td>
+  </tr>
+  <tr>
+    <td><code>a random card in the columns where it is face down</code></td>
+    <td>a random column, filtered as cards</td>
+    <td>
+      <code
+        >core.randomItemOf(core.filter(core.mergeLists(core.everyThing(Column)), (card) =&gt;
+        card.isFaceDirection("down")))</code
+      >
+    </td>
+  </tr>
+  <tr>
+    <td><code>cards in the foundations which are face down</code></td>
+    <td>right already</td>
+    <td>unchanged</td>
+  </tr>
+  <tr>
+    <td><code>the cards in the discard pile</code></td>
+    <td>error ("in the discard pile")</td>
+    <td><code>this.discardPile</code></td>
+  </tr>
+  <tr>
+    <td><code>the piles in the columns</code>, <code>for each pile in the columns</code></td>
+    <td>the columns</td>
+    <td>the columns (the word names the lists)</td>
+  </tr>
+  <tr>
+    <td><code>for each card in the columns</code>, <code>turn each card in the columns face down</code></td>
+    <td>each column, called a card</td>
+    <td>each card of each column</td>
+  </tr>
+  <tr>
+    <td><code>the columns in the deck</code></td>
+    <td>error</td>
+    <td>refused: <i>the deck holds cards, not columns: say "cards in the deck"</i></td>
+  </tr>
+  <tr>
+    <td><code>cards in the columns which are face up and red</code></td>
+    <td><code>... &amp;&amp; "red"</code>: every face-up card passed</td>
+    <td><code>... &amp;&amp; card.color === "red"</code></td>
+  </tr>
+  <tr>
+    <td><code>cards in the columns where it is red or black</code></td>
+    <td><code>core.includes(["red", "black"], card)</code>: never true</td>
+    <td><code>card.color === "red" || card.color === "black"</code></td>
+  </tr>
+</table>
+<ul>
+  <li>
+    The rules: a new <code>list_items_in</code> (<code>the? cards in &lt;list&gt;</code>; Spanish
+    <code>(los|las)? cartas en &lt;lista&gt;</code>), a new <code>random_item_where</code>, and the item word read the
+    same way in <code>the first / last card in</code>, <code>card 3 of</code>, <code>a random card in</code>,
+    <code>the first card in ... where</code> and loops.
+  </li>
+  <li>
+    A bare word after <code>and</code> / <code>or</code> in a <code>where</code> / <code>which</code> carries the verb
+    (<code>it is</code>, Spanish's <code>es</code>), only for a one-word clause naming nothing in scope; not after a
+    negated verb and <code>or</code> (<code>isn't red or black</code> is left as it was: it still compares the card, not
+    its color, a separate old bug). A word it can't read after that (<code>and purple</code>) is "Don't understand".
+  </li>
+  <li>
+    <code>spell repl</code> and <code>spell parse</code> printed the part of a line they read and dropped the rest: how
+    <code>cards in the columns</code> showed as <code>core.everyThing(Card)</code>. They now say
+    <i>Don't understand "in the columns"</i>, as a file does.
+  </li>
+  <li>
+    Tests: <code>itemsAcross.test.ts</code> (English and Spanish, 20), each rule's own tests; the parser folder 6309
+    passed (was 6285 before, +24), the 3 left failing then were the generated tables, regenerated in their own commit;
+    the examples' content check 757 passed, no example's snapshot changed.
+  </li>
+  <li>
+    Speed (<code>spell speedtest --against HEAD</code>): HEAD 670 ms average, this 667 ms (0%); 1268 example lines
+    parse, was 1262.
+  </li>
+</ul>
 <epic-commit sha="65d66e3b9cfd7407c44b22807cb6307a65edcfe8"
   >(1) `cards in the columns` (new `list_items_in`, English and Spanish `cartas en las columnas`) is every column's
   cards together, in the columns' order, `core.mergeLists(core.everyThing(Column))`; `the cards in the discard pile` the
@@ -21,3 +128,4 @@
   cards in the columns` showed `core.everyThing(Card)`); T146's messages added with it; PARSING.md; tests:
   itemsAcross.test.ts (English, Spanish), rule tests; `print the cards in the deck` now prints the deck</epic-commit
 >
+<epic-commit sha="65d66e3b9cfd7407c44b22807cb6307a65edcfe8">I152</epic-commit>
