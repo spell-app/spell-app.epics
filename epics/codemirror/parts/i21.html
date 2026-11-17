@@ -3,6 +3,88 @@
   owenoak: “So typing in solitaire.spell is horrible -- the scroll jumps around, the auto-help pops up waayy too fast. I
   know the machine is loaded, but this is really bad.”
 </p>
-<epic-commit sha="20351c84ddeb1703e0f030316a0095e6cd514b1a"
+<epic-reply agent="claude" from="owenoak">
+  <p>
+    <b>Your question: is it the uneven room after a block ends?</b> Partly. The lines that moved were the last lines of
+    blocks, the ones with feet under them (<code>turn over the next card</code>, <code>pause for 500 msec</code>,
+    <code>reset the stock</code>): each grew or shrank by 13-25px, several of them above the caret. But CodeMirror
+    wasn't re-measuring them at each key. This is what happened:
+  </p>
+  <ol>
+    <li>You type a letter. The marks just move along with the text, and nothing changes height.</li>
+    <li>150ms later, the pause's layout redrew the file from its own text alone. That drew those feet shorter.</li>
+    <li>50ms after that, the project's parse came in and drew them full height again.</li>
+  </ol>
+  <p>
+    So the caret's line jumped twice, by up to 101px. Keys a loaded machine handles more than 150ms apart triggered both
+    jumps <b>on every key</b>: at 300ms a key, 20 keys moved the caret's line 33 times.
+  </p>
+  <p><b>Fixed:</b></p>
+  <ul>
+    <li>
+      The pause now waits for the project's parse (4s at the most) and doesn't draw the file from its text alone. The
+      parse draws it once.
+    </li>
+    <li>
+      When a new layout changes the heights above the caret, the caret's line stays where it was on screen. This holds
+      while you're typing and the caret is on screen (CodeMirror's own scroll snapshot, put on the caret's line).
+    </li>
+    <li>
+      Typing was slow because each key made the browser lay the whole code pane out 3 extra times. That came from two
+      hidden probes (tab stops, the selection's band height) and the gutter being rebuilt at every key. Now each runs
+      only when something it depends on changes.
+    </li>
+  </ul>
+  <p>
+    <b>Measured</b> in Solitaire.spell, headless, window 1300x800, caret in the middle of the file, real key presses in
+    a body, at a head, and Enter with new lines:
+  </p>
+  <table>
+    <tr>
+      <th></th>
+      <th>before</th>
+      <th>after</th>
+    </tr>
+    <tr>
+      <td>key to drawn frame, median</td>
+      <td>54-63ms</td>
+      <td>8-11ms</td>
+    </tr>
+    <tr>
+      <td>key to drawn frame, worst</td>
+      <td>196ms</td>
+      <td>31ms</td>
+    </tr>
+    <tr>
+      <td>same, CPU 4x slower, median</td>
+      <td>243-267ms</td>
+      <td>16-19ms</td>
+    </tr>
+    <tr>
+      <td>same, CPU 4x slower, worst</td>
+      <td>670ms</td>
+      <td>144ms</td>
+    </tr>
+    <tr>
+      <td>caret's line moves per 100 keys</td>
+      <td>2-12</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>worst caret's line move</td>
+      <td>152px</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>keys 300ms apart (slower than the pause): moves in 20 keys</td>
+      <td>33, worst 101px</td>
+      <td>0</td>
+    </tr>
+  </table>
+  <p>
+    Choices: J62, J63. A new issue, I23: the file drawn from its text alone draws control blocks' feet shorter. You
+    won't see it while typing any more.
+  </p> </epic-reply
+><epic-commit sha="20351c84ddeb1703e0f030316a0095e6cd514b1a"
   >typing in Solitaire.spell keeps the caret's line still, and each key is ~6x faster</epic-commit
 >
