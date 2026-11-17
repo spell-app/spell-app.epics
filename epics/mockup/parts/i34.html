@@ -1,2 +1,206 @@
 <!-- plan-doc part:  #i34's details in mockup.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
-<p data-title-body><em>What it says on the tin.</em><epic-clarify></epic-clarify></p>
+<epic-more
+  ><p>
+    On Spell UI's docs page for the page layout, the Theming tab's live example is squeezed to nothing: the page layout
+    inside it is drawn 0 pixels wide, so its page text runs down the left edge one letter a line.
+  </p>
+  <ul>
+    <li>Where: the Spell UI docs site, the page layout's page, its Theming tab, the Tokens section.</li>
+    <li>
+      The example sits in the playground: the shaded box above the token tables, where you edit a token and watch the
+      example change.
+    </li>
+    <li>
+      What you see: an empty, tall box, a lone arrow (the drawer's navigation, with no room), then "The page goes here"
+      one letter under another.
+    </li>
+    <li>Measured headlessly at 1280 × 900: the page layout is 0 wide and about 1,586 pixels tall.</li>
+  </ul>
+  <p>
+    <img
+      src="/epics/mockup/tests/i34-theming.png"
+      alt="The Theming tab's playground:  the page text one letter a line"
+    />
+  </p>
+
+  <p>Why it happens: two things that are each fine on their own meet in the playground.</p>
+  <ul>
+    <li>
+      The playground's preview box is a <b>flex row that wraps</b>: it lays its children side by side, each only as wide
+      as its own contents, and moves one to the next line when the row is full. That suits a row of buttons, which the
+      playground mostly shows.
+    </li>
+    <li>
+      The page layout uses <b>inline-size containment</b>: it measures its own width to decide when to go narrow (one
+      column, the drawer sliding over the page, under 40em). To do that safely, the browser makes it refuse to take its
+      width from what's inside it.
+      <ul>
+        <li>Put in a box that fills the line (a page, a normal block), that costs nothing: it's as wide as the box.</li>
+        <li>
+          Put in a box that asks each child "how wide are your contents?" (a flex row like the preview), its answer is
+          "nothing", so it gets 0.
+        </li>
+      </ul>
+    </li>
+    <li>The page text then wraps inside 0 pixels, which is one letter a line.</li>
+  </ul>
+  <epic-code title="UIDocsTokens.css · 18 lines" language="css">
+    <pre>
+/* Playground:  the preview fills the bar, the reset button sits at its end (wrapping below on a narrow column). */
+.playground {
+  --ui-segment-margin: 0;
+}
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75em;
+}
+.preview {
+  display: flex;
+  flex: 1 1 12em;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+  min-width: 0;
+}</pre>
+  </epic-code>
+  <epic-code title="UIPageLayout.css, its :host · 6 lines" language="css">
+    <pre>
+:host {
+  /* its own width decides narrow:  a site drawn in a narrow box is narrow */
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100%;
+}</pre>
+  </epic-code>
+  <p>
+    The preview box itself is fine: it is 523 pixels wide. It's only its child that gets nothing, because the child's
+    slot is a plain
+    <a
+      href="/ui/src/docs-components/ui-docs-tokens/UIDocsTokens.tsx"
+      target="src-ui-src-docs-components-ui-docs-tokens-uidocstokens-tsx"
+      ><code title="ui/src/docs-components/ui-docs-tokens/UIDocsTokens.tsx">&lt;slot&gt;</code></a
+    >
+    inside that flex row.
+  </p>
+
+  <p>The same example in Spell's own guides works, because it was patched there by hand.</p>
+  <ul>
+    <li>
+      When the page layout's guide pages were written for the Spell guides (todo T41), its example got
+      <code>width: 100%</code> on the page layout, which overrides the contents-sized width.
+    </li>
+    <li>Spell UI's docs page has no such patch: its example sets only a minimum height.</li>
+    <li>
+      So the fix belongs in one of the two pieces themselves, the preview in
+      <a
+        href="/ui/src/docs-components/ui-docs-tokens/UIDocsTokens.css"
+        target="src-ui-src-docs-components-ui-docs-tokens-uidocstokens-css"
+        ><code title="ui/src/docs-components/ui-docs-tokens/UIDocsTokens.css">&lt;ui-docs-tokens&gt;</code></a
+      >
+      or the layout's own outer box (its <code>:host</code>), and the hand patch then comes out.
+    </li>
+  </ul>
+  <epic-code title="Theming.spell, the Spell guide's copy (T41's patch) · 2 lines" language="spell">
+    <pre>
+&lt;ui-docs-tokens family="ui-page-layout" playground&gt;
+	&lt;ui-page-layout style="width: 100%; min-height: 18em"&gt;</pre>
+  </epic-code>
+  <epic-code title="ui-page-layout.html, Spell UI's docs page · 2 lines" language="html">
+    <pre>
+&lt;ui-docs-tokens family="ui-page-layout" playground&gt;
+  &lt;ui-page-layout style="min-height: 18em"&gt;</pre>
+  </epic-code>
+
+  <p>
+    It isn't only the page layout. Four more components measure their own width the same way, and each one's Theming
+    playground is 0 wide too (measured headlessly, the same way, today):
+  </p>
+  <ul>
+    <li>
+      the form,
+      <a href="/ui/src/components/ui-form/UIForm.css" target="src-ui-src-components-ui-form-uiform-css"
+        ><code title="ui/src/components/ui-form/UIForm.css">&lt;ui-form&gt;</code></a
+      >
+    </li>
+    <li>
+      the table,
+      <a href="/ui/src/components/ui-table/UITable.css" target="src-ui-src-components-ui-table-uitable-css"
+        ><code title="ui/src/components/ui-table/UITable.css">&lt;ui-table&gt;</code></a
+      >
+    </li>
+    <li>
+      the theme editor,
+      <a
+        href="/ui/src/components/ui-theme-editor/UIThemeEditor.css"
+        target="src-ui-src-components-ui-theme-editor-uithemeeditor-css"
+        ><code title="ui/src/components/ui-theme-editor/UIThemeEditor.css">&lt;ui-theme-editor&gt;</code></a
+      >
+    </li>
+    <li>
+      the page,
+      <a href="/ui/src/components/ui-page/UIPage.css" target="src-ui-src-components-ui-page-uipage-css"
+        ><code title="ui/src/components/ui-page/UIPage.css">&lt;ui-page&gt;</code></a
+      >: its example sits in a resizable box, which starts at 0 wide for the same reason, until you drag it
+    </li>
+  </ul>
+
+  <epic-choices>
+    <epic-option letter="A" title="The preview gives a full-width child room" recommended
+      ><ul>
+        <li>
+          The playground's preview, in <code>&lt;ui-docs-tokens&gt;</code>, notices a child that sizes itself by its own
+          width, and gives it the whole line.
+        </li>
+        <li>One change fixes all five playgrounds: the page layout, form, table, theme editor and page.</li>
+        <li>A row of buttons stays as it is: only those children are widened.</li>
+        <li>T41's hand patch in the Spell guide comes out.</li>
+        <li>Cost: a few lines of script, as CSS can't ask whether an element uses containment.</li>
+      </ul>
+      <epic-code title="sketch · 6 lines" language="css">
+        <pre>
+/* set by script when a slotted
+   child's container-type isn't
+   "normal" */
+:host(:state(wide)) ::slotted(*) {
+  flex: 1 1 100%;
+}</pre>
+      </epic-code></epic-option
+    >
+    <epic-option letter="B" title="The page layout fills any box it's in"
+      ><ul>
+        <li>The page layout's own outer box takes the full width itself, so it fills whatever it's put in.</li>
+        <li>Fixes the page layout's playground, and anyone else's flex row or grid it lands in.</li>
+        <li>The other four playgrounds stay 0 wide: each would need the same line, one by one.</li>
+        <li>
+          Also changes: beside other things in a row, the layout always takes a line of its own. That's what a page
+          layout is for, so it's mild.
+        </li>
+        <li>T41's hand patch comes out.</li>
+      </ul>
+      <epic-code title="UIPageLayout.css · 4 lines" language="css">
+        <pre>
+:host {
+  container-type: inline-size;
+  inline-size: 100%;
+}</pre>
+      </epic-code></epic-option
+    >
+  </epic-choices>
+  <p>
+    A is recommended: the preview is the one place all five broken examples share, so one fix covers them, and any new
+    component that measures its own width will just work there. B is still worth doing on top, if you want the page
+    layout to fill a flex row on real pages too.
+  </p>
+
+  <epic-net-effect option="A" recommended>
+    <ul>
+      <li>the page layout's Theming playground draws the layout full width, its page text in normal lines</li>
+      <li>the form's, table's, theme editor's and page's playgrounds are full width too</li>
+      <li>a playground of buttons or labels looks as it does now</li>
+      <li>the Spell guide's copy of the page layout example loses its <code>width: 100%</code> (T41's patch)</li>
+    </ul>
+  </epic-net-effect></epic-more
+>
