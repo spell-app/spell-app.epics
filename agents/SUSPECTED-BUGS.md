@@ -912,9 +912,9 @@ every entry below that date was fixed or disproven;  what's left:
 - `spell-app/tests/app/runner/element.build.test.ts` "one Solid per page":  fails on branch `precedence-and-types`
   (2026-10-04), whose changes are parser-only -- the element build's `ui/customElement.js` also holds Solid, beside
   `spell-solid.js`.  Prove:  run it on `main`.  (The same root run's `*.browser.test.tsx` failures all passed alone.)
-- `spell-app/src/app/solid/ConsoleLines.tsx` (and its Solid twin `src/solid/ConsoleLines.tsx`) `<ConsoleObject>`:  a logged `true`,
-  `false` or `undefined` shows as an EMPTY value -- it's handed to JSX as is, which draws no text for them (React and
-  Solid alike).  Probably wants `String(thing)`;  kept as is in the Solid port (P6b) to keep behaviour.
+- `spell-app/src/app/solid/ConsoleLines.tsx` (and its Solid twin `src/solid/ConsoleLines.tsx`) `<ConsoleObject>`:  a logged
+  `undefined` shows as an EMPTY value -- it's handed to JSX as is, which draws no text for it (React and Solid alike).
+  `true` / `false` show as text since epic `editor` P32 (a console line's answer may be one).
 - `spell-app/src/app/editor.ts` `showingMatchRuleNames` [V]:  named backwards.  `<MatchRoot>` passes it as `compact`, and
   `MatchViewer.css`'s `.compact .name { display: none }` HIDES the names, so `true` (the default) means names hidden;
   `Actions.toggleMatchRuleNames` agrees with the CSS ("Show Rule Names" while it's `true`), not with the docstring.
