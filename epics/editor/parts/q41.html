@@ -1,0 +1,78 @@
+<!-- plan-doc part:  #q41's details in editor.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    For the Step Debugger phase, right after P32 · Spell Console. It decides how "pause inside a method" works at all.
+  </p>
+  <p>The problem: the running app and the editor are one page.</p>
+  <ul>
+    <li>
+      The app runs inside the editor's own page, in a <code>&lt;spell-viewer&gt;</code>, not in a window of its own.
+    </li>
+    <li>
+      A page does one thing at a time. If the app truly stops mid-method, the browser's way, the editor stops too: no
+      highlighted line, no buttons, no values to show.
+    </li>
+    <li>
+      The good news: every line of the running code already knows which Spell line it came from (the source map the
+      editor uses to follow along), so any of the three can show the right Spell line.
+    </li>
+  </ul>
+  <p>The three ways, each for a breakpoint in <b>move a card to a pile</b>:</p>
+  <ul>
+    <li>
+      <b>A, each line waits its turn (recommended):</b> while debugging, the app runs a debugging build of its code,
+      where each Spell line first asks "may I go on?".
+      <ul>
+        <li>
+          At a breakpoint, the answer is "not yet": that method waits, the rest of the page (the editor) carries on, and
+          Step Over says "go on" for one line.
+        </li>
+        <li>What you'd see: everything in the goal, in the editor, live, with the real game.</li>
+        <li>
+          The catch: to wait, a method has to be able to pause, so in the debugging build every method becomes one that
+          can wait. Things that must happen at once (drawing the screen) could show half-done while paused. The biggest
+          of the three to build.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>B, the browser's own debugger:</b> a breakpoint in the editor becomes a real one in the browser's developer
+      tools, which already show Spell lines through the source map.
+      <ul>
+        <li>Small to build, and exact.</li>
+        <li>
+          The catch: you step in the browser's developer tools, not in the editor; the editor freezes while paused; and
+          none of it works in the VS Code runner the same way.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>C, record, then step through the recording:</b> the method runs at full speed once, noting each line and its
+      values; then you step through what it did, forwards and backwards.
+      <ul>
+        <li>Safe: nothing ever freezes, and you can step backwards.</li>
+        <li>
+          The catch: it isn't paused for real. By the time you look, the move has already happened in the game, and you
+          can't change a value mid-way to see what would happen.
+        </li>
+      </ul>
+    </li>
+  </ul></epic-question
+><epic-net-effect option="A" recommended>
+  <ul>
+    <li>
+      The compiler gets a debugging build: each statement first asks the debugger whether to go on, at the place its
+      source-map mark goes today.
+    </li>
+    <li>The app runs that build only while debugging is on; the shipped code never has it.</li>
+    <li>The editor stays live while the app is paused, so the highlight, buttons and values all live in the editor.</li>
+  </ul> </epic-net-effect
+><epic-choices
+  ><epic-option
+    letter="A"
+    title="Each line waits its turn:  the debugging build lets the app pause between lines"
+    recommended
+  ></epic-option
+  ><epic-option letter="B" title="The browser's own debugger, shown in its developer tools"></epic-option
+  ><epic-option letter="C" title="Record it as it runs, then step through the recording"></epic-option
+></epic-choices>
