@@ -1,8 +1,192 @@
 <!-- plan-doc part:  #i106's details in data.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-more
+  ><p>
+    Ingesting NetBox's whole spec (version 4.7.5, with <code>--no-ai</code>, P49's step 1) wrote 138 of its 143 lists,
+    in 80 seconds, and needed up to 60 compile rounds. The other 5 were left out because of how the ingest names an
+    <em>inside type</em>.
+  </p>
+  <ul>
+    <li>
+      Left out: <code>front_port_templates</code>, <code>rear_port_templates</code>, <code>module_bays</code>,
+      <code>module_bay_templates</code>, <code>module_types</code>.
+    </li>
+    <li>
+      Also lost: the 13 <code>label</code> fields NetBox's small "value and label" objects have, to Spell's built-in
+      Speed.
+    </li>
+  </ul>
 
-P49 step 1, the whole NetBox spec (4.7.5) ingested with --no-ai: 138 lists written, 5 left out (front_port_templates,
-rear_port_templates, module_bays, module_bay_templates, module_types) because an inside type named owner + field
-('module bay module bay type', 'front port template rear port') doesn't compile when it contains another type's name.
-Also 13 'label' fields of an inside type 'speed' collide with Spell's built-in Speed. Fix: name an inside type after its
-schema (BriefModuleBayType -&gt; 'module bay type summary') rather than owner + field words. Took 80 s, 60 compile
-rounds max for a spec.
+  <p>
+    An inside type is a type the ingest makes for an object a field holds, rather than a list of its own. NetBox's
+    module bay holds a list of objects in <code>module_bay_types</code>, so the Spell gets a type for one of them.
+  </p>
+  <ul>
+    <li>
+      Its name is the field's words, one of it: <code>module bay types</code> =&gt; <code>module bay type</code> (<a
+        href="/parser/src/spell/ingest/PlaceSpell.ts"
+        target="src-parser-src-spell-ingest-placespell-ts"
+        ><code title="parser/src/spell/ingest/PlaceSpell.ts">insideTypeFor()</code></a
+      >).
+    </li>
+    <li>
+      But <code>module bay type</code> is already the name of one of NetBox's lists' types, so it puts the owner's name
+      in front: <code>module bay</code> + <code>module bay type</code>.
+    </li>
+    <li>
+      The three lists that hold one (module bays, module bay templates, module types) each get their own:
+      <code>module bay module bay type</code>, <code>module bay template module bay type</code>,
+      <code>module type module bay type</code>.
+    </li>
+    <li>
+      Port templates the same way: <code>front port template rear port</code>,
+      <code>rear port template front port</code>.
+    </li>
+  </ul>
+
+  <p>Those names don't compile. The same lines in a tiny file, with only the types they name, give this:</p>
+  <epic-code title="what the ingest writes for a module bay · 9 lines" language="spell">
+    <pre>
+a "module bay" is a thing
+	its "name" is text
+	its "module bay types" is a list of module bay module bay types
+
+a "module bay type" is a thing
+	its "name" is text
+
+a "module bay module bay type" is a thing
+	its "name" is text
+</pre>
+  </epic-code>
+  <epic-code title="what compiling it says · 3 errors" language="text">
+    <pre>
+3:27 Don't understand "a list of module bay module bay types"
+8:0 Don't understand "a "module bay module bay type" is a thing"
+9:1 "it" and "its" mean a type only in its outline, indented under e.g. "a card is a thing where:"
+</pre>
+  </epic-code>
+  <ul>
+    <li>
+      Spell reads a type's name by the names it knows, so a name with another type's whole name inside it trips it.
+    </li>
+    <li>
+      Not every such name: <code>front port rear port</code>, NetBox's front port's inside type, compiles fine. Why one
+      does and the other doesn't isn't traced.
+    </li>
+  </ul>
+
+  <p>
+    "Left out" means the whole list is gone, not one field. The compile step (<a
+      href="/parser/src/spell/ingest/PlaceIngest.ts"
+      target="src-parser-src-spell-ingest-placeingest-ts"
+      ><code title="parser/src/spell/ingest/PlaceIngest.ts">compileLeavingOut()</code></a
+    >) drops each line that fails, and a type's first line failing drops the list it belongs to.
+  </p>
+  <ul>
+    <li>
+      So someone using the place has no module bays, no module types, no front or rear port templates: no type, no
+      <code>lives at</code> line, nothing to read or write.
+    </li>
+    <li>The description keeps them, each with why it was left out, in its notes.</li>
+  </ul>
+
+  <p>
+    Found writing this: the compile step finds a failing line by its TEXT, so it can take the wrong one. The first line
+    anywhere in the file with the same words is the one left out.
+  </p>
+  <ul>
+    <li>
+      The orphaned field lines under a dropped type (<code>its "url" is text</code>,
+      <code>its "name" is text</code> ...) took real fields from other lists: device types lost
+      <code>manufacturer</code>, object types <code>description</code>, scripts <code>name</code>, circuit group
+      assignments <code>url</code> and <code>display</code>, connected devices <code>position</code>, and a circuit
+      group assignment tag its <code>id</code> and <code>slug</code>: 8 fields.
+    </li>
+    <li>The Speed errors below did the same, one round at a time.</li>
+  </ul>
+
+  <p>
+    The Speed collision is a different name problem. NetBox's console ports send their speed as a small object, written
+    in place in the spec, with no name of its own:
+  </p>
+  <epic-code title="NetBox's spec · ConsolePort's speed, shortened · 4 lines" language="json">
+    <pre>
+"speed": { "type": "object", "properties": {
+  "value": { "enum": [1200, 2400, 4800, 9600, ...], "type": "integer" },
+  "label": { "enum": ["1200 bps", "2400 bps", ...], "type": "string" } } }
+</pre>
+  </epic-code>
+  <ul>
+    <li>
+      Its inside type is called <code>speed</code>. That's a name Spell already has, a measure like km/h, but the check
+      for Spell's own names (<a
+        href="/parser/src/spell/ingest/PlaceShape.ts"
+        target="src-parser-src-spell-ingest-placeshape-ts"
+        ><code title="parser/src/spell/ingest/PlaceShape.ts">isSpellsOwnType()</code></a
+      >) doesn't count measures, so the owner isn't put in front.
+    </li>
+    <li>
+      Compiling <code>a "speed" is a thing</code> with its fields says
+      <code>Can't add "value" to Speed: it's built in, and every project shares it</code>, and the same for
+      <code>label</code>.
+    </li>
+    <li>
+      Matched by text, <code>its "label" is text</code> was left out of 13 other small types first: priority, status,
+      kind, face, airflow, distance unit, length unit, action, profile ... Each kept only its <code>value</code>.
+    </li>
+    <li>
+      In the end <code>a "speed" is a thing</code> is written empty, and <code>its "speed" is a speed</code> means
+      Spell's Speed, not NetBox's.
+    </li>
+  </ul>
+
+  <p>
+    The fix: name an inside type after its schema, when the spec gives it one, instead of owner + field words. NetBox's
+    field already points at a named schema:
+    <code>module_bay_types</code> is a list of <code>BriefModuleBayType</code>.
+  </p>
+  <epic-code title="inside types' names, before and after · 6 lines" language="text">
+    <pre>
+schema                    today                                 after
+BriefModuleBayType        module bay module bay type   (x3)     module bay type summary   (one, shared)
+FrontPortTemplateMapping  front port template rear port         front port template mapping
+RearPortTemplateMapping   rear port template front port         rear port template mapping
+FrontPortMapping          front port rear port                  front port mapping
+</pre>
+  </epic-code>
+  <ul>
+    <li>
+      "Brief" is NetBox's word for the short form of a thing, so it reads as "summary"; the three lists share one type,
+      as the spec does.
+    </li>
+    <li>
+      The speed object has no schema name, so this fix doesn't reach it. It also needs Spell's measures counted as
+      Spell's own names, giving <code>console port speed</code> (not in the old text: a suggestion).
+    </li>
+    <li>
+      Finding the failing line by where it is, not by its words, would stop a failure taking other lists' fields (also a
+      suggestion).
+    </li>
+  </ul>
+
+  <epic-net-effect
+    ><ul>
+      <li>
+        NetBox's 5 missing lists come back (143 of 143), with names that say what they are:
+        <code>module bay type summary</code>, not <code>module bay module bay type</code>.
+      </li>
+      <li>
+        With the measure check and the line-by-place fix too: the 13 <code>label</code> fields and the 8 fields taken
+        from other lists come back, and a console port's speed is NetBox's, not Spell's.
+      </li>
+    </ul></epic-net-effect
+  ></epic-more
+><epic-original
+  ><epic-version>
+    P49 step 1, the whole NetBox spec (4.7.5) ingested with --no-ai: 138 lists written, 5 left out
+    (front_port_templates, rear_port_templates, module_bays, module_bay_templates, module_types) because an inside type
+    named owner + field ('module bay module bay type', 'front port template rear port') doesn't compile when it contains
+    another type's name. Also 13 'label' fields of an inside type 'speed' collide with Spell's built-in Speed. Fix: name
+    an inside type after its schema (BriefModuleBayType -&gt; 'module bay type summary') rather than owner + field
+    words. Took 80 s, 60 compile rounds max for a spec.
+  </epic-version></epic-original
+>
