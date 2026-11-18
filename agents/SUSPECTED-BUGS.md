@@ -818,6 +818,10 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## app
 
+- 2026-11-18 (mockup P28):  on App UI's `<spell-viewer>` page (`/components/app/spell-viewer.html#1-example`), about one load in four,
+  the calculator example's app draws nothing:  its toolbar shows, its `<div class="App">` stays empty for 30 s and more, and
+  the page logs no error;  the FizzBuzz viewer under it runs.  Seen from headless Chromium while other sessions restarted
+  the page server, so maybe only that.  `sounds.test.ts` retries its docs-page test for it.
 - 2026-11-09 (data P47):  `propertyEditorsFile.test.ts`, "a label tweaked in the file shows in the Inspector, once saved", broken by epic `notebook`'s P3 (`feea97db6`).
   The 2-second read of the open file brings back the old disk text, because the test's fake save never reaches disk.
   People aren't affected.
