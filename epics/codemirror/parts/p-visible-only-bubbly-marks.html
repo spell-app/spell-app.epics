@@ -29,6 +29,107 @@
     The colouring and pill marks move to a view plugin that builds them only for the lines CodeMirror draws, again as
     the view scrolls.
   </p></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>Measure first, and decide.</b>
+      <ul>
+        <li>
+          A headless Playwright script opens Solitaire.spell (207 lines) and SpellUI's Table examples (2,667 lines) in
+          the app's editor, and times a relayout: the parser's layout (<code>SP.BubblyLayout.of()</code>) and the
+          decoration building, separately, with performance marks.
+        </li>
+        <li>
+          Solitaire is short: CodeMirror draws about half of it at once (the screen plus a margin of about 1,000px), so
+          its gain is at most about half. The big file shows the real gain.
+        </li>
+        <li>
+          If the decoration building is under a third of the relayout on the big file, stop and report: the layout is
+          where the time goes, and this phase would buy little.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The layout stays whole-file.</b>
+      <ul>
+        <li>
+          The parser lays out the whole text (each character's paint, every block's body under its head): a foot or a
+          rail needs its whole block. That's not changed.
+        </li>
+        <li>
+          What's cheap to skip: each line's stretches (<code>SP.BubblyStretches.ofLine()</code>) are already worked out
+          a line at a time in the editor, so they're only worked out for lines on screen.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>One builder, two outputs</b> (<code>BubblyDecorations</code>, <code>CodeMirrorDecorations</code>).
+      <ul>
+        <li>
+          It walks the drawing as now, but makes marks only on lines inside the ranges it's given; the whole file when
+          given none (the unit tests, a slice).
+        </li>
+        <li>
+          Its <code>build()</code> returns two sets:
+          <ul>
+            <li>
+              whole-file, in the editor's state: feet (block widgets), the hidden line breaks of a row of feet and of
+              tags joined over lines, every line decoration (rails, <code>cmb-head</code>, group lines), and the drawing
+              itself
+            </li>
+            <li>
+              on-screen only: the marks (bands, pills, colours, quote marks, braces, a plain line's indent room) and the
+              replaced pieces inside one line (curly quotes, a tag's <code>/&gt;</code>)
+            </li>
+          </ul>
+        </li>
+        <li>
+          Line decorations stay whole-file: one per line is cheap, and typing on a blank line reads them far up the file
+          (<code>blankLinesDrawn()</code> looks for the head or tag above).
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>A view plugin draws the marks</b> (in <code>CodeMirrorRelayout</code>).
+      <ul>
+        <li>
+          Rebuilt from the field's drawing when it changes, and when the drawn stretch changes
+          (<code>viewportChanged</code>); mapped through edits as now.
+        </li>
+        <li>
+          While typing, the drawing is a few keystrokes old: the field keeps the edits since (a change set), and the
+          plugin maps the marks it makes through them, so a line scrolled into view mid-typing is still drawn.
+        </li>
+        <li>At the lowest precedence, as the field is now, so a found word's mark still goes inside a pill.</li>
+        <li>Its atomic marks (a comment's dash) join the field's in <code>EditorView.atomicRanges</code>.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Check</b>: the same measurement after; the bubbly unit and browser tests unchanged; a new browser test
+      scrolling the big file end to end, and typing then scrolling, every line on screen drawn; screenshots of Solitaire
+      top and bottom, before and after, the same.
+    </li>
+  </ol>
+  <p>Risks:</p>
+  <ul>
+    <li>
+      A line scrolled into view arriving a frame late, plain: CodeMirror runs the plugin's update before it draws, so it
+      shouldn't; the scrolling test catches it.
+    </li>
+    <li>
+      Find and peek read their own marks, not ours; the selection band reads <code>atomicRanges</code> at the pointer,
+      which is always on screen. A caret moved by Page Down past the drawn stretch meets no dash mark until it's drawn:
+      harmless.
+    </li>
+    <li>
+      Heights don't change: lines off screen are estimated by CodeMirror today too, and the feet, which are what change
+      heights, stay whole-file (<a href="#i21">I21</a>).
+    </li>
+  </ul>
+  <p>
+    Left out: laying out only part of the file in the parser; the description rows (<code>DescriptionRoom</code>), which
+    already measure only what's on screen.
+  </p></epic-field
 ><epic-field name="files"
   ><ul>
     <li>
