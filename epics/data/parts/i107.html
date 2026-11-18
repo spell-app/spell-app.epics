@@ -5,3 +5,106 @@ provided."}, seen 2026-11-17), and this session can't make the free demo account
 answers made in NetBox's schema shape (a made-up tenant 'Acme'), plus that real 403. Writes and action routes were not
 tried on the live demo. Needs a person to make the account and set a key, then run spell place verify --try-writes on
 it.
+<epic-reply from="owenoak" at="2026-11-18 09:12" re="revisit now"
+  ><p>tell me exactly what to do to set this up</p></epic-reply
+><epic-reply agent="claude" from="Claude" at="2026-11-18 09:20" re="tell me exactly what to do to set this up"
+  ><p>About 10 minutes. Do it all in one sitting: the demo wipes itself every night at 04:00 UTC (11pm your time).</p>
+  <ol>
+    <li>
+      <p>
+        <b>Make an account.</b> Open
+        <a href="https://demo.netbox.dev/plugins/demo/login/" target="ext-demo-netbox-dev-plugins-demo-login"
+          >demo.netbox.dev/plugins/demo/login/</a
+        >.
+      </p>
+      <ul>
+        <li>Leave Username and Password empty, and click <b>Create &amp; Sign In</b>. It makes one for you.</li>
+        <li>You should see: NetBox's home page, signed in as <code>user</code> and a number, top right.</li>
+        <li>Every demo account is an admin, so writes are allowed.</li>
+      </ul>
+    </li>
+    <li>
+      <p><b>Make a token.</b> Click your user name, top right, then <b>API Tokens</b>, then <b>Add a Token</b>.</p>
+      <ul>
+        <li>Leave everything as it is: Version <b>v2</b>, <b>Enabled</b> and <b>Write enabled</b> ticked.</li>
+        <li>Description: <code>spell</code>. Click <b>Create</b>.</li>
+        <li>
+          Copy the whole token it shows: it starts <code>nbt_</code> and has a dot in the middle. You only see it this
+          once.
+        </li>
+        <li>
+          Spell sends it as <code>Authorization: Bearer nbt_...</code>, which is how NetBox wants a v2 token. Don't pick
+          v1.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <p>
+        <b>Give the token to Spell,</b> in a terminal. Spell reads it from the environment only, and never writes it
+        down.
+      </p>
+      <pre><code>export NETBOX_TOKEN='nbt_paste.it_here'</code></pre>
+      <ul>
+        <li>Keep this terminal for every step below: a new one won't have it.</li>
+      </ul>
+    </li>
+    <li>
+      <p><b>Make the NetBox place,</b> in a folder outside every repo, as its rows are real data:</p>
+      <pre><code>mkdir -p ~/netbox-try
+cd ~/netbox-try
+spell place ingest https://demo.netbox.dev --kind "web server" --spec "https://demo.netbox.dev/api/schema/?format=json" --key-secret NETBOX_TOKEN --name netbox --into NetBox.api.spell --no-examples --no-ai</code></pre>
+      <ul>
+        <li>
+          About a minute. You should see <code>Added netbox to NetBox.api.spell.</code>, then a list of left-out
+          <code>label</code> lines: that's I106, expected.
+        </li>
+        <li>
+          <code>NetBox.api.spell</code> now says <code>its key is the secret "NETBOX_TOKEN"</code> under its first line.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <p><b>Check every list reads,</b> still in <code>~/netbox-try</code>:</p>
+      <pre><code>cd ~/netbox-try
+spell place verify NetBox.api.spell</code></pre>
+      <ul>
+        <li>About a minute (yesterday's run, refused everywhere, took 44 s).</li>
+        <li>
+          You should see <code>What changed:</code> with lines like <code>circuits: failed =&gt; verified.</code>, and
+          no <code>What failed:</code> list, or a short one.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <p>
+        <b>Try writes.</b> It adds, changes and deletes one row of the first list that read, and says whether NetBox
+        kept it:
+      </p>
+      <pre><code>cd ~/netbox-try
+spell place verify NetBox.api.spell --try-writes</code></pre>
+      <ul>
+        <li>
+          <code>--try-writes</code> takes no list name: it picks the first list with rows itself. Harmless here: the
+          demo wipes it tonight.
+        </li>
+      </ul>
+    </li>
+  </ol>
+  <p>
+    <b>If something doesn't work,</b> tell Claude on this item (I107) the step number and paste the last 20 lines it
+    printed. Common ones:
+  </p>
+  <ul>
+    <li><code>the key named NETBOX_TOKEN isn't in the environment</code>: step 3 was in another terminal.</li>
+    <li>
+      <code>403: Invalid v2 token</code>: part of the token was cut off, or it was made before 04:00 UTC and wiped.
+    </li>
+    <li><code>403: Invalid v1 token</code>: a v1 token; make a v2 one.</li>
+    <li><code>spell: command not found</code>: run <code>cd ~/www/spell &amp;&amp; yarn cli:install</code> once.</li>
+  </ul>
+  <p>
+    Not confirmed: whether your account and token survive the nightly wipe. The demo reloads its whole database from a
+    dump each night, so most likely not: after 04:00 UTC, start again at step 1. I checked steps 1, 2 and 4 for real
+    (the token form, its defaults, and the ingest without a key), but not a real token's reads or writes.
+  </p></epic-reply
+>
