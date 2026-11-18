@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Server actions: calling, before, after and failure</title>
+    <meta name="description" content="Details:  Server actions: calling, before, after and failure" />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page spell-details-page">
+    <ui-root>
+      <ui-components source="/_epic/pack/epics.pack.js"></ui-components>
+      <spell-site-header></spell-site-header>
+      <div class="spell-doc">
+        <main class="spell-doc-main">
+          <ui-breadcrumbs class="spell-crumbs" size="small" aria-label="Breadcrumb">
+            <ui-breadcrumb link="/pages/index.html" target="src-packages-docs-index-html">Docs</ui-breadcrumb>
+            <ui-breadcrumb link="/epics/data/data.plan.html" target="data">data</ui-breadcrumb>
+            <ui-breadcrumb selected>Server actions: calling, before, after and failure</ui-breadcrumb>
+          </ui-breadcrumbs>
+          <ui-sticky class="spell-h1"
+            ><header class="spell-page-head">
+              <h1>Server actions: calling, before, after and failure</h1>
+              <epic-send></epic-send></header
+          ></ui-sticky>
+          <p class="lede">
+            How a program calls a server's action, like completing a job, and runs its own steps before it, after it and
+            when it fails: the whole design as one worked example, then the choices it raises.
+          </p>
+          <div class="spell-details-meta">
+            <epic-field label="Asked by" data-details-by
+              >session <code>data</code>, while planning its Server Actions phase</epic-field
+            >
+            <epic-field label="Asked" data-details-asked>2026-11-17</epic-field>
+          </div>
+
+          <ui-message class="spell-where" state="info" heading="Where we are">
+            <epic-field label="Epic"
+              ><code>data</code> -- Spell's places, the back-ends a program reads and writes.</epic-field
+            >
+            <epic-field label="Just now"
+              >You asked for server actions you can call by id, with steps around them at the API, app and page levels,
+              and error handling with <code>nevermind</code> and passing errors on. Thirteen separate questions came out
+              of it, and you asked for one page instead: this page replaces them (they're cancelled on the epic
+              page).</epic-field
+            >
+            <epic-field label="This decides"
+              >The words P50 · Server Actions builds, and how the steps stack. Nothing in that phase is built until this
+              page is answered.</epic-field
+            >
+          </ui-message>
+
+          <ui-section id="context" label="1. The whole design, one example" sticky collapsible dividing>
+            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+            <p>
+              A NetBox-like job API. A button on a page runs <code>complete job 6251</code>. Steps around it are written
+              in three places: the API file, the app's file, and the page. This uses <b>your words</b> wherever you gave
+              them; where they hit something Spell already has, the note says so at that line.
+            </p>
+
+            <h4>The three files</h4>
+            <epic-code title="NetBox.api.spell · the server, and steps for every call in the app" language="spell">
+              <pre>
+netbox is a web server at "https://demo.netbox.dev"
+	jobs live at "/api/jobs"
+	to complete a job is at "/api/jobs/{id}/complete"
+
+a "job" is a thing
+	it lives in netbox
+	its "status" is text
+
+before a job is completed
+	cancel if the job's status is "done"
+
+after a job is completed
+	set the job's status to "done"
+
+when a job can't be completed
+	if the error is "not found"
+		nevermind</pre>
+            </epic-code>
+            <epic-code title="Jobs.spell · the app's file" language="spell">
+              <pre>
+after a job is completed
+	alert "Job done"</pre>
+            </epic-code>
+            <epic-code title="JobsPage.spell · one page" language="spell">
+              <pre>
+a "jobs page" is a page
+	its "busy note" is text
+	- draw it
+		&lt;ui-button onClick={complete job 6251}&gt;Complete job 6251&lt;/ui-button&gt;
+
+before a job is completed
+	set the busy note to "Completing ..."
+
+after a job is completed
+	set the busy note to ""
+
+when a job can't be completed
+	otherwise if the error is "not authorized"
+		alert "Not logged in"
+		show the login dialog</pre>
+            </epic-code>
+
+            <h4>What happens when the button is pressed, in order</h4>
+            <ui-table padding="compact" celled unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Where</th>
+                    <th>The Spell</th>
+                    <th>What it does</th>
+                    <th>Today</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>the page</td>
+                    <td><code>complete job 6251</code></td>
+                    <td>Starts the action.</td>
+                    <td>
+                      A parse error: a bare id isn't a form yet. <code>complete job "6251"</code> compiles, but reads
+                      "6251" as a NAME, in memory only. Choice 2.1.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Spell</td>
+                    <td>(nothing written)</td>
+                    <td>
+                      Reads job 6251 from the place first, if it isn't held, so <code>the job</code> is there for every
+                      step below. Missing: the failure path, as "not found".
+                    </td>
+                    <td><code>the job whose id is 6251</code> reads it, but a missing one crashes. Choice 2.2.</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>the page</td>
+                    <td><code>before a job is completed</code></td>
+                    <td>Shows "Completing ...". Outermost, so it runs first.</td>
+                    <td>Refused: only <code>after completing a job</code> exists, and no before. Choice 3.1.</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>the API file</td>
+                    <td><code>cancel if the job's status is "done"</code></td>
+                    <td>Stops it: nothing is sent, and step 3's change is put back.</td>
+                    <td><code>cancel</code> exists and does exactly this for an action.</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>Spell</td>
+                    <td>(the call)</td>
+                    <td><code>POST /api/jobs/6251/complete</code>, the id filled in.</td>
+                    <td>
+                      Fills no braces, always POST: P49 fixes it. A server action isn't a real action yet (bug, below).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>the API file</td>
+                    <td><code>after a job is completed</code></td>
+                    <td>Sets the status. Innermost after, so first.</td>
+                    <td>Spell's word is <code>after completing a job</code>; the passive form is refused.</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>the app's file</td>
+                    <td><code>alert "Job done"</code></td>
+                    <td>Tells the person.</td>
+                    <td>Today the API file and the app's file are ONE level, run in file order. Choice 4.1.</td>
+                  </tr>
+                  <tr>
+                    <td>8</td>
+                    <td>the page</td>
+                    <td><code>set the busy note to ""</code></td>
+                    <td>Clears the note. Outermost after, so last.</td>
+                    <td>A page's step today runs on every page, not only while it's shown. Choice 4.2.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+
+            <h4>When the call fails</h4>
+            <ui-table padding="compact" celled unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Where</th>
+                    <th>The Spell</th>
+                    <th>What it does</th>
+                    <th>Today</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>F1</td>
+                    <td>the API file</td>
+                    <td><code>when a job can't be completed</code></td>
+                    <td>Sees the error first: innermost.</td>
+                    <td>
+                      <code>when</code> plus words is an EVENT: this compiles to <code>on("a-job-can")</code> and a
+                      parse error. Choice 3.2.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>F2</td>
+                    <td>the API file</td>
+                    <td><code>if the error is "not found"</code> &rarr; <code>nevermind</code></td>
+                    <td>Drops it: nothing more runs, no notice.</td>
+                    <td>
+                      Compares the error to text, always false. <code>nevermind</code> doesn't exist. Choices 5.1, 5.3.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>F3</td>
+                    <td>the page</td>
+                    <td><code>otherwise if the error is "not authorized"</code></td>
+                    <td>Any other error went on out to the page, which catches this one.</td>
+                    <td>"not authorized" is no kind: a place says "refused", and why. Choices 5.1, 5.2.</td>
+                  </tr>
+                  <tr>
+                    <td>F4</td>
+                    <td>the page</td>
+                    <td><code>alert "Not logged in"</code>, <code>show the login dialog</code></td>
+                    <td>Asks the person to sign in.</td>
+                    <td>
+                      <code>alert</code> exists; Spell says "sign in" (<code>show the sign in menu</code>), not "login".
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>F5</td>
+                    <td>Spell</td>
+                    <td>(nothing written)</td>
+                    <td>An error no step caught reaches the person as a notice.</td>
+                    <td>
+                      A refused change already shows its own notice, "Couldn't save your change ...", with Retry. Choice
+                      5.5.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p>
+              Your first way, an action that wraps the call with <code>call the server</code> inside, does the same as
+              these steps, written in one place: choice 3.3.
+            </p>
+            <epic-text-box for="context"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="bugs" label="2. What has to be fixed first" sticky collapsible dividing>
+            <ui-icon slot="icon" name="bug"></ui-icon>
+            <p>
+              Four bugs the review found while compiling test programs. Each blocks this design, so the phase fixes them
+              first.
+            </p>
+            <ul>
+              <li>
+                <b>A server action isn't a real action</b> (<a href="../data.plan.html#i101" target="data">I101</a>): so
+                <code>after completing a job</code> is never run, <code>cancel</code> has nothing to stop, and the
+                Inspector doesn't list it.
+              </li>
+              <li>
+                <b><code>if that fails</code> under a server action empties it</b> (<a
+                  href="../data.plan.html#i102"
+                  target="data"
+                  >I102</a
+                >): the action compiles to nothing.
+              </li>
+              <li>
+                <b>The place's action line above the type makes a loose action</b> (<a
+                  href="../data.plan.html#i103"
+                  target="data"
+                  >I103</a
+                >): <code>complete the job</code> then doesn't read.
+              </li>
+              <li>
+                <b>A second <code>to complete a job</code> silently replaces the server's</b> (<a
+                  href="../data.plan.html#i104"
+                  target="data"
+                  >I104</a
+                >): no call, no warning.
+              </li>
+            </ul>
+            <epic-text-box for="bugs"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="q1" label="Q1 · Calling by id:  complete job 7151" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  How does a program call a server action on a job it only knows the id of? You asked for
+                  <code>complete job &lt;id as a string or number, whichever is appropriate&gt;</code>.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="complete job 7151, yours" recommended>
+                  <p>
+                    The id as a number or text, as the API types it; on a saved type it reads that job from the place.
+                  </p>
+                  <epic-aside title="Details"
+                    ><p>
+                      Today <code>job "7151"</code> means the job NAMED "7151", in memory, and in references digits mean
+                      a position (<code>Job#2</code>, the second). For a type that lives in a place, both change to mean
+                      its id. Spanish: <code>completar trabajo 7151</code>.
+                    </p></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="Only whose id is">
+                  <p><code>complete the job whose id is 7151</code>, today's way; nothing new to learn, but long.</p>
+                </epic-option>
+                <epic-option letter="C" title="job #7151">
+                  <p><code>complete job #7151</code>: the mark says it's an id, never a name or position.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q2" label="Q2 · A job already held" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  The job is read before any step, as you asked, so every step has <code>the job</code>. When the
+                  program already holds that job, is it read again?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Use the held copy" recommended>
+                  <p>
+                    No extra request; the place already keeps held things fresh. A before step may see a status a moment
+                    old.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Always read again">
+                  <p>The before steps see the server's latest, for one more request on every call.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q3" label="Q3 · More than one parameter" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Your question: "WHAT DO WE DO IF A CALL HAS MORE THAN ONE PARAMETER?" Spell's actions already take
+                  several: blanks (<code>to put a card on a pile</code>) and named values (<code
+                    >with reason as text</code
+                  >).
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Spell's own action forms" recommended>
+                  <p>
+                    Blanks and <code>with</code> values, each sent by its name; braces filled from them, then from the
+                    thing's own fields.
+                  </p>
+                  <epic-aside title="Details"
+                    ><epic-code title="the forms" language="spell">
+                      <pre>
+to move a job to a queue is at "/api/jobs/{id}/move/{queue}"
+move job 7151 to the night queue
+
+to close a job (with reason as text) is at "/api/jobs/{id}/close"
+close the job with reason "done early"
+
+to star a repository is at "/user/starred/{owner}/{repo}"
+star the repository          // {owner} and {repo} from its own fields</pre>
+                    </epic-code>
+                    <p>
+                      Today these compile, but only the job is sent: the queue and the reason are dropped. Spanish:
+                      <code>mover el trabajo a la cola nocturna</code>.
+                    </p></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="Only with values">
+                  <p>Every extra parameter as <code>with &lt;name&gt; ...</code>, by the server's names; no blanks.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q4" label="Q4 · Listing the parameters under the action" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  You wrote <code>to "complete" a job is at "..."</code> with
+                  <code>- id is job's id, a number</code> under it: "may be redundant but explicit is good here".
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Your lines, the name unquoted" recommended>
+                  <p>
+                    <code>to complete a job is at "..."</code>, then <code>- id is the job's id, a number</code>, read
+                    as a detail of the action.
+                  </p>
+                  <epic-aside title="Details"
+                    ><p>
+                      With the quotes, the line doesn't parse today: it breaks into <code>complete</code> and "Don't
+                      understand 'a job is at'". A quoted name elsewhere is the server's own spelling; the action's name
+                      is Spell's. Under an action, a <code>- ...</code> line is already an action detail (<code
+                        >- shortcut</code
+                      >, <code>- titled</code>), so this joins them. But <code>id is ...</code> means "defaults to" in a
+                      signature, and "set to" in steps: here it would mean "comes from". Spanish:
+                      <code>- id es el id del trabajo, un número</code>.
+                    </p></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="Your form, quoted">
+                  <p>
+                    <code>to "complete" a job is at</code>: the quotes say it's the server's word. A new form of the
+                    line.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="No lines">
+                  <p>The parameters stay in the description file only; the Spell shows none.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q5" label="Q5 · Showing the action on its type" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  You'd like the action "shown somewhere, probably in <code>a job is a thing</code>".
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Shown by Spell, no line" recommended>
+                  <p>
+                    Once the first bug is fixed it's a real action: the Inspector lists it on every job, with menus and
+                    shortcuts. Nothing to write.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="A line on the type">
+                  <p>
+                    <code>to complete it</code> under <code>a "job" is a thing</code>, the address staying on the
+                    place's line. Reads like an action still to be written.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q6" label="Q6 · The words for before and after" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Spell already has <code>after completing a job</code> (decided 2026-11-15). You wrote
+                  <code>before a job is completed</code> and <code>after a job is completed</code>.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="before / after completing" recommended>
+                  <p>
+                    <code>before completing a job</code>, beside today's <code>after completing a job</code>. Spanish
+                    <code>antes de completar un trabajo</code>, <code>después de completar un trabajo</code>.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Yours:  a job is completed">
+                  <p>
+                    Needs each action's past form (<code>completed</code>, <code>moved</code>), and Spanish's passive,
+                    <code>después de que se complete un trabajo</code>. Refused today.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="Both">
+                  <p>Two ways to say each.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q7" label="Q7 · The words for a failure step" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  You wrote <code>when a job can't be completed</code>, and <code>on error</code> inside the wrapper.
+                  Both collide: <code>when</code> plus words is an event (<code>when a recipe changes</code>), and
+                  <code>on error</code> is the page's error event.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="if completing a job fails" recommended>
+                  <p>
+                    Named after <code>if that fails</code>, which already follows a read or write. Spanish
+                    <code>si completar un trabajo falla</code>.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Yours:  when ... can't be completed">
+                  <p>
+                    Taken ahead of events for this one form. Spanish
+                    <code>cuando no se pueda completar un trabajo</code>.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q8" label="Q8 · The wrapping action, with call the server" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Your first way: <code>to complete a job</code> with steps, then <code>call the server</code>, then
+                  more, and a failure part. Spell has no "do the usual" call today, and "the server" isn't the place's
+                  name.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Both ways, yours kept" recommended>
+                  <p>
+                    Above <code>call the server</code> is a before step, below it an after, its failure part a failure
+                    step: the same steps underneath, so the two ways mix.
+                  </p>
+                  <epic-aside title="Details"
+                    ><epic-code title="the wrapper" language="spell">
+                      <pre>
+to complete a job
+	cancel if the job's status is "done"
+	call the server
+	alert "Job done"
+	if that fails
+		alert the error's message</pre>
+                    </epic-code>
+                    <p>
+                      Spanish: <code>llamar al servidor</code>. A wrapper is known by having no <code>is at</code>;
+                      today a second <code>to complete a job</code> silently replaces the server's (fourth bug).
+                    </p></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="Both, call netbox">
+                  <p>As A, but the call names the place: <code>call netbox</code>.</p>
+                </epic-option>
+                <epic-option letter="C" title="Steps only">
+                  <p>One way: before, after and failure steps. A second <code>to complete a job</code> is refused.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q9" label="Q9 · How the levels stack" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  You set out page, then collection, then the call, then collection, then page. Today every file of a
+                  project shares one scope, so the API file and the app's file are already one level, run in file order.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Two levels:  project, page" recommended>
+                  <p>The project's files are one level (the API file first, nearest the call), the page around them.</p>
+                </epic-option>
+                <epic-option letter="B" title="Three levels">
+                  <p>Page, then the app's file, then the API file, each its own level.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q10" label="Q10 · A page's steps when the page isn't shown" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Today a step written in a page's file runs for every page, as it attaches to the type. "Applying to
+                  that page only" is new.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Only while it's shown" recommended>
+                  <p>
+                    A page's steps run only while that page is on screen. A call started there and finished after
+                    leaving skips its after step.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Once loaded, always">
+                  <p>As today: every page's steps run, wherever the call came from.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q11" label="Q11 · The kinds of error a step can name" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Your example tests <code>if the error is "not found"</code> and <code>"not authorized"</code>. Places
+                  already tell these apart:
+                </p>
+                <ui-table padding="compact" celled unstackable>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>A place says</th>
+                        <th>When</th>
+                        <th>Spanish</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>"not found"</td>
+                        <td>no such thing, a 404</td>
+                        <td>"no encontrado"</td>
+                      </tr>
+                      <tr>
+                        <td>"refused"</td>
+                        <td>a 401 or 403, or a write it won't take; with why: "role", "owner", "field", "full" ...</td>
+                        <td>"rechazado"</td>
+                      </tr>
+                      <tr>
+                        <td>"out of date"</td>
+                        <td>someone changed it first</td>
+                        <td>"desactualizado"</td>
+                      </tr>
+                      <tr>
+                        <td>"no such place"</td>
+                        <td>the place isn't there</td>
+                        <td>"no existe el lugar"</td>
+                      </tr>
+                      <tr>
+                        <td>"over the ceiling"</td>
+                        <td>too many rows</td>
+                        <td>"sobre el límite"</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ui-table>
+                <p>
+                  "not authorized" is no kind: it's "refused", and a 401 (sign in) and a 403 (ask for access) need
+                  different fixes.
+                </p>
+              </epic-question>
+              <epic-choices>
+                <epic-option letter="A" title="The places' own words" recommended>
+                  <p>
+                    <code>if the error is "refused"</code>, and <code>because of its role</code> for why; plus "not
+                    signed in" for a 401, so the sign in menu fits.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Your words added">
+                  <p>"not authorized" matches any refusal, beside the places' words.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q12" label="Q12 · What catching an error means" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  You said an error "not explicitly caught" goes on out. In your example the "not authorized" branch
+                  shows the sign in, with no <code>nevermind</code>.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="A branch that matched" recommended>
+                  <p>
+                    A matching <code>if the error is</code> catches it; one that matches nothing goes on out.
+                    <code>nevermind</code> is for a branch with nothing else to do.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Only nevermind">
+                  <p>The sign in shows, then the error still goes on to the page and the notice.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q13" label="Q13 · nevermind, and how it differs from cancel" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Spell has no word for dropping an error. <code>cancel</code> is different: in a before step it stops
+                  the call before anything is sent, puts back what the steps changed, and skips the after steps; no
+                  failure step sees it. <code>nevermind</code> is in a failure step, after the call failed, and stops
+                  the error going further.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="nevermind, yours" recommended>
+                  <p>Says the error doesn't matter. Spanish <code>no importa</code>.</p>
+                </epic-option>
+                <epic-option letter="B" title="do nothing">
+                  <p>Reads like a step only there to fill a gap. Spanish <code>no hagas nada</code>.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q14" label="Q14 · Passing on, beside if that fails" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Today <code>if that fails:</code> after a read or write catches every error and never passes one on.
+                  Your failure steps pass on what they don't catch. Two rules for one idea, unless one changes.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="One rule:  both pass on" recommended>
+                  <p>
+                    <code>if that fails</code> passes on what its branches don't catch too. A bare
+                    <code>if that fails</code> with no <code>if the error is</code> still catches everything, as today.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Two rules">
+                  <p>Failure steps pass on; <code>if that fails</code> keeps catching everything.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q15" label="Q15 · The notice nobody's steps caught" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  A refused change already shows Spell's own notice, "Couldn't save your change ...", with Retry. With
+                  failure steps, both could show.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Held when caught" recommended>
+                  <p>The notice shows only when the error reaches the person, past every level.</p>
+                </epic-option>
+                <epic-option letter="B" title="Always shown">
+                  <p>The notice shows as today, and the failure steps run as well.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <epic-text-box type="notes"></epic-text-box>
+          <!-- no footer:  the notes are the page's bottom;  the date is up top ("Asked") -->
+        </main>
+      </div>
+    </ui-root>
+    <script src="/_epic/assets/highlight.min.js"></script>
+    <script src="/_epic/assets/spell-ui.js"></script>
+  </body>
+</html>
