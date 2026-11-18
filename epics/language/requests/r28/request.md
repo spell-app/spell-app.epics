@@ -3,7 +3,8 @@ id: r28
 epic: language
 from: 🚧 mockup (2964811f)
 at: 2026-11-18T10:15-05:00
-status: new
+status: filed
+filed: T165
 ---
 
 ## The person's words
