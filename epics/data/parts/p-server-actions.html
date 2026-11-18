@@ -19,17 +19,28 @@
       <code>complete the job</code> promise.”
     </li>
     <li>
+      And: “what happens if you call <code>complete job 6251</code> and there is no job record in memory -- my
+      collection/app/page logic really wants to have a <code>job</code> available to it. Maybe we'd load the record if
+      it is not in memory before starting all of that?” And a failure step that tests <code>the error</code>:
+      <code>if the error is "not found"</code> → <code>nevermind</code> (“swallow the error”),
+      <code>otherwise if the error is "not authorized"</code> → a notice and the login dialog; “the error should be
+      re-thrown for an error which is not explicitly caught. There are holes in this, but that's what I'm looking for.”
+    </li>
+    <li>
       <code>complete the job</code> and <code>complete my job</code> keep working; <code>complete job 7151</code> calls
-      it by id, a number or text as the spec says.
+      it by id, a number or text as the spec says, the job read first so every step has it.
     </li>
     <li>The job's type shows its server actions, and each action lists its parameters under its line.</li>
     <li>A call with several parameters fills each brace and body field from what the call says.</li>
     <li>
-      Steps before, after and on failure, in either of his two forms, stack as he set out: page's before, then the
-      collection's, the server call, the collection's after, then the page's; on failure the collection's handler, then
-      the page's. <code>cancel</code> in a before stops the call.
+      Steps before, after and on failure, in either of his two forms, stack as he set out; <code>cancel</code> in a
+      before step stops the call.
     </li>
-    <li>Every new phrase waits on Owen's OK: Q64-Q71.</li>
+    <li>
+      A failure step names the kind of error, drops one with <code>nevermind</code>, and passes on what it doesn't
+      handle, out a level at a time, then to the person.
+    </li>
+    <li>Every new phrase waits on Owen's OK: Q64-Q76.</li>
   </ul></epic-field
 ><epic-field name="changes"
   ><p>
@@ -47,19 +58,20 @@
       lists its parameters in <code>.api.json5</code>, and says which operations are enabled.
     </li>
     <li>
-      <b>Calling by id</b> (<a href="#q65">Q65</a>): <code>complete job 7151</code> reads the one job by its id, as
-      <code>the job whose id is</code> already does, then calls the action; the id a number or text as the description
-      types it.
+      <b>Calling by id, the job read first</b> (<a href="#q65">Q65</a>, <a href="#q72">Q72</a>):
+      <code>complete job 7151</code> reads the job by its id, as <code>the job whose id is</code> already does, BEFORE
+      any before step, so <code>the job</code> is there at every level. A job already held is used or read again, as Q72
+      decides. If the read fails, nothing is sent: the failure steps run with that error ("not found" for a missing
+      job), <code>the job</code> is nothing there, and the error carries the id.
     </li>
     <li>
-      <b>Several parameters</b> (<a href="#q64">Q64</a>): each brace and body field filled from the action's blanks
-      (<code>move the job to the night queue</code>), then the thing's own fields (Gitea's <code>{owner}/{repo}</code>),
-      then <code>with</code> values; what's left goes in the body by the server's names.
-      <code>core.callPlace()</code> takes them all, not only the thing.
+      <b>Several parameters</b> (<a href="#q64">Q64</a>): each brace and body field filled from the action's blanks,
+      then the thing's own fields, then <code>with</code> values; what's left goes in the body.
+      <code>core.callPlace()</code> takes them all.
     </li>
     <li>
-      <b>The action's lines</b> (<a href="#q66">Q66</a>, <a href="#q67">Q67</a>): its parameters listed under its
-      <code>is at</code> line, and the action shown on its type, both written by the ingest from the description.
+      <b>The action's lines</b> (<a href="#q66">Q66</a>, <a href="#q67">Q67</a>): its parameters under its
+      <code>is at</code> line, the action shown on its type, both written by the ingest.
     </li>
     <li>
       <b>Steps around it</b> (<a href="#q68">Q68</a>): a before and a failure hook join today's <code>after</code> hook
@@ -67,22 +79,40 @@
       <code>cancel</code> is today's.
     </li>
     <li>
-      <b>The wrapping action</b> (<a href="#q69">Q69</a>): an action with the server action's words and no address wraps
-      it; <code>call the server</code> runs the inner call, and <code>if that fails</code> catches it. It compiles to
-      the same hooks as step 5, so both of his ways stack together.
+      <b>The wrapping action</b> (<a href="#q69">Q69</a>): the server action's words with no address,
+      <code>call the server</code> inside, <code>if that fails</code> to catch; the same hooks underneath, so both ways
+      stack.
+    </li>
+    <li>
+      <b>Errors</b> (<a href="#q73">Q73</a>, <a href="#q74">Q74</a>, <a href="#q75">Q75</a>, <a href="#q76">Q76</a>):
+      <code>the error</code> has a kind made from what places already throw (a place's not found and refused, the 401,
+      403, offline and 412 errors), matched by <code>if the error is "..."</code>. A failure step stops what it handles,
+      <code>nevermind</code> drops it, and the rest passes out a level at a time, then to today's notice. A mistake in
+      the program's own steps never reaches a failure step.
     </li>
     <li>
       <b>Stacking and cancel</b> (<a href="#q70">Q70</a>, <a href="#q71">Q71</a>): page outermost, then the app's file,
-      then the API file, around <code>callPlace()</code>, one undo step for all; a page's steps only while it's shown.
+      then the API file, around <code>callPlace()</code>, one undo step for all. <code>cancel</code> stops the call
+      before it's sent; <code>nevermind</code> stops an error after it failed.
     </li>
     <li>
       <b>Words, example, gates.</b> Each line Owen approves, in English and Spanish, with rule tests and the syntax
-      table; NetBox's action routes from saved answers; core tests on a stand-in server for the order, cancel and
-      failure; the places guide; the parser, kit and app suites, the speed test.
+      table; NetBox's action routes from saved answers; core tests on a stand-in server for the order, the read first,
+      cancel, each error kind and passing on; the places guide; the parser, kit and app suites, the speed test.
     </li>
   </ol>
   <p>
-    Left out: actions on a list of things at once; retrying a failed call. Nothing in steps 2-7 is built before Owen
+    <b>The holes in it</b>, each a question: "not authorized" is two fixes, signing in or asking for access (<a
+      href="#q73"
+      >Q73</a
+    >); what "explicitly caught" means, a branch matched or <code>nevermind</code> said (<a href="#q75">Q75</a>); where
+    an error nobody stops ends up (<a href="#q76">Q76</a>); a held job that's changed on the server (<a href="#q72"
+      >Q72</a
+    >); a page's steps when the page has gone (<a href="#q70">Q70</a>); whether a <code>cancel</code> reaches the
+    failure steps, so <code>nevermind</code> could drop it (<a href="#q71">Q71</a>).
+  </p>
+  <p>
+    Left out: actions on a list of things at once; retrying a failed call. Nothing in steps 2-8 is built before Owen
     answers its question.
   </p></epic-field
 ><epic-field name="files"
