@@ -21,11 +21,11 @@
           <ui-sticky class="spell-h1"
             ><header class="spell-page-head">
               <h1>Server actions: calling, before, after and failure</h1>
-              <epic-send></epic-send></header
-          ></ui-sticky>
+            </header></ui-sticky
+          >
           <p class="lede">
-            Round 2: the six things your round 1 answers opened. The rest is decided; the worked example and round 1's
-            answers are folded at the bottom.
+            Settled: how a program calls a server's action and runs its own steps before, during and after it, and when
+            it fails. Both rounds' questions and answers are folded below.
           </p>
           <div class="spell-details-meta">
             <epic-field label="Asked by" data-details-by
@@ -34,259 +34,211 @@
             <epic-field label="Asked" data-details-asked>2026-11-17 · round 2</epic-field>
           </div>
 
-          <ui-message class="spell-where" state="info" heading="Where we are">
+          <ui-message class="spell-where" state="success" heading="Where we are">
             <epic-field label="Epic"
               ><code>data</code> -- Spell's places, the back-ends a program reads and writes.</epic-field
             >
-            <epic-field label="Just now"
-              >You answered all fifteen of round 1. Each answer is now a decision on the epic page, and the Server
-              Actions phase's plan is rewritten to them. Your notes opened six things they don't settle: they're this
-              round.</epic-field
-            >
-            <epic-field label="This decides"
-              >The last words the phase builds: how a failure branch ends, the app-wide failure step, the during step,
-              where <code>the server</code> reads, the error names, and the file names.</epic-field
+            <epic-field label="Settled"
+              >Both rounds are answered: every choice is a decision on the epic page, and the Server Actions phase
+              builds this design. This page is its record.</epic-field
             >
           </ui-message>
 
+          <ui-section id="settled" label="Settled · the design, one example" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle check"></ui-icon>
+            <p>
+              A job API. A button on a page runs <code>complete job 6251</code>. Steps around it in the API file, the
+              app's file and the page.
+            </p>
+            <epic-code title="NetBox.api.spell · the server, and steps for every call" language="spell">
+              <pre>
+netbox is a web server at "https://demo.netbox.dev"
+	jobs live at "/api/jobs"
+	to complete a job is at "/api/jobs/{id}/complete"
+	to move a job to a queue is at "/api/jobs/{id}/move/{queue}"
+
+a "job" is a thing
+	it lives in netbox
+	its "status" is text
+
+before completing a job
+	cancel if the job's status is "done"
+
+after completing a job
+	set the job's status to "done"
+
+if completing a job fails
+	if the error is "not found"
+		nevermind</pre>
+            </epic-code>
+            <epic-code title="Jobs.spell · the app's file" language="spell">
+              <pre>
+after completing a job
+	alert "Job done"
+
+when any server call fails
+	if the error is "not authorized"
+		show the sign in menu
+	otherwise if the error is "offline"
+		alert "You're offline:  try again soon"
+	otherwise
+		do nothing</pre>
+            </epic-code>
+            <epic-code title="JobsPage.spell · one page" language="spell">
+              <pre>
+a "jobs page" is a page
+	its "busy note" is text
+
+while completing a job
+	set the busy note to "Completing ..."
+
+if completing a job fails
+	if the error is "not permitted"
+		alert "You can't complete jobs"
+	otherwise
+		pass the error</pre>
+            </epic-code>
+
+            <h4>What runs, in order</h4>
+            <ol>
+              <li>
+                <code>complete job 6251</code>: job 6251 is read first, unless it's held, so every step has
+                <code>the job</code>. Missing: the failure path, as "not found".
+              </li>
+              <li>
+                The page's <code>while completing a job</code> sets the busy note. A page's before and during steps run
+                only while it's shown.
+              </li>
+              <li>
+                The API file's <code>before completing a job</code>: <code>cancel</code> stops it, nothing is sent, and
+                what the steps changed is put back.
+              </li>
+              <li>
+                The call: <code>POST /api/jobs/6251/complete</code>, its braces filled, its method from the description.
+              </li>
+              <li>
+                The afters, nearest the call first: the API file's sets the status, then the app's says "Job done", then
+                the page's, which run even if the person has left the page.
+              </li>
+              <li>The busy note is put back, whether the call worked or failed.</li>
+            </ol>
+
+            <h4>When it fails</h4>
+            <ol>
+              <li>
+                The API file's failure step first: a matching branch catches it; "not found" is dropped with
+                <code>nevermind</code>.
+              </li>
+              <li>
+                Then the app's, then the page's: the page catches "not permitted", and <code>pass the error</code> sends
+                the rest on.
+              </li>
+              <li>
+                Then <code>when any server call fails</code>, last: "not authorized" shows the sign in menu, with no
+                word needed to end the branch; <code>otherwise do nothing</code> keeps Spell's notice away.
+              </li>
+              <li>
+                Spell's notice shows only for what nobody caught. <code>if that fails</code> means
+                <code>if the error is anything</code>.
+              </li>
+            </ol>
+
+            <h4>The error names</h4>
+            <ui-table padding="compact" celled unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>The error is</th>
+                    <th>When</th>
+                    <th>Spanish</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>"not found"</td>
+                    <td>no such thing</td>
+                    <td>"no encontrado"</td>
+                  </tr>
+                  <tr>
+                    <td>"not authorized"</td>
+                    <td>not signed in</td>
+                    <td>"sin autorizar"</td>
+                  </tr>
+                  <tr>
+                    <td>"not permitted"</td>
+                    <td>signed in, not allowed</td>
+                    <td>"no permitido"</td>
+                  </tr>
+                  <tr>
+                    <td>"out of date"</td>
+                    <td>someone changed it first</td>
+                    <td>"desactualizado"</td>
+                  </tr>
+                  <tr>
+                    <td>"server not found"</td>
+                    <td>the place isn't there</td>
+                    <td>"servidor no encontrado"</td>
+                  </tr>
+                  <tr>
+                    <td>"limit"</td>
+                    <td>too many rows, or asked too often</td>
+                    <td>"límite"</td>
+                  </tr>
+                  <tr>
+                    <td>"offline"</td>
+                    <td>no network</td>
+                    <td>"sin conexión"</td>
+                  </tr>
+                  <tr>
+                    <td>"anything"</td>
+                    <td>every error</td>
+                    <td>"cualquiera"</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+
+            <h4>Also settled</h4>
+            <ul>
+              <li>
+                Several parameters in Spell's own action forms: <code>move job 7151 to the night queue</code>,
+                <code>close the job with reason "done early"</code>.
+              </li>
+              <li>
+                The action's line is written as any action's, quoted whole or not, its parameters listed under it; Spell
+                shows it on its type.
+              </li>
+              <li>
+                The wrapping way: <code>to complete a job</code> with <code>call the server</code> (or
+                <code>call netbox</code>) inside, the same steps underneath. <code>the server</code> reads only in the
+                place's own API file.
+              </li>
+              <li>Three levels: page, app, API file, told apart by what each file holds, no new file names.</li>
+              <li>Also <code>when completing a job fails</code>, and <code>if any server call fails</code>.</li>
+            </ul>
+          </ui-section>
+
           <ui-section
-            id="q16"
-            label="Q16 · How a failure branch ends after showing the sign in"
+            id="round-2"
+            data-round="2"
+            label="Round 2 · 11/17 · what you sent"
             sticky
             collapsible
             dividing
+            open="false"
           >
-            <ui-icon slot="icon" name="circle question"></ui-icon>
-            <epic-ask>
-              <epic-question
-                ><p>
-                  You said <code>nevermind</code> after <code>show the login dialog</code> "doesn't read right", and
-                  offered <code>return</code>, <code>cancel</code> or <code>stop</code>.
-                </p>
-                <p>
-                  With your answer that a branch that matched catches the error, nothing more happens after its last
-                  step anyway: the error is caught, the notice stays away. So the branch may need no word at all.
-                </p></epic-question
-              >
-              <epic-choices>
-                <epic-option letter="A" title="No word needed" recommended>
-                  <p>The branch's steps run, and that's the end: caught.</p>
-                  <epic-aside title="Details"
-                    ><epic-code title="it reads" language="spell">
-                      <pre>
-if completing a job fails
-	if the error is "not authorized"
-		show the sign in menu
-	otherwise if the error is "not found"
-		nevermind
-	otherwise
-		pass the error</pre>
-                    </epic-code>
-                    <p>
-                      <code>nevermind</code> stays for a branch with nothing else to do;
-                      <code>pass the error</code> sends it on.
-                    </p></epic-aside
-                  >
-                </epic-option>
-                <epic-option letter="B" title="stop, yours">
-                  <p><code>stop</code> ends the failure step there, the error caught. Spanish <code>parar</code>.</p>
-                </epic-option>
-                <epic-option letter="C" title="return, yours">
-                  <p>The programmer's word for the same. Spanish <code>volver</code>.</p>
-                </epic-option>
-                <epic-option letter="D" title="cancel, yours">
-                  <p>Already means "call off the action before it's sent"; here the call has already failed.</p>
-                </epic-option>
-              </epic-choices>
-            </epic-ask>
-          </ui-section>
-
-          <ui-section id="q17" label="Q17 · The app-wide failure step" sticky collapsible dividing>
-            <ui-icon slot="icon" name="circle question"></ui-icon>
-            <epic-ask>
-              <epic-question
-                ><p>Your example, so the sign in logic is written once:</p>
-                <epic-code title="yours" language="spell">
-                  <pre>
-when any server call fails
-	if the error is "not authorized"
-		show the login page
-		return
-	otherwise do nothing          // keeps Spell's notice away</pre>
-                </epic-code>
-                <p>
-                  It runs for every server action. The question is when, beside each action's own failure steps.
-                </p></epic-question
-              >
-              <epic-choices>
-                <epic-option letter="A" title="Last, before the notice" recommended>
-                  <p>
-                    Each action's own steps first (API file, app, page); what none of them caught reaches it; then
-                    Spell's notice. Also <code>if any server call fails</code>, as with Q7.
-                  </p>
-                </epic-option>
-                <epic-option letter="B" title="First, before the action's own">
-                  <p>The sign in is handled before any action's steps see the error.</p>
-                </epic-option>
-              </epic-choices>
-            </epic-ask>
-          </ui-section>
-
-          <ui-section id="q18" label="Q18 · A during step, for a busy note" sticky collapsible dividing>
-            <ui-icon slot="icon" name="circle question"></ui-icon>
-            <epic-ask>
-              <epic-question
-                ><p>
-                  You raised <code>while a job is being completed ...</code> for things that only last while the call
-                  runs, like the page's "Completing ..." note. What it sets is put back when the call ends, whether it
-                  worked or failed.
-                </p></epic-question
-              >
-              <epic-choices>
-                <epic-option letter="A" title="while completing a job" recommended>
-                  <p>
-                    Matches <code>before completing</code> and <code>after completing</code>. Spanish
-                    <code>mientras se completa un trabajo</code>.
-                  </p>
-                  <epic-aside title="Details"
-                    ><epic-code title="it reads" language="spell">
-                      <pre>
-while completing a job
-	set the busy note to "Completing ..."</pre>
-                    </epic-code></epic-aside
-                  >
-                </epic-option>
-                <epic-option letter="B" title="while a job is being completed, yours">
-                  <p>
-                    Needs each action's past form, as round 1's passive did. Spanish
-                    <code>mientras se está completando un trabajo</code>.
-                  </p>
-                </epic-option>
-              </epic-choices>
-            </epic-ask>
-          </ui-section>
-
-          <ui-section id="q19" label="Q19 · Where the server means the place" sticky collapsible dividing>
-            <ui-icon slot="icon" name="circle question"></ui-icon>
-            <epic-ask>
-              <epic-question
-                ><p>
-                  You said <code>the server</code> should mean <code>netbox</code> in its own API file, as a web server
-                  is a kind of server. Outside that file, a project may have several places.
-                </p></epic-question
-              >
-              <epic-choices>
-                <epic-option letter="A" title="Its own API file only, yours" recommended>
-                  <p>Elsewhere, name the place: <code>call netbox</code>.</p>
-                </epic-option>
-                <epic-option letter="B" title="In an action on its thing">
-                  <p>Also in any wrapping action of a type that lives in it, wherever it's written.</p>
-                </epic-option>
-                <epic-option letter="C" title="Anywhere, with one place">
-                  <p>In any file of a project that has only one place.</p>
-                </epic-option>
-              </epic-choices>
-            </epic-ask>
-          </ui-section>
-
-          <ui-section id="q20" label="Q20 · The error names, in your words" sticky collapsible dividing>
-            <ui-icon slot="icon" name="circle question"></ui-icon>
-            <epic-ask>
-              <epic-question
-                ><p>The names a failure step tests, with your renames, for a last look. Never a status code.</p>
-                <ui-table padding="compact" celled unstackable>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>The error is</th>
-                        <th>When</th>
-                        <th>What you'd do</th>
-                        <th>Spanish</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>"not found"</td>
-                        <td>no such thing</td>
-                        <td>drop it, or say so</td>
-                        <td>"no encontrado"</td>
-                      </tr>
-                      <tr>
-                        <td>"not authorized"</td>
-                        <td>not signed in</td>
-                        <td>let them sign in</td>
-                        <td>"sin autorizar"</td>
-                      </tr>
-                      <tr>
-                        <td>"not permitted"</td>
-                        <td>signed in, not allowed</td>
-                        <td>let them save on this device</td>
-                        <td>"no permitido"</td>
-                      </tr>
-                      <tr>
-                        <td>"out of date"</td>
-                        <td>someone changed it first</td>
-                        <td>read it again</td>
-                        <td>"desactualizado"</td>
-                      </tr>
-                      <tr>
-                        <td>"server not found"</td>
-                        <td>the place isn't there</td>
-                        <td>try later</td>
-                        <td>"servidor no encontrado"</td>
-                      </tr>
-                      <tr>
-                        <td>"limit"</td>
-                        <td>too many rows, or asked too often</td>
-                        <td>ask for less</td>
-                        <td>"límite"</td>
-                      </tr>
-                      <tr>
-                        <td>"offline"</td>
-                        <td>no network</td>
-                        <td>keep it for later</td>
-                        <td>"sin conexión"</td>
-                      </tr>
-                      <tr>
-                        <td>"anything"</td>
-                        <td>every error</td>
-                        <td>what <code>if that fails</code> means</td>
-                        <td>"cualquiera"</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </ui-table></epic-question
-              >
-              <epic-choices>
-                <epic-option letter="A" title="This table" recommended>
-                  <p>Built as shown; "offline" added, as no network is a failure of its own.</p>
-                </epic-option>
-                <epic-option letter="B" title="With changes">
-                  <p>Say which in the box below.</p>
-                </epic-option>
-              </epic-choices>
-            </epic-ask>
-          </ui-section>
-
-          <ui-section id="q21" label="Q21 · File names for the levels" sticky collapsible dividing>
-            <ui-icon slot="icon" name="circle question"></ui-icon>
-            <epic-ask>
-              <epic-question
-                ><p>
-                  You'd be fine with <code>foo.page.spell</code> and <code>foo.app.spell</code> "if it makes things
-                  easier". The three levels can already be told apart by what a file holds: the API file ends
-                  <code>.api.spell</code>, a page file holds a page, the app's file the app.
-                </p></epic-question
-              >
-              <epic-choices>
-                <epic-option letter="A" title="No new names" recommended>
-                  <p>The level comes from what the file holds. Nothing to rename.</p>
-                </epic-option>
-                <epic-option letter="B" title=".page.spell and .app.spell">
-                  <p>The level shows in the file's name; every existing page and app file renamed.</p>
-                </epic-option>
-              </epic-choices>
-            </epic-ask>
+            <ui-icon slot="icon" name="history"></ui-icon>
+            <ul>
+              <li>Q16 · How a failure branch ends: A · No word needed</li>
+              <li>Q17 · The app-wide failure step: A · Last, before the notice</li>
+              <li>Q18 · A during step: A · while completing a job</li>
+              <li>
+                Q19 · Where the server means the place: the Other text was round 1's Q4 answer, carried over by the
+                page; round 1's rule stands, its own API file only
+              </li>
+              <li>Q20 · The error names: A · This table</li>
+              <li>Q21 · File names for the levels: A · No new names</li>
+            </ul>
           </ui-section>
 
           <ui-section id="context" label="Round 1 · the worked example" sticky collapsible dividing open="false">
