@@ -29,6 +29,263 @@
     The colouring and pill marks move to a view plugin that builds them only for the lines CodeMirror draws, again as
     the view scrolls.
   </p></epic-field
+><epic-update
+  id="up1"
+  at="2026-11-18 08:56"
+  summary="Owen's idea: feet drawn inside the blank line under a block, so every line is one height"
+  ><p>
+    Owen's idea, 2026-11-18: “What if we made the spell bubbly footer have a little round foot on it and enforced a
+    blank line between sections so we can overlap footers? Then we could make lines consistent height, right? Would this
+    help?”
+  </p>
+  <p>
+    <b>Would it help?</b> Yes, for the scroll jumps, though not for the speed-up this phase is about. It also needs a
+    second step for HTML, or the big file still jumps.
+  </p>
+  <ul>
+    <li>
+      <b>Why the heights are wrong today.</b> CodeMirror guesses the height of every foot it hasn't drawn yet.
+      <ul>
+        <li>
+          A foot is a widget with a row of its own (<code
+            title="app/src/app/ui/codemirror/CodeMirrorBubbly.ts:300, foot()"
+            >FootWidget</code
+          >). It doesn't say how tall it is, so CodeMirror guesses one full line, 25px.
+        </li>
+        <li>
+          Drawn, a foot's row is 5px, or 13px right above a band, plus a tab's height for each foot stacked under it
+          (<code title="app/src/app/components/spell-code/bubbly.css:1970, .cmb-foot-row">.cmb-foot-row</code>).
+        </li>
+        <li>
+          So every foot not drawn yet is 12-20px off. The file's height changes as feet scroll into view: the jumps
+          <a href="#i21">I21</a> worked round for typing, not for scrolling.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>What the idea fixes.</b> A foot drawn inside the blank line under its block takes no room of its own.
+      <ul>
+        <li>
+          It's an absolutely placed mark in a line that's already there, so the line stays 25px and CodeMirror's guess
+          is right.
+        </li>
+        <li>Every Spell line is then one height, and scrolling a Spell file never changes its height.</li>
+        <li>
+          The foot needn't be a block widget any more. So it can be drawn for the lines on screen only, with the pills,
+          instead of staying whole-file in the editor's state.
+        </li>
+        <li>
+          The stacking code for feet that end on the same line goes: several feet share one blank line, each at its own
+          indent, overlapping as Owen said.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>What it doesn't fix.</b> These lines are still not 25px. CodeMirror still guesses each one wrong until it's
+      drawn:
+      <ul>
+        <li>
+          <b>A row of HTML end tags</b> (<code>&lt;/row&gt;</code>, <code>&lt;/&gt;</code> ...):
+          <ul>
+            <li>
+              It's a text line drawn short, about 21px, or 29px above a band (<code
+                title="app/src/app/components/spell-code/bubbly.css:2332, .cm-line.cmb-feet-row"
+                >.cmb-feet-row</code
+              >).
+            </li>
+            <li>
+              Table/Examples.spell has 666 end-tag lines and few Spell feet. Every big file in the examples is mostly
+              HTML, so <b>these rows are what make the big file jump, not Spell's feet</b>.
+            </li>
+            <li>Owen's idea, carried over: draw them as one full row each (question 5 below).</li>
+          </ul>
+        </li>
+        <li>
+          <b>A head whose description doesn't fit beside it</b> gets rows of its own under it. They're measured only on
+          screen (<a
+            href="/app/src/app/ui/codemirror/CodeMirrorBubbly.ts"
+            target="src-app-src-app-ui-codemirror-codemirrorbubbly-ts"
+            ><code title="app/src/app/ui/codemirror/CodeMirrorBubbly.ts:643">DescriptionRoom</code></a
+          >), so they're still guessed wrong. They're rare, and a whole row each, so that's left as it is.
+        </li>
+        <li>
+          <b>Not a problem:</b>
+          <ul>
+            <li>
+              the hidden line breaks (a row of end tags, a tag's name joined to its first attribute): CodeMirror knows
+              them, because they stay whole-file
+            </li>
+            <li>wrapping: off in the code pane; only the notebook's short snippet editors wrap</li>
+            <li>a peek: opened on screen only, by a click</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Edge cases</b>, counted in Solitaire.spell (211 lines, 31 block ends):
+      <ul>
+        <li>
+          <b>No blank line under the block</b>: 12 of the 31, e.g. <code>if the stock is empty</code> /
+          <code>reset the stock pile</code>, then <code>set the next card ...</code> straight after. The same case is a
+          block followed directly by its parent's next line. Question 3 below covers it.
+        </li>
+        <li><b>The file's last block</b>: no line under it at all. The same answer as for no blank line.</li>
+        <li>
+          <b>Several blocks ending on one line</b>: 11 of the 31, up to three deep (<code>for row</code>,
+          <code>for column</code>, <code>if column is the same as row</code>, then
+          <code>turn over the next card</code>). Today each foot is a tab further down than the one inside it. In one
+          25px line they need another layout (question 4).
+        </li>
+        <li>
+          <b>A blank line inside a body</b> (Solitaire's <code>-- Remove kings ...</code> has one above it): it isn't a
+          block's end, so it gets no foot. The layout already knows each block's last line.
+        </li>
+        <li><b>Two blank lines</b>: the foot goes in the first.</li>
+        <li>
+          <b>Typing on the foot's blank line</b>: it isn't blank any more.
+          <ul>
+            <li>
+              The foot is moved off it at once, as a blank line typed into is redrawn at once today (<a
+                href="/app/src/app/ui/codemirror/CodeMirrorBubbly.ts"
+                target="src-app-src-app-ui-codemirror-codemirrorbubbly-ts"
+                ><code title="app/src/app/ui/codemirror/CodeMirrorBubbly.ts:470">blankLinesDrawn()</code></a
+              >). Otherwise the words sit on the foot until the next layout.
+            </li>
+            <li>Enter at the end of a block's last line puts the new line above the foot's line, in the block.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>What it costs</b>: about 2-3h more on this phase, and a look Owen reviews.
+      <ul>
+        <li>
+          Blocks are a whole line apart where there's a blank line. Today that gap is the blank line plus the foot's
+          5px, so it's a little tighter.
+        </li>
+        <li>
+          Where there's no blank line, it depends on question 3. With A, an <code>if</code> inside a body gets a full
+          line under it where it had 5px: nested code is looser.
+        </li>
+        <li>Stacked feet look different (question 4).</li>
+        <li>HTML's end-tag rows get taller, 21px to 25px, if question 5 is yes.</li>
+        <li>
+          The foot itself barely changes: the same rounded corner off its rail and a short bar. It's drawn inside the
+          line, in a mark of no size, instead of in a row of its own.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Built</b>, if Owen says yes:
+      <ol>
+        <li>
+          Measure first, with step 1's measuring, before any change. Scroll Solitaire and Table/Examples top to end and
+          count how often, and by how much, the editor's height changes. That's today's number to beat.
+        </li>
+        <li>
+          A foot is a mark of no size at the start of the line under its block. Its corner and bar are placed from it as
+          today's are, and its rail stops short above it as now.
+        </li>
+        <li>Where no blank line follows, the answer to question 3.</li>
+        <li>Feet ending on one line share it, laid out as question 4 says.</li>
+        <li>If question 5 is yes, a row of HTML end tags is one full line tall.</li>
+        <li>
+          The marks for feet move to the on-screen set, with the pills. Only the one-row widgets from question 3's
+          answer A stay whole-file, and their height is CodeMirror's own guess, so they never jump.
+        </li>
+      </ol>
+    </li>
+    <li>
+      <b>Checked</b>:
+      <ul>
+        <li>
+          Scroll Table/Examples.spell (2,667 lines) end to end and back, headless, at the window's usual size. The
+          editor's height doesn't change once it's first drawn: no height corrections. Solitaire the same.
+        </li>
+        <li>The count of height changes before and after goes in the Built note, beside the timings.</li>
+        <li>
+          Screenshots of Solitaire top and bottom, and of a stretch of Table/Examples, before and after, side by side
+          for Owen. They differ on purpose this time: the new feet.
+        </li>
+        <li>
+          The bubbly browser tests still pass. The ones that pin a foot's place (rails stopping short, a stack of feet,
+          room above a band) are updated to the new look, and the update is named in the Built note.
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <p><b>Questions for Owen</b>, after this phase's first two:</p>
+  <ol>
+    <li>Is Table/Examples.spell the right big file to measure on? (asked before)</li>
+    <li>OK to stop after measuring, if building the marks is under a third of a relayout? (asked before)</li>
+    <li>
+      How does a foot get room where no blank line follows its block (12 of Solitaire's 31)?
+      <ul>
+        <li>
+          <b>A (recommended)</b>: no rule about the text. Where there's no blank line, the foot gets a row exactly one
+          line tall, as if there were one.
+          <ul>
+            <li>That's the height CodeMirror already guesses, so nothing jumps.</li>
+            <li>The file stays as typed.</li>
+          </ul>
+        </li>
+        <li>
+          <b>B</b>: Format Document adds a blank line after every block. It already fixes the file's spacing (<a
+            href="/app/src/lsp/SpellLanguageService.ts"
+            target="src-app-src-lsp-spelllanguageservice-ts"
+            ><code title="app/src/lsp/SpellLanguageService.ts:2625">formatting()</code></a
+          >). Feet are then never widgets, but Spell asks for blank lines its words don't need, even inside a body.
+        </li>
+        <li>
+          <b>C</b>: no change to the look. Today's foot widget tells CodeMirror its real height
+          (<code>estimatedHeight</code>).
+          <ul>
+            <li>Exact heights, about an hour's work.</li>
+            <li>Its sizes are written twice, in the stylesheet and in the code, and must be kept in step.</li>
+            <li>The feet stay whole-file.</li>
+          </ul>
+        </li>
+      </ul>
+      <epic-net-effect option="A" recommended
+        ><ul>
+          <li>every Spell line and every foot row is 25px; scrolling never changes the file's height</li>
+          <li>no rule about blank lines; files read as typed</li>
+          <li>an <code>if</code> with no blank line under it gets a full line under its foot, not 5px</li>
+        </ul></epic-net-effect
+      >
+    </li>
+    <li>
+      Several feet ending on one line, in one 25px line: how do they sit?
+      <ul>
+        <li>
+          <b>A (recommended)</b>: side by side along the line's top, each at its own indent, overlapping as Owen said.
+          The rails already show which is inside which.
+        </li>
+        <li>
+          <b>B</b>: stepped down inside the line, innermost highest, about 8px apart for three. That's today's stack,
+          squeezed.
+        </li>
+      </ul>
+      <epic-net-effect option="A" recommended
+        ><ul>
+          <li>no stack of rows under a line; the stacking code goes</li>
+          <li>screenshots before and after for Owen before it ships</li>
+        </ul></epic-net-effect
+      >
+    </li>
+    <li>
+      A row of HTML end tags is drawn about 21px tall today: make it one full line, 25px?
+      <ul>
+        <li><b>Yes (recommended)</b>: the big HTML files stop jumping too. The tags look a little more spaced.</li>
+        <li><b>No</b>: Spell's feet are fixed, but Table/Examples still jumps as before.</li>
+      </ul>
+      <p><b>Net effect (yes, recommended):</b></p>
+      <ul>
+        <li>every line in every file is 25px, but a head's description in rows under it</li>
+        <li>end-tag rows 4px taller each; screenshots before and after for Owen</li>
+      </ul>
+    </li>
+  </ol></epic-update
 ><epic-field name="plan"
   ><ol>
     <li>
