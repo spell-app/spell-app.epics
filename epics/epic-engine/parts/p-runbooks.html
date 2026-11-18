@@ -1,0 +1,393 @@
+<!-- plan-doc part:  #p-runbooks's body in epic-engine.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-field name="symptom"
+  ><p>
+    Setting something up by hand, like NetBox's demo for Spell, means following a reply's six steps and typing every
+    command yourself.
+  </p></epic-field
+><epic-field name="requests"
+  ><epic-field label="r78 · 🚧 data (5d2c6ba9)"
+    ><blockquote>
+      <p>
+        Can we make a CLI tool to automate this semi-genericallly, so I don't have to type all of that out? It can drive
+        me to do things with prompt text.
+      </p>
+      <p>
+        This would be a good generic thing to have -- a multi-step commander, whose exact details are instance specific.
+        How should we do this?
+      </p>
+    </blockquote>
+    <p>
+      Looking at: His comment C1 on epics/data/data.plan.html#i107, whose reply lists 6 manual steps to set up NetBox's
+      demo for Spell (make an account in the browser, make an API token, export NETBOX_TOKEN, spell place ingest --spec,
+      spell place verify, --try-writes). From the data epic's session.
+    </p>
+    <p>
+      Sent 2026-11-18 11:11-05:00;
+      <a href="/epics/epic-engine/requests/r78/request.md" target="src-epics-epic-engine-requests-r78-request-md"
+        >request.md</a
+      >
+    </p></epic-field
+  ></epic-field
+><epic-field name="goal"
+  ><p>
+    A runbook is a short file of steps that Spell walks you through, one at a time, in the terminal. It runs the
+    commands itself, tells you exactly what to do by hand and waits for you, and remembers where you got to.
+  </p>
+  <ul>
+    <li>
+      <epic-aside title="Your words, 2026-11-18"
+        ><p>
+          "Can we make a CLI tool to automate this semi-generically, so I don't have to type all of that out? It can
+          drive me to do things with prompt text."
+        </p>
+        <p>
+          "This would be a good generic thing to have -- a multi-step commander, whose exact details are instance
+          specific. How should we do this?"
+        </p>
+        <p>
+          From the data epic's <epic-link epic="data" item="I107"></epic-link>, whose reply listed six steps to set up
+          NetBox's demo for Spell (<a
+            href="/epics/epic-engine/requests/r78/request.md"
+            target="src-epics-epic-engine-requests-r78-request-md"
+            >r78</a
+          >).
+        </p></epic-aside
+      >
+    </li>
+    <li>
+      <b>One command instead of six steps.</b>
+      You type <code>spell runbook start netbox-demo</code>, and it takes you through the rest.
+      <ul>
+        <li>It stops wherever you stop: the next <code>start</code> carries on from that step.</li>
+        <li>
+          <code>spell runbook status netbox-demo</code> says which steps are done; <code>reset</code> starts over.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Each step is one of three things.</b>
+      <ul>
+        <li>
+          Something to do by hand: the exact words, the link, what you should see. It offers to open the link, then
+          waits for Enter (done), <code>s</code> (skip) or <code>q</code> (stop).
+        </li>
+        <li>
+          A value to type in, such as a token. A secret one isn't shown as you type, and is kept where only you can read
+          it.
+        </li>
+        <li>
+          A command it runs for you. It must succeed, and it can also say what the command should print, as the README
+          examples do. A check is just a command too (<code>curl -f ...</code>).
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>Values flow into later steps by themselves.</b>
+      Each one is handed to the commands as an environment variable, so there's no <code>export</code> step, and no new
+      template syntax.
+    </li>
+    <li>
+      <b>Secrets stay secret.</b>
+      <ul>
+        <li>Never in git, an epic page, a log, or on the screen.</li>
+        <li>A command that prints one has it replaced by its name, as the page server already does for place keys.</li>
+      </ul>
+    </li>
+    <li>
+      <b>The first runbook, and the proof it works: NetBox's demo.</b>
+      I107's six steps become one file beside the code it drives.
+      <ul>
+        <li>You do two things by hand (make the account, make the token) and paste the token once.</li>
+        <li>It runs the ingest, the read check and the write check itself.</li>
+        <li>The demo wipes itself every night at 04:00 UTC, so the runbook says its progress lapses then.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Agents write runbooks for you, instead of listing steps in a reply.</b>
+      When there are three or more steps for you to do, with commands to type, the agent writes a runbook and replies
+      with the one command that starts it.
+      <ul>
+        <li>One rule, in the kit's agent instructions; the epic skill and the epic guide point at it.</li>
+        <li><code>spell runbook check</code> tells an agent whether its file is right before you ever see it.</li>
+      </ul>
+    </li>
+    <li>
+      <b>Built from what Spell already has</b> (coherence):
+      <ul>
+        <li>the terminal questions and pickers every <code>spell</code> command uses</li>
+        <li>the hidden-typing prompt the app's mail setup uses, moved down so every command has it</li>
+        <li>the README examples' command blocks, their Output folds, and how they're matched</li>
+        <li>private files in your home folder, as Spell's place sign-ins are kept</li>
+        <li>the manual tests' words: Step, Should, If not</li>
+      </ul>
+    </li>
+  </ul>
+  <epic-code title="What NetBox's runbook would look like · netbox-demo.runbook.md" language="md">
+    <pre>
+---
+title: NetBox's demo, for Spell
+folder: ~/netbox-try
+fresh until: 04:00 UTC
+---
+
+About 10 minutes, in one sitting:  the demo wipes itself every night at 04:00 UTC.
+
+## Make an account
+
+Open [demo.netbox.dev](https://demo.netbox.dev/plugins/demo/login/).
+Leave Username and Password empty, and click **Create &amp; Sign In**.
+
+Should:  NetBox's home page, signed in as `user` and a number, top right.
+
+## Make a token
+
+Click your user name, top right, then **API Tokens**, then **Add a Token**.
+Leave everything as it is:  Version v2, Enabled and Write enabled ticked.
+Description:  `spell`.  Click **Create**.
+
+```ask NETBOX_TOKEN secret
+Paste the whole token:  it starts nbt_ and has a dot in the middle
+```
+
+## Make the NetBox place
+
+```sh
+spell place ingest https://demo.netbox.dev --kind "web server" --spec "https://demo.netbox.dev/api/schema/?format=json" --key-secret NETBOX_TOKEN --name netbox --into NetBox.api.spell --no-examples --no-ai
+```
+
+&lt;details&gt;&lt;summary&gt;Output&lt;/summary&gt;
+
+```text
+...
+Added netbox to NetBox.api.spell.
+...
+```
+
+&lt;/details&gt;
+
+## Check every list reads
+
+```sh
+spell place verify NetBox.api.spell
+```
+
+## Try writes
+
+```sh
+spell place verify NetBox.api.spell --try-writes
+```
+
+If not:  `403: Invalid v2 token` means part of the token was cut off, or it was wiped at 04:00 UTC.
+Start again with `spell runbook reset netbox-demo`.
+</pre>
+  </epic-code></epic-field
+><epic-field name="changes"
+  ><p>A runbook: a short file of steps that a new command, <code>spell runbook start</code>, walks you through.</p>
+  <p>
+    It runs the commands itself, tells you exactly what to do by hand and waits, asks for a token without showing it,
+    and remembers where you got to.
+  </p></epic-field
+><epic-field name="choices"
+  ><p>What a runbook file is written in.</p>
+  <epic-choices>
+    <epic-option letter="A" title="Markdown, like a README" recommended
+      ><ul>
+        <li>
+          It reads as plain instructions even without the tool: on GitHub, in VS Code's preview, in an epic page's link.
+        </li>
+        <li>
+          A step is a heading; a command is a <code>sh</code> block, with an optional Output fold, as the README
+          examples are.
+        </li>
+        <li>A value to ask for is a small <code>ask</code> block.</li>
+        <li>Agents already write steps this way, so their reply becomes the file.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="JSON5, a list of steps with fields"
+      ><ul>
+        <li>Exact, and easy to check: <code>{ do: "...", run: "...", ask: "NETBOX_TOKEN", should: "..." }</code>.</li>
+        <li>
+          But long instructions with links and code inside are awkward in strings, and it doesn't read as a document.
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <p>Where a secret you type in (a token) is kept.</p>
+  <epic-choices>
+    <epic-option letter="A" title="A private file in your home folder" recommended
+      ><ul>
+        <li>
+          One file per secret, in <code>~/.spell/secrets/</code>: only you can read it, as Spell's place sign-ins are
+          kept.
+        </li>
+        <li>
+          Spell's places read it when the terminal doesn't have the key, so <code>spell place verify</code> works in a
+          new terminal too.
+        </li>
+        <li>Never in a repo.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="The Mac's Keychain"
+      ><ul>
+        <li>The system's own encrypted vault.</li>
+        <li>Mac only, and it can pop up an "allow access" dialog the first time a command reads it.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="Only for the walk, then forgotten"
+      ><ul>
+        <li>Kept in memory, handed to the walk's commands, never on disk.</li>
+        <li>
+          But you paste it again every time, and a command in another terminal still needs an <code>export</code>.
+        </li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <p>
+    What the command is called. Not <code>spell run</code>: that already compiles and runs a Spell project, and "run
+    page" already means a command that stopped to ask you on a page.
+  </p>
+  <epic-choices>
+    <epic-option letter="A" title="spell runbook start, status, reset, list, check" recommended
+      ><ul>
+        <li>"Runbook" is the usual word for exactly this: steps, some by hand, some commands.</li>
+        <li>Noun then verb, like every other <code>spell</code> command.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="spell setup &lt;name&gt;"
+      ><ul>
+        <li>Reads well for NetBox.</li>
+        <li>But not every runbook is a setup: a release checklist, a demo before a meeting.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="spell steps &lt;name&gt;"
+      ><ul>
+        <li>Plain, but "steps" is already a word in the epic pages and the manual tests.</li>
+      </ul></epic-option
+    >
+  </epic-choices></epic-field
+><epic-field name="plan"
+  ><ol>
+    <li>
+      <b>Move the shared pieces down first</b>, so the runbook uses them rather than copies.
+      <ul>
+        <li>
+          The hidden-typing prompt goes beside the kit's other terminal questions:
+          <a href="/src/cli/run.ts" target="src-src-cli-run-ts"><code title="src/cli/run.ts">askSecret()</code></a
+          >, next to <code>ask()</code> and <code>choose()</code>. The app's mail setup then uses it.
+        </li>
+        <li>
+          The README examples' reader (a command block, its Output fold, and the <code>...</code> matching) moves into
+          the kit's command base; the README tester uses it from there, still runnable by plain node.
+        </li>
+        <li>
+          A small secret store, <code>SRV.Secrets</code>: one private file per secret in <code>~/.spell/secrets/</code>,
+          written the way place sign-ins are. The place keys read the environment first, then it.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The runbook reader</b>, <code>Runbook</code>: the settings at the top (title, folder, fresh until), a step per
+      heading, each step's kind from its blocks. A mistake names the step and the line.
+    </li>
+    <li>
+      <b>The walk</b>, <code>RunbookWalk</code>:
+      <ul>
+        <li>a by-hand step: its words, offer to open its link, then Enter, <code>s</code> or <code>q</code></li>
+        <li>an ask: the question, hidden for a secret; plain values kept with the progress</li>
+        <li>
+          a command: run in the runbook's folder with every value in its environment, its output shown with secrets
+          replaced by their names, checked against its Output fold
+        </li>
+        <li>a failure: stop there, show its "If not:", and start from that step next time</li>
+        <li>
+          progress in <code>~/.spell/runbooks/&lt;name&gt;.json5</code> (never a secret), dropped after its "fresh
+          until" time
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>The command</b>, <code>spell runbook start | status | reset | list | check</code>, in the kit's own commands. A
+      name finds the file in any folder's <code>runbooks/</code>, or an epic's
+      <code>epics/&lt;epic&gt;/runbooks/</code>; a path works too.
+    </li>
+    <li>
+      <b>NetBox's runbook</b>, written from I107's reply, beside the code it drives: the parser folder's
+      <code>runbooks/netbox-demo.runbook.md</code>. A More Details card on the data epic's I107 points at it.
+    </li>
+    <li>
+      <b>The rule for agents</b>, in one place, the kit's agent instructions ("Commands"): three or more steps for you,
+      with commands to type, become a runbook, and the reply gives the one command. The epic skill's reply rules and the
+      manual tests' guidance point at it; the epic guide's build topic gets a line.
+    </li>
+    <li>
+      <b>Keep the docs true</b>: the commands page (a row, and <code>runbook</code> in its nouns), its check; the CLI's
+      README page; the word list ("runbook", beside "run page"); the catalog of mechanisms ("Walking a person through
+      steps").
+    </li>
+    <li>
+      <b>Tests</b>: the reader (each kind, each mistake), the walk on a fake terminal (resume, skip, stop, a failing
+      command, fresh-until), the secret store (private file, never printed), and the README tester still passing.
+    </li>
+    <li>
+      <b>Checks</b>: <code>yarn kit:review</code>, <code>yarn readme:test</code>, <code>spell commands check</code>,
+      <code>spell runbook check</code> on NetBox's file. Then a manual test for you: NetBox's runbook, start to finish.
+    </li>
+  </ol>
+  <p><b>Left out:</b></p>
+  <ul>
+    <li>
+      A side-bar page version (a run page): the page's answers are files on disk, so a secret couldn't go through it.
+    </li>
+    <li>Steps that branch, or repeat.</li>
+    <li>Linking a manual test to a runbook: for now its Step just says the command.</li>
+  </ul></epic-field
+><epic-field name="files"
+  ><ul>
+    <li>
+      the kit's command base:
+      <a href="/src/cli/run.ts" target="src-src-cli-run-ts"><code title="src/cli/run.ts">askSecret()</code></a
+      >, the README block reader, <code title="src/cli/runbook/">Runbook, RunbookWalk</code>,
+      <code title="src/cli/commands/runbookCommand.ts">runbookCommand</code>
+    </li>
+    <li>
+      the secret store and the place keys: <code title="src/server/Secrets.ts">SRV.Secrets</code>,
+      <a href="/src/server/places/PlaceKeys.ts" target="src-src-server-places-placekeys-ts"
+        ><code title="src/server/places/PlaceKeys.ts">PlaceKeys</code></a
+      >
+    </li>
+    <li>
+      the app's mail setup, onto the shared prompt:
+      <a href="/app/src/cli/commands/localCommand.ts" target="src-app-src-cli-commands-localcommand-ts"
+        ><code title="app/src/cli/commands/localCommand.ts">localCommand</code></a
+      >
+    </li>
+    <li>
+      the README tester:
+      <a href="/tools/readme-test.ts" target="src-tools-readme-test-ts"
+        ><code title="tools/readme-test.ts">readme-test</code></a
+      >
+    </li>
+    <li>NetBox's runbook: <code title="parser/runbooks/netbox-demo.runbook.md">netbox-demo.runbook.md</code></li>
+    <li>
+      tests: <code title="tests/cli/runbook/">tests/cli/runbook/</code>,
+      <code title="tests/server/Secrets.test.ts">Secrets.test.ts</code>
+    </li>
+    <li>
+      rules and docs: the kit's <a href="/AGENTS.md" target="src-agents-md"><code title="AGENTS.md">AGENTS.md</code></a
+      >, the
+      <a href="/epic/skills/epic/SKILL.md" target="src-epic-skills-epic-skill-md"
+        ><code title="epic/skills/epic/SKILL.md">epic skill</code></a
+      >, the epic guide,
+      <a href="/README/cli.md" target="src-readme-cli-md"><code title="README/cli.md">README/cli.md</code></a
+      >, the commands page's data, the coherence word list and catalog
+    </li>
+  </ul></epic-field
+><epic-field name="verify"
+  ><ul>
+    <li><code>yarn kit:review</code> and <code>yarn readme:test</code> pass, with test counts and their change.</li>
+    <li><code>spell commands check</code> passes; <code>spell runbook check</code> passes on NetBox's file.</li>
+    <li>The walk's tests cover resume, skip, stop, a failing command and a lapsed day, on a fake terminal.</li>
+    <li>No secret in any output, progress file or log: a test hands in a fake token and searches for it.</li>
+    <li>You: <code>spell runbook start netbox-demo</code>, start to finish, against the real demo.</li>
+  </ul></epic-field
+>
