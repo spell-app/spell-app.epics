@@ -42,7 +42,7 @@ The parts:
     <li><b>Pick.</b>  Keep only what matters:  the next few meetings, the mail you'd answer first, today's weather.</li>
     <li><b>Say it.</b>  Turn the picks into one natural paragraph, and speak it.</li>
   </ol>
-  <epic-code title="greetings.ts · after · 5 lines" language="ts"><pre>if (/good morning/i.test(phrase)) {
+  <epic-code title="greetings.ts · after · 4 lines" language="ts"><pre>if (/good morning/i.test(phrase)) {
   const briefing = await Briefing.forToday(ctx)
   await ctx.speak(briefing.paragraph)
 }</pre></epic-code>
