@@ -11,7 +11,8 @@
   </ul></epic-field
 ><epic-field name="changes"
   ><p>
-    The debug line goes; the editor hears of a changed file from the page server's live channel, and re-reads only then.
+    The debug line goes; the editor hears of a changed file through the kit's one file watch, moved down from the epic
+    pages, on the page server's live channel (coherence), and re-reads only then.
   </p></epic-field
 ><epic-field name="plan"
   ><ol>
@@ -20,21 +21,31 @@
       logging and remove that too.
     </li>
     <li>
-      Find out how the page server's live channel reaches the editor: whether it watches project folders (spaces and
-      <code>spell.spaces</code>), and whether the editor page opens its socket.
+      No new socket listener (coherence): the page server's live channel already sends
+      <code>spell-server:changed</code> with the changed path, and down / up (<code>liveClient</code>); and the epic
+      pages already watch files through <code>ServerLink.watch(window, files, refresh, { every, polls })</code>, "the
+      one poll of every page".
     </li>
     <li>
-      The editor listens on that channel for its open project's files, and calls <code>reloadFiles()</code> on a change;
-      <code>watchOpenFile()</code>'s 2-second re-read goes, or stays only as a slow fallback while the socket is closed.
+      Move that watch down into the kit, beside <code>pollWhileVisible</code> (<code>spell/util/polling</code>);
+      <code>ServerLink.watch</code> becomes a thin wrapper over it.
+    </li>
+    <li>
+      <code>editor.watchOpenFile()</code> uses it: the open project's paths, <code>readOpenFile()</code> on a change,
+      and a slow poll only as the fallback while the channel is down. The 2-second re-read goes.
+    </li>
+    <li>
+      First, check that the editor page loads <code>liveClient()</code> through the editor server's proxy; if it
+      doesn't, that's the first fix.
     </li>
     <li>Not in the static build, as today.</li>
     <li>
-      Checked by: app's tests; in a running editor, an edit from outside shows within a second, and the network tab
-      shows no repeated reads.
+      Checked by: app's and the epic pages' tests (the watch moved); in a running editor, an edit from outside shows
+      within a second, and the network tab shows no repeated reads.
     </li>
     <li>Left out: pushing places' data: places already have their own live kinds.</li>
   </ol></epic-field
 ><epic-field name="files"
-  >app/src/spaces/server/node/projects/project-utils.ts, app/src/app/editor.ts, src/server/LiveReload.ts,
-  src/server/liveClient.ts</epic-field
+  >app/src/spaces/server/node/projects/project-utils.ts, app/src/app/editor.ts, src/util/polling.ts,
+  epic/src/review/ServerLink.ts, src/server/liveClient.ts</epic-field
 ><epic-field name="verify">app's tests; an outside edit checked in a running editor, its network tab quiet</epic-field>
