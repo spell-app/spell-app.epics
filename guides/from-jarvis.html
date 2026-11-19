@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>From Jarvis</title>
+    <meta
+      name="description"
+      content="What the Jarvis project's pages needed from Spell, now in Spell:  a column view for big trees, a graph, a JSON outline, records under a thing, each runtime copy's own core, and a quiet editor that hears file changes."
+    />
+    <meta name="spell-voice" content="readme 2026-11-19" />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page">
+    <spell-site-header></spell-site-header>
+    <div class="spell-doc">
+      <main class="spell-doc-main">
+        <ui-breadcrumbs class="spell-crumbs" size="small" aria-label="Breadcrumb">
+          <ui-breadcrumb link="/pages/index.html">Docs</ui-breadcrumb>
+          <ui-breadcrumb selected>From Jarvis</ui-breadcrumb>
+        </ui-breadcrumbs>
+        <ui-sticky class="spell-h1"
+          ><header class="spell-page-head"><h1>From Jarvis</h1></header></ui-sticky
+        >
+        <p class="lede">
+          A 5,000-row column in <code>&lt;ui-tree appearance="columns"&gt;</code> now opens in 33&nbsp;ms, drawing 72
+          rows. It took 2,041&nbsp;ms before, drawing all 5,000.
+        </p>
+        <ui-accordion class="spell-code" appearance="styled">
+          <ui-title>A column view from data · from the tree's docs page</ui-title>
+          <ui-content>
+            <pre><code class="language-html">&lt;ui-tree id="work" appearance="columns" tools sticky-detail
+  column-titles="Clients, Folders, Files" show="icon which count chevron" size="8em, 30%, auto"&gt;
+  &lt;ui-input slot="tools" icon="search" placeholder="Filter the whole tree"&gt;&lt;/ui-input&gt;
+  &lt;ui-json slot="detail" depth="2"&gt;&lt;/ui-json&gt;
+&lt;/ui-tree&gt;
+&lt;script type="module"&gt;
+  const tree = document.getElementById("work")
+  tree.items = [
+    { id: "Acme", label: "Acme Bakery", icon: "building outline", data: { since: 2019 },
+      // a list, a function run the first time it opens, or a promise
+      children: () =&gt; fetch("/clients/acme").then((answer) =&gt; answer.json()) }
+  ]
+&lt;/script&gt;</code></pre>
+          </ui-content>
+        </ui-accordion>
+        <p>That's the Finder's column view, on a web page, for a tree too big to draw whole.</p>
+        <ul>
+          <li>Only the open path's columns are drawn, and in each column only the rows near the screen.</li>
+          <li>The pane on the right shows whatever is picked, with no page code.</li>
+        </ul>
+        <ui-list class="spell-meta">
+          <ui-item icon="map"
+            ><b>Epic page:</b>
+            <a href="/epics/from-jarvis/from-jarvis.plan.html" target="from-jarvis">epic from-jarvis</a></ui-item
+          >
+          <ui-item icon="user"
+            >Written for: a developer using Spell UI's tree, graph or JSON outline, or changing Spell's places, runtime
+            build or editor</ui-item
+          >
+          <ui-item icon="flag"
+            >Status: <ui-label size="mini" color="green">merged</ui-label> into <code>main</code>, 2026-11-18 and
+            2026-11-19; six more pieces wait on questions (see <a href="#8-coming">Coming</a>)</ui-item
+          >
+          <ui-item icon="code branch">Branch <code>from-jarvis</code>, merged at <code>711d6c213</code></ui-item>
+          <ui-item icon="flask"
+            >Checked on: <code>main</code> at <code>711d6c213</code>, 2026-11-19, against the code, the docs pages and
+            the epic page's Done lists</ui-item
+          >
+        </ui-list>
+
+        <ui-section id="1-summary" label="1. Summary" sticky collapsible dividing open="false">
+          <ui-statistics class="spell-stats" size="mini">
+            <ui-statistic value="33" label="ms to open 5,000 rows"></ui-statistic>
+            <ui-statistic value="23" label="ms to search 38,400 ports"></ui-statistic>
+            <ui-statistic value="264" label="ms, disk to editor"></ui-statistic>
+          </ui-statistics>
+          <p>
+            The Jarvis project builds its pages from Spell, and kept hitting the same walls: a netlist is a tree of
+            thousands of nodes, a circuit is a graph, and its API answers JSON nobody wants to read raw. It had built
+            its own pieces for each; now they're Spell's.
+          </p>
+          <ul>
+            <li>
+              <b>The tree's column view</b> takes data, draws only what shows, and gained a path line, narrow columns,
+              sizes, a remembered pick, a detail pane, Open levels and a whole-tree filter.
+            </li>
+            <li>
+              <b><code>&lt;ui-graph&gt;</code></b> draws nodes with ports and edges, laid out for you, with nested
+              graphs shown inline, in a dialog, or drilled into.
+            </li>
+            <li>
+              <b><code>&lt;ui-json&gt;</code></b> draws JSON as an outline that opens and closes, and can edit it.
+            </li>
+            <li>
+              <b>Under the page:</b> Spell's OpenAPI reader keeps the routes that answer one record under a thing; each
+              runtime copy in a production build gets its own core; the editor's console is quiet, and it hears file
+              changes instead of polling.
+            </li>
+          </ul>
+          <p>
+            <b>Real today:</b> all of the above, on <code>main</code>. <b>Not yet:</b> file upload, calling TypeScript
+            helpers and subclassing elements from Spell, keyed places for pages, and lists asked for by a parameter.
+          </p>
+        </ui-section>
+
+        <ui-section id="2-tree-columns" label="2. A column view for big trees" sticky collapsible dividing open="false">
+          <p>
+            <code>appearance="columns"</code> is one attribute on the tree you already have: no second tag, no mode.
+            Rows come from markup, as before, or from data in <code>items</code>, and only data rows get the speed.
+          </p>
+
+          <ui-section id="rows-from-data" label="Rows from data" sticky collapsible dividing open="false">
+            <ul>
+              <li>
+                Each item has an id and a label. It may also have an icon, a short kind word (<code>which</code>), a
+                count, its own data, and children.
+              </li>
+              <li>
+                <code>children</code> is a list, a function run the first time the row opens, or a promise.
+                <ul>
+                  <li>While it loads, the column shows a spinner, never an empty column.</li>
+                  <li>A function that returns nothing drops the row's chevron.</li>
+                </ul>
+              </li>
+              <li>
+                <code>show</code> picks each row's parts from <code>icon which count chevron</code>. It replaces the old
+                <code>counts</code> attribute.
+              </li>
+              <li>
+                A subclass can style rows by data: <code>rowClass(item)</code> returns a class name for each data row.
+              </li>
+              <li>
+                The tree sends <code>ui-changed</code> on a pick, and <code>ui-settled</code> once the arrow keys stop.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="finding-your-way"
+            label="Finding your way:  the path line and narrow columns"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                A path line above the columns names every pick on the way down. Click a name, and that column's row is
+                picked again, the columns after it kept, as the left arrow key does.
+              </li>
+              <li>
+                The outline draws the same line with <code>sticky-path</code>.
+                <ul>
+                  <li>Long paths fold their outer names into one <code>…</code>, whose tooltip lists them.</li>
+                  <li>Screen readers skip the line: the tree itself says where you are.</li>
+                </ul>
+              </li>
+              <li>
+                While the columns don't fit, the first ones narrow to a strip: the pick's icon, its name written
+                sideways.
+                <ul>
+                  <li>The last <code>narrow-before</code> columns (2 by default) and the selected one never narrow.</li>
+                  <li>Hover or focus a strip, and it widens over its neighbours.</li>
+                </ul>
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="sizes" label="Sizes, set and kept" sticky collapsible dividing open="false">
+            <ul>
+              <li>
+                <code>size</code> gives a width per level, the last entry covering every deeper column. Each is one of:
+                <ul>
+                  <li>a length in px, em or rem</li>
+                  <li>a percent of the tree, never under 80px</li>
+                  <li>a star, for the default width</li>
+                  <li>auto, to fit the rows shown, up to three times the default</li>
+                </ul>
+              </li>
+              <li>
+                Resizing works as in the Finder: drag a line for one column, Option-drag for all.
+                <ul>
+                  <li>Double-click fits a column to its longest row; Option-double-click fits them all.</li>
+                  <li>Option works with the arrow keys too.</li>
+                </ul>
+              </li>
+              <li>
+                A width set by hand wins over <code>size</code>. Give the tree an <code>id</code>, and its widths and
+                its pick are kept in the browser, and opened again on the next visit, unless the page sets a path.
+              </li>
+              <li><code>&lt;ui-split-panel&gt;</code> reads sizes the same way: one reader, shared by both.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="detail-pane" label="The detail pane" sticky collapsible dividing open="false">
+            <ul>
+              <li>
+                Put an element in the tree's <code>detail</code> slot, and it shows after the last column whenever
+                something is picked. The tree sets its <code>item</code> to the picked row.
+              </li>
+              <li>A <code>&lt;ui-json&gt;</code> there shows the row's <code>data</code> with no page code at all.</li>
+              <li>
+                It's as wide as its content, up to half the tree, and the columns narrow to make room. Its edge drags
+                and double-clicks like a column's, and its width is kept.
+              </li>
+              <li><code>sticky-detail</code> pins it while the columns scroll sideways, as on a phone.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="open-and-filter"
+            label="Open levels, and one filter for the whole tree"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                <code>tools</code> adds three small buttons: Open 2 levels, Open 3 levels, Close all. A
+                <code>tools</code> slot puts your own field, a filter say, at the end of their line.
+              </li>
+              <li>
+                From code: <code>await tree.openTo(2)</code> and <code>tree.closeAll()</code>.
+                <code>openTo()</code> opens level by level, waiting for lazy rows, and picks the path so far while a
+                list loads.
+              </li>
+              <li>
+                In columns, <code>filter</code> filters the last column, then lists every other match at any depth under
+                "Elsewhere in the tree", each with its path. A click opens the path to it.
+              </li>
+              <li>
+                To find those, it runs lazy children one level at a time, showing "Looking through the tree".
+                <ul>
+                  <li>It lists 200 matches, and stops after 100,000 rows.</li>
+                  <li>
+                    A tree shaped like a real netlist (8,772 nodes, 38,400 ports, all lazy) is searched in about
+                    23&nbsp;ms.
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="drawn-as-you-scroll"
+            label="Rows drawn as you scroll"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                A data column draws 24 rows first, then more as you scroll; what's drawn stays drawn.
+                <ul>
+                  <li>That's what turned 2,041&nbsp;ms into 33&nbsp;ms.</li>
+                  <li>A 300-row column is unchanged, at 33&nbsp;ms.</li>
+                </ul>
+              </li>
+              <li>
+                The pick and the tab-stop row are always drawn, with every row before them, so End, a path set by the
+                page, <code>openTo()</code> and a filter match all land on a real row.
+              </li>
+              <li>
+                It's Spell's own <code>drawnInWindow()</code>, the one that draws Spell's long lists, moved down to
+                <code>spell/element</code> so Spell UI can use it too.
+              </li>
+            </ul>
+            <p>The catch: markup rows are still all drawn. For a big tree, give it <code>items</code>.</p>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="3-ui-graph" label="3. A graph:  ui-graph" sticky collapsible dividing open="false">
+          <p>
+            <code>&lt;ui-graph&gt;</code> draws boxes with ports, and the edges between them, laid out left to right for
+            you. Hand it JSON in its <code>graph</code> attribute, or an object in its property.
+          </p>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>Two nodes and an edge · shortened from the graph's element examples</ui-title>
+            <ui-content>
+              <pre><code class="language-html">&lt;ui-graph style="--ui-graph-height: 16em" graph='{
+  "nodes": [
+    { "id": "parse", "label": "Parse", "ports": [{ "id": "ast", "label": "ast", "kind": "out" }] },
+    { "id": "check", "label": "Check", "ports": [{ "id": "ast", "label": "ast", "kind": "in" }] }
+  ],
+  "edges": [{ "from": { "node": "parse", "port": "ast" }, "to": { "node": "check", "port": "ast" }, "label": "tree" }]
+}'&gt;&lt;/ui-graph&gt;</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ul>
+            <li>
+              A node may hold a whole graph in its children, and <code>child-view</code> says how it opens:
+              <ul>
+                <li><code>inline</code>, in place</li>
+                <li><code>modal</code>, in a dialog</li>
+                <li><code>drill</code>, which replaces the view and adds a breadcrumb back</li>
+              </ul>
+            </li>
+            <li>
+              It measures text the way <code>&lt;ui-diagram&gt;</code> and <code>&lt;ui-tree-diagram&gt;</code> do, and
+              each one's docs say when to pick which: a graph has ports and edges in any direction; a tree diagram has
+              one parent per box.
+            </li>
+            <li>English and Spanish names, and a docs page with Examples, Usage, API and Theming tabs.</li>
+          </ul>
+          <p>
+            <b>Not yet:</b>
+          </p>
+          <ul>
+            <li>The keyboard reaches only the open and close toggles.</li>
+            <li>Back edges loop wide, and edge labels can collide on dense graphs.</li>
+            <li>Text isn't measured again after a web font loads.</li>
+            <li>Its height can't follow a percentage.</li>
+            <li>A right-side port's label can sit under a node's toggle.</li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="4-ui-json" label="4. JSON as an outline:  ui-json" sticky collapsible dividing open="false">
+          <p>
+            <code>&lt;ui-json&gt;</code> always held JSON, for a diagram or a page to read; now it draws it too, as an
+            outline whose objects and arrays open and close. <code>hidden</code> hides it, and one inside a diagram
+            stays unseen, as before.
+          </p>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>From the JSON outline's docs page</ui-title>
+            <ui-content>
+              <pre><code class="language-html">&lt;ui-json depth="2" editable&gt;{ "name": "port-a", "lanes": [0, 1, 2, 3], "since": "2026-11-18" }&lt;/ui-json&gt;
+&lt;ui-json quotes="no"&gt;{ "name": "port-a", "two words": 2 }&lt;/ui-json&gt;
+&lt;ui-json source="examples/json-ports.json"&gt;&lt;/ui-json&gt;</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ul>
+            <li>
+              Its attributes:
+              <ul>
+                <li><code>depth</code> opens that many levels</li>
+                <li><code>quotes</code> shows or drops the quotes</li>
+                <li><code>no-header</code> drops its Copy and quotes buttons</li>
+              </ul>
+              Alt-click opens a whole branch, and a closed line is cut to its width.
+            </li>
+            <li>
+              <code>editable</code> picks each value's Spell UI input by its type: text, number, date or date-time
+              (written back in its own time zone), a checkbox, and JSON for null or a key.
+              <ul>
+                <li>A pick list's choices come from the <code>editors</code> property.</li>
+                <li>Edits go through its text, so saving works.</li>
+              </ul>
+            </li>
+            <li>
+              Copy sends <code>ui-copied</code>, as the code element does, and a click on a key or value sends
+              <code>ui-navigating</code>. Text that isn't JSON shows the parser's message.
+            </li>
+          </ul>
+          <p>
+            The catch: each toggle is its own Tab stop; the arrow keys don't move between lines yet. To show JSON as
+            code, use <code>&lt;ui-code&gt;</code>.
+          </p>
+        </ui-section>
+
+        <ui-section id="5-under-the-page" label="5. Under the page" sticky collapsible dividing open="false">
+          <ui-section
+            id="one-record-under-a-thing"
+            label="One record under a thing"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <p>
+              Spell's OpenAPI reader, <code>spell place ingest --spec</code>, used to skip a GET under a thing that
+              answers one object, like a system's deployment snapshot. Now it writes it as part of its owner, with the
+              line Spell already had for lists under a thing:
+            </p>
+            <ui-accordion class="spell-code" appearance="styled">
+              <ui-title>What the reader writes · from its tests</ui-title>
+              <ui-content>
+                <pre><code class="language-spell">an instance's snapshot lives at "/api/systems/instance/{id}/snapshot"</code></pre>
+              </ui-content>
+            </ui-accordion>
+            <ul>
+              <li>No new place rule: <code>lists_under</code> takes one thing too (Spanish: <i>está en</i>).</li>
+              <li>
+                The REST place reads the answer as its one row. <code>spell place verify</code> tries each record.
+              </li>
+            </ul>
+            <p>
+              The catch: a record type written by hand without its "found at" line, holding one list, reads as that
+              list.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="each-copy-its-own-core"
+            label="Each runtime copy, its own core"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                A production build now gives each runtime copy its own core and runner, by the same rule the dev server
+                uses. Solid, Spell UI, <code>spell/util</code> and the places stay shared.
+              </li>
+              <li>The cost: <code>spell-runtime.js</code> grew from 195,775 to 279,580 bytes.</li>
+              <li>
+                Hand <code>defineElement()</code> or <code>useElement()</code> a view from another copy, and it warns,
+                naming the class.
+              </li>
+            </ul>
+            <p><b>Not yet:</b> tried on a packed editor. The browser test declares its views by hand.</p>
+          </ui-section>
+
+          <ui-section
+            id="quiet-and-pushed"
+            label="A quiet console, and file changes pushed"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                The "Server path for path" line is gone, and so are the API's per-request banner and "Sending JSON
+                file": removed, not hidden behind a logger.
+              </li>
+              <li>
+                The editor no longer re-reads the open file every 2 seconds.
+                <ul>
+                  <li>
+                    The page server tells it of project file changes over its live channel, and it re-reads only files
+                    in the open project.
+                  </li>
+                  <li>
+                    In a headless check, a file written on disk reached the editor in 264&nbsp;ms, and 15 idle seconds
+                    showed no polling.
+                  </li>
+                </ul>
+              </li>
+              <li>It polls every 30 seconds only while the live channel is down.</li>
+              <li>
+                The one shared watch is <code>watchServerFiles()</code>, in <code>spell/util</code>; the epic pages use
+                it too.
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section id="6-why" label="6. Why it's built this way" sticky collapsible dividing open="false">
+          <ul>
+            <li>
+              <b>One attribute, not a column tag.</b> The handoff from the Jarvis project had its own column element;
+              its pieces moved into <code>&lt;ui-tree&gt;</code> instead, so the row grid, <code>show</code> and the
+              chevron are the tree's, and Jarvis's element shrinks to a subclass.
+            </li>
+            <li>
+              <b>Markup rows draw themselves.</b> Only data rows get the tree's own grid and windowing; markup rows keep
+              working as before, with no retrying for tags that haven't loaded.
+            </li>
+            <li>
+              <b><code>&lt;ui-graph&gt;</code> kept its own tag,</b> rather than becoming a mode of
+              <code>&lt;ui-diagram&gt;</code>: its ports and edges are a different shape of data.
+            </li>
+            <li>
+              <b><code>&lt;ui-json&gt;</code> draws the outline itself,</b> rather than a second viewer tag beside it.
+              There's no <code>appearance="code"</code>: it never drew JSON as code, and <code>&lt;ui-code&gt;</code>
+              does.
+            </li>
+            <li>
+              <b>Kept in local storage, not per tab.</b> Widths and the pick live in one <code>ui-tree</code> store that
+              outlasts the browser session, and only a person's picks are kept, never a path the page sets.
+            </li>
+            <li>
+              <b>One filter, not a new search.</b> It reuses the filter the tree had, and lists other matches after the
+              column's own rows.
+            </li>
+            <li>
+              <b>The windowing moved down</b> to <code>spell/element</code> instead of a second copy in Spell UI. Spell
+              hands in its own parts as settings.
+            </li>
+            <li>
+              <b>The kit's watch moved down</b> from the epic engine into <code>spell/util</code>, so the editor and the
+              epic pages share one.
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="7-limits" label="7. Limits" sticky collapsible dividing open="false">
+          <ul>
+            <li>The arrow keys don't reach the filter's matches listed elsewhere in the tree: click them.</li>
+            <li>In a big column, the <code>which</code> words shift right as wider rows draw in.</li>
+            <li>The tree's columns have no visual baselines: the visual test runner can't load its config.</li>
+            <li>
+              <code>&lt;ui-graph&gt;</code>'s rough edges (section 3) and <code>&lt;ui-json&gt;</code>'s Tab stops
+              (section 4).
+            </li>
+            <li>
+              The runtime split and the pushed file changes aren't yet tried on a packed editor; two hand checks wait on
+              the epic page.
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="8-coming" label="8. Coming" sticky collapsible dividing open="false">
+          <p>🌱 Planned, each waiting on a question to Owen on the epic page:</p>
+          <ul>
+            <li>File upload in Spell: what to call a file someone picks or drops.</li>
+            <li>Calling TypeScript helpers from Spell: where a helper's Spell words come from.</li>
+            <li>Subclassing Spell UI elements in Spell, like a netlist column that's a tree view, with its hooks.</li>
+            <li>A netlist example and pack, built on the three above.</li>
+            <li>Keyed places served to pages: through Spell's page server, or a place server of Jarvis's own.</li>
+            <li>Lists asked for by a parameter that isn't a field.</li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="9-where-things-are" label="9. Where things are" sticky collapsible dividing open="false">
+          <ui-table celled padding="compact" appearance="striped" unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>What</th>
+                  <th>Where</th>
+                </tr>
+                <tr>
+                  <td>The tree, its columns and the detail pane</td>
+                  <td>
+                    <a href="/ui/src/components/ui-tree/UITree.tsx" target="src-ui-tree"><code>UITree.tsx</code></a
+                    >, <code>UITreeColumns.css</code>;
+                    <a href="/components/ui/ui-tree.html" target="ui-tree">its docs page</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>The graph</td>
+                  <td>
+                    <a href="/ui/src/components/ui-graph/UIGraph.tsx" target="src-ui-graph"><code>UIGraph.tsx</code></a
+                    >, <code>GraphLayout.ts</code>;
+                    <a href="/components/ui/ui-graph.html" target="ui-graph">its docs page</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>The JSON outline</td>
+                  <td>
+                    <a href="/ui/src/components/ui-json/UIJson.tsx" target="src-ui-json"><code>UIJson.tsx</code></a
+                    >;
+                    <a href="/components/ui/ui-json.html" target="ui-json">its docs page</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>One size reader, for the tree and the split panel</td>
+                  <td>
+                    <a href="/ui/src/util/PaneSizes.ts" target="src-pane-sizes"><code>PaneSizes.ts</code></a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Rows drawn as you scroll</td>
+                  <td>
+                    <a href="/src/element/drawnWindow.ts" target="src-drawn-window"
+                      ><code>spell/element/drawnWindow</code></a
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>Records under a thing</td>
+                  <td>
+                    <a href="/parser/src/spell/ingest/PlaceSpec.ts" target="src-place-spec"><code>PlaceSpec.ts</code></a
+                    >, and the REST place
+                  </td>
+                </tr>
+                <tr>
+                  <td>The shared file watch, and the live channel</td>
+                  <td>
+                    <a href="/src/util/polling.ts" target="src-polling"><code>spell/util/polling</code></a
+                    >,
+                    <code>spell/server/liveClient</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Each runtime copy's own core</td>
+                  <td>
+                    <a href="/app/app/vite.config.ts" target="src-vite-config"><code>vite.config.ts</code></a
+                    >, the editor's build settings
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+        </ui-section>
+
+        <ui-section id="10-history" label="10. History" sticky collapsible dividing open="false">
+          <ui-accordion class="spell-aside" appearance="styled">
+            <ui-title>The epic's phases, for the record</ui-title>
+            <ui-content>
+              <ul>
+                <li>2026-11-18: P13 Runtime Copies Own Core, P16 Per-Thing Records.</li>
+                <li>
+                  2026-11-19: P1 Land Tree Columns, P2 Land UI Graph, P3 Land JSON Viewer, P17 Quiet Pushed Updates, P4
+                  Breadcrumb And Narrow Columns, P5 Column Sizing, P6 Path And Detail Pane, P7 Open Levels And Filter,
+                  P8 Row Windowing.
+                </li>
+                <li>P18 Subclass And Rough Edges was folded into P1.</li>
+                <li>Waiting: P9-P12, P14, P15.</li>
+              </ul>
+            </ui-content>
+          </ui-accordion>
+        </ui-section>
+
+        <footer class="spell-doc-footer">
+          <ui-divider></ui-divider>
+          <p class="meta">Last checked 2026-11-19 against branch <code>main</code> at <code>711d6c213</code>.</p>
+        </footer>
+      </main>
+    </div>
+    <script src="/_epic/assets/highlight.min.js"></script>
+    <script src="/_epic/assets/spell-ui.js"></script>
+  </body>
+</html>
