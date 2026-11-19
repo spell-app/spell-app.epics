@@ -3,15 +3,20 @@
   ><p>A Spell page can show a file input, but no Spell words read the file someone picks or drops.</p></epic-field
 ><epic-field name="goal"
   ><ul>
-    <li>A page shows an uploader that takes <code>.json</code> files, picked or dropped</li>
-    <li>Something on the page catches the upload, or the uploader's action runs</li>
+    <li>A page shows an uploader that takes <code>.json</code> files, picked or dropped, and lists them</li>
+    <li>
+      The files are posted to the uploader's <code>destination</code>, or handed to its <code>action</code> instead
+    </li>
+    <li>Something on the page can catch the upload first, and take it over</li>
+    <li>Files too big, too many or of the wrong kind are turned away, with the reason shown</li>
     <li>In English and Spanish</li>
     <li>Later, once Q7 is answered: Spell words read the picked file's text</li>
   </ul></epic-field
 ><epic-field name="changes"
   ><p>
-    A new Spell UI element, <code>&lt;ui-uploader&gt;</code>, takes files someone picks or drops (or whole folders), and
-    sends them on: to the action it names, or to whatever catches its <code>ui-upload</code> event.
+    A new Spell UI element, <code>&lt;ui-uploader&gt;</code>, takes files someone picks or drops (or whole folders). It
+    posts them to its <code>destination</code> URL, or calls its <code>action</code> with them instead, after anything
+    that catches its <code>ui-upload</code> event has had the chance to take them.
   </p></epic-field
 ><epic-field name="choices"
   ><epic-choices
@@ -60,13 +65,23 @@
   ><ol>
     <li>
       You picked C, your own option: a new Spell UI element, <code>&lt;ui-uploader&gt;</code>, that takes files someone
-      picks or drops, and sends them on. Its Spell words for reading a picked file still wait on <a href="#q7">Q7</a>,
-      so this phase builds the element and stops short of those words.
+      picks or drops, and sends them on. Your comment on this phase (C2) then split its one <code>upload</code> action
+      into two attributes, one for posting to a server and one for calling a Spell action.
+      <ul>
+        <li>
+          The Spell words for reading a picked file still wait on <a href="#q7">Q7</a>, so this phase builds the element
+          and stops short of them.
+        </li>
+      </ul>
     </li>
     <li>
-      What it is, written as every Spell UI element is (a vocabulary, a component, a sheet):
+      Its attributes, written as every Spell UI element's are (a vocabulary, a component, a sheet):
       <ul>
-        <li>a drop area with a button in it; a click on the button opens the browser's picker</li>
+        <li><code>destination</code>: a URL the picked or dropped files are posted to</li>
+        <li>
+          <code>action</code>: a Spell action to call instead, with the files, as in
+          <code>action={read the netlist}</code> in a drawing
+        </li>
         <li>
           <code>extensions</code>: the kinds it takes, a comma list (<code>json, csv</code>), read with the kit's
           <code>commaList()</code>
@@ -76,19 +91,76 @@
           <code>folder</code>: picks or takes dropped folders instead of files, each folder's files with their paths in
           it
         </li>
-        <li>
-          <code>upload</code>: an action to run with what was picked, <code>upload={read the netlist}</code> in a
-          drawing
-        </li>
+        <li><code>max-size</code>: the largest file it takes, e.g. <code>2 MB</code> (from your comment)</li>
+        <li><code>max-files</code>: the most files it takes in one go (from your comment)</li>
       </ul>
     </li>
     <li>
-      Its event, so something can catch the upload: <code>ui-upload</code>, sent when files are picked or dropped,
-      holding them.
+      What happens when files are picked or dropped, in this order:
+      <ol>
+        <li>
+          Files of a kind it doesn't take, too big, or past the count are turned away, each with its reason on its row.
+        </li>
+        <li>
+          It sends <code>ui-upload</code>, holding the files it kept. It bubbles, so a handler anywhere up the page
+          hears it. A handler that cancels it takes the upload, and nothing below happens. Same shape as the tree's
+          <code>ui-selecting</code>.
+        </li>
+        <li>With <code>action</code> set, the action is called with the files.</li>
+        <li>
+          Else, with <code>destination</code> set, each file is posted there as form data, one request per file, so each
+          row shows its own progress and its own failure. When a post ends it sends <code>ui-uploaded</code> (the
+          server's answer) or <code>ui-upload-failed</code> (the error).
+        </li>
+        <li>
+          With neither set, the files are only held: the element keeps and lists them, and <code>ui-upload</code> has
+          still fired.
+        </li>
+      </ol>
+    </li>
+    <li>
+      Both set: <code>action</code> wins, as your comment's "instead" says, and nothing is posted.
       <ul>
-        <li>It bubbles, so a handler anywhere up the page hears it.</li>
-        <li>A handler that cancels it takes the upload: the <code>upload</code> action then doesn't run.</li>
-        <li>Same shape as the tree's <code>ui-selecting</code>, which can be cancelled the same way.</li>
+        <li>The element logs one warning naming both, so a page that sets both by mistake finds out.</li>
+        <li>An action that wants to post too can do so itself.</li>
+      </ul>
+    </li>
+    <li>
+      What it looks like (your question in C2), drawn as uploaders usually are:
+      <ul>
+        <li>a dashed drop area with a line of help ("Drop .json files here, or") and a Choose files button in it</li>
+        <li>under the help, the limits when set: "Up to 5 files, 2 MB each"</li>
+        <li>the area lights up while files are dragged over it</li>
+        <li>
+          under the area, a list of the files: each row its name, size, a progress bar while it's posted, then a tick or
+          the reason it failed, and an ✕ to remove it (or call off its post)
+        </li>
+        <li>greyed while <code>disabled</code>, as every form control is</li>
+      </ul>
+    </li>
+    <li>
+      Clashes with words Spell UI already uses (checked in Spell UI's English vocabularies):
+      <ul>
+        <li>
+          <b>A form's <code>action</code></b
+          >: in plain HTML, a form's <code>action</code> is the URL it posts to, the job <code>destination</code> does
+          here. Someone coming from HTML may write <code>action="/upload"</code> and expect a post.
+          <code>&lt;ui-form&gt;</code> doesn't have one of its own, but the form inside it does.
+        </li>
+        <li>
+          <b><code>&lt;ui-input&gt;</code>'s <code>action</code></b
+          >: an attribute and a slot for the buttons joined to a field (bare puts them after the field,
+          <code>left</code> before it), a matter of looks. The uploader holds a
+          <code>&lt;ui-input type="file"&gt;</code> inside, but its own <code>action</code> is a different element's.
+        </li>
+        <li>
+          <code>&lt;ui-action&gt;</code>'s <code>action</code> property: the action a menu item draws and runs. Close to
+          this meaning, so no clash.
+        </li>
+        <li>In Spell itself, "action" is the word for a method, which is what this attribute takes.</li>
+        <li>
+          So: keep <code>action</code>, as you named it, and say in its docs that it is a Spell action, not a URL.
+        </li>
       </ul>
     </li>
     <li>
@@ -99,7 +171,9 @@
           picker of its own
         </li>
         <li>dropping uses the browser's own drag and drop; a dropped folder is walked for its files</li>
-        <li>a file with a kind <code>extensions</code> doesn't list is turned away, and the drop area says why</li>
+        <li>
+          posting goes through the kit's own request helper, so a failure has the same error shape as everywhere else
+        </li>
       </ul>
     </li>
     <li>
@@ -108,14 +182,23 @@
       the root catalog and the docs site's data rebuilt.
     </li>
     <li>
-      Checked by: its unit tests (picks, a drop, a folder, a kind turned away, a cancelled
-      <code>ui-upload</code> leaving the action unrun, axe); its docs page looked at headlessly, light and dark.
+      Checked by its unit tests:
+      <ul>
+        <li>a pick, a drop and a folder</li>
+        <li>a kind, a size and a count turned away</li>
+        <li>a cancelled <code>ui-upload</code>: nothing called, nothing posted</li>
+        <li><code>action</code> called with the files; both set: only the action, and one warning</li>
+        <li><code>destination</code>: each file posted, against a test server, one failing</li>
+        <li>neither set: the files held and listed</li>
+        <li>axe</li>
+      </ul>
+      And its docs page looked at headlessly, light and dark.
     </li>
     <li>
       Waits on <a href="#q7">Q7</a>, then a later step: the Spell words for a picked file (its name, size and text), so
       <code>read a netlist from the file's text</code> works in a Spell page.
     </li>
-    <li>Left out: binary files, and sending files to a server.</li>
+    <li>Left out: resuming a big file's post after it breaks off, and posting in chunks.</li>
   </ol></epic-field
 ><epic-field name="files"
   >ui/src/components/ui-uploader/ (UIUploader.tsx, UIUploader.en.ts, UIUploader.es.ts, UIUploader.css, index.ts,
