@@ -11,8 +11,9 @@
   </ul></epic-field
 ><epic-field name="changes"
   ><p>
-    A <code>size</code> setting (pixels, a percentage, or <code>auto</code> to fit what's shown), and the Finder's
-    resizing: drag one edge, Option-drag for all, double-click to fit the longest row; what you set is remembered.
+    A <code>size</code> setting read the way <code>&lt;ui-split-panel&gt;</code> reads its sizes (pixels, a percentage,
+    or <code>auto</code> to fit what's shown) (coherence), and the Finder's resizing: drag one edge, Option-drag for
+    all, double-click to fit the longest row; what you set is remembered.
   </p></epic-field
 ><epic-field name="choices"
   ><epic-choices
@@ -24,9 +25,12 @@
         </li>
         <li>One place for every remembered tree setting.</li>
       </ul></epic-option
-    ><epic-option letter="B" title="sessionStorage, as the paste asks"
+    ><epic-option letter="B" title="The preferences store, for this session only (coherence)"
       ><ul>
-        <li>Widths last only for this tab's session; a new tab starts fresh.</li>
+        <li>
+          As the paste asks, widths last only for this tab's session: <code>PrefStore</code> with
+          <code>{ place: "session" }</code>, which it already takes, not raw <code>sessionStorage</code>.
+        </li>
         <li>Moves main's existing widths there too.</li>
       </ul></epic-option
     ></epic-choices
@@ -34,9 +38,21 @@
 ><epic-field name="plan"
   ><ol>
     <li>
-      <code>size</code> attribute on the column view: a pixel number, a percentage, or <code>auto</code>, measuring the
-      rows actually drawn (not the whole list), each column its own width. Read with <code>commaList()</code> when it
-      lists one value per level.
+      Reuse, don't write a new reader (coherence): <code>&lt;ui-split-panel&gt;</code>'s <code>sizesFor()</code> and
+      <code>PaneSize</code> already read px, em, %, <code>*</code> and <code>auto</code>. Move them into
+      <a href="/ui/src/util/" target="src-ui-src-util"><code>ui/src/util/</code></a
+      >, reading lists with <code>commaList()</code> instead of their bare split, and use them from both elements.
+    </li>
+    <li>
+      <code>size</code> attribute on the column view, read by that shared reader: one value, or one per level.
+      <code>auto</code> sizes each column to its own rows, as the handoff's subclass did from outside (<code
+        >flex: 0 0 auto</code
+      >
+      with a min and a max), measuring the rows actually drawn.
+    </li>
+    <li>
+      Text is measured with <code>TreeMeasure.widthOf()</code> (coherence), for <code>auto</code> and for
+      double-click-to-fit, not a new canvas.
     </li>
     <li>
       Resizing builds on main's drag-to-resize (epic <code>mockup</code> T37): add Option-drag to resize every column
@@ -44,15 +60,24 @@
     </li>
     <li>
       A dragged width overrides <code>size</code> for that column, and is remembered; where it's kept is this phase's
-      choice below.
+      choice. <a href="#p-path-and-detail-pane">Path And Detail Pane</a> keeps the path in the same place.
     </li>
-    <li>Vocabulary and Spanish as usual; the docs page shows each <code>size</code> form.</li>
-    <li>Checked by: unit tests of the size reading; headless drags, an Option-drag and a double-click, measured.</li>
-    <li>Left out: windowing (P6), which <code>auto</code> must still work with: it measures the rows in view.</li>
+    <li>
+      Vocabulary and Spanish as usual; the property editor layout places <code>size</code>; the docs page shows each
+      form.
+    </li>
+    <li>
+      Checked by: unit tests of the shared size reader (the split panel's tests still pass); headless drags, an
+      Option-drag and a double-click, measured.
+    </li>
+    <li>
+      Left out: windowing (<a href="#p-row-windowing">Row Windowing</a>), which <code>auto</code> must still work with:
+      it measures the rows in view.
+    </li>
   </ol></epic-field
 ><epic-field name="files"
   >ui/src/components/ui-tree/ (UITree.tsx, UITree.en.ts, UITree.es.ts, UITreeColumns.css),
-  ui/docs/ui-tree.html</epic-field
+  ui/src/components/ui-split-panel/UISplitPanel.tsx, ui/src/util/, ui/docs/ui-tree.html</epic-field
 ><epic-field name="verify"
   >ui's tests, a unit test of the size reading; drag and double-click checked headlessly</epic-field
 >
