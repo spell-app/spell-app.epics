@@ -296,6 +296,345 @@ export function focusFirstField(view: object): void {
       <li>the words still wait on <a href="#q9">Q9</a></li>
     </ul></epic-net-effect
   > </epic-reply
+><epic-reply from="owenoak" at="2026-11-19 18:40" re="revisit soon"
+  ><p>see my comments in its text: C6, C7</p></epic-reply
+><epic-reply from="Claude" at="2026-11-19 19:05" re="C6, on core.elementOf">
+  <blockquote>
+    this would traverse the DOM heirarchy to find the first spell `thing` of the appropriate type?
+  </blockquote>
+  <p>
+    <b>No, the other way round.</b> <code>core.elementOf(thing)</code> would start from a thing the program already has,
+    and find the element that draws it. It wouldn't walk up the page from an element looking for a thing.
+  </p>
+
+  <p><b>How things and their elements are linked today:</b></p>
+  <ul>
+    <li>
+      Element to thing: every view's element keeps its component, and the component keeps the thing it draws.
+      <a href="/app/src/app/runner/SpellElement.tsx" target="src-app-src-app-runner-spellelement-tsx"
+        ><code title="app/src/app/runner/SpellElement.tsx">SpellElement.thingOf(element)</code></a
+      >
+      reads it. Dragging uses it to know which card was picked up.
+    </li>
+    <li>
+      Thing to id:
+      <a href="/parser/src/core/references.ts" target="src-parser-src-core-references-ts"
+        ><code title="parser/src/core/references.ts">core.elementIdFor(thing)</code></a
+      >
+      gives the id the thing's element takes, its name, like <code>queen-of-spades</code>. The element sets that id on
+      itself when it's handed the thing.
+    </li>
+    <li>
+      Id to thing:
+      <a href="/parser/src/core/elements.ts" target="src-parser-src-core-elements-ts"
+        ><code title="parser/src/core/elements.ts">core.thingFor(Class, id)</code></a
+      >
+      finds the thing a tag in a page's layout names, as <code>&lt;solitaire-tableau id="T1"&gt;</code> finds tableau
+      T1.
+    </li>
+    <li>
+      Thing to tag name, not element:
+      <a href="/parser/src/core/elements.ts" target="src-parser-src-core-elements-ts"
+        ><code title="parser/src/core/elements.ts">core.elementFor(thing)</code></a
+      >
+      answers <code>"solitaire-card"</code>, the TAG its class draws as. Despite the name, it hands back no element.
+    </li>
+    <li>
+      Name to element: the runtime can already find a drawn element by its id, looking inside each view's own shadow
+      root too. That's how <code>show "you won"</code> finds the element with id <code>you-won</code> (<a
+        href="/parser/src/core/ui.ts"
+        target="src-parser-src-core-ui-ts"
+        ><code title="parser/src/core/ui.ts">drawnNamed()</code></a
+      >, private to that file).
+    </li>
+  </ul>
+  <epic-code title="the pieces that exist today" language="ts">
+    <pre>
+// app/src/app/runner/SpellElement.tsx:  element =&gt; thing
+static thingOf(element: Element): object | undefined {
+  return (element as Element &amp; { component?: SpellElement }).component?.currentThing
+}
+
+// SpellElement.nameAfterHandedThing():  each view's element takes its thing's id
+const thing = this.handedThing
+return thing &amp;&amp; this.entry?.core.elementIdFor(thing)     // then element.id = id
+
+// parser/src/core/ui.ts:  an id =&gt; the element, inside every view's shadow root too
+function drawnNamed(name: string): Element | undefined {
+  const id = drawnIdOf(name)
+  const roots: Array&lt;Document | ShadowRoot&gt; = [core.domRoot()]
+  for (const root of roots) {
+    const found = root.getElementById(id)
+    if (found) return found
+    for (const element of root.querySelectorAll("*")) if (element.shadowRoot) roots.push(element.shadowRoot)
+  }
+  return undefined
+}</pre>
+  </epic-code>
+
+  <p>
+    <b>What <code>core.elementOf(thing)</code> would be,</b> put together from those:
+  </p>
+  <ul>
+    <li>
+      Ask <code>core.elementIdFor(thing)</code> for its id, then find that id the way <code>drawnNamed()</code> does.
+    </li>
+    <li>
+      Or keep a weak map, thing to element, filled as each view's element is handed its thing. Faster, and it works for
+      a thing with no name, which has no id.
+    </li>
+    <li>
+      A catch either way: one thing can be drawn twice, say the same card in a list and in a detail panel. Then it has
+      two elements. Picking "the first drawn" is the simple answer; a helper that cares could ask for all of them.
+    </li>
+  </ul>
+  <epic-code title="core.elementOf(), a sketch (not written)" language="ts">
+    <pre>
+/** The element drawing `thing` now -- the first, if it's drawn more than once;  `undefined` if it isn't drawn. */
+elementOf(thing: unknown): Element | undefined {
+  const id = core.elementIdFor(thing)
+  return id ? drawnWithId(id) : undefined        // drawnNamed()'s search, by the id itself
+}</pre>
+  </epic-code>
+
+  <p><b>A walk up the page to the nearest thing of a type:</b> nothing in the runtime does that today.</p>
+  <ul>
+    <li>
+      The only upward walks are the editor's own: a view checks whether it sits inside a
+      <code>&lt;spell-viewer&gt;</code>, and the right-click menu climbs through shadow roots to collect the menus
+      around what was clicked (<a
+        href="/app/src/app/runner/SpellElement.tsx"
+        target="src-app-src-app-runner-spellelement-tsx"
+        ><code title="app/src/app/runner/SpellElement.tsx">SpellElement.programMenuOf()</code></a
+      >).
+    </li>
+    <li>
+      A helper would want that walk only when it's handed an ELEMENT and needs the thing around it, say a click handler
+      asking "which form is this button in?". Spell code never hands a helper an element, only things, so P10 doesn't
+      need it.
+    </li>
+    <li>
+      If a case comes up, it's small: climb with <code>thingOf()</code> at each step until a thing of the type turns up.
+    </li>
+  </ul>
+
+  <epic-net-effect
+    ><ul>
+      <li>
+        no change to P10's plan from this: <code>core.elementOf(thing)</code> stays a thing-to-element lookup, still not
+        in P10's plan, as before
+      </li>
+      <li>its sketch: the thing's id, then the runtime's existing search by id, first element if it's drawn twice</li>
+      <li>no "nearest thing of a type" walk is planned: nothing hands a helper an element</li>
+    </ul></epic-net-effect
+  >
+</epic-reply>
+<epic-reply from="Claude" at="2026-11-19 19:10" re="C7, on the spell: line in a docstring">
+  <blockquote>
+    <p>Feels like embedding the spell in a comment is an anti-pattern.</p>
+    <p>I'm imagining that e.g. we'd have a library</p>
+    <ul>
+      <li>code is in <code>clipboard.ts</code></li>
+      <li>
+        we'd have a <code>clipboard.spell</code> file that references that (in the package file is fine). That would
+        specify the languge/args names/etc
+      </li>
+      <li>
+        <code>clipboard.spell</code> would have some way of explicitlly calling the JS line (we'd need new spell for
+        this)
+      </li>
+      <li>
+        <code>clipboard.spell</code> could be translated to <code>clipboard.es.spell</code> just like any other spell
+        file
+      </li>
+    </ul>
+    <p>Note that this feels like a lot of rope to hand people in terms of ambiguity, but it would be very cool.</p>
+    <p>
+      One use for this, making language for the spell ui- components which have actions we'd want to call in thspell
+    </p>
+  </blockquote>
+
+  <p>
+    <b>Agreed, and it fits what exists better than the docstring did.</b> Almost all of it is machinery Spell already
+    has. The one new thing is a Spell statement that calls a function from the project's code. I've made it
+    <a href="#q9">Q9</a>'s new option A, recommended; the docstring line drops to option E.
+  </p>
+
+  <p><b>Your design, as a real library:</b></p>
+  <epic-code title="owen@spell/clipboard, a library project · its four files" language="text">
+    <pre>
+owen@spell/clipboard/
+  __project.json5        the project file:  lists both kinds of file
+  clipboard.ts           the code
+  Clipboard.spell        the words, in English
+  Clipboard.es.spell     the same words, in Spanish
+
+// __project.json5
+imports: [
+  { path: "/clipboard.ts", active: true },          // NEW:  a code file the Spell may call
+  { path: "/Clipboard.spell", active: true },
+  { path: "/Clipboard.es.spell", active: true }
+]
+
+// clipboard.ts:  plain TypeScript, nothing Spell-shaped in it
+/** Put `text` on the clipboard.  NEVER throws:  a browser that refuses says so in the console. */
+export async function copyText(text: string): Promise&lt;void&gt; {
+  await navigator.clipboard.writeText(text).catch((error) =&gt; console.error(error))
+}
+
+// Clipboard.spell
+to copy (text as text) to the clipboard
+	run the code copyText with text                 // NEW wording, for your OK (below)
+
+// Clipboard.es.spell
+para copiar (texto como texto) al portapapeles
+	ejecutar el código copyText con texto            // NEW wording too</pre>
+  </epic-code>
+
+  <p><b>How a program uses it:</b> exactly as it uses any library today. Nothing new on this side.</p>
+  <epic-code title="a program, Notes, importing the library" language="text">
+    <pre>
+// Notes's __project.json5:  an import of another project, as today
+imports: [{ path: "/Notes.spell", active: true }, { path: "owen@spell/clipboard" }]
+
+// Notes.spell
+to share the note:
+	copy the note's text to the clipboard
+
+// compiled:  an ordinary call into another project, matched by its words
+import { copyTextToTheClipboard } from "@spell/project/owen@spell/clipboard"
+copyTextToTheClipboard(note.text)
+
+// and the library's own compiled module, which the program never sees:
+import { copyText } from "./clipboard.ts"                // NEW:  the project's code file
+export function copyTextToTheClipboard(text) {
+  return copyText(text)
+}</pre>
+  </epic-code>
+
+  <p><b>What already exists, and carries it:</b></p>
+  <ul>
+    <li>
+      A <code>to</code> line with typed inputs, <code>(text as text)</code>, and its compiled name made from its words:
+      <code>to notify (message)</code> compiles to <code>notifyMessage(message)</code> in parser's own tests.
+    </li>
+    <li>
+      A library's Spell reaching a program: the program's project file imports the library, its compiled declarations
+      are read, and each name is imported from the library's module (<a
+        href="/parser/src/spell/SpellProject.ts"
+        target="src-parser-src-spell-spellproject-ts"
+        ><code title="parser/src/spell/SpellProject.ts">SpellProject.loadImportScope()</code></a
+      >, which builds a
+      <a href="/parser/src/spell/spell.types.ts" target="src-parser-src-spell-spell-types-ts"
+        ><code title="parser/src/spell/spell.types.ts">DeclarationsImport</code></a
+      >
+      per library).
+    </li>
+    <li>
+      Translating: a project can already mix languages,
+      <a
+        href="/app/spaces/@spell/examples/Solitario/Carta.es.spell"
+        target="src-app-spaces-spell-examples-solitario-carta-es-spell"
+        ><code>Carta.es.spell</code></a
+      >
+      beside <code>Card.spell</code>. Spell's own built-in two-sided view is written exactly this way, in Spell, with a
+      Spanish copy beside it.
+    </li>
+    <li>
+      The kit already splits words from code like this for its OWN words, but in TypeScript:
+      <code>scroll to the top</code> is a rule in an English rules file, with a Spanish one beside it, compiling to
+      <code>core.scrollToTop()</code>. Your design lets a library author do the same in Spell.
+    </li>
+  </ul>
+
+  <p><b>Is there a way today for a Spell body to call a JavaScript function?</b> No.</p>
+  <ul>
+    <li>Every statement compiles to Spell's own runtime or to another Spell function. There's no general call.</li>
+    <li>
+      A <code>to</code> line with no body isn't free to mean "this is the helper": it already compiles to an empty
+      function, <code>export function startTheGame() {}</code>.
+    </li>
+    <li>
+      And a project skips its code files today: its imports keep only <code>.spell</code> and <code>.css</code> files
+      (<a href="/parser/src/spell/SpellProject.ts" target="src-parser-src-spell-spellproject-ts"
+        ><code title="parser/src/spell/SpellProject.ts">SpellProject.activeImports</code></a
+      >), the skip P10's plan already names.
+    </li>
+  </ul>
+
+  <p><b>The smallest new thing,</b> three pieces:</p>
+  <ol>
+    <li>
+      One statement, "run this function from the project's code", with the <code>to</code> line's inputs. Its names are
+      checked against what the project's code files export, read by the kit's TypeScript reader, so a typo is a compile
+      error, not a crash.
+    </li>
+    <li>The library's compiled module imports from its own code file.</li>
+    <li>The project file's import keeps <code>.ts</code> files, as P10 already plans.</li>
+  </ol>
+
+  <p><b>The new wording, for your OK.</b> Nothing below is settled.</p>
+  <ul>
+    <li>
+      <code>call copyText with text</code> reads best, but clashes: <code>call</code> already starts
+      <code>call the server</code> and <code>call {a place}</code>, and a place can be named by one word.
+    </li>
+    <li><code>run the code copyText with text</code> is my pick: "the code" says plainly you've left Spell.</li>
+    <li>
+      Several inputs are the ambiguous part. <code>with source and options</code> clashes with <code>and</code> in a
+      condition. Commas, <code>with source, options</code>, avoid that.
+    </li>
+    <li>
+      The rope: if the statement works anywhere, programs will call JavaScript names in the middle of their Spell.
+      Limiting it to a <code>to</code> body in a project that lists a code file keeps JavaScript names out of everyday
+      Spell: programs only ever see the words.
+    </li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="run the code (name) with (inputs), only in a to body" recommended
+      ><ul>
+        <li>
+          English <code>run the code copyText with text</code>; Spanish
+          <code>ejecutar el código copyText con texto</code>.
+        </li>
+        <li>Several inputs with commas.</li>
+        <li>Only as a line in a <code>to</code> body, so programs only see words.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="The same statement, allowed anywhere"
+      ><ul>
+        <li>Quicker for a one-off, but JavaScript names spread into everyday Spell.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="call (name) with (inputs)"
+      ><ul>
+        <li>Shorter, but has to be told apart from <code>call the server</code> and <code>call</code> a place.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+
+  <p><b>Spell UI's components:</b> the same shape fits, with one gap.</p>
+  <ul>
+    <li>
+      Spell UI could ship a Spell file of words for its actions, like <code>open the dialog</code>, whose bodies call
+      each component's own method.
+    </li>
+    <li>
+      But those actions are methods ON an element, not functions. Either the statement grows a method form,
+      <code>run the code show on the dialog</code>, or each action gets a small function that takes the thing. Both need
+      the thing's element, so they lean on <code>core.elementOf()</code> (your C6).
+    </li>
+    <li>That's worth its own question once P10's statement is agreed, so it isn't decided here.</li>
+  </ul>
+
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li><a href="#q9">Q9</a>'s option A becomes your library design, recommended; the docstring line is option E</li>
+      <li>P10 gains one new Spell statement, in English and Spanish, once you OK its words</li>
+      <li>a library's compiled module imports from its own code file; programs import the library as today</li>
+      <li>Spell UI's words for its components' actions: a later question, after this one</li>
+    </ul></epic-net-effect
+  > </epic-reply
 ><epic-field name="goal"
   ><ul>
     <li>A Spell page calls <code>readNetlist()</code>-style helpers</li>
