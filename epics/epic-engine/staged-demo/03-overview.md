@@ -36,11 +36,11 @@ The parts:
 
 ```html
 <epic-section id="o2" kind="overview-part" title="How it works">
-  <p>Three small steps, each one easy to test on its own:</p>
+  <p>Jarvis builds the briefing in three steps:</p>
   <ol>
-    <li><b>Gather.</b>  Ask the calendar, mail and weather at the same time, and stop waiting after 3 seconds.</li>
-    <li><b>Pick.</b>  Keep only what matters:  the next few meetings, the mail you'd answer first, today's weather.</li>
-    <li><b>Say it.</b>  Turn the picks into one natural paragraph, and speak it.</li>
+    <li><b>Gather.</b>  Jarvis checks your calendar, mail and weather together, and gives them 3 seconds to answer.</li>
+    <li><b>Pick.</b>  It keeps only what matters:  the next few meetings, the mail you'd answer first, and today's weather.</li>
+    <li><b>Say it.</b>  It writes what it chose as one short paragraph, and reads it aloud.</li>
   </ol>
   <epic-code title="greetings.ts · after · 4 lines" language="ts"><pre>if (/good morning/i.test(phrase)) {
   const briefing = await Briefing.forToday(ctx)
@@ -53,7 +53,7 @@ The parts:
 <epic-section id="o3" kind="overview-part" title="What stays the same">
   <ul>
     <li>The wake phrase and every other skill work as they do today.</li>
-    <li>Nothing new is stored:  the briefing is made fresh each morning, then forgotten.</li>
+    <li>Jarvis doesn't save your briefings.  It makes a new one each morning.</li>
     <li>No new accounts or settings to fill in.</li>
   </ul>
 </epic-section>
