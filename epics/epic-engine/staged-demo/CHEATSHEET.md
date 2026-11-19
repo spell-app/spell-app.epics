@@ -19,6 +19,7 @@ About 20 minutes.  Claude's waits are about 10 seconds each;  the rest is you ta
 
 | # | You do | What happens | Time |
 | --- | --- | --- | --- |
+| 0 | Install:  show `npx spell@next epic init` from `00-paste.md`'s "Install" (don't run it:  this machine has it).  Say:  one command, any git repo, no Spell needed.  `~/.local/bin` must be on `PATH` for `epic` | Nothing:  you talk | 1 min |
 | 1 | Type `/epic demo `, paste the box from `00-paste.md`, press Enter | Silly working lines;  the Morning Briefing epic page opens in the side bar;  two questions appear, then the Overview | 1 min, then talk 3 min |
 | 2 | On the page:  pick an answer on Q1 and Q2 (the cards), then **Accept Overview** (green thumbs up on the Overview's title row) | Working lines;  four phases appear, one per part, each with Claude's plan | 30 s, then talk 3 min |
 | 3 | Pick the Joke:  on **P4 · A Joke**'s title row, press **Looks good** (the thumbs up, left of the clock).  Then **Accept Phases** (on the Phases title row) | P4 · A Joke starts, the other three stay to do;  two more questions appear (Q3, Q4) | 30 s, then talk 2 min |

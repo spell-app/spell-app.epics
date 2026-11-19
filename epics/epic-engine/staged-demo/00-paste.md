@@ -3,6 +3,34 @@
 Type `/epic demo `, then paste everything inside the box below (not the four backticks).
 It's a feature ask for Jarvis, with the code it starts from.
 
+## Install
+
+Shown first, before the paste:  how anyone gets epics (README-epics.md, "Setting up").
+Don't run it in the room:  this machine has it already.
+
+You need Claude Code, VS Code, git, Node 24.11 or later, and your code host's command, logged in.
+Then in your repo, a git repo with at least one commit:
+
+```sh
+npx spell@next epic init
+```
+
+- It asks your name and a colour, installs the Claude Code plugin and the VS Code extension,
+  makes the shared repo for the pages, and starts a small local server that shows them (port 4848).
+- A Claude Code session open already:  type `/reload-plugins` there before `/epic`;  a new session has it.
+- `epic` goes in `~/.local/bin`, which may not be on your `PATH` (epic `epic-engine` I345):
+  `epic init` says so, with the line to paste into `~/.zshrc`.
+
+  ```sh
+  export PATH="$HOME/.local/bin:$PATH"
+  epic whoami
+  ```
+
+What to say:
+- One command.
+- Works in any git repo, on GitHub or GitLab.
+- No Spell needed:  your code stays as it is;  one config file and a block in `.gitignore`.
+
 ## Paste
 
 ````text
