@@ -818,6 +818,23 @@ every entry below that date was fixed or disproven;  what's left:
 
 ## app
 
+- 2026-11-18 (editor, testfix after P34-P36):  the app's integration run (`yarn test:integration`, this worktree's editor)
+  had 24 failures in 13 files, none in `addAndMove`, which all passed.
+  Most look like tests left behind by Solitaire's rewrite (epic `language` T155) and the side bar's changes, not P34-P36:
+  - `eventsInCode` (4):  expects `on click`, the code now says `when clicked`
+  - `referenceTab`:  the deck's words are now "a Deck of 52 playing cards"
+  - `scoreEdits`:  Is a face card no longer shows as a read-only getter
+  - `thingsAndTemplates` (2):  52 cards, not 53;  a test's icon `flask`, not `check circle`
+  - `sideBarEdits` (4, the same alone):  "Nothing in your program sets this" for a foundation's declared value;
+    the rubber band selects nothing;  two time out on `textContent`
+  - `editorPolish` (3):  `Invalid line number 0 in 212-line document`, and I50's selection while the hero shows
+  - `cardMenu`, Update App Snapshot:  no `__thumbnail.png` in the test project's folder after the snapshot closes
+    (`@spell/owen@/cardmenu-test-<pid>/`):  maybe a real bug, where the picture is saved
+  - `fullEditor` (2), `codeFollowsAlong` (`[ui-text, b]` for `[ui-text]`), `inspectorShades`, `renameAction` (2,
+    `scrollIntoViewIfNeeded` timeouts), `leavingAnApp`, `computedFields` (skipped:  its selector timed out),
+    `propertyEditorsFile` (the entry below)
+  - The full run's output:  rerun `yarn test:integration`;  the machine's load was high (15-19), so the timeouts may be load.
+
 - 2026-11-18 (mockup P28):  on App UI's `<spell-viewer>` page (`/components/app/spell-viewer.html#1-example`), about one load in four,
   the calculator example's app draws nothing:  its toolbar shows, its `<div class="App">` stays empty for 30 s and more, and
   the page logs no error;  the FizzBuzz viewer under it runs.  Seen from headless Chromium while other sessions restarted
