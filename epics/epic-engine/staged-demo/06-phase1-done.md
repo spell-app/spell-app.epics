@@ -1,6 +1,6 @@
-# 06 · Phase 1 done
+# 06 · The picked phase done
 
-After Owen answers the two questions and presses Send:  phase 1 finishes, with the things found along the way.
+After Owen answers the two questions and presses Send:  the phase he picked (A Joke) finishes, with the things found along the way.  The other three phases stay to do.
 Before running this:  6 working lines, a pause after each (about 15 seconds:  "building").
 
 Each item shows in its own colour:
@@ -9,29 +9,30 @@ Each item shows in its own colour:
 - I1 red:  an open issue
 - I2 orange:  fixed, waiting for your review
 - I3 light orange:  your own request, done, until you look
-- T1 yellow:  a todo;  T2 grey:  a limit to know about;  T3 blue:  under way in phase 2
+- T1 yellow:  a todo;  T2 grey:  a limit to know about;  T3 blue:  under way, for Upcoming Meetings
 - M1:  a manual test, for you to try by hand
 
 ## Commands
 
 ```sh
-epic add demo#J "Meetings shorter than 15 minutes are left out of the briefing" --calm --details '<p>Quick check-ins crowd out the meetings that matter.  Anything under 15 minutes is skipped, unless you organised it.</p>'
-epic add demo#J "Mail from your manager is always mentioned, even when you rarely write back" --options "*Always mention it | Treat it like any other mail" --details '<p>You seldom reply to your manager by email, so the usual rule would skip them.  It felt wrong to leave them out, but you might disagree.</p>'
-epic add demo#I "Meeting times are read in the wrong time zone when you travel" --details '<p>The calendar gives times in the time zone you set at home.  On a trip, "9:30" can be an hour off.</p>'
-epic add demo#I "Two all-day events were read out as one" --calm --details '<p>"Sam away" and "Office closed" both fell on Friday, and the briefing joined them into one line.</p>'
-epic update demo#I2 fixed "Each all-day event now gets its own short line.  Test added for two on one day."
-epic add demo#I "The greeting should use my nickname" --requested --details '<p>Your words:  <q>Call me Oz in the morning, not Owen.</q></p>'
+epic add demo#J "Jokes about work are left out on Mondays" --calm --details '<p>A joke about meetings lands badly when your week starts with six of them.  On Mondays, Jarvis picks from the other jokes.</p>'
+epic add demo#J "The joke comes last, after the weather" --options "*Last, to end on a smile | First, to wake you up" --details '<p>Ending on the joke felt right, but some people want it first, while they are still in bed.  You might disagree.</p>'
+epic add demo#I "Puns with homophones sound wrong in Jarvis's voice" --details '<p>"I knead you" is read out as "I need you", so the joke is lost.  These puns need a different voice setting, or leaving out.</p>'
+epic add demo#I "The same joke came up twice in one week" --calm --details '<p>Restarting Jarvis forgot which jokes it had told.</p>'
+epic update demo#I2 fixed "Told jokes are now saved to disk, so a restart remembers them.  Test added."
+epic add demo#I "No jokes about cats, please" --requested --details '<p>Your words:  <q>My cat is sensitive.  No cat jokes.</q></p>'
 epic close demo#I3
-epic add demo#T "Let people choose which calendars count" --details '<p>A shared family calendar can fill the briefing with other people'"'"'s plans.  A setting could leave it out.</p>'
-epic add demo#T "Only the 50 newest unread emails are checked" --limit --details '<p>Enough for a normal morning.  After a long holiday, older mail is not looked at.</p>'
-epic add demo#M "Hear the briefing on your own laptop" --step '1. In Terminal: <pre><code>cd ~/www/jarvis
-yarn dev</code></pre> 2. Wait for "Jarvis is listening". 3. Say "good morning, Jarvis".' --should 'Within 3 seconds Jarvis reads one paragraph:  your first meeting, any mail that matters, and the weather.'
-epic phase demo#P1 done --no-open --done '<ul><li><code>Briefing.forToday()</code> gathers your meetings, the mail that matters and the forecast, all at once, in under 3 seconds.</li><li>A slow service is left out, never waited on:  the weather says "no forecast this morning" (Q4).</li><li>Meetings cancelled overnight get one short line (Q3).</li><li>Three calls made along the way, two issues found, one fixed, and your nickname used (I3).</li><li>Checked:  12 new tests, all passing;  one manual test for you (M1).</li></ul>'
-epic phase demo#P2 active --no-open
-epic add demo#T "Make the paragraph sound less like a list" --start "Meetings, then mail, then weather sounds robotic. Join them the way a person would."
-epic inbox status demo "Building P2"
+epic add demo#T "Let people add their own jokes" --details '<p>A family in-joke beats anything on the list.  A short text file could add them.</p>'
+epic add demo#T "Only 60 jokes:  after two months they come round again" --limit --details '<p>Enough for now.  A longer list, or a joke service, can come later.</p>'
+epic add demo#M "Hear the joke on your own laptop" --step '1. In Terminal: <pre><code>cd ~/www/jarvis
+yarn dev</code></pre> 2. Wait for "Jarvis is listening". 3. Say "good morning, Jarvis".' --should 'Jarvis says good morning, then tells one short joke.  Saying good morning again tells no second joke today.'
+epic phase "demo#${PICK:-p-a-joke}" done --no-open --done '<ul><li>One short, clean joke ends every briefing, picked from a list of 60.</li><li>For example:  "Why did the calendar feel popular?  Its days were all booked."</li><li>Puns and wordplay only (Q3);  no reply if you don'"'"'t laugh (Q4).</li><li>No repeats within 30 days, even after a restart (I2).</li><li>No cat jokes (I3).</li><li>Checked:  9 new tests, all passing;  one manual test for you (M1).</li></ul>'
+epic phase demo#p-upcoming-meetings active --no-open
+epic add demo#T "Read meeting times in the time zone you're in today" --start "On a trip, 9:30 at home is not 9:30 where you are. Use the time zone you're in."
+epic phase demo#p-upcoming-meetings todo --no-open
+epic inbox status demo "A Joke done"
 ```
 
 ## Say
 
-Phase 1 is done, and phase 2 is under way.
+**A Joke** is done.  The other three phases are still to do.

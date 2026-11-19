@@ -14,8 +14,8 @@ epic open demo --review
 
 Here's what I make of it.
 
-- Jarvis already hears "good morning", and already has your calendar, mail and the weather.
-- What's missing is the part that picks what matters and says it as one natural paragraph.
+- Jarvis already hears "good morning".  The briefing has four parts:  meetings, Jira and Confluence links, the weather, and a joke.
+- Each part is its own `BriefingSource`, so each can be built, and tested, on its own.
 - Two things change the plan a lot, so I've put them on the page as questions.
 
 I've started an epic page for it:  it's open in the side bar.
