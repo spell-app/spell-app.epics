@@ -1,0 +1,172 @@
+/*
+ * The style sheet of `<ui-json-viewer>`:  ours, not Fomantic's.
+ * - It styles the component's shadow DOM:  `<div class="ui json-viewer" part="viewer">` holding its
+ *   `<div class="header">` (two `<ui-button>`s) and `<div class="body">`, a `<div class="row" style="--level: n">`
+ *   per line;  an object's or array's line is also `.container`, with a `<button class="toggle">` (a chevron
+ *   `<ui-icon>`) in the gutter and, closed, `<span class="preview">`.
+ *   - Text spans:  `.key`, `.string`, `.number`, `.boolean`, `.null`, `.punct`;  the clickable ones also `.link`.
+ *   - Editing (`editable`):  `<input class="edit">` in a key's or value's place.
+ * - The gutter:  one fixed column at the left of every row, whatever its indent, holding the toggles.
+ * - Two spaces per level:  `--level` times `2ch`, after the gutter.
+ * - Colours:  the theme's code tokens (`--ui-code-*`), so light and dark follow the theme.
+ * - Public tokens (`--ui-json-viewer-*`) are NEVER declared here:  each is read through its private alias.
+ */
+
+@layer ui.components.json-viewer.types, ui.components.json-viewer.states;
+
+@layer ui.components.json-viewer.types {
+  :host {
+    display: block;
+  }
+
+  .ui.json-viewer {
+    --_jv-font-family: var(--ui-json-viewer-font-family, var(--ui-font-family-mono, ui-monospace, monospace));
+    --_jv-font-size: var(--ui-json-viewer-font-size, 0.85em);
+    --_jv-line-height: var(--ui-json-viewer-line-height, 1.55);
+    --_jv-color: var(--ui-json-viewer-color, var(--ui-code-name, var(--ui-text-color)));
+    --_jv-key: var(--ui-json-viewer-key-color, var(--ui-code-attr, var(--ui-text-color)));
+    --_jv-string: var(--ui-json-viewer-string-color, var(--ui-code-string, var(--ui-text-color)));
+    --_jv-number: var(--ui-json-viewer-number-color, var(--ui-code-constant, var(--ui-text-color)));
+    --_jv-keyword: var(--ui-json-viewer-keyword-color, var(--ui-code-keyword, var(--ui-text-color)));
+    --_jv-punct: var(--ui-json-viewer-punctuation-color, var(--ui-code-punctuation, var(--ui-text-muted)));
+    --_jv-muted: var(--ui-json-viewer-muted-color, var(--ui-text-muted));
+    --_jv-hover: var(--ui-json-viewer-hover-background, var(--ui-surface-muted, transparent));
+    --_jv-focus: var(--ui-json-viewer-focus-color, var(--ui-focus-color, var(--ui-primary)));
+    --_jv-link: var(--ui-json-viewer-link-color, var(--ui-primary, currentColor));
+    --_jv-gutter: 1.6em;
+
+    font-family: var(--_jv-font-family);
+    font-size: var(--_jv-font-size);
+    line-height: var(--_jv-line-height);
+    color: var(--_jv-color);
+    tab-size: 2;
+  }
+
+  .row {
+    position: relative;
+    padding-inline-start: calc(var(--_jv-gutter) + var(--level, 0) * 2ch);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    border-radius: 3px;
+  }
+
+  /* a closed line stays one line:  the preview gives way, the count stays */
+  .row.container {
+    display: flex;
+    align-items: baseline;
+    white-space: pre;
+  }
+  .row.container > * {
+    flex: none;
+  }
+  .row.container > .preview {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row.container:hover {
+    background: var(--_jv-hover);
+  }
+
+  .header {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    padding-block-end: 0.25rem;
+    margin-block-end: 0.25rem;
+    border-block-end: 1px solid var(--ui-border-color, transparent);
+    font-family: var(--ui-font-family, system-ui);
+  }
+  .header ui-button {
+    margin: 0;
+  }
+
+  /* the gutter:  every toggle in one column at the start of its row, whatever the indent */
+  .toggle {
+    all: unset;
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 0;
+    width: var(--_jv-gutter);
+    height: calc(var(--_jv-line-height) * 1em);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    color: var(--_jv-muted);
+    border-radius: var(--ui-radius-s, 3px);
+  }
+  .toggle ui-icon {
+    --ui-icon-width: 1em;
+    --ui-icon-distance: 0;
+    margin: 0;
+    font-size: 0.95em;
+  }
+  .toggle:hover {
+    color: var(--_jv-color);
+  }
+  .toggle:focus-visible {
+    outline: 2px solid var(--_jv-focus);
+    outline-offset: -1px;
+  }
+
+  .key {
+    color: var(--_jv-key);
+  }
+  .string {
+    color: var(--_jv-string);
+  }
+  .number {
+    color: var(--_jv-number);
+  }
+  .boolean,
+  .null {
+    color: var(--_jv-keyword);
+  }
+  .punct {
+    color: var(--_jv-punct);
+  }
+  /* keys and values:  a click sends `ui-json-navigate` */
+  .link {
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .link:hover {
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+    text-underline-offset: 0.2em;
+  }
+
+  .edit {
+    font: inherit;
+    color: var(--_jv-color);
+    background: var(--ui-input-background, var(--ui-background, Field));
+    border: 1px solid var(--_jv-focus);
+    border-radius: 3px;
+    padding: 0 0.3ch;
+    margin: -1px 0;
+    field-sizing: content;
+    min-width: 4ch;
+  }
+  .edit:focus {
+    outline: none;
+  }
+  .empty {
+    color: var(--_jv-muted);
+    font-style: italic;
+  }
+}
+
+@layer ui.components.json-viewer.types {
+  /* ten `0`s, measured for how many characters fit on a line */
+  .probe {
+    position: absolute;
+    visibility: hidden;
+    white-space: pre;
+    pointer-events: none;
+  }
+  .ui.json-viewer {
+    position: relative;
+  }
+}

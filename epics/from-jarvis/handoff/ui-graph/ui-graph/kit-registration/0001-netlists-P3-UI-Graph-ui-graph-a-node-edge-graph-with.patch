@@ -1,0 +1,2654 @@
+From 0deef06433ad3d8530e0d555c418bce46a985633 Mon Sep 17 00:00:00 2001
+From: Owen Williams <owenoak@gmail.com>
+Date: Wed, 18 Nov 2026 10:12:14 -0500
+Subject: [PATCH] netlists P3:  UI Graph -- <ui-graph>, a node / edge graph
+ with ports, layered left-to-right layout, pan / zoom / fit, and child graphs
+ opened inline, in a modal or by drilling in
+
+- GraphLayout:  a small Sugiyama (cycle breaking, longest-path layers, dummy points on long edges,
+  barycentre ordering, pool-adjacent-violators y placement), recursive for nodes open in place;
+  the enclosing node's ports are pins on a child graph's sides (an edge end with no `node`)
+- UIGraph:  `graph`, `child-view`, `selected`, `boundary`;  `ui-selecting` / `ui-changed`, `ui-node-toggled`;
+  lazy children (function / promise);  hooks `nodeLabel`, `nodeClass`, `renderNode`, `edgeLabel`,
+  `edgeClass`, `portLabel`, `portClass` for subclasses;  parts and `--ui-graph-*` tokens
+- docs/ui-graph.html:  a flat graph, the three child views, a generated 150-node graph
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ package.json                                |   5 +
+ ui/docs/__data/pages.json5                  |   5 +
+ ui/docs/ui-graph.html                       | 296 +++++++
+ ui/src/components/components.es.ts          |   2 +
+ ui/src/components/ui-graph/GraphLayout.ts   | 685 ++++++++++++++++
+ ui/src/components/ui-graph/UIGraph.css      | 219 +++++
+ ui/src/components/ui-graph/UIGraph.en.ts    | 124 +++
+ ui/src/components/ui-graph/UIGraph.es.ts    |  38 +
+ ui/src/components/ui-graph/UIGraph.tsx      | 859 ++++++++++++++++++++
+ ui/src/components/ui-graph/UIGraph.types.ts | 214 +++++
+ ui/src/components/ui-graph/index.ts         |  36 +
+ ui/src/components/ui-root/UIRoot.catalog.ts |   5 +
+ ui/src/index.ts                             |   1 +
+ ui/vite.config.ts                           |   1 +
+ 14 files changed, 2490 insertions(+)
+ create mode 100644 ui/docs/ui-graph.html
+ create mode 100644 ui/src/components/ui-graph/GraphLayout.ts
+ create mode 100644 ui/src/components/ui-graph/UIGraph.css
+ create mode 100644 ui/src/components/ui-graph/UIGraph.en.ts
+ create mode 100644 ui/src/components/ui-graph/UIGraph.es.ts
+ create mode 100644 ui/src/components/ui-graph/UIGraph.tsx
+ create mode 100644 ui/src/components/ui-graph/UIGraph.types.ts
+ create mode 100644 ui/src/components/ui-graph/index.ts
+
+diff --git a/package.json b/package.json
+index 9f80a03ed..5789a2e4c 100644
+--- a/package.json
++++ b/package.json
+@@ -382,6 +382,11 @@
+       "types": "./ui/dist-types/src/components/ui-form/index.d.ts",
+       "default": "./ui/src/components/ui-form/index.ts"
+     },
++    "./ui/components/ui-graph": {
++      "spell-source": "./ui/src/components/ui-graph/index.ts",
++      "types": "./ui/dist-types/src/components/ui-graph/index.d.ts",
++      "default": "./ui/src/components/ui-graph/index.ts"
++    },
+     "./ui/components/ui-grid": {
+       "spell-source": "./ui/src/components/ui-grid/index.ts",
+       "types": "./ui/dist-types/src/components/ui-grid/index.d.ts",
+diff --git a/ui/docs/__data/pages.json5 b/ui/docs/__data/pages.json5
+index 41fb18624..020f3538b 100644
+--- a/ui/docs/__data/pages.json5
++++ b/ui/docs/__data/pages.json5
+@@ -592,6 +592,11 @@
+       "summary": "A tree shows rows nested in rows, which open and close, and can be selected one or many at a time.",
+       "status": "done"
+     },
++    "ui-graph": {
++      "title": "Graph",
++      "summary": "A graph draws nodes joined by edges, laid out left to right;  a node may hold a graph of its own, opened in place, in a modal, or in its stead.",
++      "status": "in-progress"
++    },
+     "ui-tree-diagram": {
+       "title": "Tree diagram",
+       "summary": "A tree diagram draws a tree:  a box for each node, a line to each of its children.",
+diff --git a/ui/docs/ui-graph.html b/ui/docs/ui-graph.html
+new file mode 100644
+index 000000000..8e9323d56
+--- /dev/null
++++ b/ui/docs/ui-graph.html
+@@ -0,0 +1,296 @@
++<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1" />
++    <meta name="color-scheme" content="light dark" />
++    <title>Graph | Spell UI</title>
++    <meta
++      name="description"
++      content="A graph draws nodes joined by edges, laid out left to right;  a node may hold a graph of its own."
++    />
++    <!-- Before first paint:  the viewer's colour scheme (`ThemePreference.HEAD_SCRIPT`, as oxfmt lays it out).  The theme itself is restored by site.js. -->
++    <script>
++      try {
++        var l = localStorage,
++          d = document.documentElement,
++          s = l.getItem("spell-site:scheme") || l.getItem("spell-site:theme") || l.getItem("spell-ui-site:scheme")
++        if (s === "light" || s === "dark") {
++          d.classList.add("ui-" + s)
++          d.style.colorScheme = s
++        }
++      } catch (e) {}
++    </script>
++    <link rel="stylesheet" href="_assets/site.css" />
++    <script type="module" src="_assets/site.js"></script>
++    <!-- the comments (bullhorns, threads, Send):  the docs runtime's, alone, beside the site's Spell UI -->
++    <script defer src="/_epic/assets/spell-comments.js"></script>
++  </head>
++  <body class="ui-typography">
++    <main id="main" class="site-main" data-toc-header="Graph">
++      <ui-segment class="site-masthead" appearance="vertical">
++        <ui-container>
++          <ui-header level="1" class="site-title">
++            Graph
++            <ui-header>A graph draws nodes joined by edges, laid out left to right;  a node may hold a graph of its own.</ui-header>
++          </ui-header>
++          <ui-theme-menu show="theme" compact class="site-themes"></ui-theme-menu>
++        </ui-container>
++      </ui-segment>
++
++      <ui-container class="site-body">
++        <ui-tabs id="site-tabs" class="site-tabs" history appearance="segmented basic" align="fluid" equal>
++          <ui-tab value="examples" label="Examples">
++            <!-- EXAMPLES:  ours only, no Fomantic page (epic `netlists` P3).  The nested and big graphs are set from the script at the end. -->
++            <ui-section id="examples-types" label="Types" sticky="stack" collapsible dividing>
++              <ui-section id="examples-types-flat-graph" label="Flat graph" sticky="stack" collapsible dividing>
++                <ui-example description="A few nodes with ports, as JSON in the `graph` attribute.  Drag to pan, wheel to zoom;  click a node, an edge or a port to select it;  hover an edge to light its ends.">
++                  <ui-graph id="graph-flat" style="--ui-graph-height: 16em" graph='{"nodes":[{"id":"in","label":"Input","ports":[{"id":"out","kind":"out"}]},{"id":"parse","label":"Parse","ports":[{"id":"src","label":"src","kind":"in"},{"id":"ast","label":"ast","kind":"out"},{"id":"errors","label":"errors","kind":"out"}]},{"id":"check","label":"Check","ports":[{"id":"ast","label":"ast","kind":"in"},{"id":"ok","label":"ok","kind":"out"}]},{"id":"report","label":"Report"},{"id":"emit","label":"Emit"}],"edges":[{"from":{"node":"in","port":"out"},"to":{"node":"parse","port":"src"}},{"from":{"node":"parse","port":"ast"},"to":{"node":"check","port":"ast"},"label":"tree"},{"from":{"node":"parse","port":"errors"},"to":{"node":"report"}},{"from":{"node":"check","port":"ok"},"to":{"node":"emit"}}]}'></ui-graph>
++                </ui-example>
++              </ui-section>
++            </ui-section>
++
++            <ui-section id="examples-children" label="Children" sticky="stack" collapsible dividing>
++              <ui-section id="examples-children-inline" label="Inline" sticky="stack" collapsible dividing>
++                <ui-example description="`child-view=&quot;inline&quot;`, the default:  the node grows into a container, its graph inside it.  `CPU` starts open;  `ALU` loads its children lazily, from a function, when it opens.  Edges with no `node` reach the enclosing node's ports.">
++                  <ui-graph id="graph-inline" class="nested-graph" child-view="inline"></ui-graph>
++                </ui-example>
++              </ui-section>
++              <ui-section id="examples-children-modal" label="Modal" sticky="stack" collapsible dividing>
++                <ui-example description="`child-view=&quot;modal&quot;`:  the children open in a `&lt;ui-modal&gt;` holding another graph, the node's ports as pins on its sides.">
++                  <ui-graph id="graph-modal" class="nested-graph" child-view="modal"></ui-graph>
++                </ui-example>
++              </ui-section>
++              <ui-section id="examples-children-drill" label="Drill" sticky="stack" collapsible dividing>
++                <ui-example description="`child-view=&quot;drill&quot;`:  the drawing shows the children instead, with breadcrumbs back up.">
++                  <ui-graph id="graph-drill" class="nested-graph" child-view="drill"></ui-graph>
++                </ui-example>
++              </ui-section>
++            </ui-section>
++
++            <ui-section id="examples-big" label="Big" sticky="stack" collapsible dividing>
++              <ui-section id="examples-big-generated" label="Generated" sticky="stack" collapsible dividing>
++                <ui-example description="150 generated nodes and about 300 edges in one level, laid out as it loads.  Some nodes hold a generated graph of their own.">
++                  <ui-graph id="graph-big" style="--ui-graph-height: 36em"></ui-graph>
++                </ui-example>
++              </ui-section>
++            </ui-section>
++          </ui-tab>
++
++          <ui-tab value="usage" label="Usage">
++            <ui-section id="usage-data" label="Data" sticky="stack" collapsible dividing>
++              <ui-markdown>
++                <script type="text/markdown">
++                  A graph draws any node / edge data:  it knows nothing about where it came from.  Give it as the `graph`
++                  property (or JSON in the attribute):
++
++                  - `nodes`:  each `{ id, label?, kind?, ports?, children?, childView?, open?, title?, data? }`
++                    - `ports`:  each `{ id, label?, side?, kind? }`.  No `side`:  `kind` `in` / `input` is left,
++                      `out` / `output` right, else the side most of its edges come from.
++                    - `children`:  a graph, or a function giving one (or a promise of one), called the first time it opens.
++                  - `edges`:  each `{ id?, from: { node, port? }, to: { node, port? }, kind?, label?, data? }`.
++                    - Inside a child graph, an end with NO `node` (or `node: ""`) is the ENCLOSING node:  `port` names its port.
++
++                  Nodes are known by their PATH:  their ids from the top, joined by `/` (`cpu/alu`);  a port by its node's
++                  path, `:` and its id (`cpu/alu:a`);  an edge by its graph's path, `#` and its id (`cpu#e3`).
++                  So keep `/`, `:` and `#` out of ids.
++                </script>
++              </ui-markdown>
++              <ui-code language="js">
++                <script type="text/plain">
++                  import "spell/ui/ui-graph"
++
++                  const graph = document.querySelector("ui-graph")
++                  graph.graph = {
++                    nodes: [
++                      { id: "a", label: "Source", ports: [{ id: "out", kind: "out" }] },
++                      {
++                        id: "b",
++                        label: "Filter",
++                        ports: [{ id: "in", kind: "in" }, { id: "out", kind: "out" }],
++                        children: async () => (await fetch("/filter.json")).json()
++                      }
++                    ],
++                    edges: [{ from: { node: "a", port: "out" }, to: { node: "b", port: "in" } }]
++                  }
++                  graph.addEventListener("ui-changed", (event) => console.log(event.detail.kind, event.detail.path))
++                </script>
++              </ui-code>
++            </ui-section>
++
++            <ui-section id="usage-children" label="Children" sticky="stack" collapsible dividing>
++              <ui-markdown>
++                <script type="text/markdown">
++                  A node with `children` has a toggle.  `child-view` says how they show, for the whole graph;  a node's
++                  `childView` wins for it;  `el.open(path, view)` opens one from script.
++
++                  | `child-view` | What opening does |
++                  |---|---|
++                  | `inline` | The node grows into a container and its graph is laid out inside it, recursively. |
++                  | `modal` | A `<ui-modal>` opens, holding another graph of the same tag:  the node's ports are pins on its sides. |
++                  | `drill` | The drawing shows the children instead, with `<ui-breadcrumbs>` back up. |
++
++                  `ui-node-toggled` says which node opened or closed, and how.  `el.close(path)`, `el.drillTo(path?)` and
++                  `el.fit()` are the rest of its script API.
++                </script>
++              </ui-markdown>
++            </ui-section>
++
++            <ui-section id="usage-extending" label="Extending" sticky="stack" collapsible dividing>
++              <ui-markdown>
++                <script type="text/markdown">
++                  A set's own graph element extends the component, `UIGraph`, and overrides its hooks:
++
++                  | Hook | What it gives |
++                  |---|---|
++                  | `nodeLabel(node)` | A node's text (it's measured, so the box fits it). |
++                  | `nodeClass(node)` | Extra classes on its `<g>`;  `kind-<kind>` is there already. |
++                  | `renderNode(placed)` | What its `<g>` holds:  the box and label, inside the box the layout gave it. |
++                  | `edgeLabel(edge)`, `edgeClass(edge)` | An edge's text and classes. |
++                  | `portLabel(port, node)`, `portClass(port, node)` | A port's text and classes. |
++
++                  Every node, container, edge, port and pin is a part, with `kind-<kind>` beside it:
++                  `ui-graph::part(kind-register)`.
++                </script>
++              </ui-markdown>
++            </ui-section>
++          </ui-tab>
++
++          <ui-tab value="api" label="API">
++            <!-- API:  generated from the vocabularies (`docs/__data/components.json5`);  nothing to write. -->
++            <ui-section id="api-attributes" label="Attributes" sticky="stack" collapsible dividing>
++              <ui-docs-api family="ui-graph" only="attributes"></ui-docs-api>
++            </ui-section>
++
++            <ui-section id="api-events" label="Events" sticky="stack" collapsible dividing>
++              <ui-docs-api family="ui-graph" only="events"></ui-docs-api>
++            </ui-section>
++
++            <ui-section id="api-parts" label="Parts" sticky="stack" collapsible dividing>
++              <ui-docs-api family="ui-graph" only="parts"></ui-docs-api>
++            </ui-section>
++
++            <ui-section id="api-states" label="States" sticky="stack" collapsible dividing>
++              <ui-docs-api family="ui-graph" only="states"></ui-docs-api>
++            </ui-section>
++
++            <ui-section id="api-texts" label="Texts" sticky="stack" collapsible dividing>
++              <ui-docs-api family="ui-graph" only="texts"></ui-docs-api>
++            </ui-section>
++          </ui-tab>
++
++          <ui-tab value="theming" label="Theming">
++            <ui-section id="theming-tokens" label="Tokens" sticky="stack" collapsible dividing>
++              <ui-markdown>
++                <script type="text/markdown">
++                  Colours come from Spell UI's tokens, so a graph follows the light or dark scheme by itself.
++                  Set `--ui-graph-*` on the page, the element, or a part:  `--ui-graph-height`, `--ui-graph-node-background`,
++                  `--ui-graph-edge-color`, `--ui-graph-highlight-color`, `--ui-graph-selected-color` ...
++                </script>
++              </ui-markdown>
++              <ui-docs-tokens family="ui-graph"></ui-docs-tokens>
++            </ui-section>
++          </ui-tab>
++        </ui-tabs>
++      </ui-container>
++    </main>
++    <script type="module">
++      // The examples' data:  a nested graph (one level given, one lazy), and a big generated one.
++      const cpu = {
++        nodes: [
++          { id: "fetch", label: "Fetch", ports: [{ id: "pc", label: "pc", kind: "in" }, { id: "op", label: "op", kind: "out" }] },
++          {
++            id: "alu",
++            label: "ALU",
++            ports: [{ id: "op", label: "op", kind: "in" }, { id: "r", label: "r", kind: "out" }],
++            children: () =>
++              new Promise((resolve) =>
++                setTimeout(
++                  () =>
++                    resolve({
++                      nodes: [
++                        { id: "add", label: "Adder", ports: [{ id: "a", kind: "in" }, { id: "s", kind: "out" }] },
++                        { id: "shift", label: "Shifter", ports: [{ id: "a", kind: "in" }, { id: "s", kind: "out" }] },
++                        { id: "mux", label: "Mux", ports: [{ id: "x", kind: "in" }, { id: "y", kind: "in" }, { id: "o", kind: "out" }] }
++                      ],
++                      edges: [
++                        { from: { port: "op" }, to: { node: "add", port: "a" } },
++                        { from: { port: "op" }, to: { node: "shift", port: "a" } },
++                        { from: { node: "add", port: "s" }, to: { node: "mux", port: "x" } },
++                        { from: { node: "shift", port: "s" }, to: { node: "mux", port: "y" } },
++                        { from: { node: "mux", port: "o" }, to: { port: "r" } }
++                      ]
++                    }),
++                  400
++                )
++              )
++          },
++          { id: "regs", label: "Registers", ports: [{ id: "w", label: "w", kind: "in" }, { id: "pc", label: "pc", kind: "out" }] }
++        ],
++        edges: [
++          { from: { port: "clk" }, to: { node: "fetch", port: "pc" } },
++          { from: { node: "fetch", port: "op" }, to: { node: "alu", port: "op" }, label: "op" },
++          { from: { node: "alu", port: "r" }, to: { node: "regs", port: "w" } },
++          { from: { node: "regs", port: "pc" }, to: { node: "fetch", port: "pc" } },
++          { from: { node: "regs", port: "pc" }, to: { port: "bus" } }
++        ]
++      }
++      const nested = (open) => ({
++        nodes: [
++          { id: "mem", label: "Memory", ports: [{ id: "d", label: "data", kind: "out" }, { id: "a", label: "addr", kind: "in" }] },
++          {
++            id: "cpu",
++            label: "CPU",
++            open,
++            ports: [{ id: "clk", label: "clk", kind: "in" }, { id: "bus", label: "bus", kind: "out" }],
++            children: cpu
++          },
++          { id: "clock", label: "Clock", ports: [{ id: "t", kind: "out" }] },
++          { id: "io", label: "I/O" }
++        ],
++        edges: [
++          { from: { node: "clock", port: "t" }, to: { node: "cpu", port: "clk" } },
++          { from: { node: "cpu", port: "bus" }, to: { node: "mem", port: "a" } },
++          { from: { node: "cpu", port: "bus" }, to: { node: "io" } },
++          { from: { node: "mem", port: "d" }, to: { node: "io" }, label: "dma" }
++        ]
++      })
++
++      // A layered graph:  150 nodes in about 12 layers, 2 edges in each, mostly to the next layer.
++      function generated(count, prefix = "n", seed = 7) {
++        let state = seed
++        const random = () => ((state = (state * 16807) % 2147483647) / 2147483647)
++        const layers = 12
++        const nodes = []
++        const edges = []
++        for (let i = 0; i < count; i++) {
++          const node = { id: `${prefix}${i}`, label: `${prefix}${i}`, kind: i % 9 === 0 ? "hub" : undefined }
++          if (count > 40 && i % 25 === 3) node.children = () => generated(12, `${prefix}${i}c`, i + 1)
++          nodes.push(node)
++        }
++        const layerOf = (i) => Math.floor((i * layers) / count)
++        for (let i = 0; i < count; i++) {
++          for (let k = 0; k < 2; k++) {
++            const span = random() < 0.85 ? 1 : 2
++            const target = Math.min(layers - 1, layerOf(i) + span)
++            if (layerOf(i) === layers - 1) break
++            const first = Math.ceil((target * count) / layers)
++            const last = Math.ceil(((target + 1) * count) / layers) - 1
++            const j = first + Math.floor(random() * (last - first + 1))
++            if (j < count) edges.push({ from: { node: nodes[i].id }, to: { node: nodes[j].id } })
++          }
++        }
++        return { nodes, edges }
++      }
++
++      customElements.whenDefined("ui-graph").then(() => {
++        document.querySelector("#graph-inline").graph = nested(true)
++        document.querySelector("#graph-modal").graph = nested(false)
++        document.querySelector("#graph-drill").graph = nested(false)
++        const started = performance.now()
++        document.querySelector("#graph-big").graph = generated(150)
++        requestAnimationFrame(() => console.info(`ui-graph:  150 nodes laid out and drawn in ${Math.round(performance.now() - started)} ms`))
++      })
++    </script>
++  </body>
++</html>
+diff --git a/ui/src/components/components.es.ts b/ui/src/components/components.es.ts
+index e18a4bed7..f9a1a64e1 100644
+--- a/ui/src/components/components.es.ts
++++ b/ui/src/components/components.es.ts
+@@ -152,6 +152,7 @@ import { toolbarEs } from "spell/ui/components/ui-toolbar/UIToolbar.es"
+ import { transitionEs } from "spell/ui/components/ui-transition/UITransition.es"
+ import { treeNodeEs } from "spell/ui/components/ui-tree-diagram/UITreeNode.es"
+ import { treeDiagramEs } from "spell/ui/components/ui-tree-diagram/UITreeDiagram.es"
++import { graphEs } from "spell/ui/components/ui-graph/UIGraph.es"
+ import { visibilityEs } from "spell/ui/components/ui-visibility/UIVisibility.es"
+ 
+ /** The Spanish names and texts every tag shares;  each tag's own are in its `UI<Name>.es.ts`. */
+@@ -796,6 +797,7 @@ export const es: Dictionary = Vocabulary.dictionaryFrom(sharedEs, [
+   toolbarEs,
+   transitionEs,
+   treeDiagramEs,
++  graphEs,
+   treeNodeEs,
+   visibilityEs
+ ])
+diff --git a/ui/src/components/ui-graph/GraphLayout.ts b/ui/src/components/ui-graph/GraphLayout.ts
+new file mode 100644
+index 000000000..5584b65e4
+--- /dev/null
++++ b/ui/src/components/ui-graph/GraphLayout.ts
+@@ -0,0 +1,685 @@
++import {
++  GRAPH_METRICS,
++  type GraphData,
++  type GraphEdge,
++  type GraphEnd,
++  type GraphLayoutOptions,
++  type GraphLayoutResult,
++  type GraphMetrics,
++  type GraphNode,
++  type GraphPlacedEdge,
++  type GraphPlacedNode,
++  type GraphPlacedPin,
++  type GraphPlacedPort,
++  type GraphPoint,
++  type GraphPort,
++  type GraphPortSide
++} from "./UIGraph.types"
++
++/****************
++ * ### `GraphLayout`
++ * Lays a graph out left to right, in layers (a small Sugiyama):  pure, numbers in, boxes and paths out.
++ * - The steps, per level:
++ *   1. each node's size, from its label and ports;  a node open in place is laid out first, and grows round it
++ *   2. cycles broken (depth first, back edges turned round), then layers by longest path, sources pulled right
++ *   3. a dummy point per layer a long edge crosses, so it routes round the boxes
++ *   4. order within each layer by barycentre sweeps, port positions counted
++ *   5. x by layer;  y pulled towards each box's neighbours, then pushed apart so nothing overlaps
++ * - Edges come out as points;  `pathFor()` turns them into a smooth SVG path, leaving and entering ports sideways.
++ * - The enclosing node's ports (`boundary`) are pins in the first and last layers:
++ *   a container's own ports sit where its child graph's pins are.
++ * - Measured:  200 nodes and 400 edges in one level lay out in tens of milliseconds (`UIGraph`'s docs page).
++ * - GENERIC:  imports only the family's types.
++ ****************/
++export class GraphLayout {
++  /** `graph` laid out, every open level flattened into absolute boxes. */
++  static of(graph: GraphData, options: GraphLayoutOptions = {}): GraphLayoutResult {
++    const layout = new GraphLayout(options)
++    const prefix = options.prefix ?? ""
++    const level = layout.level(graph, prefix, options.boundary ?? [])
++    const nodes: GraphPlacedNode[] = []
++    const edges: GraphPlacedEdge[] = []
++    const { margin } = layout.metrics
++    layout.flatten(level, margin, margin, 0, nodes, edges)
++    const pins: GraphPlacedPin[] = level.pins.map((pin) => ({
++      port: pin.port,
++      side: pin.side,
++      path: `${prefix}:${pin.port.id}`,
++      x: pin.x + margin,
++      y: pin.y + margin
++    }))
++    return { width: level.width + 2 * margin, height: level.height + 2 * margin, nodes, edges, pins }
++  }
++
++  /** `d` of an edge's `<path>`:  cubic curves through its points, leaving and entering along its sides. */
++  static pathFor(edge: Pick<GraphPlacedEdge, "points" | "fromSide" | "toSide">): string {
++    const { points, fromSide, toSide } = edge
++    if (points.length < 2) return ""
++    let d = `M${round(points[0].x)} ${round(points[0].y)}`
++    for (let i = 1; i < points.length; i++) {
++      const p = points[i - 1]
++      const q = points[i]
++      const reach = Math.max(16, Math.abs(q.x - p.x) / 2, Math.abs(q.y - p.y) / 4)
++      const forward = Math.sign(q.x - p.x) || 1
++      const [c1x, c1y] = i === 1 ? GraphLayout.toward(p, fromSide, reach) : [p.x + forward * reach, p.y]
++      const [c2x, c2y] = i === points.length - 1 ? GraphLayout.toward(q, toSide, reach) : [q.x - forward * reach, q.y]
++      d += `C${round(c1x)} ${round(c1y)} ${round(c2x)} ${round(c2y)} ${round(q.x)} ${round(q.y)}`
++    }
++    return d
++  }
++
++  /** A control point `reach` out of `point`, on `side`. */
++  private static toward(point: GraphPoint, side: GraphPortSide, reach: number): [number, number] {
++    switch (side) {
++      case "left":
++        return [point.x - reach, point.y]
++      case "right":
++        return [point.x + reach, point.y]
++      case "top":
++        return [point.x, point.y - reach]
++      case "bottom":
++        return [point.x, point.y + reach]
++    }
++  }
++
++  /** The middle of an edge's path, for its label. */
++  static middleOf(edge: Pick<GraphPlacedEdge, "points">): GraphPoint {
++    const { points } = edge
++    if (points.length % 2 === 1) return points[(points.length - 1) / 2]
++    const p = points[points.length / 2 - 1]
++    const q = points[points.length / 2]
++    return { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }
++  }
++
++  /** A port's side:  its own, else its kind's, else where most of its edges are drawn from. */
++  static sideOf(port: GraphPort, votes: { asSource: number; asTarget: number } | undefined): GraphPortSide {
++    if (port.side) return port.side
++    const kind = port.kind?.toLowerCase()
++    if (kind === "in" || kind === "input") return "left"
++    if (kind === "out" || kind === "output") return "right"
++    if (!votes) return "right"
++    return votes.asTarget > votes.asSource ? "left" : "right"
++  }
++
++  private readonly metrics: GraphMetrics
++  private readonly options: GraphLayoutOptions
++
++  private constructor(options: GraphLayoutOptions) {
++    this.options = options
++    this.metrics = options.metrics ?? GRAPH_METRICS
++  }
++
++  private textWidth(text: string, fontSize: number): number {
++    return this.options.textWidth?.(text, fontSize) ?? text.length * fontSize * this.metrics.charWidth
++  }
++
++  private labelOf(node: GraphNode): string {
++    return this.options.label?.(node) ?? node.label ?? node.id
++  }
++
++  ////////////////
++  // ## One level
++  ////////////////
++
++  /** One graph laid out, its coordinates relative to its own top left. */
++  private level(
++    graph: GraphData,
++    prefix: string,
++    boundary: readonly GraphPort[],
++    boundarySides?: ReadonlyMap<GraphPort, GraphPortSide>
++  ): Level {
++    const m = this.metrics
++    const nodes = graph.nodes ?? []
++    const byId = new Map<string, Unit>()
++    const units: Unit[] = []
++    const edges = graph.edges ?? []
++
++    // Votes for each port's side:  how often it starts an edge, and ends one.
++    const votes = new Map<string, { asSource: number; asTarget: number }>()
++    const vote = (end: GraphEnd, key: "asSource" | "asTarget") => {
++      if (end.port === undefined) return
++      const id = `${end.node ?? ""}:${end.port}`
++      const tally = votes.get(id) ?? { asSource: 0, asTarget: 0 }
++      tally[key]++
++      votes.set(id, tally)
++    }
++    for (const edge of edges) {
++      vote(edge.from, "asSource")
++      vote(edge.to, "asTarget")
++    }
++
++    // 1. Sizes.
++    for (const node of nodes) {
++      if (!node || typeof node.id !== "string" || byId.has(node.id)) continue
++      const path = prefix ? `${prefix}/${node.id}` : node.id
++      const unit = this.box(node, path, (port) => GraphLayout.sideOf(port, votes.get(`${node.id}:${port.id}`)))
++      byId.set(node.id, unit)
++      units.push(unit)
++    }
++
++    // Pins:  the enclosing node's ports.  Inside, a left pin STARTS edges, so it's drawn facing right.
++    const pins = new Map<string, Unit>()
++    for (const port of boundary) {
++      const inside = votes.get(`:${port.id}`)
++      const side = boundarySides?.get(port) ?? GraphLayout.sideOf(port, inside && flip(inside))
++      const pin: Unit = {
++        kind: "pin",
++        width: 0,
++        height: m.portSpacing,
++        layer: 0,
++        order: 0,
++        x: 0,
++        y: 0,
++        ports: [],
++        pin: { port, side: side === "left" || side === "top" ? "left" : "right" }
++      }
++      pins.set(port.id, pin)
++      units.push(pin)
++    }
++
++    // Resolve each edge's ends.
++    const links: Link[] = []
++    edges.forEach((edge, index) => {
++      if (!edge?.from || !edge?.to) return
++      const from = this.endOf(edge.from, "from", byId, pins, prefix)
++      const to = this.endOf(edge.to, "to", byId, pins, prefix)
++      if (!from || !to) return
++      const id = edge.id ?? `#${index}`
++      links.push({ edge, id, from, to, reversed: false, chain: [] })
++    })
++
++    // 2. Layers.
++    this.assignLayers(units, links)
++
++    // 3. Dummies along long edges.
++    const layerCount = Math.max(0, ...units.map((unit) => unit.layer)) + 1
++    for (const link of links) {
++      const [a, b] = link.reversed ? [link.to, link.from] : [link.from, link.to]
++      link.chain = [a.unit]
++      for (let layer = a.unit.layer + 1; layer < b.unit.layer; layer++) {
++        const dummy: Unit = { kind: "dummy", width: 0, height: 4, layer, order: 0, x: 0, y: 0, ports: [] }
++        units.push(dummy)
++        link.chain.push(dummy)
++      }
++      link.chain.push(b.unit)
++    }
++
++    const layers: Unit[][] = Array.from({ length: layerCount }, () => [])
++    for (const unit of units) layers[unit.layer].push(unit)
++    layers.forEach((layer) => layer.forEach((unit, order) => (unit.order = order)))
++
++    // Neighbours, for the sweeps:  each segment of each chain, with the y offset it attaches at on each side.
++    for (const link of links) {
++      const [a, b] = link.reversed ? [link.to, link.from] : [link.from, link.to]
++      for (let i = 0; i + 1 < link.chain.length; i++) {
++        const u = link.chain[i]
++        const v = link.chain[i + 1]
++        if (u.layer === v.layer) continue
++        const uOffset = i === 0 ? a.dy : u.height / 2
++        const vOffset = i + 1 === link.chain.length - 1 ? b.dy : v.height / 2
++        ;(u.down ??= []).push({ unit: v, mine: uOffset, theirs: vOffset })
++        ;(v.up ??= []).push({ unit: u, mine: vOffset, theirs: uOffset })
++      }
++    }
++
++    // 4. Order.
++    this.order(layers)
++
++    // 5. Coordinates.
++    const { width, height } = this.place(layers, links)
++
++    // Points per edge.
++    const placedEdges: LevelEdge[] = []
++    for (const link of links) {
++      const [a, b] = link.reversed ? [link.to, link.from] : [link.from, link.to]
++      const points: GraphPoint[] = [{ x: a.unit.x + a.dx, y: a.unit.y + a.dy }]
++      for (let i = 1; i < link.chain.length - 1; i++) {
++        const dummy = link.chain[i]
++        points.push({ x: dummy.x, y: dummy.y + dummy.height / 2 })
++      }
++      points.push({ x: b.unit.x + b.dx, y: b.unit.y + b.dy })
++      if (link.reversed) points.reverse()
++      placedEdges.push({
++        edge: link.edge,
++        id: link.id,
++        points,
++        fromSide: link.from.side,
++        toSide: link.to.side,
++        fromPath: link.from.path,
++        toPath: link.to.path,
++        fromPin: link.from.unit.kind === "pin" ? link.from.unit.pin!.port.id : undefined,
++        toPin: link.to.unit.kind === "pin" ? link.to.unit.pin!.port.id : undefined
++      })
++    }
++
++    const levelPins = [...pins.values()].map((pin) => ({
++      port: pin.pin!.port,
++      side: pin.pin!.side,
++      x: pin.pin!.side === "left" ? 0 : width,
++      y: pin.y + pin.height / 2
++    }))
++
++    return {
++      width,
++      height,
++      units: units.filter((unit) => unit.kind === "node"),
++      edges: placedEdges,
++      pins: levelPins,
++      prefix
++    }
++  }
++
++  /** A node's box:  a leaf sized to its label and ports, or a container round its laid out child graph. */
++  private box(node: GraphNode, path: string, sideOf: (port: GraphPort) => GraphPortSide): Unit {
++    const m = this.metrics
++    const label = this.labelOf(node)
++    const ports = (node.ports ?? []).filter((port) => port && typeof port.id === "string")
++    const sides = new Map(ports.map((port) => [port, sideOf(port)]))
++    const on = (side: GraphPortSide) => ports.filter((port) => sides.get(port) === side)
++    const portLabelWidth = (side: GraphPortSide) =>
++      Math.max(0, ...on(side).map((port) => (port.label ? this.textWidth(port.label, m.portFontSize) + 6 : 0)))
++    const hasChildren = node.children !== undefined
++    const childGraph = this.options.openChildren?.get(path)
++    const labelWidth = this.textWidth(label, m.fontSize) + 2 * m.paddingX + (hasChildren ? m.toggleWidth : 0)
++
++    const unit: Unit = {
++      kind: "node",
++      node,
++      path,
++      width: 0,
++      height: 0,
++      layer: 0,
++      order: 0,
++      x: 0,
++      y: 0,
++      ports: [],
++      hasChildren,
++      isLoading: this.options.loading?.has(path)
++    }
++
++    if (childGraph) {
++      const child = this.level(childGraph, path, ports, sides)
++      unit.child = child
++      unit.width = Math.max(labelWidth, child.width + 2 * m.containerPadding)
++      unit.height = m.headerHeight + child.height + m.containerPadding
++      const insetX = (unit.width - child.width) / 2
++      for (const pin of child.pins) {
++        const side = pin.side
++        unit.ports.push({
++          port: pin.port,
++          side,
++          dx: side === "left" ? 0 : unit.width,
++          dy: m.headerHeight + pin.y
++        })
++      }
++      unit.childOffset = { x: insetX, y: m.headerHeight }
++      this.spread(unit, on("top"), "top")
++      this.spread(unit, on("bottom"), "bottom")
++      return unit
++    }
++
++    const tall = Math.max(on("left").length, on("right").length)
++    const wide = Math.max(on("top").length, on("bottom").length)
++    unit.height = Math.max(m.nodeHeight, (tall + 1) * m.portSpacing)
++    unit.width = Math.max(
++      m.minNodeWidth,
++      labelWidth + portLabelWidth("left") + portLabelWidth("right"),
++      (wide + 1) * m.portSpacing
++    )
++    for (const side of ["left", "right", "top", "bottom"] as const) this.spread(unit, on(side), side)
++    return unit
++  }
++
++  /** Place `ports` evenly along `unit`'s `side`. */
++  private spread(unit: Unit, ports: GraphPort[], side: GraphPortSide) {
++    ports.forEach((port, index) => {
++      const along = (index + 1) / (ports.length + 1)
++      if (side === "left" || side === "right")
++        unit.ports.push({ port, side, dx: side === "left" ? 0 : unit.width, dy: along * unit.height })
++      else unit.ports.push({ port, side, dx: along * unit.width, dy: side === "top" ? 0 : unit.height })
++    })
++  }
++
++  /** Where an edge's end attaches;  `undefined` for an end naming nothing in this graph. */
++  private endOf(
++    end: GraphEnd,
++    role: "from" | "to",
++    byId: Map<string, Unit>,
++    pins: Map<string, Unit>,
++    prefix: string
++  ): End | undefined {
++    if (!end.node) {
++      const pin = end.port !== undefined ? pins.get(end.port) : undefined
++      if (!pin) return undefined
++      return {
++        unit: pin,
++        dx: 0,
++        dy: pin.height / 2,
++        side: pin.pin!.side === "left" ? "right" : "left",
++        path: `${prefix}:${end.port}`
++      }
++    }
++    const unit = byId.get(end.node)
++    if (!unit) return undefined
++    const port = end.port !== undefined ? unit.ports.find((each) => each.port.id === end.port) : undefined
++    if (port) return { unit, dx: port.dx, dy: port.dy, side: port.side, path: `${unit.path}:${port.port.id}` }
++    return role === "from"
++      ? { unit, dx: unit.width, dy: unit.height / 2, side: "right", path: unit.path! }
++      : { unit, dx: 0, dy: unit.height / 2, side: "left", path: unit.path! }
++  }
++
++  /** Layers:  cycles broken, longest path from the sources, sources pulled next to what they feed;  pins at the sides. */
++  private assignLayers(units: Unit[], links: Link[]) {
++    const nodes = units.filter((unit) => unit.kind === "node")
++    const out = new Map<Unit, Link[]>(nodes.map((unit) => [unit, []]))
++    const inDegree = new Map<Unit, number>(nodes.map((unit) => [unit, 0]))
++    const between = links.filter((link) => link.from.unit.kind === "node" && link.to.unit.kind === "node")
++
++    // Depth first, iteratively:  an edge back to a node still on the stack is turned round.
++    for (const link of between) out.get(link.from.unit)!.push(link)
++    const state = new Map<Unit, 1 | 2>()
++    for (const root of nodes) {
++      if (state.has(root)) continue
++      const stack: [Unit, number][] = [[root, 0]]
++      state.set(root, 1)
++      const outs = (unit: Unit) => out.get(unit)!
++      while (stack.length) {
++        const top = stack[stack.length - 1]
++        const list = outs(top[0])
++        if (top[1] >= list.length) {
++          state.set(top[0], 2)
++          stack.pop()
++          continue
++        }
++        const link = list[top[1]++]
++        const next = link.to.unit
++        if (next === top[0]) continue
++        const seen = state.get(next)
++        if (seen === 1) link.reversed = true
++        else if (!seen) {
++          state.set(next, 1)
++          stack.push([next, 0])
++        }
++      }
++    }
++
++    // Longest path, in topological order.
++    const succ = new Map<Unit, Unit[]>(nodes.map((unit) => [unit, []]))
++    const pred = new Map<Unit, Unit[]>(nodes.map((unit) => [unit, []]))
++    for (const link of between) {
++      const [a, b] = link.reversed ? [link.to.unit, link.from.unit] : [link.from.unit, link.to.unit]
++      if (a === b) continue
++      succ.get(a)!.push(b)
++      pred.get(b)!.push(a)
++      inDegree.set(b, inDegree.get(b)! + 1)
++    }
++    const queue = nodes.filter((unit) => inDegree.get(unit) === 0)
++    const topo: Unit[] = []
++    for (let i = 0; i < queue.length; i++) {
++      const unit = queue[i]
++      topo.push(unit)
++      for (const next of succ.get(unit)!) {
++        next.layer = Math.max(next.layer, unit.layer + 1)
++        inDegree.set(next, inDegree.get(next)! - 1)
++        if (inDegree.get(next) === 0) queue.push(next)
++      }
++    }
++    // Sources pulled right, next to the nearest node they feed.
++    for (let i = topo.length - 1; i >= 0; i--) {
++      const unit = topo[i]
++      const nexts = succ.get(unit)!
++      if (pred.get(unit)!.length === 0 && nexts.length)
++        unit.layer = Math.max(unit.layer, Math.min(...nexts.map((next) => next.layer)) - 1)
++    }
++
++    // Pins:  left ones before every node, right ones after.
++    const pins = units.filter((unit) => unit.kind === "pin")
++    const hasLeft = pins.some((pin) => pin.pin!.side === "left")
++    if (hasLeft) for (const unit of nodes) unit.layer++
++    const last = Math.max(0, ...nodes.map((unit) => unit.layer))
++    for (const pin of pins) pin.layer = pin.pin!.side === "left" ? 0 : last + (nodes.length ? 1 : 0)
++
++    // Links between pins and nodes go forward or are turned round.
++    for (const link of links)
++      if (link.from.unit.kind === "pin" || link.to.unit.kind === "pin")
++        link.reversed = link.from.unit.layer > link.to.unit.layer
++  }
++
++  /** Order within each layer:  barycentre sweeps, down then up, keeping the best. */
++  private order(layers: Unit[][]) {
++    const position = (unit: Unit, offset: number) => unit.order + offset / Math.max(1, unit.height)
++    const sweep = (layer: Unit[], side: "up" | "down") => {
++      const centre = new Map<Unit, number>()
++      for (const unit of layer) {
++        const near = unit[side]
++        if (!near?.length) centre.set(unit, unit.order)
++        else centre.set(unit, near.reduce((sum, each) => sum + position(each.unit, each.theirs), 0) / near.length)
++      }
++      layer.sort((a, b) => centre.get(a)! - centre.get(b)! || a.order - b.order)
++      layer.forEach((unit, order) => (unit.order = order))
++    }
++    for (let round = 0; round < 6; round++) {
++      if (round % 2 === 0) for (let i = 1; i < layers.length; i++) sweep(layers[i], "up")
++      else for (let i = layers.length - 2; i >= 0; i--) sweep(layers[i], "down")
++    }
++  }
++
++  /** x by layer, y pulled towards neighbours without overlapping;  the level's size. */
++  private place(layers: Unit[][], links: Link[]): { width: number; height: number } {
++    const m = this.metrics
++    const gapAfter = (unit: Unit) => (unit.kind === "dummy" ? 6 : m.nodeGap)
++
++    // x:  each layer as wide as its widest box, boxes centred in it;  busier gaps are wider.
++    const crossings = new Array(layers.length).fill(0)
++    for (const link of links) for (let i = 0; i + 1 < link.chain.length; i++) crossings[link.chain[i].layer]++
++    let x = 0
++    layers.forEach((layer, index) => {
++      const width = Math.max(0, ...layer.map((unit) => unit.width))
++      for (const unit of layer) unit.x = x + (width - unit.width) / 2
++      x += width + m.layerGap + Math.min(60, Math.sqrt(crossings[index]) * 4)
++    })
++
++    // y:  stacked, then pulled towards the neighbours' attachment points, in a few sweeps.
++    for (const layer of layers) {
++      let y = 0
++      for (const unit of layer) {
++        unit.y = y
++        y += unit.height + gapAfter(unit)
++      }
++    }
++    const tallest = Math.max(
++      0,
++      ...layers.map((layer) => layer.reduce((sum, unit) => sum + unit.height + gapAfter(unit), 0))
++    )
++    for (const layer of layers) {
++      const used = layer.reduce((sum, unit) => sum + unit.height + gapAfter(unit), 0)
++      for (const unit of layer) unit.y += (tallest - used) / 2
++    }
++    const pull = (layer: Unit[], side: "up" | "down") => {
++      const wanted = layer.map((unit) => {
++        const near = [...(unit[side] ?? []), ...(unit[side === "up" ? "down" : "up"] ?? [])]
++        if (!near.length) return unit.y
++        return near.reduce((sum, each) => sum + each.unit.y + each.theirs - each.mine, 0) / near.length
++      })
++      GraphLayout.separate(layer, wanted, gapAfter)
++    }
++    for (let round = 0; round < 8; round++) {
++      if (round % 2 === 0) for (let i = 1; i < layers.length; i++) pull(layers[i], "up")
++      else for (let i = layers.length - 2; i >= 0; i--) pull(layers[i], "down")
++    }
++
++    // Normalised to start at 0.
++    const all = layers.flat()
++    const top = Math.min(0, ...all.map((unit) => unit.y))
++    for (const unit of all) unit.y -= top
++    const width = Math.max(0, ...all.map((unit) => unit.x + unit.width))
++    const height = Math.max(0, ...all.map((unit) => unit.y + unit.height))
++    return { width, height }
++  }
++
++  /** Put each unit of `layer` as near its `wanted` y as it can, in order, without overlaps. */
++  private static separate(layer: Unit[], wanted: number[], gapAfter: (unit: Unit) => number) {
++    // Blocks of units pushed together sit at the mean of what they want (pool adjacent violators).
++    type Block = { start: number; end: number; top: number; height: number; weight: number; sum: number }
++    const blocks: Block[] = []
++    layer.forEach((unit, index) => {
++      const height = unit.height + gapAfter(unit)
++      let block: Block = { start: index, end: index, top: wanted[index], height, weight: 1, sum: wanted[index] }
++      while (blocks.length) {
++        const previous = blocks[blocks.length - 1]
++        if (previous.top + previous.height <= block.top) break
++        blocks.pop()
++        const sum = previous.sum + block.sum - block.weight * previous.height
++        const weight = previous.weight + block.weight
++        block = {
++          start: previous.start,
++          end: block.end,
++          top: sum / weight,
++          height: previous.height + block.height,
++          weight,
++          sum
++        }
++      }
++      blocks.push(block)
++    })
++    for (const block of blocks) {
++      let y = block.top
++      for (let i = block.start; i <= block.end; i++) {
++        layer[i].y = y
++        y += layer[i].height + gapAfter(layer[i])
++      }
++    }
++  }
++
++  ////////////////
++  // ## Flattening
++  ////////////////
++
++  /** `level`'s boxes and edges, moved to `x`, `y`, into `nodes` and `edges`;  open nodes' levels after them. */
++  private flatten(
++    level: Level,
++    x: number,
++    y: number,
++    depth: number,
++    nodes: GraphPlacedNode[],
++    edges: GraphPlacedEdge[],
++    container?: { unit: Unit; x: number; y: number }
++  ) {
++    for (const unit of level.units) {
++      const ux = x + unit.x
++      const uy = y + unit.y
++      const ports: GraphPlacedPort[] = unit.ports.map((port) => ({
++        port: port.port,
++        side: port.side,
++        path: `${unit.path}:${port.port.id}`,
++        x: ux + port.dx,
++        y: uy + port.dy
++      }))
++      nodes.push({
++        node: unit.node!,
++        path: unit.path!,
++        depth,
++        x: ux,
++        y: uy,
++        width: unit.width,
++        height: unit.height,
++        ports,
++        hasChildren: !!unit.hasChildren,
++        isOpen: !!unit.child,
++        isLoading: unit.isLoading
++      })
++      if (unit.child && unit.childOffset)
++        this.flatten(unit.child, ux + unit.childOffset.x, uy + unit.childOffset.y, depth + 1, nodes, edges, {
++          unit,
++          x: ux,
++          y: uy
++        })
++    }
++    const graphPath = level.prefix
++    for (const edge of level.edges) {
++      const points = edge.points.map((point) => ({ x: point.x + x, y: point.y + y }))
++      // A pin inside a container reaches out to the container's own port, on its side.
++      if (container) {
++        const portAt = (id: string) => container.unit.ports.find((port) => port.port.id === id)
++        const from = edge.fromPin !== undefined ? portAt(edge.fromPin) : undefined
++        const to = edge.toPin !== undefined ? portAt(edge.toPin) : undefined
++        if (from) points.unshift({ x: container.x + from.dx, y: container.y + from.dy })
++        if (to) points.push({ x: container.x + to.dx, y: container.y + to.dy })
++      }
++      edges.push({
++        edge: edge.edge,
++        id: edge.id,
++        path: `${graphPath}#${edge.id}`,
++        fromPath: edge.fromPath,
++        toPath: edge.toPath,
++        points,
++        fromSide: container && edge.fromPin !== undefined ? "right" : edge.fromSide,
++        toSide: container && edge.toPin !== undefined ? "left" : edge.toSide,
++        depth
++      })
++    }
++  }
++}
++
++/** One box, dummy or pin in a level, while it's laid out. */
++type Unit = {
++  kind: "node" | "dummy" | "pin"
++  node?: GraphNode
++  path?: string
++  width: number
++  height: number
++  layer: number
++  order: number
++  x: number
++  y: number
++  ports: { port: GraphPort; side: GraphPortSide; dx: number; dy: number }[]
++  hasChildren?: boolean
++  isLoading?: boolean
++  child?: Level
++  childOffset?: GraphPoint
++  pin?: { port: GraphPort; side: "left" | "right" }
++  up?: Neighbour[]
++  down?: Neighbour[]
++}
++
++/** A unit in the next layer an edge segment reaches, and where it attaches on each. */
++type Neighbour = { unit: Unit; mine: number; theirs: number }
++
++/** Where an edge attaches to a unit. */
++type End = { unit: Unit; dx: number; dy: number; side: GraphPortSide; path: string }
++
++/** An edge while it's laid out. */
++type Link = { edge: GraphEdge; id: string; from: End; to: End; reversed: boolean; chain: Unit[] }
++
++/** An edge of a level, relative to it. */
++type LevelEdge = {
++  edge: GraphEdge
++  id: string
++  points: GraphPoint[]
++  fromSide: GraphPortSide
++  toSide: GraphPortSide
++  fromPath: string
++  toPath: string
++  fromPin?: string
++  toPin?: string
++}
++
++/** One graph laid out, relative to its own top left. */
++type Level = {
++  width: number
++  height: number
++  units: Unit[]
++  edges: LevelEdge[]
++  pins: { port: GraphPort; side: "left" | "right"; x: number; y: number }[]
++  prefix: string
++}
++
++/** A port's votes seen from inside:  a boundary port that edges START from inside is an input, on the left. */
++function flip(votes: { asSource: number; asTarget: number }) {
++  return { asSource: votes.asTarget, asTarget: votes.asSource }
++}
++
++/** A coordinate, to a tenth. */
++function round(value: number): number {
++  return Math.round(value * 10) / 10
++}
+diff --git a/ui/src/components/ui-graph/UIGraph.css b/ui/src/components/ui-graph/UIGraph.css
+new file mode 100644
+index 000000000..5b928cf42
+--- /dev/null
++++ b/ui/src/components/ui-graph/UIGraph.css
+@@ -0,0 +1,219 @@
++/*
++ * The style sheet of `<ui-graph>`:  ours, not Fomantic's.
++ * - It styles the component's shadow DOM:
++ *   `<div class="ui graph" part="graph">`:
++ *     `[<ui-breadcrumbs class="breadcrumbs">]`, `<div class="toolbar">`,
++ *     `<svg class="canvas">` holding one `<g>` (the view's pan and zoom) of:
++ *       `<g class="node container">` per node open in place, then `<g class="edge-group">` per edge
++ *       (`<path class="edge-hit">`, `<path class="edge">`, `[<text class="edge-label">]`),
++ *       then `<g class="node">` per other node (`<rect class="box">`, `<text class="label">`, `<g class="port">`s,
++ *       `[<g class="toggle">]`), then `<g class="pin">` per boundary pin
++ *     `<ui-modal>`, for children shown in a modal
++ *   - `.lit`:  hovered, or an end of what's hovered;  `.selected`:  the selection.
++ * - Positions and text sizes are the layout's (`GraphLayout`), in user units:  NEVER set `font-size` on the texts here.
++ * - Public tokens (`--ui-graph-*`) are NEVER declared here:  each is read through its private alias.
++ */
++
++@layer ui.components.graph.types, ui.components.graph.content, ui.components.graph.variations, ui.components.graph.states;
++
++@layer ui.components.graph.types {
++  :host {
++    display: block;
++    font-family: var(--ui-graph-font-family, var(--ui-font-family));
++  }
++
++  .ui.graph,
++  .ui.graph :is(.node, .edge-group, .port, .pin) {
++    --_ui-graph-height: var(--ui-graph-height, 28em);
++    --_ui-graph-background: var(--ui-graph-background, var(--ui-surface));
++    --_ui-graph-border-color: var(--ui-graph-border-color, var(--ui-border-color));
++    --_ui-graph-radius: var(--ui-graph-radius, var(--ui-radius-m));
++    --_ui-graph-node-background: var(--ui-graph-node-background, var(--ui-surface-muted));
++    --_ui-graph-node-border-color: var(--ui-graph-node-border-color, var(--ui-border-color-strong));
++    --_ui-graph-container-background: var(--ui-graph-container-background, transparent);
++    --_ui-graph-container-border-color: var(--ui-graph-container-border-color, var(--ui-border-color-strong));
++    --_ui-graph-label-color: var(--ui-graph-label-color, var(--ui-text-color));
++    --_ui-graph-port-color: var(--ui-graph-port-color, var(--ui-text-muted));
++    --_ui-graph-edge-color: var(--ui-graph-edge-color, var(--ui-text-light));
++    --_ui-graph-edge-label-color: var(--ui-graph-edge-label-color, var(--ui-text-muted));
++    --_ui-graph-highlight-color: var(--ui-graph-highlight-color, var(--ui-primary));
++    --_ui-graph-selected-color: var(--ui-graph-selected-color, var(--ui-orange, var(--ui-primary)));
++  }
++
++  .ui.graph {
++    position: relative;
++    display: flex;
++    flex-direction: column;
++    height: var(--_ui-graph-height);
++    border: 1px solid var(--_ui-graph-border-color);
++    border-radius: var(--_ui-graph-radius);
++    background: var(--_ui-graph-background);
++    overflow: hidden;
++  }
++
++  .breadcrumbs {
++    display: block;
++    flex: none;
++    padding: 0.5em 0.75em;
++    border-bottom: 1px solid var(--_ui-graph-border-color);
++  }
++  .breadcrumbs ui-breadcrumb:not([selected]) {
++    cursor: var(--ui-control-cursor, pointer);
++  }
++
++  .toolbar {
++    position: absolute;
++    right: 0.5em;
++    bottom: 0.5em;
++    z-index: 1;
++    display: flex;
++    gap: 0.25em;
++  }
++
++  .toolbar button {
++    padding: 0.25em 0.75em;
++    border: 1px solid var(--_ui-graph-border-color);
++    border-radius: var(--ui-radius-s, 4px);
++    background: var(--_ui-graph-background);
++    color: var(--ui-text-color);
++    font: inherit;
++    font-size: 0.8125em;
++    cursor: var(--ui-control-cursor, pointer);
++  }
++  .toolbar button:hover {
++    border-color: var(--_ui-graph-highlight-color);
++  }
++
++  .canvas {
++    flex: auto;
++    display: block;
++    width: 100%;
++    min-height: 0;
++    cursor: grab;
++    touch-action: none;
++    user-select: none;
++  }
++  :host(:state(panning)) .canvas {
++    cursor: grabbing;
++  }
++
++  .modal-graph-box {
++    padding: 1em;
++  }
++  .modal-graph {
++    --ui-graph-height: 70vh;
++  }
++}
++
++@layer ui.components.graph.content {
++  .canvas {
++    .box {
++      fill: var(--_ui-graph-node-background);
++      stroke: var(--_ui-graph-node-border-color);
++      stroke-width: 1;
++      rx: 4px;
++    }
++    .container > .box {
++      fill: var(--_ui-graph-container-background);
++      stroke: var(--_ui-graph-container-border-color);
++      stroke-dasharray: 4 3;
++    }
++    .label {
++      fill: var(--_ui-graph-label-color);
++      dominant-baseline: central;
++    }
++    .container > .label {
++      font-weight: var(--ui-font-weight-semibold);
++    }
++    .node {
++      cursor: var(--ui-control-cursor, pointer);
++    }
++    .loading > .label {
++      fill: var(--_ui-graph-port-color);
++    }
++    .port-dot {
++      fill: var(--_ui-graph-background);
++      stroke: var(--_ui-graph-port-color);
++      stroke-width: 1.25;
++    }
++    .port-label {
++      fill: var(--_ui-graph-port-color);
++      dominant-baseline: central;
++    }
++    .pin-mark {
++      fill: var(--_ui-graph-node-border-color);
++    }
++    .edge {
++      fill: none;
++      stroke: var(--_ui-graph-edge-color);
++      stroke-width: 1.25;
++      pointer-events: none;
++    }
++    .edge-hit {
++      fill: none;
++      stroke: transparent;
++      stroke-width: 8;
++      cursor: var(--ui-control-cursor, pointer);
++    }
++    .edge-label {
++      fill: var(--_ui-graph-edge-label-color);
++      paint-order: stroke;
++      stroke: var(--_ui-graph-background);
++      stroke-width: 3;
++      pointer-events: none;
++    }
++    .toggle {
++      cursor: var(--ui-control-cursor, pointer);
++    }
++    .toggle-target {
++      fill: transparent;
++    }
++    .toggle-circle {
++      fill: var(--_ui-graph-edge-color);
++    }
++    .toggle-mark {
++      fill: none;
++      stroke: var(--ui-text-inverted-color);
++      stroke-width: 1.5;
++      stroke-linecap: round;
++    }
++    .toggle:focus {
++      outline: none;
++    }
++    .toggle:focus-visible .toggle-circle {
++      fill: var(--_ui-graph-highlight-color);
++    }
++  }
++}
++
++@layer ui.components.graph.states {
++  .canvas {
++    .node.lit > .box,
++    .node:hover > .box {
++      stroke: var(--_ui-graph-highlight-color);
++    }
++    .edge-group.lit .edge,
++    .edge-group:hover .edge {
++      stroke: var(--_ui-graph-highlight-color);
++      stroke-width: 2.25;
++    }
++    .port.lit .port-dot,
++    .port:hover .port-dot,
++    .pin.lit .pin-mark {
++      fill: var(--_ui-graph-highlight-color);
++      stroke: var(--_ui-graph-highlight-color);
++    }
++    .node.selected > .box {
++      stroke: var(--_ui-graph-selected-color);
++      stroke-width: 2.5;
++    }
++    .edge-group.selected .edge {
++      stroke: var(--_ui-graph-selected-color);
++      stroke-width: 2.5;
++    }
++    .port.selected .port-dot {
++      fill: var(--_ui-graph-selected-color);
++      stroke: var(--_ui-graph-selected-color);
++    }
++  }
++}
+diff --git a/ui/src/components/ui-graph/UIGraph.en.ts b/ui/src/components/ui-graph/UIGraph.en.ts
+new file mode 100644
+index 000000000..59847f950
+--- /dev/null
++++ b/ui/src/components/ui-graph/UIGraph.en.ts
+@@ -0,0 +1,124 @@
++/**
++ * The English vocabulary of `<ui-graph>`:  every name the tag uses.
++ * - Its tag, attributes (each with its kind and allowed values), events, parts and texts.
++ *   The shape is `ComponentVocabulary` (`spell/ui/vocabulary`).
++ * - Ours, not Fomantic's:  GENERIC, any node / edge graph;  netlists are one caller (a subclass restyles it).
++ * - Rich properties, `graph`, `selected` and `boundary` (`UIGraph.types.ts`);  a static page may give `graph` as JSON
++ *   in the attribute.
++ * - NOT `children` for how children open, though that's the word:  it would hide the platform's `Element.children`.
++ *   So `child-view`.
++ */
++
++import type { ComponentVocabulary } from "spell/ui/vocabulary"
++import { GraphChildViews } from "./UIGraph.types"
++
++/****************
++ * ### `graphVocabulary`
++ * The names of `<ui-graph>`, a node / edge graph drawn as an SVG:
++ * `<div class="ui graph">` holding breadcrumbs (when drilled in), a toolbar and `<svg part="canvas">`.
++ ****************/
++export const graphVocabulary = {
++  tag: "ui-graph",
++  icon: "project diagram",
++  topics: ["data display", "images", "views"],
++  aka: [
++    "graph",
++    "node graph",
++    "network diagram",
++    "flow chart",
++    "dataflow",
++    "netlist",
++    "schematic",
++    "block diagram",
++    "DAG"
++  ],
++  skeleton: "16 tall",
++  noun: "graph",
++  description:
++    "A graph draws nodes joined by edges, laid out left to right.  A node may hold a graph of its own, opened in place, in a modal, or in its stead.",
++  attributes: [
++    {
++      name: "graph",
++      group: "content",
++      kind: "json",
++      reflect: false,
++      description:
++        "The graph to draw, a `GraphData`:  `nodes` (`id`, `label`, `kind`, `ports`, `children`, `data`) and `edges` " +
++        "(`from` / `to` `{ node, port }`).  An end with no `node` is the enclosing node's port.  A JS property (JSON in " +
++        "the attribute);  set a NEW graph to redraw."
++    },
++    {
++      name: "child-view",
++      group: "behaviour",
++      kind: "enum",
++      values: GraphChildViews,
++      default: "inline",
++      description:
++        "How a node's children show when it's opened:  `inline`, inside the node, which grows round them;  `modal`, a " +
++        "graph in a modal;  `drill`, the graph replaced by them, with breadcrumbs back.  A node's own `childView` wins."
++    },
++    {
++      name: "selected",
++      group: "states",
++      kind: "json",
++      reflect: false,
++      description:
++        "PROPERTY:  what's selected, `{ kind: 'node' | 'edge' | 'port', id, path }`;  `undefined`:  nothing.  Clicks set it."
++    },
++    {
++      name: "boundary",
++      group: "content",
++      kind: "json",
++      reflect: false,
++      description:
++        "PROPERTY:  the enclosing node's ports, drawn as pins on the graph's sides, for edges with no `node`.  Set by a " +
++        "modal's graph;  a page rarely needs it."
++    }
++  ],
++  events: [
++    {
++      name: "ui-selecting",
++      cancelable: true,
++      detail: "{ kind: 'node' | 'edge' | 'port', id: string, path: string, item: object, originalEvent?: Event }",
++      description: "A node, edge or port is about to be selected by a click:  cancel it to keep the selection."
++    },
++    {
++      name: "ui-changed",
++      detail:
++        "{ value: { kind: string, id: string, path: string } | undefined, kind?: string, id?: string, path?: string, item?: object, originalEvent?: Event }",
++      description: "What's selected changed:  `value` is the new `selected`;  `item` the node, edge or port itself."
++    },
++    {
++      name: "ui-node-toggled",
++      detail:
++        "{ node: object, path: string, open: boolean, view: 'inline' | 'modal' | 'drill', originalEvent?: Event }",
++      description: "A node with children was opened or closed, by a person or by `open()` / `close()`."
++    }
++  ],
++  slots: [],
++  parts: [
++    { name: "graph", description: "The box round it all." },
++    { name: "canvas", description: "The `<svg>`." },
++    { name: "node", description: "Each node's `<g>`." },
++    { name: "container", description: "A node opened in place, its child graph inside;  also part `node`." },
++    { name: "edge", description: "Each edge's `<path>`." },
++    { name: "edge-label", description: "Each edge's label." },
++    { name: "port", description: "Each port's `<g>`:  its dot and label." },
++    { name: "pin", description: "Each pin, the enclosing node's port, on a modal or drilled graph's side." },
++    { name: "toggle", description: "Each node's open / close button." },
++    { name: "toolbar", description: "The buttons over the drawing (fit)." },
++    { name: "breadcrumbs", description: "The trail back up, when drilled in." }
++  ],
++  states: [
++    { name: "drilled", description: "It shows a node's children instead of its graph." },
++    { name: "panning", description: "A drag is moving the view." }
++  ],
++  texts: [
++    { key: "graphSummary", text: "Graph:  {count} nodes", description: "Name of the drawing." },
++    { key: "graphOpenNode", text: "Open {label}", description: "A closed node's toggle." },
++    { key: "graphCloseNode", text: "Close {label}", description: "An open node's toggle." },
++    { key: "graphFit", text: "Fit", description: "The button that fits the drawing to the view." },
++    { key: "graphTop", text: "Top", description: "The first breadcrumb, the graph itself." },
++    { key: "graphLoading", text: "Loading …", description: "A node whose children are loading." }
++  ]
++} as const satisfies ComponentVocabulary
+diff --git a/ui/src/components/ui-graph/UIGraph.es.ts b/ui/src/components/ui-graph/UIGraph.es.ts
+new file mode 100644
+index 000000000..7ff5c86e3
+--- /dev/null
++++ b/ui/src/components/ui-graph/UIGraph.es.ts
+@@ -0,0 +1,38 @@
++import type { E } from "spell/ui/core"
++
++/**
++ * `<ui-graph>` in Spanish:
++ * `<es-grafo>`, with the names and texts only it uses (from `UIGraph.en.ts`).
++ * - The names it shares with other tags are translated once, for every tag:  in `components.es.ts`.
++ * - Names stay ASCII (no accents).
++ */
++export const graphEs = {
++  lang: "es",
++  tag: "ui-graph",
++  name: "grafo",
++  aka: ["grafo", "diagrama de nodos", "diagrama de red", "esquema", "diagrama de bloques"],
++  attributes: { graph: "grafo", "child-view": "vista-hijos", boundary: "frontera" },
++  values: { "child-view": { inline: "en-linea", modal: "modal", drill: "adentrar" } },
++  events: { "ui-node-toggled": "nodo-abierto" },
++  parts: {
++    graph: "grafo",
++    canvas: "lienzo",
++    node: "nodo",
++    container: "contenedor",
++    edge: "arista",
++    "edge-label": "etiqueta-arista",
++    port: "puerto",
++    pin: "pin",
++    toggle: "abridor",
++    toolbar: "barra",
++    breadcrumbs: "migas"
++  },
++  texts: {
++    graphSummary: "Grafo:  {count} nodos",
++    graphOpenNode: "Abrir {label}",
++    graphCloseNode: "Cerrar {label}",
++    graphFit: "Ajustar",
++    graphTop: "Inicio",
++    graphLoading: "Cargando …"
++  }
++} as const satisfies E.TagDictionary
+diff --git a/ui/src/components/ui-graph/UIGraph.tsx b/ui/src/components/ui-graph/UIGraph.tsx
+new file mode 100644
+index 000000000..8e629087c
+--- /dev/null
++++ b/ui/src/components/ui-graph/UIGraph.tsx
+@@ -0,0 +1,859 @@
++import { For, Show } from "solid-js"
++import { isServer, type JSX } from "@solidjs/web"
++
++import { E, UIT } from "spell/ui/core"
++import { graphVocabulary } from "./UIGraph.en"
++import { GraphLayout } from "./GraphLayout"
++import {
++  GRAPH_METRICS,
++  GraphChildViews,
++  type GraphChildView,
++  type GraphData,
++  type GraphEdge,
++  type GraphLayoutResult,
++  type GraphNode,
++  type GraphPlacedEdge,
++  type GraphPlacedNode,
++  type GraphPlacedPin,
++  type GraphPlacedPort,
++  type GraphPort,
++  type GraphSelection
++} from "./UIGraph.types"
++
++import graphCSS from "./UIGraph.css?inline"
++
++/****************
++ * ### `DOMGraphElement`
++ * `<ui-graph>` itself:  its script API, over its component.
++ ****************/
++export class DOMGraphElement extends E.DOMElement<UIGraph> {
++  /** Fit the drawing to the view. */
++  fit() {
++    this.component?.fit()
++  }
++
++  /** Open the node at `path` (its ids from the top, joined by `/`), as `view`, else as its own or the graph's. */
++  open(path: string, view?: GraphChildView): Promise<void> {
++    return this.component?.openNode(path, view) ?? Promise.resolve()
++  }
++
++  /** Close the node at `path`, opened in place;  or, drilled into, go back above it. */
++  close(path: string) {
++    this.component?.closeNode(path)
++  }
++
++  /** Show the graph at `path` instead of the top (drill);  none:  back to the top. */
++  drillTo(path?: string): Promise<void> {
++    return this.component?.drillTo(path) ?? Promise.resolve()
++  }
++
++  /** The graph as it's drawn now:  every box and edge, in user units. */
++  get layout(): GraphLayoutResult | undefined {
++    return this.component?.layout
++  }
++}
++
++/****************
++ * ### `UIGraph`
++ * The component behind `<ui-graph>`:  a node / edge graph drawn as an SVG, laid out left to right in layers
++ * (`GraphLayout`), with ports on the nodes' sides, smooth edges, pan, zoom and fit.
++ *
++ * - GENERIC:  any graph from plain data (`GraphData`).  A subclass restyles and relabels it through the hooks below
++ *   (`nodeLabel()`, `nodeClass()`, `renderNode()`, `edgeClass()` ...), its parts and its `--ui-graph-*` tokens.
++ * - A node with `children` has a toggle;  opened, they show by `child-view` (or the node's `childView`):
++ *   - `inline`:  the node grows into a container, its graph laid out inside it, recursively
++ *   - `modal`:  a `<ui-modal>` holding another graph of the same tag
++ *   - `drill`:  the drawing shows them instead, with `<ui-breadcrumbs>` back
++ *   - `children` given as a function (or a promise of a graph) is called the first time it opens.
++ * - Paths:  a node is known by its ids from the top graph, joined by `/` (`cpu/alu`);  a port by its node's path, `:`
++ *   and its id;  an edge by its graph's path, `#` and its id.  So ids should hold none of `/`, `:` or `#`.
++ * - Pan:  drag;  zoom:  the wheel, round the pointer;  fit:  the toolbar's button, and by itself on a new graph.
++ * - Click a node, an edge or a port to select it:  `ui-selecting` (cancelable), then `ui-changed`.
++ *   Hovering an edge lights it and its two ends;  hovering a node lights its edges.
++ ****************/
++export class UIGraph extends E.UIComponent<typeof graphVocabulary> {
++  @E.proto static vocabulary = graphVocabulary
++  @E.protoMerged static elementSetup = {
++    styleSheets: { graph: graphCSS },
++    delegatesFocus: false,
++    DOMElement: DOMGraphElement
++  } satisfies Partial<E.ElementSetup>
++
++  ////////////////
++  // ## Hooks:  a subclass overrides these to restyle and relabel
++  ////////////////
++
++  /** A node's text. */
++  nodeLabel(node: GraphNode): string {
++    return node.label ?? node.id
++  }
++
++  /** Extra classes on a node's `<g>`;  `kind-<kind>` is there already. */
++  nodeClass(_node: GraphNode): string | undefined {
++    return undefined
++  }
++
++  /** An edge's text, at its middle;  none:  no text. */
++  edgeLabel(edge: GraphEdge): string | undefined {
++    return edge.label
++  }
++
++  /** Extra classes on an edge's `<path>`. */
++  edgeClass(_edge: GraphEdge): string | undefined {
++    return undefined
++  }
++
++  /** A port's text, beside it inside its node. */
++  portLabel(port: GraphPort, _node: GraphNode): string | undefined {
++    return port.label
++  }
++
++  /** Extra classes on a port's `<g>`. */
++  portClass(_port: GraphPort, _node: GraphNode): string | undefined {
++    return undefined
++  }
++
++  /**
++   * What a node's `<g>` holds:  its box and label;  the ports and toggle are drawn after it.
++   * - Override to draw a node another way;  stay inside `placed`'s box, as the layout sized it.
++   */
++  renderNode(placed: GraphPlacedNode): JSX.Element {
++    const { fontSize } = GRAPH_METRICS
++    const { x, y, width, height, isOpen } = placed
++    const label = this.nodeLabel(placed.node)
++    return (
++      <>
++        <rect class={BOX_CLASS} x={x} y={y} width={width} height={height} />
++        <text
++          class={LABEL_CLASS}
++          x={
++            isOpen
++              ? x + GRAPH_METRICS.paddingX
++              : x + width / 2 - (placed.hasChildren ? GRAPH_METRICS.toggleWidth / 2 : 0)
++          }
++          y={isOpen ? y + GRAPH_METRICS.headerHeight / 2 : y + height / 2}
++          text-anchor={isOpen ? "start" : "middle"}
++          font-size={String(fontSize)}
++        >
++          {placed.isLoading ? `${label}  ${this.translationForKey("graphLoading")}` : label}
++        </text>
++      </>
++    )
++  }
++
++  ////////////////
++  // ## The graph shown
++  ////////////////
++
++  /** Children loaded from a function or promise, by the node's path. */
++  @E.state accessor loadedChildren: ReadonlyMap<string, GraphData> = new Map()
++  /** Paths whose children are loading. */
++  @E.state accessor loadingPaths: ReadonlySet<string> = new Set()
++  /** Paths of nodes open in place. */
++  @E.state accessor openPaths: ReadonlySet<string> = new Set()
++  /** The nodes drilled into, outermost first. */
++  @E.state accessor drillPaths: readonly string[] = []
++  /** The node whose children the modal shows. */
++  @E.state accessor modalPath: string | undefined = undefined
++
++  /** The `graph` property, checked;  `undefined`:  nothing to draw. */
++  get topGraph(): GraphData | undefined {
++    return UIGraph.graphFrom(this.graph)
++  }
++
++  /** The node at `path`, from the top;  `undefined` when there's none, or its graph isn't loaded. */
++  nodeAt(path: string): GraphNode | undefined {
++    let graph = this.topGraph
++    let at = ""
++    let node: GraphNode | undefined
++    for (const id of path.split("/")) {
++      if (!graph) return undefined
++      node = graph.nodes.find((each) => each?.id === id)
++      if (!node) return undefined
++      at = at ? `${at}/${id}` : id
++      graph = this.childrenOf(node, at)
++    }
++    return node
++  }
++
++  /** `node`'s child graph, when it's there:  given as a graph, or loaded. */
++  childrenOf(node: GraphNode, path: string): GraphData | undefined {
++    const children = node.children
++    if (children && typeof children === "object") return UIGraph.graphFrom(children)
++    return this.loadedChildren.get(path)
++  }
++
++  /** The node drilled into last;  `undefined` at the top. */
++  get drillPath(): string | undefined {
++    return this.drillPaths.at(-1)
++  }
++
++  /** The graph drawn:  the top's, or the children of the node drilled into. */
++  @E.derived
++  get shownGraph(): GraphData | undefined {
++    const path = this.drillPath
++    if (path === undefined) return this.topGraph
++    const node = this.nodeAt(path)
++    return node && this.childrenOf(node, path)
++  }
++
++  /** The ports drawn as pins round the graph shown. */
++  get shownBoundary(): readonly GraphPort[] {
++    const path = this.drillPath
++    if (path !== undefined) return this.nodeAt(path)?.ports ?? []
++    return Array.isArray(this.boundary) ? (this.boundary as GraphPort[]) : []
++  }
++
++  /** The graph laid out;  `undefined` with nothing to draw.  `@derived`:  lays out every node. */
++  @E.derived
++  get layout(): GraphLayoutResult | undefined {
++    const graph = this.shownGraph
++    if (!graph) return undefined
++    const openChildren = new Map<string, GraphData>()
++    for (const path of this.openPaths) {
++      const node = this.nodeAt(path)
++      const children = node && this.childrenOf(node, path)
++      if (children) openChildren.set(path, children)
++    }
++    return GraphLayout.of(graph, {
++      prefix: this.drillPath ?? "",
++      openChildren,
++      loading: this.loadingPaths,
++      boundary: this.shownBoundary,
++      label: (node) => this.nodeLabel(node),
++      textWidth: isServer ? undefined : (text, size) => UIGraph.measure(text, size, this.fontFamily)
++    })
++  }
++
++  /** The font the labels are drawn in, read once:  what they're measured in. */
++  @E.lazy
++  private get fontFamily(): string {
++    return getComputedStyle(this.domElement).fontFamily || "sans-serif"
++  }
++
++  /** The containers first (they're behind), then the boxes. */
++  private get containers(): readonly GraphPlacedNode[] {
++    return this.layout?.nodes.filter((placed) => placed.isOpen) ?? []
++  }
++
++  private get leaves(): readonly GraphPlacedNode[] {
++    return this.layout?.nodes.filter((placed) => !placed.isOpen) ?? []
++  }
++
++  ////////////////
++  // ## Opening and closing
++  ////////////////
++
++  /** Open the node at `path`:  its children loaded first, then shown as `view`. */
++  async openNode(path: string, view?: GraphChildView, originalEvent?: Event): Promise<void> {
++    const node = this.nodeAt(path)
++    if (!node?.children) return
++    const how = view ?? UIGraph.viewFrom(node.childView) ?? UIGraph.viewFrom(this.childView) ?? "inline"
++    if (!(await this.load(node, path))) return
++    if (how === "inline") this.openPaths = new Set(this.openPaths).add(path)
++    else if (how === "modal") this.modalPath = path
++    else {
++      this.drillPaths = [...this.drillPaths, path]
++      this.needsFit = true
++    }
++    this.send("ui-node-toggled", { node, path, open: true, view: how, originalEvent })
++  }
++
++  /** Close the node at `path`:  in place, with every node open inside it;  drilled into, back above it. */
++  closeNode(path: string, originalEvent?: Event) {
++    const node = this.nodeAt(path)
++    const drilled = this.drillPaths.indexOf(path)
++    if (drilled >= 0) {
++      this.drillPaths = this.drillPaths.slice(0, drilled)
++      this.needsFit = true
++    } else {
++      this.openPaths = new Set([...this.openPaths].filter((each) => each !== path && !each.startsWith(`${path}/`)))
++    }
++    if (node)
++      this.send("ui-node-toggled", { node, path, open: false, view: drilled >= 0 ? "drill" : "inline", originalEvent })
++  }
++
++  /** Show the graph inside the node at `path`;  none:  the top. */
++  async drillTo(path?: string): Promise<void> {
++    if (path === undefined) {
++      this.drillPaths = []
++      this.needsFit = true
++      return
++    }
++    await this.openNode(path, "drill")
++  }
++
++  /** `node`'s children, loaded if they're a function or a promise;  false when they failed. */
++  private async load(node: GraphNode, path: string): Promise<boolean> {
++    if (typeof node.children !== "function" || this.loadedChildren.has(path)) return true
++    this.loadingPaths = new Set(this.loadingPaths).add(path)
++    try {
++      const graph = UIGraph.graphFrom(await node.children())
++      if (!graph) return false
++      this.loadedChildren = new Map(this.loadedChildren).set(path, graph)
++      return true
++    } catch (error) {
++      console.warn(`<${this.domElement.localName}>:  ${path}'s children failed to load`, error)
++      return false
++    } finally {
++      const loading = new Set(this.loadingPaths)
++      loading.delete(path)
++      this.loadingPaths = loading
++    }
++  }
++
++  /** A toggle was pressed. */
++  @E.untracked
++  private toggle(placed: GraphPlacedNode, event: Event) {
++    event.stopPropagation()
++    if (placed.isOpen) this.closeNode(placed.path, event)
++    else void this.openNode(placed.path, undefined, event)
++  }
++
++  /** `drilled`:  it shows a node's children. */
++  @E.cssState("drilled")
++  get isDrilled(): boolean {
++    return this.drillPaths.length > 0
++  }
++
++  ////////////////
++  // ## Selection and hover
++  ////////////////
++
++  /** The path hovered:  a node's, an edge's or a port's. */
++  @E.state accessor hovered: { kind: GraphSelection["kind"]; path: string } | undefined = undefined
++
++  /** The paths lit:  the hovered edge and its ends, or the hovered node and its edges.  `@derived`:  walks the edges. */
++  @E.derived
++  get lit(): ReadonlySet<string> {
++    const lit = new Set<string>()
++    const hovered = this.hovered
++    const layout = this.layout
++    if (!hovered || !layout) return lit
++    lit.add(hovered.path)
++    const nodeOf = (path: string) => path.split(":")[0]
++    for (const edge of layout.edges) {
++      const isIt =
++        hovered.kind === "edge"
++          ? edge.path === hovered.path
++          : hovered.kind === "port"
++            ? edge.fromPath === hovered.path || edge.toPath === hovered.path
++            : nodeOf(edge.fromPath) === hovered.path || nodeOf(edge.toPath) === hovered.path
++      if (!isIt) continue
++      lit.add(edge.path)
++      for (const end of [edge.fromPath, edge.toPath]) {
++        lit.add(end)
++        lit.add(nodeOf(end))
++      }
++    }
++    return lit
++  }
++
++  /** The selected path;  `undefined`:  nothing. */
++  get selectedPath(): string | undefined {
++    const selected = this.selected as GraphSelection | undefined
++    return selected && typeof selected === "object" ? selected.path : undefined
++  }
++
++  /** Select `selection`:  `ui-selecting` (a page may cancel it), then `selected`, then `ui-changed`. */
++  @E.untracked
++  private choose(selection: GraphSelection, item: object, originalEvent: Event) {
++    originalEvent.stopPropagation()
++    if (this.wasDragged) return
++    if (!this.send("ui-selecting", { ...selection, item, originalEvent })) return
++    this.selected = selection as never
++    this.send("ui-changed", { value: selection, ...selection, item, originalEvent })
++  }
++
++  ////////////////
++  // ## Pan, zoom and fit
++  ////////////////
++
++  /** The view:  a shift in pixels, then a scale. */
++  @E.state accessor view = { x: 0, y: 0, k: 1 }
++  /** A drag is moving the view. */
++  @E.state accessor isPanning = false
++  /** The next layout is fitted to the view:  a new graph, or a drill. */
++  private needsFit = true
++  /** The view was last set by a fit, not by a person:  a change of size fits again. */
++  private isFitted = false
++  /** The last pointer press moved far enough to be a drag:  its click selects nothing. */
++  private wasDragged = false
++  /** The `<svg>`.  Set as it draws. */
++  private svg: SVGSVGElement | undefined
++
++  @E.cssState("panning")
++  get isPanningNow(): boolean {
++    return this.isPanning
++  }
++
++  /** Fit the drawing to the view:  all of it, at most one and a half times its size. */
++  @E.untracked
++  fit() {
++    const layout = this.layout
++    // Its own size, not its drawn one:  a modal opening scales it with a transform.
++    const box = this.svg && { width: this.svg.clientWidth, height: this.svg.clientHeight }
++    if (!layout || !box?.width || !box.height) return
++    const k = Math.min(box.width / layout.width, box.height / layout.height, 1.5)
++    this.view = { x: (box.width - layout.width * k) / 2, y: (box.height - layout.height * k) / 2, k }
++    this.isFitted = true
++  }
++
++  /** A new graph:  fit it. */
++  @E.onChange("graph")
++  protected onGraphChanged() {
++    this.needsFit = true
++    this.drillPaths = []
++    this.openPaths = new Set(UIGraph.startOpen(this.topGraph))
++  }
++
++  /** Fit when asked to, once the drawing's there. */
++  @E.onChange("layout", "isReady")
++  protected onLayoutChanged(layout: GraphLayoutResult | undefined, isReady: boolean) {
++    if (!isReady || !layout || !this.needsFit || !this.svg?.getBoundingClientRect().width) return
++    this.needsFit = false
++    this.fit()
++  }
++
++  /** While it's in the page:  fit again when it first gets a size. */
++  @E.whileConnected
++  protected watchSize() {
++    const observer = new ResizeObserver(() => {
++      if (this.needsFit || this.isFitted) this.fit()
++      if (this.svg?.getBoundingClientRect().width) this.needsFit = false
++    })
++    if (this.svg) observer.observe(this.svg)
++    return () => observer.disconnect()
++  }
++
++  private readonly onWheel = (event: WheelEvent) => {
++    if (!this.svg) return
++    event.preventDefault()
++    const box = this.svg.getBoundingClientRect()
++    const px = event.clientX - box.left
++    const py = event.clientY - box.top
++    const { x, y, k } = this.view
++    const next = Math.min(4, Math.max(0.05, k * Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0015))))
++    this.view = { x: px - ((px - x) * next) / k, y: py - ((py - y) * next) / k, k: next }
++    this.isFitted = false
++  }
++
++  private readonly onPointerDown = (event: PointerEvent) => {
++    if (event.button !== 0 || !this.svg) return
++    const svg = this.svg
++    const start = { x: event.clientX, y: event.clientY, view: this.view }
++    this.wasDragged = false
++    const move = (moved: PointerEvent) => {
++      const dx = moved.clientX - start.x
++      const dy = moved.clientY - start.y
++      if (!this.wasDragged && Math.hypot(dx, dy) < DRAG_DISTANCE) return
++      if (!this.wasDragged) {
++        this.wasDragged = true
++        this.isFitted = false
++        this.isPanning = true
++        svg.setPointerCapture(event.pointerId)
++      }
++      this.view = { ...start.view, x: start.view.x + dx, y: start.view.y + dy }
++    }
++    const up = () => {
++      svg.removeEventListener("pointermove", move)
++      svg.removeEventListener("pointerup", up)
++      svg.removeEventListener("pointercancel", up)
++      this.isPanning = false
++      // The click after a drag comes next:  forget the drag after it.
++      E.soon(() => (this.wasDragged = false))
++    }
++    svg.addEventListener("pointermove", move)
++    svg.addEventListener("pointerup", up)
++    svg.addEventListener("pointercancel", up)
++  }
++
++  /** A click on the background clears the selection. */
++  private readonly onBackgroundClick = (event: MouseEvent) => {
++    if (this.wasDragged || !this.selected) return
++    this.selected = undefined as never
++    this.send("ui-changed", { value: undefined, originalEvent: event })
++  }
++
++  ////////////////
++  // ## The modal
++  ////////////////
++
++  /** The modal's box the child graph goes in.  Set as it draws. */
++  private modalBody: HTMLElement | undefined
++
++  /** The modal shows the children of `modalPath`:  in a new graph of this same tag (so a subclass's look carries). */
++  @E.onChange("modalPath", "isReady")
++  protected onModalPathChanged(path: string | undefined, isReady: boolean) {
++    if (!isReady || !this.modalBody) return
++    if (path === undefined) {
++      this.modalBody.replaceChildren()
++      return
++    }
++    const node = this.nodeAt(path)
++    const graph = node && this.childrenOf(node, path)
++    const inner = document.createElement(this.domElement.localName) as HTMLElement & {
++      graph?: GraphData
++      boundary?: readonly GraphPort[]
++    }
++    inner.graph = graph
++    inner.boundary = node?.ports ?? []
++    if (this.childView) inner.setAttribute("child-view", String(this.childView))
++    inner.classList.add(MODAL_GRAPH_CLASS)
++    this.modalBody.replaceChildren(inner)
++  }
++
++  /** The modal closed. */
++  @E.on("ui-closed", { target: "renderRoot" })
++  protected onModalClosed(event: Event) {
++    if (event.target === this.modalElement) this.modalPath = undefined
++  }
++
++  private modalElement: HTMLElement | undefined
++
++  ////////////////
++  // ## Drawing
++  ////////////////
++
++  protected override get extraClass(): string | undefined {
++    return this.topGraph ? undefined : EMPTY
++  }
++
++  render(): JSX.Element {
++    return (
++      <div class={this.rootClass} part={this.partForName("graph")}>
++        <Show when={this.drillPaths.length}>{this.breadcrumbs()}</Show>
++        <div class={TOOLBAR_CLASS} part={this.partForName("toolbar")}>
++          <button type="button" onClick={() => this.fit()}>
++            {this.translationForKey("graphFit")}
++          </button>
++        </div>
++        <svg
++          ref={(svg: SVGSVGElement) => (this.svg = svg)}
++          class={CANVAS_CLASS}
++          part={this.partForName("canvas")}
++          role="group"
++          aria-label={this.translationForKey("graphSummary", { count: this.layout?.nodes.length ?? 0 })}
++          onWheel={this.onWheel}
++          onPointerDown={this.onPointerDown}
++          onClick={this.onBackgroundClick}
++        >
++          <g transform={`translate(${this.view.x} ${this.view.y}) scale(${this.view.k})`}>
++            <For each={this.containers}>{(placed) => this.node(placed)}</For>
++            <For each={this.layout?.edges ?? []}>{(edge) => this.edge(edge)}</For>
++            <For each={this.leaves}>{(placed) => this.node(placed)}</For>
++            <For each={this.layout?.pins ?? []}>{(pin) => this.pin(pin)}</For>
++          </g>
++        </svg>
++        <ui-modal
++          ref={(element: HTMLElement) => (this.modalElement = element)}
++          size="large"
++          closable=""
++          heading={this.modalHeading()}
++          visible={this.modalPath !== undefined ? "" : undefined}
++        >
++          <div ref={(div: HTMLElement) => (this.modalBody = div)} class={MODAL_BODY_CLASS} />
++        </ui-modal>
++      </div>
++    )
++  }
++
++  /** The modal's heading:  the node's label. */
++  private modalHeading(): string | undefined {
++    const path = this.modalPath
++    const node = path === undefined ? undefined : this.nodeAt(path)
++    return node && this.nodeLabel(node)
++  }
++
++  /** The trail back up, when drilled in:  the top, then each node drilled into. */
++  private breadcrumbs(): JSX.Element {
++    const trail = () => [
++      { label: this.translationForKey("graphTop"), depth: 0 },
++      ...this.drillPaths.map((path, index) => {
++        const node = this.nodeAt(path)
++        return { label: node ? this.nodeLabel(node) : path, depth: index + 1 }
++      })
++    ]
++    return (
++      <ui-breadcrumbs class={BREADCRUMBS_CLASS} part={this.partForName("breadcrumbs")} divider="›">
++        <For each={trail()}>
++          {(crumb) => (
++            <ui-breadcrumb
++              selected={crumb.depth === this.drillPaths.length ? "" : undefined}
++              onClick={() => {
++                if (crumb.depth === this.drillPaths.length) return
++                this.drillPaths = this.drillPaths.slice(0, crumb.depth)
++                this.needsFit = true
++              }}
++            >
++              {crumb.label}
++            </ui-breadcrumb>
++          )}
++        </For>
++      </ui-breadcrumbs>
++    )
++  }
++
++  /** One node:  its `<g>` (part `node`, a container's also `container`), what `renderNode()` draws, ports, toggle. */
++  private node(placed: GraphPlacedNode): JSX.Element {
++    const kind = UIGraph.wordFor(placed.node.kind)
++    const path = placed.path
++    return (
++      <g
++        class={[
++          NODE_CLASS,
++          kind && `kind-${kind}`,
++          this.nodeClass(placed.node),
++          {
++            [CONTAINER_CLASS]: placed.isOpen,
++            [LIT_CLASS]: this.lit.has(path),
++            [SELECTED_CLASS]: this.selectedPath === path,
++            [LOADING_CLASS]: !!placed.isLoading
++          }
++        ]}
++        part={[this.partForName("node"), placed.isOpen && this.partForName("container"), kind && `kind-${kind}`]
++          .filter(Boolean)
++          .join(" ")}
++        data-path={path}
++        onClick={(event: MouseEvent) => this.choose({ kind: "node", id: placed.node.id, path }, placed.node, event)}
++        onPointerEnter={() => (this.hovered = { kind: "node", path })}
++        onPointerLeave={() => this.unhover(path)}
++      >
++        <Show when={placed.node.title}>{(title) => <title>{title()}</title>}</Show>
++        {this.renderNode(placed)}
++        <For each={placed.ports}>{(port) => this.port(port, placed)}</For>
++        <Show when={placed.hasChildren}>{this.toggleButton(placed)}</Show>
++      </g>
++    )
++  }
++
++  /** A node's open / close button (part `toggle`), at its top right. */
++  private toggleButton(placed: GraphPlacedNode): JSX.Element {
++    const label = () =>
++      this.translationForKey(placed.isOpen ? "graphCloseNode" : "graphOpenNode", { label: this.nodeLabel(placed.node) })
++    const cx = placed.x + placed.width - GRAPH_METRICS.toggleWidth / 2 - 4
++    const cy = placed.isOpen ? placed.y + GRAPH_METRICS.headerHeight / 2 : placed.y + placed.height / 2
++    return (
++      <g
++        class={TOGGLE_CLASS}
++        part={this.partForName("toggle")}
++        role="button"
++        tabindex="0"
++        aria-expanded={placed.isOpen ? "true" : "false"}
++        aria-label={label()}
++        transform={`translate(${cx} ${cy})`}
++        onClick={(event: MouseEvent) => this.toggle(placed, event)}
++        onKeyDown={(event: KeyboardEvent) => {
++          if (event.key !== UIT.Key.enter && event.key !== UIT.Key.space) return
++          event.preventDefault()
++          this.toggle(placed, event)
++        }}
++      >
++        <title>{label()}</title>
++        <circle class={TOGGLE_TARGET_CLASS} r={10} />
++        <circle class={TOGGLE_CIRCLE_CLASS} r={6} />
++        <path class={TOGGLE_MARK_CLASS} d={placed.isOpen ? MINUS_MARK : PLUS_MARK} />
++      </g>
++    )
++  }
++
++  /** A port:  its dot and label (part `port`). */
++  private port(placed: GraphPlacedPort, owner: GraphPlacedNode): JSX.Element {
++    const kind = UIGraph.wordFor(placed.port.kind)
++    const label = this.portLabel(placed.port, owner.node)
++    const r = GRAPH_METRICS.portRadius
++    const labelAt =
++      placed.side === "left"
++        ? { x: placed.x + r + 3, y: placed.y, anchor: "start" as const }
++        : placed.side === "right"
++          ? { x: placed.x - r - 3, y: placed.y, anchor: "end" as const }
++          : { x: placed.x, y: placed.side === "top" ? placed.y + r + 7 : placed.y - r - 7, anchor: "middle" as const }
++    return (
++      <g
++        class={[
++          PORT_CLASS,
++          kind && `kind-${kind}`,
++          this.portClass(placed.port, owner.node),
++          { [LIT_CLASS]: this.lit.has(placed.path), [SELECTED_CLASS]: this.selectedPath === placed.path }
++        ]}
++        part={[this.partForName("port"), kind && `kind-${kind}`].filter(Boolean).join(" ")}
++        onClick={(event: MouseEvent) =>
++          this.choose({ kind: "port", id: placed.port.id, path: placed.path }, placed.port, event)
++        }
++        onPointerEnter={(event: PointerEvent) => {
++          event.stopPropagation()
++          this.hovered = { kind: "port", path: placed.path }
++        }}
++        onPointerLeave={() => (this.hovered = { kind: "node", path: owner.path })}
++      >
++        <circle class={PORT_DOT_CLASS} cx={placed.x} cy={placed.y} r={r} />
++        <Show when={label && !(owner.isOpen && (placed.side === "left" || placed.side === "right"))}>
++          <text
++            class={PORT_LABEL_CLASS}
++            x={labelAt.x}
++            y={labelAt.y}
++            text-anchor={labelAt.anchor}
++            font-size={String(GRAPH_METRICS.portFontSize)}
++          >
++            {label}
++          </text>
++        </Show>
++      </g>
++    )
++  }
++
++  /** A pin:  the enclosing node's port, on the graph's side (part `pin`). */
++  private pin(pin: GraphPlacedPin): JSX.Element {
++    const label = pin.port.label ?? pin.port.id
++    return (
++      <g
++        class={[PIN_CLASS, { [LIT_CLASS]: this.lit.has(pin.path) }]}
++        part={this.partForName("pin")}
++        onPointerEnter={() => (this.hovered = { kind: "port", path: pin.path })}
++        onPointerLeave={() => this.unhover(pin.path)}
++        onClick={(event: MouseEvent) => this.choose({ kind: "port", id: pin.port.id, path: pin.path }, pin.port, event)}
++      >
++        <path class={PIN_MARK_CLASS} d={`M${pin.x - 5} ${pin.y - 5}h10v10h-10z`} />
++        <text
++          class={PORT_LABEL_CLASS}
++          x={pin.x}
++          y={pin.y - 10}
++          text-anchor="middle"
++          font-size={String(GRAPH_METRICS.portFontSize)}
++        >
++          {label}
++        </text>
++      </g>
++    )
++  }
++
++  /** One edge:  a wide unseen path to hit, the line (part `edge`), its label (part `edge-label`). */
++  private edge(placed: GraphPlacedEdge): JSX.Element {
++    const d = GraphLayout.pathFor(placed)
++    const kind = UIGraph.wordFor(placed.edge.kind)
++    const label = this.edgeLabel(placed.edge)
++    const middle = GraphLayout.middleOf(placed)
++    const select = (event: MouseEvent) =>
++      this.choose({ kind: "edge", id: placed.id, path: placed.path }, placed.edge, event)
++    return (
++      <g
++        class={[
++          EDGE_GROUP_CLASS,
++          kind && `kind-${kind}`,
++          this.edgeClass(placed.edge),
++          { [LIT_CLASS]: this.lit.has(placed.path), [SELECTED_CLASS]: this.selectedPath === placed.path }
++        ]}
++        onPointerEnter={() => (this.hovered = { kind: "edge", path: placed.path })}
++        onPointerLeave={() => this.unhover(placed.path)}
++        onClick={select}
++      >
++        <path class={EDGE_HIT_CLASS} d={d} />
++        <path
++          class={EDGE_CLASS}
++          part={[this.partForName("edge"), kind && `kind-${kind}`].filter(Boolean).join(" ")}
++          d={d}
++        />
++        <Show when={label}>
++          <text
++            class={EDGE_LABEL_CLASS}
++            part={this.partForName("edge-label")}
++            x={middle.x}
++            y={middle.y - 4}
++            text-anchor="middle"
++            font-size={String(GRAPH_METRICS.portFontSize)}
++          >
++            {label}
++          </text>
++        </Show>
++      </g>
++    )
++  }
++
++  /** The pointer left `path`:  nothing's hovered, unless something else already is. */
++  private unhover(path: string) {
++    if (this.hovered?.path === path) this.hovered = undefined
++  }
++
++  ////////////////
++  // ## Helpers
++  ////////////////
++
++  /** `value` when it's a graph (an object with a `nodes` list);  else `undefined`. */
++  static graphFrom(value: unknown): GraphData | undefined {
++    if (!value || typeof value !== "object" || !Array.isArray((value as GraphData).nodes)) return undefined
++    const graph = value as GraphData
++    return { nodes: graph.nodes, edges: Array.isArray(graph.edges) ? graph.edges : [] }
++  }
++
++  /** `value` when it's a child view's name. */
++  private static viewFrom(value: unknown): GraphChildView | undefined {
++    return GraphChildViews.includes(value as GraphChildView) ? (value as GraphChildView) : undefined
++  }
++
++  /** The paths of the nodes that start open (`open`), with given (not lazy) children, all the way down. */
++  private static startOpen(graph: GraphData | undefined, prefix = ""): string[] {
++    const paths: string[] = []
++    for (const node of graph?.nodes ?? []) {
++      const path = prefix ? `${prefix}/${node.id}` : node.id
++      if (node.open && node.children && typeof node.children === "object") {
++        paths.push(path, ...UIGraph.startOpen(UIGraph.graphFrom(node.children), path))
++      }
++    }
++    return paths
++  }
++
++  /** `word` when it's safe in a class and a part name;  else `undefined`. */
++  private static wordFor(word: string | undefined): string | undefined {
++    return word && /^[\w-]+$/.test(word) ? word : undefined
++  }
++
++  /** `text`'s width at `size`, in `family`, measured on a canvas. */
++  private static measure(text: string, size: number, family: string): number {
++    const context = (UIGraph.measuring ??= document.createElement("canvas").getContext("2d"))
++    if (!context) return text.length * size * GRAPH_METRICS.charWidth
++    context.font = `${size}px ${family}`
++    return context.measureText(text).width
++  }
++
++  /** The canvas `measure()` draws on, made once. */
++  private static measuring: CanvasRenderingContext2D | null | undefined
++}
++
++/** The vocabulary getters, typed (`UIComponent`'s doc). */
++export interface UIGraph extends E.AttributeValues<typeof graphVocabulary> {}
++
++/** How far a press moves before it's a drag, in pixels. */
++const DRAG_DISTANCE = 4
++
++/** Class word before the noun when there's nothing to draw (`ui empty graph`). */
++const EMPTY = "empty"
++
++const TOOLBAR_CLASS = "toolbar"
++const BREADCRUMBS_CLASS = "breadcrumbs"
++const CANVAS_CLASS = "canvas"
++const NODE_CLASS = "node"
++const CONTAINER_CLASS = "container"
++const BOX_CLASS = "box"
++const LABEL_CLASS = "label"
++const PORT_CLASS = "port"
++const PORT_DOT_CLASS = "port-dot"
++const PORT_LABEL_CLASS = "port-label"
++const PIN_CLASS = "pin"
++const PIN_MARK_CLASS = "pin-mark"
++const EDGE_GROUP_CLASS = "edge-group"
++const EDGE_CLASS = "edge"
++const EDGE_HIT_CLASS = "edge-hit"
++const EDGE_LABEL_CLASS = "edge-label"
++const LIT_CLASS = "lit"
++const SELECTED_CLASS = "selected"
++const LOADING_CLASS = "loading"
++const TOGGLE_CLASS = "toggle"
++const TOGGLE_TARGET_CLASS = "toggle-target"
++const TOGGLE_CIRCLE_CLASS = "toggle-circle"
++const TOGGLE_MARK_CLASS = "toggle-mark"
++const MODAL_BODY_CLASS = "modal-graph-box"
++const MODAL_GRAPH_CLASS = "modal-graph"
++
++/** The toggle's `+` and `-`. */
++const PLUS_MARK = "M-3 0H3M0 -3V3"
++const MINUS_MARK = "M-3 0H3"
+diff --git a/ui/src/components/ui-graph/UIGraph.types.ts b/ui/src/components/ui-graph/UIGraph.types.ts
+new file mode 100644
+index 000000000..322bad88b
+--- /dev/null
++++ b/ui/src/components/ui-graph/UIGraph.types.ts
+@@ -0,0 +1,214 @@
++/**
++ * The types and constants of the graph family:  the data contract (`GraphData`, `GraphNode`, `GraphEdge` ...),
++ * the layout's shapes and its metrics, shared by `GraphLayout` and the component.
++ * - Data only:  nothing here runs.
++ * - GENERIC:  any node / edge graph from plain data.  Netlists (`<jarvis-netlist>`) are one caller;
++ *   `ui` knows nothing about them.
++ */
++
++////////////////
++// ## The data contract
++////////////////
++
++/** A graph `<ui-graph>` draws:  its nodes, and the edges between them (or their ports). */
++export type GraphData = {
++  nodes: GraphNode[]
++  edges?: GraphEdge[]
++}
++
++/** What a node's `children` may be:  a graph, or a function giving one (or a promise of one), called on first open. */
++export type GraphChildren = GraphData | (() => GraphData | Promise<GraphData>)
++
++/** One node of a graph. */
++export type GraphNode = {
++  /** Unique among its graph's nodes (not across levels:  a node in a child graph is known by its `path`). */
++  id: string
++  /** The box's text;  none:  its `id`. */
++  label?: string
++  /** A word for what sort of node it is:  its `<g>` is also class and part `kind-<word>`, for a page's own style. */
++  kind?: string
++  /** Where edges attach:  drawn on the box's sides. */
++  ports?: GraphPort[]
++  /** A graph inside it, shown when it's opened:  in place, in a modal or instead of the graph (`child-view`). */
++  children?: GraphChildren
++  /** How THIS node's children open;  none:  the element's `child-view`. */
++  childView?: GraphChildView
++  /** Starts open (`inline` only). */
++  open?: boolean
++  /** Hover text (an SVG `<title>`). */
++  title?: string
++  /** Anything the page wants to keep with the node:  never read by the graph. */
++  data?: unknown
++}
++
++/** A place on a node's side where edges attach. */
++export type GraphPort = {
++  /** Unique among its node's ports. */
++  id: string
++  /** Text beside it;  none:  no text. */
++  label?: string
++  /**
++   * Which side it's on.
++   * - None:  `kind` `in` / `input` => `left`, `out` / `output` => `right`;  else the side most of its edges come from.
++   */
++  side?: GraphPortSide
++  /** A word for what sort of port it is:  class and part `kind-<word>`. */
++  kind?: string
++}
++
++/**
++ * One end of an edge:  a node, and optionally one of its ports.
++ * - `node` `""` (or left out) is the ENCLOSING node, the one whose `children` this graph is:  `port` names ITS port.
++ *   Drawn on the container's side when opened in place, and as a pin on the graph's edge in a modal or drill view.
++ */
++export type GraphEnd = {
++  node?: string
++  port?: string
++}
++
++/** One edge, from one end to the other. */
++export type GraphEdge = {
++  /** Unique among its graph's edges;  none:  its index, `#3`. */
++  id?: string
++  from: GraphEnd
++  to: GraphEnd
++  /** A word for what sort of edge it is:  class and part `kind-<word>`. */
++  kind?: string
++  /** Text at the edge's middle. */
++  label?: string
++  /** Anything the page wants to keep with it. */
++  data?: unknown
++}
++
++/** A port's side.  Above its type:  the layout lists them. */
++export const GraphPortSides = ["left", "right", "top", "bottom"] as const
++export type GraphPortSide = (typeof GraphPortSides)[number]
++
++/** How a node's children are shown when it opens.  Above its type:  the vocabulary lists them. */
++export const GraphChildViews = ["inline", "modal", "drill"] as const
++export type GraphChildView = (typeof GraphChildViews)[number]
++
++/** What's selected:  a node, an edge or a port, by `path` (a node's ids from the top, joined by `/`). */
++export type GraphSelection = {
++  kind: "node" | "edge" | "port"
++  /** The item's own `id` (an edge without one:  `#<index>`). */
++  id: string
++  /**
++   * Where it is:  the node's path (`cpu/alu`), the edge's graph path then `#` and its id (`cpu#e3`),
++   * a port's node path then `:` and its id (`cpu/alu:a`).
++   */
++  path: string
++}
++
++////////////////
++// ## Layout
++////////////////
++
++/** A point in the drawing's user units. */
++export type GraphPoint = { readonly x: number; readonly y: number }
++
++/** A port, placed:  absolute, on its node's side. */
++export type GraphPlacedPort = GraphPoint & {
++  readonly port: GraphPort
++  readonly side: GraphPortSide
++  /** Its node's path, then `:` and its id. */
++  readonly path: string
++}
++
++/** A node, placed:  absolute user units, `x` / `y` its top left corner. */
++export type GraphPlacedNode = {
++  readonly node: GraphNode
++  /** Its ids from the top, joined by `/`. */
++  readonly path: string
++  /** How deep it is:  `0` for the shown graph's own nodes. */
++  readonly depth: number
++  readonly x: number
++  readonly y: number
++  readonly width: number
++  readonly height: number
++  readonly ports: readonly GraphPlacedPort[]
++  /** It has children (loaded or not). */
++  readonly hasChildren: boolean
++  /** It's open in place:  a container, its child graph drawn inside it. */
++  readonly isOpen: boolean
++  /** Its children are loading. */
++  readonly isLoading?: boolean
++}
++
++/** An edge, placed:  absolute points, from its start to its end, drawn as a smooth path through them. */
++export type GraphPlacedEdge = {
++  readonly edge: GraphEdge
++  /** Its id, `#<index>` without one. */
++  readonly id: string
++  /** Its graph's path (`""` at the top), then `#`, then its id. */
++  readonly path: string
++  /** The paths of what it joins:  a node's path, or a port's (`node:port`). */
++  readonly fromPath: string
++  readonly toPath: string
++  readonly points: readonly GraphPoint[]
++  /** Which way it leaves its start and enters its end:  `1` rightwards, `-1` leftwards, `0` up / down. */
++  readonly fromSide: GraphPortSide
++  readonly toSide: GraphPortSide
++  readonly depth: number
++}
++
++/** A boundary pin:  an enclosing node's port, drawn on the graph's own edge (modal and drill views). */
++export type GraphPlacedPin = GraphPoint & {
++  readonly port: GraphPort
++  readonly side: GraphPortSide
++  readonly path: string
++}
++
++/** A graph laid out:  what `<ui-graph>` draws, every level flattened, in user units. */
++export type GraphLayoutResult = {
++  readonly width: number
++  readonly height: number
++  /** Every node, parents before their children. */
++  readonly nodes: readonly GraphPlacedNode[]
++  readonly edges: readonly GraphPlacedEdge[]
++  /** The enclosing node's ports, at the top level's sides. */
++  readonly pins: readonly GraphPlacedPin[]
++}
++
++/** What `GraphLayout` is told besides the graph. */
++export type GraphLayoutOptions = {
++  metrics?: GraphMetrics
++  /** A text's width in user units at `fontSize`;  default:  estimated from its length. */
++  textWidth?: (text: string, fontSize: number) => number
++  /** A node's text;  default:  its label, else its id. */
++  label?: (node: GraphNode) => string
++  /** The child graph of each node open in place, by path. */
++  openChildren?: ReadonlyMap<string, GraphData>
++  /** Paths of nodes whose children are loading. */
++  loading?: ReadonlySet<string>
++  /** The enclosing node's ports:  drawn as pins on the graph's sides. */
++  boundary?: readonly GraphPort[]
++  /** The shown graph's own path, `""` at the top:  what its nodes' paths start with. */
++  prefix?: string
++}
++
++/** Sizes the layout works in, in user units. */
++export const GRAPH_METRICS = {
++  fontSize: 12,
++  portFontSize: 10,
++  /** Estimated advance of one character, per font size. */
++  charWidth: 0.6,
++  paddingX: 12,
++  nodeHeight: 32,
++  minNodeWidth: 48,
++  /** Space between ports along a side. */
++  portSpacing: 18,
++  portRadius: 3.5,
++  /** Space between layers. */
++  layerGap: 56,
++  /** Space between nodes in a layer. */
++  nodeGap: 18,
++  /** A container's header (its label and toggle), and the padding round its child graph. */
++  headerHeight: 26,
++  containerPadding: 14,
++  /** Room for the toggle button, right of a label. */
++  toggleWidth: 18,
++  margin: 24
++} as const
++
++export type GraphMetrics = { readonly [K in keyof typeof GRAPH_METRICS]: number }
+diff --git a/ui/src/components/ui-graph/index.ts b/ui/src/components/ui-graph/index.ts
+new file mode 100644
+index 000000000..194413b15
+--- /dev/null
++++ b/ui/src/components/ui-graph/index.ts
+@@ -0,0 +1,36 @@
++/**
++ * The graph family:  defines `<ui-graph>`, and exports its component.
++ * - SIDE EFFECT:  importing it defines the tag, and `<ui-modal>` and `<ui-breadcrumbs>` (what it shows children in).
++ * - Also the library's `spell/ui/ui-graph` entry.
++ * - `GraphLayout` (the pure layout) is exported too, for a page that wants the numbers alone.
++ */
++
++import { GraphLayout } from "./GraphLayout"
++import { DOMGraphElement, UIGraph } from "./UIGraph"
++
++import "spell/ui/components/ui-modal"
++import "spell/ui/components/ui-breadcrumbs"
++
++UIGraph.define()
++
++export { DOMGraphElement, GraphLayout, UIGraph }
++export { GRAPH_METRICS, GraphChildViews, GraphPortSides } from "./UIGraph.types"
++export type {
++  GraphChildren,
++  GraphChildView,
++  GraphData,
++  GraphEdge,
++  GraphEnd,
++  GraphLayoutOptions,
++  GraphLayoutResult,
++  GraphMetrics,
++  GraphNode,
++  GraphPlacedEdge,
++  GraphPlacedNode,
++  GraphPlacedPin,
++  GraphPlacedPort,
++  GraphPoint,
++  GraphPort,
++  GraphPortSide,
++  GraphSelection
++} from "./UIGraph.types"
+diff --git a/ui/src/components/ui-root/UIRoot.catalog.ts b/ui/src/components/ui-root/UIRoot.catalog.ts
+index 49412cab1..f39b29d08 100644
+--- a/ui/src/components/ui-root/UIRoot.catalog.ts
++++ b/ui/src/components/ui-root/UIRoot.catalog.ts
+@@ -485,6 +485,11 @@ export const ROOT_CATALOG: Readonly<Record<string, RootCatalogEntry>> = {
+       "debug"
+     ]
+   },
++  "ui-graph": {
++    folder: "ui-graph",
++    skeleton: { height: "16em" },
++    attributes: ["graph", "child-view", "selected", "boundary"]
++  },
+   "ui-grid": {
+     folder: "ui-grid",
+     attributes: [
+diff --git a/ui/src/index.ts b/ui/src/index.ts
+index d4d66b312..6e0de907d 100644
+--- a/ui/src/index.ts
++++ b/ui/src/index.ts
+@@ -103,5 +103,6 @@ export * from "spell/ui/components/ui-toc"
+ export * from "spell/ui/components/ui-include"
+ export * from "spell/ui/components/ui-json"
+ export * from "spell/ui/components/ui-tree-diagram"
++export * from "spell/ui/components/ui-graph"
+ export * from "spell/ui/components/ui-theme-editor"
+ export * from "spell/ui/components/ui-theme-menu"
+diff --git a/ui/vite.config.ts b/ui/vite.config.ts
+index d66b75958..d1f5f373b 100644
+--- a/ui/vite.config.ts
++++ b/ui/vite.config.ts
+@@ -115,6 +115,7 @@ export const COMPONENTS = [
+   "ui-toc",
+   "ui-markdown",
+   "ui-tree-diagram",
++  "ui-graph",
+   "ui-theme-editor"
+ ] as const
+ 
+-- 
+2.50.1 (Apple Git-155)
+

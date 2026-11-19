@@ -1,0 +1,101 @@
+From 63f36b885f13dbf20c925f58884dc82ddcd25c5e Mon Sep 17 00:00:00 2001
+From: Owen Williams <owenoak@gmail.com>
+Date: Wed, 18 Nov 2026 10:21:50 -0500
+Subject: [PATCH] netlists P6:  Viewer Polish -- ui-tree rowClass hook
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ ui/src/components/ui-tree/UITree.en.ts      |  3 ++-
+ ui/src/components/ui-tree/UITree.tsx        | 13 +++++++++++
+ ui/tests/components/ui-tree/UITree.test.tsx | 24 +++++++++++++++++++++
+ 3 files changed, 39 insertions(+), 1 deletion(-)
+
+diff --git a/ui/src/components/ui-tree/UITree.en.ts b/ui/src/components/ui-tree/UITree.en.ts
+index 27146b158..ecccd9405 100644
+--- a/ui/src/components/ui-tree/UITree.en.ts
++++ b/ui/src/components/ui-tree/UITree.en.ts
+@@ -37,7 +37,8 @@ export const treeVocabulary = {
+       description:
+         "Columns mode:  the tree as data, given as a property, in place of `<ui-tree-item>`s:  " +
+         "`{ id, label, icon?, which?, count?, children?, data? }[]` (`TreeItemData`), where `children` is a list, " +
+-        "or a function run the first time the item opens.  Only the open path's columns are drawn."
++        "or a function run the first time the item opens.  Only the open path's columns are drawn.  " +
++        "A subclass gives rows classes of their own by overriding `rowClass(item)`, for its own sheet."
+     },
+     {
+       name: "path",
+diff --git a/ui/src/components/ui-tree/UITree.tsx b/ui/src/components/ui-tree/UITree.tsx
+index 70f263872..72eefb344 100644
+--- a/ui/src/components/ui-tree/UITree.tsx
++++ b/ui/src/components/ui-tree/UITree.tsx
+@@ -435,14 +435,27 @@ export class UITree extends E.UIComponent<typeof treeVocabulary> {
+     )
+   }
+ 
++  /**
++   * Extra class names for `item`'s row in a column (`mode="columns"`):  none here;  a subclass overrides it.
++   * - Space-separated, set on the row (`.column-row`) in the shadow root, for the subclass's own sheet
++   *   (`elementSetup.styleSheets`) to style:  `.column-row.optical .which { ... }`.
++   * - `item`:  an `items` entry, or one made from a `<ui-tree-item>` (`item.data`:  that element).
++   * - Read once, as the row is drawn.
++   */
++  rowClass(_item: TreeItemData): string | undefined {
++    return undefined
++  }
++
+   /** One row of a column. */
+   private renderColumnRow(item: TreeItemData, depth: Accessor<number>) {
+     const isSelected = () => this.shownPath[depth()] === item.id
+     const hasChildren = this.hasChildren(item)
+     const count = this.countOf(item)
++    const extra = Object.fromEntries((this.rowClass(item) ?? "").split(/\s+/).filter(Boolean).map((name) => [name, true]))
+     return (
+       <li
+         class={{
++          ...extra,
+           "column-row": true,
+           selected: isSelected(),
+           "on-path": isSelected() && depth() < this.shownPath.length - 1
+diff --git a/ui/tests/components/ui-tree/UITree.test.tsx b/ui/tests/components/ui-tree/UITree.test.tsx
+index b912e49d3..d850a2841 100644
+--- a/ui/tests/components/ui-tree/UITree.test.tsx
++++ b/ui/tests/components/ui-tree/UITree.test.tsx
+@@ -3,6 +3,15 @@ import { describe, expect, it, vi } from "vite-plus/test"
+ import { expectAccessible } from "spell/test-helpers/A11y"
+ import { ElementFixture } from "spell/test-helpers/ElementFixture"
+ import { UITree, UITreeItem } from "spell/ui/components/ui-tree"
++import type { TreeItemData } from "spell/ui/components/ui-tree/UITree.types"
++
++/** A subclass that classes its column rows by `which`:  `<x-classed-tree>`. */
++class ClassedTree extends UITree {
++  override rowClass(item: TreeItemData) {
++    return item.which ? `has-which  ${item.which}` : undefined
++  }
++}
++ClassedTree.define("x-classed-tree")
+ 
+ /** A tree in the page:  a (b, c (d)), e;  a open, c closed. */
+ async function tree(attributes = "") {
+@@ -225,4 +234,19 @@ describe("<ui-tree>", () => {
+   it("is accessible", async () => {
+     await expectAccessible(await tree('choose="many"'))
+   })
++  it("columns:  a subclass's `rowClass(item)` adds classes to each row, from rows or from `items`", async () => {
++    const host = (await ElementFixture.render(
++      `<x-classed-tree mode="columns" label="Files">
++        <ui-tree-item label="a" which="deep"></ui-tree-item>
++        <ui-tree-item label="b"></ui-tree-item>
++      </x-classed-tree>`
++    )) as HTMLElement & { items?: TreeItemData[] }
++    await ElementFixture.settle()
++    const rowOf = (id: string) => host.shadowRoot!.querySelector(`.column-row[data-id="${id}"]`)!
++    expect([...rowOf("a").classList]).toEqual(expect.arrayContaining(["column-row", "has-which", "deep"]))
++    expect([...rowOf("b").classList]).not.toContain("has-which")
++    host.items = [{ id: "x", label: "x", which: "optical" }]
++    await ElementFixture.settle()
++    expect([...rowOf("x").classList]).toEqual(expect.arrayContaining(["column-row", "has-which", "optical"]))
++  })
+ })
+-- 
+2.50.1 (Apple Git-155)
+
