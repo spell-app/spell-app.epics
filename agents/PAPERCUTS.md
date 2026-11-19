@@ -1038,6 +1038,9 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   Playwright loads the config with plain node, which adds no extension, and repo-split P14's package-name imports
   write none. · Checked the buttons by hand instead (headless screenshots, epic `debut` P16).  Fix:  the config's
   import chain writes `.ts` (or Playwright loads it through `tsx`). · ui
+- 2026-11-19 · The full suite at the kit's root failed once on `<ui-popup> hover > shows after show-delay ...`
+  (`UIPopup.test.tsx`), timing under the load of every folder's tests;  it passed twice on its own right after. ·
+  None yet:  a hover-delay test that waits on real time is load-sensitive. · spell/ui popup (epic `from-jarvis` P8)
 
 ## app
 
