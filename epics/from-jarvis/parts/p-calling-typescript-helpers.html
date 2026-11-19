@@ -4,6 +4,90 @@
     Spell code can't call a TypeScript or JavaScript helper in its project, and a page's compiled classes are a second
     copy of the library's.
   </p></epic-field
+><epic-reply from="owenoak" at="2026-11-18 23:54" re="revisit now"
+  ><p>how do we know the spell for the methods, clever string parsing/</p></epic-reply
+><epic-reply from="Claude" at="2026-11-18 23:59" re="revisit now">
+  <blockquote>how do we know the spell for the methods, clever string parsing?</blockquote>
+  <p>
+    <b>No clever string parsing.</b> Spell already keeps the words you call something by apart from the JavaScript name
+    it calls. What's missing is only where a helper's words come from, and that's new wording for you to pick:
+    <a href="#q9">Q9</a>.
+  </p>
+
+  <p><b>What existing code already decides:</b></p>
+  <ul>
+    <li>
+      A function's words and its code name are two separate fields. FizzBuzz's <code>to play fizzbuzz</code> is saved in
+      its declarations as the words <code>play fizzbuzz</code> and the code name <code>play_fizzbuzz</code>. The call is
+      matched by the words, then compiled to the code name.
+    </li>
+    <li>
+      So a helper's declaration can say the words <code>read a netlist from (source)</code> and the code name
+      <code>readNetlist</code>. Nothing has to turn <code>readNetlist</code> into words or back.
+    </li>
+    <li>
+      The call rule is the one every Spell function call already uses (<a
+        href="/parser/src/spell/rules/methods/DynamicMethodRule.ts"
+        target="src-parser-src-spell-rules-methods-dynamicmethodrule-ts"
+        ><code title="parser/src/spell/rules/methods/DynamicMethodRule.ts">DynamicMethodRule</code></a
+      >). It's rebuilt from a declaration the same way for another project's functions, and it checks each input's type.
+    </li>
+    <li>
+      An options object is already a Spell shape. A <code>to</code> line ending in <code>(with name)</code> compiles to
+      one last argument, an object, as in Spell's own tests: <code>notify with message = "It worked!"</code>. That is
+      exactly the shape of <code>readNetlist(source, options)</code>.
+    </li>
+    <li>
+      Note: today's call says <code>with name = "x"</code>, with an equals sign. Option A's example above,
+      <code>with name "x"</code>, left the sign out; dropping it would be new wording.
+    </li>
+    <li>
+      Reading the helper is the kit's one TypeScript reader (<a
+        href="/src/util/node/typescript.ts"
+        target="src-src-util-node-typescript-ts"
+        ><code title="src/util/node/typescript.ts">readTypeScript()</code></a
+      >): a real syntax tree, so each export's name, its inputs' names and types, what it gives back and the docstring
+      above it are read, not guessed.
+    </li>
+  </ul>
+
+  <p><b>The real example,</b> the handoff's helper:</p>
+  <epic-code title="netlistReader.ts, and what its declaration would hold" language="text">
+    <pre>
+/** Read `source`, a netlist file's text or its parsed JSON, into a `Netlist`. */
+export function readNetlist(source: string | NetlistJSON, options: ReadOptions = {}): Netlist
+
+  words (Q9 decides where these come from):
+                read a netlist from {source} (with {name ...})?
+  code name:    readNetlist
+  inputs:       source as text, then the options object (its "name" a text)
+  gives back:   a netlist     (the type Netlists.spell declares)
+
+  Spell:        set the netlist to read a netlist from the text with name = "ssx001"
+  compiles to:  netlist = readNetlist(text, { name: "ssx001" })</pre>
+  </epic-code>
+
+  <p><b>New code, but no new wording:</b></p>
+  <ul>
+    <li>
+      Turning TypeScript types into Spell ones: <code>string</code> to text, <code>number</code> to number, a class the
+      project declares (<code>Netlist</code>) to its Spell type (a netlist). A type with no Spell twin
+      (<code>NetlistJSON</code>, a function) leaves that input unchecked.
+    </li>
+  </ul>
+
+  <p>
+    <b>New wording, which needs your OK (<a href="#q9">Q9</a>):</b>
+  </p>
+  <ul>
+    <li>
+      Where each function's words come from. Made from its name, <code>readNetlist</code> becomes
+      <code>read netlist (source)</code>, which reads well. But <code>otherEndOf(connection, port)</code> becomes
+      <code>other end of (connection) (port)</code>: two inputs side by side, the kind of ambiguity you've been worried
+      about. And a Spanish project would get no Spanish words at all.
+    </li>
+    <li>So the recommendation is that each helper says its own words, in Spell's own <code>to</code> line shape.</li>
+  </ul> </epic-reply
 ><epic-field name="goal"
   ><ul>
     <li>A Spell page calls <code>readNetlist()</code>-style helpers</li>
