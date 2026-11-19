@@ -5,7 +5,7 @@ Right after step 06, in the same turn:  the page opens at "0. While you were out
 ## Commands
 
 ```sh
-epic pages link "$(epic config contentFolder)/epics/demo/demo.plan.html" --hash away --show
+epic pages link "$CONTENT_FOLDER/epics/demo/demo.plan.html" --hash away --show
 ```
 
 ## Say

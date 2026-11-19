@@ -21,7 +21,7 @@ epic add demo#I "Meeting times are read in the wrong time zone when you travel" 
 epic add demo#I "Two all-day events were read out as one" --calm --details '<p>"Sam away" and "Office closed" both fell on Friday, and the briefing joined them into one line.</p>'
 epic update demo#I2 fixed "Each all-day event now gets its own short line.  Test added for two on one day."
 epic add demo#I "The greeting should use my nickname" --requested --details '<p>Your words:  <q>Call me Oz in the morning, not Owen.</q></p>'
-epic update demo#I3 done "The greeting reads your nickname from your profile, when you have one."
+epic close demo#I3
 epic add demo#T "Let people choose which calendars count" --details '<p>A shared family calendar can fill the briefing with other people'"'"'s plans.  A setting could leave it out.</p>'
 epic add demo#T "Only the 50 newest unread emails are checked" --limit --details '<p>Enough for a normal morning.  After a long holiday, older mail is not looked at.</p>'
 epic add demo#M "Hear the briefing on your own laptop" --step '1. In Terminal: <pre><code>cd ~/www/jarvis
