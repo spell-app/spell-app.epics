@@ -1843,6 +1843,7 @@ Entries before 2026-09-30 are from when the command line lived in the parser rep
   `data-spell-needs-server`. · brand
 
 ## epics
+- 2026-11-19 · `epic pages shots` draws a page light even when asked for dark:  the page server's saved colour scheme wins over the browser's, so every "dark" shot of `<ui-json>` came out light. · Fix:  a Playwright script that opens the page with `?scheme=dark` (and `colorScheme: "dark"`) on its address.  `epic pages shots` should add the query itself. · epics (epic `from-jarvis` P3)
 - 2026-11-08 · `epic update <epic>#J3 fixed` is refused ("fixed"?), though its help and the inbox tell you to use it:  `CARD_STATES` in `epicArgs.ts` lacks "fixed" · workaround:  `yarn plan-doc status <epic> J3 fixed "..."` in `epic/` · language
 
 - 2026-10-27 · `epic commit debut#I77 <sha>` from a kit worktree finds only the KIT's commits:  a child repo's sha
