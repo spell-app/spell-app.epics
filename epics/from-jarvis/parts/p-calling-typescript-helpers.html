@@ -93,6 +93,209 @@ export function readNetlist(source: string | NetlistJSON, options: ReadOptions =
     So with this I could e.g. call DOM methods from spell somehow? How would that work? I'd set up a helper file in a
     library?
   </p></epic-reply
+><epic-reply from="Claude" at="2026-11-19 18:30" re="revisit soon">
+  <blockquote>
+    So with this I could e.g. call DOM methods from spell somehow? How would that work? I'd set up a helper file in a
+    library?
+  </blockquote>
+
+  <p>
+    <b>Yes.</b> A helper is plain TypeScript, so it can do anything the browser can: focus a field, copy to the
+    clipboard, measure an element. Spell calls it by its words, like any Spell function.
+  </p>
+  <p>
+    And yes, a library is a good home for DOM helpers. Spell's project imports already carry a library's functions into
+    the project that imports it.
+  </p>
+
+  <p><b>What Spell can do with the DOM today, without helpers:</b></p>
+  <ul>
+    <li>
+      Only what Spell has a statement for. Each statement compiles to one of Spell's own runtime methods, and that
+      method touches the page.
+    </li>
+    <li>
+      <code>scroll to the top</code> compiles to
+      <a href="/parser/src/core/ui.ts" target="src-parser-src-core-ui-ts"
+        ><code title="parser/src/core/ui.ts">core.scrollToTop()</code></a
+      >, which scrolls the app's element into view.
+    </li>
+    <li>
+      <code>pause video "intro"</code> compiles to
+      <a href="/parser/src/spell/rules/UI/MediaCall.ts" target="src-parser-src-spell-rules-ui-mediacall-ts"
+        ><code title="parser/src/spell/rules/UI/MediaCall.ts">core.pause(...)</code></a
+      >; <code>open printing</code> opens the Print dialog for the app alone.
+    </li>
+    <li>
+      There's no general "call this JavaScript method" in Spell, and no way to name a thing's element. A Spell program
+      talks to its things, and the page keeps each thing and its element agreeing by itself.
+    </li>
+    <li>There are no Spell words for focus or the clipboard today. Those are exactly what a helper would add.</li>
+  </ul>
+
+  <p><b>How a helper works, end to end.</b> A small helper file, with Q9's option A for its words:</p>
+  <epic-code title="clipboard.ts · a helper file" language="ts">
+    <pre>
+/**
+ * Put `text` on the clipboard, as if the person had copied it.
+ * - spell:  copy (text) to the clipboard
+ * - spell es:  copiar (texto) al portapapeles
+ * - NEVER throws:  a browser that refuses says so in the console
+ */
+export async function copyText(text: string): Promise&lt;void&gt; {
+  await navigator.clipboard.writeText(text).catch((error) =&gt; console.error(error))
+}</pre>
+  </epic-code>
+
+  <p><b>Where it sits, and how it's listed.</b> Two places, both through the project file:</p>
+  <ul>
+    <li>In the project itself: its project file lists the helper, as option A says.</li>
+    <li>
+      In a library project: the LIBRARY's project file lists the helper. Any project that imports the library gets its
+      functions, with the import line Spell already has for another project.
+    </li>
+  </ul>
+  <epic-code title="the two project files, with the helper in a library" language="json">
+    <pre>
+// the library, owen@spell/browser-helpers:  its __project.json5
+imports: [{ path: "/clipboard.ts", active: true }]
+
+// a program using it:  its __project.json5, an import of another project, as today
+imports: [{ path: "/Notes.spell", active: true }, { path: "owen@spell/browser-helpers" }]
+
+// or just the one function, as today's imports already pick names
+imports: [{ path: "owen@spell/browser-helpers", import: ["copyText"] }]</pre>
+  </epic-code>
+
+  <p><b>The Spell, and what it compiles to:</b></p>
+  <epic-code title="Notes.spell, and its compiled JavaScript" language="text">
+    <pre>
+Spell:
+  to share the note:
+    copy the note's text to the clipboard
+
+compiled JavaScript:
+  import { copyText } from "@spell/project/owen@spell/browser-helpers"
+  ...
+  await copyText(note.text)</pre>
+  </epic-code>
+  <ul>
+    <li>
+      The import line at the top is how a library's names reach a program today. Each imported project's module is
+      recorded with the names it provides (<a
+        href="/parser/src/spell/SpellDeclarations.ts"
+        target="src-parser-src-spell-spelldeclarations-ts"
+        ><code title="parser/src/spell/SpellDeclarations.ts">SpellDeclarations.load()</code></a
+      >).
+    </li>
+    <li>The call itself is an ordinary Spell function call, matched by its words and compiled to the code name.</li>
+  </ul>
+
+  <p><b>Reaching a thing's element.</b> Most DOM helpers want an element, but Spell hands the helper a thing:</p>
+  <ul>
+    <li>
+      <code>focus the first field of the form</code> would hand <code>focusFirstField(form)</code> the form thing, not
+      its <code>&lt;notes-form&gt;</code> element.
+    </li>
+    <li>
+      The page can go from an element to its thing (<a
+        href="/app/src/app/runner/SpellElement.tsx"
+        target="src-app-src-app-runner-spellelement-tsx"
+        ><code title="app/src/app/runner/SpellElement.tsx">SpellElement.thingOf()</code></a
+      >), and Spell's runtime knows the id it gave a thing's element (<a
+        href="/parser/src/core/references.ts"
+        target="src-parser-src-core-references-ts"
+        ><code title="parser/src/core/references.ts">core.elementIdFor()</code></a
+      >).
+    </li>
+    <li>
+      But nothing hands a helper the element itself. A helper would need a small runtime call for that, say
+      <code>core.elementOf(thing)</code>. That's new, and not in P10's plan yet.
+    </li>
+  </ul>
+  <epic-code title="focusFirstField.ts · once there's an element lookup" language="ts">
+    <pre>
+import { core } from "spell/parser/core"
+
+/**
+ * Put the cursor in `view`'s first field it can type in.
+ * - spell:  focus the first field of (view)
+ * - Nothing to focus, or not drawn yet:  nothing happens
+ */
+export function focusFirstField(view: object): void {
+  const element = core.elementOf(view)     // NEW:  not in core today
+  element?.querySelector&lt;HTMLElement&gt;("input, textarea, ui-input")?.focus()
+}</pre>
+  </epic-code>
+
+  <p><b>What the plan already decides:</b></p>
+  <ul>
+    <li>A helper file is listed in a project file, and its exported functions are callable from Spell.</li>
+    <li>It becomes the kind of import Spell already has for code it calls but doesn't compile.</li>
+    <li>Its inputs are typed from the TypeScript, read by the kit's TypeScript reader.</li>
+    <li>A helper uses the project's own classes, not a second copy.</li>
+  </ul>
+
+  <p><b>What isn't decided yet:</b></p>
+  <ul>
+    <li>
+      Where each function's Spell words come from: <a href="#q9">Q9</a>, still open. The <code>spell:</code> lines above
+      are its option A.
+    </li>
+    <li>
+      A helper in a library: the plan covers a project's own helper. Whether the library's compiled module passes its
+      helpers' functions on (so the import line above works unchanged) is new work for P10, small but unwritten.
+    </li>
+    <li>The element lookup, <code>core.elementOf(thing)</code>, for helpers that need a thing's element.</li>
+  </ul>
+
+  <p><b>A and B both:</b> you picked both, which makes two ways in for the same helper.</p>
+  <ul>
+    <li>
+      Everything B's <code>use</code> line would do, the project file already does: it lists the helper, and its
+      <code>import</code> list picks single names from a library.
+    </li>
+    <li>
+      B would add a new Spell statement to design and translate into Spanish, and a second place to look when a call
+      can't be found.
+    </li>
+    <li>What B gives that A doesn't: the helper named in the Spell file that uses it, where a reader sees it.</li>
+  </ul>
+  <epic-choices>
+    <epic-option letter="A" title="Project file only, libraries through today's project imports" recommended
+      ><ul>
+        <li>One way in: a helper is listed in its own project's file.</li>
+        <li>A library's helpers reach a program through the import line it already has.</li>
+        <li>No new Spell statement.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="B" title="Both: the project file, and a use line in Spell"
+      ><ul>
+        <li>
+          The project file lists the helper file once; a <code>use</code> line in a Spell file names the functions it
+          calls.
+        </li>
+        <li>Two ways in, and a new statement in English and Spanish.</li>
+      </ul></epic-option
+    >
+    <epic-option letter="C" title="A use line only"
+      ><ul>
+        <li>The Spell file names the helper file and its functions; the project file isn't involved.</li>
+        <li>A new statement, and library helpers would need their own path rules.</li>
+      </ul></epic-option
+    >
+  </epic-choices>
+  <epic-net-effect option="A" recommended
+    ><ul>
+      <li>P10 keeps option A only; option B's <code>use</code> line is dropped</li>
+      <li>P10's plan gains: a library's compiled module passes on its helpers' functions</li>
+      <li>
+        a todo, or a line in P10's plan, for <code>core.elementOf(thing)</code>, so DOM helpers can reach a thing's
+        element
+      </li>
+      <li>the words still wait on <a href="#q9">Q9</a></li>
+    </ul></epic-net-effect
+  > </epic-reply
 ><epic-field name="goal"
   ><ul>
     <li>A Spell page calls <code>readNetlist()</code>-style helpers</li>
