@@ -10,7 +10,7 @@ epic demo seen
 epic phase "demo#${PICK:-p-a-joke}" active --no-open
 epic inbox status demo "Building A Joke"
 epic add demo#Q "What kind of jokes should Jarvis tell?" --options "*Puns and wordplay | Short one-liners | Facts that sound like jokes" --details '<p>Jokes heard before coffee need to be short.  Puns land in one sentence:  "I used to hate facial hair, but then it grew on me."</p>'
-epic add demo#Q "What happens when you don't laugh?" --options "*Nothing:  Jarvis moves on | Jarvis says \"Tough crowd\" | Jarvis explains the joke" --details '<p>Jarvis can'"'"'t really tell if you laughed.  We recommend moving on.  The cost:  no chance for a comeback.</p>'
+epic add demo#Q "What happens when you don't laugh?" --options "*Nothing:  Jarvis moves on | Jarvis says \"Tough crowd\" | Jarvis explains the joke" --details '<p>Jarvis can'"'"'t tell if you laughed.  The cost of moving on:  Jarvis never gets a comeback.</p>'
 epic open demo --review
 ```
 

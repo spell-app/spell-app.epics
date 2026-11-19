@@ -36,7 +36,7 @@ The parts:
 
 ```html
 <epic-section id="o2" kind="overview-part" title="How it works">
-  <p>Each part of the briefing is a <code>BriefingSource</code>.  Jarvis asks all four at once, waits up to 3 seconds, and reads what came back, in order.</p>
+  <p>Each of the four parts (meetings, links, weather, joke) is built on its own, as a <code>BriefingSource</code>, so one can be added or fixed without touching the others.</p><p>Jarvis asks all four at the same time, waits up to 3 seconds, then reads out whatever is ready, in that order.  A part that is late is left out.</p>
   <epic-code title="greetings.ts · after · 4 lines" language="ts"><pre>if (/good morning/i.test(phrase)) {
   const briefing = await Briefing.forToday(ctx, [meetings, links, weather, joke])
   await ctx.speak(briefing.paragraph)
@@ -47,8 +47,8 @@ The parts:
 ```html
 <epic-section id="o3" kind="overview-part" title="What stays the same">
   <ul>
-    <li>The wake phrase and every other skill work as they do today.</li>
-    <li>A part that isn't built yet says nothing.  The briefing still works.</li>
+    <li>Saying good morning, and everything else Jarvis does, works as it does today.</li>
+    <li>Today only the joke is real.  Until the other parts are built, the briefing skips them.</li>
   </ul>
 </epic-section>
 ```
