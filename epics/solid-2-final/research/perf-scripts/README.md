@@ -40,7 +40,7 @@ node /Users/owen/www/spell/spell.epics/epics/solid-2-final/research/perf-scripts
 
 ### How long it takes
 
-On the M5 Pro, with the defaults (5 runs):  about 30-40 minutes (estimated from a 3-run pass on a busy machine).
+On the M5 Pro, with the defaults (5 runs):  about 45-55 minutes (estimated:  3 runs took 35 minutes on a busy machine).
 - The editor's phone loads are the slow part:  20-35s each, waiting for 3s with no long task.
 - A quick check of one page:  `--page docs --profile desktop --runs 1 --steps load` takes about a minute.
 
