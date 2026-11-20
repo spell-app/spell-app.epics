@@ -3,7 +3,9 @@ id: r3
 epic: repo-split
 from: 🚧 epic-engine (4d9aa1d9)
 at: 2026-11-20T08:17-05:00
-status: new
+status: filed
+filed: P32 · Slim npm Install
+phase: p-slim-npm-install
 ---
 
 ## The person's words
