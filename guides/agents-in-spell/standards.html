@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Standards for agents in apps</title>
-    <meta name="description" content="One sentence." />
+    <meta
+      name="description"
+      content="Which open standards and kits Spell should build its agents on, layer by layer: AG-UI, MCP, ACP, A2UI, MCP Apps, Agent Skills and the model wire formats, with create-ag-ui-app reviewed."
+    />
     <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page">
@@ -13,211 +16,1435 @@
       <main class="spell-doc-main">
         <ui-breadcrumbs class="spell-crumbs" size="small" aria-label="Breadcrumb">
           <ui-breadcrumb link="/pages/index.html" target="src-packages-docs-index-html">Spell Epic</ui-breadcrumb>
+          <ui-breadcrumb link="agents-in-spell.html">Agents in Spell</ui-breadcrumb>
           <ui-breadcrumb selected>Standards for agents in apps</ui-breadcrumb>
         </ui-breadcrumbs>
         <ui-sticky class="spell-h1"
           ><header class="spell-page-head"><h1>Standards for agents in apps</h1></header></ui-sticky
         >
-        <p class="lede">One sentence: what this doc settles, and for whom.</p>
+        <p class="lede">
+          Which standards and kits Spell's agents should stand on, one per layer, so we use what's already out there and
+          write only what's ours.
+        </p>
         <ui-list class="spell-meta">
-          <ui-item icon="user">Written for: who reads this, and what they're about to do</ui-item>
-          <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="orange">draft</ui-label> (or decided / built)</ui-item
-          >
+          <ui-item icon="user">Written for: Owen, reviewing the epic's discussion docs before any planning</ui-item>
+          <ui-item icon="flag">Status: <ui-label size="mini" color="orange">draft</ui-label></ui-item>
           <ui-item icon="flask"
-            >Researched on: branch, date, and how the claims were checked (see
-            <a href="#4-sources">Sources</a>)</ui-item
+            >Researched on: branch <code>agents-in-spell</code>, 2026-11-20. The scaffolder was downloaded and read;
+            packages and download counts checked on npm; the rest from the projects' own pages (see
+            <a href="#7-sources">Sources</a>). Each claim says whether it was checked or is a guess.</ui-item
           >
         </ui-list>
 
         <ui-section id="1-summary" label="1. Summary" sticky collapsible dividing open="false">
           <ui-statistics class="spell-stats" size="mini">
-            <ui-statistic value="3×" label="faster"></ui-statistic>
-            <ui-statistic value="1.2" label="ms, median"></ui-statistic>
-            <ui-statistic value="0" label="breaking changes"></ui-statistic>
+            <ui-statistic value="1.0" label="AG-UI, stable since Sep 30"></ui-statistic>
+            <ui-statistic value="94M" label="MCP SDK downloads a week"></ui-statistic>
+            <ui-statistic value="49" label="agents in the ACP registry"></ui-statistic>
+            <ui-statistic value="0" label="kits for Solid 2"></ui-statistic>
           </ui-statistics>
           <ul>
-            <li>The conclusion first, one idea per bullet.</li>
-            <li>Every fact, number and caveat survives condensing.</li>
-            <li>Headline numbers above: 2-4 of them, each also stated (with its caveat) in the body.</li>
+            <li>
+              By November 2026 the field has settled into a few standards, and most of them now sit with neutral
+              foundations:
+              <ul>
+                <li><b>MCP</b>: how an agent reaches tools. Everyone speaks it.</li>
+                <li><b>AG-UI</b>: how an app watches an agent work, event by event. It reached 1.0 on 2026-09-30.</li>
+                <li>
+                  <b>ACP</b>: how an app hosts a coding agent someone already has (Claude Code, Codex, Gemini CLI ...).
+                </li>
+                <li>
+                  <b>A2UI</b> and <b>MCP Apps</b>: how an agent shows UI. A2UI sends a description that the app draws
+                  with its own components; MCP Apps sends a whole page that runs in an iframe.
+                </li>
+                <li>
+                  <b>Agent Skills</b>, <b>AGENTS.md</b> and <b>llms.txt</b>: how you teach an agent about a project.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <code>create-ag-ui-app</code> is a thin wizard of about 5 KB.
+              <ul>
+                <li>Its web choice hands off to CopilotKit's CLI, which builds a React or Next.js app.</li>
+                <li>Its terminal choice downloads a plain TypeScript example.</li>
+                <li>
+                  That example is the useful part: it shows the AG-UI client running with no framework at all, which is
+                  what Spell UI needs.
+                </li>
+              </ul>
+            </li>
+            <li>
+              No chat kit fits Spell UI as it is:
+              <ul>
+                <li>CopilotKit, assistant-ui and OpenAI's ChatKit are React first.</li>
+                <li>TanStack AI has Solid bindings, but for Solid 1.</li>
+                <li>
+                  Their headless clients (<code>@ag-ui/client</code>, the AI SDK's <code>AbstractChat</code>) do work
+                  without a framework.
+                </li>
+              </ul>
+              So Spell takes a client off the shelf and draws the chat itself, with <code>&lt;ui-*&gt;</code> elements.
+            </li>
+            <li>
+              Spell already has an agent flow: Change This, on the selected part.
+              <ul>
+                <li>Its plumbing is ours: an inbox file, a headless Claude Code, and a reader for its log.</li>
+                <li>
+                  The stack below keeps that flow and replaces the plumbing (see
+                  <a href="#3-change-this">Change This, on standards</a>).
+                </li>
+              </ul>
+            </li>
           </ul>
           <ui-message state="positive" heading="Recommendation">
             <ul>
-              <li>What to do, in one line.</li>
+              <li>One new kit folder, <code>src/agents/</code>, holding ONE client for every agent.</li>
+              <li>It speaks AG-UI to the editor, and MCP to the editor's tools.</li>
+              <li>
+                It hosts outside coding agents through ACP, and models through the two wire formats everyone copies.
+              </li>
+              <li>The same MCP server, put online, lets Claude, ChatGPT and Cursor work on Spell projects too.</li>
             </ul>
           </ui-message>
         </ui-section>
 
-        <ui-section id="2-the-design" label="2. The design" sticky collapsible dividing open="false">
+        <ui-section id="2-the-stack" label="2. The stack, layer by layer" sticky collapsible dividing open="false">
           <p>
-            A short lead, then a nested <code>&lt;ui-section&gt;</code> per distinct part. A
-            <dfn class="spell-term" tabindex="0">coined term</dfn>
-            <ui-popup
-              heading="coined term"
-              label="What it means here, in one line:  hover or focus the term."
-            ></ui-popup>
-            gets its meaning in a popup.
+            Six layers, from the model up to the people. Each sub-section says what the layer is, which standard to
+            take, and what Spell would still write itself. The comparison table at the end lines them all up.
           </p>
 
-          <ui-section id="how-it-flows" label="How it flows" sticky collapsible dividing open="false">
-            <ui-steps class="spell-steps" ordered>
-              <ui-step heading="step one" description="What happens first, and when."></ui-step>
-              <ui-step heading="step two" description="What it hands on."></ui-step>
-              <ui-step heading="step three" description="Where it ends."></ui-step>
-            </ui-steps>
-          </ui-section>
-
-          <ui-section id="the-parts" label="The parts" sticky collapsible dividing open="false">
-            <ui-cards class="spell-flow" stackable>
-              <ui-card>
-                <ui-content>
-                  <ui-header>a part</ui-header>
-                  <ui-description>What it owns.</ui-description>
-                </ui-content>
-              </ui-card>
-              <ui-card>
-                <ui-content>
-                  <ui-header>another part</ui-header>
-                  <ui-description>What it leaves to the first.</ui-description>
-                </ui-content>
-              </ui-card>
-            </ui-cards>
-          </ui-section>
-
-          <ui-section id="today-vs-proposed" label="Today vs proposed" sticky collapsible dividing open="false">
+          <ui-section id="the-layers" label="The six layers at a glance" sticky collapsible dividing open="false">
             <ui-table celled padding="compact" appearance="striped" unstackable>
               <table>
                 <tbody>
                   <tr>
-                    <th>case</th>
-                    <th>today</th>
-                    <th>proposed</th>
-                    <th class="num right aligned">ms</th>
+                    <th>layer</th>
+                    <th>what crosses it</th>
+                    <th>take</th>
+                    <th>Spell writes</th>
                   </tr>
                   <tr>
-                    <td>an input</td>
-                    <td class="no negative">what goes wrong</td>
-                    <td class="yes positive">what should happen</td>
-                    <td class="num right aligned">1.2</td>
+                    <td>1. model API</td>
+                    <td>prompts, tokens, tool calls</td>
+                    <td class="yes positive">OpenAI-style and Anthropic Messages, through one adapter kit</td>
+                    <td>the settings: which model, which key</td>
                   </tr>
                   <tr>
-                    <td>another</td>
-                    <td class="meh warning">works, but slowly</td>
-                    <td class="yes positive">fast</td>
-                    <td class="num right aligned">0.4</td>
+                    <td>2. agent loop</td>
+                    <td>think, call a tool, read, repeat</td>
+                    <td class="yes positive">a kit's loop for models; ACP for agents people already have</td>
+                    <td>the system prompt, the Spell skill</td>
+                  </tr>
+                  <tr>
+                    <td>3. agent and editor tools</td>
+                    <td>"read this part", "change that file"</td>
+                    <td class="yes positive">MCP</td>
+                    <td>
+                      the tools themselves (<a
+                        href="editor-surface.html"
+                        target="src-guides-agents-in-spell-editor-surface-html"
+                        >editor-surface.html</a
+                      >)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>4. agent and UI events</td>
+                    <td>text as it streams, tool calls, state, questions back</td>
+                    <td class="yes positive">AG-UI, with its framework-free client</td>
+                    <td>the chat and progress views, in Spell UI</td>
+                  </tr>
+                  <tr>
+                    <td>5. generated UI</td>
+                    <td>cards, forms, whole apps</td>
+                    <td class="meh warning">Spell itself, for apps; A2UI for cards in the chat, later</td>
+                    <td>a catalog mapping A2UI to <code>&lt;ui-*&gt;</code></td>
+                  </tr>
+                  <tr>
+                    <td>6. outside agents driving Spell</td>
+                    <td>Claude, ChatGPT, Cursor editing a project</td>
+                    <td class="yes positive">a remote MCP server, Agent Skills, AGENTS.md, llms.txt</td>
+                    <td>the server's sign-in, the skill's text</td>
                   </tr>
                 </tbody>
               </table>
             </ui-table>
           </ui-section>
 
-          <ui-section id="trade-offs" label="Trade-offs" sticky collapsible dividing open="false">
-            <ui-grid class="spell-pros-cons" columns="2" stackable>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attach-to="top" color="green"><ui-icon name="thumbs up"></ui-icon> For</ui-label>
-                  <ul>
-                    <li>What this choice buys.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attach-to="top" color="red"><ui-icon name="thumbs down"></ui-icon> Against</ui-label>
-                  <ul>
-                    <li>What it costs, and who pays.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-            </ui-grid>
+          <ui-section id="layer-1-model-api" label="1. The model API" sticky collapsible dividing open="false">
+            <p>
+              Every model is reached through one of two wire formats, and nearly every provider now copies at least one.
+            </p>
+            <ul>
+              <li>
+                <b>OpenAI's formats</b>: Chat Completions, the old one every local server speaks, and Responses, the new
+                one.
+                <ul>
+                  <li>
+                    Responses is now an open spec, Open Responses (from 2026-01-15), given to the Agentic AI Foundation
+                    on 2026-10-22.
+                  </li>
+                  <li>
+                    OpenRouter, Ollama, LM Studio, vLLM, Hugging Face and Vercel support it. Anthropic and Google don't,
+                    at the start (reported, not checked).
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>Anthropic Messages</b>: Ollama, LM Studio, vLLM and OpenRouter each serve a
+                <code>/v1/messages</code> route too (their docs, checked by search, not by running them).
+              </li>
+              <li>
+                So the client never needs a provider's own SDK.
+                <ul>
+                  <li>A kit with provider adapters does the work: the Vercel AI SDK, or TanStack AI.</li>
+                  <li>
+                    Both are framework-free at the core. Both are on npm, checked: <code>ai</code> 7.0.177 is fetched
+                    48.7M times a week, <code>@tanstack/ai</code> 1.8.0 3.7M.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Which models, what they cost, and the gateways:
+                <a href="models.html" target="src-guides-agents-in-spell-models-html">models.html</a>.
+              </li>
+              <li>
+                Models on your own machine:
+                <a href="local-models.html" target="src-guides-agents-in-spell-local-models-html">local-models.html</a>.
+              </li>
+            </ul>
           </ui-section>
 
-          <ui-section id="the-code" label="The code" sticky collapsible dividing open="false">
-            <p>Prefer an excerpt from a real, runnable file; say which.</p>
-            <ui-accordion class="spell-code" appearance="styled">
-              <ui-title>example.ts · 6 lines</ui-title>
-              <ui-content>
-                <pre><code class="language-ts">// every code block starts folded:  no `open`
-export function greet(name: string): string {
-  return `hello, ${name}`
-}
+          <ui-section id="layer-2-agent-loop" label="2. The agent loop" sticky collapsible dividing open="false">
+            <p>
+              An
+              <dfn class="spell-term" tabindex="0">agent</dfn>
+              <ui-popup
+                heading="agent"
+                label="A model in a loop: it thinks, calls a tool, reads the answer, and goes again until it's done.  Spell's code word for any of them (Owen's Q1)."
+              ></ui-popup>
+              is a model in a loop. Spell meets two kinds, and needs both.
+            </p>
+            <ui-cards class="spell-flow" stackable>
+              <ui-card>
+                <ui-content>
+                  <ui-header>A loop Spell runs</ui-header>
+                  <ui-description>
+                    <ul>
+                      <li>For a bare model behind a key: Qwen on a laptop, a cheap model on spell.app.</li>
+                      <li>
+                        Take a kit's loop: the AI SDK's <code>ToolLoopAgent</code> (checked in its types), or TanStack
+                        AI's.
+                      </li>
+                      <li>It runs in the browser, in Electron, or on a server.</li>
+                    </ul>
+                  </ui-description>
+                </ui-content>
+              </ui-card>
+              <ui-card>
+                <ui-content>
+                  <ui-header>An agent someone already has</ui-header>
+                  <ui-description>
+                    <ul>
+                      <li>Claude Code, Codex, Gemini CLI, Qwen Code: each has its own loop, sign-in and plan.</li>
+                      <li>Host it through <b>ACP</b>, the Agent Client Protocol.</li>
+                      <li>Or, for Claude only, the Claude Agent SDK: the loop Claude Code runs, as a library.</li>
+                    </ul>
+                  </ui-description>
+                </ui-content>
+              </ui-card>
+            </ui-cards>
+            <h4>ACP, the Agent Client Protocol</h4>
+            <ul>
+              <li>
+                What it is: LSP for coding agents. The editor starts the agent and talks JSON-RPC to it over stdio.
+              </li>
+              <li>
+                Who: started by Zed in August 2025, joined by JetBrains. Their shared registry opened in January 2026.
+              </li>
+              <li>
+                Its registry lists 49 agents (checked 2026-11-20), among them:
+                <ul>
+                  <li>Claude Agent, Codex, Gemini CLI, GitHub Copilot, Cursor</li>
+                  <li>goose, OpenCode, Qwen Code, Mistral Vibe, Kimi Code, Junie</li>
+                </ul>
+              </li>
+              <li><code>@agentclientprotocol/sdk</code> 2.8.0 is fetched 9.9M times a week (checked on npm).</li>
+              <li>
+                The catch: local agents run as a child process, so it needs Node, which means the page server or
+                Electron, never a phone or a plain tab.
+                <ul>
+                  <li>Remote agents over HTTP or WebSocket are "a work in progress", by ACP's own site.</li>
+                </ul>
+              </li>
+              <li>
+                Why it matters: it's the cheapest bring-your-own-agent there is. People use the plan they already pay
+                for, and Spell pays nothing (<a href="byo-agent.html" target="src-guides-agents-in-spell-byo-agent-html"
+                  >byo-agent.html</a
+                >).
+              </li>
+            </ul>
+            <h4>The agent frameworks, briefly</h4>
+            <p>
+              All of these speak AG-UI, through adapters in AG-UI's own repo (its folders were checked). None is needed
+              to start; each is a backend someone else might bring.
+            </p>
+            <ui-table celled padding="compact" appearance="striped">
+              <table>
+                <tbody>
+                  <tr>
+                    <th>framework</th>
+                    <th>who</th>
+                    <th>language</th>
+                    <th class="num right aligned">npm a week</th>
+                    <th>fit for Spell</th>
+                  </tr>
+                  <tr>
+                    <td>Claude Agent SDK</td>
+                    <td>Anthropic</td>
+                    <td>TS, Python</td>
+                    <td class="num right aligned">20.7M</td>
+                    <td class="meh warning">Claude only; ships a native binary for each platform, so Node only</td>
+                  </tr>
+                  <tr>
+                    <td>OpenAI Agents SDK</td>
+                    <td>OpenAI</td>
+                    <td>TS, Python</td>
+                    <td class="num right aligned">2.5M</td>
+                    <td class="meh warning">any model through adapters, but OpenAI's shape</td>
+                  </tr>
+                  <tr>
+                    <td>Vercel AI SDK 7</td>
+                    <td>Vercel</td>
+                    <td>TS</td>
+                    <td class="num right aligned">48.7M</td>
+                    <td class="yes positive">
+                      framework-free core, every provider; it can also wrap Claude Code and Codex as agents
+                      (<code>HarnessAgent</code>)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>TanStack AI</td>
+                    <td>TanStack</td>
+                    <td>TS</td>
+                    <td class="num right aligned">3.7M</td>
+                    <td class="yes positive">AG-UI is its own wire format; headless client; Solid 1 bindings</td>
+                  </tr>
+                  <tr>
+                    <td>Mastra</td>
+                    <td>Mastra</td>
+                    <td>TS</td>
+                    <td class="num right aligned">4.1M</td>
+                    <td class="meh warning">a whole server framework: more than Spell needs</td>
+                  </tr>
+                  <tr>
+                    <td>LangGraph</td>
+                    <td>LangChain</td>
+                    <td>Python, TS</td>
+                    <td class="num right aligned">5.2M</td>
+                    <td class="no negative">graphs of agents: heavy, Python first</td>
+                  </tr>
+                  <tr>
+                    <td>Pydantic AI</td>
+                    <td>Pydantic</td>
+                    <td>Python</td>
+                    <td class="num right aligned">n/a</td>
+                    <td class="no negative">Python: only if a Python backend appears</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p class="meta">npm counts: the week of 2026-11-13 to 11-19, checked. PyPI counts weren't checked.</p>
+          </ui-section>
 
-const message = greet("spell")</code></pre>
-              </ui-content>
-            </ui-accordion>
-            <p>Variants of one snippet (before / after, TS / JS) go in tabs, one code block per tab.</p>
-            <ui-tabs class="spell-tabs" appearance="pointing secondary basic" aria-label="Before and after">
-              <ui-tab label="Before">
-                <ui-accordion class="spell-code" appearance="styled">
-                  <ui-title>before.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return "hello, " + name
-}</code></pre>
-                  </ui-content>
-                </ui-accordion>
-              </ui-tab>
-              <ui-tab label="After">
-                <ui-accordion class="spell-code" appearance="styled">
-                  <ui-title>after.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return `hello, ${name}`
-}</code></pre>
-                  </ui-content>
-                </ui-accordion>
-              </ui-tab>
-            </ui-tabs>
-            <ui-message state="warning" heading="Heads up">
-              <ul>
-                <li>A trap the reader will fall into, and how to avoid it.</li>
-              </ul>
-            </ui-message>
-            <ui-accordion class="spell-aside" appearance="styled">
-              <ui-title>Aside: why not the obvious approach?</ui-title>
-              <ui-content>
-                <p>A digression the main text can skip. Starts collapsed.</p>
-              </ui-content>
-            </ui-accordion>
+          <ui-section
+            id="layer-3-tools"
+            label="3. The agent and the editor's tools: MCP"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                <b>What it is</b>: the Model Context Protocol. A server offers tools, resources and prompts; any agent
+                that speaks it can use them.
+              </li>
+              <li>
+                <b>Who</b>: Anthropic made it. Since 2025-12-09 it belongs to the Agentic AI Foundation, under the Linux
+                Foundation, with OpenAI, Block, Google, Microsoft and AWS among its members.
+              </li>
+              <li>
+                <b>How wide</b>: <code>@modelcontextprotocol/sdk</code> is fetched 94M times a week (checked). Every
+                agent in this doc speaks it.
+              </li>
+              <li>
+                <b>The latest spec, 2026-07-28</b> (checked on MCP's blog):
+                <ul>
+                  <li>stateless: no handshake, no session id; each request carries its version and abilities</li>
+                  <li>Streamable HTTP is the transport; the old HTTP+SSE one is deprecated, with a year to move off</li>
+                  <li>
+                    a server that needs an answer mid-call (a confirmation) returns "input required", and the client
+                    calls again with it
+                  </li>
+                  <li>
+                    sign-in is OAuth: client ID metadata documents replace dynamic registration, which is deprecated
+                  </li>
+                  <li>a framework for extensions: Tasks (long jobs) and MCP Apps (below) are extensions now</li>
+                </ul>
+              </li>
+              <li>
+                <b>How it fits</b>: the editor's tools are written once, as an MCP server, and every agent gets them:
+                <ul>
+                  <li>Spell's own loop calls them in-process.</li>
+                  <li>An ACP agent (Claude Code ...) is handed the server when its session starts.</li>
+                  <li>Claude, ChatGPT or Cursor reach it over HTTP, signed in (layer 6).</li>
+                </ul>
+              </li>
+              <li>
+                <b>The tools that only the open page can run</b> (select a part, show a preview): AG-UI calls them
+                <dfn class="spell-term" tabindex="0">frontend tools</dfn>
+                <ui-popup
+                  heading="frontend tools"
+                  label="Tools the page itself declares in a run's request;  the agent's call streams back to the page, which runs it and answers."
+                ></ui-popup
+                >.
+                <ul>
+                  <li>The page lists them in its run request, and answers their calls itself.</li>
+                  <li>
+                    AG-UI's Claude adapter already turns that list into an in-process MCP server for Claude (from
+                    CopilotKit's onboarding notes, read in the package).
+                  </li>
+                  <li>So one tool list, written once, serves both kinds.</li>
+                </ul>
+              </li>
+              <li>
+                <b>Later, WebMCP</b>: a browser API (<code>document.modelContext</code>) for a page to offer tools to
+                the browser's own agent.
+                <ul>
+                  <li>A W3C community draft; in a Chrome origin trial only (reported, not checked).</li>
+                  <li>Not to build on yet, but the same tool list could feed it.</li>
+                </ul>
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="layer-4-events"
+            label="4. The agent and the UI: AG-UI"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                <b>What it is</b>: the Agent-User Interaction protocol, a stream of typed events from an agent to a
+                page.
+                <ul>
+                  <li>
+                    The page posts one request (a <code>RunAgentInput</code>) and reads events back, usually over SSE.
+                  </li>
+                  <li>
+                    A binary encoding exists too (<code>@ag-ui/proto</code>, a dependency of the client, checked).
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>Who</b>: CopilotKit made it and runs it. 1.0 shipped 2026-09-30, with a JSON Schema the TypeScript,
+                Python and .NET SDKs are generated from.
+                <ul>
+                  <li>Its repo has 20.8k stars, pushed to today (checked).</li>
+                  <li>
+                    CopilotKit lists Google, Microsoft, Amazon and Oracle as adopters. That comes from CopilotKit
+                    itself: no announcement from those companies was found.
+                  </li>
+                  <li>
+                    What was checked: adapter folders in AG-UI's repo for Claude Agent SDK, Claude Managed Agents,
+                    OpenAI Agents, Microsoft Agent Framework, Google ADK, AWS Strands, Vercel AI SDK, Mastra, LangGraph,
+                    Pydantic AI and more.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>Its events</b> (from the 1.0 types, checked), in groups:
+                <ul>
+                  <li>a run: <code>RUN_STARTED</code>, <code>RUN_FINISHED</code>, <code>RUN_ERROR</code>, steps</li>
+                  <li>text: <code>TEXT_MESSAGE_START</code> / <code>_CONTENT</code> / <code>_END</code></li>
+                  <li>
+                    tools: <code>TOOL_CALL_START</code> / <code>_ARGS</code> / <code>_END</code> / <code>_RESULT</code>
+                  </li>
+                  <li>shared state: <code>STATE_SNAPSHOT</code>, and <code>STATE_DELTA</code> as JSON Patch</li>
+                  <li>thinking: <code>REASONING_*</code></li>
+                  <li>helpers: <code>SUBAGENT_STARTED</code> / <code>_FINISHED</code> / <code>_ERROR</code></li>
+                  <li>
+                    the rest: activity, <code>CUSTOM</code>, <code>RAW</code>; and a run can end with interrupts,
+                    questions that wait for a person
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>Without React</b>: yes, checked.
+                <ul>
+                  <li>
+                    <code>@ag-ui/client</code> 1.0.5 depends on rxjs and a few small helpers, and on no framework.
+                  </li>
+                  <li>
+                    Its <code>HttpAgent</code> takes a subscriber with one callback per event: Solid 2 signals can be
+                    set straight from those.
+                  </li>
+                  <li>The scaffolder's terminal example uses it that way (below).</li>
+                </ul>
+              </li>
+              <li>
+                <b>Against it</b>: one company leads it, and it's young. The AI SDK's own UI stream is the alternative:
+                more downloads, but it ties the backend to that SDK, while AG-UI has adapters for every framework above.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="layer-5-generated-ui"
+            label="5. Generated UI: Spell, A2UI, MCP Apps"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <p>
+              Three ways an agent shows UI. Spell's own case is unusual: its agents' main job is to write UI, as Spell.
+            </p>
+            <ui-table celled padding="compact" appearance="striped">
+              <table>
+                <tbody>
+                  <tr>
+                    <th>way</th>
+                    <th>what the agent sends</th>
+                    <th>who draws it</th>
+                    <th>for Spell</th>
+                  </tr>
+                  <tr>
+                    <td>Spell itself</td>
+                    <td>Spell source</td>
+                    <td>the editor, compiled</td>
+                    <td class="yes positive">the apps, sites, pages and components people make</td>
+                  </tr>
+                  <tr>
+                    <td>A2UI (Google)</td>
+                    <td>a description: which registered components, with what data</td>
+                    <td>the app, with its own components</td>
+                    <td class="meh warning">small cards in the chat: a picker, a question; later</td>
+                  </tr>
+                  <tr>
+                    <td>MCP Apps</td>
+                    <td>a whole HTML page</td>
+                    <td>a sandboxed iframe</td>
+                    <td class="meh warning">Spell's previews inside Claude and ChatGPT; others' apps inside Spell</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <h4>A2UI</h4>
+            <ul>
+              <li>Google's; 0.9 in spring 2026, 1.0 on 2026-11-11 (Google's blog, checked).</li>
+              <li>The agent can place only components the app registered, so it's safe, and the app keeps its look.</li>
+              <li>
+                Renderers: React, Angular and Lit on the web; Flutter, SwiftUI, Jetpack Compose.
+                <ul>
+                  <li>
+                    The Lit one is custom elements, the closest to Spell UI (<code>@a2ui/lit</code> 0.15.0, checked).
+                  </li>
+                </ul>
+              </li>
+              <li>Used at Atlassian (Jira), Alation, ByteDance and in Gemini Enterprise, by Google's account.</li>
+              <li>It rides on AG-UI: AG-UI's repo has an A2UI middleware (checked).</li>
+            </ul>
+            <h4>MCP Apps</h4>
+            <ul>
+              <li>
+                The official MCP extension for UI, stable since 2026-01-26. It merged MCP-UI and OpenAI's Apps SDK.
+              </li>
+              <li>
+                A tool names a <code>ui://</code> page in its <code>_meta.ui</code>; the host shows that page in an
+                iframe, and the two talk over <code>postMessage</code>.
+              </li>
+              <li>Shown in ChatGPT, Claude, VS Code, Goose and Postman, by the project's README.</li>
+              <li>
+                Its examples include a Solid one and a vanilla one (checked); the vanilla one is excerpted in
+                <a href="#4-create-ag-ui-app">the review</a>.
+              </li>
+              <li>
+                OpenAI's Apps SDK is now MCP Apps, plus ChatGPT-only extras. OpenAI is shutting Agent Builder on
+                2026-11-30; ChatKit stays (reported, not checked on OpenAI's site).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="layer-6-outside-agents"
+            label="6. Outside agents driving Spell"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <p>The reverse direction: someone's own Claude, ChatGPT or Cursor makes or changes a Spell project.</p>
+            <ul>
+              <li>
+                <b>A remote MCP server</b> on spell.app: the same tools as layer 3, over Streamable HTTP, signed in with
+                OAuth.
+              </li>
+              <li><b>MCP Apps</b> on that server: the agent shows the running app, inline in its chat.</li>
+              <li>
+                <b>Agent Skills</b> (<code>SKILL.md</code> folders): how to write Spell, as a skill any agent loads.
+                <ul>
+                  <li>
+                    Anthropic's, given to the Agentic AI Foundation on 2026-10-22: "more than 70 agent platforms",
+                    ChatGPT, Cursor, GitHub Copilot and VS Code among them, by Anthropic's post.
+                  </li>
+                  <li>Spell already writes skills for Claude Code, so this is a format we know.</li>
+                </ul>
+              </li>
+              <li>
+                <b>AGENTS.md</b>: a project's notes for coding agents. OpenAI's; a founding project of the foundation;
+                60,000+ projects by the Linux Foundation's count. The kit already has one.
+              </li>
+              <li>
+                <b>llms.txt</b>: a site's summary for language models.
+                <ul>
+                  <li>Cheap, but little read: Ahrefs found 97% of 137k files never fetched.</li>
+                  <li>Coding agents (Claude Code) are the ones that do fetch it, which is Spell's audience.</li>
+                </ul>
+              </li>
+              <li>
+                <b>A2A</b>, Google's agent-to-agent protocol, 1.0 in early 2026, at the Linux Foundation, 150+
+                organisations.
+                <ul>
+                  <li>For agents handing work to other agents, across companies. Not a need Spell has yet.</li>
+                </ul>
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="chat-kits" label="The chat kits: none fit Spell UI" sticky collapsible dividing open="false">
+            <ui-table celled padding="compact" appearance="striped">
+              <table>
+                <tbody>
+                  <tr>
+                    <th>kit</th>
+                    <th>for</th>
+                    <th class="num right aligned">npm a week</th>
+                    <th>Spell UI</th>
+                  </tr>
+                  <tr>
+                    <td>CopilotKit 1.90</td>
+                    <td>React, Vue, Angular, React Native</td>
+                    <td class="num right aligned">819k</td>
+                    <td class="meh warning">
+                      its <code>@copilotkit/core</code> is "core web utilities", but no web-component UI
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>assistant-ui</td>
+                    <td>React</td>
+                    <td class="num right aligned">3.5M</td>
+                    <td class="no negative">React only</td>
+                  </tr>
+                  <tr>
+                    <td>OpenAI ChatKit</td>
+                    <td>a web component and React, tied to OpenAI's backend</td>
+                    <td class="num right aligned">136k</td>
+                    <td class="no negative">one vendor</td>
+                  </tr>
+                  <tr>
+                    <td>AI SDK UI</td>
+                    <td>React, Vue, Svelte, Angular</td>
+                    <td class="num right aligned">14.4M</td>
+                    <td class="meh warning">
+                      its Solid package is deprecated; the headless <code>AbstractChat</code> works
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>TanStack AI</td>
+                    <td>React, Solid, and more</td>
+                    <td class="num right aligned">3.2M</td>
+                    <td class="meh warning">
+                      <code>@tanstack/ai-solid</code> wants <code>solid-js ^1.9</code>; the kit runs
+                      <code>2.0.0-rc.21</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Deep Chat, Loquix ...</td>
+                    <td>web components (Lit)</td>
+                    <td class="num right aligned">39k</td>
+                    <td class="no negative">a second component set beside Spell UI (WWOD: Spell UI for everything)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p class="meta">
+              Versions and counts checked on npm, 2026-11-20 (the client's count, for CopilotKit and TanStack).
+            </p>
           </ui-section>
         </ui-section>
 
-        <ui-section id="3-history" label="3. History" sticky collapsible dividing open="false">
-          <p class="meta">What changed in the decision, newest first. Not every edit: only what a reader must know.</p>
-          <ui-feed class="spell-history" size="small">
-            <ui-event icon="check">
-              <ui-content>
-                <ui-summary>Built, and the numbers re-measured <ui-date>2026-10-01</ui-date></ui-summary>
-              </ui-content>
-            </ui-event>
-            <ui-event icon="gavel">
-              <ui-content>
-                <ui-summary
-                  >Decided: the proposed design, over the obvious one <ui-date>2026-09-30</ui-date></ui-summary
-                >
-              </ui-content>
-            </ui-event>
-          </ui-feed>
-        </ui-section>
-
-        <ui-section id="4-sources" label="4. Sources and experiments" sticky collapsible dividing open="false">
+        <ui-section id="3-change-this" label="3. Change This, on standards" sticky collapsible dividing open="false">
+          <p>
+            Owen decided (Q3, B): keep the editor's Change This flow, and replace its plumbing with AG-UI events and MCP
+            tools. Here's what each part becomes.
+          </p>
+          <ui-steps class="spell-steps" ordered>
+            <ui-step
+              heading="Today"
+              description="The box posts the request to an inbox file;  the page server starts Claude Code headless;  the box polls for progress, read from Claude's log."
+            ></ui-step>
+            <ui-step
+              heading="Proposed"
+              description="The box starts an AG-UI run itself, and the page server streams the run's events back;  the agent edits through Spell's MCP tools."
+            ></ui-step>
+          </ui-steps>
+          <ui-table celled padding="compact" appearance="striped">
+            <table>
+              <tbody>
+                <tr>
+                  <th>today</th>
+                  <th>what it does</th>
+                  <th>becomes</th>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="/app/src/spaces/server/node/changes/ChangeRequests.ts"
+                      target="src-app-src-spaces-server-node-changes-changerequests-ts"
+                      ><code title="app/src/spaces/server/node/changes/ChangeRequests.ts">ChangeRequests</code></a
+                    >, the inbox file
+                  </td>
+                  <td>holds a request until a session takes it</td>
+                  <td>
+                    an AG-UI run: the request id is the <code>threadId</code>, the words and pictures its
+                    <code>messages</code>, the selected part its <code>context</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="/app/src/spaces/server/node/changes/ClaudeStarter.ts"
+                      target="src-app-src-spaces-server-node-changes-claudestarter-ts"
+                      ><code title="app/src/spaces/server/node/changes/ClaudeStarter.ts">ClaudeStarter</code></a
+                    >
+                  </td>
+                  <td>starts <code>claude --print</code> in the project's folder, with tight permissions</td>
+                  <td>
+                    the <code>src/agents/</code> client starts the person's chosen agent: Claude Code through ACP or the
+                    Agent SDK, or a model in Spell's own loop
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <a
+                      href="/app/src/spaces/server/node/changes/SessionLog.ts"
+                      target="src-app-src-spaces-server-node-changes-sessionlog-ts"
+                      ><code title="app/src/spaces/server/node/changes/SessionLog.ts">SessionLog</code></a
+                    >
+                  </td>
+                  <td>reads Claude's stream-json log, guesses the step from the last tool used</td>
+                  <td>
+                    gone: steps arrive as <code>TOOL_CALL_START</code> events, the last word as
+                    <code>TEXT_MESSAGE_*</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>spell app changes take</code> / <code>done</code></td>
+                  <td>how the session gets the request, and says it's finished</td>
+                  <td>
+                    gone: the request is the run's input, and <code>RUN_FINISHED</code> or <code>RUN_ERROR</code> ends
+                    it
+                  </td>
+                </tr>
+                <tr>
+                  <td>Claude's own Read and Edit tools</td>
+                  <td>change files on disk</td>
+                  <td>
+                    Spell's MCP tools: read a part, change a file, through the editor's history (see
+                    <a href="editor-surface.html" target="src-guides-agents-in-spell-editor-surface-html"
+                      >editor-surface.html</a
+                    >)
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <a href="/app/src/app/solid/ChangeThis.tsx" target="src-app-src-app-solid-changethis-tsx"
+                      ><code title="app/src/app/solid/ChangeThis.tsx">ChangeThis</code></a
+                    >
+                    polling
+                    <code>GET /api/changes</code>
+                  </td>
+                  <td>asks every so often what's happened</td>
+                  <td>
+                    subscribes to the run with <code>@ag-ui/client</code>'s <code>HttpAgent</code>, setting Solid 2
+                    signals from its callbacks
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
           <ul>
-            <li>Runnable scripts in <code>&lt;topic&gt;/experiments/</code>, each saying how to run it.</li>
-            <li>Tables quote medians of several runs, never a single run.</li>
+            <li>
+              What survives: the box, the selection's place, and "one step of <code>editor.history</code>" for the
+              result.
+            </li>
+            <li>
+              What's lost: a request waiting with no agent running, for a session typed into by hand (<code
+                >spell app changes wait</code
+              >).
+              <ul>
+                <li>
+                  An outside agent could still pick requests up as an MCP tool, if Owen wants that kept (open question
+                  4).
+                </li>
+              </ul>
+            </li>
+            <li>
+              The permissions today's starter sets (edit only in the project's folder, never skip permissions) carry
+              over: an MCP tool can do only what it's written to do.
+            </li>
           </ul>
+          <ui-section id="the-one-client" label="The one client, src/agents/" sticky collapsible dividing open="false">
+            <p>
+              Owen decided (Q2, A): ONE client for every model and agent, in the kit, used by parser, epic engine and
+              app. A sketch of its parts; nothing here is built.
+            </p>
+            <ui-cards class="spell-flow" stackable>
+              <ui-card>
+                <ui-content>
+                  <ui-header>browser-safe</ui-header>
+                  <ui-description>
+                    <ul>
+                      <li>the AG-UI client and its event types</li>
+                      <li>Spell's tool list, as frontend tools</li>
+                      <li>a model loop for a key in the page (local or BYO key)</li>
+                    </ul>
+                  </ui-description>
+                </ui-content>
+              </ui-card>
+              <ui-card>
+                <ui-content>
+                  <ui-header>node only</ui-header>
+                  <ui-description>
+                    <ul>
+                      <li>the AG-UI endpoint on the page server</li>
+                      <li>the ACP host: starts Claude Code, Codex, Gemini CLI</li>
+                      <li>Spell's MCP server, in-process and over HTTP</li>
+                    </ul>
+                  </ui-description>
+                </ui-content>
+              </ui-card>
+              <ui-card>
+                <ui-content>
+                  <ui-header>Spell writes</ui-header>
+                  <ui-description>
+                    <ul>
+                      <li>an ACP-to-AG-UI bridge: none was found</li>
+                      <li>the chat and progress views, in Spell UI</li>
+                      <li>the tools, and the Spell skill</li>
+                    </ul>
+                  </ui-description>
+                </ui-content>
+              </ui-card>
+            </ui-cards>
+            <ui-accordion class="spell-code" appearance="styled">
+              <ui-title>a sketch: Change This's box on @ag-ui/client · 24 lines, NOT run</ui-title>
+              <ui-content>
+                <pre><code class="language-ts">// A sketch for discussion, not code in any branch.
+import { HttpAgent } from "@ag-ui/client"
+import { createSignal } from "solid-js"
+
+const [step, setStep] = createSignal("starting")
+const [answer, setAnswer] = createSignal("")
+
+const agent = new HttpAgent({ url: "/api/agents/run", threadId: request.id })
+agent.messages.push({ id: request.id, role: "user", content: request.text })
+
+await agent.runAgent(
+  {
+    tools: SpellTools.frontend, // select a part, show the preview
+    context: [{ description: "the selected part", value: JSON.stringify(place) }]
+  },
+  {
+    onToolCallStartEvent: ({ event }) =&gt; setStep(event.toolCallName),
+    onTextMessageContentEvent: ({ event }) =&gt; setAnswer((text) =&gt; text + event.delta),
+    onRunFinishedEvent: () =&gt; setStep("done"),
+    onRunErrorEvent: ({ event }) =&gt; setStep(`failed:  ${event.message}`)
+  }
+)</code></pre>
+              </ui-content>
+            </ui-accordion>
+          </ui-section>
+        </ui-section>
+
+        <ui-section
+          id="4-create-ag-ui-app"
+          label="4. create-ag-ui-app, reviewed"
+          sticky
+          collapsible
+          dividing
+          open="false"
+        >
+          <ul>
+            <li>
+              What it is: AG-UI's starter wizard, <code>npx create-ag-ui-app</code>, version 0.0.59 of 2026-09-17, MIT,
+              by Markus Ecker of CopilotKit.
+            </li>
+            <li>How it was read: its tarball, downloaded into an empty folder, its scripts never run.</li>
+            <li>It's one file of about 5 KB, and it builds nothing itself. It asks one question, and hands off:</li>
+          </ul>
+          <ui-table celled padding="compact" appearance="striped">
+            <table>
+              <tbody>
+                <tr>
+                  <th>choice</th>
+                  <th>what it runs</th>
+                  <th>what you get</th>
+                </tr>
+                <tr>
+                  <td>CopilotKit/Next.js</td>
+                  <td><code>npx copilotkit@latest create -n &lt;name&gt; -f &lt;framework&gt;</code></td>
+                  <td>a Next.js app with CopilotKit's React chat, and an agent backend</td>
+                </tr>
+                <tr>
+                  <td>CLI client</td>
+                  <td>downloads <code>ag-ui/apps/client-cli-example</code> from GitHub</td>
+                  <td>a terminal chat: a Mastra agent, read through the AG-UI client</td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+          <ul>
+            <li>
+              Its flags pick the agent backend: <code>--langgraph-py</code>, <code>--langgraph-js</code>,
+              <code>--crewai-flows</code>, <code>--mastra</code>, <code>--pydantic-ai</code>, <code>--llamaindex</code>,
+              <code>--agno</code>, <code>--ag2</code>, <code>--adk</code>.
+            </li>
+            <li>
+              CopilotKit's own CLI (<code>copilotkit</code> 4.35.0, 24 MB) is now an onboarding guide that an agent
+              walks through. Its notes list:
+              <ul>
+                <li>
+                  20 backends, among them Claude Agent SDK (TS, Python), Microsoft Agent Framework, Google ADK, Strands,
+                  Mastra, and "custom AG-UI"
+                </li>
+                <li>5 frontends: Next.js, React SPA, React Native, Vue, Angular. No plain web components.</li>
+              </ul>
+            </li>
+            <li>
+              The wiring is three hops: React provider, then CopilotKit's runtime route, then the agent's AG-UI
+              endpoint. Spell would need only the last hop and a client.
+            </li>
+          </ul>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>create-ag-ui-app's dispatch, de-minified from dist/index.mjs · 12 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-js">// the two choices, as the minified file does them (names restored by hand)
+switch ((await inquirer.prompt([{ type: "list", name: "client",
+  choices: ["CopilotKit/Next.js", "CLI client"] }])).client) {
+  case "CopilotKit/Next.js":
+    // e.g. ["copilotkit@latest", "create", "--no-banner", "-n", name, "-f", "mastra"]
+    spawn("npx", copilotKitArgs(options, name), { stdio: "inherit", shell: true })
+    break
+  case "CLI client":
+    await downloadTemplate("gh:ag-ui-protocol/ag-ui/apps/client-cli-example", { dir: name })
+    // then swaps its workspace:* versions for npm's latest @ag-ui/client, core, mastra
+    break
+}</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>the CLI template, src/index.ts: AG-UI with no framework · excerpt, 22 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-ts">// ag-ui-protocol/ag-ui, apps/client-cli-example/src/index.ts
+agent.messages.push({ id: randomUUID(), role: "user", content: input.trim() })
+
+await agent.runAgent(
+  {},
+  {
+    onTextMessageStartEvent() {
+      process.stdout.write("🤖 AG-UI assistant: ")
+    },
+    onTextMessageContentEvent({ event }) {
+      process.stdout.write(event.delta)
+    },
+    onToolCallStartEvent({ event }) {
+      console.log("🔧 Tool call:", event.toolCallName)
+    },
+    onToolCallResultEvent({ event }) {
+      if (event.content) console.log("🔍 Tool call result:", event.content)
+    }
+  }
+)
+// agent is `new MastraAgent({ agent: new Agent({ model: "openai/gpt-4.1-mini", tools, memory }) })`,
+// from @ag-ui/mastra:  an AG-UI agent that runs in-process, no server</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>CopilotKit's Claude quickstart: the agent's AG-UI endpoint · excerpt, 26 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-ts">// docs.copilotkit.ai/claude-sdk-typescript/quickstart, src/agent-server.ts
+const agent = new ClaudeAgentAdapter({
+  agentId: "claude-sdk-typescript",
+  model: process.env.CLAUDE_MODEL ?? "claude-opus-4-8",
+  systemPrompt: "You are a helpful assistant embedded in a CopilotKit app.",
+  tools: [],
+  permissionMode: "dontAsk",
+  maxTurns: 10
+})
+
+app.post("/", (req, res) =&gt; {
+  const input = req.body as RunAgentInput
+  const encoder = new EventEncoder()
+  res.setHeader("Content-Type", "text/event-stream")
+  agent.run({ ...input, runId, threadId }).subscribe({
+    next: (event) =&gt; res.write(encoder.encodeSSE(event)),
+    error: (error) =&gt; {
+      res.write(encoder.encodeSSE({ type: EventType.RUN_ERROR, runId, threadId, message: String(error) }))
+      res.end()
+    },
+    complete: () =&gt; res.end()
+  })
+})</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>the same quickstart: the Next.js route and React provider · excerpt, 16 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-tsx">// app/api/copilotkit/route.ts:  the middle hop Spell wouldn't need
+const runtime = new CopilotRuntime({
+  agents: { default: new HttpAgent({ url: process.env.AGENT_URL ?? "http://localhost:8000" }) }
+})
+const handler = createCopilotRuntimeHandler({ runtime, basePath: "/api/copilotkit", mode: "single-route" })
+export const POST = (req: NextRequest) =&gt; handler(req)
+
+// app/providers.tsx
+&lt;CopilotKit runtimeUrl="/api/copilotkit" agent="default"&gt;
+  {children}
+&lt;/CopilotKit&gt;
+
+// app/page.tsx
+&lt;CopilotSidebar /&gt;</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>MCP Apps, its vanilla example: a tool with a page · excerpt, 18 lines</ui-title>
+            <ui-content>
+              <pre><code class="language-ts">// modelcontextprotocol/ext-apps, examples/basic-server-vanillajs/server.ts
+const resourceUri = "ui://get-time/mcp-app.html"
+
+registerAppTool(server, "get-time", {
+  title: "Get Time",
+  description: "Returns the current server time as an ISO 8601 string.",
+  inputSchema: z.object({}),
+  outputSchema: z.object({ time: z.string() }),
+  _meta: { ui: { resourceUri } } // links this tool to its page
+}, async () =&gt; {
+  const time = new Date().toISOString()
+  return { content: [{ type: "text", text: time }], structuredContent: { time } }
+})
+
+registerAppResource(server, resourceUri, resourceUri, { mimeType: RESOURCE_MIME_TYPE }, async () =&gt; ({
+  contents: [{ uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }]
+}))</code></pre>
+            </ui-content>
+          </ui-accordion>
+        </ui-section>
+
+        <ui-section id="5-questions" label="5. Open questions" sticky collapsible dividing open="false">
+          <ui-icon slot="icon" name="circle question"></ui-icon>
+          <ol>
+            <li>
+              <b>Spell's own model loop: which kit?</b> Why it matters: it's the one big dependency of
+              <code>src/agents/</code>, and adding one needs Owen's OK (WWOD §2).
+              <ui-grid class="spell-pros-cons" columns="3" stackable>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top" color="green">A, recommended: TanStack AI's headless client</ui-label>
+                    <ul>
+                      <li>AG-UI is its own wire format: nothing to translate.</li>
+                      <li>Young: release candidate in August, 1.8 now.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top">B: the Vercel AI SDK</ui-label>
+                    <ul>
+                      <li>The most used, every provider.</li>
+                      <li>Speaks its own stream; AG-UI only through a bridge.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top">C: write the loop</ui-label>
+                    <ul>
+                      <li>About a hundred lines over the two wire formats.</li>
+                      <li>Ours to keep up with every provider's changes.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+              </ui-grid>
+            </li>
+            <li>
+              <b>Outside coding agents: through ACP, or Claude's Agent SDK?</b> Why it matters: it decides whether
+              Codex, Gemini CLI and Qwen Code work on day one.
+              <ui-grid class="spell-pros-cons" columns="2" stackable>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top" color="green">A, recommended: ACP</ui-label>
+                    <ul>
+                      <li>49 agents, one protocol; people use the plan they already pay for.</li>
+                      <li>Spell writes an ACP-to-AG-UI bridge: none was found.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top">B: Claude Agent SDK first</ui-label>
+                    <ul>
+                      <li>AG-UI's adapter exists today; least to write.</li>
+                      <li>Claude only, and its API key, not the person's plan (a guess, to check).</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+              </ui-grid>
+            </li>
+            <li>
+              <b>Cards in the chat: A2UI, or Spell itself?</b> Why it matters: the agent will sometimes need to ask with
+              more than words (pick a colour, pick one of three layouts).
+              <ui-grid class="spell-pros-cons" columns="3" stackable>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top" color="green">A, recommended: wait</ui-label>
+                    <ul>
+                      <li>AG-UI's interrupts and frontend tools cover the first needs.</li>
+                      <li>
+                        Choose once the flows (<a href="flows.html" target="src-guides-agents-in-spell-flows-html"
+                          >flows.html</a
+                        >) show the cards.
+                      </li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top">B: A2UI, with a Spell UI catalog</ui-label>
+                    <ul>
+                      <li>A standard Gemini and Jira speak.</li>
+                      <li>A catalog mapping its components to <code>&lt;ui-*&gt;</code> to write.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top">C: the agent writes Spell</ui-label>
+                    <ul>
+                      <li>One language for everything.</li>
+                      <li>Slower, and a compile per card.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+              </ui-grid>
+            </li>
+            <li>
+              <b>Keep the "waiting request" mode?</b> Today a request waits in the inbox for a Claude session someone
+              started by hand. Why it matters: with AG-UI, a run needs an agent at once.
+              <ui-grid class="spell-pros-cons" columns="2" stackable>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top" color="green">A, recommended: drop it</ui-label>
+                    <ul>
+                      <li>The client starts the agent itself, every time.</li>
+                      <li>The inbox file and <code>spell app changes</code> go.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top">B: keep it, as an MCP tool</ui-label>
+                    <ul>
+                      <li>A session in any agent asks Spell's MCP server for the next request.</li>
+                      <li>Two ways to do one thing.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+              </ui-grid>
+            </li>
+            <li>
+              <b>When to put the MCP server online, for Claude, ChatGPT and Cursor?</b> Why it matters: it needs sign-in
+              (OAuth) and hosting on spell.app, which is
+              <a href="byo-agent.html" target="src-guides-agents-in-spell-byo-agent-html">byo-agent.html</a>'s ground.
+              <ui-grid class="spell-pros-cons" columns="2" stackable>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top" color="green">A, recommended: local first, online second</ui-label>
+                    <ul>
+                      <li>The same server runs in the page server now, online later.</li>
+                      <li>MCP Apps previews come with the online step.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+                <ui-column>
+                  <ui-segment>
+                    <ui-label attach-to="top">B: online from the start</ui-label>
+                    <ul>
+                      <li>Spell shows up in ChatGPT and Claude early.</li>
+                      <li>Sign-in and hosting before the editor's own agent works.</li>
+                    </ul>
+                  </ui-segment>
+                </ui-column>
+              </ui-grid>
+            </li>
+          </ol>
+        </ui-section>
+
+        <ui-section id="6-see-also" label="6. See also" sticky collapsible dividing open="false">
+          <ul>
+            <li>
+              <a href="agents-in-spell.html" target="src-guides-agents-in-spell-agents-in-spell-html"
+                >agents-in-spell.html</a
+              >: the hub, and how the docs fit together
+            </li>
+            <li>
+              <a href="flows.html" target="src-guides-agents-in-spell-flows-html">flows.html</a>: what people do with an
+              agent in Spell
+            </li>
+            <li>
+              <a href="editor-surface.html" target="src-guides-agents-in-spell-editor-surface-html"
+                >editor-surface.html</a
+              >: the tools the editor offers an agent
+            </li>
+            <li>
+              <a href="models.html" target="src-guides-agents-in-spell-models-html">models.html</a>: frontier models,
+              prices and gateways
+            </li>
+            <li>
+              <a href="local-models.html" target="src-guides-agents-in-spell-local-models-html">local-models.html</a>:
+              Qwen, Ollama, MLX, Electron, a phone
+            </li>
+            <li>
+              <a href="byo-agent.html" target="src-guides-agents-in-spell-byo-agent-html">byo-agent.html</a>: cheap
+              hosting on spell.app, bring your own key or agent
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="7-sources" label="7. Sources" sticky collapsible dividing open="false">
+          <ui-icon slot="icon" name="flask"></ui-icon>
+          <p class="meta">
+            All read 2026-11-20. "Checked" in the text means one of these was read, or the package itself.
+          </p>
           <ui-items class="spell-sources" divided>
             <ui-item>
               <ui-content>
-                <ui-header><code>experiments/measure.ts</code></ui-header>
-                <ui-meta>experiment · <code>tsx &lt;topic&gt;/experiments/measure.ts</code></ui-meta>
-                <ui-description>What it measures, and which claim above it backs.</ui-description>
+                <ui-header><code>create-ag-ui-app</code> 0.0.59, its tarball</ui-header>
+                <ui-meta>package · <code>npm pack create-ag-ui-app</code>, scripts never run</ui-meta>
+                <ui-description>The wizard's whole source: the two choices, the flags, the hand-off.</ui-description>
               </ui-content>
             </ui-item>
             <ui-item>
               <ui-content>
-                <ui-header><a href="https://example.com/" target="ext-example-com">An external reference</a></ui-header>
-                <ui-meta>reference · read 2026-10-01</ui-meta>
-                <ui-description>What it says that this doc relies on.</ui-description>
+                <ui-header>
+                  <a
+                    href="https://github.com/ag-ui-protocol/ag-ui/tree/main/apps/client-cli-example"
+                    target="ext-github-com-ag-ui"
+                    >AG-UI's CLI client example</a
+                  >
+                </ui-header>
+                <ui-meta>code · read with <code>gh api</code></ui-meta>
+                <ui-description
+                  >The AG-UI client with no framework; and the repo's integrations and middlewares
+                  folders.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><code>@ag-ui/client</code> 1.0.5, <code>@ag-ui/core</code>'s generated types</ui-header>
+                <ui-meta>package · npm and GitHub</ui-meta>
+                <ui-description
+                  >The event list, <code>RunAgentInput</code>'s fields, the client's dependencies.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header><code>copilotkit</code> 4.35.0, its onboarding notes</ui-header>
+                <ui-meta>package · <code>npm pack copilotkit</code></ui-meta>
+                <ui-description
+                  >The 20 backends and 5 frontends; the Claude adapter's frontend tools as an MCP
+                  server.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a href="https://docs.copilotkit.ai/claude-sdk-typescript/quickstart" target="ext-docs-copilotkit-ai"
+                    >CopilotKit: Claude Agent SDK quickstart</a
+                  >
+                </ui-header>
+                <ui-meta>docs</ui-meta>
+                <ui-description>The three-hop wiring excerpted in the review.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a href="https://www.copilotkit.ai/blog/ag-ui-1.0" target="ext-www-copilotkit-ai"
+                    >Introducing AG-UI 1.0</a
+                  >
+                </ui-header>
+                <ui-meta>announcement · CopilotKit, 2026-09-30</ui-meta>
+                <ui-description>What 1.0 holds; the adopters it names (CopilotKit's own claim).</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a
+                    href="https://blog.modelcontextprotocol.io/posts/2026-07-28/"
+                    target="ext-blog-modelcontextprotocol-io"
+                    >The 2026-07-28 MCP specification</a
+                  >
+                </ui-header>
+                <ui-meta>announcement · MCP's blog</ui-meta>
+                <ui-description>The stateless core, transports, sign-in and extensions.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a href="https://github.com/modelcontextprotocol/ext-apps" target="ext-github-com-ext-apps"
+                    >MCP Apps (ext-apps)</a
+                  >
+                </ui-header>
+                <ui-meta>code and spec · GitHub</ui-meta>
+                <ui-description>How tools name a page; the hosts; the Solid and vanilla examples.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a href="https://agentclientprotocol.com/" target="ext-agentclientprotocol-com"
+                    >Agent Client Protocol</a
+                  >
+                  and
+                  <a
+                    href="https://agentclientprotocol.com/get-started/registry"
+                    target="ext-agentclientprotocol-com-registry"
+                    >its registry</a
+                  >
+                </ui-header>
+                <ui-meta>docs</ui-meta>
+                <ui-description>Stdio for local agents, remote still in progress; the 49 agents listed.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a
+                    href="https://developers.googleblog.com/a2ui-10-build-delightful-fast-reliable-agentic-experiences/"
+                    target="ext-developers-googleblog-com"
+                    >A2UI 1.0</a
+                  >
+                </ui-header>
+                <ui-meta>announcement · Google, 2026-11-11</ui-meta>
+                <ui-description>Registered components only; renderers; adopters.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a href="https://vercel.com/changelog/ai-sdk-7" target="ext-vercel-com">AI SDK 7 is now available</a>
+                </ui-header>
+                <ui-meta>announcement · Vercel, 2026-06-25</ui-meta>
+                <ui-description
+                  >Agents, <code>HarnessAgent</code>, MCP Apps rendering, the frameworks it serves.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a
+                    href="https://www.anthropic.com/news/donating-agent-skills-to-the-agentic-ai-foundation"
+                    target="ext-www-anthropic-com"
+                    >Donating Agent Skills to the Agentic AI Foundation</a
+                  >
+                </ui-header>
+                <ui-meta>announcement · Anthropic, 2026-10-22</ui-meta>
+                <ui-description>70+ platforms; the foundation holds MCP and Agent Skills.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a
+                    href="https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation"
+                    target="ext-www-linuxfoundation-org"
+                    >The Agentic AI Foundation is formed</a
+                  >
+                  and
+                  <a
+                    href="https://www.linuxfoundation.org/press/a2a-protocol-surpasses-150-organizations-lands-in-major-cloud-platforms-and-sees-enterprise-production-use-in-first-year"
+                    target="ext-www-linuxfoundation-org-a2a"
+                    >A2A passes 150 organisations</a
+                  >
+                </ui-header>
+                <ui-meta>press releases · Linux Foundation, 2025-12-09 and 2026-04-09</ui-meta>
+                <ui-description>MCP, goose and AGENTS.md as founding projects; A2A 1.0.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a href="https://www.infoq.com/news/2026/02/openai-open-responses/" target="ext-www-infoq-com"
+                    >OpenAI's Open Responses</a
+                  >
+                  and
+                  <a href="https://docs.ollama.com/api/anthropic-compatibility" target="ext-docs-ollama-com"
+                    >Ollama's Anthropic compatibility</a
+                  >
+                </ui-header>
+                <ui-meta>news and docs</ui-meta>
+                <ui-description>The two wire formats, and who copies them.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a href="https://tanstack.com/ai/latest/docs/api/ai-solid" target="ext-tanstack-com"
+                    >TanStack AI, its Solid package</a
+                  >
+                </ui-header>
+                <ui-meta>docs, and its <code>peerDependencies</code> on npm</ui-meta>
+                <ui-description>AG-UI as its wire format; Solid 1 only.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>
+                  <a href="https://ahrefs.com/blog/llmstxt-study/" target="ext-ahrefs-com"
+                    >Ahrefs: 97% of llms.txt files never get read</a
+                  >
+                </ui-header>
+                <ui-meta>study</ui-meta>
+                <ui-description>Who fetches llms.txt: coding agents, mostly.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header>npm's download counts</ui-header>
+                <ui-meta>data · <code>api.npmjs.org/downloads/point/last-week</code>, 2026-11-13 to 11-19</ui-meta>
+                <ui-description>Every "npm a week" number in this doc.</ui-description>
               </ui-content>
             </ui-item>
           </ui-items>
@@ -225,9 +1452,7 @@ const message = greet("spell")</code></pre>
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">
-            Last checked 2026-10-01 against branch <code>main</code>: re-run the experiments to update.
-          </p>
+          <p class="meta">Last checked 2026-11-20 against branch <code>agents-in-spell</code>.</p>
         </footer>
       </main>
     </div>
