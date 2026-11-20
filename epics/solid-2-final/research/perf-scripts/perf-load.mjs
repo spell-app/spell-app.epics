@@ -108,14 +108,15 @@ for (let run = 1; run <= runs; run++) {
     afterGC,
     census,
     errors: errors.slice(0, 10),
-    writesBlocked: writesBlocked.length
+    writesBlocked: writesBlocked.length,
+    liveFrames: responses.liveFrames
   }
   results.push(result)
   console.error(
     `${pageKey}/${profileKey} run ${run}:  ready ${perf.readyAt?.toFixed(0)}ms  tti ${perf.tti?.toFixed(0)}  tbt ${perf.tbt?.toFixed(0)}  ` +
       `js ${scripts.length} req ${bytes(result.js.transferred)} (decoded ${bytes(result.js.decoded)})  ` +
       `heap ${bytes(afterGC.JSHeapUsedSize)} after GC  nodes ${afterGC.Nodes}  elements ${census.elements}  ` +
-      `(${uptime.replace(/.*load averages?:/, "load")})`
+      `live msgs ${responses.liveFrames}  (${uptime.replace(/.*load averages?:/, "load")})`
   )
   await browser.close()
 }

@@ -273,6 +273,7 @@ function loadSummary(result) {
     uniqueAdoptedSheets: first.census.uniqueAdopted,
     uniqueAdoptedCssChars: first.census.uniqueCssChars,
     errors: first.errors.length,
+    liveMessages: first.liveFrames,
     runs: result.results.map((run) => ({ readyAt: run.perf.readyAt, tti: run.perf.tti, tbt: run.perf.tbt, load: run.uptime }))
   }
 }
@@ -317,7 +318,7 @@ function compare(old, now, oldName) {
   /** Numbers where higher is better;  everything else, lower is. */
   const higherIsBetter = /tabsVisiblyMarked/
   /** Counts and settings, not costs:  shown, never flagged. */
-  const neutral = /runs|customElements|interactions|samples/
+  const neutral = /runs|customElements|interactions|samples|liveMessages/
   console.log(`\nCompared with ${oldName}${old.busyMachine ? " (BUSY MACHINE)" : ""}${now.busyMachine ? ";  this run:  BUSY MACHINE" : ""}`)
   console.log("number".padEnd(78) + "before".padStart(14) + "now".padStart(14) + "change".padStart(10))
   let worse = 0

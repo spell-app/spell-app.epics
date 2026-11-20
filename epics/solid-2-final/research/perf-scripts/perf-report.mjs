@@ -54,6 +54,7 @@ for (const page of pages) {
   line("custom elements / shadow roots", (load) => `${count(load.customElements)} / ${count(load.shadowRoots)}`)
   line("adopted sheets:  per root / distinct", (load) => `${(load.adoptedSheetRefs / load.shadowRoots).toFixed(1)} / ${count(load.uniqueAdoptedSheets)}`)
   line("console errors", (load) => count(load.errors))
+  line("live-reload messages heard", (load) => count(load.liveMessages))
   console.log("")
 }
 

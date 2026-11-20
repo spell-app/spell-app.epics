@@ -37,6 +37,7 @@ const EDITOR_STORAGE = {
  * The pages measured.
  * - `ready`:  a page function's source, true once the page is usable (polled from an init script, after its first paint).
  * - `storage`:  localStorage set before the page's own scripts run.
+ * - `<ui-tooltip>` is left out of "every element defined":  it stays undefined on the epic page (2026-11-20).
  */
 export const PAGES = {
   editor: {
@@ -48,11 +49,11 @@ export const PAGES = {
   },
   docs: {
     url: () => `${PAGE_SERVER}/components/ui/kitchen-sink.html`,
-    ready: `() => document.readyState === "complete" && document.querySelectorAll("[data-perf-undefined]").length === 0 && !document.querySelector(":not(:defined)")`
+    ready: `() => document.readyState === "complete" && !document.querySelector(":not(:defined):not(ui-tooltip)")`
   },
   epic: {
     url: () => `${PAGE_SERVER}/epics/epic-engine/epic-engine.plan.html`,
-    ready: `() => document.readyState === "complete" && !!document.querySelector("epic-page, .spell-toolbar") && !document.querySelector(":not(:defined)")`
+    ready: `() => document.readyState === "complete" && !!document.querySelector("epic-page, .spell-toolbar") && !document.querySelector(":not(:defined):not(ui-tooltip)")`
   },
   run: {
     url: () => `${EDITOR}run/@spell/examples/Solitaire`,
@@ -354,6 +355,9 @@ export function trackResponses(cdp) {
   cdp.on("Network.responseReceived", ({ requestId, response, type }) => {
     byId.set(requestId, { url: response.url, type, status: response.status, encoding: response.headers["content-encoding"] ?? response.headers["Content-Encoding"] })
   })
+  // the page server's live-reload messages:  each one makes the live client scan every script (`scriptsLoaded()`)
+  byId.liveFrames = 0
+  cdp.on("Network.webSocketFrameReceived", () => byId.liveFrames++)
   cdp.on("Network.loadingFinished", ({ requestId, encodedDataLength }) => {
     const entry = byId.get(requestId)
     if (entry) entry.encoded = encodedDataLength
