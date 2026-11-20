@@ -82,6 +82,10 @@ Entry format:  `` - `path/to/file.ts` `symbol()`: what looks wrong, why, and how
 
 ## spell
 
+- 2026-11-20 (epic `solid-2-final`, read from the code, not tested:  its `research/lazy-scope.md`):  a write left pending
+  from last visit only goes out when its place is first used this visit (`ProgramPlaces.placeFor()`,
+  `parser/src/core/saved.ts`), so a page that never touches that back-end again never sends it.
+  Prove:  save offline on page A's place, reload online on a page that doesn't use it;  check the server.
 - 2026-11-17 (mockup T50, the Counter starter):  a total worked out on a list (`its "total" is the sum of the count of its counters`)
   didn't update when one counter's count changed;  moved onto the app, it did.
   Likely the list's derived property follows the list's items but not each item's fields.
