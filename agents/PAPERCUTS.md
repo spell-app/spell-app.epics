@@ -260,6 +260,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   proxies to) kept proxying to the dead server's port (`PORT=52070`), and the new editor started on 3002, which nothing uses.
   · `spell server stop all`, kill the stale vite on 3001, `spell server start all` in `~/www/spell`.  The page server's
   restart should stop or re-point the editor it started, not leave it running.  · spell (server), repo-split.
+- 2026-11-19 · Headless Chrome (Playwright, both headless shells) crashes the whole browser on `queryPermission()` or `getFile()` of a private-files (OPFS) handle read back from IndexedDB after a reload, in a throwaway context.  Fix:  `launchPersistentContext(<folder>)`, where it works.  (epic editor P41)
 
 ## ui
 
