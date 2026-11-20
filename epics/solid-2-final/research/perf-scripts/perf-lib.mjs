@@ -16,7 +16,8 @@ export const AXE = require.resolve("axe-core/axe.min.js")
 
 /** The page server of the checkout we're run from (its `.spell-server.json`). */
 export const PAGE_SERVER =
-  process.env.PERF_PAGE_SERVER ?? JSON.parse(readFileSync(path.join(process.cwd(), ".spell-server.json"), "utf8")).base
+  process.env.PERF_PAGE_SERVER ??
+  `http://127.0.0.1:${JSON.parse(readFileSync(path.join(process.cwd(), ".spell-server.json"), "utf8")).port}`
 /**
  * The editor:  a production build served by `vp preview` (its proxy reaches the page server).
  * - Build:  `cd app/app && ../../node_modules/.bin/vp build --outDir <scratch>/editor-dist`
