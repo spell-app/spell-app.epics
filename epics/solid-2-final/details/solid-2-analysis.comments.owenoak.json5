@@ -82,6 +82,11 @@
           "html": "<p><b>No, not as the code is written today.</b> The <code>Map</code> isn't what stands between us and V8's fast path.</p>\n<ul>\n  <li><b>What V8 makes fast:</b> a property read like <code>card.suit</code> at a spot in the code that always sees the same object shape (\"hidden class\"). It remembers where <code>suit</code> sits and goes straight there (an inline cache). Add or delete keys freely and the object drops to a slow \"dictionary mode\". (<a href=\"https://v8.dev/blog/fast-properties\">v8.dev: fast properties</a>)</li>\n  <li><b>A <code>Map</code></b> is always a hash table (V8's <code>OrderedHashMap</code>); strings keep their hash, so <code>get</code> is a short lookup, inlined by the optimizer. (<a href=\"https://v8.dev/blog/hash-code\">v8.dev: hash tables</a>)</li>\n  <li><b>Our records:</b> every <code>@prop</code> getter calls one shared <code>getProp(this, name)</code>, with the name as a variable. A plain-object record read that way is a lookup by a changing key, so it misses the fast path too. Keys are also set lazily, in first-set order, so objects of one type can differ in shape.</li>\n</ul>\n<p>Measured (node 24.21, 2,000 objects, 6 props, median of 200 rounds, 3 runs; <code>uptime</code> load 4.5-4.7):</p>\n<ul>\n  <li><code>Map</code> record: 7 ns a read, 9-11 ns a write</li>\n  <li>plain object, same keys: 7-12 ns, 12-17 ns</li>\n  <li>plain object, keys in varying order: 10-17 ns, 19-24 ns</li>\n  <li>plain fields, no record (<code>this.suit</code>): 0.8 ns, 0.9 ns</li>\n</ul>\n<p><b>What to do:</b> keep the <code>Map</code> (it also keeps <code>\"2\"</code> before <code>\"10\"</code>). The 10x is the shared accessor, not the <code>Map</code>; closing it means the compiler emitting a real field per prop. Only worth doing if a profile shows prop reads matter. Added as a note at the end of 9.1.</p>"
         }
       ],
+      "done": {
+        "how": "good",
+        "at": "2026-11-20T23:56:22.083Z",
+        "by": "owenoak"
+      },
       "claim": {
         "by": "owenoak",
         "agent": "claude",
@@ -105,6 +110,18 @@
           "agent": "claude",
           "at": "2026-11-20T23:53:30.737Z",
           "html": "<p><b>What it is:</b> one per property of one object (plus one for its key set). It holds <b>no value</b>: only who read it and a change count. The value lives in the object's record. Today: <code>cell.read()</code>, <code>cell.changed()</code>, <code>isTrackingCells()</code>, <code>flushCells()</code>, \"spell cells\".</p>\n<p>So \"cell\" misleads twice: a spreadsheet cell <i>holds</i> a value, and <code>spell/element</code> has a second, different <code>Cell</code> (a Solid signal in a box).</p>\n<p><b>Recommended: Tracker.</b></p>\n<ul>\n  <li><b>Tracker</b> -- it tracks who read a value, and nothing else. <code>tracker.track()</code>, <code>tracker.changed()</code>, <code>trackerOf(card, \"suit\")</code>, <code>isTracking()</code>, \"spell tracking\". Matches Solid's own word (\"tracked\"). Clash: the editor's <code>tracked()</code> helper (71 uses); web analytics.</li>\n  <li><b>Dep</b> -- Vue's name for exactly this (a value-less <code>Dep</code> with <code>track()</code> / <code>trigger()</code> and a version). <code>dep.track()</code>, <code>dep.trigger()</code>. Clash: package dependencies; an abbreviation.</li>\n  <li><b>Atom</b> -- MobX's name for exactly this (<code>createAtom()</code>: <code>reportObserved()</code> / <code>reportChanged()</code>). <code>atom.observed()</code>, <code>atom.changed()</code>. Clash: Jotai's and Clojure's atoms hold values; \"AT\" Protocol nearby.</li>\n  <li><b>Notifier</b> -- it tells readers of a change. <code>notifier.track()</code>, <code>notifier.notify()</code>. Clash: Flutter's <code>ChangeNotifier</code> (similar); Spell's notices.</li>\n  <li><b>Pulse</b> -- a beat each time the value changes. <code>pulse.read()</code>, <code>pulse.beat()</code>, \"spell pulses\". No clash found; says less.</li>\n  <li><b>Beacon</b> -- readers watch it, it flashes on a change. <code>beacon.track()</code>, <code>beacon.flash()</code>. No clash; a bit cute.</li>\n  <li><b>Watch</b> -- <code>watch.track()</code>, <code>watch.fire()</code>. Clash: Vue's <code>watch()</code>, debugger watches, Spell's <code>when it changes</code>.</li>\n  <li><b>Topic</b> -- publish / subscribe's word. <code>topic.subscribe()</code>, <code>topic.publish()</code>. Clash: Kafka / MQTT topics, and \"topic pages\" in the READMEs.</li>\n</ul>\n<p>With Tracker, the other <code>Cell</code> (the signal box in <code>spell/element</code>) could then honestly be called <code>SignalBox</code>. Nothing renamed; the page is unchanged.</p>"
+        },
+        {
+          "by": "owenoak",
+          "at": "2026-11-20T23:58:33.578Z",
+          "text": "I think I like `Tracker`",
+          "edited": "2026-11-20T23:58:38.667Z"
+        },
+        {
+          "by": "owenoak",
+          "agent": "claude",
+          "at": "2026-11-20T23:59:03.616Z",
+          "html": "<p>Recorded on the epic page as a decision:  cells become <code>Tracker</code> when this epic builds that work.  Nothing renamed yet.</p><p>Still open:  the other <code>Cell</code> in <code>spell/element</code> (a Solid signal in a box), maybe <code>SignalBox</code>.</p>"
         }
       ],
       "claim": {
