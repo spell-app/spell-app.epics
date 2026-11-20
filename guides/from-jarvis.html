@@ -360,7 +360,113 @@
           </p>
         </ui-section>
 
-        <ui-section id="5-under-the-page" label="5. Under the page" sticky collapsible dividing open="false">
+        <ui-section id="calling-native-code" label="5. Calling native code" sticky collapsible dividing open="false">
+          <p>
+            A Spell file can now call a function from the project's own TypeScript or Python with one statement,
+            <code>call native</code>. A library wraps it in an action, so the programs that import it only ever see
+            Spell words.
+          </p>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>A clipboard library:  its four files</ui-title>
+            <ui-content>
+              <pre><code class="language-text">// __project.json5:  the code files beside the Spell files
+imports: [
+  { path: "/clipboard.ts", active: true },
+  { path: "/clipboard.py", active: true },
+  { path: "/Clipboard.spell", active: true },
+  { path: "/Clipboard.es.spell", active: true }
+]
+
+// clipboard.ts:  plain TypeScript, nothing Spell-shaped in it
+export async function copyText(text: string): Promise&lt;void&gt; {
+  await navigator.clipboard.writeText(text)
+}
+
+// clipboard.py:  the same function for Python, in Python's case
+async def copy_text(text: str) -&gt; None: ...
+
+// Clipboard.spell
+use copyText from clipboard.ts
+
+to copy (text as text) to the clipboard
+	call native copyText with text
+
+// Clipboard.es.spell
+usar todo de clipboard.ts
+
+para copiar (texto como texto) al portapapeles
+	llamar al código nativo copyText con texto</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ui-accordion class="spell-code" appearance="styled">
+            <ui-title>A program using it, and what each target compiles</ui-title>
+            <ui-content>
+              <pre><code class="language-text">// a program's Spell:  the library's words, never a code name
+copy the note's text to the clipboard
+
+// the library's javascript
+import { copyText } from "@spell/native/owen@spell/clipboard/clipboard.ts"
+export async function copyTextToTheClipboard(text) {
+  return core.asAction({ ... }, async () =&gt; await copyText(text))
+}
+
+// the library's Python
+from clipboard import copy_text
+async def copy_text_to_the_clipboard(text: str) -&gt; Any:
+    return await copy_text(text)</code></pre>
+            </ui-content>
+          </ui-accordion>
+          <ul>
+            <li>
+              <b>The call</b>: <code>call native copyText with text</code>; several inputs with commas,
+              <code>with source, options</code>; no inputs, just the name. Spanish:
+              <code>llamar al código nativo copyText con texto</code>.
+              <ul>
+                <li>Only as a line in a <code>to</code> action's steps: anywhere else the line says so.</li>
+                <li>
+                  It waits when the function gives back a promise, or is <code>async def</code>, and so does its action.
+                </li>
+                <li>
+                  A typo is a mistake on that line, naming the code files it looked in. "native" can no longer name a
+                  place.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <b>The use line</b>, at the top of a Spell file, says where its natives come from:
+              <code>use copyText from clipboard.ts</code>, <code>use a, b, c from clipboard.ts</code>,
+              <code>use all from clipboard.ts</code>; Spanish <code>usar ... de clipboard.ts</code>.
+              <ul>
+                <li>The file must still be listed in the project file, and must export each name it says.</li>
+                <li>A name in a use line comes from that file, even when another code file has one too.</li>
+                <li>A name in none is looked for in every code file the project lists, in order.</li>
+              </ul>
+            </li>
+            <li>
+              <b>One code file per target</b>, the same name before the dot: <code>clipboard.ts</code> (or
+              <code>.js</code>) for javascript and TypeScript, <code>clipboard.py</code> for Python, its names in
+              Python's case (<code>copyText</code> is <code>copy_text</code>).
+              <ul>
+                <li>A target with no file for a name is a compile error naming the file to add.</li>
+                <li>
+                  <code>{ path: "/clipboard.ts", only: "browser" }</code> marks code only a browser can run: Python
+                  refuses it while compiling, naming the action that can't run there.
+                </li>
+              </ul>
+            </li>
+            <li>
+              What each file exports is read, not guessed: Python's top-level <code>def</code> lines; TypeScript by the
+              kit's TypeScript reader on the command line, and by its <code>export function</code> lines in the editor.
+            </li>
+            <li>
+              <code>spell run</code> runs it as javascript, TypeScript and Python (<code>--target ts</code>,
+              <code>--target py</code>), and <code>spell compile</code>
+              copies the <code>.py</code> file beside the compiled program.
+            </li>
+          </ul>
+        </ui-section>
+
+        <ui-section id="5-under-the-page" label="6. Under the page" sticky collapsible dividing open="false">
           <ui-section
             id="one-record-under-a-thing"
             label="One record under a thing"
@@ -449,7 +555,7 @@
           </ui-section>
         </ui-section>
 
-        <ui-section id="6-why" label="6. Why it's built this way" sticky collapsible dividing open="false">
+        <ui-section id="6-why" label="7. Why it's built this way" sticky collapsible dividing open="false">
           <ul>
             <li>
               <b>One attribute, not a column tag.</b> The handoff from the Jarvis project had its own column element;
@@ -488,7 +594,7 @@
           </ul>
         </ui-section>
 
-        <ui-section id="7-limits" label="7. Limits" sticky collapsible dividing open="false">
+        <ui-section id="7-limits" label="8. Limits" sticky collapsible dividing open="false">
           <ul>
             <li>The arrow keys don't reach the filter's matches listed elsewhere in the tree: click them.</li>
             <li>In a big column, the <code>which</code> words shift right as wider rows draw in.</li>
@@ -498,17 +604,21 @@
               (section 4).
             </li>
             <li>
+              <code>call native</code> doesn't run in the editor's own runner yet: it compiles there, and runs with
+              <code>spell run</code>. Python's web app (a program that draws, served on Quart) doesn't copy its
+              <code>.py</code> code files in yet either.
+            </li>
+            <li>
               The runtime split and the pushed file changes aren't yet tried on a packed editor; two hand checks wait on
               the epic page.
             </li>
           </ul>
         </ui-section>
 
-        <ui-section id="8-coming" label="8. Coming" sticky collapsible dividing open="false">
+        <ui-section id="8-coming" label="9. Coming" sticky collapsible dividing open="false">
           <p>🌱 Planned, each waiting on a question to Owen on the epic page:</p>
           <ul>
             <li>File upload in Spell: what to call a file someone picks or drops.</li>
-            <li>Calling TypeScript helpers from Spell: where a helper's Spell words come from.</li>
             <li>Subclassing Spell UI elements in Spell, like a netlist column that's a tree view, with its hooks.</li>
             <li>A netlist example and pack, built on the three above.</li>
             <li>Keyed places served to pages: through Spell's page server, or a place server of Jarvis's own.</li>
@@ -516,13 +626,29 @@
           </ul>
         </ui-section>
 
-        <ui-section id="9-where-things-are" label="9. Where things are" sticky collapsible dividing open="false">
+        <ui-section id="9-where-things-are" label="10. Where things are" sticky collapsible dividing open="false">
           <ui-table celled padding="compact" appearance="striped" unstackable>
             <table>
               <tbody>
                 <tr>
                   <th>What</th>
                   <th>Where</th>
+                </tr>
+                <tr>
+                  <td>Calling native code</td>
+                  <td>
+                    <a href="/parser/src/spell/NativeCode.ts" target="src-native-code"><code>NativeCode.ts</code></a
+                    >,
+                    <a href="/parser/src/spell/rules/methods/CallNative.ts" target="src-call-native"
+                      ><code>CallNative.ts</code></a
+                    >,
+                    <a href="/parser/src/spell/rules/methods/UseNatives.ts" target="src-use-natives"
+                      ><code>UseNatives.ts</code></a
+                    >; its test project,
+                    <a href="/parser/tests/spell/natives/clipboard/Clipboard.spell" target="src-clipboard"
+                      ><code>Clipboard.spell</code></a
+                    >
+                  </td>
                 </tr>
                 <tr>
                   <td>The tree, its columns and the detail pane</td>
@@ -589,7 +715,7 @@
           </ui-table>
         </ui-section>
 
-        <ui-section id="10-history" label="10. History" sticky collapsible dividing open="false">
+        <ui-section id="10-history" label="11. History" sticky collapsible dividing open="false">
           <ui-accordion class="spell-aside" appearance="styled">
             <ui-title>The epic's phases, for the record</ui-title>
             <ui-content>
