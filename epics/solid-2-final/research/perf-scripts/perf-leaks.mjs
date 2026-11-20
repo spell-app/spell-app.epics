@@ -23,7 +23,7 @@ const LOOPS = {
       cycles: 20,
       async cycle(page, index) {
         const names = ["Pile.spell", "Deck.spell", "Solitaire.spell", "Card.spell"]
-        await page.getByText(names[index % names.length], { exact: true }).first().click()
+        await page.getByText(names[index % names.length], { exact: true }).filter({ visible: true }).first().click()
         await page.waitForTimeout(400)
       }
     },
@@ -52,7 +52,7 @@ const LOOPS = {
       name: "type 200 characters into a comment",
       cycles: 200,
       async setup(page) {
-        await page.getByText("Card.spell", { exact: true }).first().click()
+        await page.getByText("Card.spell", { exact: true }).filter({ visible: true }).first().click()
         await page.waitForTimeout(800)
         await page.evaluate(() => {
           const { view } = window.editor.shownCodeEditor
