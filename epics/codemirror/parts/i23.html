@@ -1,34 +1,55 @@
 <!-- plan-doc part:  #i23's details in codemirror.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  Found under I21, in Solitaire.spell, with a half-typed line (<code>set t</code>) in an <code>if</code>'s body: laid
-  out from the file's text alone (<code>SP.BubblyLayout.of()</code> with no project parse of that text), the lines
-  ending control blocks (<code>turn over the next card</code>, <code>pause for 500 msec</code>,
-  <code>reset the stock</code>) are 13-25px shorter than from the project's parse, 200ms later: their feet aren't drawn
-  the same.
+  Found under I21: laid out from a file's text alone, the lines ending control blocks are 13-25px shorter than from the
+  project's parse, 200ms later. Their feet aren't drawn the same.
 </p>
+<ul>
+  <li>Seen in Solitaire.spell, with a half-typed line (<code>set t</code>) in an <code>if</code>'s body.</li>
+  <li>"From its text alone": <code>SP.BubblyLayout.of()</code> with no project parse of that text.</li>
+  <li>
+    The lines:
+    <ul>
+      <li><code>turn over the next card</code></li>
+      <li><code>pause for 500 msec</code></li>
+      <li><code>reset the stock</code></li>
+    </ul>
+  </li>
+</ul>
 <p>
   I21 no longer shows that layout while typing (it waits for the parse), but a slice or a file with no project parse
   still draws it.
 </p>
 <epic-reply agent="claude" from="owenoak">
-  <p>
-    <b>Why the two differed:</b> laid out from its text alone, a file has no idea what its other files declare. So a
-    line naming one (<code>if the stock is empty</code>, <code>for each card in the deck</code>,
-    <code>after moving a card to a pile</code>, <code>a card</code>) didn't parse at all. A line that doesn't parse was
-    drawn as a plain step, so its block, its band and its foot were gone, and every line after it moved up.
-  </p>
+  <p><b>Why the two differed:</b> laid out from its text alone, a file has no idea what its other files declare.</p>
+  <ul>
+    <li>
+      So a line naming one didn't parse at all:
+      <ul>
+        <li><code>if the stock is empty</code></li>
+        <li><code>for each card in the deck</code></li>
+        <li><code>after moving a card to a pile</code></li>
+        <li><code>a card</code></li>
+      </ul>
+    </li>
+    <li>
+      A line that doesn't parse was drawn as a plain step, so its block, its band and its foot were gone, and every line
+      after it moved up.
+    </li>
+  </ul>
   <p><b>Fixed in the parser's layout:</b></p>
   <ul>
     <li>
       A line with lines under it that doesn't parse now takes its shape from its first word:
-      <code>if</code>, <code>for</code>, <code>repeat</code>, <code>otherwise</code> start only control lines, so it's a
-      control block; <code>after</code>, <code>when</code>, <code>on</code> start only actions, so it's an action.
+      <ul>
+        <li>words that start only control lines make it a control block: if, for, repeat, otherwise</li>
+        <li>words that start only actions make it an action: after, when, on</li>
+      </ul>
     </li>
     <li>
-      The words come from the language's own rules (each statement rule's first word), so Spanish's <code>si</code>,
-      <code>para</code>, <code>cuando</code> work the same.
+      The words come from the language's own rules (each statement rule's first word), so Spanish's work the same:
+      si, para, cuando.
     </li>
-    <li>A word that starts steps too (<code>to</code>, <code>the</code>, <code>a</code>) is left a step.</li>
+    <li>A line whose first word starts steps too (to, the, a) is left a step.</li>
     <li>But a type's name alone, <code>a card</code>, is a thing's head: it reopens a type declared elsewhere.</li>
     <li>
       And <code>it "can go up" if ...</code> (a pronoun, then a quoted name) is a property's head, as the two at the top
@@ -89,8 +110,8 @@
   <p>Further down, before and after:</p>
   <p><img src="/epics/codemirror/tests/i23-before-120-text.png" alt="before:  control lines drawn as plain steps" /></p>
   <p><img src="/epics/codemirror/tests/i23-after-120-text.png" alt="after:  control blocks with their feet" /></p>
+  <p>Names and underlines still differ (alone, it can't know <code>card</code> is a name): that changes no height.</p>
   <p>
-    Names and underlines still differ (alone, it can't know <code>card</code> is a name): that changes no height.
     Checked by a new test: Solitaire's files laid out from their text have the same blocks, heads, levels and feet as
     from the parse.
   </p> </epic-reply
