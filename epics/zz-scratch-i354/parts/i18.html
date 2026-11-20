@@ -1,0 +1,56 @@
+<!-- plan-doc part:  #i18's details in editor.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<p>Owen, 2026-11-03: "Inspecting an item on the page needs to open/scroll the views pane to show it".</p>
+<p>
+  Looked into, not fixed yet (editor-fixes, 2026-11-03). Checked headless on Solitaire, Inspect app on, clicking the
+  lowest card:
+</p>
+<ul>
+  <li>
+    <b>Every row open:</b> it works. The card's row is selected and the Views card scrolls to it (its list scrolled
+    1472px), though the row lands at the very bottom edge.
+  </li>
+  <li>
+    <b>Any row closed first</b> (the board's, or the app's own top row): it breaks. Within 300ms of the click the tree
+    loses the app: it shows <code>Ui-container</code> with 13 rows and "Not drawn" with 268, no Card rows, nothing
+    selected, no scroll. The Inspector itself shows the card.
+  </li>
+  <li>
+    The fold alone doesn't do it (3s after folding, and 2.5s after Inspect is on, the tree is unchanged): it's the click
+    that selects a card inside a closed row. The code that opens the rows around a selection,
+    <code>openRowsAround()</code> in <code>InspectorParts.tsx</code>, runs then and writes the folds; after it the
+    tree's parts come from somewhere other than the app's area. Cause not found yet.
+  </li>
+  <li>
+    To do: find why the tree's parts change on that write, then open the rows, wait for the row to draw, and scroll it
+    to the middle (<code>block: "center"</code>), not the edge.
+  </li>
+</ul>
+<p>
+  Probe script: the editor-fixes scratchpad's <code>reveal2.mjs</code> (<code
+    >node reveal2.mjs &lt;editor URL&gt; &lt;out&gt; fold|open</code
+  >).
+</p>
+<p>
+  <b>Fixed:</b> selecting a part in the app with Inspect on opens the Views rows around it, then scrolls its row into
+  sight, to the middle when it was out of view.
+</p>
+<ul>
+  <li>
+    <b>The cause:</b> the rows were opened inside the update that changed the selection. That fold's write, made in the
+    same update, redrew the app's pane through the editor's layout piece, so the Inspector went on watching the old,
+    gone pane, and Views showed only what was left in it.
+  </li>
+  <li><b>The fix:</b> the rows open once that update is done, in one change.</li>
+  <li>
+    <b>Not fixed underneath:</b> a pref written while the selection settles can still redraw
+    <code>&lt;AppPane&gt;</code>, which its docstring says is drawn once. That's in the editor's layout files, P20's, so
+    it's left for them.
+  </li>
+  <li>
+    <code>scrollIntoSight()</code> in <code>spell/util/dom</code> does the scrolling, and
+    <code>&lt;ui-tree-item&gt;</code> uses it for any selected row.
+  </li>
+</ul>
+<epic-commit sha="ff56f9de8e194ed5cb0855bb5919bffbada4beca"
+  >the rows around it open, then it scrolls into sight, in the middle when it was out of view</epic-commit
+>
