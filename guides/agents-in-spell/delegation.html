@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>How agents hand work to cheaper agents</title>
-    <meta name="description" content="One sentence." />
+    <meta
+      name="description"
+      content="How Claude Code and Anthropic's platform hand work to cheaper models (subagents, opusplan, the advisor, workflows, background Haiku calls), what it costs and where it goes wrong; the other frontier agents to evaluate; and how Spell's agent would delegate across its fast, balanced and best tiers."
+    />
     <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page">
@@ -13,211 +16,1464 @@
       <main class="spell-doc-main">
         <ui-breadcrumbs class="spell-crumbs" size="small" aria-label="Breadcrumb">
           <ui-breadcrumb link="/pages/index.html" target="src-packages-docs-index-html">Spell Epic</ui-breadcrumb>
+          <ui-breadcrumb link="agents-in-spell.html">Agents in Spell</ui-breadcrumb>
           <ui-breadcrumb selected>How agents hand work to cheaper agents</ui-breadcrumb>
         </ui-breadcrumbs>
         <ui-sticky class="spell-h1"
           ><header class="spell-page-head"><h1>How agents hand work to cheaper agents</h1></header></ui-sticky
         >
-        <p class="lede">One sentence: what this doc settles, and for whom.</p>
+        <p class="lede">
+          How a frontier agent hands parts of a job to cheaper models, starting with what Claude does, so Spell's agent
+          can plan with its best tier and do the edits with its fast one.
+        </p>
         <ui-list class="spell-meta">
-          <ui-item icon="user">Written for: who reads this, and what they're about to do</ui-item>
-          <ui-item icon="flag"
-            >Status: <ui-label size="mini" color="orange">draft</ui-label> (or decided / built)</ui-item
+          <ui-item icon="map"
+            >Epic page:
+            <a href="/epics/agents-in-spell/agents-in-spell.plan.html" target="agents-in-spell"
+              >epic agents-in-spell</a
+            ></ui-item
           >
+          <ui-item icon="user"
+            >Written for: Owen, reviewing the epic's discussion docs before any planning; whoever builds the tiers in
+            <code>src/agents/</code> after</ui-item
+          >
+          <ui-item icon="flag">Status: <ui-label size="mini" color="orange">draft</ui-label> (discussion)</ui-item>
           <ui-item icon="flask"
-            >Researched on: branch, date, and how the claims were checked (see
-            <a href="#4-sources">Sources</a>)</ui-item
+            >Researched on: branch <code>agents-in-spell</code>, 2026-11-20. Claude's side from Anthropic's own docs and
+            posts, read that day; the other agents from one quick search each; Spell's own tiers by reading its code
+            (see <a href="#7-sources">Sources</a>). A claim marked <b>guess</b> is ours, not a source's.</ui-item
           >
         </ui-list>
 
         <ui-section id="1-summary" label="1. Summary" sticky collapsible dividing open="false">
           <ui-statistics class="spell-stats" size="mini">
-            <ui-statistic value="3×" label="faster"></ui-statistic>
-            <ui-statistic value="1.2" label="ms, median"></ui-statistic>
-            <ui-statistic value="0" label="breaking changes"></ui-statistic>
+            <ui-statistic value="15×" label="tokens, multi-agent vs chat"></ui-statistic>
+            <ui-statistic value="3-10×" label="tokens, multi-agent vs one agent"></ui-statistic>
+            <ui-statistic value="85%" label="cheaper: Haiku + Opus advisor vs Sonnet"></ui-statistic>
+            <ui-statistic value="40×" label="Opus 5.5's price over Haiku 5.5's"></ui-statistic>
           </ui-statistics>
           <ul>
-            <li>The conclusion first, one idea per bullet.</li>
-            <li>Every fact, number and caveat survives condensing.</li>
-            <li>Headline numbers above: 2-4 of them, each also stated (with its caveat) in the body.</li>
+            <li>
+              Claude hands work to cheaper models in five ways, and they differ in WHO decides and WHEN the strong model
+              runs:
+              <ul>
+                <li><b>subagents</b>: Claude delegates a whole task to a worker, which can run on a cheaper model</li>
+                <li><b>opusplan</b>: Opus while planning, Sonnet while doing</li>
+                <li><b>the advisor</b>: the cheap model does all the work, and asks a stronger one at hard moments</li>
+                <li><b>workflows</b>: a script Claude writes runs dozens to hundreds of agents</li>
+                <li><b>background calls</b>: small jobs (titles, recaps) go to the Haiku-tier model</li>
+              </ul>
+            </li>
+            <li>
+              Delegation costs tokens before it saves any:
+              <ul>
+                <li>Anthropic's research system used about 15 times a chat's tokens, and beat one Opus by 90.2%.</li>
+                <li>Its later advice: multi-agent designs "typically use 3-10x more tokens" than one agent.</li>
+                <li>It saves money only when the workers are cheaper AND the context they read is small.</li>
+              </ul>
+            </li>
+            <li>
+              Anthropic's newest pattern turns orchestration upside down, and it's the cheapest:
+              <ul>
+                <li>The <b>advisor</b>: Haiku with an Opus advisor scored 41.2% against Haiku's 19.7% alone.</li>
+                <li>It costs 85% less per task than Sonnet alone, though it scores 29% lower than Sonnet.</li>
+                <li>Sonnet with an Opus advisor gained 2.7 points and cost 11.9% less than Sonnet alone.</li>
+              </ul>
+            </li>
+            <li>
+              Coding is the case Anthropic names as a poor fit for many agents: the work shares too much context.
+              Delegation pays in code for searching, checking and big fan-outs, not for one edit split up.
+            </li>
+            <li>
+              The other frontier agents (Codex, Antigravity, Copilot, Cursor, Qwen Code, Kimi) all have subagents now;
+              how each picks the worker's model is the part to evaluate (<a href="#3-other-agents">section 3</a>).
+            </li>
+            <li>
+              Spell has a checker no general agent has: a program parses and checks in milliseconds. So a cheap model's
+              edit can be checked at once, and handed up a tier only when it fails.
+            </li>
           </ul>
           <ui-message state="positive" heading="Recommendation">
             <ul>
-              <li>What to do, in one line.</li>
+              <li>
+                Spell's agent escalates, rather than orchestrates: the <code>fast</code> tier does the edit, Spell's
+                checker checks it, and the <code>best</code> tier is asked only when the check fails, or before a big
+                change.
+              </li>
+              <li>A local model is the first rung below <code>fast</code>, for edits on a Mac that has one.</li>
+              <li>
+                Keep subagents for the jobs that fan out (making a new app, explaining a whole project), not for Change
+                This.
+              </li>
             </ul>
           </ui-message>
         </ui-section>
 
-        <ui-section id="2-the-design" label="2. The design" sticky collapsible dividing open="false">
+        <ui-section id="2-what-claude-does" label="2. What Claude does" sticky collapsible dividing open="false">
           <p>
-            A short lead, then a nested <code>&lt;ui-section&gt;</code> per distinct part. A
-            <dfn class="spell-term" tabindex="0">coined term</dfn>
-            <ui-popup
-              heading="coined term"
-              label="What it means here, in one line:  hover or focus the term."
-            ></ui-popup>
-            gets its meaning in a popup.
+            Claude Code and Anthropic's platform give five ways to put part of a job on a cheaper model. The table lines
+            them up; a sub-section on each follows.
           </p>
+          <ul>
+            <li>Everything in this section was checked on Anthropic's own pages on 2026-11-20, unless marked guess.</li>
+            <li>
+              The model names are November 2026's: Fable 5.2 (the top), Opus 5.5, Sonnet 5.5, Haiku 5.5. Their prices
+              are in
+              <a href="models.html#anthropic" target="src-guides-agents-in-spell-models-html">models.html</a>.
+            </li>
+          </ul>
 
-          <ui-section id="how-it-flows" label="How it flows" sticky collapsible dividing open="false">
-            <ui-steps class="spell-steps" ordered>
-              <ui-step heading="step one" description="What happens first, and when."></ui-step>
-              <ui-step heading="step two" description="What it hands on."></ui-step>
-              <ui-step heading="step three" description="Where it ends."></ui-step>
-            </ui-steps>
+          <ui-section id="the-ways" label="The five ways at a glance" sticky collapsible dividing open="false">
+            <ui-table celled padding="compact" appearance="striped" unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>way</th>
+                    <th>who decides</th>
+                    <th>when the strong model runs</th>
+                    <th>the cheap model does</th>
+                  </tr>
+                  <tr>
+                    <td>subagent with a <code>model</code></td>
+                    <td>Claude, turn by turn</td>
+                    <td>the whole main conversation</td>
+                    <td>a whole delegated task, in its own context</td>
+                  </tr>
+                  <tr>
+                    <td><code>opusplan</code></td>
+                    <td>the person, by entering plan mode</td>
+                    <td>while planning</td>
+                    <td>the doing (Sonnet)</td>
+                  </tr>
+                  <tr>
+                    <td>advisor</td>
+                    <td>the cheap model, like any tool call</td>
+                    <td>only at hard moments</td>
+                    <td>everything, tools included</td>
+                  </tr>
+                  <tr>
+                    <td>workflow</td>
+                    <td>a script Claude writes</td>
+                    <td>wherever the script says</td>
+                    <td>the stages the script gives it</td>
+                  </tr>
+                  <tr>
+                    <td>background calls</td>
+                    <td>Claude Code itself</td>
+                    <td>--</td>
+                    <td>titles, recaps and other small side jobs</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p class="meta">
+              Claude Code's own comparison of the advisor, <code>opusplan</code>, subagents and <code>/model</code> is
+              in its advisor page (Sources). Agent teams, a sixth shape, are peer sessions rather than cheaper workers:
+              left out here.
+            </p>
           </ui-section>
 
-          <ui-section id="the-parts" label="The parts" sticky collapsible dividing open="false">
+          <ui-section id="subagents" label="Subagents and the Agent tool" sticky collapsible dividing open="false">
+            <p>
+              A
+              <dfn class="spell-term" tabindex="0">subagent</dfn>
+              <ui-popup
+                heading="subagent"
+                label="A separate agent the main one starts for one task: its own context, its own instructions and tools, and maybe its own model. Only its final report comes back."
+              ></ui-popup>
+              is a worker the main agent starts with its Agent tool (once called Task). What it gets:
+            </p>
+            <ul>
+              <li>
+                Its own context window, its own instructions, its own tools and permissions.
+                <ul>
+                  <li>It doesn't see the conversation: only the task message Claude writes for it.</li>
+                  <li>Only its final report comes back, so its file reads never fill the main context.</li>
+                  <li>
+                    A <b>fork</b> is the exception: it copies the whole conversation, and runs on the parent's model.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Its model, picked in this order:
+                <ol>
+                  <li>the <code>model</code> Claude passes when it starts the subagent</li>
+                  <li>the <code>model</code> line in the subagent's definition</li>
+                  <li><code>CLAUDE_CODE_SUBAGENT_MODEL</code>, the setting for every subagent</li>
+                  <li>else the main conversation's model</li>
+                </ol>
+                The values: <code>haiku</code>, <code>sonnet</code>, <code>opus</code>, <code>fable</code>, a full model
+                id, or <code>inherit</code>.
+              </li>
+              <li>
+                Its own effort level (<code>low</code> to <code>max</code>); thinking it inherits from the parent.
+              </li>
+              <li>Limits: subagents may start subagents, three layers deep by default; at most 20 run at once.</li>
+              <li>
+                In an interactive session they now start in the background by default; their reports arrive later.
+              </li>
+            </ul>
+            <p>The built-in subagents, and their models:</p>
+            <ui-table celled padding="compact" appearance="striped" unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>subagent</th>
+                    <th>model</th>
+                    <th>for</th>
+                  </tr>
+                  <tr>
+                    <td>Explore</td>
+                    <td>the <code>opus</code> alias (Fable on the cloud providers)</td>
+                    <td>read-only searching, at three levels of thoroughness</td>
+                  </tr>
+                  <tr>
+                    <td>Plan</td>
+                    <td>the parent's</td>
+                    <td>read-only research in plan mode</td>
+                  </tr>
+                  <tr>
+                    <td>general-purpose</td>
+                    <td>the parent's</td>
+                    <td>multi-step work that reads and changes</td>
+                  </tr>
+                  <tr>
+                    <td>claude-code-guide</td>
+                    <td class="yes positive">Haiku</td>
+                    <td>questions about Claude Code</td>
+                  </tr>
+                  <tr>
+                    <td>statusline-setup</td>
+                    <td class="meh warning">Sonnet</td>
+                    <td><code>/statusline</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>
+                Explore once ran on Haiku (<b>guess</b>: from memory of the 2025 docs, not re-checked). Today it runs on
+                the <code>opus</code> alias; Haiku is left with the small jobs.
+              </li>
+              <li>
+                Anthropic's own advice for cost: put simple subagents on <code>model: haiku</code>, and keep the main
+                conversation on Sonnet unless the task needs Opus.
+              </li>
+              <li>
+                Opus 5 "delegates to subagents more readily than earlier models": so the Agent SDK's Claude Code prompt
+                tells Opus 5 not to start one unless asked.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="opusplan" label="opusplan: plan strong, do cheap" sticky collapsible dividing open="false">
+            <ul>
+              <li><code>opusplan</code> is a model setting: Opus in plan mode, Sonnet once the plan is accepted.</li>
+              <li>
+                It's the oldest and plainest shape of "a best model plans, a cheaper one edits": the person draws the
+                line, by entering and leaving plan mode.
+              </li>
+              <li>
+                Its catch: every switch is a switch of model, and each model has its own prompt cache, so the first turn
+                after each switch re-reads the whole conversation at full price.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="advisor"
+            label="The advisor: cheap does, strong advises"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <p>
+              The
+              <dfn class="spell-term" tabindex="0">advisor</dfn>
+              <ui-popup
+                heading="advisor"
+                label="A stronger model the working model can consult mid-task, like calling a tool. It reads the whole conversation and sends back advice; it never calls tools or writes the answer."
+              ></ui-popup>
+              (Anthropic's post of 2026-04-09) turns orchestration upside down: the cheap model drives, and asks up.
+            </p>
+            <ui-steps class="spell-steps" ordered>
+              <ui-step
+                heading="The cheap model works"
+                description="Haiku or Sonnet does the task: reads, calls tools, edits."
+              ></ui-step>
+              <ui-step
+                heading="It hits a hard moment"
+                description="Before picking an approach, when an error keeps coming back, before saying it's done: it calls the advisor, as it would any tool."
+              ></ui-step>
+              <ui-step
+                heading="The strong model advises"
+                description="Opus (or Fable) reads the whole conversation and sends back a plan, a correction or 'stop': typically 400-700 words' worth of tokens."
+              ></ui-step>
+              <ui-step
+                heading="The cheap model carries on"
+                description="It follows the advice, or says why its own evidence disagrees."
+              ></ui-step>
+            </ui-steps>
+            <ul>
+              <li>
+                On the Claude API it's a server tool: one request, and Anthropic runs the advisor's pass itself. A
+                <code>max_uses</code> caps the consultations per request.
+              </li>
+              <li>In Claude Code: <code>/advisor opus</code>, or the <code>advisorModel</code> setting.</li>
+              <li>In Managed Agents: one line in the agent's <code>multiagent</code> settings.</li>
+              <li>
+                The advisor must be at least as strong as the worker: Opus advising Sonnet or Haiku, never the other
+                way.
+              </li>
+              <li>
+                Cache: turning it on keeps the main model's cache, but each consultation reads the whole transcript
+                anew, uncached. So late consultations in a long session cost the most.
+              </li>
+              <li>Not on Bedrock, Google's Agent Platform or Microsoft Foundry; experimental in Claude Code.</li>
+            </ul>
+            <ui-table celled padding="compact" appearance="striped" unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>pairing (Anthropic's numbers)</th>
+                    <th>benchmark</th>
+                    <th>score</th>
+                    <th>cost per task</th>
+                  </tr>
+                  <tr>
+                    <td>Sonnet + Opus advisor, vs Sonnet alone</td>
+                    <td>SWE-bench Multilingual</td>
+                    <td class="yes positive">+2.7 points</td>
+                    <td class="yes positive">11.9% less</td>
+                  </tr>
+                  <tr>
+                    <td>Haiku + Opus advisor, vs Haiku alone</td>
+                    <td>BrowseComp</td>
+                    <td class="yes positive">41.2% vs 19.7%</td>
+                    <td class="meh warning">more than Haiku alone</td>
+                  </tr>
+                  <tr>
+                    <td>Haiku + Opus advisor, vs Sonnet alone</td>
+                    <td>BrowseComp</td>
+                    <td class="meh warning">29% lower</td>
+                    <td class="yes positive">85% less</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p class="meta">
+              The post's numbers are for the models of April 2026 (Sonnet and Opus 4.x); none were re-run for the 5.5
+              models.
+            </p>
+          </ui-section>
+
+          <ui-section id="background" label="The background calls to Haiku" sticky collapsible dividing open="false">
+            <ul>
+              <li>
+                Claude Code sends some small side jobs to the Haiku-tier model, whatever the session runs on.
+                <ul>
+                  <li>
+                    Checked: the setting <code>ANTHROPIC_DEFAULT_HAIKU_MODEL</code> is "the model to use for
+                    <code>haiku</code>, or background functionality"; it replaced
+                    <code>ANTHROPIC_SMALL_FAST_MODEL</code>.
+                  </li>
+                  <li>
+                    Checked: session titles, compaction, subagents and workflows are requests "outside the main
+                    conversation", with their own cache rules.
+                  </li>
+                  <li>
+                    From third-party write-ups only: titles and topic detection run on Haiku; behind a gateway with no
+                    Haiku configured, Claude Code falls back to the main model. One user report says the away-recap
+                    bills the main model instead.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Not every side job is cheap: the next-prompt suggestion goes to the session's OWN model, because it
+                reuses the conversation's cache (mostly cache reads, a few tokens out).
+              </li>
+              <li>
+                The lesson for Spell: a side job that reads the whole conversation is cheaper on the same model, cache
+                warm, than on a cheap model, cache cold. Only a side job with a small input belongs on the cheap model.
+                (<b>guess</b>, drawn from the two cases above.)
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="effort" label="Effort and thinking" sticky collapsible dividing open="false">
+            <ul>
+              <li>
+                Effort is the second dial beside the model: how hard a model thinks, <code>low</code>,
+                <code>medium</code>, <code>high</code>, <code>xhigh</code> or <code>max</code>.
+              </li>
+              <li>
+                The 5.5 models and Fable default to <code>medium</code>, and can't turn thinking off: "the model decides
+                per step how much to think based on the effort level."
+              </li>
+              <li>Thinking is billed as output, so lowering effort is the way to spend less on a model.</li>
+              <li>
+                Changing effort mid-session used to cost the cache; on Fable 5.1+, Opus 5.5, Sonnet 5.5 and Haiku 5.5,
+                through Anthropic's own API, it no longer does.
+              </li>
+              <li>
+                Every subagent can have its own <code>effort</code>, and <code>CLAUDE_CODE_SUBAGENT_EFFORT</code> sets
+                one for all of them.
+              </li>
+              <li>
+                Spell measured this itself, and found the dial matters more than the model (below,
+                <a href="#spell-measured">what Spell measured</a>).
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="patterns" label="Anthropic's patterns" sticky collapsible dividing open="false">
+            <p>Three posts set out when to split a job between models, and how.</p>
             <ui-cards class="spell-flow" stackable>
               <ui-card>
                 <ui-content>
-                  <ui-header>a part</ui-header>
-                  <ui-description>What it owns.</ui-description>
+                  <ui-header>Building effective agents (2024-12-19)</ui-header>
+                  <ui-description
+                    >Five shapes, simplest first: a chain of steps, <b>routing</b> (easy questions to Haiku, hard ones
+                    to Sonnet), parallel calls, <b>orchestrator-workers</b>, and an evaluator checking a generator. Its
+                    advice: the simplest thing that works, and add a part only when it measurably helps.</ui-description
+                  >
                 </ui-content>
               </ui-card>
               <ui-card>
                 <ui-content>
-                  <ui-header>another part</ui-header>
-                  <ui-description>What it leaves to the first.</ui-description>
+                  <ui-header>The multi-agent research system (2025-06-13)</ui-header>
+                  <ui-description
+                    >An Opus lead plans and starts Sonnet workers in parallel, each searching one angle; a citation
+                    agent checks the sources. 90.2% better than one Opus on Anthropic's research test, at about 15 times
+                    a chat's tokens. Token use alone explained about 80% of how well it did.</ui-description
+                  >
+                </ui-content>
+              </ui-card>
+              <ui-card>
+                <ui-content>
+                  <ui-header>When to use multi-agent systems (2026-01-23)</ui-header>
+                  <ui-description
+                    >Start with one agent. Split only to keep the main context clean, to run independent work in
+                    parallel, or for a specialist. Split by CONTEXT, not by kind of work: the agent that writes a
+                    feature writes its tests too. 3-10 times the tokens.</ui-description
+                  >
                 </ui-content>
               </ui-card>
             </ui-cards>
+            <ui-message state="warning" heading="Coding is the named poor fit">
+              <ul>
+                <li>
+                  The research post: coding has "fewer truly parallelizable tasks than research", and agents aren't yet
+                  good at coordinating in real time.
+                </li>
+                <li>
+                  The 2026 post: splitting by kind of work (one writes, one tests, one reviews) is "often
+                  counterproductive".
+                </li>
+              </ul>
+            </ui-message>
           </ui-section>
 
-          <ui-section id="today-vs-proposed" label="Today vs proposed" sticky collapsible dividing open="false">
+          <ui-section
+            id="sdk-and-managed"
+            label="The Agent SDK and Managed Agents"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                The <b>Claude Agent SDK</b> (the library Claude Code is built on) takes the same subagents in code: an
+                <code>agents</code> option, each with its description, instructions, tools, <code>model</code> and
+                <code>effort</code>.
+                <ul>
+                  <li>
+                    Its caps: how deep subagents nest, how many run at once, and a spend limit in dollars
+                    (<code>maxBudgetUsd</code>), which subagents count toward.
+                  </li>
+                  <li>Its example of a dynamic choice: Opus for a strict security review, Sonnet otherwise.</li>
+                </ul>
+              </li>
+              <li>
+                <b>Managed Agents</b> (Anthropic's hosted agents, beta since April 2026) put all three ways in one
+                <code>multiagent</code> setting:
+                <ul>
+                  <li>subagents, one level deep, at most 25 threads, each with its own model</li>
+                  <li>
+                    workflows, whose made-up agents run on the lead's model: a cheaper model only for agents you created
+                    and listed
+                  </li>
+                  <li>an advisor, for the lead thread only</li>
+                  <li>
+                    Anthropic's own examples: an Opus 5.5 lead, with Haiku 5.5 reviewers, test writers and researchers
+                  </li>
+                  <li>a session budget caps the spend, workflows included</li>
+                </ul>
+              </li>
+              <li>
+                <b>Workflows</b>, in Claude Code too: a short script of <code>agent()</code>,
+                <code>pipeline()</code> and <code>parallel()</code> calls, up to 16 agents at once and 1,000 a run. A
+                run over 25 agents or 1.5 million projected tokens shows a "Large workflow" warning.
+              </li>
+            </ul>
+            <p class="meta">
+              Spell won't run on Managed Agents (its agent is the kit's own client, standards.html), but its settings
+              are the clearest map of the choices Spell's client will face.
+            </p>
+          </ui-section>
+
+          <ui-section id="caching" label="Prompt caching across agents" sticky collapsible dividing open="false">
+            <p>
+              A cached prompt is read back for a small fraction of the input price (2-5% on most models,
+              <a href="models.html" target="src-guides-agents-in-spell-models-html">models.html</a>). Delegation changes
+              what can be cached:
+            </p>
             <ui-table celled padding="compact" appearance="striped" unstackable>
               <table>
                 <tbody>
                   <tr>
                     <th>case</th>
-                    <th>today</th>
-                    <th>proposed</th>
-                    <th class="num right aligned">ms</th>
+                    <th>does it read the parent's cache?</th>
                   </tr>
                   <tr>
-                    <td>an input</td>
-                    <td class="no negative">what goes wrong</td>
-                    <td class="yes positive">what should happen</td>
-                    <td class="num right aligned">1.2</td>
+                    <td>a subagent (fresh context)</td>
+                    <td class="no negative">no: its instructions differ, so it warms its own</td>
                   </tr>
                   <tr>
-                    <td>another</td>
-                    <td class="meh warning">works, but slowly</td>
-                    <td class="yes positive">fast</td>
-                    <td class="num right aligned">0.4</td>
+                    <td>a fork (copies the conversation)</td>
+                    <td class="yes positive">yes, from its first request</td>
+                  </tr>
+                  <tr>
+                    <td>workflow agents alike in model, tools and instructions</td>
+                    <td class="yes positive">
+                      yes, each other's: Claude Code holds back all but the first for up to 5 seconds, so they share
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>a switch of model (<code>opusplan</code>, a skill naming a model)</td>
+                    <td class="no negative">no: each model has its own cache</td>
+                  </tr>
+                  <tr>
+                    <td>the advisor</td>
+                    <td class="meh warning">the main model's cache stays; the advisor's own read is never cached</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>
+                Subagents' caches last five minutes, even on a subscription; the main conversation's an hour there.
+              </li>
+              <li>The parent's cache is untouched by a subagent: its call and report are only added to the end.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="costs" label="What it costs, by Anthropic's numbers" sticky collapsible dividing open="false">
+            <ui-table celled padding="compact" appearance="striped" unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>what</th>
+                    <th class="num right aligned">figure</th>
+                    <th>where from</th>
+                  </tr>
+                  <tr>
+                    <td>an agent, against a chat</td>
+                    <td class="num right aligned">~4× tokens</td>
+                    <td>research system post, 2025</td>
+                  </tr>
+                  <tr>
+                    <td>a multi-agent system, against a chat</td>
+                    <td class="num right aligned">~15× tokens</td>
+                    <td>research system post, 2025</td>
+                  </tr>
+                  <tr>
+                    <td>multi-agent, against one agent, same task</td>
+                    <td class="num right aligned">3-10× tokens</td>
+                    <td>"when to use" post, 2026</td>
+                  </tr>
+                  <tr>
+                    <td>an agent team in plan mode, against one session</td>
+                    <td class="num right aligned">~7× tokens</td>
+                    <td>Claude Code's cost page</td>
+                  </tr>
+                  <tr>
+                    <td>multi-agent research, against one Opus</td>
+                    <td class="num right aligned">+90.2% quality</td>
+                    <td>research system post, 2025</td>
+                  </tr>
+                  <tr>
+                    <td>parallel workers, research time</td>
+                    <td class="num right aligned">up to 90% less</td>
+                    <td>research system post, 2025</td>
+                  </tr>
+                  <tr>
+                    <td>Haiku + Opus advisor, against Sonnet</td>
+                    <td class="num right aligned">85% cheaper</td>
+                    <td>advisor post, 2026</td>
+                  </tr>
+                  <tr>
+                    <td>Claude Code, per developer per active day</td>
+                    <td class="num right aligned">~$13</td>
+                    <td>Claude Code's cost page</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <ul>
+              <li>
+                Why cheap workers still cost: each one re-reads its own instructions, tools and task, so the price gap
+                between models (40 times, Haiku 5.5 to Opus 5.5) is eaten by the number of agents (3-15 times).
+              </li>
+              <li>
+                <b>Guess:</b> a split saves money only when each worker's input is small and its model is at least ten
+                times cheaper than the lead's.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="goes-wrong" label="Where delegation goes wrong" sticky collapsible dividing open="false">
+            <p>Each from Anthropic's posts and docs, except the two forum reports marked so.</p>
+            <ul>
+              <li>
+                <b>Too many agents.</b> Early research versions started 50 subagents for a simple question. Fix: say in
+                the prompt how many agents a size of task deserves.
+              </li>
+              <li>
+                <b>Vague hand-offs.</b> Workers given a short task duplicated each other's searches. Every hand-off
+                needs its goal, its output's shape, its tools and its limits.
+              </li>
+              <li>
+                <b>The telephone game.</b> Facts are lost at each hand-off: a subagent sees only what its task message
+                says.
+              </li>
+              <li>
+                <b>Early victory.</b> A checking agent runs one or two tests, sees them pass, and says it's done. Fix:
+                concrete criteria, and the whole suite.
+              </li>
+              <li>
+                <b>Coordination costs more than the work.</b> In one split-by-role test, workers spent more tokens
+                talking than working.
+              </li>
+              <li>
+                <b>Misrouting.</b> A router that sends a hard task to the cheap model gives a poor result, confidently.
+              </li>
+              <li><b>Cache thrash.</b> Each switch of model re-reads the conversation at full price.</li>
+              <li>
+                <b>The model you didn't pick.</b> Forum reports (not Anthropic's): Cursor's subagents run on pricier
+                models than the one selected; Codex's stopped taking a model of their own in mid-2026 (<a
+                  href="#3-other-agents"
+                  >section 3</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section
+          id="3-other-agents"
+          label="3. The other frontier agents, to evaluate"
+          sticky
+          collapsible
+          dividing
+          open="false"
+        >
+          <p>
+            What one quick search showed about each, on 2026-11-20. Each is a todo on the epic page, where the depth
+            goes.
+          </p>
+          <ui-table celled padding="compact" appearance="striped" unstackable>
+            <table>
+              <tbody>
+                <tr>
+                  <th>agent</th>
+                  <th>subagents</th>
+                  <th>who picks the worker's model</th>
+                  <th>todo</th>
+                </tr>
+                <tr>
+                  <td>OpenAI Codex</td>
+                  <td>yes, only when asked</td>
+                  <td>inherits the parent's; a custom agent can pin one</td>
+                  <td><epic-link epic="agents-in-spell" item="T2"></epic-link></td>
+                </tr>
+                <tr>
+                  <td>Google Antigravity CLI (was Gemini CLI), Jules</td>
+                  <td>yes, in the background</td>
+                  <td>a router, Flash or Pro; a subagent can pin one</td>
+                  <td><epic-link epic="agents-in-spell" item="T3"></epic-link></td>
+                </tr>
+                <tr>
+                  <td>GitHub Copilot, MAI Code 2</td>
+                  <td>not found</td>
+                  <td>auto mode, by task and model health</td>
+                  <td><epic-link epic="agents-in-spell" item="T4"></epic-link></td>
+                </tr>
+                <tr>
+                  <td>Cursor</td>
+                  <td>yes, on their own</td>
+                  <td>its own Composer model, by default</td>
+                  <td><epic-link epic="agents-in-spell" item="T5"></epic-link></td>
+                </tr>
+                <tr>
+                  <td>Qwen Code, Kimi</td>
+                  <td>yes; Kimi up to 300 at once</td>
+                  <td>per subagent (Qwen), the swarm (Kimi)</td>
+                  <td><epic-link epic="agents-in-spell" item="T6"></epic-link></td>
+                </tr>
+              </tbody>
+            </table>
+          </ui-table>
+
+          <ui-section id="codex" label="OpenAI Codex" sticky collapsible dividing open="false">
+            <ui-label size="mini" color="orange">to evaluate</ui-label>
+            <epic-link epic="agents-in-spell" item="T2"></epic-link>
+            <ul>
+              <li>
+                Codex starts subagents only when asked, by the person or by an
+                <a href="/AGENTS.md" target="src-agents-md"><code>AGENTS.md</code></a> or skill. Only ChatGPT Work's top
+                level delegates on its own.
+              </li>
+              <li>
+                Three built in: <code>default</code>, <code>worker</code> (implements and fixes), <code>explorer</code>
+                (reads the code).
+              </li>
+              <li>
+                A subagent inherits the parent's model and effort; the docs suggest GPT-6.2 Sol for everyday agents and
+                GPT-6 Luna (the cheap one) for "fast, narrowly scoped work".
+              </li>
+              <li>
+                Forum reports from July 2026: since the 5.6 models, a subagent can't be STARTED on another model, only
+                configured with one. Unconfirmed.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="gemini"
+            label="Google: Antigravity CLI (was Gemini CLI) and Jules"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ui-label size="mini" color="orange">to evaluate</ui-label>
+            <epic-link epic="agents-in-spell" item="T3"></epic-link>
+            <ul>
+              <li>
+                Gemini CLI was retired for consumer accounts on 2026-06-18; Antigravity CLI (<code>agy</code>), from
+                Google I/O 2026-05-19, replaced it.
+              </li>
+              <li>
+                Gemini CLI had a router: a classifier sent simple requests to Flash and hard ones to Pro. Subagents came
+                in April 2026, each able to pin its model.
+              </li>
+              <li>Antigravity CLI runs subagents in the background (one source); its model choice is not yet clear.</li>
+              <li>Jules, Google's cloud coding agent: nothing found on delegation in a quick search.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="copilot"
+            label="Microsoft: Copilot auto mode and MAI Code 2"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ui-label size="mini" color="orange">to evaluate</ui-label>
+            <epic-link epic="agents-in-spell" item="T4"></epic-link>
+            <ul>
+              <li>
+                Copilot's auto mode routes each request to a model by the task and the models' health (since May 2026 in
+                VS Code, July in the CLI), with 10% off the model's price.
+              </li>
+              <li>
+                MAI Code 2 (Ignite, 2026-11-17) is the cheap, strong model to route to: see
+                <a href="models.html" target="src-guides-agents-in-spell-models-html">models.html</a>. Copilot only, so
+                far.
+              </li>
+              <li>This is routing per request, not delegation inside a task: nothing found on Copilot subagents.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="cursor" label="Cursor" sticky collapsible dividing open="false">
+            <ui-label size="mini" color="orange">to evaluate</ui-label>
+            <epic-link epic="agents-in-spell" item="T5"></epic-link>
+            <ul>
+              <li>
+                Cursor's agent starts subagents on its own; its Explore and general subagents default to Cursor's own
+                Composer model, whatever the parent runs on.
+              </li>
+              <li>A custom subagent can pin its model in its file.</li>
+              <li>
+                The forum is full of the opposite complaint too: subagents on pricier models (Opus, GPT) than the one
+                picked, billed that way. All user reports; no official doc found.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="open-weight"
+            label="Open-weight agents: Qwen Code and Kimi"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ui-label size="mini" color="orange">to evaluate</ui-label>
+            <epic-link epic="agents-in-spell" item="T6"></epic-link>
+            <ul>
+              <li>
+                Qwen Code (Alibaba's, a fork of Gemini CLI): subagents as Markdown files, each with its own model or
+                <code>inherit</code>, even from another provider; nested subagents since July 2026.
+              </li>
+              <li>
+                Kimi (Moonshot): Agent Swarm, from K2.5 in January 2026, now up to 300 subagents and 4,000 tool calls in
+                a task; Kimi Code is its terminal agent.
+              </li>
+              <li>
+                Why they matter to Spell: their models can run on a Mac, so their way of delegating is the one a local
+                worker would follow (<a href="local-models.html" target="src-guides-agents-in-spell-local-models-html"
+                  >local-models.html</a
+                >).
+              </li>
+            </ul>
+          </ui-section>
+        </ui-section>
+
+        <ui-section
+          id="4-what-spell-borrows"
+          label="4. What Spell would borrow"
+          sticky
+          collapsible
+          dividing
+          open="false"
+        >
+          <p>
+            Spell's agent is one client, in the kit's new <code>src/agents/</code>, with three tiers in no provider's
+            terms: <code>fast</code>, <code>balanced</code>, <code>best</code> (<a
+              href="standards.html#the-one-client"
+              target="src-guides-agents-in-spell-standards-html"
+              >standards.html</a
+            >). This section is how those tiers would share a job. It's all proposal: <b>guess</b>, unless it cites
+            Spell's code.
+          </p>
+
+          <ui-section id="escalate" label="Fast edits, checked, then escalate" sticky collapsible dividing open="false">
+            <p>
+              The advisor's shape fits Spell better than an orchestrator's: Change This is one small, coupled edit, the
+              case Anthropic says not to split. What Spell adds is a check no general agent has.
+            </p>
+            <ui-steps class="spell-steps" ordered>
+              <ui-step
+                heading="Fast tier edits"
+                description="The fast model (Haiku 5.5, or a local model) makes the change through the editor's write tools, into the draft."
+              ></ui-step>
+              <ui-step
+                heading="Spell checks it"
+                description="Parse, check, compile and the tests, in milliseconds for the parse (editor-surface.html, 'The feedback loop')."
+              ></ui-step>
+              <ui-step
+                heading="Clean: done"
+                description="It lands as one undo step. Most small edits should stop here (guess)."
+              ></ui-step>
+              <ui-step
+                heading="Not clean: escalate"
+                description="The errors go back to the fast model once; failing again, the best tier is asked, as an advisor (a plan or a fix) or to take over."
+              ></ui-step>
+            </ui-steps>
+            <ul>
+              <li>The checker decides when to escalate, not the model: no router to misroute.</li>
+              <li>
+                Before a BIG change (a new view, a whole page), the best tier plans first, as
+                <code>opusplan</code> does; the fast tier does the steps of its plan.
+              </li>
+              <li>
+                The advisor itself is Claude-only, and not on every cloud. Spell's client would do it by hand, the same
+                for every provider: ask the best tier with the conversation so far, and hand its answer back.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section
+            id="local-worker"
+            label="A local model as the cheapest worker"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ul>
+              <li>
+                A local model is free to run, so it's the rung below <code>fast</code>: try it first on a Mac that has
+                one.
+              </li>
+              <li>
+                local-models.html already proposes the hybrid: route small edits to Ollama or LM Studio, checked by
+                Spell's checker, and up to a hosted model when they fail (<a
+                  href="local-models.html#8-hybrid"
+                  target="src-guides-agents-in-spell-local-models-html"
+                  >local-models.html</a
+                >).
+              </li>
+              <li>
+                The same escalation as above, one rung lower: local, then <code>fast</code>, then <code>best</code>.
+              </li>
+              <li>
+                Its cost is time, not money: a laptop model is much slower, so a timeout matters as much as a failed
+                check.
+              </li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="jobs-by-tier" label="Which job goes to which tier" sticky collapsible dividing open="false">
+            <p>
+              The jobs are the ones
+              <a href="flows.html" target="src-guides-agents-in-spell-flows-html">flows.html</a> lists. A first cut, all
+              <b>guess</b>, to argue with:
+            </p>
+            <ui-table celled padding="compact" appearance="striped" unstackable>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>job</th>
+                    <th>who does it</th>
+                    <th>escalates to</th>
+                    <th>split into subagents?</th>
+                  </tr>
+                  <tr>
+                    <td>Change This, the selected part</td>
+                    <td class="yes positive">local, else fast</td>
+                    <td>best, when the check fails</td>
+                    <td class="no negative">no: one coupled edit</td>
+                  </tr>
+                  <tr>
+                    <td>a follow-up in the conversation</td>
+                    <td class="yes positive">the same tier as before</td>
+                    <td>best, when the check fails</td>
+                    <td class="no negative">no: same model keeps its cache</td>
+                  </tr>
+                  <tr>
+                    <td>change what was made (a whole page or app)</td>
+                    <td class="meh warning">best plans, fast edits</td>
+                    <td>best, per failing step</td>
+                    <td class="meh warning">maybe: a step per file</td>
+                  </tr>
+                  <tr>
+                    <td>make something new (an app, a site, a view)</td>
+                    <td class="meh warning">best plans, balanced builds</td>
+                    <td>best</td>
+                    <td class="yes positive">yes: pages, views, data apart</td>
+                  </tr>
+                  <tr>
+                    <td>explain a part</td>
+                    <td class="yes positive">local, else fast</td>
+                    <td>balanced, when asked again</td>
+                    <td class="no negative">no</td>
+                  </tr>
+                  <tr>
+                    <td>explain a whole project</td>
+                    <td class="yes positive">fast readers</td>
+                    <td>balanced, to write it up</td>
+                    <td class="yes positive">yes: one reader per file, like Explore</td>
+                  </tr>
+                  <tr>
+                    <td>side jobs: a request's title, a version's note</td>
+                    <td class="yes positive">local, else fast</td>
+                    <td>--</td>
+                    <td class="no negative">no</td>
                   </tr>
                 </tbody>
               </table>
             </ui-table>
           </ui-section>
 
-          <ui-section id="trade-offs" label="Trade-offs" sticky collapsible dividing open="false">
-            <ui-grid class="spell-pros-cons" columns="2" stackable>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attach-to="top" color="green"><ui-icon name="thumbs up"></ui-icon> For</ui-label>
-                  <ul>
-                    <li>What this choice buys.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-              <ui-column>
-                <ui-segment>
-                  <ui-label attach-to="top" color="red"><ui-icon name="thumbs down"></ui-icon> Against</ui-label>
-                  <ul>
-                    <li>What it costs, and who pays.</li>
-                  </ul>
-                </ui-segment>
-              </ui-column>
-            </ui-grid>
-          </ui-section>
-
-          <ui-section id="the-code" label="The code" sticky collapsible dividing open="false">
-            <p>Prefer an excerpt from a real, runnable file; say which.</p>
-            <ui-accordion class="spell-code" appearance="styled">
-              <ui-title>example.ts · 6 lines</ui-title>
-              <ui-content>
-                <pre><code class="language-ts">// every code block starts folded:  no `open`
-export function greet(name: string): string {
-  return `hello, ${name}`
-}
-
-const message = greet("spell")</code></pre>
-              </ui-content>
-            </ui-accordion>
-            <p>Variants of one snippet (before / after, TS / JS) go in tabs, one code block per tab.</p>
-            <ui-tabs class="spell-tabs" appearance="pointing secondary basic" aria-label="Before and after">
-              <ui-tab label="Before">
-                <ui-accordion class="spell-code" appearance="styled">
-                  <ui-title>before.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return "hello, " + name
-}</code></pre>
-                  </ui-content>
-                </ui-accordion>
-              </ui-tab>
-              <ui-tab label="After">
-                <ui-accordion class="spell-code" appearance="styled">
-                  <ui-title>after.ts · 3 lines</ui-title>
-                  <ui-content>
-                    <pre><code class="language-ts">export function greet(name: string): string {
-  return `hello, ${name}`
-}</code></pre>
-                  </ui-content>
-                </ui-accordion>
-              </ui-tab>
-            </ui-tabs>
-            <ui-message state="warning" heading="Heads up">
-              <ul>
-                <li>A trap the reader will fall into, and how to avoid it.</li>
-              </ul>
-            </ui-message>
-            <ui-accordion class="spell-aside" appearance="styled">
-              <ui-title>Aside: why not the obvious approach?</ui-title>
-              <ui-content>
-                <p>A digression the main text can skip. Starts collapsed.</p>
-              </ui-content>
-            </ui-accordion>
+          <ui-section id="spell-measured" label="What Spell measured already" sticky collapsible dividing open="false">
+            <p>
+              Spell already has tiers: <code>spell translate</code>'s passes ask Claude at a tier, and a table maps each
+              to a model and effort (<a
+                href="/parser/src/cli/claudeRunners.ts"
+                target="src-parser-src-cli-clauderunners-ts"
+                ><code title="parser/src/cli/claudeRunners.ts">CLAUDE_TIERS</code></a
+              >, epic <code>spanish</code> P27, measured 2026-10-23). Checked by reading the code:
+            </p>
+            <ul>
+              <li>Every tier of every pass runs <b>Opus</b>; only the effort differs (low, up to high for "best").</li>
+              <li>
+                Why: Opus at low effort was the fastest and the best at names. Sonnet glued words, and Haiku was the
+                SLOWEST (about 33 seconds) and broke a test.
+              </li>
+              <li>
+                So "fast" didn't mean "the small model" there: a strong model thinking little beat a small model
+                thinking a lot.
+              </li>
+              <li>
+                Those runs were on the 4.x and 5 models, before Haiku 5.5. Measure again before mapping
+                <code>fast</code> to Haiku.
+              </li>
+            </ul>
           </ui-section>
         </ui-section>
 
-        <ui-section id="3-history" label="3. History" sticky collapsible dividing open="false">
-          <p class="meta">What changed in the decision, newest first. Not every edit: only what a reader must know.</p>
-          <ui-feed class="spell-history" size="small">
-            <ui-event icon="check">
-              <ui-content>
-                <ui-summary>Built, and the numbers re-measured <ui-date>2026-10-01</ui-date></ui-summary>
-              </ui-content>
-            </ui-event>
-            <ui-event icon="gavel">
-              <ui-content>
-                <ui-summary
-                  >Decided: the proposed design, over the obvious one <ui-date>2026-09-30</ui-date></ui-summary
-                >
-              </ui-content>
-            </ui-event>
-          </ui-feed>
+        <ui-section id="5-open-questions" label="5. Open questions" sticky collapsible dividing open="false">
+          <p>
+            Already decided on the epic page, and not asked again: the word "agent", the one client in
+            <code>src/agents/</code>, and Change This on AG-UI and MCP.
+          </p>
+          <ol>
+            <li>
+              <b>How does Spell's agent share a job between tiers?</b>
+              <ui-cards class="spell-flow" stackable>
+                <ui-card>
+                  <ui-content>
+                    <ui-header
+                      >A. Escalate on a failed check
+                      <ui-label size="mini" color="green">recommended</ui-label></ui-header
+                    >
+                    <ui-description
+                      >The fast tier does the work; Spell's checker sends it up a tier when it fails. The advisor's
+                      shape, with the checker deciding.</ui-description
+                    >
+                  </ui-content>
+                </ui-card>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>B. Best plans, fast does</ui-header>
+                    <ui-description
+                      >Every request planned by the best tier first. Safer, but a best-tier call on every small
+                      edit.</ui-description
+                    >
+                  </ui-content>
+                </ui-card>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>C. One tier per request</ui-header>
+                    <ui-description
+                      >Pick the tier from the kind of job, no switching. Simplest; no rescue when the cheap model
+                      fails.</ui-description
+                    >
+                  </ui-content>
+                </ui-card>
+              </ui-cards>
+              <p class="meta">Why it matters: it sets what a small edit costs, and how often it fails.</p>
+            </li>
+            <li>
+              <b>Does Change This ever start subagents?</b>
+              <ui-cards class="spell-flow" stackable>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>A. Never <ui-label size="mini" color="green">recommended</ui-label></ui-header>
+                    <ui-description
+                      >One coupled edit, the case Anthropic says not to split; subagents only for making something new
+                      and explaining a whole project.</ui-description
+                    >
+                  </ui-content>
+                </ui-card>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>B. A read-only searcher</ui-header>
+                    <ui-description
+                      >A cheap Explore-like worker finds the code to change, so the editing model reads less.
+                    </ui-description>
+                  </ui-content>
+                </ui-card>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>C. When the agent decides</ui-header>
+                    <ui-description
+                      >As Claude Code does. Flexible, but the costs are the hardest to predict.</ui-description
+                    >
+                  </ui-content>
+                </ui-card>
+              </ui-cards>
+            </li>
+            <li>
+              <b>What does <code>fast</code> map to on Claude?</b>
+              <ui-cards class="spell-flow" stackable>
+                <ui-card>
+                  <ui-content>
+                    <ui-header
+                      >A. Measure first, on Spell's own edits
+                      <ui-label size="mini" color="green">recommended</ui-label></ui-header
+                    >
+                    <ui-description
+                      >Haiku 5.5 against Opus 5.5 at low effort, as <code>spell translate</code> did, on a set of Change
+                      This requests.</ui-description
+                    >
+                  </ui-content>
+                </ui-card>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>B. Haiku 5.5</ui-header>
+                    <ui-description>40 times cheaper than Opus; unmeasured on Spell.</ui-description>
+                  </ui-content>
+                </ui-card>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>C. Opus at low effort</ui-header>
+                    <ui-description
+                      >What Spell's translate tiers use today; dearer per token, but fewer retries.</ui-description
+                    >
+                  </ui-content>
+                </ui-card>
+              </ui-cards>
+            </li>
+            <li>
+              <b>Where does a local model sit?</b>
+              <ui-cards class="spell-flow" stackable>
+                <ui-card>
+                  <ui-content>
+                    <ui-header
+                      >A. A rung below fast, tried first when there
+                      <ui-label size="mini" color="green">recommended</ui-label></ui-header
+                    >
+                    <ui-description
+                      >Free, checked by Spell, and up to the fast tier on a failed check or a timeout.</ui-description
+                    >
+                  </ui-content>
+                </ui-card>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>B. Only when the person picks it</ui-header>
+                    <ui-description>No surprises in speed; but nobody gets it without knowing to ask.</ui-description>
+                  </ui-content>
+                </ui-card>
+                <ui-card>
+                  <ui-content>
+                    <ui-header>C. Side jobs only</ui-header>
+                    <ui-description>Titles, notes and explaining, never edits. Safe, and saves least.</ui-description>
+                  </ui-content>
+                </ui-card>
+              </ui-cards>
+            </li>
+          </ol>
         </ui-section>
 
-        <ui-section id="4-sources" label="4. Sources and experiments" sticky collapsible dividing open="false">
+        <ui-section id="6-see-also" label="6. See also" sticky collapsible dividing open="false">
           <ul>
-            <li>Runnable scripts in <code>&lt;topic&gt;/experiments/</code>, each saying how to run it.</li>
-            <li>Tables quote medians of several runs, never a single run.</li>
+            <li>
+              <a href="agents-in-spell.html" target="src-guides-agents-in-spell-agents-in-spell-html"
+                >agents-in-spell.html</a
+              >: the hub of these docs
+            </li>
+            <li>
+              <a href="models.html" target="src-guides-agents-in-spell-models-html">models.html</a>: the models, their
+              prices, the routers
+            </li>
+            <li>
+              <a href="local-models.html" target="src-guides-agents-in-spell-local-models-html">local-models.html</a>:
+              open models on the Mac and the phone, and the hybrid
+            </li>
+            <li>
+              <a href="standards.html" target="src-guides-agents-in-spell-standards-html">standards.html</a>: MCP,
+              AG-UI, ACP and the one client
+            </li>
+            <li>
+              <a href="flows.html" target="src-guides-agents-in-spell-flows-html">flows.html</a>: what people do with an
+              agent in Spell
+            </li>
+            <li>
+              <a href="editor-surface.html" target="src-guides-agents-in-spell-editor-surface-html"
+                >editor-surface.html</a
+              >: what the editor shows an agent, and its feedback loop
+            </li>
+            <li>
+              <a href="byo-agent.html" target="src-guides-agents-in-spell-byo-agent-html">byo-agent.html</a>: who pays,
+              and bringing your own agent
+            </li>
           </ul>
+        </ui-section>
+
+        <ui-section id="7-sources" label="7. Sources" sticky collapsible dividing open="false">
+          <p class="meta">All read 2026-11-20. Claude Code changes weekly: re-check a setting before building on it.</p>
           <ui-items class="spell-sources" divided>
             <ui-item>
               <ui-content>
-                <ui-header><code>experiments/measure.ts</code></ui-header>
-                <ui-meta>experiment · <code>tsx &lt;topic&gt;/experiments/measure.ts</code></ui-meta>
-                <ui-description>What it measures, and which claim above it backs.</ui-description>
+                <ui-header
+                  ><a href="https://code.claude.com/docs/en/sub-agents" target="ext-claude-code-sub-agents"
+                    >Claude Code: subagents</a
+                  ></ui-header
+                >
+                <ui-meta>docs · read 2026-11-20</ui-meta>
+                <ui-description
+                  >The built-in subagents and their models, the model order, nesting, concurrency, forks,
+                  effort.</ui-description
+                >
               </ui-content>
             </ui-item>
             <ui-item>
               <ui-content>
-                <ui-header><a href="https://example.com/" target="ext-example-com">An external reference</a></ui-header>
-                <ui-meta>reference · read 2026-10-01</ui-meta>
-                <ui-description>What it says that this doc relies on.</ui-description>
+                <ui-header
+                  ><a href="https://code.claude.com/docs/en/model-config" target="ext-claude-code-model-config"
+                    >Claude Code: model configuration</a
+                  ></ui-header
+                >
+                <ui-meta>docs · read 2026-11-20</ui-meta>
+                <ui-description
+                  ><code>opusplan</code>, the aliases, effort levels and defaults, thinking, the Haiku model for
+                  "background functionality".</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://code.claude.com/docs/en/advisor" target="ext-claude-code-advisor"
+                    >Claude Code: the advisor tool</a
+                  ></ui-header
+                >
+                <ui-meta>docs · read 2026-11-20</ui-meta>
+                <ui-description
+                  >Pairings, when Claude consults it, cost, caching, and its comparison with opusplan and
+                  subagents.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://claude.com/blog/the-advisor-strategy" target="ext-claude-advisor-strategy"
+                    >The advisor strategy</a
+                  ></ui-header
+                >
+                <ui-meta>Anthropic post, 2026-04-09 · read 2026-11-20</ui-meta>
+                <ui-description
+                  >The advisor's scores and costs, and how it differs from orchestrator-worker.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://code.claude.com/docs/en/prompt-caching" target="ext-claude-code-prompt-caching"
+                    >Claude Code: how it uses prompt caching</a
+                  ></ui-header
+                >
+                <ui-meta>docs · read 2026-11-20</ui-meta>
+                <ui-description
+                  >Subagents, forks and workflow fan-outs and the cache; model switches; the two cache
+                  lifetimes.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://code.claude.com/docs/en/costs" target="ext-claude-code-costs"
+                    >Claude Code: manage costs</a
+                  ></ui-header
+                >
+                <ui-meta>docs · read 2026-11-20</ui-meta>
+                <ui-description
+                  >$13 a developer-day, agent teams at ~7×, Haiku for simple subagents, the background
+                  requests.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://code.claude.com/docs/en/workflows" target="ext-claude-code-workflows"
+                    >Claude Code: dynamic workflows</a
+                  ></ui-header
+                >
+                <ui-meta>docs · read 2026-11-20</ui-meta>
+                <ui-description
+                  >Limits, the Large workflow warning, models per stage, caching in a fan-out.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://code.claude.com/docs/en/agent-sdk/subagents" target="ext-agent-sdk-subagents"
+                    >Agent SDK: subagents</a
+                  ></ui-header
+                >
+                <ui-meta>docs · read 2026-11-20</ui-meta>
+                <ui-description
+                  >The agent definition's fields, the depth, concurrency and spend caps, Opus 5's
+                  eagerness.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://platform.claude.com/docs/en/managed-agents/multiagent-orchestration"
+                    target="ext-managed-agents-multiagent"
+                    >Managed Agents: multiagent orchestration</a
+                  ></ui-header
+                >
+                <ui-meta>docs (beta) · read 2026-11-20</ui-meta>
+                <ui-description
+                  >Subagents, workflows and the advisor in one setting; limits; Haiku workers.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://claude.com/blog/new-in-claude-managed-agents" target="ext-new-in-managed-agents"
+                    >New in Claude Managed Agents</a
+                  ></ui-header
+                >
+                <ui-meta>Anthropic post, 2026-05-19 · read 2026-11-20</ui-meta>
+                <ui-description>Multiagent orchestration's launch; no cost figures given.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://www.anthropic.com/engineering/multi-agent-research-system"
+                    target="ext-anthropic-research-system"
+                    >How we built our multi-agent research system</a
+                  ></ui-header
+                >
+                <ui-meta>Anthropic post, 2025-06-13 · read 2026-11-20</ui-meta>
+                <ui-description>90.2%, 4× and 15× tokens, the failures, coding as a poor fit.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://www.anthropic.com/engineering/building-effective-agents"
+                    target="ext-anthropic-effective-agents"
+                    >Building effective agents</a
+                  ></ui-header
+                >
+                <ui-meta>Anthropic post, 2024-12-19 · read 2026-11-20</ui-meta>
+                <ui-description>The five shapes, routing to Haiku among them; simplest first.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them"
+                    target="ext-claude-when-multi-agent"
+                    >Building multi-agent systems: when and how to use them</a
+                  ></ui-header
+                >
+                <ui-meta>Anthropic post, 2026-01-23 · read 2026-11-20</ui-meta>
+                <ui-description>3-10× tokens, split by context, the failure modes.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://learn.chatgpt.com/docs/agent-configuration/subagents" target="ext-codex-subagents"
+                    >Codex: subagents</a
+                  ></ui-header
+                >
+                <ui-meta>docs · read 2026-11-20</ui-meta>
+                <ui-description>When Codex delegates, the built-in agents, Sol and Luna for workers.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://community.openai.com/t/codex-cli-can-no-longer-spawn-subagents-with-specific-models-or-reasoning/1386290"
+                    target="ext-codex-forum-models"
+                    >Codex forum: subagents can't pick a model</a
+                  ></ui-header
+                >
+                <ui-meta>user reports, July 2026 · search result only</ui-meta>
+                <ui-description>Unconfirmed: subagents inherit the parent's model since the 5.6 models.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/"
+                    target="ext-gemini-cli-antigravity"
+                    >Transitioning Gemini CLI to Antigravity CLI</a
+                  ></ui-header
+                >
+                <ui-meta>Google post, May 2026 · search result only</ui-meta>
+                <ui-description>Gemini CLI's retirement; subagents carried over.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://geminicli.com/docs/cli/model-routing/" target="ext-gemini-cli-routing"
+                    >Gemini CLI: model routing</a
+                  ></ui-header
+                >
+                <ui-meta>docs · search result only</ui-meta>
+                <ui-description>The Flash / Pro router, and a local Gemma model as the router.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://docs.github.com/en/copilot/concepts/auto-model-selection" target="ext-copilot-auto"
+                    >GitHub Copilot: auto model selection</a
+                  ></ui-header
+                >
+                <ui-meta>docs · search result only</ui-meta>
+                <ui-description>Routing by task and model health; 10% off.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://forum.cursor.com/t/subagents-launching-with-whatever-model-they-seem-to-desire/163508"
+                    target="ext-cursor-forum-subagents"
+                    >Cursor forum: subagents' models</a
+                  ></ui-header
+                >
+                <ui-meta>user reports and staff replies, 2026 · search result only</ui-meta>
+                <ui-description
+                  >Composer by default for subagents; reports of pricier models used anyway.</ui-description
+                >
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a
+                    href="https://qwenlm.github.io/qwen-code-docs/en/users/features/sub-agents/"
+                    target="ext-qwen-code-subagents"
+                    >Qwen Code: subagents</a
+                  ></ui-header
+                >
+                <ui-meta>docs · search result only</ui-meta>
+                <ui-description>A model per subagent, across providers.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="https://www.kimi.com/help/agent/agent-swarm" target="ext-kimi-agent-swarm"
+                    >Kimi: Agent Swarm</a
+                  ></ui-header
+                >
+                <ui-meta>help page · search result only</ui-meta>
+                <ui-description>Up to 300 subagents and 4,000 tool calls in a task.</ui-description>
+              </ui-content>
+            </ui-item>
+            <ui-item>
+              <ui-content>
+                <ui-header
+                  ><a href="/parser/src/cli/claudeRunners.ts" target="src-parser-src-cli-clauderunners-ts"
+                    ><code title="parser/src/cli/claudeRunners.ts">CLAUDE_TIERS</code></a
+                  ></ui-header
+                >
+                <ui-meta>Spell's code · read 2026-11-20</ui-meta>
+                <ui-description
+                  >Spell's tiers for <code>spell translate</code>, and what epic <code>spanish</code> P27 measured.
+                </ui-description>
               </ui-content>
             </ui-item>
           </ui-items>
@@ -226,7 +1482,7 @@ const message = greet("spell")</code></pre>
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
           <p class="meta">
-            Last checked 2026-10-01 against branch <code>main</code>: re-run the experiments to update.
+            Last checked 2026-11-20 against branch <code>agents-in-spell</code>: re-read the sources to update.
           </p>
         </footer>
       </main>
