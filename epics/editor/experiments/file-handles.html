@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kept File Handles</title>
+    <meta
+      name="description"
+      content="Epic editor P41's spike:  a file picked or dropped, its handle kept in the browser's database, and a button per tricky case (reload, permission taken away, changed elsewhere, moved, renamed, deleted, a new file at the old name, two tabs saving), so each one's real behaviour in Chrome can be written down."
+    />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+    <style>
+      main {
+        max-width: 48rem;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-block: 12px;
+      }
+      #drop {
+        padding: 24px;
+        border: 2px dashed var(--ui-border-color, GrayText);
+        border-radius: 8px;
+        text-align: center;
+      }
+      #state,
+      #log {
+        font-family: var(--ui-code-font, monospace);
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <ui-root>
+      <main>
+        <h1>Kept File Handles</h1>
+        <p>
+          Epic <code>editor</code>, P41's spike. Open or drop a small JSON file, then try each case and note what
+          the log says. The handle is kept in this browser's database, so a reload keeps it.
+        </p>
+        <ol>
+          <li>Reload the page, then Read (and Ask permission).</li>
+          <li>Take the permission away in Chrome's site settings, then Read and Save.</li>
+          <li>Change the file in another editor, then Check and Save.</li>
+          <li>Move, rename or delete it in Finder, then Check, Read and Save.</li>
+          <li>Put a new file at the old name, then Check.</li>
+          <li>Open this page in two tabs, and Save in both.</li>
+          <li>Slow save:  asks permission at once, waits 5 seconds, then writes.</li>
+        </ol>
+        <div id="drop">Drop a file here</div>
+        <div class="buttons">
+          <ui-button id="open">Open a file</ui-button>
+          <ui-button id="ask">Ask permission</ui-button>
+          <ui-button id="read">Read</ui-button>
+          <ui-button id="check">Check against last seen</ui-button>
+          <ui-button id="save">Save</ui-button>
+          <ui-button id="exclusive">Save, exclusive lock</ui-button>
+          <ui-button id="slow">Slow save</ui-button>
+          <ui-button id="forget" appearance="basic">Forget the file</ui-button>
+        </div>
+        <ui-message id="support"></ui-message>
+        <h2>The file</h2>
+        <div id="state">none yet</div>
+        <h2>Log</h2>
+        <div id="log"></div>
+      </main>
+    </ui-root>
+    <script src="/_epic/assets/spell-ui.js"></script>
+    <script type="module">
+      const DATABASE = "spell-file-handle-spike"
+      const $ = (id) => document.getElementById(id)
+      let handle
+      let lastSeen
+
+      const log = (text) => {
+        $("log").textContent = `${new Date().toLocaleTimeString()}  ${text}\n${$("log").textContent}`
+      }
+      const failed = (what) => (error) => log(`${what}:  ${error.name}:  ${error.message}`)
+
+      const database = () =>
+        new Promise((resolve, reject) => {
+          const open = indexedDB.open(DATABASE, 1)
+          open.onupgradeneeded = () => open.result.createObjectStore("kept")
+          open.onsuccess = () => resolve(open.result)
+          open.onerror = () => reject(open.error)
+        })
+      const kept = async (mode, act) => {
+        const db = await database()
+        return new Promise((resolve, reject) => {
+          const request = act(db.transaction("kept", mode).objectStore("kept"))
+          request.onsuccess = () => resolve(request.result)
+          request.onerror = () => reject(request.error)
+        })
+      }
+
+      const hashOf = async (text) => {
+        const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
+        return [...new Uint8Array(bytes).slice(0, 6)].map((b) => b.toString(16).padStart(2, "0")).join("")
+      }
+      const seen = async (file) => {
+        const text = await file.text()
+        return { name: file.name, lastModified: file.lastModified, size: file.size, hash: await hashOf(text), text }
+      }
+      const show = async () => {
+        if (!handle) return ($("state").textContent = "none yet")
+        const permission = handle.queryPermission ? await handle.queryPermission({ mode: "readwrite" }) : "n/a"
+        const { text, ...rest } = lastSeen ?? {}
+        $("state").textContent = `${handle.name}\npermission:  ${permission}\nlast seen:  ${JSON.stringify(rest)}`
+      }
+      const remember = async (picked) => {
+        handle = picked
+        await kept("readwrite", (store) => store.put(handle, "file"))
+        log(`kept the handle to ${handle.name}`)
+        await read()
+      }
+      const read = async () => {
+        lastSeen = await seen(await handle.getFile())
+        await kept("readwrite", (store) => store.put(lastSeen, "seen"))
+        log(`read ${lastSeen.size} bytes, modified ${new Date(lastSeen.lastModified).toISOString()}`)
+        await show()
+      }
+      const check = async () => {
+        const now = await seen(await handle.getFile())
+        const same = (key) => now[key] === lastSeen?.[key]
+        log(
+          `check:  time ${same("lastModified") ? "same" : "CHANGED"}, size ${same("size") ? "same" : "CHANGED"}, ` +
+            `contents ${same("hash") ? "same" : "CHANGED"}`
+        )
+        return same("lastModified") && same("size") && same("hash")
+      }
+      const write = async (options) => {
+        const text = JSON.stringify({ savedAt: new Date().toISOString(), tab: sessionStorage.tab }, null, 2)
+        const writer = await handle.createWritable(options)
+        await writer.write(text)
+        await writer.close()
+        log(`wrote ${text.length} bytes${options ? ` (${JSON.stringify(options)})` : ""}`)
+        await read()
+      }
+
+      sessionStorage.tab ??= Math.random().toString(36).slice(2, 6)
+      $("support").textContent =
+        `showOpenFilePicker:  ${"showOpenFilePicker" in window ? "yes" : "no"};  ` +
+        `FileSystemObserver:  ${"FileSystemObserver" in window ? "yes" : "no"};  this tab:  ${sessionStorage.tab}`
+
+      $("open").addEventListener("click", () =>
+        showOpenFilePicker({ types: [{ description: "JSON", accept: { "application/json": [".json"] } }] })
+          .then(([picked]) => remember(picked))
+          .catch(failed("open"))
+      )
+      $("drop").addEventListener("dragover", (event) => event.preventDefault())
+      $("drop").addEventListener("drop", (event) => {
+        event.preventDefault()
+        const item = [...event.dataTransfer.items].find((each) => each.kind === "file")
+        if (!item?.getAsFileSystemHandle) return log("this browser gives no handle on a drop")
+        item
+          .getAsFileSystemHandle()
+          .then((dropped) => remember(dropped))
+          .catch(failed("drop"))
+      })
+      $("ask").addEventListener("click", () =>
+        handle
+          .requestPermission({ mode: "readwrite" })
+          .then((answer) => log(`asked:  ${answer}`))
+          .then(show)
+          .catch(failed("ask"))
+      )
+      $("read").addEventListener("click", () => read().catch(failed("read")))
+      $("check").addEventListener("click", () => check().catch(failed("check")))
+      $("save").addEventListener("click", () => write().catch(failed("save")))
+      $("exclusive").addEventListener("click", () => write({ mode: "exclusive" }).catch(failed("exclusive save")))
+      $("slow").addEventListener("click", async () => {
+        try {
+          log(`asked at once:  ${await handle.requestPermission({ mode: "readwrite" })}`)
+          await new Promise((resolve) => setTimeout(resolve, 5000))
+          log(`after 5 seconds:  ${await handle.queryPermission({ mode: "readwrite" })}`)
+          await write()
+        } catch (error) {
+          failed("slow save")(error)
+        }
+      })
+      $("forget").addEventListener("click", async () => {
+        await kept("readwrite", (store) => store.clear())
+        handle = lastSeen = undefined
+        log("forgot the file")
+        await show()
+      })
+      if ("FileSystemObserver" in window) {
+        const observer = new FileSystemObserver((records) =>
+          records.forEach((record) => log(`observer:  ${record.type} ${record.relativePathComponents?.join("/")}`))
+        )
+        window.observeKept = () => handle && observer.observe(handle).catch(failed("observe"))
+      }
+
+      handle = await kept("readonly", (store) => store.get("file"))
+      lastSeen = await kept("readonly", (store) => store.get("seen"))
+      if (handle) log(`found the kept handle to ${handle.name}:  Read or Ask permission`)
+      window.observeKept?.()
+      await show()
+    </script>
+  </body>
