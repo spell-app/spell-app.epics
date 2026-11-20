@@ -1,11 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Web performance</title>
-    <meta name="description" content="Details:  Web performance">
-    <link rel="stylesheet" href="/_epic/assets/spell-doc.css">
+    <meta
+      name="description"
+      content="Details:  Web performance -- where Spell is slow, heavy or hard to use in a browser today, and what to explore to make it as tight as VS Code"
+    />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
   </head>
   <body class="spell-doc-page spell-details-page">
     <ui-root>
@@ -15,43 +18,2310 @@
         <main class="spell-doc-main">
           <ui-breadcrumbs class="spell-crumbs" size="small" aria-label="Breadcrumb">
             <ui-breadcrumb link="/pages/index.html" target="src-packages-docs-index-html">Spell Epic</ui-breadcrumb>
+            <ui-breadcrumb link="/epics/solid-2-final/solid-2-final.plan.html" target="solid-2-final"
+              >Solid 2.0 Final</ui-breadcrumb
+            >
             <ui-breadcrumb selected>Web performance</ui-breadcrumb>
           </ui-breadcrumbs>
-          <ui-sticky class="spell-h1"><header class="spell-page-head">
+          <ui-sticky class="spell-h1"
+            ><header class="spell-page-head">
               <h1>Web performance</h1>
-              <epic-send></epic-send></header></ui-sticky>
-          <p class="lede">One sentence: what's being decided, and why it matters now.</p>
+              <epic-send></epic-send></header
+          ></ui-sticky>
+          <p class="lede">
+            Where Spell is slow, heavy or hard to use in a browser today, measured, and everything worth exploring to
+            make apps built with Spell, and the editor itself, as tight as possible: load, memory, CPU, style, network,
+            battery and accessibility. Nothing here is built yet; it's the list to choose from.
+          </p>
           <div class="spell-details-meta">
-            <epic-field label="Asked by" data-details-by>session <code>name</code>, while doing what</epic-field>
+            <epic-field label="Asked by" data-details-by
+              >session <code>solid-2-final</code> (its agent <code>solid-2-final-perf-page</code>), gathering six
+              research notes into one page</epic-field
+            >
             <epic-field label="Asked" data-details-asked>2026-11-20</epic-field>
           </div>
 
           <ui-message class="spell-where" state="info" heading="Where we are">
-            <epic-field label="Epic"><code>name</code> -- what that work is for, in one line.</epic-field>
-            <epic-field label="Just now">what happened that led to this question.</epic-field>
-            <epic-field label="This decides">what changes for you, whichever you pick.</epic-field>
+            <epic-field label="Epic"
+              ><code>solid-2-final</code>: moving Spell onto the stable Solid 2.0, and measuring performance and memory in
+              the browser so everything is as stable and fast as it can be.</epic-field
+            >
+            <epic-field label="The goal"
+              >In your words: "as performant as VS Code", and able to "run the Spell editor on a 2-year-old Android phone
+              over a good 5G connection without memory problems".</epic-field
+            >
+            <epic-field label="Just now"
+              >Research agents ran quick browser tests (desktop and a slowed-down phone), measured every bundle, read the
+              code for expensive patterns, scoped <code>&lt;ui-chart&gt;</code>, and looked at keeping big projects
+              small. This page lists what they found and what to explore. Nothing has been optimized yet, except the old
+              Semantic UI stylesheet, which an agent is dropping now (todo T6 on the epic page).</epic-field
+            >
+            <epic-field label="This decides"
+              >Which of these become phases of this epic, which become epics of their own, and a few standing choices
+              (questions at the end).</epic-field
+            >
           </ui-message>
 
-          <ui-section id="context" label="1. Context" sticky collapsible dividing>
-            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+          <ui-message state="warning" heading="Every time on this page is from a busy machine">
             <ul>
-              <li>What's going on, in plain words; define every coined word.</li>
-              <li>The picture: a table, the real code, a diagram, a live example.</li>
+              <li>
+                The browser tests ran while other sessions loaded the Mac (its 1-minute load was 14-64 on 18 cores;
+                quiet is under 9).
+              </li>
+              <li>
+                Times (paints, "usable", long tasks, typing) are inflated by an unknown factor, estimated 1.2-2x. They
+                are marked <ui-label size="mini">busy machine</ui-label> where they appear.
+              </li>
+              <li>
+                Bytes, heap, element, listener and sheet counts, and growth per cycle, don't move with load: trust them.
+              </li>
+              <li>The measurement can be run again on a quiet machine with one command (section 2.6).</li>
             </ul>
-            <epic-text-box for="context"></epic-text-box>
+          </ui-message>
+
+          <ui-section id="short" label="1. The short version" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+            <p>Where we're falling down now, worst first, in plain words. Each points to the section with the detail.</p>
+            <ol>
+              <li>
+                <b>Pages with many Spell UI elements spend most of their time working out styles</b> (section 4.2).
+                <ul>
+                  <li>
+                    Every element with a shadow root (its own private piece of the page) takes in about 400 KB of shared
+                    CSS: the same sheet objects, but the browser matches them against each root separately.
+                  </li>
+                  <li>
+                    The kitchen sink page (every component's examples): 4,467 shadow roots, 22.7 s of style work on
+                    desktop and 62 s on the phone, against 1.6 s of script <ui-label size="mini">busy machine</ui-label>.
+                  </li>
+                  <li>
+                    The biggest sheet holds 874 custom properties and starts with a <code>:root</code> rule, which
+                    matches nothing inside a shadow root.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>The editor starts slowly on a phone</b> (sections 2.1 and 4.10).
+                <ul>
+                  <li>
+                    On a phone's CPU in landscape: usable at 7.5 s, then blocked until 27 s
+                    <ui-label size="mini">busy machine</ui-label>. Desktop: usable at 1.4 s.
+                  </li>
+                  <li>
+                    62% of that phone load's CPU profile was the page server's live-reload client, which scans every
+                    script on the page for each message it hears. Part of that was this machine's other sessions; the
+                    scan is still ours to fix.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>Nothing is compressed, and nothing is cached</b> (section 4.1).
+                <ul>
+                  <li>
+                    The editor's first screen is about 5.7 MB on the wire, every visit; about 1.2 MB with brotli, and
+                    about 6 KB on a warm visit with normal caching.
+                  </li>
+                  <li>An epic or docs page is about 5.2 MB, every page and every live reload.</li>
+                </ul>
+              </li>
+              <li>
+                <b>Every run of a program in the editor likely stays in memory for good</b> (section 4.3).
+                <ul>
+                  <li>
+                    Each compile imports the program afresh from a new <code>blob:</code> address, and a browser never
+                    lets go of a module it imported.
+                  </li>
+                  <li>
+                    One run every 2-second pause: an hour of editing could hold tens to a few hundred MB (inferred: to
+                    confirm with a heap snapshot).
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>Each edit waits for uploads before it runs</b> (section 4.4).
+                <ul>
+                  <li>
+                    The compile saves what it wrote, about 5 uploads one after another, before the program takes the
+                    edit.
+                  </li>
+                  <li>Over 5G: about 150-300 ms more per edit and about 100 KB sent per pause (inferred).</li>
+                </ul>
+              </li>
+              <li>
+                <b>Nothing runs off the page's main thread</b> (section 4.4).
+                <ul>
+                  <li>
+                    No web worker anywhere: parsing, compiling and the language service all share the thread that
+                    handles keys and drawing.
+                  </li>
+                  <li>
+                    A declaration typed near the top of a project freezes typing about 110 ms on a Mac, about 450 ms on a
+                    phone (inferred).
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>Heavy for small things: 99-232 MB of JavaScript heap, and about 5 event listeners per element</b>
+                (sections 2 and 4.3).
+                <ul>
+                  <li>
+                    After a forced clean-up: the editor on Solitaire 127 MB, Solitaire alone 99 MB, the kitchen sink 232
+                    MB, the biggest epic page 138 MB.
+                  </li>
+                  <li>
+                    The editor has 28,700 listeners for 5,594 elements; 12,821 of them sit on shadow roots, the same 14
+                    kinds in each.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>Startup builds both of Spell's grammars, English and Spanish, with their test tables</b>
+                (sections 4.1 and 4.4).
+                <ul>
+                  <li>
+                    The grammar is 267 KB brotli of the editor's first load; Spanish dictionaries add 71 KB for every
+                    reader.
+                  </li>
+                  <li>The Spanish grammar is built for English projects too.</li>
+                </ul>
+              </li>
+            </ol>
+            <p>
+              <b>Is the editor viable on a 2023 mid-range phone today?</b> It runs, but the first 20-30 seconds are not
+              acceptable, and it isn't VS Code-class yet. Once settled, typing is fine (48 ms median), and memory fits
+              (127 MB of heap) with little room left for the person's own app.
+            </p>
+            <epic-text-box for="short"></epic-text-box>
           </ui-section>
 
-          <ui-section id="q1" label="Q1 · Short question" sticky collapsible dividing>
+          <ui-section id="today" label="2. Where we are today" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="flask"></ui-icon>
+            <p>
+              Four pages, each loaded cold 3 times in headless Chromium, medians shown, on a desktop profile and a
+              phone profile. Bytes and counts are sound; every time is a busy machine's.
+            </p>
+            <ul>
+              <li>
+                <b>desktop:</b> 1600 × 1000, full speed.
+              </li>
+              <li>
+                <b>phone:</b> a Pixel 7's screen (412 × 839, touch), the CPU slowed 4x, about 5G (20 ms, 50 Mbps down, 20
+                Mbps up). 4x on this Mac stands in for a 2023 mid-range phone, a Pixel 7a or Galaxy A54 (estimated).
+              </li>
+              <li>
+                <b>phonewide:</b> the phone's CPU and network at 1280 × 800. At 767 px and narrower the editor shows the
+                app alone, in Run mode, so its code pane and Inspector need a phone in landscape or a tablet.
+              </li>
+              <li>
+                <b>Usable:</b> the page's main content drawn (the editor: its cards and a line of code).
+                <b>Settled:</b> the end of the last long task before 3 quiet seconds.
+                <b>Blocking time:</b> each long task's time over 50 ms, summed.
+              </li>
+            </ul>
+
+            <ui-section id="today-editor" label="2.1 The editor" sticky collapsible dividing open="false">
+              <p>The editor on Solitaire, with Debug and the Inspector open: the standard heavy case.</p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>desktop</th>
+                      <th>phone</th>
+                      <th>phonewide</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>first paint <ui-label size="mini">busy machine</ui-label></td>
+                      <td>64 ms</td>
+                      <td>152 ms</td>
+                      <td>164 ms</td>
+                    </tr>
+                    <tr>
+                      <td>largest paint <ui-label size="mini">busy machine</ui-label></td>
+                      <td>64 ms</td>
+                      <td>4.8 s</td>
+                      <td>164 ms</td>
+                    </tr>
+                    <tr>
+                      <td>usable <ui-label size="mini">busy machine</ui-label></td>
+                      <td>1.4 s</td>
+                      <td>4.7 s</td>
+                      <td>7.5 s</td>
+                    </tr>
+                    <tr>
+                      <td>settled <ui-label size="mini">busy machine</ui-label></td>
+                      <td>4.6 s</td>
+                      <td>13.9 s</td>
+                      <td>27.4 s</td>
+                    </tr>
+                    <tr>
+                      <td>long tasks, total <ui-label size="mini">busy machine</ui-label></td>
+                      <td>2.9 s in 32</td>
+                      <td>9.9 s in 51</td>
+                      <td>17.6 s in 67</td>
+                    </tr>
+                    <tr>
+                      <td>blocking time <ui-label size="mini">busy machine</ui-label></td>
+                      <td>1.3 s</td>
+                      <td>7.3 s</td>
+                      <td>14.2 s</td>
+                    </tr>
+                    <tr>
+                      <td>longest task <ui-label size="mini">busy machine</ui-label></td>
+                      <td>371 ms</td>
+                      <td>1.8 s</td>
+                      <td>2.0 s</td>
+                    </tr>
+                    <tr>
+                      <td>script / style / layout <ui-label size="mini">busy machine</ui-label></td>
+                      <td>1.3 / 2.0 / 0.06 s</td>
+                      <td>5.4 / 3.9 / 0.08 s</td>
+                      <td>15.4 / 9.6 / 0.32 s</td>
+                    </tr>
+                    <tr>
+                      <td>requests (scripts)</td>
+                      <td>424 (308)</td>
+                      <td>415 (307)</td>
+                      <td>432 (308)</td>
+                    </tr>
+                    <tr>
+                      <td>JS transferred / decoded</td>
+                      <td>2.6 / 8.7 MB</td>
+                      <td>2.6 / 8.7 MB</td>
+                      <td>2.6 / 8.7 MB</td>
+                    </tr>
+                    <tr>
+                      <td>JS gzipped (estimate) / everything transferred</td>
+                      <td>2.4 / 3.0 MB</td>
+                      <td>2.4 / 3.0 MB</td>
+                      <td>2.4 / 3.0 MB</td>
+                    </tr>
+                    <tr>
+                      <td>JS heap after load / after clean-up</td>
+                      <td>141 / 127 MB</td>
+                      <td>139 / 118 MB</td>
+                      <td>152 / 127 MB</td>
+                    </tr>
+                    <tr>
+                      <td>DOM nodes</td>
+                      <td>15,767</td>
+                      <td>13,569</td>
+                      <td>15,732</td>
+                    </tr>
+                    <tr>
+                      <td>event listeners</td>
+                      <td>28,683</td>
+                      <td>27,342</td>
+                      <td>28,835</td>
+                    </tr>
+                    <tr>
+                      <td>elements / custom elements / shadow roots</td>
+                      <td>5,594 / 922 / 915</td>
+                      <td>4,579 / 841 / 840</td>
+                      <td>5,535 / 922 / 915</td>
+                    </tr>
+                    <tr>
+                      <td>sheets per shadow root / distinct sheets</td>
+                      <td>12.3 / 55</td>
+                      <td>12.4 / 51</td>
+                      <td>12.3 / 55</td>
+                    </tr>
+                    <tr>
+                      <td>documents / console errors</td>
+                      <td>5 / 0</td>
+                      <td>5 / 0</td>
+                      <td>5 / 0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  The editor's own build was a production build (minified), served gzipped by Vite's preview server; its
+                  writes to the server were refused, so nothing in the kit changed.
+                </li>
+                <li>
+                  The largest files at start: <code>spell</code> 1.56 MB, <code>lsp</code> (the language service) 1.28
+                  MB, <code>solid</code> 420 KB, <code>codemirror</code> 335 KB, <code>decode</code> 309 KB, and
+                  <code>spell-runtime</code> 300 KB, fetched twice (once as a module, once as text for its copy).
+                </li>
+              </ul>
+              <epic-text-box for="today-editor"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="today-docs" label="2.2 The kitchen sink" sticky collapsible dividing open="false">
+              <p>Spell UI's kitchen sink: every component's examples on one page. The worst case for style work.</p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>desktop</th>
+                      <th>phone</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>first paint <ui-label size="mini">busy machine</ui-label></td>
+                      <td>7.1 s</td>
+                      <td>24.9 s</td>
+                    </tr>
+                    <tr>
+                      <td>largest paint <ui-label size="mini">busy machine</ui-label></td>
+                      <td>7.1 s</td>
+                      <td>62.8 s</td>
+                    </tr>
+                    <tr>
+                      <td>usable <ui-label size="mini">busy machine</ui-label></td>
+                      <td>11.8 s</td>
+                      <td>70.9 s</td>
+                    </tr>
+                    <tr>
+                      <td>settled <ui-label size="mini">busy machine</ui-label></td>
+                      <td>25.8 s</td>
+                      <td>82.0 s</td>
+                    </tr>
+                    <tr>
+                      <td>long tasks, total <ui-label size="mini">busy machine</ui-label></td>
+                      <td>22.9 s in 75</td>
+                      <td>70.6 s in 113</td>
+                    </tr>
+                    <tr>
+                      <td>blocking time <ui-label size="mini">busy machine</ui-label></td>
+                      <td>18.9 s</td>
+                      <td>65.0 s</td>
+                    </tr>
+                    <tr>
+                      <td>longest task <ui-label size="mini">busy machine</ui-label></td>
+                      <td>2.0 s</td>
+                      <td>12.6 s</td>
+                    </tr>
+                    <tr>
+                      <td>script / style / layout <ui-label size="mini">busy machine</ui-label></td>
+                      <td>1.6 / 22.7 / 0.24 s</td>
+                      <td>14.0 / 62.0 / 1.26 s</td>
+                    </tr>
+                    <tr>
+                      <td>requests (scripts)</td>
+                      <td>447 (302)</td>
+                      <td>446 (300)</td>
+                    </tr>
+                    <tr>
+                      <td>JS transferred / decoded</td>
+                      <td>7.7 / 7.6 MB</td>
+                      <td>7.6 / 7.5 MB</td>
+                    </tr>
+                    <tr>
+                      <td>JS gzipped (estimate) / everything transferred</td>
+                      <td>2.3 / 11 MB</td>
+                      <td>2.2 / 11 MB</td>
+                    </tr>
+                    <tr>
+                      <td>JS heap after load / after clean-up</td>
+                      <td>238 / 232 MB</td>
+                      <td>253 / 231 MB</td>
+                    </tr>
+                    <tr>
+                      <td>DOM nodes</td>
+                      <td>90,949</td>
+                      <td>90,956</td>
+                    </tr>
+                    <tr>
+                      <td>event listeners</td>
+                      <td>65,501</td>
+                      <td>65,885</td>
+                    </tr>
+                    <tr>
+                      <td>elements / custom elements / shadow roots</td>
+                      <td>32,831 / 4,467 / 4,467</td>
+                      <td>32,733 / 4,467 / 4,467</td>
+                    </tr>
+                    <tr>
+                      <td>sheets per shadow root / distinct sheets</td>
+                      <td>11.3 / 133</td>
+                      <td>11.3 / 133</td>
+                    </tr>
+                    <tr>
+                      <td>documents / console errors</td>
+                      <td>35 / 1</td>
+                      <td>35 / 1</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>Served as the page server serves it: no compression, never cached. Its gzip size is estimated.</p>
+              <epic-text-box for="today-docs"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="today-epic" label="2.3 The biggest epic page" sticky collapsible dividing open="false">
+              <p>epic-engine's epic page: 652 KB of HTML, 910 items, 79 phases.</p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>desktop</th>
+                      <th>phone</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>first paint = largest paint <ui-label size="mini">busy machine</ui-label></td>
+                      <td>1.5 s</td>
+                      <td>8.1 s</td>
+                    </tr>
+                    <tr>
+                      <td>usable <ui-label size="mini">busy machine</ui-label></td>
+                      <td>4.3 s</td>
+                      <td>8.9 s</td>
+                    </tr>
+                    <tr>
+                      <td>settled <ui-label size="mini">busy machine</ui-label></td>
+                      <td>4.3 s</td>
+                      <td>22.6 s</td>
+                    </tr>
+                    <tr>
+                      <td>long tasks, total <ui-label size="mini">busy machine</ui-label></td>
+                      <td>3.9 s in 5</td>
+                      <td>20.6 s in 15</td>
+                    </tr>
+                    <tr>
+                      <td>blocking time <ui-label size="mini">busy machine</ui-label></td>
+                      <td>3.6 s</td>
+                      <td>19.8 s</td>
+                    </tr>
+                    <tr>
+                      <td>longest task <ui-label size="mini">busy machine</ui-label></td>
+                      <td>2.3 s</td>
+                      <td>11.0 s</td>
+                    </tr>
+                    <tr>
+                      <td>script / style / layout <ui-label size="mini">busy machine</ui-label></td>
+                      <td>1.2 / 0.4 / 0.09 s</td>
+                      <td>6.9 / 2.1 / 0.51 s</td>
+                    </tr>
+                    <tr>
+                      <td>requests (scripts)</td>
+                      <td>19 (4)</td>
+                      <td>24 (4)</td>
+                    </tr>
+                    <tr>
+                      <td>JS transferred = decoded</td>
+                      <td>5.4 MB</td>
+                      <td>5.4 MB</td>
+                    </tr>
+                    <tr>
+                      <td>JS gzipped (estimate) / everything transferred</td>
+                      <td>1.6 / 6.9 MB</td>
+                      <td>1.6 / 6.9 MB</td>
+                    </tr>
+                    <tr>
+                      <td>JS heap after load / after clean-up</td>
+                      <td>156 / 138 MB</td>
+                      <td>153 / 139 MB</td>
+                    </tr>
+                    <tr>
+                      <td>DOM nodes</td>
+                      <td>64,915</td>
+                      <td>64,837</td>
+                    </tr>
+                    <tr>
+                      <td>event listeners</td>
+                      <td>40,453</td>
+                      <td>40,375</td>
+                    </tr>
+                    <tr>
+                      <td>elements / custom elements / shadow roots</td>
+                      <td>25,887 / 2,372 / 2,371</td>
+                      <td>25,859 / 2,367 / 2,366</td>
+                    </tr>
+                    <tr>
+                      <td>sheets per shadow root / distinct sheets</td>
+                      <td>11.5 / 61</td>
+                      <td>11.5 / 61</td>
+                    </tr>
+                    <tr>
+                      <td>documents / console errors / live-reload messages heard</td>
+                      <td>2 / 0 / 4</td>
+                      <td>2 / 0 / 6</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  These loads are from a second, patch-up run: in the first, the "usable" check waited for
+                  <code>&lt;ui-tooltip&gt;</code>, which is never defined on epic pages.
+                </li>
+                <li>One load of this page in the first run heard 3,662 live-reload messages (section 4.10).</li>
+              </ul>
+              <epic-text-box for="today-epic"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="today-run" label="2.4 A program running alone" sticky collapsible dividing open="false">
+              <p>Solitaire on its own, the editor's Run page. It loads the whole editor anyway.</p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>desktop</th>
+                      <th>phone</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>first paint <ui-label size="mini">busy machine</ui-label></td>
+                      <td>60 ms</td>
+                      <td>148 ms</td>
+                    </tr>
+                    <tr>
+                      <td>largest paint <ui-label size="mini">busy machine</ui-label></td>
+                      <td>60 ms</td>
+                      <td>4.0 s</td>
+                    </tr>
+                    <tr>
+                      <td>usable <ui-label size="mini">busy machine</ui-label></td>
+                      <td>987 ms</td>
+                      <td>4.0 s</td>
+                    </tr>
+                    <tr>
+                      <td>settled <ui-label size="mini">busy machine</ui-label></td>
+                      <td>1.4 s</td>
+                      <td>8.3 s</td>
+                    </tr>
+                    <tr>
+                      <td>long tasks, total <ui-label size="mini">busy machine</ui-label></td>
+                      <td>714 ms in 4</td>
+                      <td>3.9 s in 11</td>
+                    </tr>
+                    <tr>
+                      <td>blocking time <ui-label size="mini">busy machine</ui-label></td>
+                      <td>514 ms</td>
+                      <td>3.4 s</td>
+                    </tr>
+                    <tr>
+                      <td>longest task <ui-label size="mini">busy machine</ui-label></td>
+                      <td>330 ms</td>
+                      <td>1.6 s</td>
+                    </tr>
+                    <tr>
+                      <td>script / style / layout <ui-label size="mini">busy machine</ui-label></td>
+                      <td>0.7 / 0.4 / 0.02 s</td>
+                      <td>3.2 / 1.6 / 0.08 s</td>
+                    </tr>
+                    <tr>
+                      <td>requests (scripts)</td>
+                      <td>400 (306)</td>
+                      <td>401 (306)</td>
+                    </tr>
+                    <tr>
+                      <td>JS transferred / decoded</td>
+                      <td>2.6 / 8.7 MB</td>
+                      <td>2.6 / 8.7 MB</td>
+                    </tr>
+                    <tr>
+                      <td>JS gzipped (estimate) / everything transferred</td>
+                      <td>2.4 / 2.9 MB</td>
+                      <td>2.4 / 3.0 MB</td>
+                    </tr>
+                    <tr>
+                      <td>JS heap after load / after clean-up</td>
+                      <td>129 / 99 MB</td>
+                      <td>105 / 98 MB</td>
+                    </tr>
+                    <tr>
+                      <td>DOM nodes</td>
+                      <td>8,074</td>
+                      <td>7,948</td>
+                    </tr>
+                    <tr>
+                      <td>event listeners</td>
+                      <td>22,011</td>
+                      <td>21,475</td>
+                    </tr>
+                    <tr>
+                      <td>elements / custom elements / shadow roots</td>
+                      <td>3,131 / 650 / 649</td>
+                      <td>3,131 / 650 / 649</td>
+                    </tr>
+                    <tr>
+                      <td>sheets per shadow root / distinct sheets</td>
+                      <td>12.6 / 47</td>
+                      <td>12.6 / 47</td>
+                    </tr>
+                    <tr>
+                      <td>documents / console errors</td>
+                      <td>5 / 0</td>
+                      <td>5 / 0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>
+                The same 306 scripts and 8.7 MB as the editor, and 99 MB of heap, for 3,131 elements. A runner of its own
+                (the VS Code webview's <code>runner.js</code> exists) would be a fraction of it (estimated).
+              </p>
+              <epic-text-box for="today-run"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="today-loops" label="2.5 Leaks, typing, accessibility, CPU" sticky collapsible dividing open="false">
+              <p>
+                <b>Leaks:</b> an action repeated, with the heap measured after a forced clean-up before and after (a
+                warm-up round first).
+              </p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Page</th>
+                      <th>Repeated</th>
+                      <th>Times</th>
+                      <th>Heap kept each time</th>
+                      <th>Nodes each time</th>
+                      <th>Listeners each time</th>
+                      <th>Verdict</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>editor</td>
+                      <td>fold / unfold the Inspector's Code card</td>
+                      <td>30</td>
+                      <td>3-4 kB</td>
+                      <td>0</td>
+                      <td>0</td>
+                      <td>fine</td>
+                    </tr>
+                    <tr>
+                      <td>editor</td>
+                      <td>open / close the View menu</td>
+                      <td>30</td>
+                      <td>3-4 kB</td>
+                      <td>0</td>
+                      <td>0</td>
+                      <td>fine</td>
+                    </tr>
+                    <tr>
+                      <td>editor</td>
+                      <td>switch files, type 200 characters</td>
+                      <td>--</td>
+                      <td colspan="3">not measured: the test never found a stable file tab to click</td>
+                      <td>to do</td>
+                    </tr>
+                    <tr>
+                      <td>kitchen sink</td>
+                      <td>open / close a <code>&lt;ui-dropdown&gt;</code></td>
+                      <td>50</td>
+                      <td>30 kB</td>
+                      <td>5</td>
+                      <td>7.3</td>
+                      <td><b>a leak</b></td>
+                    </tr>
+                    <tr>
+                      <td>kitchen sink</td>
+                      <td>open / close a <code>&lt;ui-modal&gt;</code></td>
+                      <td>50</td>
+                      <td>0 kB</td>
+                      <td>0</td>
+                      <td>0</td>
+                      <td>fine</td>
+                    </tr>
+                    <tr>
+                      <td>epic page</td>
+                      <td>open / fold an item, 10 items in turn</td>
+                      <td>30</td>
+                      <td>125 kB</td>
+                      <td>76</td>
+                      <td>41</td>
+                      <td>most likely each item keeping its loaded body, by design: check by reopening the same items</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>
+                <b>Typing:</b> 100 keys into a comment in Card.spell, one every 120 ms; the time from each key to the next
+                paint, as the browser's "interaction to next paint" measures it
+                <ui-label size="mini">busy machine</ui-label>.
+              </p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Profile</th>
+                      <th>Median</th>
+                      <th>9 in 10 under</th>
+                      <th>Worst</th>
+                      <th>Over 50 ms</th>
+                      <th>Over 100 ms</th>
+                      <th>Frame median / worst</th>
+                      <th>Heap per key</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>desktop</td>
+                      <td>32 ms</td>
+                      <td>40 ms</td>
+                      <td>80 ms</td>
+                      <td>1</td>
+                      <td>0</td>
+                      <td>25 / 60 ms</td>
+                      <td>42 kB</td>
+                    </tr>
+                    <tr>
+                      <td>phonewide</td>
+                      <td>48 ms</td>
+                      <td>48 ms</td>
+                      <td>216 ms</td>
+                      <td>2</td>
+                      <td>1</td>
+                      <td>38 / 211 ms</td>
+                      <td>26 kB</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  The key handlers take under 1 ms (desktop 0.2 ms, phonewide 0.8 ms): the time is the frame after
+                  (style, layout, paint).
+                </li>
+                <li>
+                  26-42 kB of heap kept per key (2.6-4.2 MB for 100 keys): undo history and compiles, probably; worth a
+                  heap snapshot.
+                </li>
+              </ul>
+              <p>
+                <b>Accessibility</b> (desktop): axe-core 4.13 over the whole page, open shadow roots included; then 30
+                Tabs; then motion with and without the reduced-motion setting.
+              </p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Page</th>
+                      <th>What axe found</th>
+                      <th>Tab ×30</th>
+                      <th>Motion</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>editor</td>
+                      <td>
+                        an ARIA attribute not allowed (critical, 4: the Code toggle's <code>&lt;ui-item&gt;</code>); a tab
+                        list missing its tabs (critical: the mode tabs); a field with no name (serious: the code pane's
+                        content); a scrolling box you can't reach by keyboard (serious, the code pane); 11 content
+                        outside landmarks; 1 duplicate landmark
+                      </td>
+                      <td>7 distinct stops, 11 in shadow roots, 12 visibly marked; <b>no focus ring in the code pane</b></td>
+                      <td>3 animations without the setting, 0 with it; 21 reduced-motion rules</td>
+                    </tr>
+                    <tr>
+                      <td>kitchen sink</td>
+                      <td>
+                        24 low colour contrast (the secondary menu demo); a button with no name (critical: the Notices
+                        button); 8 duplicate landmarks; 4 headings out of order; a duplicate <code>main</code>; 1 content
+                        outside landmarks
+                      </td>
+                      <td>14 distinct stops, 27 in shadow roots, 25 visibly marked, 1 on the page body</td>
+                      <td>0 / 0; 32 reduced-motion rules</td>
+                    </tr>
+                    <tr>
+                      <td>run</td>
+                      <td>3 content outside landmarks; 1 duplicate landmark</td>
+                      <td>6 distinct stops, 26 in shadow roots, 28 visibly marked, 2 on the page body</td>
+                      <td>2 without, 0 with; 14 reduced-motion rules</td>
+                    </tr>
+                    <tr>
+                      <td>epic page</td>
+                      <td>2 low colour contrast</td>
+                      <td>16 distinct stops, 30 in shadow roots, 30 visibly marked</td>
+                      <td>0 / 0</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>
+                <b>Where the editor's CPU went</b> (phonewide, an unminified build so functions keep their names; sampled
+                every 0.2 ms; during a live-reload storm) <ui-label size="mini">busy machine</ui-label>:
+              </p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>While</th>
+                      <th>Top functions, by their own time</th>
+                      <th>By file</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>loading (89.8 s sampled)</td>
+                      <td>
+                        the live-reload client's <code>servedPath</code> 41.5% and <code>scriptsLoaded</code> 17.1%;
+                        the browser's own work 6.1%; <code>querySelectorAll</code> 5.5%; the panel's
+                        <code>bodyOf</code> 3.8%; idle 3%; <code>liveAction</code> 2.2%; the runtime's
+                        <code>glide</code> 2%; clean-up 0.8%
+                      </td>
+                      <td>
+                        the live-reload client 62.1%, the browser's own 16%, the panel 3.9%, the parser's decoder 3.8%,
+                        the runtime 3%, the grammar 2%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>typing (20.7 s sampled)</td>
+                      <td>
+                        <code>URL</code> (native) 21.4%; the browser's own work 17.4%; <code>scriptsLoaded</code> 14.6%;
+                        <code>servedPath</code> 12.8%; <code>querySelectorAll</code> 5.2%; <code>bodyOf</code> 4.3%;
+                        <code>collapse</code> 2.9%; <code>typeWordsOf</code> 2.9%
+                      </td>
+                      <td>
+                        the browser's own 50.9%, the live-reload client 30.2%, the panel 4.3%, the app's Solid UI 4.1%
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>
+                <b>Listeners in the editor</b> by kind: click 3,319, pointerdown 1,192, contextmenu 1,182, mousedown 1,096,
+                dblclick 1,093, keydown 955, focusin 955, focusout 951, slotchange 926, pointerup 919. By where: shadow
+                roots 12,821, Solitaire's card images 3,456 (32 each, on 108), cards 1,664, tree items 536.
+              </p>
+              <epic-text-box for="today-loops"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="today-rerun" label="2.6 Running it again" sticky collapsible dividing open="false">
+              <p>The browser timings are noisy, so the whole measurement is one command, to run when the machine is quiet.</p>
+              <ui-accordion class="spell-code" appearance="styled"
+                ><ui-title>From the kit's root · 2 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-sh">spell server start        # the page server serves the docs and epic pages, and the editor's API
+node /Users/owen/www/spell/spell.epics/epics/solid-2-final/research/perf-scripts/perf-run.mjs</code></pre>
+                </ui-content></ui-accordion
+              >
+              <ul>
+                <li>
+                  <b>How long:</b> about 45-55 minutes with the default 5 loads per page (estimated: 3 took 35 minutes on
+                  a busy machine). The editor's phone loads are the slow part, 20-35 s each.
+                </li>
+                <li>
+                  <b>A quick check</b> of one page (<code>--page docs --profile desktop --runs 1 --steps load</code>) takes
+                  about a minute.
+                </li>
+                <li>
+                  <b>It waits for a quiet machine first:</b> a 1-minute load under half the cores (9 on this 18-core
+                  Mac), checked every 30 s for up to 10 minutes. Still busy: it runs anyway and marks the result busy;
+                  <code>--force</code> skips the wait.
+                </li>
+                <li>
+                  <b>It builds the editor twice</b> into a temporary folder (production, and unminified for the CPU
+                  profile), serves both, measures, then stops them. Nothing in the kit changes.
+                </li>
+                <li>
+                  <b>It writes a dated result</b> beside the others and prints every number against the last one, with
+                  <code>WORSE</code> on anything more than 10% worse.
+                </li>
+                <li>
+                  Flags pick pages, profiles, runs and steps (load, leaks, typing, accessibility, listeners, sheets, CPU):
+                  <a href="../research/perf-scripts/README.md">the scripts' README</a>.
+                </li>
+                <li>
+                  <b>Not measured yet:</b> a real phone (slowing the CPU doesn't slow the GPU or limit memory); DOM and
+                  style memory (only the JS heap); Safari and Firefox; the editor's file-switch and typing leak loops.
+                </li>
+              </ul>
+              <p>
+                <b>A suggestion, not built:</b> make it a command, <code>spell perf run</code>, so it's run from anywhere
+                and its results live with the code rather than in this epic's research folder. A new command needs your
+                OK first (question 3).
+              </p>
+              <epic-text-box for="today-rerun"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="expensive" label="3. Expensive things" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="triangle exclamation"></ui-icon>
+            <p>
+              Everything found that costs something in one dimension or another, roughly worst first. "Saving" is
+              measured unless it says estimated or inferred. "Risk" is the risk to what Spell does today: none of these
+              would drop a feature.
+            </p>
+            <ui-table celled padding="compact" appearance="striped" unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>What</th>
+                    <th>Dimension</th>
+                    <th>Evidence</th>
+                    <th>What to try</th>
+                    <th>Saving</th>
+                    <th>Risk</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr id="x-shadow-css">
+                    <td>Every shadow root takes in ~400 KB of CSS</td>
+                    <td>style, CPU</td>
+                    <td>
+                      9 shared base sheets, ~370 KB, in every root; the kitchen sink's 22.7 s of style (62 s phone); the
+                      editor's 2.0 s (9.6 s phonewide) <ui-label size="mini">busy machine</ui-label>
+                    </td>
+                    <td>fewer, smaller base sheets; tokens inherited from the page; fewer roots for leaf elements</td>
+                    <td>most of the style time (estimated)</td>
+                    <td>medium: the visual tests show any style that moved</td>
+                  </tr>
+                  <tr id="x-live-reload">
+                    <td>The live-reload client scans every script for each message</td>
+                    <td>CPU, battery</td>
+                    <td>
+                      62% of the editor's phone load profile; ~400 scripts scanned per message; 3,662 messages in one 25 s
+                      load
+                    </td>
+                    <td>filter messages to the page's own files first; keep the script list</td>
+                    <td>most of the editor's phone CPU while files change elsewhere</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-no-compression">
+                    <td>Nothing is compressed</td>
+                    <td>network, load</td>
+                    <td>editor first screen ~5.7 MB on the wire, docs page ~5.2 MB</td>
+                    <td>brotli files written at build time; gzip on the fly for the rest</td>
+                    <td>editor −4.5 MB (−80%) cold; docs page −4.1 MB</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-no-cache">
+                    <td>Nothing is cached</td>
+                    <td>network, load</td>
+                    <td>every answer says "never store"; a reload downloads it all again</td>
+                    <td>hashed files cached a year; pages revalidated; dev worktrees keep "never store"</td>
+                    <td>warm editor visit 5.7 MB → ~6 KB</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-blob-modules">
+                    <td>Every run of a program stays in memory</td>
+                    <td>memory</td>
+                    <td>
+                      a new <code>blob:</code> module per compile and live edit, ~75 KB of text each for Solitaire, plus its
+                      functions and classes
+                    </td>
+                    <td>run in an iframe re-made every so often, or evaluate as a function the browser can free</td>
+                    <td>tens to a few hundred MB per hour of editing (inferred)</td>
+                    <td>medium: live edit and carry-over must behave the same</td>
+                  </tr>
+                  <tr id="x-uploads">
+                    <td>Each edit waits for ~5 uploads before it runs</td>
+                    <td>network, battery</td>
+                    <td>the compile's last task saves each built file, one after another, plus the compile cache's copy</td>
+                    <td>don't save on the timed compile; save on Save, or let the server build</td>
+                    <td>~150-300 ms per edit over 5G, ~100 KB a pause (inferred)</td>
+                    <td>low</td>
+                  </tr>
+                  <tr id="x-main-thread">
+                    <td>Everything on the main thread</td>
+                    <td>CPU</td>
+                    <td>no worker in the kit; 14.2 s of blocking on the phonewide load</td>
+                    <td>yield between compile steps; then parse, compile and language service in a worker</td>
+                    <td>typing that never waits</td>
+                    <td>medium to high: much of the UI reads the parse directly</td>
+                  </tr>
+                  <tr id="x-both-grammars">
+                    <td>Both grammars, and their tests, built at start</td>
+                    <td>load, memory, CPU</td>
+                    <td>
+                      777 English rule registrations; 592 KB of English and 555 KB of Spanish rule source, much of it
+                      tests; 267 KB brotli eager
+                    </td>
+                    <td>Spanish only when a file speaks it; tests in their own files; a grammar snapshot made at build time</td>
+                    <td>~120 KB brotli eager for the Spanish half (estimated), and startup time</td>
+                    <td>low</td>
+                  </tr>
+                  <tr id="x-css-service">
+                    <td>The CSS language service loads at start</td>
+                    <td>load, CPU</td>
+                    <td>1,251 KB raw, 180 KB brotli; its property descriptions alone 640 KB raw</td>
+                    <td>load on the first CSS edit, or run it in a worker</td>
+                    <td>−180 KB brotli, −1.25 MB to parse</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-spanish">
+                    <td>Spanish dictionaries for every reader</td>
+                    <td>load</td>
+                    <td>71 KB brotli eager</td>
+                    <td>load a language's dictionaries when something speaks it</td>
+                    <td>−71 KB brotli</td>
+                    <td>low: a language switch waits on one fetch</td>
+                  </tr>
+                  <tr id="x-docs-bundle">
+                    <td>Docs and epic pages load every Spell UI family at once</td>
+                    <td>load, CPU</td>
+                    <td>one 3,980 KB script, 873 KB brotli, per page</td>
+                    <td>modules, each family loaded on first use, as the Spell UI site does</td>
+                    <td>~−700 KB brotli a page (estimated)</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-epics-pack">
+                    <td>The epics pack: 49 families at once</td>
+                    <td>load</td>
+                    <td>1,091 KB raw, 225 KB brotli per page</td>
+                    <td>the same: a family per piece</td>
+                    <td>~−150 KB brotli (estimated)</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-mermaid">
+                    <td>Mermaid and its family</td>
+                    <td>load, memory</td>
+                    <td>1.24 MB brotli (lazy in the editor); 1,186 KB plus ELK's 377 KB on a docs page with a diagram</td>
+                    <td>draw diagrams on the server, kept by a hash of their text</td>
+                    <td>−1.19 to −1.56 MB brotli per such page</td>
+                    <td>low: live editing keeps a renderer</td>
+                  </tr>
+                  <tr id="x-elk-twice">
+                    <td>ELK twice, and on the main thread</td>
+                    <td>load, CPU</td>
+                    <td>Mermaid's script holds its own ELK beside the separate one</td>
+                    <td>one ELK, in its worker build</td>
+                    <td>~−377 KB brotli when both load</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-grammar-copies">
+                    <td>The grammar three times in the element builds</td>
+                    <td>load</td>
+                    <td>791 KB brotli across the editor, code and layout elements</td>
+                    <td>one shared piece</td>
+                    <td>~−285 to −530 KB brotli with two on a page (estimated)</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-code-colour">
+                    <td>Colouring read-only Spell code loads the parser</td>
+                    <td>load</td>
+                    <td>285 KB brotli to colour snippets on docs pages</td>
+                    <td>colour on the server, as HTML spans</td>
+                    <td>−285 KB brotli per page showing Spell</td>
+                    <td>none for reading</td>
+                  </tr>
+                  <tr id="x-run-ships-editor">
+                    <td>Run mode ships the whole editor</td>
+                    <td>load, memory</td>
+                    <td>306 scripts, 8.7 MB decoded, 99 MB heap for Solitaire alone</td>
+                    <td>a runner of its own</td>
+                    <td>a fraction of it (estimated)</td>
+                    <td>low</td>
+                  </tr>
+                  <tr id="x-requests">
+                    <td>Hundreds of requests at start, over HTTP/1.1</td>
+                    <td>load, network</td>
+                    <td>
+                      424 requests, 308 scripts; the runtime fetched twice; 85 first-load files share 6 connections
+                    </td>
+                    <td>fewer, bigger pieces; HTTP/2; one fetch of the runtime</td>
+                    <td>round trips on a phone (not measured)</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-first-dialog">
+                    <td>The first dialog pulls 192 files</td>
+                    <td>load</td>
+                    <td>543 KB brotli, 1,866 KB raw, all dialogs in one bundle</td>
+                    <td>a piece per dialog</td>
+                    <td>~−400 KB brotli on the first dialog (estimated)</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-viewer-compiler">
+                    <td>A cloud app ships the compiler, and all of lodash</td>
+                    <td>load</td>
+                    <td>391 KB brotli eager; lodash 45 KB of it</td>
+                    <td>compile on the server; the tree-shakable lodash</td>
+                    <td>~−100 KB and ~−45 KB brotli (estimated)</td>
+                    <td>none for running</td>
+                  </tr>
+                  <tr id="x-icons">
+                    <td>One request per icon</td>
+                    <td>network</td>
+                    <td>2,167 icon files, a fetch per icon shown, again every visit</td>
+                    <td>a sprite of the icons an app uses, made at build time</td>
+                    <td>tens of requests (not measured)</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-listeners">
+                    <td>About 5 listeners per element</td>
+                    <td>memory, CPU</td>
+                    <td>
+                      28,700 for 5,594 elements; 12,821 on shadow roots, 14 kinds each (estimated: Solid's event
+                      delegation per root); 32 per card image
+                    </td>
+                    <td>fewer shadow roots; delegate only the kinds a root uses</td>
+                    <td>not estimated</td>
+                    <td>medium</td>
+                  </tr>
+                  <tr id="x-projects-kept">
+                    <td>Projects you've left stay parsed</td>
+                    <td>memory</td>
+                    <td>registries of projects and files, each file's editor state and undo, imported parses</td>
+                    <td>keep the text, drop the parse of projects not shown for a while</td>
+                    <td>grows with every example visited (inferred)</td>
+                    <td>low: a return parses again</td>
+                  </tr>
+                  <tr id="x-dropdown-leak">
+                    <td>The dropdown leaks</td>
+                    <td>memory</td>
+                    <td>30 kB, 5 nodes, 7.3 listeners kept per open and close</td>
+                    <td>find what holds them (a heap snapshot)</td>
+                    <td>all of it</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-unbounded">
+                    <td>Unbounded growth in a running app</td>
+                    <td>memory, CPU</td>
+                    <td>
+                      every row a place ever saw kept; long lists that only grow; the console copies itself on every line
+                      (10,000 lines copy ~50 million entries, inferred)
+                    </td>
+                    <td>rows held only while read; a capped console appended in place; an option to take far rows down</td>
+                    <td>apps that run all day on a phone</td>
+                    <td>low (opt-in for lists)</td>
+                  </tr>
+                  <tr id="x-whole-compile">
+                    <td>Each pause redoes the whole project</td>
+                    <td>CPU, battery</td>
+                    <td>
+                      every file hashed and written again; the program dumped to two consoles; unchanged imports fetched
+                      again; the source map inlined a byte at a time
+                    </td>
+                    <td>write what changed; drop the console dump; reuse imports</td>
+                    <td>not estimated</td>
+                    <td>low to medium</td>
+                  </tr>
+                  <tr id="x-whole-text">
+                    <td>Whole-text copies per key and per hover</td>
+                    <td>CPU, memory</td>
+                    <td>
+                      the editor flattens the file 2-3 times a key; a counter re-runs half a dozen readers every key
+                    </td>
+                    <td>hand the parser the edit, not the text</td>
+                    <td>small now, grows with file size</td>
+                    <td>medium: covered by the incremental tests</td>
+                  </tr>
+                  <tr id="x-forced-style">
+                    <td>Forced style reads in a loop</td>
+                    <td>style, CPU</td>
+                    <td>
+                      the panel's scroll shading reads each child's computed style every refresh: 3.5 s of the editor's
+                      phone load, 0.9 s of 60 keys <ui-label size="mini">busy machine</ui-label>
+                    </td>
+                    <td>read once, or watch with an observer</td>
+                    <td>most of it</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-per-view">
+                    <td>Each drawn view carries extra machinery</td>
+                    <td>CPU, memory</td>
+                    <td>
+                      a change watcher over its own shadow tree; its own error boundary; built by calls, not templates;
+                      every Solid computation wrapped by a Spell cell
+                    </td>
+                    <td>one watcher per app; boundaries per type in long lists; compiled templates</td>
+                    <td>500 watchers for a list of 500 (inferred)</td>
+                    <td>medium</td>
+                  </tr>
+                  <tr id="x-host-sheets">
+                    <td>A style sheet per layout element, and CSS kept twice</td>
+                    <td>memory, style</td>
+                    <td>
+                      each <code>&lt;ui-stack&gt;</code>, <code>&lt;ui-cell&gt;</code> and a few more gets its own sheet;
+                      every sheet's text is also kept, for hot reload
+                    </td>
+                    <td>share sheets by value; keep the text only in development</td>
+                    <td>a thousand sheets for a thousand stacks</td>
+                    <td>low</td>
+                  </tr>
+                  <tr id="x-everything-at-start">
+                    <td>A project runs all its code at start</td>
+                    <td>load, CPU</td>
+                    <td>
+                      every page, every back-end's types, every imported project; in Public Servers, 84% of the code is
+                      back-end types
+                    </td>
+                    <td>pieces per page and back-end, loaded when shown</td>
+                    <td>a big site starts with one page's code</td>
+                    <td>medium: names across pieces become lookups</td>
+                  </tr>
+                  <tr id="x-program-marks">
+                    <td>Built programs keep editor-only text</td>
+                    <td>load, CPU</td>
+                    <td>comments and source positions are a third of the file</td>
+                    <td>leave them out of a built site's program</td>
+                    <td>Public Servers 30.5 → 18.9 KB gzip</td>
+                    <td>low: the editor keeps its full file</td>
+                  </tr>
+                  <tr id="x-signin-start">
+                    <td>Sign-in places restored at start</td>
+                    <td>load, network</td>
+                    <td>an OAuth library and a round trip for an account the page may never use</td>
+                    <td>restore only the first; others on first use</td>
+                    <td>the library (~40-60 KB brotli, estimated) and a round trip</td>
+                    <td>low</td>
+                  </tr>
+                  <tr id="x-dsd-emptied">
+                    <td>Server-drawn elements are drawn again</td>
+                    <td>load, CPU</td>
+                    <td>
+                      a shadow root drawn on the server is used, then emptied; the static render inlines ~147 kB of CSS per
+                      element
+                    </td>
+                    <td>keep it on upgrade; link the shared sheet instead of inlining</td>
+                    <td>first paint before any script (not measured)</td>
+                    <td>medium to high: every element's first render</td>
+                  </tr>
+                  <tr id="x-a11y">
+                    <td>Accessibility gaps</td>
+                    <td>accessibility</td>
+                    <td>
+                      2 critical ARIA errors in the editor; no focus ring in the code pane; 24 contrast failures on the
+                      kitchen sink; no screen-reader testing yet
+                    </td>
+                    <td>fix the errors; an accessibility check over the editor; screen-reader passes</td>
+                    <td>--</td>
+                    <td>none</td>
+                  </tr>
+                  <tr id="x-heap">
+                    <td>99-232 MB of heap for small pages</td>
+                    <td>memory</td>
+                    <td>the editor 127 MB; Solitaire alone 99 MB; the kitchen sink 232 MB</td>
+                    <td>most rows above</td>
+                    <td>a working limit of ~200 MB of heap for the editor (inferred)</td>
+                    <td>--</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <epic-text-box for="expensive"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="explore" label="4. What to explore" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="compass"></ui-icon>
+            <p>
+              Grouped by dimension, ranked within each. Effort: S is a day or two, M a week, L a phase or more. Nothing
+              here removes a feature.
+            </p>
+
+            <ui-section id="e-bundle" label="4.1 Bundle size and delivery" sticky collapsible dividing open="false">
+              <p>
+                Where we stand: the editor's first load is 1,014 KB of JavaScript brotli (4,879 KB raw, 85 files); about
+                1,500 KB with a project open (estimated). vscode.dev, measured the same day, is about 6.4 MB gzipped
+                cold, cached for a year. So with compression on, Spell's editor is about 4x lighter than vscode.dev cold;
+                today, uncompressed, it's about the same, and paid again every visit.
+              </p>
+              <ol>
+                <li id="e-compression">
+                  <b>Compress everything.</b> Brotli files written beside each built file, served when the browser
+                  accepts them; gzip on the fly for the rest. Also the house network's site (its Caddy file has no
+                  compression). Editor −4.5 MB cold, docs page −4.1 MB. Effort S.
+                </li>
+                <li id="e-caching">
+                  <b>Cache properly.</b> Files with a hash in their name cached for a year; pages and fixed names checked
+                  each time (a "not modified" answer); development worktrees keep "never store". A warm editor visit
+                  drops from 5.7 MB to about 6 KB. Later, a service worker for offline. Effort S.
+                </li>
+                <li id="e-docs-split">
+                  <b>Split the docs bundle and the epics pack.</b> Each family loaded on first use, as the Spell UI site
+                  already does (its first load is 169 KB brotli). It was one classic script so pages worked from disk;
+                  pages are always served now. About −700 KB and −150 KB brotli a page (estimated). Effort M.
+                </li>
+                <li id="e-css-service">
+                  <b>Load the CSS language service when CSS is first edited</b>, or in a worker. −180 KB brotli and 1.25
+                  MB less to parse at start. Effort S.
+                </li>
+                <li id="e-spanish">
+                  <b>Load Spanish only when something speaks it</b>: the dictionaries (−71 KB brotli) and the grammar's
+                  Spanish half (~−120 KB, estimated). VS Code does the same, loading a language's support on first use.
+                  Effort M.
+                </li>
+                <li id="e-one-grammar">
+                  <b>One copy of the grammar</b> across the element builds (three today, 791 KB brotli), and no rule tests
+                  in what ships. Effort S-M.
+                </li>
+                <li id="e-semantic">
+                  <b>Drop the Semantic UI stylesheet</b> (598 KB raw, 75 KB brotli, at the editor's start, 85-90% unused,
+                  estimated). <b>Being done now</b> (todo T6 on the epic page). A suspected bug goes with it: the built
+                  editor linked that sheet and its font from a folder the production server doesn't serve.
+                </li>
+                <li id="e-smaller">
+                  <b>Smaller pieces elsewhere:</b> a piece per dialog (~−400 KB on the first dialog); the editor's routes
+                  lazy, preloaded on hover; tree-shakable lodash (~−45 KB in a cloud app); an icon sprite per app; the
+                  Spell UI help table and the defaults table on first hover (17 KB brotli). Effort S each.
+                </li>
+                <li id="e-http2">
+                  <b>HTTP/2</b> for the page server and the cloud (plain HTTP/1.1 today, so 85 files share 6
+                  connections). Effort S-M.
+                </li>
+              </ol>
+              <p>
+                <b>Phones pay in CPU more than network:</b> on good 5G (~100 Mbps), 7 MB is about 0.6 s of transfer; at
+                the slower typical mobile network Alex Russell uses (7.2 Mbps) it's about 8 s, and 1.5 MB about 1.7 s.
+                But parsing 4.9 MB of raw JavaScript at start costs an estimated 1-2 s on a 2-year-old phone, and
+                compression doesn't shrink that: only shipping less does (items 4-6).
+              </p>
+              <epic-text-box for="e-bundle"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-style" label="4.2 Style and CSS" sticky collapsible dividing open="false">
+              <p>
+                The biggest single cost found. The sheets ARE shared (one object per name per page, no copies), but each
+                shadow root is its own style scope, so the browser matches its ~12 sheets against its own elements,
+                root by root.
+              </p>
+              <ol>
+                <li id="e-root-rules">
+                  <b>Take <code>:root</code> rules out of shadow roots.</b> Of the base sheets every root adopts, the
+                  biggest (163 KB, 140 rules, 874 custom properties), and others of 33, 20 and 13 KB, start with a
+                  <code>:root</code> rule, which matches nothing inside a shadow root. If they're <code>:root</code>-only,
+                  every root holds ~230 KB of rules that can't apply (only each sheet's first selector was checked).
+                  Effort S to check, M to move.
+                </li>
+                <li id="e-shared-sheets">
+                  <b>Fewer, smaller base sheets per root.</b> Custom properties already inherit into shadow roots, so
+                  tokens can live on the page once. Whether the page's animations reach inside needs checking per
+                  browser. Today: layers, reset (14 KB), tokens (15 KB), colours (81 KB), sizes (11 KB), animations (28 KB,
+                  58 of them), then utilities (13 KB). Effort M.
+                </li>
+                <li id="e-874">
+                  <b>The 874 custom properties.</b> Plus 328 colour properties in another sheet and 206 in another. Many
+                  are fallbacks behind a container style query each element evaluates. Fewer, or on the page only. Effort
+                  M.
+                </li>
+                <li id="e-fewer-roots">
+                  <b>Fewer shadow roots for leaf elements.</b> The editor has 179 <code>&lt;ui-icon&gt;</code>, 149
+                  <code>&lt;ui-action&gt;</code> and 112 <code>&lt;ui-text&gt;</code>, each a root. Effort M-L.
+                </li>
+                <li id="e-forced-reads">
+                  <b>Stop the forced style reads</b> in the panel's scroll shading (3.5 s of the editor's phone load).
+                  Effort S.
+                </li>
+                <li id="e-unused-css">
+                  <b>Measure unused CSS.</b> The families are ports with every size, colour and variation; on a typical
+                  page 70-85% of a loaded family's rules likely match nothing (estimated). The browser's CSS coverage
+                  would say. Effort S.
+                </li>
+                <li id="e-per-element-sheets">
+                  <b>Share the layout elements' sheets</b> by value instead of one per instance, and keep CSS text only in
+                  development. Effort S.
+                </li>
+              </ol>
+              <epic-text-box for="e-style"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-memory" label="4.3 Memory and leaks" sticky collapsible dividing open="false">
+              <p>
+                Why it matters on a phone: Android has no swap, so a page that outgrows memory is killed; on low-memory
+                Android, 60-70% of crashes in the tab you're looking at are out-of-memory; a tab in the background is
+                very likely to be killed and lose its state. A working limit (inferred): the editor's tab under a few
+                hundred MB, its heap under ~200 MB. Spell's own guard: edits are kept 2 s after typing pauses.
+              </p>
+              <ol>
+                <li id="e-blob-modules">
+                  <b>Let old runs go.</b> Each compile and live edit imports the program from a new <code>blob:</code>
+                  address; the browser's module map has no way to drop one, and revoking the address doesn't free it
+                  (inferred: confirm with a heap snapshot after 100 edits). Each keeps its text with an inline map of every
+                  source (~75 KB for Solitaire), its functions, and its classes. Try: run in an iframe re-made every few
+                  runs or past a size, carrying things over as live edit does; or evaluate as a function the browser can
+                  free; and leave sources out of the inline map. Effort M.
+                </li>
+                <li id="e-forget-projects">
+                  <b>Forget projects you've left.</b> Keep the text, drop the parse, scope and editor state of projects
+                  not shown for a while (the last 2-3 kept). A return parses again; the compile cache makes the run
+                  instant. Effort S-M.
+                </li>
+                <li id="e-dropdown">
+                  <b>Fix the dropdown leak:</b> 30 kB, 5 nodes and 7.3 listeners per open and close. Effort S.
+                </li>
+                <li id="e-typing-heap">
+                  <b>Look at what typing keeps:</b> 26-42 kB per key. Probably undo history and compiles; a heap snapshot
+                  would say. Effort S.
+                </li>
+                <li id="e-bounded">
+                  <b>Bound what a running app keeps.</b> Rows a place read held only while something reads them (today:
+                  forever); the console as a capped ring appended in place (today: copied on every line, no cap); an
+                  option for long lists to take far rows down (today: what's drawn stays drawn, on purpose, for focus and
+                  forms). Effort S each.
+                </li>
+                <li id="e-listener-count">
+                  <b>Fewer listeners.</b> 14 kinds installed in every shadow root (estimated: Solid's event delegation),
+                  32 on each card image. Effort M.
+                </li>
+                <li id="e-runtime-copies">
+                  <b>One runtime module making several runtimes</b>, instead of a fresh copy per program viewer from its
+                  own <code>blob:</code> address, each holding its own core. Effort M.
+                </li>
+              </ol>
+              <epic-text-box for="e-memory"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-editing" label="4.4 The editing pipeline" sticky collapsible dividing open="false">
+              <p>What happens after one key is pressed in the code pane, in the order it really runs. All of it on the main thread.</p>
+              <ol>
+                <li>CodeMirror takes the key; typing helps run, and the marks move with the edit. Cheap, and drawn only for lines on screen.</li>
+                <li>
+                  The file takes the WHOLE text, every key: the editor flattens CodeMirror's text into one string to
+                  compare, twice, and bumps an edit counter that re-runs half a dozen readers.
+                </li>
+                <li>
+                  After a 200 ms pause, the parse runs again, incrementally: a body edit ~10 ms; a comment ~1-2 ms; a
+                  member added ~45-75 ms; a declaration near the top of the first file ~110 ms, a full parse (on a Mac;
+                  ~450 ms on a phone, inferred). CodeMirror already knows what changed, but that's thrown away.
+                </li>
+                <li>Problems are worked out for each file whose parse changed; the bubbly look is laid out again from the whole file.</li>
+                <li>Hovers and suggestions ask the language service, in the page, each after another whole-text copy.</li>
+                <li>
+                  Two seconds after typing stops, the compile: every file hashed; the whole project written again, every
+                  file; then the built files uploaded, about 5 one after another, before the program runs; then the
+                  program logged whole to two consoles.
+                </li>
+                <li>
+                  The program runs again: imports fetched afresh, the source map inlined, the code imported from a new
+                  <code>blob:</code> address. Live edit then redraws only what changed.
+                </li>
+              </ol>
+              <p>Ranked:</p>
+              <ol>
+                <li id="e-no-upload">
+                  <b>Don't upload while typing.</b> The timed compile skips saving (the option exists); built files are
+                  written on Save, or by the server, which can compile already. About 5 round trips less per edit. Offline
+                  is unchanged. Effort S.
+                </li>
+                <li id="e-yield">
+                  <b>Yield between compile steps.</b> The compile is already a list of tasks, one per file; letting the
+                  browser handle a key between them needs no data moved. Effort S.
+                </li>
+                <li id="e-worker">
+                  <b>Parse, compile and the language service in a worker</b>, the main thread a thin client: what
+                  vscode.dev does, its language servers in workers speaking the language-server protocol over messages.
+                  Spell's service already answers in that protocol's shapes, and already runs in a separate process for
+                  VS Code. The hard part: the Inspector, side bar, bubbly look and notebook read the parse directly today.
+                  Effort L.
+                  <ul>
+                    <li>
+                      In between, a compile-only worker takes the 2-second compile off the main thread, but holds a second
+                      parse in memory: only once memory is freed elsewhere.
+                    </li>
+                    <li>
+                      Data passing: text and plain arrays copy fast; shared memory would need special headers that would
+                      break Spell apps reading data from other sites, and isn't needed.
+                    </li>
+                  </ul>
+                </li>
+                <li id="e-pass-edit">
+                  <b>Hand the parser the edit, not the text:</b> CodeMirror's changed ranges, instead of the whole file
+                  and its own diff. VS Code's lesson: don't make strings you throw away. Effort M.
+                </li>
+                <li id="e-less-per-pause">
+                  <b>Less per pause:</b> write only what changed, drop the console dump of the program, don't fetch
+                  unchanged imports again, don't lay out the whole file's look. Effort S-M each.
+                </li>
+                <li id="e-speedtest">
+                  <b>Time the pipeline.</b> The parser's speed test times its rule tests only: not a whole project's
+                  parse, an edit, a compile, a run or startup. The incremental tests already make the right edits; time
+                  them. Effort S.
+                </li>
+              </ol>
+              <epic-text-box for="e-editing"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-wasm" label="4.5 WebAssembly and rewrites" sticky collapsible dividing open="false">
+              <ul>
+                <li id="e-wasm-parser">
+                  <b>The parser in WebAssembly: measured, and rejected for now.</b> Tokenizing and matching are at most 54%
+                  of a warm Solitaire parse, so 2.2x at best overall. A trial showed nearly all the gain came from flat
+                  data (words as numbers, arrays), which plain JavaScript gets too; WebAssembly added 1.2-1.35x on top.
+                  Each rule's TypeScript would still be called 63,000-155,000 times a parse across the boundary. Look
+                  again if matching passes ~35% of a large project's time: flat data first, then WebAssembly for the
+                  tokenizer.
+                </li>
+                <li>
+                  <b>A WebAssembly target for Spell programs: not as a target.</b> WebAssembly with garbage collection
+                  reached every browser by December 2024, so it meets your 2-year rule in December 2026. But a Spell
+                  program is mostly the page, Solid and reactive reads, all of which would cross the boundary, copying
+                  text each time. The browser already compiles the JavaScript target to machine code. Worth it later for
+                  heavy calculations a program holds (a game's search, a simulation).
+                </li>
+                <li>
+                  <b>tree-sitter, oxc in the browser: not needed.</b> CodeMirror's own grammars show compiled JavaScript
+                  and Python; nothing in the browser parses TypeScript.
+                </li>
+                <li>
+                  <b>Images:</b> the browser's own bitmap and canvas tools in a worker first; a WebAssembly encoder only if
+                  those aren't enough.
+                </li>
+                <li>
+                  <b>Already native:</b> the bundler, transforms, linter and formatter (Rust and Go, through Vite+);
+                  TypeScript 7 (Go); esbuild (Go); uv and ruff (Rust).
+                </li>
+                <li id="e-tooling">
+                  <b>Faster tooling without a rewrite</b> (faster for you, not for people's apps): run <code>spell</code>
+                  from a prebuilt bundle instead of transpiling on every start (its cache once grew to 953 MB; a hook run
+                  went from 2.5 s to 0.9 s once cleared); the content check and example compiles across threads;
+                  integration tests (~15 min, one file at a time) with an editor per worker; the whole test run is ~10
+                  min. Effort S-M.
+                </li>
+                <li>
+                  <b>A Rust rewrite of the parser and compiler: not now.</b> One engine for the command line, the language
+                  server and the browser, but capped at ~2x unless the rule classes move too, and they are the language.
+                  The page server, epic tool and command line are waiting on files and network, not CPU: no gain worth a
+                  second language.
+                </li>
+              </ul>
+              <epic-text-box for="e-wasm"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-server" label="4.6 Server instead of browser" sticky collapsible dividing open="false">
+              <p>
+                Mermaid diagrams, coloured code and charts are the same job: text in, a drawing out, kept by a hash of the
+                text, put in the page before any script. So ONE mechanism for all three, never one per element (proposed
+                name: <code>SRV.Drawings</code>, in the kit's server).
+              </p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Drawing</th>
+                      <th>Drawn where</th>
+                      <th>A page saves</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Mermaid diagram</td>
+                      <td>a headless browser kept running (Mermaid measures text in a real page)</td>
+                      <td>1.19-1.56 MB brotli</td>
+                    </tr>
+                    <tr>
+                      <td>Coloured Spell code</td>
+                      <td>in the server's own process</td>
+                      <td>285 KB brotli</td>
+                    </tr>
+                    <tr>
+                      <td>A Plotly chart</td>
+                      <td>a headless browser</td>
+                      <td>325-1,092 KB brotli</td>
+                    </tr>
+                    <tr>
+                      <td>A d3 or Observable Plot chart</td>
+                      <td>in the server's own process</td>
+                      <td>21-80 KB brotli: here it buys first paint and pages without scripts, not bytes</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ol>
+                <li id="e-drawings">
+                  <b>The one mechanism:</b> a drawer per kind, each saying where it runs (in process, or the one shared
+                  headless browser) and its version; one route the page asks when a drawing wasn't there; one disk cache,
+                  a folder per drawer; one colour pass so drawings follow light and dark through Spell UI's tokens. It
+                  reuses the disk cache, the headless page and the bundle builder the kit already has. Effort M.
+                </li>
+                <li id="e-dsd-kept">
+                  <b>First: keep server-drawn shadow roots when an element starts.</b> Today a shadow root drawn on the
+                  server is used, then emptied, so the element draws again. Then link the shared sheet inside each root
+                  instead of inlining ~147 kB of CSS per element. Then the editor's shell and a Spell app's first screen
+                  can paint before any script on a phone. Effort M-L: it touches every element's first render.
+                </li>
+                <li id="e-server-compile">
+                  <b>Compile on the server for cloud apps:</b> ship compiled code and the runtime only, not the compiler
+                  (~−100 KB brotli, estimated). The editor keeps compiling in the browser: offline editing and the static
+                  build need it, and a round trip per pause is slower.
+                </li>
+                <li>
+                  <b>Not the language service:</b> hovers and suggestions need answers in milliseconds; vscode.dev keeps
+                  them in the browser too.
+                </li>
+                <li>
+                  <b>Help tables:</b> the Spell UI help table for hovers (172 KB of source) could load on first hover, or be
+                  asked of the server, with a copy kept for offline.
+                </li>
+              </ol>
+              <epic-text-box for="e-server"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-large" label="4.7 Large projects" sticky collapsible dividing open="false">
+              <p>
+                <b>Data is already lazy; code is not.</b> A back-end (a place) is made and connects on its first read or
+                write. But a project compiles to ONE module, and every page, every back-end's types and every imported
+                project load and run at start.
+              </p>
+              <ul>
+                <li>
+                  Public Servers (six servers, a page each): 220 KB compiled, 84% of it the six back-ends' types (GitHub's
+                  alone 90 KB raw, 10 KB gzip). Its pages are 3-6 KB each.
+                </li>
+                <li>Star Wars Site imports Star Wars, which declares Wikipedia; the site never uses it, and still loads it.</li>
+                <li>
+                  The editor already compiles a page alone in its file only when it's shown. A built site has nothing like
+                  it yet.
+                </li>
+              </ul>
+              <ol>
+                <li id="e-strip-marks">
+                  <b>Leave editor-only text out of built programs:</b> comments and source positions are a third of the
+                  file. Public Servers: 220 KB → 146 KB raw, 30.5 → 18.9 KB gzip, measured. Effort S.
+                </li>
+                <li id="e-lazy-signin">
+                  <b>Restore only the first sign-in place at start</b>, others on first use: no OAuth library or round
+                  trip for an account a page doesn't use. Effort S.
+                </li>
+                <li id="e-pending-writes">
+                  <b>Send last visit's waiting writes at idle</b>, for every place that has some. Today they go out only
+                  when that place is first used, so a write made offline waits until a later visit uses it (inferred: a
+                  test would check). Worth fixing on its own, and needed before lazy code. Effort S.
+                </li>
+                <li id="e-lazy-pages">
+                  <b>Each page alone in its file as its own piece</b> in a built site, loaded when first shown, fetched
+                  early on hover, press, in view or when idle (skipped on data saver). The site table already names pages
+                  by class name, so the router needs no change. Works for the Spell UI guide's ~400 pages at once. Effort
+                  M.
+                </li>
+                <li id="e-lazy-backends">
+                  <b>A back-end's code with the pages that alone use it</b>, found by what each part reaches, not by file:
+                  the second <code>api.spell</code> loads only on its pages, as you asked. Remembered things and carry-over
+                  need classes by name, waited for. Effort L.
+                </li>
+                <li id="e-lazy-views">
+                  <b>Views pending until their piece arrives</b>, as Spell UI's elements already are (defined early,
+                  attached when their family lands). Effort M.
+                </li>
+                <li id="e-imports-shaken">
+                  <b>Imported projects cut to the types used.</b> Effort L.
+                </li>
+                <li id="e-keep-recent">
+                  <b>Keep the last 2-3 pages drawn, hidden;</b> drop older drawings and rows nothing reads. Back is
+                  instant; memory stays flat. Effort M.
+                </li>
+              </ol>
+              <ul>
+                <li>
+                  <b>For a Spell author: nothing to write.</b> The compiler decides from where things are used. Two
+                  optional lines (load every page at the start; fetch a page's data ahead) are proposals for later, each
+                  needing your OK.
+                </li>
+                <li>
+                  <b>The editor's live run keeps one module:</b> live edit, carry-over and the Thing Explorer want every
+                  class, and pieces would add to the run leak (4.3).
+                </li>
+                <li>
+                  <b>A module, once imported, is never unloaded:</b> letting a page go frees its drawing, reads and rows,
+                  never its code.
+                </li>
+              </ul>
+              <epic-text-box for="e-large"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-streaming" label="4.8 Streaming long lists" sticky collapsible dividing open="false">
+              <p>
+                Spell streams only over websockets today (rooms, live reload, AT Protocol's feed, the Python page's
+                updates); no HTTP answer streams. A long list already arrives in pages, read as the drawing nears its end.
+              </p>
+              <ol>
+                <li id="e-ndjson">
+                  <b>A long list as a stream of pages:</b> one JSON line per page, from the place server, from a Python
+                  (Quart) app, and read line by line in the browser, each page shown as it lands. A 10,000-row sheet shows
+                  its first rows in one round trip, not after all of them. No new words for authors. Effort S-M.
+                </li>
+                <li id="e-pages-iterable">
+                  <b>A place's list as pages you pull:</b> the next page asked for only when the drawing needs it, so
+                  memory follows what's shown. One way to page every kind of back-end. Effort S each.
+                </li>
+                <li id="e-generators">
+                  <b>Spell actions compiled to generators:</b> each pause, wait and debug step a point where the runtime
+                  can hand the thread back, so a long action never freezes the page, and cancelling is exact. Effort L.
+                </li>
+              </ol>
+              <epic-text-box for="e-streaming"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-a11y" label="4.9 Accessibility" sticky collapsible dividing open="false">
+              <p>
+                <b>What's solid:</b> real buttons, dialogs and inputs inside shadow roots; focus passed to the inner
+                control; the standard combobox keys; labels forwarded across shadow roots; the reduced-motion setting
+                honoured (0 animations with it set, measured); colour contrast checked by a test, and axe passing on every
+                Spell UI example.
+              </p>
+              <ol>
+                <li id="e-a11y-errors">
+                  <b>Fix what axe found:</b> the Code toggle's ARIA attributes (critical); the mode tabs' tab list
+                  (critical); a name for the code pane; the Notices button's name (critical); the secondary menu's
+                  contrast (24); duplicate landmarks. Effort S.
+                </li>
+                <li id="e-code-focus">
+                  <b>A visible focus ring in the code pane.</b> Tab into it and nothing shows. Effort S.
+                </li>
+                <li id="e-a11y-check">
+                  <b>Accessibility checks over the editor</b>, not only Spell UI's examples: none of the app's tests run
+                  axe today. Effort S.
+                </li>
+                <li id="e-screen-readers">
+                  <b>Screen-reader testing.</b> None yet: the two VoiceOver checks wait for you (a table read as a table;
+                  landmarks and Skip to content), and no NVDA or TalkBack runs exist. The bubbly code pane hides line
+                  breaks and draws its own selection, so how it reads needs a real check. Effort M.
+                </li>
+                <li id="e-forced-colors">
+                  <b>Forced colours (Windows High Contrast):</b> one rule in all of Spell UI's CSS; a drawn selection and
+                  the bubbly bands may vanish. Effort M.
+                </li>
+                <li id="e-a11y-rest">
+                  <b>Also unchecked:</b> keyboard routes for drag and drop in the editor; whether compile errors and
+                  "Started afresh" reach a screen reader; <code>&lt;ui-tooltip&gt;</code> is never defined on epic pages.
+                  Labels can't point across a shadow root until browsers ship Reference Target.
+                </li>
+              </ol>
+              <epic-text-box for="e-a11y"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-live-reload" label="4.10 The live-reload client" sticky collapsible dividing open="false">
+              <p>
+                The editor joins the page server's live-reload channel to hear its project's files change. On the phone
+                load it was 62% of the CPU profile, and 27% of typing <ui-label size="mini">busy machine</ui-label>.
+              </p>
+              <ul>
+                <li>
+                  For each message, it scans every script on the page: a search of the page and a new
+                  <code>URL</code> per script, about 400 in the editor.
+                </li>
+                <li>
+                  The page server sends a message for every file changed anywhere in the kit, so on a busy machine it's a
+                  storm: one 25 s load of the epic page heard 3,662 messages (its other loads heard 2-6).
+                </li>
+                <li>
+                  <b>To try:</b> filter messages to the page's own files first; keep the script list instead of scanning;
+                  or have the server send each page only what it shows. Effort S.
+                </li>
+                <li>Then measure the editor's phone start again: part of today's numbers is this storm.</li>
+              </ul>
+              <epic-text-box for="e-live-reload"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="e-measure" label="4.11 Measuring for good" sticky collapsible dividing open="false">
+              <p>So the gains don't drift back.</p>
+              <ol>
+                <li id="e-budgets">
+                  <b>Size budgets</b>, brotli on the wire, failing a check when passed:
+                  <ui-table celled padding="compact" appearance="striped" unstackable>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Bundle</th>
+                          <th>Today</th>
+                          <th>Budget</th>
+                          <th>What gets it there</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Editor, first screen, JavaScript</td>
+                          <td>1,014 KB</td>
+                          <td>400 KB</td>
+                          <td>CSS service, Spanish, Semantic UI, the grammar's Spanish half, the defaults table, the Inspector and palette lazy</td>
+                        </tr>
+                        <tr>
+                          <td>Editor, first screen, everything</td>
+                          <td>~1,144 KB</td>
+                          <td>500 KB</td>
+                          <td>the same, and fonts as used</td>
+                        </tr>
+                        <tr>
+                          <td>Editor, project open</td>
+                          <td>~1,531 KB (estimated)</td>
+                          <td>700 KB</td>
+                          <td>the above; CodeMirror's languages per language</td>
+                        </tr>
+                        <tr>
+                          <td>A cloud app</td>
+                          <td>391 KB</td>
+                          <td>150 KB</td>
+                          <td>compile on the server; tree-shakable lodash</td>
+                        </tr>
+                        <tr>
+                          <td>A docs or epic page, JavaScript</td>
+                          <td>~1,128 KB</td>
+                          <td>250 KB</td>
+                          <td>split bundles; code coloured on the server; server-drawn first paint</td>
+                        </tr>
+                        <tr>
+                          <td>A Spell UI site page</td>
+                          <td>~448 KB</td>
+                          <td>200 KB</td>
+                          <td>the epics pack split</td>
+                        </tr>
+                        <tr>
+                          <td>Any lazy piece</td>
+                          <td>up to 1,186 KB (Mermaid)</td>
+                          <td>150 KB</td>
+                          <td>Mermaid on the server; one ELK</td>
+                        </tr>
+                        <tr>
+                          <td>A warm visit</td>
+                          <td>the same as cold</td>
+                          <td>10 KB</td>
+                          <td>caching; a service worker for offline</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </ui-table>
+                  <ul>
+                    <li>
+                      References: Alex Russell's 2024 line for a 5-second first load on a typical phone is 650 KiB of
+                      JavaScript plus 650 KiB of everything else (365 + 365 for 3 seconds); the median mobile page ships
+                      ~697 KB of JavaScript (a secondary report); vscode.dev ~6.4 MB cold.
+                    </li>
+                  </ul>
+                </li>
+                <li id="e-perf-check">
+                  <b>A standing check</b>, with baselines kept in the repo as the speed test's are: the compiler whole (a
+                  cold parse, a compile, the incremental edits, startup); the editor in a phone-shaped browser (first
+                  paint, the program running, 50 keys, memory after 100 compiles, so the run leak shows as a slope); a
+                  Spell app alone with a 500-row list; bundle budgets; axe over the editor. The re-runnable measurement
+                  (2.6) is its start.
+                </li>
+                <li id="e-vscode-lessons">
+                  <b>VS Code's practices, applied:</b> a text buffer close to the file's size (CodeMirror has it: stop
+                  flattening it); draw only what's on screen (done, except the whole-file look at each pause);
+                  incremental structures over re-scans; language servers in workers; load a language's support on first
+                  use; start in phases (the compile cache already runs what's kept, then compiles behind it); no long
+                  work on the thread that answers people; and VS Code shrank its own main script from 12.3 MB to 9.8 MB by
+                  shortening names.
+                </li>
+              </ol>
+              <epic-text-box for="e-measure"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="chart" label="5. &lt;ui-chart&gt;" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="palette"></ui-icon>
+            <p>
+              You want a <code>&lt;ui-chart&gt;</code> soon, working with Plotly and d3, either possibly drawn on the
+              server. The scoped design, in short. Its two open choices are questions 1 and 2 below.
+            </p>
+            <ul>
+              <li>
+                <b>One element that takes a chart as data:</b> a spec and rows, in one of a few chart languages
+                (<code>engine</code>): Observable Plot by default (recommended; it's built on d3), Plotly for Plotly's
+                figures (the same JSON Python writes), and a d3 module of your own that gets the rows and size and returns
+                a drawing.
+              </li>
+              <li>
+                <b>Drawn by the same server mechanism</b> as Mermaid and coloured code (4.6), arriving in the element's
+                server-drawn shadow root, which needs those roots kept on upgrade first.
+              </li>
+              <li>
+                <b>Plotly can't draw in node:</b> it failed at load without a real browser, so on the server it needs the
+                kit's headless browser. d3, Plot, ECharts and Vega all drew in node with no browser.
+              </li>
+              <li>
+                <b>Hover needs no library:</b> the server's drawing carries each mark's row, and a small Spell UI layer
+                (3-5 KB, estimated) shows tooltips, moves by keyboard and fires events. Only zoom, pan and redrawing load
+                the library.
+              </li>
+              <li>
+                <b>Accessible:</b> a required label, a description, the data as a table under a "Show the data" fold, and
+                arrow keys from mark to mark, each announced.
+              </li>
+              <li>
+                <b>Light and dark:</b> drawn with fixed placeholder colours, then each rewritten to a Spell UI token, so a
+                drawing follows the page with no redraw (to check in a browser per engine).
+              </li>
+            </ul>
+
+            <ui-section id="chart-modes" label="5.1 The three ways it draws" sticky collapsible dividing open="false">
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Way</th>
+                      <th>Where</th>
+                      <th>One Plotly chart downloads</th>
+                      <th>One Plot chart</th>
+                      <th>One d3 chart</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>(a) server drawing only</td>
+                      <td>docs, epic pages, READMEs, static exports, shared links</td>
+                      <td>the drawing, ~3-15 KB brotli (estimated)</td>
+                      <td>~1-5 KB (estimated)</td>
+                      <td>the drawing</td>
+                    </tr>
+                    <tr>
+                      <td>(b) server drawing, live on first touch (the default)</td>
+                      <td>every page with charts</td>
+                      <td>+ the hover layer; on zoom 325 (basic) to 1,092 KB (full)</td>
+                      <td>+ the layer; on redraw 80 KB</td>
+                      <td>+ the layer; on redraw 21-30 KB and your module</td>
+                    </tr>
+                    <tr>
+                      <td>(c) drawn in the page</td>
+                      <td>the editor, live data, charts that change as you type</td>
+                      <td>325-1,092 KB</td>
+                      <td>80 KB</td>
+                      <td>21-30 KB and your module</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>Measured drawings: d3's line chart 3.0 KB, Plot's 2.2 KB, ECharts' 4.2 KB, before compression.</li>
+                <li>
+                  d3 and Plot draw in the server's own process in milliseconds (estimated); Plotly and Mermaid in one
+                  headless Chromium kept running, ~50-300 ms each when warm (estimated), then cached.
+                </li>
+                <li>
+                  Cached by the engine and its version, the spec, a hash of the rows, the size and the language: not the
+                  theme, since the drawing uses tokens.
+                </li>
+                <li>
+                  A Python (Quart) app: Plotly through Kaleido (which needs Chrome installed), or the page draws it, or a
+                  page server beside it does. Vega-Lite would draw in Python with no browser at all: a reason to add it
+                  later.
+                </li>
+              </ul>
+              <epic-text-box for="chart-modes"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="chart-engines" label="5.2 The libraries" sticky collapsible dividing open="false">
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Library</th>
+                      <th>Brotli</th>
+                      <th>Draws on the server</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Plotly.js 4.3, full / cartesian / basic</td>
+                      <td>1,092 / 405 / 325 KB</td>
+                      <td>only in a browser</td>
+                      <td>hover, zoom, pan built in; weak accessibility (inferred)</td>
+                    </tr>
+                    <tr>
+                      <td>d3 7.9, whole / a line or bar chart's parts / plus zoom</td>
+                      <td>76 / 21 / 30 KB</td>
+                      <td>yes</td>
+                      <td>already in the install, under Mermaid</td>
+                    </tr>
+                    <tr>
+                      <td>Observable Plot 0.6 (with its d3)</td>
+                      <td>80 KB</td>
+                      <td>yes</td>
+                      <td>made for static drawings; labels and descriptions per chart and mark; tooltips, no zoom</td>
+                    </tr>
+                    <tr>
+                      <td>Vega + Vega-Lite</td>
+                      <td>237 KB</td>
+                      <td>yes, even from Python or Rust with no browser</td>
+                      <td>the strongest Python story; a later engine</td>
+                    </tr>
+                    <tr>
+                      <td>ECharts 6.1, full / a subset / its 1 KB server client</td>
+                      <td>292 / 156 / 1 KB</td>
+                      <td>yes, with no page at all</td>
+                      <td>named, not built in</td>
+                    </tr>
+                    <tr>
+                      <td>uPlot / Chart.js</td>
+                      <td>19 / 60 KB</td>
+                      <td>no: canvas only</td>
+                      <td>uPlot for 100,000-point live series, maybe later; Chart.js no</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>
+                For scale: Mermaid's lazy piece is 1,186 KB brotli, Solid itself 35 KB. On a phone, the full Plotly bundle
+                costs more to parse than to fetch (inferred).
+              </p>
+              <epic-text-box for="chart-engines"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="chart-deps" label="5.3 Dependencies, risks, effort" sticky collapsible dividing open="false">
+              <p><b>Dependencies to OK</b> (none added yet):</p>
+              <ol>
+                <li>Observable Plot (ISC licence): a lazy piece in the page, and the server's in-process drawer.</li>
+                <li>d3 and its modules as direct dependencies (ISC): in the install today only under Mermaid.</li>
+                <li>Plotly.js (MIT): a partial bundle or the full one, lazy, or built with only the chart kinds wanted.</li>
+                <li>
+                  Playwright at run time for the server's headless drawers, as an optional extra so the published
+                  <code>spell</code> package stays lean.
+                </li>
+              </ol>
+              <p><b>Risks:</b></p>
+              <ol>
+                <li>
+                  A headless browser in the page server: ~100-200 MB and a second or two to start (estimated). Start it on
+                  the first drawing, close it when idle.
+                </li>
+                <li>Labels drawn on the server may sit a little differently from the page's font (inferred).</li>
+                <li>A server drawing scales as a whole, so a narrow phone shrinks its labels.</li>
+                <li>Any page that goes fully live with Plotly pays 325-1,092 KB brotli; the hover layer exists so most never do.</li>
+                <li>The colour pass needs every engine to pass placeholder colours through untouched: check per engine.</li>
+              </ol>
+              <p>
+                <b>Effort</b> (estimated): the server mechanism with Mermaid and code, M; keeping server-drawn roots, M-L;
+                the element with Plot, its English and Spanish vocabulary (Spanish <code>&lt;es-grafico&gt;</code>, which
+                takes "gráfico" from the Mermaid element's other names), tokens, table and docs page, M; the hover layer,
+                S-M; the Plotly engine, S-M; the d3 engine, S.
+              </p>
+              <p>
+                <b>Also recommended, to settle in its own epic:</b> Plotly on the server through the page server's one
+                headless browser, cached by hash; and hover through Spell UI's own layer, the library loading only for
+                zoom, pan or redraw.
+              </p>
+              <p>
+                <b>A Spell phrase for charts</b> (<code>show sales as a bar chart of total by month</code>) is a proposal
+                only, with four ambiguities written up ("by", "of", "total", "over"): nothing is built without your OK
+                on each.
+              </p>
+              <epic-text-box for="chart-deps"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="sources" label="6. Sources" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="book"></ui-icon>
+            <p><b>The research notes behind this page:</b></p>
+            <ul>
+              <li>
+                <a href="../research/perf-browser.md">Browser performance</a>: the browser tests, and where we fall down
+                now
+              </li>
+              <li>
+                <a href="../research/perf-scripts/README.md">The measurement scripts</a>, and
+                <a href="../research/perf-results/2026-11-20-1103.json">this run's results</a>
+              </li>
+              <li>
+                <a href="../research/perf-bundle.md">Bundle size and delivery</a>: every bundle measured, the heavy
+                things, budgets beside vscode.dev
+              </li>
+              <li>
+                <a href="../research/perf-code.md">Performance from the code</a>: the editing pipeline, workers,
+                WebAssembly, server vs browser, memory on a phone, accessibility, VS Code's lessons
+              </li>
+              <li><a href="../research/ui-chart.md">&lt;ui-chart&gt;</a>: the scoped design and the one drawing mechanism</li>
+              <li><a href="../research/lazy-scope.md">Keeping what runs small</a>: lazy back-ends, pages and views</li>
+              <li><a href="../research/data-paradigm.md">Loading and saving data</a>: streaming pages, generators</li>
+              <li>
+                <a href="../research/web-components-first.md">Web components first</a>: server-drawn shadow roots kept on
+                upgrade
+              </li>
+            </ul>
+            <p><b>Outside:</b></p>
+            <ul>
+              <li>
+                <a href="https://infrequently.org/2024/01/performance-inequality-gap-2024/"
+                  >Alex Russell, The Performance Inequality Gap, 2024</a
+                >
+              </li>
+              <li>
+                <a href="https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation"
+                  >VS Code: text buffer reimplementation</a
+                >
+              </li>
+              <li>
+                <a href="https://code.visualstudio.com/blogs/2021/09/29/bracket-pair-colorization"
+                  >VS Code: bracket pair colorization, 10,000x faster</a
+                >
+              </li>
+              <li><a href="https://code.visualstudio.com/api/extension-guides/web-extensions">VS Code: web extensions</a></li>
+              <li><a href="https://code.visualstudio.com/blogs/2021/10/20/vscode-dev">VS Code: vscode.dev</a></li>
+              <li><a href="https://code.visualstudio.com/blogs/2024/05/08/wasm">VS Code: using WebAssembly</a></li>
+              <li><a href="https://code.visualstudio.com/blogs/2023/07/20/mangling-vscode">VS Code: mangling names</a></li>
+              <li><a href="https://developer.chrome.com/blog/wasmgc">Chrome: WebAssembly garbage collection</a></li>
+              <li>
+                <a href="https://groups.google.com/a/chromium.org/g/chromium-dev/c/7lE7uB8IFTY"
+                  >Chromium: crashes due to scarcity of memory</a
+                >
+              </li>
+              <li>
+                <a href="https://developer.android.com/topic/performance/memory-management"
+                  >Android: memory allocation among processes</a
+                >
+              </li>
+              <li><a href="https://v8.dev/blog/heap-size-limit">V8: heap size limit</a></li>
+              <li>
+                <a href="https://html.spec.whatwg.org/multipage/webappapis.html#module-map">HTML standard: the module map</a>
+              </li>
+              <li><a href="https://web.dev/articles/declarative-shadow-dom">web.dev: Declarative Shadow DOM</a></li>
+              <li>
+                <a href="https://github.com/GoogleChrome/lighthouse/blob/main/docs/throttling.md">Lighthouse: throttling</a>
+              </li>
+              <li><a href="https://plotly.com/python/static-image-export/">Plotly: static image export</a></li>
+              <li>
+                <a href="https://echarts.apache.org/handbook/en/how-to/cross-platform/server/">ECharts: server rendering</a>
+              </li>
+              <li><a href="https://github.com/vega/vl-convert">Vega: vl-convert</a></li>
+              <li>
+                <a href="https://quart.palletsprojects.com/en/latest/how_to_guides/streaming_response.html"
+                  >Quart: streaming responses</a
+                >
+              </li>
+            </ul>
+            <epic-text-box for="sources"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="q1" label="Q1 · Default chart language?" sticky collapsible dividing open="false">
             <ui-icon slot="icon" name="circle question"></ui-icon>
             <epic-ask>
-              <epic-question><p>The question in full, in one or two lines.</p></epic-question>
+              <epic-question
+                ><p>
+                  The planned <code>&lt;ui-chart&gt;</code> element takes a chart as data written in a "chart language".
+                  Which one should it use when the page doesn't say? No rush: you said you'd decide later, so leave this
+                  blank until then.
+                </p></epic-question
+              >
               <epic-choices>
-                <epic-option letter="A" title="First option" recommended>
-                  <p>One line: what changes, and why it's recommended.</p>
-                  <epic-aside title="Details"><p>Anything longer: a table, code, a picture.</p></epic-aside>
+                <epic-option letter="A" title="Observable Plot" recommended>
+                  <p>
+                    Built on d3, draws on the server with no browser, 80 KB brotli in the page. Plotly and d3 still work,
+                    named.
+                  </p>
+                  <epic-aside title="Details"
+                    ><ul>
+                      <li>Its specs are small objects that turn into JSON with one rule: each mark named by its type.</li>
+                      <li>A chart needing a function in its spec becomes a d3 or Plot module instead.</li>
+                    </ul></epic-aside
+                  >
                 </epic-option>
-                <epic-option letter="B" title="Second option">
-                  <p>One line: what changes, and its cost.</p>
+                <epic-option letter="B" title="Plotly">
+                  <p>
+                    The same JSON as Python's Plotly, but it needs a browser to draw on the server and 325-1,092 KB in the
+                    page to go live.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="Vega-Lite">
+                  <p>The best Python story (Altair writes it, and it draws with no browser at all), 237 KB in the page.</p>
+                </epic-option>
+                <epic-option letter="D" title="No default">
+                  <p>Every chart names its engine.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q2" label="Q2 · Where to build server drawing?" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Mermaid diagrams, coloured code and charts could all be drawn on the server by one shared mechanism,
+                  which first needs server-drawn shadow roots kept when an element starts. Where should that work happen,
+                  and <code>&lt;ui-chart&gt;</code> itself?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="A phase here, chart separate" recommended>
+                  <p>
+                    A "Drawn on the server" phase in this epic (Mermaid and code first, the measured savings), then
+                    <code>&lt;ui-chart&gt;</code> as its own epic.
+                  </p>
+                  <epic-aside title="Details"
+                    ><ul>
+                      <li>The chart is an element, two vocabularies, a docs page and dependencies to OK.</li>
+                      <li>Building it here would hold up the Solid 2 work.</li>
+                    </ul></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="All of it in this epic">
+                  <p>The mechanism and the chart together. Longer before Solid 2 lands.</p>
+                </epic-option>
+                <epic-option letter="C" title="Chart first, in the page">
+                  <p>
+                    <code>&lt;ui-chart&gt;</code> soon, drawn in the page only; the server mechanism later. Fastest to a
+                    chart; Plotly pages pay its full weight until then.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q3" label="Q3 · Add a spell perf command?" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  The browser measurement is one script in this epic's research folder today (about 45-55 minutes, run on
+                  a quiet machine). Should it become a proper command?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Yes, spell perf run" recommended>
+                  <p>
+                    A <code>spell perf</code> command in the kit, its results kept with the code, later run as a standing
+                    check with budgets.
+                  </p>
+                  <epic-aside title="Details"
+                    ><ul>
+                      <li>Where it lives and its name get checked against the commands guide before it's built.</li>
+                      <li>It could also widen the parser's speed test to whole projects, edits and compiles.</li>
+                    </ul></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="Keep it as a script">
+                  <p>Leave it in the research folder, run by hand when needed.</p>
+                </epic-option>
+                <epic-option letter="C" title="Fold into speedtest">
+                  <p>Add the browser runs to the existing <code>spell speedtest</code> command.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q4" label="Q4 · Set size budgets now?" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Section 4.11 proposes size limits per bundle (the editor's first screen at 400 KB of JavaScript, a docs
+                  page at 250 KB, a warm visit at 10 KB ...). Most are far over today. When should they start counting?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Now, as warnings" recommended>
+                  <p>Report every bundle against its limit from now on; fail the checks only once each is met.</p>
+                </epic-option>
+                <epic-option letter="B" title="Now, failing">
+                  <p>Fail at today's sizes, so nothing grows, and lower each limit as the work lands.</p>
+                </epic-option>
+                <epic-option letter="C" title="After the first fixes">
+                  <p>Set them once compression, caching and the big lazy pieces are done.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q5" label="Q5 · Which phone to test on?" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  The phone numbers here come from a desktop browser slowed to roughly a 2023 mid-range Android phone,
+                  which doesn't slow the graphics chip or limit memory. What should "the phone" be for this goal?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Emulated, plus a Pixel 7a" recommended>
+                  <p>
+                    Keep the slowed-down browser for every run, and check milestones on one real Pixel 7a over 5G.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Emulated only">
+                  <p>No device to buy or plug in; graphics and memory limits stay unmeasured.</p>
+                </epic-option>
+                <epic-option letter="C" title="A Galaxy A54 too">
+                  <p>Adds Samsung's own browser and a 6 GB model, the tighter memory case.</p>
+                </epic-option>
+                <epic-option letter="D" title="An iPhone too">
+                  <p>Adds Safari, which none of these tests ran in.</p>
                 </epic-option>
               </epic-choices>
             </epic-ask>
