@@ -173,15 +173,20 @@
                 </ul>
               </li>
               <li>
-                <b>"The first framework where the entire app is web components" doesn't hold</b> (section 8).
+                <b>"The first framework where the entire app is web components": close, but not first</b> (section 8).
                 <ul>
                   <li>
-                    YouTube (Polymer, 2017), Firefox's own UI (2019), Salesforce, Photoshop ("the entire Photoshop app
-                    is built using Lit-based Web Components"), Reddit and Edge all did it first. Imba already compiles a
-                    language to custom elements.
+                    Taking "framework" as React, Vue or Svelte's kind (routing, data, state, app structure, build), apps
+                    like Photoshop and YouTube drop out, and so do element libraries like Lit.
                   </li>
                   <li>
-                    Even in Spell, the editor's shell is Solid components, and inside every element is ordinary Solid.
+                    Still before Spell: Polymer with its App Toolbox (2016), Salesforce's LWC with LWR, Enhance and
+                    Hybrids, each a framework whose apps are written as custom elements; and Imba, a language that
+                    compiles to them.
+                  </li>
+                  <li>
+                    Defensible: "a web-component-first framework: every view of every app you write is a real HTML
+                    element, named after your own types".
                   </li>
                 </ul>
               </li>
@@ -7149,7 +7154,20 @@
                       It has none of the engine: no pending changes, no retry, no healing, no live updates, no pages of
                       a list.
                     </li>
-                    <li><b>Under Quart, its writes block the one event loop every visitor shares.</b></li>
+                    <li>
+                      <b>Under Quart, its writes block the one event loop every visitor shares.</b>
+                      <ul>
+                        <li>
+                          Not Quart's fault: FastAPI, Litestar, Sanic, aiohttp's server and Django's async views all run
+                          one event loop too, and would stall the same way. A thread-per-request server (Flask) hides
+                          it, but the <code>py</code> target runs a program on asyncio.
+                        </li>
+                        <li>
+                          The fix is in the places code, not the server: hand each write to a queue that a task drains
+                          with <code>asyncio.to_thread()</code>, as reads already do. Keep Quart (6.3).
+                        </li>
+                      </ul>
+                    </li>
                   </ul>
                 </li>
                 <li>
@@ -7329,6 +7347,16 @@ a "recipe" is a thing
                     for the answer. Reads are off the loop, except in a drawing.
                   </li>
                   <li>Quart was picked BECAUSE one thread serves every page.</li>
+                  <li>
+                    Another server wouldn't help: every asyncio server (FastAPI / Starlette, Litestar, Sanic, aiohttp,
+                    Django's async views) shares one loop the same way. The fix is to wait off the loop.
+                  </li>
+                  <li>
+                    How: <code>send()</code> is called while a property is being set, so it can't wait itself. It puts
+                    the change on a queue per place, and a task sends it with <code>asyncio.to_thread()</code>.
+                    <code>httpx</code> or <code>aiohttp</code> as the client would also do, but Python's core is
+                    standard library only, so <code>urllib</code> in a thread it is.
+                  </li>
                   <li>
                     So one visitor's card move, saved to a data folder, stalls every other visitor's game for the round
                     trip (inferred from the code; not measured).
@@ -8503,13 +8531,91 @@ async def list_rows(name: str):
             </p>
 
             <ui-section id="wc-claim" label="8.1 Does the claim hold?" sticky collapsible dividing open="false">
-              <ui-message state="negative" heading="As worded, no">
+              <ui-message state="warning" heading="Close, but not first">
                 <p>
-                  "The first framework where the entire app is web components" is false, and easy for anyone to
-                  disprove.
+                  Read your way, "framework" means something like React, Vue or Svelte: routing, data, state, app
+                  structure and a build, in which the apps people write are web components all the way down.
                 </p>
+                <p>That narrows the field a lot, but four frameworks and one language did it before Spell.</p>
               </ui-message>
-              <p>Whole apps built as web components, years before Spell:</p>
+              <p>Dropped from the comparison, under that meaning:</p>
+              <ul>
+                <li>
+                  <b>Apps, not frameworks:</b> Photoshop, YouTube, Firefox, Reddit and Edge (listed below). They show
+                  the approach works at scale, but nobody builds their own app with them.
+                </li>
+                <li>
+                  <b>Ways to make elements, with nothing around them:</b> Lit, FAST, Atomico, and the widget sets
+                  (Shoelace, Spectrum, Material Web).
+                </li>
+                <li>
+                  <b>Stencil:</b> "intended to be used primarily to build design systems and component libraries" (<a
+                    href="https://stenciljs.com/docs/introduction"
+                    >stenciljs.com</a
+                  >); most Ionic apps wrap its elements in Angular, React or Vue.
+                </li>
+                <li>
+                  <b>Vaadin:</b> you write Java (Flow) or, since Hilla merged in, React views; Vaadin's elements are the
+                  widgets underneath, not what you write.
+                </li>
+                <li>
+                  <b>Spell's own editor shell</b> (Solid components) doesn't bear on the claim: it's about how Spell
+                  apps and components are written.
+                </li>
+              </ul>
+              <p>Still before Spell, each a framework whose apps are written as custom elements:</p>
+              <ol>
+                <li>
+                  <b>Polymer and its App Toolbox</b> (2016): "a collection of components, tools and templates for
+                  building modern web apps with Polymer": routing (<code>&lt;app-route&gt;</code>), layout, local
+                  storage, a build, app templates; the app itself is one element (<a
+                    href="https://polymer-library.polymer-project.org/2.0/toolbox/"
+                    >Polymer docs</a
+                  >). In maintenance mode now: Google points new work at Lit.
+                </li>
+                <li>
+                  <b>Salesforce LWC with LWR</b>: components are "custom elements built using HTML and modern
+                  JavaScript" (<a href="https://lwc.dev/guide/introduction">lwc.dev</a>); LWR adds routes, a client
+                  router, server data and server rendering (<a
+                    href="https://developer.salesforce.com/docs/platform/lwr/guide/lwr-intro.html"
+                    >LWR docs</a
+                  >). The biggest by far, and tied to Salesforce's tooling.
+                </li>
+                <li>
+                  <b>Enhance</b>: an "HTML-first full-stack web framework", with file-based pages, API routes, a store,
+                  and your elements in <code>app/elements</code>, expanded on the server (<a
+                    href="https://enhance.dev/docs/"
+                    >enhance.dev</a
+                  >). Server-first, the reverse of Spell.
+                </li>
+                <li>
+                  <b>Hybrids</b>: "a framework for the web", with state management, "App-like Routing", a layout engine
+                  and "automatic translation of the templates content" (<a href="https://github.com/hybridsjs/hybrids"
+                    >README</a
+                  >). Small; it translates text, not tag names.
+                </li>
+                <li>
+                  <b>Imba</b>, a compiled language with its own bundler: a lowercase component is "compiled directly to
+                  a native Web Component" (<a href="https://imba.io/docs/components">imba.io</a>). You name each tag
+                  yourself. No built-in router was found (inferred).
+                </li>
+              </ol>
+              <p>What none of them does, and Spell does (more below):</p>
+              <ul>
+                <li>You never write an element: the compiler makes one from each of your program's own types.</li>
+                <li>The tags are in the program's own language (<code>&lt;solitario-carta&gt;</code>).</li>
+                <li>One element layer under the UI kit, the docs, the editor and every program.</li>
+              </ul>
+              <p>
+                A defensible line, under your meaning:
+                <b
+                  >"Spell is a web-component-first framework: every view of every app you write is a real HTML element,
+                  named after your own types."</b
+                >
+                "First" can't be claimed; "the only one where your types become the elements" can, with the search
+                behind it (inferred).
+              </p>
+              <p>Apps built of web components, years before Spell (not frameworks, but proof it works at scale):</p>
               <ol>
                 <li>
                   YouTube's desktop site, rebuilt on Polymer in 2017 (<a
@@ -8545,31 +8651,11 @@ async def list_rows(name: str):
                     >Edge blog, 2024</a
                   >).
                 </li>
-                <li>
-                  Frameworks that say "whole app" on their front page: Lit ("build an entire app"), Enhance ("Build your
-                  entire app with accessible HTML"), Polymer's archived PWA Starter Kit.
-                </li>
               </ol>
               <ul>
                 <li>
-                  And a language that compiles to custom elements exists: <b>Imba</b>, "If a component's name begins
-                  with a lowercase letter, it will be compiled directly to a native Web Component" (<a
-                    href="https://imba.io/docs/components.md"
-                    >imba.io</a
-                  >).
-                </li>
-                <li>
-                  <b>Even inside Spell, "the entire app" overreaches:</b>
-                  <ul>
-                    <li>
-                      The editor's own shell (pages, menus, panes, dialogs) is Solid function components: "the app's UI,
-                      all Solid". Its top bar, panes and tabs are moving into Spell itself, so this shrinks.
-                    </li>
-                    <li>
-                      Inside every element, the UI is ordinary Solid components. That's the critics' central point,
-                      "Elements !== Components", and Spell's architecture agrees with it.
-                    </li>
-                  </ul>
+                  <b>Why "every view", not "all the way down":</b> inside every element, the UI is ordinary Solid.
+                  That's the critics' central point, "Elements !== Components", and Spell's architecture agrees with it.
                 </li>
               </ul>
               <h4>What IS true, and rarer</h4>
@@ -9458,8 +9544,8 @@ async def list_rows(name: str):
               <h4>Claims to avoid, and who'd shoot them down</h4>
               <ol>
                 <li>
-                  <b>"The first framework where the whole app is web components."</b> YouTube, Firefox, Salesforce,
-                  Photoshop, Reddit, Edge, Enhance, Lit, Polymer.
+                  <b>"The first framework where the whole app is web components."</b> Polymer with its App Toolbox,
+                  Salesforce's LWC with LWR, Enhance, Hybrids; Imba as a language.
                 </li>
                 <li><b>"The first language that compiles to web components."</b> Imba.</li>
                 <li>
@@ -9608,6 +9694,29 @@ async def list_rows(name: str):
                   read, so it's one step behind until the flush.
                 </li>
                 <li>A waited value, which lags by design; and every derived value's cache.</li>
+              </ul>
+              <h4>Does the record being a <code>Map</code> cost speed?</h4>
+              <ul>
+                <li>
+                  <b>No, as the code is written today.</b> Every prop goes through one shared reader,
+                  <code title="src/util/reactive/extend.ts">getProp(this, name)</code>, with the name as a variable. A
+                  plain-object record read that way is a lookup by a changing key, which V8 can't make fast either.
+                </li>
+                <li>
+                  Measured (node 24, 2,000 objects, 6 props, median of 200 rounds): the <code>Map</code> record 7 ns a
+                  read, 9-11 ns a write; a plain-object record with the same keys 7-12 ns and 12-17 ns; keys set in a
+                  different order per object, 10-17 ns and 19-24 ns.
+                </li>
+                <li>
+                  The real gap is to plain fields (<code>this.suit</code>): under 1 ns. Reaching that means the compiler
+                  writing a field per prop, not swapping the <code>Map</code>; worth it only if a profile shows prop
+                  reads matter.
+                </li>
+                <li>
+                  The <code>Map</code> also keeps keys in the order first set (a plain object moves <code>"2"</code> and
+                  <code>"10"</code> to the front), and takes keys added and removed freely without falling into V8's
+                  slow "dictionary mode".
+                </li>
               </ul>
               <epic-text-box for="cells-copy"></epic-text-box>
             </ui-section>
