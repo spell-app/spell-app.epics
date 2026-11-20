@@ -602,6 +602,11 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
   Seen 2026-10-13 (epic `people-and-orgs` P11), running the new `TodosFormBased` fixture (a copy of the
   `Todos - Form Based` example) under Python in the core contract;  so it's left out of `PYTHON_FIXTURES`.
   Prove:  add `TodosFormBased` to `PYTHON_FIXTURES`, then `yarn vp test run contract` in `spell-app/src/cli`.
+- Under Quart, one visitor's save may stall every visitor:  the Python places send each write with plain `urllib`
+  (blocking) on the one asyncio event loop (`places.py`, about line 360).
+  Also "a database on this device" is one file on the server, shared by every visitor.
+  Seen 2026-11-20 (epic `solid-2-final`, read from the code, not measured:  its `research/data-paradigm.md`).
+  Prove:  two visitors of a `spell_quart` app, one saving to a slow REST place;  time the other's page.
 
 ## ui
 
