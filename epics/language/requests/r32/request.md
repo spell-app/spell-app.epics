@@ -3,7 +3,9 @@ id: r32
 epic: language
 from: 🚧 from-jarvis (0c62d6c9)
 at: 2026-11-19T20:24-05:00
-status: new
+status: filed
+filed: P67 · Drag Events
+phase: p-drag-events
 ---
 
 ## The person's words

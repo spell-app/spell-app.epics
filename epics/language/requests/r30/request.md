@@ -3,7 +3,8 @@ id: r30
 epic: language
 from: 🚧 data (5d2c6ba9)
 at: 2026-11-19T19:30-05:00
-status: new
+status: filed
+filed: T166
 ---
 
 ## The person's words
