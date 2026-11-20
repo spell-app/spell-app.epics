@@ -605,6 +605,10 @@ what the adjacent `TODO: how to surface this error???` is really about.  Code le
 
 ## ui
 
+- 2026-11-19 · epic `epic-engine` T86 · on a docs page served by main's page server, a `<ui-button icon="minus">` drew
+  no icon, nor `minus circle`, `trash`, `trash alternate outline`, `times`, `minus square outline`, 2.5s after it
+  was made;  `plus` and `remove` drew.  Every one is in the Fomantic pack.  Perhaps only icons the page loaded already
+  draw, a new name's chunk never fetched.  Cause not looked into:  T86's table bar uses `remove` instead.
 - 2026-11-09 · epic `data` P43 · `LintPatterns` fails on `UIDocsIndex` in the UI folder's tests.
   Unrelated to epic `data`.  Cause not looked into.
 - `<ui-split-panel>` (`UISplitPanel.tsx`):  a `<ui-segment>` as a direct pane ignores its size.  The panel sets each pane's inline
@@ -1189,6 +1193,9 @@ Skills, hooks and their scripts (`.claude/`, `packages/epics/tools/goals/skills/
 
 ## epics
 
+- 2026-11-19 · epic `epic-engine` T86 · `check-edit-in-place.mjs` misses "a change behind the page shows beside the
+  edit" on main's page server (4747), with main's engine and with this branch's alike:  the guide copy in `pages/`,
+  changed on disk, didn't patch its `<ui-markdown>` within 10s.  Every other check passes.  Cause not looked into.
 - `check-send-header.mjs` fails on `main`'s header (2026-11-16, seen during epic `epic-engine` I316):  no countdown
   ring round the plane on the `epic-engine` copy (its marked item `j10`), the plane 77px left of the header's middle
   at 1200px, Send in each stage copy saying "Send to Claude" where the check wants the bare plane, the theme sub-menu
