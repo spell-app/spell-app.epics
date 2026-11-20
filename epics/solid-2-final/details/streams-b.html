@@ -1,0 +1,2246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Streams in places</title>
+    <meta name="description" content="Details:  Streams in places" />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page spell-details-page">
+    <ui-root>
+      <ui-components source="/_epic/pack/epics.pack.js"></ui-components>
+      <spell-site-header></spell-site-header>
+      <div class="spell-doc">
+        <main class="spell-doc-main">
+          <ui-breadcrumbs class="spell-crumbs" size="small" aria-label="Breadcrumb">
+            <ui-breadcrumb link="/pages/index.html" target="src-packages-docs-index-html">Spell Epic</ui-breadcrumb>
+            <ui-breadcrumb link="/epics/solid-2-final/solid-2-final.plan.html" target="solid-2-final"
+              >Solid 2.0 Final</ui-breadcrumb
+            >
+            <ui-breadcrumb selected>Streams in places</ui-breadcrumb>
+          </ui-breadcrumbs>
+          <ui-sticky class="spell-h1"
+            ><header class="spell-page-head">
+              <h1>Streams in places</h1>
+              <epic-send></epic-send></header
+          ></ui-sticky>
+          <p class="lede">
+            An outline for lists that keep coming: any place's list read as one sequence of steps, so a paged REST list
+            and a service that streams updates both work. Read it, comment on it, and say when it's ready to send to
+            epic <code>data</code>.
+          </p>
+          <div class="spell-details-meta">
+            <epic-field label="Asked by" data-details-by
+              >session <code>solid-2-final</code> (its agent <code>solid-2-final-streams</code>, read only), after the
+              data-paradigm findings</epic-field
+            >
+            <epic-field label="Asked" data-details-asked>2026-11-20</epic-field>
+          </div>
+
+          <ui-message class="spell-where" state="info" heading="Where we are">
+            <epic-field label="Epic"
+              ><code>solid-2-final</code>, a FUTURE epic: moving Spell's Solid parts onto the stable Solid
+              2.0.</epic-field
+            >
+            <epic-field label="Just now"
+              >You asked: "adapt an existing REST list to a stream that Spell reads; also support existing services that
+              stream updates." This outline answers that. Nothing is built.</epic-field
+            >
+            <epic-field label="This decides"
+              >Whether this outline is right to send to epic <code>data</code> (which owns places) as a request. Comment
+              on any section; the five questions at the end are the calls it needs.</epic-field
+            >
+          </ui-message>
+
+          <ui-section id="about-this-outline" label="About this outline" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+            <p>
+              A scaffold for epic <code>data</code>, from epic <code>solid-2-final</code>, 2026-11-20 (agent
+              <code>solid-2-final-streams</code>, read only). Owen's ask, on <code>data-paradigm.md</code>'s finding
+              "send long lists as a stream of pages": "So this could e.g. adapt an existing REST list to a stream that
+              Spell reads? We also want to support existing services that stream updates. Scaffold out what this would
+              look like and we'll probably send it to another session."
+            </p>
+            <ul>
+              <li>Paths are from the kit's root (the worktree <code>solid-2-final</code>), today's code.</li>
+              <li>Guesses are marked (inferred).</li>
+              <li>
+                Every new Spell phrase here is a PROPOSAL: it needs Owen's OK, and each one shows where it could be
+                misread.
+              </li>
+              <li>It builds on data-paradigm.md §3-4 and spell-today.md §2.3, 2.4, 2.17, beside this file.</li>
+              <li>
+                It uses epic <code>data</code>'s words (<code>agents/coherence/words.md</code>, "Places"): place, kind,
+                list, page, <code>check it every</code>, heal, pending.
+                <ul>
+                  <li>
+                    NOT "feed" for a place: it's the org's <code>PersonFeed</code>, and words.md says "Not: stream" for
+                    it.
+                  </li>
+                  <li>NOT "sync", "source", "store", "backend" in what people read (words.md, "place").</li>
+                </ul>
+              </li>
+            </ul>
+            <epic-text-box for="about-this-outline"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="s0" label="0. The answer in one screen" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="layer group"></ui-icon>
+            <ul>
+              <li>
+                <b>One idea:</b> any place's list can be read as ONE sequence of STEPS.
+                <ul>
+                  <li>
+                    A step is a page of rows, or one thing added, changed or removed, or "start over", an error, or the
+                    end.
+                  </li>
+                  <li>Underneath it's an async iterable: <code>for await (const step of steps)</code>.</li>
+                </ul>
+              </li>
+              <li>
+                <b>Both cases become it:</b>
+                <ul>
+                  <li>an ordinary paged REST list is a sequence of pages that ends</li>
+                  <li>a service that pushes updates is a sequence of changes that doesn't end</li>
+                  <li>most real lists are both: pages first, then changes</li>
+                </ul>
+              </li>
+              <li>
+                <b>What a Spell program sees:</b> nothing new. The same list, filling in as pages arrive, then staying
+                current. Changing which service is behind the place changes one line, as it does today.
+              </li>
+              <li>
+                <b>Most of it already exists</b> (§1):
+                <ul>
+                  <li>
+                    <code>ListAnswer.nextPage</code> and the page styles in <code>RestPlace</code> (offset, page number,
+                    cursor, <code>Link</code> header, last id)
+                  </li>
+                  <li>
+                    <code>Place.watch()</code> and <code>PlaceEvent</code>, which
+                    <code>PlaceHeal.follow()</code> already turns into rows on screen, pending changes on top
+                  </li>
+                  <li>
+                    <code>changesSince()</code> and its token, <code>pollWhileVisible()</code>,
+                    <code>ReconnectingSocket</code>, <code>PlaceEvents</code> on the server
+                  </li>
+                  <li>
+                    AT Protocol's Jetstream in <code>AtProtoPlace</code>: a pushed public stream with a cursor, already
+                    a working example of the pattern
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <b>What's new</b> is small and in the middle:
+                <ul>
+                  <li>
+                    one step type (<code>ListStep</code>), and an engine helper that makes steps from ANY place
+                    (<code>stepsOf()</code>)
+                  </li>
+                  <li>one wire format for steps (NDJSON lines, or the same JSON in Server-Sent Events)</li>
+                  <li>adapters for services that tell: SSE, NDJSON, websockets, long polling, webhooks</li>
+                  <li>our server watching a place that can't tell, once for everyone, and sending only what changed</li>
+                </ul>
+              </li>
+              <li>
+                <b>Build first:</b> the engine's steps; streamed pages through <code>PlaceServer</code> and
+                <code>RemotePlace</code>; our server watching for everyone; then services that tell (SSE / NDJSON /
+                websocket, GraphQL subscriptions).
+              </li>
+              <li><b>5 phases, about 16-23 hours</b> (§10); five questions for Owen (§11).</li>
+            </ul>
+            <epic-text-box for="s0"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="s1" label="1. What it builds on" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="map"></ui-icon>
+            <p>Each piece below is built and tested today. The scaffold adds as little beside them as it can.</p>
+            <ui-table celled padding="compact" appearance="striped" unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Piece</th>
+                    <th>Where</th>
+                    <th>What it already does for streams</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>Place</code>, <code>ListAnswer.nextPage</code>, <code>PageAsk.at</code></td>
+                    <td><code>src/places/places.types.ts</code></td>
+                    <td>a list in pages, the next asked with the last answer's token</td>
+                  </tr>
+                  <tr>
+                    <td><code>PlaceCapabilities.page</code>, <code>.live</code></td>
+                    <td>
+                      same file: <code>PageKinds</code>, <code>LiveKinds</code> (<code
+                        >"none" | "poll" | "notify" | "push"</code
+                      >)
+                    </td>
+                    <td>a place says how it pages and how it tells of changes</td>
+                  </tr>
+                  <tr>
+                    <td><code>Place.watch()</code>, <code>PlaceEvent</code>, <code>WatchTarget</code></td>
+                    <td>same file</td>
+                    <td>
+                      a change to one thing, pushed: <code>row</code>, or <code>was</code> when removed,
+                      <code>isMine</code>, <code>lost</code>, <code>overwrote</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>Place.changesSince()</code>, <code>ChangesAnswer</code></td>
+                    <td>same file</td>
+                    <td>what changed since a token: rows, removed ids, the next token</td>
+                  </tr>
+                  <tr>
+                    <td><code>RestPlace</code> paging</td>
+                    <td><code>src/places/RestPlace.ts</code> (<code>nextPageOf()</code>, <code>pageOf()</code>)</td>
+                    <td>
+                      offset, page number, cursor in the body, <code>Link</code> header, by the last id; the program's
+                      lines pick one (<code>parser/src/spell/rules/places/NextPage*.ts</code>)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>SavedRead</code></td>
+                    <td>
+                      <code>parser/src/core/saved.ts</code> (<code>readNextPage()</code>, <code>pagesAfter()</code>,
+                      <code>startPolling()</code>)
+                    </td>
+                    <td>
+                      a program's read: the first page, then each next page only as the drawing nears it; polling at
+                      <code>check it every</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>drawnInWindow()</code></td>
+                    <td><code>src/element/drawnWindow.ts</code></td>
+                    <td>draws 24 at a time, asks <code>more()</code> for the next page as the end nears the view</td>
+                  </tr>
+                  <tr>
+                    <td><code>PlaceReads</code></td>
+                    <td><code>src/places/PlaceReads.ts</code></td>
+                    <td>readers of one list share one request; the last one leaving aborts it</td>
+                  </tr>
+                  <tr>
+                    <td><code>PlaceHeal.follow()</code></td>
+                    <td><code>src/places/PlaceHeal.ts</code></td>
+                    <td>
+                      what <code>watch()</code> hears goes on screen, pending changes on top; a delete of what I'm
+                      editing says so
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>PendingChanges</code></td>
+                    <td><code>src/places/PendingChanges.ts</code></td>
+                    <td>
+                      my changes, shown at once, sent until they go through; <code>replayOn()</code> keeps them on top
+                      of anything heard
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>PlaceCache</code></td>
+                    <td><code>src/places/PlaceCache.ts</code></td>
+                    <td>one row per type and id: a change heard updates every reader</td>
+                  </tr>
+                  <tr>
+                    <td><code>DeviceCopy</code>, <code>RemotePlace.deviceCopy</code></td>
+                    <td><code>src/places/DeviceCopy.ts</code>, <code>RemotePlace.ts</code></td>
+                    <td>a list kept on this device with its version; the next read asks only what changed</td>
+                  </tr>
+                  <tr>
+                    <td><code>pollWhileVisible()</code></td>
+                    <td><code>src/util/polling.ts</code></td>
+                    <td>asks again on a timer, skipped while the page is hidden, once on coming back</td>
+                  </tr>
+                  <tr>
+                    <td><code>ReconnectingSocket</code></td>
+                    <td><code>src/util/ReconnectingSocket.ts</code></td>
+                    <td>
+                      a websocket that comes back: 1 s, doubling to 10 s; its address can be a function, "where to carry
+                      on from"
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>backoffFor()</code>, <code>retryAfter()</code></td>
+                    <td><code>src/util/retrying.ts</code></td>
+                    <td>how long to wait before asking again</td>
+                  </tr>
+                  <tr>
+                    <td><code>AtProtoPlace</code> live</td>
+                    <td><code>src/places/AtProtoPlace.ts</code> (<code>STREAM_PATH</code>, <code>watch()</code>)</td>
+                    <td>Jetstream: one socket however many watch, picks up from its cursor, an event may come twice</td>
+                  </tr>
+                  <tr>
+                    <td><code>LiveRoomPlace</code> + <code>Referee</code> + <code>RoomCopy</code></td>
+                    <td><code>src/places/</code>, <code>src/server/places/Referee.ts</code></td>
+                    <td>everyone's changes in one order: numbered steps, a gap heals</td>
+                  </tr>
+                  <tr>
+                    <td><code>PlaceServer</code></td>
+                    <td><code>src/server/places/PlaceServer.ts</code></td>
+                    <td>
+                      any place over HTTP: <code>list</code>, <code>getMany</code>, <code>apply</code>,
+                      <code>call</code>, <code>changes</code>; holds keys, scrubs them
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>PlaceEvents</code></td>
+                    <td><code>src/server/places/PlaceEvents.ts</code></td>
+                    <td>
+                      a server place's history of changes, for <code>watch()</code> and <code>changesSince()</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contentVersion()</code></td>
+                    <td><code>src/server/places/contentVersion.ts</code></td>
+                    <td>
+                      a version made from a thing's content: what tells "changed" from "same" when a service has no
+                      versions
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>RateQueue</code></td>
+                    <td><code>src/server/places/RateQueue.ts</code></td>
+                    <td>keeps to a service's request limit, one queue per named limit</td>
+                  </tr>
+                  <tr>
+                    <td>Python places</td>
+                    <td><code>parser/src/py/core/spell_core/places.py</code>, <code>place_kinds.py</code></td>
+                    <td>6 kinds; no pages of a list, no live updates (its own header says so)</td>
+                  </tr>
+                  <tr>
+                    <td><code>spell_quart</code></td>
+                    <td><code>app/src/spaces/server/py/spell_quart/sessions.py</code></td>
+                    <td>a game per visitor over a websocket; patches as state changes</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p>What does NOT exist yet:</p>
+            <ul>
+              <li>no HTTP response is streamed anywhere: no SSE, no NDJSON (<code>data-paradigm.md</code> §3)</li>
+              <li>
+                <code>LiveKind</code>'s <code>"notify"</code> has no place using it (inferred from a grep: only
+                <code>places.types.ts</code> and the core's declarations name it)
+              </li>
+              <li>
+                <code>RemotePlace</code> is <code>live: "poll"</code>: a page hears a server place's changes only by
+                asking
+              </li>
+              <li>
+                a list read in pages is pulled one page at a time by <code>SavedRead</code>, a loop of its own, not
+                shared with anything else
+              </li>
+            </ul>
+            <epic-text-box for="s1"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="s2" label="2. The model, in plain words" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="puzzle piece"></ui-icon>
+
+            <ui-section id="s2-1" label="What a program sees" sticky collapsible dividing open="false">
+              <p>
+                Nothing changes for a Spell author. The ONE line that says where data lives still decides everything.
+              </p>
+              <epic-code title="Sketch · spell · 6 lines" language="spell">
+                <pre>
+toots is a web server at "https://mastodon.social/api/v1"
+	its next page is in its "Link" header
+
+a "status" is a thing
+	it lives in toots
+	its "content" is text</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  Today: the first page shows, the next pages come as the person scrolls, and
+                  <code>check it every</code> asks again.
+                </li>
+                <li>
+                  With steps: the same, plus, where the service can tell (§4), a new status appears at once, and a
+                  removed one goes.
+                </li>
+                <li>
+                  Where it can't tell, our server can ask for everyone and tell each page only what changed (§4.3).
+                </li>
+              </ul>
+              <epic-text-box for="s2-1"></epic-text-box>
+            </ui-section>
+            <ui-section id="s2-2" label="What the engine sees" sticky collapsible dividing open="false">
+              <p>One sequence per list, made of steps. A step is one of seven:</p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Step</th>
+                      <th>Means</th>
+                      <th>Today's nearest thing</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>page</code></td>
+                      <td>some rows, and maybe where the next page is</td>
+                      <td><code>ListAnswer</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>changed</code></td>
+                      <td>one thing added or changed: its whole row</td>
+                      <td><code>PlaceEvent</code> with <code>row</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>removed</code></td>
+                      <td>one thing gone, by id, with what it was if known</td>
+                      <td><code>PlaceEvent</code> with no <code>row</code>, its <code>was</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>reset</code></td>
+                      <td>"what you have may be wrong: read it again"</td>
+                      <td>a heal (<code>PlaceHeal</code>)</td>
+                    </tr>
+                    <tr>
+                      <td><code>error</code></td>
+                      <td>the source failed; maybe it'll come back</td>
+                      <td>a <code>PlaceError</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>still here</code></td>
+                      <td>nothing changed; the connection is alive</td>
+                      <td>(none)</td>
+                    </tr>
+                    <tr>
+                      <td><code>end</code></td>
+                      <td>no more steps: a finished paged list</td>
+                      <td><code>nextPage</code> left out</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  "Added" and "changed" are one step: the engine already keeps one row per id, so it doesn't matter
+                  which. A service that says them apart says <code>isNew</code> (inferred: no reader needs it today).
+                </li>
+                <li>
+                  Every step can carry <code>at</code>: where the source stood, to carry on from after a break. It's the
+                  same idea as <code>ChangesAnswer.token</code>, Jetstream's cursor, an SSE event's id, a Postgres
+                  position.
+                </li>
+              </ul>
+              <epic-text-box for="s2-2"></epic-text-box>
+            </ui-section>
+            <ui-section id="s2-3" label="Pulled pages, pushed changes" sticky collapsible dividing open="false">
+              <p>The two halves move differently, and the design keeps them apart under the one sequence.</p>
+              <ul>
+                <li>
+                  <b>Pages are PULLED.</b> The next page is asked only when the drawing nears it
+                  (<code>drawnInWindow()</code>'s <code>more()</code>).
+                  <ul>
+                    <li>
+                      That IS the backpressure: an async iterator asks for its next value only when someone calls
+                      <code>next()</code>.
+                    </li>
+                    <li>A phone that scrolls nowhere reads one page.</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Changes are PUSHED.</b> A service tells when it likes.
+                  <ul>
+                    <li>
+                      They're applied as they come, through <code>PlaceHeal</code>'s path, never waiting for a scroll.
+                    </li>
+                    <li>
+                      Waiting ones are kept by id, the newest winning, so a flood of changes to 10 things is 10 changes
+                      held, never a growing queue. Too many different things waiting: drop them all and
+                      <code>reset</code> (§5).
+                    </li>
+                  </ul>
+                </li>
+                <li>So <code>stepsOf()</code> (§3) yields pages when asked, and hands changes on as they come.</li>
+              </ul>
+              <epic-text-box for="s2-3"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="s3" label="3. The engine:  steps from any place" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="code branch"></ui-icon>
+
+            <ui-section id="s3-1" label="The step type" sticky collapsible dividing open="false">
+              <epic-code
+                title="src/places/places.types.ts, beside ListAnswer and PlaceEvent · ts · 14 lines"
+                language="ts"
+              >
+                <pre>
+// src/places/places.types.ts, beside ListAnswer and PlaceEvent
+
+/** One step of a list that keeps coming:  a page, a change, or what the source says of itself. */
+export type ListStep =
+  | { kind: "page"; answer: ListAnswer; at?: string }
+  | { kind: "changed"; collection: string; id: string; row: PlaceRow; isMine?: boolean; at?: string }
+  | { kind: "removed"; collection: string; id: string; was?: PlaceRow; isMine?: boolean; at?: string }
+  | { kind: "reset"; why: ResetReason; at?: string }
+  | { kind: "error"; error: PlaceErrorCause &amp; { message: string }; willRetry: boolean }
+  | { kind: "still here"; at?: string }
+  | { kind: "end" }
+
+/** Why a source says start over. */
+export type ResetReason = "too far behind" | "too many changes" | "source restarted" | "can't carry on"</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  <code>changed</code> and <code>removed</code> are <code>PlaceEvent</code>s with a <code>kind</code>:
+                  <code>stepFor(event)</code> and <code>eventFor(step)</code> turn one into the other, so
+                  <code>watch()</code> and every place that has it today need no change.
+                </li>
+              </ul>
+              <epic-text-box for="s3-1"></epic-text-box>
+            </ui-section>
+            <ui-section id="s3-2" label="An optional method on `Place`" sticky collapsible dividing open="false">
+              <epic-code title="Sketch · ts · 18 lines" language="ts">
+                <pre>
+export type Place = {
+  // ...today's methods, unchanged...
+
+  /**
+   * The list as steps:  its pages as they're asked for, then each change as it's told, until `return()`.
+   * - Left out:  the engine makes them from `list()`, `watch()` and `changesSince()` (`stepsOf()`).
+   * - `since`:  carry on from a step's `at`, instead of the first page.
+   * - Returning (a `for await` that breaks, or `return()`) stops it:  its requests abort.
+   */
+  steps?(collection: string, query: ListQuery, context: StepsContext): AsyncIterable&lt;ListStep&gt;
+}
+
+export type StepsContext = PlaceContext &amp; {
+  /** Carry on from here:  an earlier step's `at`. */
+  since?: string
+  /** Pages only, then `end`:  a read that doesn't stay current (no `check it every`, a node run). */
+  pagesOnly?: boolean
+}</pre>
+              </epic-code>
+              <epic-text-box for="s3-2"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s3-3"
+              label="`stepsOf()`:  every place gets steps, whatever it can do"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>
+                The engine's ONE way of reading a list that keeps coming. A place that has <code>steps()</code> is used
+                as it is; any other is wrapped, from what it says it can do.
+              </p>
+              <epic-code title="src/places/ListSteps.ts (new) · ts · 22 lines" language="ts">
+                <pre>
+// src/places/ListSteps.ts (new)
+
+/**
+ * A place's list as steps, whatever the place can do.
+ * - `place.steps()`, if it has one.
+ * - Else pages from `list()`, following `nextPage`, one each time the reader asks.
+ * - Then changes:  from `watch()` (`live: "push"`), else `changesSince()` on `pollWhileVisible()`
+ *   (`live: "poll"` and a `check it every`), else none:  `end` after the last page.
+ * - NEVER reads ahead of the reader:  the next page is asked when `next()` is.
+ */
+export function stepsOf(place: Place, collection: string, query: ListQuery, context: StepsContext): AsyncIterable&lt;ListStep&gt;
+
+/** Pages only, as `list()` gives them:  the paged REST list, read as steps. */
+async function* pagesOf(place: Place, collection: string, query: ListQuery, context: PlaceContext): AsyncGenerator&lt;ListStep&gt; {
+  let at = query.page?.at
+  do {
+    const answer = await place.list(collection, { ...query, page: { ...query.page, at } }, context)
+    yield { kind: "page", answer, at: answer.version }
+    at = answer.nextPage
+  } while (at !== undefined &amp;&amp; !context.signal?.aborted)
+  yield { kind: "end" }
+}</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  <code>pagesOf()</code> is the REST adapter Owen asked about: <code>RestPlace</code> already speaks
+                  every page style, so ANY paged REST list becomes steps with no new code per service.
+                </li>
+                <li>
+                  Changes after the pages: a small <code>ChangesWaiting</code> holds pushed ones by id until the reader
+                  takes them (pushed changes don't wait for a scroll in practice: §3, "Who reads the steps").
+                </li>
+                <li>
+                  Polling stays <code>pollWhileVisible()</code>; <code>SavedRead.startPolling()</code> moves into
+                  <code>stepsOf()</code> (inferred: one poller for every reader of a list, which
+                  <code>PlaceReads</code> would share).
+                </li>
+              </ul>
+              <epic-text-box for="s3-3"></epic-text-box>
+            </ui-section>
+            <ui-section id="s3-4" label="Who reads the steps" sticky collapsible dividing open="false">
+              <ul>
+                <li>
+                  <b><code>SavedRead</code></b> (<code>parser/src/core/saved.ts</code>) drops its own page loop
+                  (<code>pagesAfter()</code>, <code>readTheRest()</code>) for an iterator from <code>stepsOf()</code>:
+                  <ul>
+                    <li><code>readNextPage()</code> is <code>iterator.next()</code> until a <code>page</code> comes</li>
+                    <li><code>answer()</code> (an action needing every row) reads until <code>end</code></li>
+                    <li><code>leave()</code> is <code>iterator.return()</code></li>
+                  </ul>
+                </li>
+                <li>
+                  <b><code>PlaceHeal.follow()</code></b> takes <code>changed</code> / <code>removed</code> steps exactly
+                  as it takes <code>PlaceEvent</code>s today: <code>replayOn()</code> puts pending changes on top,
+                  <code>tellRows()</code> tells every reader, notices for lost text and deletes.
+                </li>
+                <li>
+                  <b><code>reset</code></b> runs <code>PlaceHeal</code>'s one heal: fetch the latest, replay.
+                </li>
+                <li>
+                  <b><code>PlaceReads</code></b> shares ONE iterator among readers of the same list and query (a tee:
+                  each reader its own position in the pages, one request per page) (inferred: the shape
+                  <code>LoadOnce</code> gives one promise today).
+                </li>
+              </ul>
+              <epic-text-box for="s3-4"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="s4" label="4. Adapters" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="gear"></ui-icon>
+            <p>
+              Each adapter is a <code>Place</code> (or a helper a place uses) whose <code>steps()</code> or
+              <code>watch()</code> speaks one kind of source. None is a new engine: they end in <code>ListStep</code>s,
+              and the engine does the rest.
+            </p>
+            <epic-text-box for="s4-intro"></epic-text-box>
+            <ui-section
+              id="s4-1"
+              label="4.1 A paged REST list, read as a stream of pages"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>Built already, except the iterator around it (§3, <code>pagesOf()</code>).</p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Page style</th>
+                      <th>Spell's line today</th>
+                      <th>Where</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>a page number</td>
+                      <td><code>its next page is asked for with "page"</code></td>
+                      <td><code>NextPageByNumber.ts</code>, <code>RestPlace</code> <code>firstPageNumber</code></td>
+                    </tr>
+                    <tr>
+                      <td>an offset and a size</td>
+                      <td><code>its next page is asked for with "limit" and "offset"</code></td>
+                      <td><code>NextPageByOffset.ts</code></td>
+                    </tr>
+                    <tr>
+                      <td>a cursor in the answer</td>
+                      <td><code>its next page is its "next"</code></td>
+                      <td><code>NextPageIn.ts</code>, <code>nextAt</code></td>
+                    </tr>
+                    <tr>
+                      <td>a <code>Link</code> header</td>
+                      <td><code>its next page is in its "Link" header</code></td>
+                      <td><code>NextPageInLink.ts</code>, <code>NEXT_LINK</code></td>
+                    </tr>
+                    <tr>
+                      <td>after the last id</td>
+                      <td><code>NextPageByLastId.ts</code></td>
+                      <td><code>pagesByLastId</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  The next page is asked only when the drawing nears it: <code>drawnInWindow()</code> calls
+                  <code>more().readNextPage()</code>, which is <code>iterator.next()</code>.
+                </li>
+                <li>
+                  An action that needs every row (<code>the number of recipes</code>) reads to <code>end</code>, as
+                  <code>readTheRest()</code> does now.
+                </li>
+                <li>
+                  Sorted in the browser (the place can't sort): every page first, as today (<code
+                    >readsPagesWhenDrawn</code
+                  >
+                  is false).
+                </li>
+              </ul>
+              <epic-text-box for="s4-1"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s4-2"
+              label="4.2 Services that tell:  the transports"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>
+                Five transports. Each is a small reader that turns bytes into <code>ListStep</code>s, given a MAPPING
+                (§4.4) for services whose messages aren't already steps.
+              </p>
+              <epic-code
+                title="src/places/stepReaders.ts (new):  one function per transport, each an async generator · ts · 20 lines"
+                language="ts"
+              >
+                <pre>
+// src/places/stepReaders.ts (new):  one function per transport, each an async generator
+
+/** What every reader is handed. */
+type StepReaderAsk = {
+  /** Where:  an address, or a function asked on each try with where to carry on from. */
+  address: string | ((since?: string) =&gt; string)
+  /** A message as the service says it, made into steps:  the service's own mapping, or "already steps". */
+  mapping: StepMapping
+  /** Stops it. */
+  signal: AbortSignal
+  /** Where to carry on from:  `Last-Event-ID`, a cursor parameter ... */
+  since?: string
+  /** Headers, never a key written here:  a key goes through the page server (`throughPageServer`). */
+  headers?: Record&lt;string, string&gt;
+}
+
+export async function* serverSentSteps(ask: StepReaderAsk): AsyncGenerator&lt;ListStep&gt;
+export async function* lineSteps(ask: StepReaderAsk): AsyncGenerator&lt;ListStep&gt;   // NDJSON, or any chunked body of JSON lines
+export async function* socketSteps(ask: StepReaderAsk): AsyncGenerator&lt;ListStep&gt; // on ReconnectingSocket
+export async function* longPollSteps(ask: StepReaderAsk &amp; { waitSeconds: number }): AsyncGenerator&lt;ListStep&gt;</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  <b>Server-Sent Events</b> (<code>text/event-stream</code>):
+                  <ul>
+                    <li>
+                      read with <code>fetch()</code> and the body's stream, NOT <code>EventSource</code>:
+                      <code>fetch</code> can send headers and a <code>POST</code>, and aborts with a signal. The reader
+                      parses <code>event:</code>, <code>data:</code>, <code>id:</code> lines itself (about 40 lines,
+                      inferred).
+                    </li>
+                    <li>
+                      <code>id:</code> is the step's <code>at</code>; carrying on sends it as
+                      <code>Last-Event-ID</code>.
+                    </li>
+                    <li>
+                      The cost: on HTTP/1.1 each open one holds one of Chrome's 6 connections per host for good
+                      (<code>src/server/LiveReload.ts</code>'s note). So a page opens at most ONE to each host (§4.3,
+                      "one connection a page").
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>NDJSON / chunked HTTP</b> (<code>application/x-ndjson</code>, <code>application/jsonl</code>):
+                  <ul>
+                    <li>
+                      <code>response.body.pipeThrough(new TextDecoderStream())</code>, split at line ends,
+                      <code>JSON.parse</code> each.
+                    </li>
+                    <li>The format our own server speaks (§6), and what many AI and log services send (inferred).</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Websockets:</b>
+                  <ul>
+                    <li>
+                      on <code>ReconnectingSocket</code>, its address a function so it reconnects from
+                      <code>since</code>, as Jetstream's does.
+                    </li>
+                    <li>
+                      Two-way: the subscribe message a service wants (GraphQL's <code>subscribe</code>, Supabase's
+                      <code>phx_join</code>) is the mapping's <code>hello</code>.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Long polling:</b>
+                  <ul>
+                    <li>
+                      <code>changesSince()</code> held open by the server until something changes or
+                      <code>waitSeconds</code> passes, then asked again.
+                    </li>
+                    <li>
+                      For a service that offers it (CouchDB's <code>_changes?feed=longpoll</code>, inferred), and the
+                      fallback through proxies that drop sockets and streams.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Webhooks</b> (a service POSTs to US):
+                  <ul>
+                    <li>
+                      Only our server can be called, so a webhook is a <code>PlaceServer</code> route:
+                      <code>POST /api/places/&lt;name&gt;/told</code>.
+                    </li>
+                    <li>
+                      It checks the service's signature with a secret named in the program's lines (never written:
+                      <code>PlaceKeys</code>).
+                    </li>
+                    <li>
+                      Each call becomes a <code>PlaceEvents.tell()</code>, and every page watching hears it (§4.3).
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              <p>
+                Reconnecting, the same for all five (§5): a sixth helper beside them, NOT a third copy of the backoff.
+              </p>
+              <epic-code
+                title="beside ReconnectingSocket, or ReconnectingSocket grown to take any opener (inferred:  the coherence call) · ts · 7 lines"
+                language="ts"
+              >
+                <pre>
+// beside ReconnectingSocket, or ReconnectingSocket grown to take any opener (inferred:  the coherence call)
+
+/** A sequence of steps that comes back:  opens, and when it breaks, carries on from the last `at`. */
+export async function* reconnecting(
+  open: (since: string | undefined) =&gt; AsyncIterable&lt;ListStep&gt;,
+  { signal, since }: { signal: AbortSignal; since?: string }
+): AsyncGenerator&lt;ListStep&gt;</pre>
+              </epic-code>
+              <epic-text-box for="s4-2"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s4-3"
+              label="4.3 Our server, watching a place that can't tell"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>
+                Most services can't tell (any REST list, a CSV at an address, Airtable, a Google sheet). Our server can
+                watch for them: ask ONCE for every page that's looking, and send each page only what changed.
+              </p>
+              <epic-code
+                title="src/server/places/WatchedPlace.ts (new):  a place that can't tell, made one that does · ts · 19 lines"
+                language="ts"
+              >
+                <pre>
+// src/server/places/WatchedPlace.ts (new):  a place that can't tell, made one that does
+
+/**
+ * Asks `behind` again every `checkedEvery` seconds while anyone watches, and tells what changed.
+ * - Changed is a row whose `contentVersion()` differs, or a row new or gone, by id.
+ * - Its history is a `PlaceEvents`:  so `changesSince()` and `watch()` come free, and a page carrying on gets
+ *   only what it missed.
+ * - Only while watched:  the last watcher leaving stops the asking (`PlaceEvents.onFirstWatcher`).
+ * - Keeps to the service's limit:  `RateQueue`.
+ * - Keys stay here:  pages never see them (`PlaceKeys`).
+ */
+export class WatchedPlace implements Place {
+  constructor(props: { behind: Place; checkedEvery: number; collections: string[] })
+  describe(): PlaceCapabilities // as `behind`'s, with `live: "push"`
+  list(...): Promise&lt;ListAnswer&gt;
+  watch(target: WatchTarget, onEvent: (event: PlaceEvent) =&gt; void): () =&gt; void
+  changesSince(collection: string, token: string, context: PlaceContext): Promise&lt;ChangesAnswer&gt;
+  // apply(), call() ... go straight to `behind`, then tell at once
+}</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  What it gives:
+                  <ul>
+                    <li>100 people looking at one list is ONE request a minute to the service, not 100</li>
+                    <li>the service's key never leaves the server</li>
+                    <li>a page hears a change within its <code>check it every</code>, without asking</li>
+                  </ul>
+                </li>
+                <li>
+                  Only lists of things with ids: a list with no <code>idOf</code> can only be read again whole
+                  (<code>reset</code>).
+                </li>
+                <li>
+                  A big list: only the first pages anyone has read are compared (inferred: a 50,000-row list compared
+                  whole every minute is the cost to watch for).
+                </li>
+                <li>
+                  <b>One connection a page:</b> a page watching 5 lists on our server opens ONE stream, not 5.
+                  <ul>
+                    <li>
+                      A websocket on <code>ReconnectingSocket</code>, its messages <code>{ watch, stop }</code> up and
+                      <code>ListStep</code>s down, each with its list's id.
+                    </li>
+                    <li>
+                      Not SSE: one socket is two-way, and the 6-connection limit makes one each untenable (inferred: the
+                      page server is HTTP/1.1, as <code>LiveReload</code>'s note implies).
+                    </li>
+                    <li>
+                      The same socket rooms use could carry it (inferred: <code>Referee</code>'s socket handler would
+                      learn <code>watch</code>).
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              <epic-text-box for="s4-3"></epic-text-box>
+            </ui-section>
+            <ui-section id="s4-4" label="4.4 Real services:  a mapping each" sticky collapsible dividing open="false">
+              <p>
+                A service's messages become steps through a MAPPING, the way <code>RestPlace</code> reads a server
+                through its program's lines. The mapping is code, in a library place kind (epic <code>data</code> J68:
+                "a supabase project is a place, with its own <code>makePlace()</code>"), not words in every program.
+              </p>
+              <epic-code title="Sketch · ts · 14 lines" language="ts">
+                <pre>
+/** How one service's messages become steps. */
+export type StepMapping = {
+  /** What to send on opening, for a two-way service:  a subscribe. */
+  hello?(ask: { collection: string; since?: string }): unknown
+  /** One message, as steps:  none, for one the list doesn't care about. */
+  stepsFor(message: unknown, event?: string): ListStep[]
+  /** Where a message says it stands, to carry on from. */
+  atOf?(message: unknown): string | undefined
+}
+
+/** For a service that already speaks steps:  our own server, a Quart app. */
+export const STEPS_AS_THEY_ARE: StepMapping
+/** For a service whose every message is a row:  each one `changed`, by its id;  nothing is ever removed. */
+export const EACH_MESSAGE_A_ROW: StepMapping</pre>
+              </epic-code>
+              <p>The candidates, each with how it tells, what it maps from, and what it costs:</p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Service</th>
+                      <th>Transport</th>
+                      <th>Its messages</th>
+                      <th>Carries on with</th>
+                      <th>Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Bluesky's Jetstream</td>
+                      <td>websocket</td>
+                      <td><code>commit</code> create / update / delete</td>
+                      <td><code>cursor</code>, microseconds</td>
+                      <td>built: <code>AtProtoPlace</code>, the model for the rest</td>
+                    </tr>
+                    <tr>
+                      <td>GraphQL subscriptions (Hasura, Apollo, PostGraphile ...)</td>
+                      <td>websocket, the <code>graphql-transport-ws</code> protocol</td>
+                      <td><code>next</code> with a result</td>
+                      <td>the service's own (often none: <code>reset</code>)</td>
+                      <td>
+                        small: <code>GraphPlace</code> has the mapping; the protocol is a few messages, no dependency
+                        (inferred)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Wikimedia's recent changes</td>
+                      <td>SSE, public, no key</td>
+                      <td>one JSON per edit</td>
+                      <td><code>Last-Event-ID</code></td>
+                      <td>tiny: <code>EACH_MESSAGE_A_ROW</code>; the best manual check (§7)</td>
+                    </tr>
+                    <tr>
+                      <td>Mastodon's streaming API</td>
+                      <td>SSE or websocket</td>
+                      <td><code>update</code> (a status), <code>delete</code> (an id), <code>status.update</code></td>
+                      <td>none: read the timeline again</td>
+                      <td>small; public timelines may need a token now (inferred)</td>
+                    </tr>
+                    <tr>
+                      <td>Supabase Realtime</td>
+                      <td>websocket, Phoenix channels</td>
+                      <td>
+                        Postgres <code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code>, with
+                        <code>old</code> and <code>new</code>
+                      </td>
+                      <td>none: <code>reset</code>, then read</td>
+                      <td>
+                        medium: the protocol by hand, or <code>@supabase/supabase-js</code> (a dependency: ask Owen)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Firebase / Firestore listeners</td>
+                      <td>the SDK's <code>onSnapshot</code> (its wire is gRPC-ish, inferred)</td>
+                      <td><code>docChanges()</code>: added / modified / removed, 1:1 with steps</td>
+                      <td>a resume token, inside the SDK</td>
+                      <td>medium: needs the <code>firebase</code> package, big (a dependency: ask Owen)</td>
+                    </tr>
+                    <tr>
+                      <td>Postgres <code>LISTEN</code> / <code>NOTIFY</code>, or logical replication</td>
+                      <td>through OUR server only (a database is never reached from a page)</td>
+                      <td>a <code>NOTIFY</code> payload; replication's row changes</td>
+                      <td>replication's log position (LSN)</td>
+                      <td>
+                        medium-large: the <code>pg</code> package on the server (ask Owen); replication needs a server
+                        setting
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>PocketBase, CouchDB (inferred)</td>
+                      <td>SSE; <code>_changes</code> long poll or continuous</td>
+                      <td>record actions; <code>seq</code></td>
+                      <td><code>since=&lt;seq&gt;</code></td>
+                      <td>small each</td>
+                    </tr>
+                    <tr>
+                      <td>AI token streams (Anthropic, OpenAI)</td>
+                      <td>SSE, through our server for the key</td>
+                      <td>a text delta</td>
+                      <td>none</td>
+                      <td>NOT a list: one growing value (§5.4); its own phase, if wanted</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p><b>The first four to build, and why:</b></p>
+              <ol>
+                <li>
+                  <b>Our own server's steps</b> (<code>STEPS_AS_THEY_ARE</code>, §6): every data folder, sheet and Quart
+                  app at once; no outside service to break.
+                </li>
+                <li>
+                  <b>Our server watching for everyone</b> (§4.3): turns EVERY existing kind (REST, sheets, Airtable,
+                  Google sheets) into one that tells, with no help from the service.
+                  <ul>
+                    <li>This is the biggest win for the least code: it's most of what people will see.</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>SSE and NDJSON from any web server</b> (<code>serverSentSteps()</code>, <code>lineSteps()</code>),
+                  with <code>EACH_MESSAGE_A_ROW</code>: the plain way a service streams today; Wikimedia proves it with
+                  no key.
+                </li>
+                <li>
+                  <b>GraphQL subscriptions</b> on <code>GraphPlace</code>: a place kind Spell already has, an open
+                  protocol, no dependency.
+                </li>
+              </ol>
+              <p>
+                Later, each as a library place kind once Owen OKs its dependency: Supabase, Firestore, Postgres through
+                our server.
+              </p>
+              <epic-text-box for="s4-4"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s4-5"
+              label="4.5 Python and Quart:  the same steps from an async generator"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>Two halves: a Quart app SERVING steps, and the Python core READING pages.</p>
+              <p>
+                <b>Serving</b> (<code>app/src/spaces/server/py/spell_quart/places.py</code>, new; the
+                <code>PlaceServer</code> twin <code>data-paradigm.md</code> §2 sketches):
+              </p>
+              <epic-code title="Sketch · python · 11 lines" language="text">
+                <pre>
+@app.post("/api/places/&lt;name&gt;/steps")
+async def steps(name: str):
+    ask = await request.get_json()
+
+    async def lines():
+        async for step in places[name].steps(ask["collection"], ask.get("query", {}), since=ask.get("since")):
+            yield json.dumps(step) + "\n"
+
+    response = await make_response(lines(), {"Content-Type": "application/x-ndjson"})
+    response.timeout = None  # a list that keeps coming has no end time
+    return response</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  Quart streams an async generator as it yields (<a
+                    href="https://quart.palletsprojects.com/en/latest/how_to_guides/streaming_response.html"
+                    >Quart's streaming guide</a
+                  >).
+                </li>
+                <li>
+                  A visitor leaving cancels the generator: its <code>finally</code> stops what it was asking (inferred
+                  from asyncio's cancel).
+                </li>
+                <li>
+                  So a browser program's
+                  <code>family cookbook is a data folder at "https://my-quart-app/api/places/recipes"</code> reads a
+                  Quart app with the whole browser engine, and hears its changes.
+                </li>
+              </ul>
+              <p><b>Reading</b> (<code>parser/src/py/core/spell_core/place_kinds.py</code>):</p>
+              <epic-code title="Sketch · python · 8 lines" language="text">
+                <pre>
+class PlaceBehind:
+    async def pages(self, collection: str, query: Row | None = None) -&gt; AsyncIterator[list[Row]]:
+        """Each page of a list, the next asked only when the loop wants it."""
+        answer = await self.list(collection, query or {})
+        yield answer["rows"]
+        while (at := answer.get("nextPage")) is not None:
+            answer = await self.list(collection, {**(query or {}), "page": {"at": at}})
+            yield answer["rows"]</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  <code>ServerPlace.rows_now()</code> asks every row today: <code>pages()</code> is its fix (<code
+                    >data-paradigm.md</code
+                  >
+                  §2, "Pages of a list", S).
+                </li>
+                <li>
+                  A Spell <code>repeat with each</code> over a place compiles to
+                  <code>async for page in ...</code> (inferred).
+                </li>
+                <li>
+                  Standard library only (epic <code>data</code> Q33): each request goes off the loop with
+                  <code>asyncio.to_thread()</code>, as reads do.
+                </li>
+                <li>
+                  Changes in Python (<code>watch</code>) wait for Python's pending changes (<code
+                    >data-paradigm.md</code
+                  >
+                  §2's gaps): not in this scaffold.
+                </li>
+              </ul>
+              <epic-text-box for="s4-5"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="s5" label="5. Lifecycle" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="flask"></ui-icon>
+
+            <ui-section id="s5-1" label="5.1 The order things happen in" sticky collapsible dividing open="false">
+              <ol>
+                <li>
+                  <b>Start.</b> The first thing to draw a list holds its read (<code>SavedRead.hold()</code>).
+                  <code>stepsOf()</code> asks the first page, and nothing else yet.
+                </li>
+                <li>
+                  <b>Pages.</b> Each time the drawing nears the end, one more page (<code>iterator.next()</code>).
+                </li>
+                <li>
+                  <b>Changes.</b> With the first page in, the engine starts hearing changes: <code>watch()</code>, the
+                  place's <code>steps()</code>, or polling. Each is applied as it comes.
+                </li>
+                <li>
+                  <b>Hidden.</b> The page goes to the background:
+                  <ul>
+                    <li>polling stops at once (<code>pollWhileVisible()</code>, as today)</li>
+                    <li>
+                      a pushed stream stays open a while, then closes, remembering its last <code>at</code> (open
+                      question 5)
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Back.</b> Visible again: it carries on from <code>at</code> (<code>since</code>).
+                  <ul>
+                    <li>The source can carry on: only what was missed comes.</li>
+                    <li>
+                      It can't, or it's too far behind: <code>reset</code>, and the one heal reads again, pending
+                      changes on top.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Broken.</b> The connection drops: <code>reconnecting()</code> tries again, 1 s doubling to 10 s,
+                  from <code>at</code> (<code>backoffFor()</code>; a <code>retry-after</code> wins).
+                  <ul>
+                    <li>
+                      While it's down, the list stays as it was, and <code>PlaceResult.status</code> says
+                      <code>"couldn't update"</code> (today's words).
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Stop.</b> The last reader leaves (<code>SavedRead.leave()</code>): <code>iterator.return()</code>.
+                  <ul>
+                    <li>
+                      A generator's <code>finally</code> aborts its request or closes its socket: nothing runs on.
+                    </li>
+                    <li>
+                      <code>PlaceReads</code> keeps the rows a while, as it does now, so coming back shows them at once.
+                    </li>
+                  </ul>
+                </li>
+              </ol>
+              <epic-text-box for="s5-1"></epic-text-box>
+            </ui-section>
+            <ui-section id="s5-2" label="5.2 Backpressure" sticky collapsible dividing open="false">
+              <ul>
+                <li>Pages: pulled, so the service is asked only as fast as people scroll.</li>
+                <li>
+                  Changes: held by id, newest wins (<code>ChangesWaiting</code>).
+                  <ul>
+                    <li>
+                      More than <code>MOST_CHANGES_WAITING</code> different things (say 1,000, inferred) before they're
+                      applied: drop them, <code>reset</code>. Reading again is cheaper than a queue that never drains.
+                    </li>
+                    <li>
+                      Applied in one go per frame (<code>Queued</code>, <code>beforeNextPaint</code>), so 500 changes in
+                      a second is one redraw, not 500 (inferred: <code>PlaceHeal.heardEvent()</code> tells rows one
+                      change at a time today).
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              <epic-text-box for="s5-2"></epic-text-box>
+            </ui-section>
+            <ui-section id="s5-3" label="5.3 Memory on a phone" sticky collapsible dividing open="false">
+              <p>
+                Today what's drawn stays drawn (<code>drawnWindow.ts</code>'s NOTE: "a list scrolled through to the end
+                of 50,000 is 50,000 elements after all", epic <code>data</code> T43's limit). A list that keeps coming
+                makes that worse: it only grows.
+              </p>
+              <ul>
+                <li>
+                  <b>Keep a window of rows.</b> A read keeps at most <code>MOST_ROWS_KEPT</code> rows (say 2,000,
+                  inferred), as pages.
+                  <ul>
+                    <li>
+                      Each page remembers the token it was read with, so a page dropped far off screen is read again on
+                      scrolling back.
+                    </li>
+                    <li>
+                      Its things leave <code>PlaceCache</code> when no read holds them (inferred: the cache keeps rows
+                      by type and id; how it lets go isn't in this scaffold).
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Drawing.</b> <code>drawnInWindow()</code> would take down elements far off screen, which breaks
+                  "what's drawn stays drawn": focus, a half-filled form and keys far away would go. Owen's call (open
+                  question 3).
+                </li>
+                <li>
+                  <b>Changes to rows not kept</b> are dropped: that row isn't on screen, and reading its page again gets
+                  it fresh.
+                </li>
+                <li>
+                  <b>Polling a long list</b> asks only the pages kept, never the whole (inferred:
+                  <code>changesSince()</code> where the place has it).
+                </li>
+              </ul>
+              <epic-text-box for="s5-3"></epic-text-box>
+            </ui-section>
+            <ui-section id="s5-4" label="5.4 A growing value is not a list" sticky collapsible dividing open="false">
+              <p>An AI answer word by word, a log, a progress line: one value that grows, not rows by id.</p>
+              <ul>
+                <li>Its steps would be <code>{ kind: "more text", text }</code>, applied to one field (inferred).</li>
+                <li>
+                  In Solid it's <code>createMemo(() =&gt; from(stream))</code>, each chunk added on
+                  (<code>solid-features.md</code>, <code>from()</code>).
+                </li>
+                <li>
+                  Kept OUT of this scaffold: <code>data-paradigm.md</code> §3 PROPOSAL A has its words, and it needs
+                  Owen's OK.
+                </li>
+              </ul>
+              <epic-text-box for="s5-4"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="s6" label="6. The wire:  steps over HTTP" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="book open"></ui-icon>
+            <p>ONE format, so our server, a Quart app and any service that wants to can speak it.</p>
+            <epic-text-box for="s6-intro"></epic-text-box>
+            <ui-section id="s6-1" label="The lines" sticky collapsible dividing open="false">
+              <p>
+                NDJSON: one JSON object a line, <code>application/x-ndjson</code>. The same JSON can go as SSE
+                <code>data:</code> lines, with <code>id:</code> set to its <code>at</code>.
+              </p>
+              <epic-code title="Sketch · text · 8 lines" language="text">
+                <pre>
+{"step":"page","rows":[{"id":"r-1","title":"Soup"}],"nextPage":"2","version":"v41","at":"v41"}
+{"step":"page","rows":[{"id":"r-2","title":"Stew"}],"version":"v41","at":"v41"}
+{"step":"changed","collection":"recipes","id":"r-2","row":{"id":"r-2","title":"Stew, hot"},"version":"v42","at":"v42","changeId":"c-77"}
+{"step":"removed","collection":"recipes","id":"r-1","at":"v43"}
+{"step":"still here","at":"v43"}
+{"step":"reset","why":"too far behind"}
+{"step":"error","kind":"no answer","message":"The sheet's server didn't answer","willRetry":true}
+{"step":"end"}</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  <b>Ids:</b> every change names its thing by id, as text (<code>idOfRow()</code>: everything above a
+                  place speaks text).
+                </li>
+                <li>
+                  <b>Versions:</b>
+                  <ul>
+                    <li>
+                      <code>version</code> on a change: the THING's version, for <code>PendingChanges</code>' "made
+                      from" and its out-of-date merge.
+                    </li>
+                    <li>
+                      <code>at</code> on any step: where the SOURCE stood, to carry on from. Opaque: only handed back.
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b><code>changeId</code>:</b> the id of the change that made it, when the source knows (<code
+                    >PlaceServer</code
+                  >
+                  remembers 1,000 a place). It's how a page knows a change is its own coming back (<code>isMine</code>).
+                </li>
+                <li>
+                  <b>Errors:</b> a <code>PlaceError</code>'s cause, scrubbed of keys as every
+                  <code>PlaceServer</code> answer is (<code>PlaceKeys.scrubbed()</code>).
+                </li>
+                <li>
+                  <b><code>still here</code>:</b> every 25 seconds or so with nothing else, so proxies don't drop a
+                  quiet stream (inferred).
+                </li>
+              </ul>
+              <epic-text-box for="s6-1"></epic-text-box>
+            </ui-section>
+            <ui-section id="s6-2" label="The routes" sticky collapsible dividing open="false">
+              <p>
+                On <code>PlaceServer</code>, beside <code>list</code>, <code>getMany</code>, <code>apply</code>,
+                <code>call</code>, <code>changes</code>:
+              </p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Route</th>
+                      <th>Body</th>
+                      <th>Answers</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>POST /api/places/&lt;name&gt;/list</code> with <code>"stream": true</code></td>
+                      <td>as <code>list</code>'s</td>
+                      <td>NDJSON: <code>page</code> steps as the place gives them, then <code>end</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>POST /api/places/&lt;name&gt;/steps</code></td>
+                      <td><code>{ collection, query, since? }</code></td>
+                      <td>NDJSON: pages, then changes, until the page hangs up</td>
+                    </tr>
+                    <tr>
+                      <td>the page's one socket (§4.3)</td>
+                      <td><code>{ watch: id, place, collection, query, since? }</code>, <code>{ stop: id }</code></td>
+                      <td>steps, each with its <code>watch</code> id</td>
+                    </tr>
+                    <tr>
+                      <td><code>POST /api/places/&lt;name&gt;/told</code></td>
+                      <td>the service's own</td>
+                      <td>204; a webhook's call, signature checked</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <epic-text-box for="s6-2"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s6-3"
+              label="How a step meets what's already there"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <ul>
+                <li>
+                  <b>The cache:</b> <code>changed</code> puts the row in <code>PlaceCache</code> by type and id: every
+                  reader of that thing sees it.
+                </li>
+                <li>
+                  <b>Pending changes:</b> every heard row goes through <code>replayOn()</code> first, so MY unsent
+                  change still wins on my screen.
+                  <ul>
+                    <li>
+                      Heard my own change coming back (<code>isMine</code>, by <code>changeId</code>): it settles it,
+                      nothing flickers.
+                    </li>
+                    <li>
+                      Heard someone else's change to a field I'm changing: mine stays on top until it's sent; if the
+                      place then refuses it as out of date, today's three-way merge runs
+                      (<code>Places.onConflict()</code>).
+                    </li>
+                    <li>
+                      Heard a delete of what I'm editing: today's notice with Restore
+                      (<code>Places.onThingDeleted()</code>).
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>The device copy:</b> a list kept on this device (<code>- keep a copy on this device</code>) keeps
+                  its last <code>at</code> with it. Opening again carries on from there, as
+                  <code>RemotePlace</code> does with <code>changesSince()</code> today.
+                </li>
+                <li>
+                  <b>Healing:</b> <code>reset</code>, a gap, or a failed carry-on all go to <code>PlaceHeal</code>'s ONE
+                  heal: read again, replay.
+                </li>
+                <li>
+                  <b>Everyone's changes, in one order:</b>
+                  <ul>
+                    <li>
+                      A room (<code>Referee</code>) IS the one order: its numbered steps are this format's
+                      <code>at</code>, and a gap heals.
+                    </li>
+                    <li>An outside service's order is its own: Spell promises no more than the service does.</li>
+                    <li>
+                      Our server watching (§4.3) puts what IT saw in one order (<code>PlaceEvents</code>'s history), so
+                      every page hears the same changes in the same order, from it.
+                    </li>
+                    <li>
+                      Two pages writing the same field through a service with no versions: last write wins, as today.
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              <epic-text-box for="s6-3"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="s7" label="7. Solid 2:  how steps reach the drawing" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="list check"></ui-icon>
+
+            <ui-section id="s7-1" label="What Spell does" sticky collapsible dividing open="false">
+              <p>
+                Spell's drawing doesn't hand an async iterable to Solid for a list, and shouldn't (inferred, from
+                today's code):
+              </p>
+              <ul>
+                <li>
+                  A <code>SavedRead</code>'s list is ONE scratch list for its whole life (<code>saved.ts</code>: "so
+                  what draws it keeps what it drew"). Steps change that list in place, and its <code>Cell</code> tells
+                  whoever draws it.
+                </li>
+                <li>
+                  An async-iterable memo gives a NEW value each time it yields (inferred from
+                  <code>solid-features.md</code>'s table: "reads as pending until it lands"). For a list that grows a
+                  page at a time that's a whole new list per page, and epic <code>language</code> P8 found an async memo
+                  "froze a deal".
+                </li>
+                <li>So the engine iterates; Solid sees a list that grows, and its usual pieces do the rest:</li>
+              </ul>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Solid 2 piece</th>
+                      <th>What it does here</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>&lt;For&gt;</code> keyed by the thing</td>
+                      <td>
+                        ONE Thing per id (<code>PlaceCache</code>), so a changed row redraws in place, and a moved row
+                        MOVES its element: focus and a form's text go with it
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>&lt;Loading&gt;</code></td>
+                      <td>
+                        the first page only: "while loading" riders, as today; later pages never blank what's shown
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>&lt;Loading&gt;</code> per row</td>
+                      <td>
+                        a row whose fields come later (a <code>ChunkedPlace</code> body, a link followed): the "…" each
+                        waiting value already shows
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>isPending()</code></td>
+                      <td>
+                        "more coming" or "updating" on a list's title, without hiding its rows (<code
+                          >spell-today.md</code
+                        >
+                        §2.3: 0 uses today)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>createDeferred()</code></td>
+                      <td>what <code>drawRead()</code> uses now: what it showed stays until the new answer lands</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <epic-text-box for="s7-1"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s7-2"
+              label="What any Solid app could do (not Spell's drawing)"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>
+                For a Solid app outside Spell, steps fit Solid 2's async stores directly
+                (<code>solid-features.md</code>: <code>createStore(fn)</code> and
+                <code>createProjection(fn, seed, { key })</code> take an async iterable):
+              </p>
+              <epic-code
+                title="a sketch:  a Solid app's list, kept current from any place · ts · 13 lines"
+                language="ts"
+              >
+                <pre>
+// a sketch:  a Solid app's list, kept current from any place
+const recipes = createProjection(
+  async function* (draft) {
+    for await (const step of stepsOf(place, "recipes", {}, { signal })) {
+      if (step.kind === "page") draft.push(...step.answer.rows)
+      else if (step.kind === "changed") upsert(draft, step.row)
+      else if (step.kind === "removed") removeById(draft, step.id)
+      yield draft
+    }
+  },
+  [],
+  { key: "id" }
+)</pre>
+              </epic-code>
+              <ul>
+                <li>
+                  <code>spell-today.md</code> §2.17's idea, "rooms as Solid async iterables", is this, for every place.
+                </li>
+                <li>
+                  Not needed for Spell itself; worth it if places are offered to Solid apps (<code>spell-today.md</code>
+                  §2.3, <code>usePlace()</code>).
+                </li>
+              </ul>
+              <epic-text-box for="s7-2"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="s8" label="8. How a Spell author sets one up" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="flag"></ui-icon>
+
+            <ui-section
+              id="s8-1"
+              label="Today's words already cover most of it"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>What</th>
+                      <th>Words today</th>
+                      <th>With steps</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>a list in pages</td>
+                      <td>
+                        <code>its next page is in its "Link" header</code>, <code>... is asked for with "page"</code>,
+                        <code>it gives up to 100 at a time</code>
+                      </td>
+                      <td>the same: read as steps, one page as the drawing nears it</td>
+                    </tr>
+                    <tr>
+                      <td>staying current by asking</td>
+                      <td><code>check it every 30 seconds</code></td>
+                      <td>the same; through our server, asked once for everyone (open question 4)</td>
+                    </tr>
+                    <tr>
+                      <td>a room</td>
+                      <td><code>family cookbook is a room at "..."</code></td>
+                      <td>the same: its steps are the referee's</td>
+                    </tr>
+                    <tr>
+                      <td>an atmosphere account</td>
+                      <td><code>... is an atmosphere account</code></td>
+                      <td>the same: Jetstream</td>
+                    </tr>
+                    <tr>
+                      <td>kept on this device</td>
+                      <td><code>- keep a copy on this device</code></td>
+                      <td>it also carries on from where it stopped</td>
+                    </tr>
+                    <tr>
+                      <td>a service's own kind</td>
+                      <td>(none yet)</td>
+                      <td>
+                        a library place kind, <code>a supabase project</code>, with its own mapping (epic
+                        <code>data</code> J68)
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>
+                Recommended: NO new words for pages, polling through our server, or a service's own kind. What's left is
+                a web server that tells, at an address of its own.
+              </p>
+              <epic-text-box for="s8-1"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s8-2"
+              label="PROPOSAL A:  where a web server tells of changes"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <ui-message state="warning" heading="PROPOSAL, not decided"
+                ><p>These words need Owen's OK first. Where each could be misread is listed with it.</p></ui-message
+              >
+              <epic-code title="Sketch · spell · 2 lines" language="spell">
+                <pre>
+wiki is a web server at "https://en.wikipedia.org/w/api.php"
+	its changes come from "https://stream.wikimedia.org/v2/stream/recentchange"</pre>
+              </epic-code>
+              <ul>
+                <li>Plain English: "its changes come from" that address.</li>
+                <li>
+                  How it's heard (SSE, NDJSON, a websocket) is read from the answer itself: its content type, or a
+                  <code>ws:</code> / <code>wss:</code> address. No words for it.
+                </li>
+                <li>
+                  Each message is a row, by its id (<code>EACH_MESSAGE_A_ROW</code>); a service whose messages need more
+                  is a library kind.
+                </li>
+                <li>
+                  Where it could be misread:
+                  <ol>
+                    <li>
+                      "its changes" could read as the program's OWN changes, sent there: it's the opposite, changes
+                      heard from it.
+                    </li>
+                    <li>
+                      <code>from</code> means the same as <code>at</code> on a place's line (words.md: "<code>at</code>
+                      and <code>from</code> mean the same"), so it's consistent, but a reader may expect
+                      <code>from</code> to mean read only.
+                    </li>
+                    <li>
+                      A change is a whole row: a stream that sends only what changed in a row would overwrite the rest
+                      (inferred).
+                    </li>
+                  </ol>
+                </li>
+                <li>
+                  Alternatives:
+                  <ul>
+                    <li>
+                      <code>it tells us what changed at "..."</code>: plainer about direction; "tells" is close to
+                      events' <code>send</code> (epic <code>data</code> Q14 kept <code>send</code> for events), and to
+                      <code>Places.tellRows()</code> in code.
+                    </li>
+                    <li>
+                      <code>it is followed at "..."</code>: shorter; "followed" is <code>core.follow()</code>'s word for
+                      reading a link.
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              <epic-text-box for="s8-2"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s8-3"
+              label='PROPOSAL B:  none for "watched for everyone"'
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <ui-message state="warning" heading="PROPOSAL, not decided"
+                ><p>These words need Owen's OK first. Where each could be misread is listed with it.</p></ui-message
+              >
+              <ul>
+                <li>
+                  <code>check it every 30 seconds</code> on a place read through our server (every authenticated place
+                  is, <code>throughPageServer</code>) is asked once by the server, for every page, and told: no words.
+                </li>
+                <li>
+                  Where it could surprise: a person expecting each page to ask the service itself (a service that counts
+                  requests per person). A line to turn it off would be an Open question, not a phrase now.
+                </li>
+              </ul>
+              <epic-text-box for="s8-3"></epic-text-box>
+            </ui-section>
+            <ui-section id="s8-4" label="Not proposed" sticky collapsible dividing open="false">
+              <ul>
+                <li>
+                  A rider for "the rest are coming" (<code>data-paradigm.md</code> §3 PROPOSAL C):
+                  <code>&lt;for&gt;</code>'s <code>paging</code> already says it.
+                </li>
+                <li>
+                  Words for a stream's format, its reconnect timing, or its buffer: the engine's, never the program's.
+                </li>
+              </ul>
+              <epic-text-box for="s8-4"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="s9" label="9. Tests" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="gavel"></ui-icon>
+
+            <ui-section id="s9-1" label="A fake streaming server" sticky collapsible dividing open="false">
+              <p>
+                <code>src/server/test/streamingServers.ts</code> (new), beside recipeServers.ts and
+                <code>fakeAtmosphere.ts</code>, so every test reaches a real server in node:
+              </p>
+              <epic-code title="Sketch · ts · 22 lines" language="ts">
+                <pre>
+/** A server that tells, in each of the ways a service does, driven by the test. */
+export type StreamingServer = {
+  /** Its address. */
+  address: string
+  /** Each way it tells:  `/sse`, `/ndjson`, `/ws`, `/long-poll`, `/hook`. */
+  paths: Record&lt;"serverSent" | "lines" | "socket" | "longPoll" | "webhook", string&gt;
+  /** The rows its list holds, paged by every style RestPlace reads. */
+  rows: PlaceRow[]
+  /** Tell everyone listening:  a row changed or went. */
+  tell(step: ListStep): void
+  /** Drop every connection, as a phone going into a tunnel. */
+  dropConnections(): void
+  /** Forget what came before `at`:  carrying on from earlier is a `reset`. */
+  forgetBefore(at: string): void
+  /** Answer the next N connections with this status. */
+  failNext(count: number, status: number): void
+  /** Send a body slowly, a line every N ms:  for backpressure. */
+  slowBody(msPerLine: number): void
+  /** Every request it had, for "asked once for everyone". */
+  requests: { path: string; at: number }[]
+  stop(): Promise&lt;void&gt;
+}</pre>
+              </epic-code>
+              <epic-text-box for="s9-1"></epic-text-box>
+            </ui-section>
+            <ui-section id="s9-2" label="What proves each piece" sticky collapsible dividing open="false">
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Piece</th>
+                      <th>The test</th>
+                      <th>Where</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>stepsOf()</code> pages</td>
+                      <td>
+                        a 10-page list: the second page is asked only on the second <code>next()</code>;
+                        <code>return()</code> aborts the third
+                      </td>
+                      <td><code>tests/places/ListSteps.test.ts</code>, on <code>MemoryPlace</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>stepsOf()</code> changes</td>
+                      <td>
+                        <code>watch()</code> events become steps; a <code>changesSince()</code> place polls; 1,000
+                        changes to 3 things hold 3
+                      </td>
+                      <td>same</td>
+                    </tr>
+                    <tr>
+                      <td><code>pagesOf()</code> on REST</td>
+                      <td>
+                        each page style (number, offset, cursor, <code>Link</code>, last id) as steps, against the
+                        recipe servers
+                      </td>
+                      <td><code>tests/places/RestPlace.test.ts</code> (node)</td>
+                    </tr>
+                    <tr>
+                      <td>SSE and NDJSON readers</td>
+                      <td>
+                        the fake's <code>/sse</code> and <code>/ndjson</code>: rows arrive; a dropped connection carries
+                        on with <code>Last-Event-ID</code>; a forgotten <code>at</code> gives <code>reset</code>
+                      </td>
+                      <td><code>tests/places/stepReaders.test.ts</code> (node)</td>
+                    </tr>
+                    <tr>
+                      <td>websocket reader</td>
+                      <td>
+                        <code>/ws</code> on <code>ReconnectingSocket</code>: hello sent, steps heard, reconnect from
+                        <code>since</code>
+                      </td>
+                      <td>same</td>
+                    </tr>
+                    <tr>
+                      <td><code>WatchedPlace</code></td>
+                      <td>
+                        5 watchers, one request per check; only changed rows are told; none asked after the last leaves
+                      </td>
+                      <td><code>tests/server/places/WatchedPlace.test.ts</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>PlaceServer</code> streams</td>
+                      <td>
+                        <code>list</code> with <code>stream: true</code> sends pages as lines; <code>steps</code> sends
+                        changes; a key never appears
+                      </td>
+                      <td><code>tests/server/places/PlaceServer.test.ts</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>RemotePlace</code> hears</td>
+                      <td>
+                        changes over the page's one socket land in the cache, pending on top, <code>isMine</code> by
+                        <code>changeId</code>
+                      </td>
+                      <td><code>tests/places/RemotePlace.test.ts</code></td>
+                    </tr>
+                    <tr>
+                      <td>pending vs heard</td>
+                      <td>
+                        <code>TroubledPlace</code> (<code>tests/places/fakePlaces.ts</code>) plus a told change to a
+                        field I'm changing: mine stays, then merges
+                      </td>
+                      <td><code>tests/places/PlaceHeal.test.ts</code></td>
+                    </tr>
+                    <tr>
+                      <td>drawing</td>
+                      <td>
+                        a program's list of 1,000 over the fake: 24 drawn, one page read; a told change redraws one row;
+                        a removed row goes
+                      </td>
+                      <td><code>parser/tests/core/</code> (browser)</td>
+                    </tr>
+                    <tr>
+                      <td>Python</td>
+                      <td>
+                        the Quart route yields NDJSON lines in Quart's test client; <code>pages()</code> asks lazily
+                      </td>
+                      <td><code>app/src/spaces/server/py</code> tests, <code>parser/src/py</code> tests</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <epic-text-box for="s9-2"></epic-text-box>
+            </ui-section>
+            <ui-section id="s9-3" label="A manual check" sticky collapsible dividing open="false">
+              <p>A runbook (<code>spell runbook start streams</code>), its steps (inferred):</p>
+              <ol>
+                <li>
+                  Open a program reading Wikimedia's recent changes with PROPOSAL A's line (or its TypeScript twin, if
+                  the words aren't OK'd): <code>Should:</code> edits appear within a second, newest first, nothing else
+                  asked.
+                </li>
+                <li>
+                  Turn the wifi off for 20 seconds, then on. <code>Should:</code> the list says it couldn't update, then
+                  carries on, no duplicates.
+                </li>
+                <li>
+                  Open the recipe box on a web server in two windows with <code>check it every 10 seconds</code>,
+                  through the page server. Change a recipe on the server's own file. <code>Should:</code> both windows
+                  show it within 10 seconds; the server's log shows ONE request per check.
+                </li>
+                <li>
+                  On a phone (or Chrome's phone view), scroll a 50,000-row sheet to the bottom and back.
+                  <code>Should:</code> memory stays under the window's limit (open question 3).
+                </li>
+              </ol>
+              <epic-text-box for="s9-3"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="s10" label="10. Suggested phases, for epic `data`" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="folder"></ui-icon>
+            <p>
+              Written as a request epic <code>data</code> can take as it stands. Estimates in its own style; paths from
+              the kit's root.
+            </p>
+            <ui-table celled padding="compact" appearance="striped" unstackable>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Phase</th>
+                    <th>What's wrong today</th>
+                    <th>What changes</th>
+                    <th>Estimate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>P1 · A List's Steps</b></td>
+                    <td>
+                      Every reader pages a list its own way (<code>SavedRead</code>'s loop), and a pushed change, a poll
+                      and a page are three different paths.
+                    </td>
+                    <td>
+                      <code>ListStep</code>, an optional <code>Place.steps()</code>, <code>stepsOf()</code> and
+                      <code>pagesOf()</code>; <code>SavedRead</code> and <code>PlaceHeal.follow()</code> read through
+                      them.
+                    </td>
+                    <td>3-4h</td>
+                  </tr>
+                  <tr>
+                    <td><b>P2 · Streamed Pages Over The Wire</b></td>
+                    <td>A 10,000-row sheet behind our server shows nothing until every row has crossed.</td>
+                    <td>
+                      The NDJSON format, <code>PlaceServer</code> streaming <code>list</code> and <code>steps</code>,
+                      <code>RemotePlace</code> reading lines, <code>lineSteps()</code>; Python <code>pages()</code> and
+                      a Quart <code>steps</code> route.
+                    </td>
+                    <td>3-5h</td>
+                  </tr>
+                  <tr>
+                    <td><b>P3 · Watched For Everyone</b></td>
+                    <td>
+                      <code>check it every</code> on a web server is one request per page per check, each page asking
+                      the service itself; a page hears our server's places only by asking.
+                    </td>
+                    <td>
+                      <code>WatchedPlace</code>, the page's one socket (<code>{ watch, stop }</code> up, steps down),
+                      <code>RemotePlace</code> becomes <code>live: "push"</code>, webhooks.
+                    </td>
+                    <td>3-4h</td>
+                  </tr>
+                  <tr>
+                    <td><b>P4 · Services That Tell</b></td>
+                    <td>
+                      A service that streams its changes (Wikimedia, Mastodon, a GraphQL server) is read by asking
+                      again.
+                    </td>
+                    <td>
+                      SSE, websocket and long-poll readers, <code>reconnecting()</code>, <code>StepMapping</code>, a
+                      changes address (PROPOSAL A, if OK'd), GraphQL subscriptions, the Wikimedia example, the fake
+                      streaming server.
+                    </td>
+                    <td>4-6h</td>
+                  </tr>
+                  <tr>
+                    <td><b>P5 · Long Lists On A Phone</b></td>
+                    <td>A list that keeps coming only grows: every row and every element drawn stays, for good.</td>
+                    <td>
+                      At most <code>MOST_ROWS_KEPT</code> rows, changes applied once a frame, a hidden page's stream
+                      closes, far-off elements taken down if Owen says so; 50,000 rows measured.
+                    </td>
+                    <td>3-4h</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ui-table>
+            <p>
+              <b>Total:</b> 5 phases, about 16-23 hours. Each phase's files and "done when" are in its own section
+              below.
+            </p>
+            <epic-text-box for="s10-intro"></epic-text-box>
+            <ui-section id="s10-1" label="P1 · A List's Steps  (3-4h)" sticky collapsible dividing open="false">
+              <ul>
+                <li>
+                  <b>Symptom:</b> every reader pages a list its own way (<code>SavedRead</code>'s loop), and a pushed
+                  change, a poll and a page are three different paths.
+                </li>
+                <li>
+                  <b>Changes:</b>
+                  <ul>
+                    <li>
+                      <code>ListStep</code>, <code>StepsContext</code>, an optional <code>Place.steps()</code>;
+                      <code>stepFor()</code> / <code>eventFor()</code>
+                    </li>
+                    <li>
+                      <code>stepsOf()</code> and <code>pagesOf()</code>: steps from any place, pages pulled, changes
+                      held by id
+                    </li>
+                    <li>
+                      <code>SavedRead</code> reads through it: <code>readNextPage()</code>, <code>answer()</code>,
+                      <code>leave()</code>; its polling moves in
+                    </li>
+                    <li><code>PlaceHeal.follow()</code> takes steps; <code>reset</code> heals</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Files:</b> <code>src/places/places.types.ts</code>, <code>src/places/ListSteps.ts</code> (new),
+                  <code>src/places/PlaceHeal.ts</code>, <code>src/places/PlaceReads.ts</code>,
+                  <code>parser/src/core/saved.ts</code>; tests in <code>tests/places/</code>
+                </li>
+                <li><b>Done when:</b> every place's tests pass unchanged, and a list reads its pages through steps.</li>
+              </ul>
+              <epic-text-box for="s10-1"></epic-text-box>
+            </ui-section>
+            <ui-section
+              id="s10-2"
+              label="P2 · Streamed Pages Over The Wire  (3-5h)"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <ul>
+                <li><b>Symptom:</b> a 10,000-row sheet behind our server shows nothing until every row has crossed.</li>
+                <li>
+                  <b>Changes:</b>
+                  <ul>
+                    <li>
+                      the NDJSON format (§6); <code>PlaceServer</code>'s <code>list</code> with
+                      <code>stream: true</code>, and <code>steps</code>
+                    </li>
+                    <li>
+                      <code>RemotePlace</code> reads lines as they come: each page lands in the cache as it arrives
+                    </li>
+                    <li><code>lineSteps()</code>, the NDJSON reader, shared with P4</li>
+                    <li>
+                      Python: <code>PlaceBehind.pages()</code>; <code>ServerPlace</code> pages; the Quart
+                      <code>steps</code> route as an async generator
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Files:</b> <code>src/server/places/PlaceServer.ts</code>, <code>src/places/RemotePlace.ts</code>,
+                  <code>src/places/stepReaders.ts</code> (new),
+                  <code>parser/src/py/core/spell_core/place_kinds.py</code>, <code>places.py</code>,
+                  <code>app/src/spaces/server/py/spell_quart/places.py</code> (new)
+                </li>
+                <li>
+                  <b>Done when:</b> the first rows of a big sheet show in one round trip; a Quart app streams the same
+                  lines.
+                </li>
+              </ul>
+              <epic-text-box for="s10-2"></epic-text-box>
+            </ui-section>
+            <ui-section id="s10-3" label="P3 · Watched For Everyone  (3-4h)" sticky collapsible dividing open="false">
+              <ul>
+                <li>
+                  <b>Symptom:</b> <code>check it every</code> on a web server is one request per page per check, each
+                  page asking the service itself, and a page hears our server's places only by asking.
+                </li>
+                <li>
+                  <b>Changes:</b>
+                  <ul>
+                    <li>
+                      <code>WatchedPlace</code>: asks once while watched, tells only what changed
+                      (<code>contentVersion()</code>, <code>PlaceEvents</code>), keeps to <code>RateQueue</code>
+                    </li>
+                    <li>
+                      the page's ONE socket to our server: <code>{ watch, stop }</code> up, steps down;
+                      <code>RemotePlace</code> becomes <code>live: "push"</code>
+                    </li>
+                    <li>webhooks: <code>POST .../told</code>, a signature checked with a named secret</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Files:</b> <code>src/server/places/WatchedPlace.ts</code> (new), <code>PlaceServer.ts</code>,
+                  <code>PlaceEvents.ts</code>, <code>AuthenticatedPlaces.ts</code>,
+                  <code>src/places/RemotePlace.ts</code>, the socket's handler (inferred: beside <code>Referee</code>'s)
+                </li>
+                <li>
+                  <b>Done when:</b> 5 windows on one list are one request a check, and each hears a change without
+                  asking.
+                </li>
+              </ul>
+              <epic-text-box for="s10-3"></epic-text-box>
+            </ui-section>
+            <ui-section id="s10-4" label="P4 · Services That Tell  (4-6h)" sticky collapsible dividing open="false">
+              <ul>
+                <li>
+                  <b>Symptom:</b> a service that streams its changes (Wikimedia, Mastodon, a GraphQL server) is read by
+                  asking again.
+                </li>
+                <li>
+                  <b>Changes:</b>
+                  <ul>
+                    <li>
+                      <code>serverSentSteps()</code>, <code>socketSteps()</code>, <code>longPollSteps()</code>;
+                      <code>reconnecting()</code> on ONE backoff with <code>ReconnectingSocket</code>
+                    </li>
+                    <li><code>StepMapping</code>, <code>STEPS_AS_THEY_ARE</code>, <code>EACH_MESSAGE_A_ROW</code></li>
+                    <li>
+                      a web server's changes address (PROPOSAL A's words, once Owen OKs them; else a mapping in
+                      TypeScript only)
+                    </li>
+                    <li>GraphQL subscriptions on <code>GraphPlace</code> (<code>graphql-transport-ws</code>)</li>
+                    <li>an example in <code>@spell/examples/PublicServers</code>: Wikimedia's recent changes</li>
+                    <li>the fake streaming server (§9)</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Files:</b> <code>src/places/stepReaders.ts</code>, <code>src/util/ReconnectingSocket.ts</code>,
+                  <code>src/places/GraphPlace.ts</code>, <code>parser/src/spell/rules/places/</code> (one rule, if
+                  OK'd), <code>src/server/test/streamingServers.ts</code> (new),
+                  <code>agents/coherence/catalog.md</code> (a new entry, "A list that keeps coming")
+                </li>
+                <li><b>Done when:</b> the Wikimedia example shows edits live, and carries on after the wifi drops.</li>
+              </ul>
+              <epic-text-box for="s10-4"></epic-text-box>
+            </ui-section>
+            <ui-section id="s10-5" label="P5 · Long Lists On A Phone  (3-4h)" sticky collapsible dividing open="false">
+              <ul>
+                <li>
+                  <b>Symptom:</b> a list that keeps coming only grows: every row and every element drawn stays, for
+                  good.
+                </li>
+                <li>
+                  <b>Changes:</b>
+                  <ul>
+                    <li>
+                      a read keeps at most <code>MOST_ROWS_KEPT</code> rows, by page; a page far off screen dropped,
+                      read again by its token
+                    </li>
+                    <li>
+                      changes held per frame, applied in one go; a stream closes a while after the page is hidden, and
+                      carries on
+                    </li>
+                    <li><code>drawnInWindow()</code> takes down far-off elements, if Owen says so (open question 3)</li>
+                    <li>measured: 50,000 rows, memory and time, before and after</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>Files:</b> <code>src/places/ListSteps.ts</code>, <code>parser/src/core/saved.ts</code>,
+                  <code>src/element/drawnWindow.ts</code>, <code>src/places/PlaceCache.ts</code>
+                </li>
+                <li><b>Done when:</b> scrolling 50,000 rows and back stays under the limit on a phone-sized page.</li>
+              </ul>
+              <epic-text-box for="s10-5"></epic-text-box>
+            </ui-section>
+            <ui-section id="s10-6" label="Later, not in these five" sticky collapsible dividing open="false">
+              <p>
+                Supabase, Firestore and Postgres as library place kinds (each a dependency for Owen to OK); a growing
+                value (AI text, §5.4); Python hearing changes (after Python's pending changes).
+              </p>
+              <epic-text-box for="s10-6"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="see-also" label="See also" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+            <ul>
+              <li>data-paradigm.md: §3 streaming, §4 generators, §2 Python on Quart</li>
+              <li>spell-today.md: §2.3 async data, §2.4 actions and pending changes, §2.17 realtime</li>
+              <li>
+                solid-features.md: async computations, <code>from()</code>, <code>createProjection</code>,
+                <code>&lt;Loading&gt;</code>, <code>isPending</code>
+              </li>
+              <li>
+                epic <code>data</code>'s epic page, <code>epics/data/data.plan.html</code>: its Overview §1.4 (the
+                <code>Place</code> interface), §1.7 (healing), J68 (a library's place kind)
+              </li>
+              <li>
+                the places' rules: <code>src/places/AGENTS.md</code>; the server half: <code>src/server/places/</code>
+              </li>
+              <li>
+                the catalog: <code>agents/coherence/catalog.md</code>, "Data that lives somewhere else", "A websocket
+                that comes back", "Everyone's changes, in one order", "Polling while the page is visible", "Lists asked
+                in the same moment", "A long list, drawn as you scroll"
+              </li>
+              <li>the words: <code>agents/coherence/words.md</code>, "place", "the details under a place", "feed"</li>
+            </ul>
+            <epic-text-box for="see-also"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="q1" label="Q1 · Who builds it?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Who should build streams in places? It touches places (epic <code>data</code>'s), the page's drawing
+                  and the server half.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Epic data, as new phases" recommended>
+                  <p>New phases after Gitea Ingest. It owns places, and every piece here is its.</p>
+                </epic-option>
+                <epic-option letter="B" title="A new epic, streams">
+                  <p>A separate epic on top of <code>data</code>.</p>
+                </epic-option>
+                <epic-option letter="C" title="Epic solid-2-final">
+                  <p>As part of its Solid work.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q2" label="Q2 · Which service first?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  After the generic readers (our own server's steps, our server watching, SSE and NDJSON), which real
+                  service should be built first?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="GraphQL subscriptions" recommended>
+                  <p>A kind Spell has already (<code>GraphPlace</code>), no dependency.</p>
+                </epic-option>
+                <epic-option letter="B" title="Supabase Realtime">
+                  <p>Popular, but its protocol by hand or a dependency.</p>
+                </epic-option>
+                <epic-option letter="C" title="Firestore">
+                  <p>The biggest audience, and the biggest dependency.</p>
+                </epic-option>
+                <epic-option letter="D" title="Postgres through our server">
+                  <p>For people running their own database.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q3" label="Q3 · Take down far-off rows on a phone?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  On a phone, may a long list take down rows far off screen? Today what's drawn stays drawn.
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Yes, past 2,000 rows" recommended>
+                  <p>
+                    Far-off rows' elements go, and come back on scrolling. Focus and a form's text far away are lost.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Drop only the data">
+                  <p>Keep the elements, drop only the data behind them (saves less).</p>
+                </epic-option>
+                <epic-option letter="C" title="Keep everything">
+                  <p>As today.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q4" label="Q4 · Words for a web server that tells" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Which words should a program use for a web server that tells of changes (the proposals in section 8)?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="its changes come from" recommended>
+                  <p><code>its changes come from "..."</code> (PROPOSAL A).</p>
+                </epic-option>
+                <epic-option letter="B" title="it tells us what changed at">
+                  <p><code>it tells us what changed at "..."</code> (the alternative).</p>
+                </epic-option>
+                <epic-option letter="C" title="No words, for now">
+                  <p>Only library kinds and TypeScript.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q5" label="Q5 · A hidden page's stream" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>When the page goes to the background, what should happen to its open stream?</p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Closed after a minute" recommended>
+                  <p>Carrying on when it's back. Good for a phone's battery, and the 6 connections.</p>
+                </epic-option>
+                <epic-option letter="B" title="Closed at once">
+                  <p>As polling stops.</p>
+                </epic-option>
+                <epic-option letter="C" title="Kept open">
+                  <p>Kept open while the page is open.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <epic-text-box type="notes"></epic-text-box>
+          <!-- no footer:  the notes are the page's bottom;  the date is up top ("Asked") -->
+        </main>
+      </div>
+    </ui-root>
+    <script src="/_epic/assets/highlight.min.js"></script>
+    <script src="/_epic/assets/spell-ui.js"></script>
+  </body>
+</html>
