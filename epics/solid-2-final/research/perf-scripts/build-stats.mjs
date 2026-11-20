@@ -3,13 +3,15 @@
 // - Resolves `vite` from the kit, so the kit's own Vite (Vite+'s core) builds it, as `vp build` would.
 // - Writes `<out dir>/../<name>.stats.json` (or <stats json>):  per chunk, its file, entry kinds, imports, and each
 //   module's rendered length (before minification is applied per module:  Rolldown's `renderedLength`).
-// - Changes no tracked file:  `outDir` is overridden, `emptyOutDir` on.
+// - Changes no tracked file:  `outDir` is overridden, `emptyOutDir` on
+//   (`--keep`:  off, for builds that chain into one folder, as `yarn build:element` does).
 import { readFileSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 
-const [, , kitRoot, configFile, outDir, statsArg] = process.argv
+const keep = process.argv.includes("--keep")
+const [, , kitRoot, configFile, outDir, statsArg] = process.argv.filter((arg) => arg !== "--keep")
 if (!kitRoot || !configFile || !outDir) {
   console.error("usage:  node build-stats.mjs <kit root> <vite config file> <out dir> [<stats json>]")
   process.exit(1)
@@ -54,7 +56,7 @@ await vite.build({
   root,
   logLevel: "warn",
   plugins: [statsPlugin],
-  build: { outDir: path.resolve(outDir), emptyOutDir: true, sourcemap: false, reportCompressedSize: false }
+  build: { outDir: path.resolve(outDir), emptyOutDir: !keep, sourcemap: false, reportCompressedSize: false }
 })
 const statsFile = statsArg ?? path.join(path.dirname(path.resolve(outDir)), `${path.basename(outDir)}.stats.json`)
 writeFileSync(statsFile, JSON.stringify(stats, null, 2))

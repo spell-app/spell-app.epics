@@ -268,7 +268,7 @@ export function bytes(count) {
  *   A low unique / refs ratio means instances SHARE their sheets.
  * - `perTag`:  for each custom element tag with a shadow root, instances, sheets per instance,
  *   distinct sheets across its instances, and `<style>` elements inside its roots.
- * - Closed shadow roots can't be seen:  `closedHint` counts custom elements with none open.
+ * - Closed shadow roots can't be seen.
  */
 export function domCensus() {
   let elements = 0
@@ -276,7 +276,6 @@ export function domCensus() {
   let shadowRoots = 0
   let adoptedRefs = 0
   let styleElementsInShadow = 0
-  let closedHint = 0
   const uniqueAdopted = new Set()
   const perTag = new Map()
   const walk = (root) => {
@@ -285,10 +284,7 @@ export function domCensus() {
       const isCustom = element.localName.includes("-")
       if (isCustom) customElements++
       const shadow = element.shadowRoot
-      if (!shadow) {
-        if (isCustom && customElements.get?.(element.localName)) closedHint++
-        continue
-      }
+      if (!shadow) continue
       shadowRoots++
       const sheets = shadow.adoptedStyleSheets ?? []
       adoptedRefs += sheets.length
@@ -337,7 +333,6 @@ export function domCensus() {
     uniqueCssChars,
     styleElementsInShadow,
     documentStyleSheets: document.styleSheets.length,
-    closedHint,
     topTags: tags.slice(0, 12)
   }
 }
