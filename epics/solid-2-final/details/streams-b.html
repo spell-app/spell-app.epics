@@ -1395,171 +1395,121 @@ class PlaceBehind:
             </ui-section>
           </ui-section>
 
-          
+          <ui-section id="s7" label="7. Solid 2:  how steps reach the drawing" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="list check"></ui-icon>
 
-          <ui-section id="s8" label="8. How a Spell author sets one up" sticky collapsible dividing open="false">
-            <ui-icon slot="icon" name="flag"></ui-icon>
-
-            <ui-section
-              id="s8-1"
-              label="Today's words already cover most of it"
-              sticky
-              collapsible
-              dividing
-              open="false"
-            >
+            <ui-section id="s7-1" label="What Spell does" sticky collapsible dividing open="false">
+              <p>
+                Spell's drawing doesn't hand an async iterable to Solid for a list, and shouldn't (inferred, from
+                today's code):
+              </p>
+              <ul>
+                <li>
+                  A <code>SavedRead</code>'s list is ONE scratch list for its whole life (<code>saved.ts</code>: "so
+                  what draws it keeps what it drew"). Steps change that list in place, and its <code>Cell</code> tells
+                  whoever draws it.
+                </li>
+                <li>
+                  An async-iterable memo gives a NEW value each time it yields (inferred from
+                  <code>solid-features.md</code>'s table: "reads as pending until it lands"). For a list that grows a
+                  page at a time that's a whole new list per page, and epic <code>language</code> P8 found an async memo
+                  "froze a deal".
+                </li>
+                <li>So the engine iterates; Solid sees a list that grows, and its usual pieces do the rest:</li>
+              </ul>
               <ui-table celled padding="compact" appearance="striped" unstackable>
                 <table>
                   <thead>
                     <tr>
-                      <th>What</th>
-                      <th>Words today</th>
-                      <th>With steps</th>
+                      <th>Solid 2 piece</th>
+                      <th>What it does here</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td>a list in pages</td>
+                      <td><code>&lt;For&gt;</code> keyed by the thing</td>
                       <td>
-                        <code>its next page is in its "Link" header</code>, <code>... is asked for with "page"</code>,
-                        <code>it gives up to 100 at a time</code>
+                        ONE Thing per id (<code>PlaceCache</code>), so a changed row redraws in place, and a moved row
+                        MOVES its element: focus and a form's text go with it
                       </td>
-                      <td>the same: read as steps, one page as the drawing nears it</td>
                     </tr>
                     <tr>
-                      <td>staying current by asking</td>
-                      <td><code>check it every 30 seconds</code></td>
-                      <td>the same; through our server, asked once for everyone (open question 4)</td>
-                    </tr>
-                    <tr>
-                      <td>a room</td>
-                      <td><code>family cookbook is a room at "..."</code></td>
-                      <td>the same: its steps are the referee's</td>
-                    </tr>
-                    <tr>
-                      <td>an atmosphere account</td>
-                      <td><code>... is an atmosphere account</code></td>
-                      <td>the same: Jetstream</td>
-                    </tr>
-                    <tr>
-                      <td>kept on this device</td>
-                      <td><code>- keep a copy on this device</code></td>
-                      <td>it also carries on from where it stopped</td>
-                    </tr>
-                    <tr>
-                      <td>a service's own kind</td>
-                      <td>(none yet)</td>
+                      <td><code>&lt;Loading&gt;</code></td>
                       <td>
-                        a library place kind, <code>a supabase project</code>, with its own mapping (epic
-                        <code>data</code> J68)
+                        the first page only: "while loading" riders, as today; later pages never blank what's shown
                       </td>
+                    </tr>
+                    <tr>
+                      <td><code>&lt;Loading&gt;</code> per row</td>
+                      <td>
+                        a row whose fields come later (a <code>ChunkedPlace</code> body, a link followed): the "…" each
+                        waiting value already shows
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>isPending()</code></td>
+                      <td>
+                        "more coming" or "updating" on a list's title, without hiding its rows (<code
+                          >spell-today.md</code
+                        >
+                        §2.3: 0 uses today)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><code>createDeferred()</code></td>
+                      <td>what <code>drawRead()</code> uses now: what it showed stays until the new answer lands</td>
                     </tr>
                   </tbody>
                 </table>
               </ui-table>
-              <p>
-                Recommended: NO new words for pages, polling through our server, or a service's own kind. What's left is
-                a web server that tells, at an address of its own.
-              </p>
-              <epic-text-box for="s8-1"></epic-text-box>
+              <epic-text-box for="s7-1"></epic-text-box>
             </ui-section>
             <ui-section
-              id="s8-2"
-              label="PROPOSAL A:  where a web server tells of changes"
+              id="s7-2"
+              label="What any Solid app could do (not Spell's drawing)"
               sticky
               collapsible
               dividing
               open="false"
             >
-              <ui-message state="warning" heading="PROPOSAL, not decided"
-                ><p>These words need Owen's OK first. Where each could be misread is listed with it.</p></ui-message
+              <p>
+                For a Solid app outside Spell, steps fit Solid 2's async stores directly
+                (<code>solid-features.md</code>: <code>createStore(fn)</code> and
+                <code>createProjection(fn, seed, { key })</code> take an async iterable):
+              </p>
+              <epic-code
+                title="a sketch:  a Solid app's list, kept current from any place · ts · 13 lines"
+                language="ts"
               >
-              <epic-code title="Sketch · spell · 2 lines" language="spell">
                 <pre>
-wiki is a web server at "https://en.wikipedia.org/w/api.php"
-	its changes come from "https://stream.wikimedia.org/v2/stream/recentchange"</pre>
+// a sketch:  a Solid app's list, kept current from any place
+const recipes = createProjection(
+  async function* (draft) {
+    for await (const step of stepsOf(place, "recipes", {}, { signal })) {
+      if (step.kind === "page") draft.push(...step.answer.rows)
+      else if (step.kind === "changed") upsert(draft, step.row)
+      else if (step.kind === "removed") removeById(draft, step.id)
+      yield draft
+    }
+  },
+  [],
+  { key: "id" }
+)</pre>
               </epic-code>
               <ul>
-                <li>Plain English: "its changes come from" that address.</li>
                 <li>
-                  How it's heard (SSE, NDJSON, a websocket) is read from the answer itself: its content type, or a
-                  <code>ws:</code> / <code>wss:</code> address. No words for it.
+                  <code>spell-today.md</code> §2.17's idea, "rooms as Solid async iterables", is this, for every place.
                 </li>
                 <li>
-                  Each message is a row, by its id (<code>EACH_MESSAGE_A_ROW</code>); a service whose messages need more
-                  is a library kind.
-                </li>
-                <li>
-                  Where it could be misread:
-                  <ol>
-                    <li>
-                      "its changes" could read as the program's OWN changes, sent there: it's the opposite, changes
-                      heard from it.
-                    </li>
-                    <li>
-                      <code>from</code> means the same as <code>at</code> on a place's line (words.md: "<code>at</code>
-                      and <code>from</code> mean the same"), so it's consistent, but a reader may expect
-                      <code>from</code> to mean read only.
-                    </li>
-                    <li>
-                      A change is a whole row: a stream that sends only what changed in a row would overwrite the rest
-                      (inferred).
-                    </li>
-                  </ol>
-                </li>
-                <li>
-                  Alternatives:
-                  <ul>
-                    <li>
-                      <code>it tells us what changed at "..."</code>: plainer about direction; "tells" is close to
-                      events' <code>send</code> (epic <code>data</code> Q14 kept <code>send</code> for events), and to
-                      <code>Places.tellRows()</code> in code.
-                    </li>
-                    <li>
-                      <code>it is followed at "..."</code>: shorter; "followed" is <code>core.follow()</code>'s word for
-                      reading a link.
-                    </li>
-                  </ul>
+                  Not needed for Spell itself; worth it if places are offered to Solid apps (<code>spell-today.md</code>
+                  §2.3, <code>usePlace()</code>).
                 </li>
               </ul>
-              <epic-text-box for="s8-2"></epic-text-box>
-            </ui-section>
-            <ui-section
-              id="s8-3"
-              label='PROPOSAL B:  none for "watched for everyone"'
-              sticky
-              collapsible
-              dividing
-              open="false"
-            >
-              <ui-message state="warning" heading="PROPOSAL, not decided"
-                ><p>These words need Owen's OK first. Where each could be misread is listed with it.</p></ui-message
-              >
-              <ul>
-                <li>
-                  <code>check it every 30 seconds</code> on a place read through our server (every authenticated place
-                  is, <code>throughPageServer</code>) is asked once by the server, for every page, and told: no words.
-                </li>
-                <li>
-                  Where it could surprise: a person expecting each page to ask the service itself (a service that counts
-                  requests per person). A line to turn it off would be an Open question, not a phrase now.
-                </li>
-              </ul>
-              <epic-text-box for="s8-3"></epic-text-box>
-            </ui-section>
-            <ui-section id="s8-4" label="Not proposed" sticky collapsible dividing open="false">
-              <ul>
-                <li>
-                  A rider for "the rest are coming" (<code>data-paradigm.md</code> §3 PROPOSAL C):
-                  <code>&lt;for&gt;</code>'s <code>paging</code> already says it.
-                </li>
-                <li>
-                  Words for a stream's format, its reconnect timing, or its buffer: the engine's, never the program's.
-                </li>
-              </ul>
-              <epic-text-box for="s8-4"></epic-text-box>
+              <epic-text-box for="s7-2"></epic-text-box>
             </ui-section>
           </ui-section>
+
+          
 
           <ui-section id="s9" label="9. Tests" sticky collapsible dividing open="false">
             <ui-icon slot="icon" name="gavel"></ui-icon>
