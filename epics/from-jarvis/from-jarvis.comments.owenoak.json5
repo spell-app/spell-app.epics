@@ -19,41 +19,6 @@
         }
       ]
     },
-    "c2": {
-      "anchor": "p-file-upload-in-spell",
-      "kind": "phase",
-      "label": "File Upload In Spell",
-      "excerpt": "File Upload In Spell",
-      "text": "lets add a `destination` URL attr for where the results would be posted, and an `action` for spell action to invoke instead.\n\nAlso, size limit, max file count.  Anything else that uploader thingers usually show?  What would the UI look like for this?",
-      "by": "owenoak",
-      "at": "2026-11-19T23:26:14.665Z",
-      "status": "answered",
-      "replies": [
-        {
-          "by": "owenoak",
-          "agent": "claude",
-          "at": "2026-11-19T23:28:08.310Z",
-          "html": "<p>P9's plan is rewritten: <code>upload</code> is now two attributes, <code>destination</code> (a URL each file is posted to) and <code>action</code> (a Spell action called with the files instead). Both set: the action wins and a warning is logged. Neither: the files are only held and listed, and <code>ui-upload</code> still fires first, so a handler can take any upload over.</p>\n<p>Added <code>max-size</code> and <code>max-files</code>, and the plan now says what it looks like: a drop area with a Choose files button and the limits, then a row per file with its size, a progress bar, a tick or the reason it failed, and an ✕.</p>\n<p>One clash to know: in plain HTML a form's <code>action</code> is the URL it posts to, and <code>&lt;ui-input&gt;</code>'s <code>action</code> places its joined buttons. The plan keeps your name and says in the docs that it's a Spell action, not a URL.</p>"
-        },
-        {
-          "by": "owenoak",
-          "at": "2026-11-19T23:34:01.214Z",
-          "text": "Sounds good.  Would be good it the uploader sent `file-drag*`, `file-drop*` and `folder-*` events that could be caught by the page, e.g. to update the UI.  \n\nThese should have all of the available data (filename, size, OSFileHandle) and the same events should be sent if the drop happened from showing the file open dialog, or from drag-and-drop onto the page/section.\n\nAlso, <ui-uploader> should have a `page` attribute (push back if the name is unclear) which says \"dropping anywhere on the page is the same as dropping in this component.\"  Unclear what should happen if that is turned on for multiple uploaders on the page.",
-          "edited": "2026-11-19T23:37:23.655Z"
-        },
-        {
-          "by": "owenoak",
-          "agent": "claude",
-          "at": "2026-11-19T23:44:26.470Z",
-          "html": "<p>P9's plan now has the events, and a page-wide drop, waiting for your Accept.</p>\n<p>The names follow Spell UI's own: every event starts <code>ui-</code>, lowercase with dashes.</p>\n<ul>\n  <li><code>ui-file-drag-enter</code> and <code>ui-file-drag-leave</code>: while files are dragged over it. They carry only how many and their kinds, because browsers hide names and sizes until the drop.</li>\n  <li><code>ui-folder-drop</code>: one per folder, before its files. It carries the name, path, handle and list of files.</li>\n  <li><code>ui-file-drop</code>: one per file. It carries the <code>File</code>, name, path, size, kind and file handle, how it came in (<code>dialog</code>, <code>drop</code> or <code>zone</code>), and why it was turned away when it was. Cancel it to leave that file out.</li>\n</ul>\n<p>The same events fire whether a file was picked in the dialog or dropped.</p>\n<p>The file handle is a link back to the file on your computer, so the page can read it again later: the nearest a browser has to an OS file handle. Chrome and Edge give one. Safari and Firefox don't, so it's empty there.</p>\n<p>No folder drag events: while dragging, a browser can't tell a folder from a file.</p>\n<p>I renamed <code>page</code>, because on its own it reads like a page number. The plan calls it <code>drop-zone=\"page\"</code>, and it also takes a section's id. With several uploaders:</p>\n<ul>\n  <li>A drop on an uploader's own area goes to that uploader.</li>\n  <li>A drop anywhere else goes to the closest zone around it, so a section beats the page.</li>\n  <li>If two uploaders share a zone, the first one on the page gets the drops, and the second warns in the console.</li>\n</ul>"
-        }
-      ],
-      "claim": {
-        "by": "owenoak",
-        "agent": "claude",
-        "at": "2026-11-19T23:37:44.023Z"
-      }
-    },
     "c3": {
       "anchor": "p-subclass-elements-in-spell#list-1",
       "kind": "list",
@@ -101,29 +66,6 @@
         "by": "owenoak",
         "agent": "claude",
         "at": "2026-11-19T23:32:57.816Z"
-      }
-    },
-    "c5": {
-      "anchor": "p-file-upload-in-spell",
-      "kind": "phase",
-      "label": "File Upload In Spell",
-      "excerpt": "File Upload In Spell",
-      "text": "Also, what will this look like?",
-      "by": "owenoak",
-      "at": "2026-11-19T23:37:36.000Z",
-      "status": "answered",
-      "replies": [
-        {
-          "by": "owenoak",
-          "agent": "claude",
-          "at": "2026-11-19T23:44:27.524Z",
-          "html": "<p>Like this, made from Spell UI's pieces. The drop area is shown at rest, then with files dragged over it, then with a row for each file. P9's plan shows the same pictures.</p>\n<p><img src=\"/epics/from-jarvis/pictures/p9-uploader-light.png\" alt=\"The uploader, light\" width=\"720\" /></p>\n<p><img src=\"/epics/from-jarvis/pictures/p9-uploader-dark.png\" alt=\"The uploader, dark\" width=\"720\" /></p>\n<ul>\n  <li>The Choose Files button is the real <code>&lt;ui-input type=\"file\"&gt;</code>, and the progress bar is <code>&lt;ui-progress&gt;</code>.</li>\n  <li>Each row shows how its file is doing: uploading, uploaded, too big, the wrong kind, or failed with the server's error.</li>\n  <li>The ✕ removes a file, or stops it uploading.</li>\n  <li>With <code>drop-zone=\"page\"</code>, the whole page gets the same blue highlight while files are dragged over it.</li>\n</ul>"
-        }
-      ],
-      "claim": {
-        "by": "owenoak",
-        "agent": "claude",
-        "at": "2026-11-19T23:38:10.739Z"
       }
     },
     "c6": {
@@ -175,6 +117,160 @@
         "agent": "claude",
         "at": "2026-11-19T23:44:58.568Z"
       }
+    },
+    "c8": {
+      "anchor": "p-file-upload-in-spell#field-2",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "A page shows an uploader that takes .json files, picked or dropped, and lists th",
+      "text": "drop-zone=\"#id` to drop on another element in the page, e.g. the enclosing <ui-section>",
+      "by": "owenoak",
+      "at": "2026-11-20T00:05:17.806Z",
+      "status": "new",
+      "quote": "drop-zone=\"page\"",
+      "offset": 493,
+      "edited": "2026-11-20T00:05:42.349Z"
+    },
+    "c9": {
+      "anchor": "p-file-upload-in-spell#field-2",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "A page shows an uploader that takes .json files, picked or dropped, and lists th",
+      "text": "how would this work?  <spell-page> `when file dropped` handler?",
+      "by": "owenoak",
+      "at": "2026-11-20T00:06:09.275Z",
+      "status": "new",
+      "quote": "page can catch the upload",
+      "offset": 610,
+      "edited": "2026-11-20T00:06:22.168Z"
+    },
+    "c10": {
+      "anchor": "p-file-upload-in-spell#field-4",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "<ui-input type=\"file\" name=\"netlist file\"> 's files binds to a property, as form",
+      "text": "update this rule now that our tooltips are working properly:  \"tooltips should use <ui-tooltip> with the standard delay on mouse over/out`.  I believe this delay is currently 0.8s?  I think 1 second delay makes sense -- where did we get 0.8?\n\nAdd todo to update all tooltips to a) switch to <ui-tooltip> and b) use the standard delay, and c) make the delay tunable in the app somehow.",
+      "by": "owenoak",
+      "at": "2026-11-20T00:07:08.266Z",
+      "status": "new",
+      "quote": "Your standing rule says tooltips are plain title attributes",
+      "offset": 1006,
+      "edited": "2026-11-20T00:09:29.388Z"
+    },
+    "c11": {
+      "anchor": "p-file-upload-in-spell#field-4",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "<ui-input type=\"file\" name=\"netlist file\"> 's files binds to a property, as form",
+      "text": "I like the idea of the button title showing badge for number of things dropped, small progress ring while things are being uploaded to the server.",
+      "by": "owenoak",
+      "at": "2026-11-20T00:10:41.764Z",
+      "status": "new",
+      "quote": "button holds",
+      "offset": 782,
+      "edited": "2026-11-20T00:11:45.371Z"
+    },
+    "c12": {
+      "anchor": "p-file-upload-in-spell#field-5",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "You picked C, your own option: a new Spell UI element, <ui-uploader> , that take",
+      "text": "for <ui-uploader folder>`, the events should be `ui-folder-dropped` etc",
+      "by": "owenoak",
+      "at": "2026-11-20T00:12:04.610Z",
+      "status": "new",
+      "quote": "folder: picks or takes dropped folders instead of files, each folder's files with their paths in it",
+      "offset": 902,
+      "edited": "2026-11-20T00:12:45.156Z"
+    },
+    "c13": {
+      "anchor": "p-file-upload-in-spell#field-5",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "You picked C, your own option: a new Spell UI element, <ui-uploader> , that take",
+      "text": "I think we can get the file handle in Safari/FF based on the File object\n\nThe handler should be able to get the file data, e.g. to process text inline.  `set contents to the file as text | json | binary` which would wait",
+      "by": "owenoak",
+      "at": "2026-11-20T00:13:33.850Z",
+      "status": "new",
+      "quote": "Safari and Firefox give none",
+      "offset": 3276,
+      "edited": "2026-11-20T00:14:26.693Z"
+    },
+    "c14": {
+      "anchor": "p-file-upload-in-spell#field-5",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "You picked C, your own option: a new Spell UI element, <ui-uploader> , that take",
+      "text": "see above",
+      "by": "owenoak",
+      "at": "2026-11-20T00:14:50.254Z",
+      "status": "new",
+      "quote": "No folder drag events",
+      "offset": 3811
+    },
+    "c15": {
+      "anchor": "p-file-upload-in-spell#field-5",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "You picked C, your own option: a new Spell UI element, <ui-uploader> , that take",
+      "text": "in spell, this could be `drop-zone={view}`",
+      "by": "owenoak",
+      "at": "2026-11-20T00:15:32.959Z",
+      "status": "new",
+      "quote": "drop-zone=\"editor\"",
+      "offset": 4604,
+      "edited": "2026-11-20T00:15:39.934Z"
+    },
+    "c16": {
+      "anchor": "p-file-upload-in-spell#field-5",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "You picked C, your own option: a new Spell UI element, <ui-uploader> , that take",
+      "text": "so I can do before/while/after ?",
+      "by": "owenoak",
+      "at": "2026-11-20T00:16:41.896Z",
+      "status": "new",
+      "quote": "Same shape as the tree's ui-selecting",
+      "offset": 5536,
+      "edited": "2026-11-20T00:16:53.242Z"
+    },
+    "c17": {
+      "anchor": "p-file-upload-in-spell#field-5",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "You picked C, your own option: a new Spell UI element, <ui-uploader> , that take",
+      "text": "but pretty!  and stylable. Should be a slot.\nShould have slots for icon, message, properties for uploading message, etc.",
+      "by": "owenoak",
+      "at": "2026-11-20T00:17:47.056Z",
+      "status": "new",
+      "quote": "Browse button joined to it, the way a form's file field looks",
+      "offset": 7665,
+      "edited": "2026-11-20T00:18:38.044Z"
+    },
+    "c18": {
+      "anchor": "p-file-upload-in-spell#field-5",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "You picked C, your own option: a new Spell UI element, <ui-uploader> , that take",
+      "text": "let's call apperance=\"field\" one `input` since ui-field means the thing surrounding an input.\n\nNote in your mockup that the \"Browse\" button didn't look very good with the input field -- borders didn't line up, etc",
+      "by": "owenoak",
+      "at": "2026-11-20T00:19:36.728Z",
+      "status": "new",
+      "quote": "four mockups are one page",
+      "offset": 8140,
+      "edited": "2026-11-20T00:20:57.414Z"
+    },
+    "c19": {
+      "anchor": "p-file-upload-in-spell#field-5",
+      "kind": "field",
+      "label": "File Upload In Spell",
+      "excerpt": "You picked C, your own option: a new Spell UI element, <ui-uploader> , that take",
+      "text": "`on-upload` ?",
+      "by": "owenoak",
+      "at": "2026-11-20T00:21:47.682Z",
+      "status": "new",
+      "quote": "<ui-input>'s action",
+      "offset": 9988
     }
   },
   "on": {}
