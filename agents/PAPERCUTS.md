@@ -1044,6 +1044,12 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 ## app
 
+- 2026-11-19 · A worktree's editor started on port 3000 (`--strictPort`) and wrote `localhost:3000` into its
+  `.spell-server.editor.json`, while main's vite held 127.0.0.1:3000:  the worktree's bound `*:3000`, so both bound,
+  and `localhost` reached MAIN's editor.  Probes and the integration tests ran against main's code (new Design UI
+  "missing"), and the page server stopped twice under it. · `spell server stop`, then
+  `SPELL_EDITOR_PORT=3017 spell server start all`.  The port check should treat a 127.0.0.1 listener as taken. · app
+  (editor P38)
 - 2026-11-07 · `yarn examples:readme <name>` timed out on every example (OrgAdmin too):  `page.goto(..., { waitUntil:
   "networkidle" })` on the worktree's editor never settled, 30s, after the page server restarted. · Took the picture
   with a one-off Playwright script, `waitUntil: "load"` and a 12s wait, then `yarn examples:readme --no-pictures`
