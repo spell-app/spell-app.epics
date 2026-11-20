@@ -1,0 +1,61 @@
+<!-- plan-doc part:  #q72's details in editor.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
+<epic-question
+  ><p>
+    For <a href="#p-save-back-to-disk">P41 · Save Back To Disk</a>. You save in the app, but since you opened the file
+    someone else changed it: another program, the app in another tab, or a sync like Dropbox or iCloud.
+  </p>
+  <p>
+    The browser doesn't stop a save over their change. So before each save the app reads the file's modified time and
+    size again (the spike checks whether those are enough, or whether it must compare the contents), and if they differ
+    from when it last read or wrote, that's a conflict.
+  </p></epic-question
+><epic-code title="the check, roughly" language="ts">
+  <pre>
+const now = await handle.getFile()
+if (now.lastModified !== lastSeen.lastModified || now.size !== lastSeen.size) conflict()
+const writer = await handle.createWritable()
+await writer.write(text)
+await writer.close()</pre></epic-code
+><epic-choices>
+  <epic-option letter="A" title="Ask:  keep theirs, keep yours, or keep both" recommended
+    ><ul>
+      <li>A dialog names the file and says it changed since you opened it.</li>
+      <li>
+        Keep theirs: the app reads the file again, and your unsaved changes are set aside (kept on this device, not
+        lost).
+      </li>
+      <li>Keep yours: the app writes over it.</li>
+      <li>Keep both: your version goes to a new file you pick (save-as).</li>
+      <li>Why recommended: nothing is lost silently, and the choice is the person's, as editors like VS Code do it.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="B" title="Keep both, always, without asking"
+    ><ul>
+      <li>Your version saves beside it, as <code>recipes (2).json</code>.</li>
+      <li>No dialog, but files pile up, and the app now points at a different file.</li>
+      <li>Needs a folder handle to write beside it; a single picked file can't.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="C" title="Merge row by row, ask only when one row changed on both sides"
+    ><ul>
+      <li>
+        Places already compare old and new rows for a CSV file (<a
+          href="/src/places/CsvFile.ts"
+          target="src-src-places-csvfile-ts"
+          ><code title="src/places/CsvFile.ts">CsvFile</code></a
+        >), so a change to different rows could merge by itself.
+      </li>
+      <li>The best result, but the most work; could come later on top of A.</li>
+    </ul></epic-option
+  >
+  <epic-option letter="D" title="Overwrite:  the last save wins"
+    ><ul>
+      <li>Simplest; someone else's change is lost without a word.</li>
+    </ul></epic-option
+  > </epic-choices
+><epic-net-effect option="A" recommended
+  ><ul>
+    <li>every save first checks the file against what the app last saw</li>
+    <li>a conflict dialog with three choices, in the novice voice, English and Spanish</li>
+  </ul></epic-net-effect
+>
