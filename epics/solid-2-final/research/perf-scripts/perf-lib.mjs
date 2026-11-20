@@ -42,7 +42,8 @@ export const PAGES = {
     url: () => `${EDITOR}edit/@spell/examples/Solitaire`,
     storage: EDITOR_STORAGE,
     blockWrites: true,
-    ready: `() => !!document.querySelector("solitaire-card") && !!document.querySelector(".InputEditor .cm-editor .cm-line")`
+    // at phone width the editor shows the app alone (no code pane):  ready once its cards are drawn
+    ready: `() => !!document.querySelector("solitaire-card") && (innerWidth < 800 || !!document.querySelector(".InputEditor .cm-editor .cm-line"))`
   },
   docs: {
     url: () => `${PAGE_SERVER}/components/ui/kitchen-sink.html`,
@@ -60,8 +61,11 @@ export const PAGES = {
   }
 }
 
+/** ~5G:  20ms, 50 Mbps down, 20 Mbps up. */
+const PHONE_NETWORK = { offline: false, latency: 20, downloadThroughput: (50e6 / 8) | 0, uploadThroughput: (20e6 / 8) | 0 }
+
 /**
- * The two profiles.
+ * The profiles.
  * - phone:  Playwright's Pixel 7, CPU slowed 4x, ~5G (20ms, 50 Mbps down, 20 Mbps up).
  */
 export const PROFILES = {
@@ -69,7 +73,13 @@ export const PROFILES = {
   phone: {
     context: withoutBrowserType(devices["Pixel 7"]),
     cpu: 4,
-    network: { offline: false, latency: 20, downloadThroughput: (50e6 / 8) | 0, uploadThroughput: (20e6 / 8) | 0 }
+    network: PHONE_NETWORK
+  },
+  // the phone's CPU and network at a tablet / landscape width, where the editor shows its code pane and Inspector
+  phonewide: {
+    context: { ...withoutBrowserType(devices["Pixel 7"]), viewport: { width: 1280, height: 800 }, screen: { width: 1280, height: 800 }, isMobile: false, deviceScaleFactor: 2 },
+    cpu: 4,
+    network: PHONE_NETWORK
   }
 }
 
