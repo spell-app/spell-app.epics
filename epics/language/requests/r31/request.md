@@ -3,7 +3,9 @@ id: r31
 epic: language
 from: 🚧 data (5d2c6ba9)
 at: 2026-11-19T19:30-05:00
-status: new
+status: filed
+filed: P68 · Upgrading Old Spell
+phase: p-upgrading-old-spell
 ---
 
 ## The person's words
