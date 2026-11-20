@@ -12,7 +12,7 @@
  * - `--page editor,docs,epic,run`:  which pages (default all)
  * - `--profile desktop|phone`:  one profile (default both;  `phone` also runs the editor at `phonewide`)
  * - `--runs N`:  cold loads per page and profile (default 5;  medians reported)
- * - `--steps load,leaks,typing,a11y,listeners,cpu`:  which measurements (default all)
+ * - `--steps load,leaks,typing,a11y,listeners,sheets,cpu`:  which measurements (default all)
  * - `--wait <minutes>`:  how long to wait for a quiet machine (default 10)
  * - `--force`:  don't wait
  * - `--editor <url>` and `--editor-nomin <url>`:  editor builds already served;  skips the build
@@ -33,7 +33,7 @@ const { flags } = args()
 const list = (value, all) => (typeof value === "string" ? value.split(",").map((each) => each.trim()).filter(Boolean) : all)
 const pages = list(flags.page, ["editor", "docs", "epic", "run"])
 const profiles = list(flags.profile, ["desktop", "phone"])
-const steps = list(flags.steps, ["load", "leaks", "typing", "a11y", "listeners", "cpu"])
+const steps = list(flags.steps, ["load", "leaks", "typing", "a11y", "listeners", "sheets", "cpu"])
 const runs = Number(flags.runs ?? 5)
 const waitMinutes = Number(flags.wait ?? 10)
 const cpus = os.cpus().length
@@ -170,7 +170,7 @@ function step(script, scriptArgs, outName, { nomin = false } = {}) {
   return JSON.parse(readFileSync(out, "utf8"))
 }
 
-const data = { load: {}, leaks: {}, typing: {}, a11y: {}, listeners: {}, cpu: {} }
+const data = { load: {}, leaks: {}, typing: {}, a11y: {}, listeners: {}, sheets: {}, cpu: {} }
 const firstProfile = profiles.includes("desktop") ? "desktop" : "phone"
 const editorPhoneProfile = (profile) => (profile === "phone" ? "phonewide" : profile)
 
@@ -207,6 +207,12 @@ if (steps.includes("a11y")) {
 if (steps.includes("listeners") && pages.includes("editor")) {
   const result = step("perf-listeners.mjs", ["editor", firstProfile], "listeners-editor.json")
   if (result) data.listeners.editor = result
+}
+if (steps.includes("sheets")) {
+  for (const page of pages.filter((each) => each === "editor" || each === "docs")) {
+    const result = step("perf-sheets.mjs", [page, firstProfile], `sheets-${page}.json`)
+    if (result) data.sheets[page] = result
+  }
 }
 if (steps.includes("cpu") && pages.includes("editor")) {
   const profile = profiles.includes("phone") ? "phonewide" : "desktop"
@@ -298,6 +304,7 @@ function flatten(all) {
     keep(`a11y ${page} animationsWithReduce`, a11y.motionReduce?.withDuration)
   }
   for (const [page, listeners] of Object.entries(all.listeners)) keep(`listeners ${page} total`, listeners.total)
+  for (const [page, sheets] of Object.entries(all.sheets)) keep(`sheets ${page} adoptedCharsPerRoot`, sheets.adoptedCharsPerRoot)
   for (const [profile, cpu] of Object.entries(all.cpu)) {
     keep(`cpu ${profile} loadSampledMs`, cpu.load?.totalMs)
     keep(`cpu ${profile} typingSampledMs`, cpu.typing?.totalMs)

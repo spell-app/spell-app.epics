@@ -35,7 +35,7 @@ const EDITOR_STORAGE = {
 
 /**
  * The pages measured.
- * - `ready`:  a page function's source, true once the page is usable (polled from an init script).
+ * - `ready`:  a page function's source, true once the page is usable (polled from an init script, after its first paint).
  * - `storage`:  localStorage set before the page's own scripts run.
  */
 export const PAGES = {
@@ -192,7 +192,7 @@ function PERF_INIT(readySource) {
   const ready = new Function(`return (${readySource})()`)
   const timer = setInterval(() => {
     try {
-      if (perf.readyAt === undefined && ready()) {
+      if (perf.readyAt === undefined && perf.fcp !== undefined && ready()) {
         perf.readyAt = performance.now()
         clearInterval(timer)
       }
