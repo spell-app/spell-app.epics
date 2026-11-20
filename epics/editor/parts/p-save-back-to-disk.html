@@ -322,6 +322,44 @@
       action.
     </li>
   </ul></epic-update
+><epic-update
+  id="up23"
+  at="2026-11-19 22:36"
+  summary="Spike: time and size are enough, the observer is in Chrome, and a save after a rename makes a new file"
+  phase="40"
+  ><p>
+    The spike, run headless in Chromium, Firefox and WebKit (Playwright), against the browser's own private files, which
+    behave like a picked file's handle for everything but the permission prompts.
+  </p>
+  <ul>
+    <li>
+      Today's Chromium HAS the change observer (<code>FileSystemObserver</code>), and the file picker; Firefox and
+      WebKit have neither, so they take the download fallback, as planned.
+    </li>
+    <li>
+      Modified time and size are enough: a rewrite of the same size a few milliseconds later still changes the modified
+      time, so no hash of the contents is needed for the check before each save.
+    </li>
+    <li>Moved, renamed or deleted: reading through the kept handle fails with "not found", as the web said.</li>
+    <li>
+      A new file at the old name: the kept handle reads THAT file, as the web said; its modified time differs, so the
+      check calls it changed by someone else.
+    </li>
+    <li>
+      <b>The surprise: in Chromium, SAVING through the kept handle after a rename makes a new file at the old name,</b>
+      with no error. So the place reads the file first, before every save (the check), and stops at "not found" before
+      it ever writes: the plan already does the check; it now also guards this.
+    </li>
+    <li>A handle is kept in the browser's database and comes back after a reload in all three.</li>
+    <li>A file's contents must be read at once: Chromium refuses to read a File object after the file changed.</li>
+  </ul>
+  <p>
+    What only a real Chrome window can show (permission after a reload, permission taken away, a change by another
+    editor, Finder's move and rename, two tabs, a slow step after asking): the test page
+    <a href="/epics/editor/experiments/file-handles.html" target="src-epics-editor-experiments-file-handles-html"
+      >Kept File Handles</a
+    >, a manual test for Owen.
+  </p></epic-update
 ><epic-field name="plan" accepted="2026-11-19 22:32"
   ><ol>
     <li>
