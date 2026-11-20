@@ -35,12 +35,12 @@ Research notes for epic `solid-2-final`'s "Solid 2 analysis" page (agent `solid-
   - `flush()` can't stand in:  it throws inside an action, does nothing inside an effect, and can't land a write held
     with async work
 - **So the record stays the truth.**  None of the five ways to make a Solid store the model keeps
-  `set x to 1;  print x` printing 1 everywhere a Spell program runs, and the two that come close cost 20 to 30 times
+  `set x to 1;  print x` printing 1 everywhere a Spell program runs, and the two that come close cost about 17 to 24 times
   more per write and read (section 3).
 - **What CAN change, ranked** (section 5):
-  1. Make the bridge cheaper:  today every Solid computation on a Spell page pays about 1.3 KB and 3 to 5 times the
-     time to create, even one that reads no cell.  Making the `Reaction` only when a cell is first read saves Spell's
-     share, about 0.55 KB of it (inferred:  not built).
+  1. Make the bridge cheaper:  today every Solid computation on a Spell page pays about 1.3 KB, about 5 times the
+     time to create and 2 times the time to update, even one that reads no cell.  Making the `Reaction` only when a cell
+     is first read saves Spell's share:  about 0.55 KB, and about half of the extra time to create (inferred:  not built).
   2. Lean into Solid's TRANSACTIONS, not its stores:  run a Spell action inside Solid's `action()`, and the screen
      holds until the action ends while the program still reads its own writes at once.  Measured:  the program read
      1, 1, 1;  the screen went `000` straight to `111`.
@@ -148,7 +148,37 @@ builds:
 - `update`:  write each thing once, then flush:  the screen catching up
 - stale reads:  how many of the 200,000 reads didn't see the write just made
 
-BENCH_TABLE
+| variant | Solid | rounds | construct ms | loop ms | mount ms | loopDrawn ms | update ms | stale reads (loop, drawn) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cells | 2.0.0-rc.21 | 3 | 19.6 | 8.9 | 111.1 | 310.1 | 71.5 | 0 / 0 |
+| cells | 2.0.3 | 3 | 24.1 | 16.1 | 177.4 | 308.6 | 97.2 | 0 / 0 |
+| slim | 2.0.0-rc.21 | 3 | 2.3 | 10.3 | 61.1 | 206.7 | 38.5 | 0 / 0 |
+| slim | 2.0.3 | 3 | 1.5 | 7.0 | 44.7 | 148.7 | 34.1 | 0 / 0 |
+| notifier | 2.0.0-rc.21 | 3 | 2.0 | 7.7 | 35.4 | 168.4 | 64.8 | 0 / 0 |
+| notifier | 2.0.3 | 3 | 1.6 | 7.2 | 30.7 | 129.7 | 35.0 | 0 / 0 |
+| signal-flush | 2.0.0-rc.21 | 3 | 4.7 | 88.3 | 28.3 | 205.3 | 21.0 | 0 / 0 |
+| signal-flush | 2.0.3 | 3 | 12.7 | 160.2 | 21.5 | 321.8 | 33.5 | 0 / 0 |
+| store-draft | 2.0.0-rc.21 | 3 | 5.7 | 87.9 | 32.9 | 147.5 | 23.9 | 200000 / 200000 |
+| store-draft | 2.0.3 | 3 | 5.2 | 129.2 | 28.6 | 202.7 | 34.2 | 200000 / 200000 |
+| store-flush | 2.0.0-rc.21 | 3 | 9.5 | 169.6 | 30.7 | 395.6 | 40.5 | 0 / 0 |
+| store-flush | 2.0.3 | 3 | 7.4 | 277.2 | 29.9 | 906.7 | 91.8 | 0 / 0 |
+| store-flush100 | 2.0.0-rc.21 | 3 | 7.4 | 217.2 | 79.5 | 596.0 | 48.4 | 198000 / 198000 |
+| store-flush100 | 2.0.3 | 3 | 8.5 | 311.2 | 52.5 | 710.4 | 75.6 | 198000 / 198000 |
+| store-snapshot | 2.0.0-rc.21 | 3 | 9.5 | 214.9 | 35.4 | 409.6 | 30.9 | 0 / 0 |
+| store-snapshot | 2.0.3 | 3 | 5.3 | 271.5 | 41.9 | 385.5 | 45.7 | 0 / 0 |
+| bigstore-draft | 2.0.0-rc.21 | 3 | 20.2 | 300.2 | 55.8 | 388.4 | 61.1 | 200000 / 200000 |
+| bigstore-draft | 2.0.3 | 3 | 19.9 | 405.3 | 90.5 | 535.8 | 76.7 | 200000 / 200000 |
+
+- Reading it (ratios;  the machine was at load 35 to 62):
+  - Only `cells`, `slim`, `notifier`, `signal-flush`, `store-flush` and `store-snapshot` read every write back.
+    `store-draft` and `bigstore-draft` read NONE of them back (200,000 stale);  `store-flush100` missed 99%.
+  - A program's own work (`loop`):  today's cells 9 to 16 ms;  a store read fresh through `snapshot()` 215 to 272,
+    a store flushed per statement 170 to 277:  about 17 to 24 times.
+  - With everything drawn (`loopDrawn`), the gap narrows to 1.2 to 3 times:  drawing dominates.
+  - (D1), `slim`:  the same as cells for a program's own work;  2.5 to 4 times quicker to mount 60,000 readers,
+    about 1.5 to 2 times with everything drawn, about 2 times to update.
+  - `construct` is unfair to `cells`:  these things aren't `Observable`s, so each one takes `extendedFor()`'s slow
+    path (six `defineProperty` calls);  an `Observable` makes its records as it's constructed.
 
 Memory (`memory.mts`), bytes, 50,000 things of 3 fields, then one drawn reader per field:
 
@@ -164,7 +194,12 @@ Memory (`memory.mts`), bytes, 50,000 things of 3 fields, then one drawn reader p
 
 - The last two rows are the bridge's tax on a computation that reads NO cell:  Spell UI's, the editor's own.
   - +1,339 bytes each:  +786 is Solid's own wiring, +553 is Spell's `Reaction`.
-  - Time (`bridgeTax.mts`, 60,000 render effects):  BRIDGE_TAX
+  - Time (`bridgeTax.mts`, 60,000 render effects), medians of 3 rounds, the machine less busy (load 30):
+    - plain:  9 ms to create (rc.21;  10 on 2.0.3), 15 to update (18)
+    - Solid's wiring alone:  30 to create (32), 26 to update (28)
+    - the cells bridge:  50 to create (56), 29 to update (40)
+    - so about 5 times the time to create a computation, and about 2 times to update one;
+      Spell's `Reaction` is about half of the extra time to create
   - perf-code.md listed this as "Every Solid computation wrapped by a spell-cell `Reaction`", cost **M**, inferred;
     now measured.
 - 2.0.3 and rc.21 gave the same memory to the byte, but for the store row.
@@ -191,7 +226,7 @@ class Card extends Thing {
   But inside an action, after its first wait, it prints the OLD rank (experiment 10);  and the same beside a read of
   a place that's loading (5c).
 - What the editor sees:  a drawing made right after a write shows the old value until the flush (9a).
-- Cost:  `store-snapshot`, about 20 times today's cells for write-then-read (`loop`).
+- Cost:  `store-snapshot`, about 17 to 24 times today's cells for write-then-read (`loop`).
 - Breaks:
   - read-after-write inside actions, and beside async work
   - `===`:  a Thing inside another's store is copied on its first write (6c), unless its class is `markRaw`'d, and
@@ -213,8 +248,8 @@ set rank(value) {
 
 - What a program sees:  right after each statement, if it's flushed per statement.
   Flushed per wait instead, 198,000 of 200,000 reads were stale (`store-flush100`).
-- Cost:  per statement, about 30 times today's `loop`, and every drawn reader re-runs once per statement, not once
-  per tick (`store-flush`, `loopDrawn`).
+- Cost:  per statement, about 17 to 19 times today's `loop`, and every drawn reader re-runs once per statement, not
+  once per tick (`store-flush`'s `loopDrawn`:  1.3 to 3 times today's).
 - Breaks:  `flush()` throws inside a Solid action (4c), does nothing inside an effect (4b), and can't land a write
   held with async (5b).  A program's write in a drawing throws (4a).
 - Not recommended.
@@ -256,8 +291,9 @@ class Cell {
   - Solid is handed in, as today (`useSolid()`):  `spell/util` still imports none.
   - A derived value keeps the equality cutoff with a signal of its own, set after a microtask check.
 - What a program sees:  the same as today (`slimCheck.mjs`, checks 1-7 and 10-13).
-- Cost:  the fastest model with read-after-write (`slim`, `notifier`):  about 2 to 5 times quicker than today, and
-  866 bytes per drawn reader against 2,041.  Computations that read no cell pay nothing.
+- Cost:  the fastest model with read-after-write (`slim`, `notifier`):  2.5 to 4 times quicker to mount readers,
+  about 2 times to update, the same for a program's own work;  866 bytes per drawn reader against 2,041.
+  Computations that read no cell pay nothing.
 - Breaks, measured:
   - a drawing that writes a value it just read runs FOREVER on 2.0.3:  `RangeError:  Invalid array length` inside
     Solid's flush (check 9).  On rc.21 it ran once.
@@ -298,8 +334,8 @@ solid.enableExternalSource({
 ```
 
 - What a program sees:  nothing changes.
-- Cost:  saves Spell's share of the tax on computations that read no cell, about 553 of 1,339 bytes, and the
-  `Reaction`'s part of the time to create one (inferred:  not built;  the "nothing" factory's floor is measured).
+- Cost:  saves Spell's share of the tax on computations that read no cell:  about 553 of 1,339 bytes, and about half
+  of the extra time to create one (inferred:  not built;  the do-nothing factory's floor is measured).
   Solid's share stays, as long as any external source is registered.
 - Breaks:  nothing, if the stand-in collector is right (inferred).  The bridge's tests pin the rest.
 - Effort:  S.
@@ -371,7 +407,7 @@ Ranked, with what each costs and risks:
 1. **Keep the record as the one copy:  it already is.**  Say so in `agents/solid/solid-2.md`, so "a separate copy for
    Solid" stops being the mental model.  Effort:  none.
 2. **Make the bridge cheaper (D3).**  The `Reaction` made on a computation's first cell read.
-   - Gains:  about 0.55 KB per Solid computation that reads no cell, and part of the time to create one.
+   - Gains:  about 0.55 KB per Solid computation that reads no cell, and about half of the extra time to create one.
    - Risk:  low;  `cells.test.ts` and `cellsBridge.browser.test.tsx` pin the semantics.
    - Effort:  S.  A phase of this epic:  it's re-checking the bridge on 2.0 anyway.
 3. **Run Spell actions inside Solid's `action()`.**  The held screen, no half-dealt board, and fresh program reads.
@@ -415,7 +451,333 @@ Run from `cells-scripts/` (or wherever they're copied), each with a Solid `node_
 | `cellsCheck.mts` | today's cells on the same checks |
 | `heldAction.mts`, `heldTear.mts` | a Spell action in a Solid action:  the held screen, and its edge |
 
-RAW_OUTPUTS
+### raw.mjs (rc.21, dev;  2.0.3 dev and both production builds printed the same, but for no dev warnings in production)
+
+```text
+@solidjs/signals 2.0.0-rc.21, dev
+
+## 1. a signal
+1a top level:  setX(5);  x()                                   => 1
+1b latest(x)                                                   => 1
+1c untrack(x)                                                  => 1
+1d isPending(x)                                                => false
+1e setX(p => p) peeks                                          => 5
+1f after flush():  x()                                         => 5
+1g inside flush(fn):  setX(6);  x()                            => 5
+1h after flush(fn)                                             => 6
+1i 'event handler':  setX(2);  return x()                      => 1
+1j effect apply:  setX(10);  x()                               => [1]
+1j' after the flush                                            => 10
+1k memo compute (ownedWrite):  setX(20);  x()                  => 20
+1l action, synchronous part:  setX(30);  x()                   => ["sync",1]
+1m action after yield:  x(), setX(31), x()                     => [["after yield",1],["after yield + write",1]]
+1n after the action settles                                    => 31
+
+## 2. a store
+2a draft write;  store.a.b                                     => 0
+2b latest(() => store.a.b)                                     => 0
+2c snapshot(store).a.b                                         => 1
+2d a second setter reads draft.a.b                             => 1
+2e the source object:  source.a.b                              => 0
+2f after flush:  store.a.b                                     => 1
+2g after flush:  source.a.b (CoW?)                             => 0
+2h store.a === source.a (unwrapped)                            => false
+2i storePath write;  store.a.b                                 => 1
+2j after flush                                                 => 2
+2k push + two writes;  store.list.length, a.c                  => [2,null]
+2l after flush                                                 => [3,"new"]
+2m direct store.a.b = 99, flushed                              => 3
+2n action:  write;  read;  yield;  read                        => [0,0]
+2o settled                                                     => 5
+2p createStore(fn):  doubled.n                                 => 2
+2q write base;  doubled.n before flush                         => 2
+2r after flush                                                 => 8
+
+## 3. optimistic
+3a optimistic, after flush, action open:  score()              => 1
+3b isPending(score)                                            => false
+3c settled (reverts to its source)                             => 0
+3d inside                                                      => [["sync",0],["after yield",1]]
+3e optimistic store, action open:  todos[0].done               => true
+3f settled:  todos[0].done (reverts)                           => false
+
+warnings: [
+  '[STRICT_READ_UNTRACKED] Reactive value read directly in an effect callback will not update. Move it ',
+  '[STORE_WRITE_OUTSIDE_SETTER] Writing store property "b" outside its setter was ignored. Stores are r'
+]
+```
+
+### raw2.mjs (rc.21, dev;  2.0.3 differs only in 6e:  `true`)
+
+```text
+@solidjs/signals 2.0.0-rc.21, dev
+
+## 4. where a Spell write can happen
+4a store write in a memo compute                                   => "THREW [REACTIVE_WRITE_IN_OWNED_SCOPE] Writing to reactive state inside an owned scope "
+4a' after flush                                                    => 0
+4b flush() in an effect apply, then x()                            => ["flushed, x = 1"]
+4c flush() in an action, then x()                                  => ["THREW [FLUSH_IN_ACTION] flush() inside an action body is not allow"]
+
+## 5. entangled with async:  flush() is not enough
+5a settled:  results()                                             => "results for a"
+5b query and score in one setter;  flush;  score                   => 0
+5c snapshot(store).score                                           => 0
+5d isPending(() => store.score)                                    => true
+5e latest(() => store.score)                                       => 5
+5f after the fetch:  score                                         => 5
+5g query, then score in another setter, same batch;  score         => 5
+5h score in a LATER flush;  score                                  => 7
+
+## 6. stores and class instances
+6a store.card === card (wrapped?)                                  => false
+6b store.card instanceof Card                                      => true
+6c after a draft write:  card.rank (the instance itself)           => "ace"
+6d store.card.label                                                => "king!"
+6e markRaw(Class):  store.raw === raw                              => false
+
+## 7. projections
+7a projection before flush:  isSelected[3]                         => false
+7b after flush:  isSelected[1], [3]                                => [false,true]
+7c row effects re-run (1, 2, 3)                                    => [2,1,2]
+
+## 8. many nested writes, one notification
+8a 200 nested writes in 101 setters, one flush:  effect runs       => 1
+8b values                                                          => [199,100]
+8c structural sharing:  after.list === before.list                 => false
+8d after.a === before.a                                            => false
+8e snapshot twice, no write:  same object?                         => false
+
+warnings: [
+  '[FLUSH_IN_EFFECT_CALLBACK] flush() called from inside an effect callback is a no-op: the flush that ',
+  '[STRICT_READ_UNTRACKED] Reactive value read directly in an effect callback will not update. Move it '
+]
+```
+
+### raw3.mjs (rc.21, dev;  2.0.3 the same)
+
+```text
+9a a memo made right after the write, first compute                      => "old"
+9b snapshot(store.notes).title, outside any computation                  => "new"
+9c the two-path read, outside                                            => "new"
+9d the two-path read, inside a memo made now                             => "old"
+9e after flush:  the memo                                                => "new"
+9f a render effect made after a second write, before flush               => "new"
+9g ... after flush                                                       => "newer"
+warnings: []
+```
+
+### raw4.mjs (rc.21 and 2.0.3, dev)
+
+```text
+10 inside an action: [["proxy",0],["snapshot",5],["after yield: proxy",0],["after yield: snapshot",0]]  settled: 6
+10 inside an action: [["proxy",0],["snapshot",5],["after yield: proxy",0],["after yield: snapshot",0]]  settled: 6
+```
+
+### bench.mts, every round (`uptime` before each)
+
+```text
+11:59  up 14:48, 1 user, load averages: 34.73 37.42 37.30
+{"variant":"cells","mode":"prod","version":"2.0.0-rc.21","construct":19.6,"loop":13.5,"mount":106.6,"loopDrawn":240.2,"update":76.5,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"cells","mode":"prod","version":"2.0.3","construct":37.8,"loop":32.5,"mount":217.8,"loopDrawn":449,"update":121.5,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"slim","mode":"prod","version":"2.0.0-rc.21","construct":31.5,"loop":11.7,"mount":77.3,"loopDrawn":435.8,"update":91.4,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"slim","mode":"prod","version":"2.0.3","construct":2.8,"loop":6.8,"mount":126.6,"loopDrawn":493.3,"update":102,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"notifier","mode":"prod","version":"2.0.0-rc.21","construct":30.3,"loop":71.4,"mount":227.2,"loopDrawn":507.2,"update":76.6,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"notifier","mode":"prod","version":"2.0.3","construct":42.2,"loop":87.5,"mount":228.2,"loopDrawn":752.4,"update":121.5,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"signal-flush","mode":"prod","version":"2.0.0-rc.21","construct":24.3,"loop":372.5,"mount":100,"loopDrawn":712.4,"update":85.3,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"signal-flush","mode":"prod","version":"2.0.3","construct":13.8,"loop":267.4,"mount":57,"loopDrawn":546.5,"update":51.8,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-draft","mode":"prod","version":"2.0.0-rc.21","construct":5.9,"loop":167.4,"mount":82.5,"loopDrawn":323.6,"update":60.9,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"store-draft","mode":"prod","version":"2.0.3","construct":5.2,"loop":184,"mount":82.7,"loopDrawn":364.3,"update":56.9,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"store-flush","mode":"prod","version":"2.0.0-rc.21","construct":33.4,"loop":475.1,"mount":56.1,"loopDrawn":1132.8,"update":115.2,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-flush","mode":"prod","version":"2.0.3","construct":7.4,"loop":638.8,"mount":29.9,"loopDrawn":1230.8,"update":134.6,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-flush100","mode":"prod","version":"2.0.0-rc.21","construct":17.9,"loop":289.6,"mount":79.5,"loopDrawn":596,"update":48.4,"staleReads":{"loop":198000,"loopDrawn":198000}}
+{"variant":"store-flush100","mode":"prod","version":"2.0.3","construct":9,"loop":311.2,"mount":52.5,"loopDrawn":710.4,"update":75.6,"staleReads":{"loop":198000,"loopDrawn":198000}}
+{"variant":"store-snapshot","mode":"prod","version":"2.0.0-rc.21","construct":9.5,"loop":847.6,"mount":190,"loopDrawn":1090.5,"update":120.1,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-snapshot","mode":"prod","version":"2.0.3","construct":5.3,"loop":505.9,"mount":127.9,"loopDrawn":746.8,"update":110.6,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"bigstore-draft","mode":"prod","version":"2.0.0-rc.21","construct":35.6,"loop":637.8,"mount":89.1,"loopDrawn":757.3,"update":124.8,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"bigstore-draft","mode":"prod","version":"2.0.3","construct":23.7,"loop":505,"mount":115.7,"loopDrawn":758.6,"update":132.9,"staleReads":{"loop":200000,"loopDrawn":200000}}
+12:02  up 14:51, 1 user, load averages: 62.46 52.97 44.30
+{"variant":"cells","mode":"prod","version":"2.0.0-rc.21","construct":49,"loop":8.9,"mount":174.7,"loopDrawn":363.3,"update":61.8,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"cells","mode":"prod","version":"2.0.3","construct":21.4,"loop":10.1,"mount":177.4,"loopDrawn":308.6,"update":97.2,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"slim","mode":"prod","version":"2.0.0-rc.21","construct":2.3,"loop":7.8,"mount":46.6,"loopDrawn":156,"update":25.7,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"slim","mode":"prod","version":"2.0.3","construct":1.3,"loop":7,"mount":44,"loopDrawn":141,"update":32.7,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"notifier","mode":"prod","version":"2.0.0-rc.21","construct":1.9,"loop":7.7,"mount":35.4,"loopDrawn":168.4,"update":64.8,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"notifier","mode":"prod","version":"2.0.3","construct":1.6,"loop":7.2,"mount":30.7,"loopDrawn":129.7,"update":35,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"signal-flush","mode":"prod","version":"2.0.0-rc.21","construct":4.7,"loop":65.8,"mount":28.3,"loopDrawn":145.4,"update":10.3,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"signal-flush","mode":"prod","version":"2.0.3","construct":6.3,"loop":160.2,"mount":19.6,"loopDrawn":304.4,"update":33.5,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-draft","mode":"prod","version":"2.0.0-rc.21","construct":5.7,"loop":87.9,"mount":32.9,"loopDrawn":141.9,"update":23.9,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"store-draft","mode":"prod","version":"2.0.3","construct":4.7,"loop":84.3,"mount":26.9,"loopDrawn":146.8,"update":25.6,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"store-flush","mode":"prod","version":"2.0.0-rc.21","construct":9.5,"loop":156,"mount":30.7,"loopDrawn":395.6,"update":40.5,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-flush","mode":"prod","version":"2.0.3","construct":9.5,"loop":277.2,"mount":46.6,"loopDrawn":906.7,"update":91.8,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-flush100","mode":"prod","version":"2.0.0-rc.21","construct":7.4,"loop":217.2,"mount":85.7,"loopDrawn":682,"update":77.6,"staleReads":{"loop":198000,"loopDrawn":198000}}
+{"variant":"store-flush100","mode":"prod","version":"2.0.3","construct":8.5,"loop":334.5,"mount":171.1,"loopDrawn":901.1,"update":75.7,"staleReads":{"loop":198000,"loopDrawn":198000}}
+{"variant":"store-snapshot","mode":"prod","version":"2.0.0-rc.21","construct":15.1,"loop":214.9,"mount":35.4,"loopDrawn":409.6,"update":30.9,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-snapshot","mode":"prod","version":"2.0.3","construct":8.3,"loop":271.5,"mount":41.9,"loopDrawn":385.5,"update":45.7,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"bigstore-draft","mode":"prod","version":"2.0.0-rc.21","construct":20.2,"loop":300.2,"mount":55.8,"loopDrawn":388.4,"update":61.1,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"bigstore-draft","mode":"prod","version":"2.0.3","construct":19.9,"loop":405.3,"mount":90.5,"loopDrawn":535.8,"update":76.7,"staleReads":{"loop":200000,"loopDrawn":200000}}
+12:04  up 14:53, 1 user, load averages: 55.33 53.15 45.41
+{"variant":"cells","mode":"prod","version":"2.0.0-rc.21","construct":15.7,"loop":7.8,"mount":111.1,"loopDrawn":310.1,"update":71.5,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"cells","mode":"prod","version":"2.0.3","construct":24.1,"loop":16.1,"mount":121.9,"loopDrawn":261.8,"update":90.1,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"slim","mode":"prod","version":"2.0.0-rc.21","construct":1.7,"loop":10.3,"mount":61.1,"loopDrawn":206.7,"update":38.5,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"slim","mode":"prod","version":"2.0.3","construct":1.5,"loop":7.2,"mount":44.7,"loopDrawn":148.7,"update":34.1,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"notifier","mode":"prod","version":"2.0.0-rc.21","construct":2,"loop":5.8,"mount":28.5,"loopDrawn":96.1,"update":19.1,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"notifier","mode":"prod","version":"2.0.3","construct":1.5,"loop":5.8,"mount":21.7,"loopDrawn":88.9,"update":19.2,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"signal-flush","mode":"prod","version":"2.0.0-rc.21","construct":4.3,"loop":88.3,"mount":18.7,"loopDrawn":205.3,"update":21,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"signal-flush","mode":"prod","version":"2.0.3","construct":12.7,"loop":131.7,"mount":21.5,"loopDrawn":321.8,"update":31.3,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-draft","mode":"prod","version":"2.0.0-rc.21","construct":5.4,"loop":87.3,"mount":27.5,"loopDrawn":147.5,"update":22.6,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"store-draft","mode":"prod","version":"2.0.3","construct":6.5,"loop":129.2,"mount":28.6,"loopDrawn":202.7,"update":34.2,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"store-flush","mode":"prod","version":"2.0.0-rc.21","construct":5,"loop":169.6,"mount":24.5,"loopDrawn":359.2,"update":33.7,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-flush","mode":"prod","version":"2.0.3","construct":6.6,"loop":233.4,"mount":26.5,"loopDrawn":494.5,"update":41.1,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-flush100","mode":"prod","version":"2.0.0-rc.21","construct":5.5,"loop":74.6,"mount":22.2,"loopDrawn":180.4,"update":18,"staleReads":{"loop":198000,"loopDrawn":198000}}
+{"variant":"store-flush100","mode":"prod","version":"2.0.3","construct":4.8,"loop":69.2,"mount":21.6,"loopDrawn":169.6,"update":17.3,"staleReads":{"loop":198000,"loopDrawn":198000}}
+{"variant":"store-snapshot","mode":"prod","version":"2.0.0-rc.21","construct":5,"loop":139.2,"mount":20.5,"loopDrawn":208.5,"update":21.6,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"store-snapshot","mode":"prod","version":"2.0.3","construct":5.2,"loop":129.5,"mount":24.1,"loopDrawn":198,"update":22.1,"staleReads":{"loop":0,"loopDrawn":0}}
+{"variant":"bigstore-draft","mode":"prod","version":"2.0.0-rc.21","construct":15.2,"loop":199.3,"mount":43.5,"loopDrawn":247.5,"update":40.1,"staleReads":{"loop":200000,"loopDrawn":200000}}
+{"variant":"bigstore-draft","mode":"prod","version":"2.0.3","construct":15.1,"loop":188.2,"mount":40.5,"loopDrawn":211.9,"update":33.8,"staleReads":{"loop":200000,"loopDrawn":200000}}
+done
+```
+
+### memory.mts
+
+```text
+{"variant":"plain","version":"2.0.0-rc.21","bytesPerValue":19,"bytesPerReader":449}
+{"variant":"cells","version":"2.0.0-rc.21","bytesPerValue":88,"bytesPerReader":2041}
+{"variant":"notifier","version":"2.0.0-rc.21","bytesPerValue":51,"bytesPerReader":866}
+{"variant":"signals","version":"2.0.0-rc.21","bytesPerValue":363,"bytesPerReader":521}
+{"variant":"store","version":"2.0.0-rc.21","bytesPerValue":177,"bytesPerReader":719}
+{"variant":"plain","version":"2.0.3","bytesPerValue":19,"bytesPerReader":449}
+{"variant":"cells","version":"2.0.3","bytesPerValue":88,"bytesPerReader":2041}
+{"variant":"notifier","version":"2.0.3","bytesPerValue":51,"bytesPerReader":866}
+{"variant":"signals","version":"2.0.3","bytesPerValue":363,"bytesPerReader":522}
+{"variant":"store","version":"2.0.3","bytesPerValue":180,"bytesPerReader":719}
+{"variant":"cells-bridge-plain","version":"2.0.0-rc.21","bytesPerValue":19,"bytesPerReader":1788}
+{"variant":"noop-source-plain","version":"2.0.0-rc.21","bytesPerValue":19,"bytesPerReader":1235}
+{"variant":"cells-bridge-plain","version":"2.0.3","bytesPerValue":19,"bytesPerReader":1788}
+```
+
+### bridgeTax.mts (the last three rounds, the machine less busy;  earlier rounds:  bridgeTax.txt, bridgeTax2.txt in the scratchpad)
+
+```text
+12:06  up 14:54, 1 user, load averages: 30.32 46.20 43.60
+{"which":"bare","mount":13.4,"update":19.7}
+{"which":"bare","mount":12,"update":25.9,"solid":"2.0.3"}
+{"which":"noop-source","mount":30.1,"update":27}
+{"which":"noop-source","mount":32.4,"update":27.6,"solid":"2.0.3"}
+{"which":"bridged","mount":61.3,"update":30.8}
+{"which":"bridged","mount":56.8,"update":37,"solid":"2.0.3"}
+{"which":"bare","mount":8.8,"update":14.6}
+{"which":"bare","mount":10.3,"update":18.4,"solid":"2.0.3"}
+{"which":"noop-source","mount":31.1,"update":26}
+{"which":"noop-source","mount":31.3,"update":27.2,"solid":"2.0.3"}
+{"which":"bridged","mount":50,"update":28.6}
+{"which":"bridged","mount":52.3,"update":39.7,"solid":"2.0.3"}
+{"which":"bare","mount":8.4,"update":14.2}
+{"which":"bare","mount":9.4,"update":18.2,"solid":"2.0.3"}
+{"which":"noop-source","mount":28.7,"update":22.4}
+{"which":"noop-source","mount":36.1,"update":30.4,"solid":"2.0.3"}
+{"which":"bridged","mount":47.7,"update":23.5}
+{"which":"bridged","mount":56.2,"update":41.3,"solid":"2.0.3"}
+```
+
+### slimCheck.mjs on slim.mjs (D1):  rc.21, dev
+
+```text
+1 read after write, no flush:  card.rank                               => "king"
+2 derived right after a write:  card.isRed                             => false
+3 a nested derived right after a write:  card.label                    => "king (red)"
+4 Solid reader of a cell re-runs (runs incl. the first)                => 2
+5 equality cutoff:  isRed's reader didn't re-run (runs)                => 1
+6 label's reader saw                                                   => ["king (red)","queen (red)"]
+7 three writes, one re-run (rank runs)                                 => 3
+8 a drawing writing what it read:  its value                           => "count 1"
+9 ... it ran (times;  1-2 means no loop)                               => 1
+10 sourcesReadBy(label):  cells and derived values found               => 4
+11 observe() re-ran synchronously                                      => ["nine","eight"]
+12 write + read in an effect apply                                     => ["seven"]
+13 write + read inside a Solid action, before and after a yield        => ["six","five"]
+warnings: []
+```
+
+### slimCheck.mjs on slim.mjs (D1):  2.0.3, dev (stack trimmed)
+
+```text
+1 read after write, no flush:  card.rank                               => "king"
+2 derived right after a write:  card.isRed                             => false
+3 a nested derived right after a write:  card.label                    => "king (red)"
+4 Solid reader of a cell re-runs (runs incl. the first)                => 2
+5 equality cutoff:  isRed's reader didn't re-run (runs)                => 1
+6 label's reader saw                                                   => ["king (red)","queen (red)"]
+7 three writes, one re-run (rank runs)                                 => 3
+8 a drawing writing what it read:  its value                           => "count 1"
+file:///private/tmp/claude-501/-Users-owen-www-spell-worktrees-solid-2-final/71f575d8-b670-4ade-92e5-b2d645e15ba8/scratchpad/solid203-pkgs/nm/@solidjs/signals/dist/dev-shared.js:3036
+  pendingNodes.push(node);
+               ^
+
+RangeError: Invalid array length
+    at Array.push (<anonymous>)
+```
+
+### slimCheck.mjs on lazy.mjs (D2):  2.0.3, dev (rc.21 the same)
+
+```text
+1 read after write, no flush:  card.rank                               => "king"
+2 derived right after a write:  card.isRed                             => false
+3 a nested derived right after a write:  card.label                    => "king (red)"
+4 Solid reader of a cell re-runs (runs incl. the first)                => 2
+5 equality cutoff:  isRed's reader didn't re-run (runs)                => 1
+6 label's reader saw                                                   => ["king (red)","queen (red)"]
+7 three writes, one re-run (rank runs)                                 => 2
+8 a drawing writing what it read:  its value                           => "count 1"
+9 ... it ran (times;  1-2 means no loop)                               => 1
+10 sourcesReadBy(label):  cells and derived values found               => 4
+11 observe() re-ran synchronously                                      => ["nine","eight"]
+12 write + read in an effect apply                                     => ["seven"]
+13 write + read inside a Solid action, before and after a yield        => ["six","five"]
+warnings: []
+```
+
+### cleanupOrder.mjs (rc.21;  2.0.3 the same)
+
+```text
+effect compute 0
+memo compute 0
+effect compute 1
+memo compute 1
+effect compute cleanup 0
+memo cleanup 0
+```
+
+### cellsCheck.mts (today's cells):  rc.21 and 2.0.3, dev
+
+```text
+5 equality cutoff:  isRed's reader didn't re-run (runs)                => 1
+8 a drawing writing what it read:  its value                           => "count 1"
+9 ... it ran (times;  1-2 means no loop)                               => 1
+13 write + read inside a Solid action, before and after a yield        => ["six","five"]
+warnings: []
+5 equality cutoff:  isRed's reader didn't re-run (runs)                => 1
+8 a drawing writing what it read:  its value                           => "count 1"
+9 ... it ran (times;  1-2 means no loop)                               => 1
+13 write + read inside a Solid action, before and after a yield        => ["six","five"]
+warnings: []
+```
+
+### heldAction.mts (rc.21, then 2.0.3)
+
+```text
+plain async action:   program read [ 1, 1, 1 ]   screen showed [ '000', '100', '110', '111' ]
+as a Solid action:    program read [ 1, 1, 1 ]   screen midway [ '000' ]   screen at the end [ '000', '111' ]
+warnings: []
+plain async action:   program read [ 1, 1, 1 ]   screen showed [ '000', '100', '110', '111' ]
+as a Solid action:    program read [ 1, 1, 1 ]   screen midway [ '000' ]   screen at the end [ '000', '111' ]
+warnings: []
+```
+
+### heldTear.mts (2.0.3, then rc.21)
+
+```text
+screen: [ 'light 000', 'dark 110', 'dark 111' ]
+screen: [ 'light 000', 'dark 110', 'dark 111' ]
+```
 
 ## See also
 
