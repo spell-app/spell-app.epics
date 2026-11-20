@@ -1120,6 +1120,7 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
   worktree's servers died partway through the run (cause not found). · Compare against a run at HEAD, then rerun each
   failing file alone;  restart a worktree's servers with its own cli (the "server" section, "handler is not a
   function"). · app (epic `notebook` P3)
+- 2026-11-19 · A worktree's editor and main's both on port 3000:  main's vite listens on 127.0.0.1:3000, the worktree's on *:3000, and the worktree's `.spell-server.editor.json` says `localhost:3000`, so `localhost` reaches MAIN's editor (`yarn examples:readme` took Bill Splitter's picture for a new example).  Its LAN address answers 403 "wrong origin".  Fix:  Chromium's `--host-resolver-rules=MAP localhost <LAN ip>` (a `--import` preload patching `chromium.launch`).  (epic editor P41)
 
 ## cli
 
