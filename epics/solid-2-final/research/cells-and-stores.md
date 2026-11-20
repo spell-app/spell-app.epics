@@ -175,8 +175,8 @@ builds:
   - A program's own work (`loop`):  today's cells 9 to 16 ms;  a store read fresh through `snapshot()` 215 to 272,
     a store flushed per statement 170 to 277:  about 17 to 24 times.
   - With everything drawn (`loopDrawn`), the gap narrows to 1.2 to 3 times:  drawing dominates.
-  - (D1), `slim`:  the same as cells for a program's own work;  2.5 to 4 times quicker to mount 60,000 readers,
-    about 1.5 to 2 times with everything drawn, about 2 times to update.
+  - (D1), `slim`:  the same as cells for a program's own work;  2 to 4 times quicker to mount 60,000 readers,
+    1.5 to 2 times with everything drawn, 2 to 3 times to update.
   - `construct` is unfair to `cells`:  these things aren't `Observable`s, so each one takes `extendedFor()`'s slow
     path (six `defineProperty` calls);  an `Observable` makes its records as it's constructed.
 
@@ -290,9 +290,9 @@ class Cell {
 - This is Spell UI's design (`Notifier`), with today's push-pull for derived values and plain readers.
   - Solid is handed in, as today (`useSolid()`):  `spell/util` still imports none.
   - A derived value keeps the equality cutoff with a signal of its own, set after a microtask check.
-- What a program sees:  the same as today (`slimCheck.mjs`, checks 1-7 and 10-13).
-- Cost:  the fastest model with read-after-write (`slim`, `notifier`):  2.5 to 4 times quicker to mount readers,
-  about 2 times to update, the same for a program's own work;  866 bytes per drawn reader against 2,041.
+- What a program sees:  the same as today (`slimCheck.mjs`:  every check on rc.21;  on 2.0.3, all but check 9, below).
+- Cost:  the fastest model with read-after-write (`slim`, `notifier`):  2 to 4 times quicker to mount readers,
+  2 to 3 times to update, the same for a program's own work;  866 bytes per drawn reader against 2,041.
   Computations that read no cell pay nothing.
 - Breaks, measured:
   - a drawing that writes a value it just read runs FOREVER on 2.0.3:  `RangeError:  Invalid array length` inside

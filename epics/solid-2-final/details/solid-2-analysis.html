@@ -12383,7 +12383,530 @@ async def list_rows(name: str):
             </ui-section>
           </ui-section>
 
-          <ui-section id="sources" label="9. Sources" sticky collapsible dividing open="false">
+          <ui-section id="cells" label="9. Cells, stores and drafts" sticky collapsible dividing open="false">
+            <ui-icon slot="icon" name="arrows rotate"></ui-icon>
+            <p>
+              Your question: "Is there a way we can lean into 'Solid drafts' more? Can we use stores more efficiently?
+              Any way we can get rid of the 'Cell' concept that we use for local 'update model immediately so Spell sees
+              the new values right away' while maintaining a separate copy for Solid's reactivity?"
+            </p>
+            <p>
+              Everything here was run, on the Solid we're on (2.0.0-rc.21) and on 2.0.3: both printed the same. The
+              notes, the scripts and what they printed:
+              <a href="../research/cells-and-stores.md">cells-and-stores.md</a>.
+            </p>
+
+            <ui-section
+              id="cells-copy"
+              label="9.1 There's only one copy already"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <ui-message state="positive" heading="No value is kept twice">
+                <p>
+                  A Spell value lives in one place: its object's record, a <code>Map</code>. A cell holds no value at
+                  all, only who read it and a version number.
+                </p>
+              </ui-message>
+              <p>What IS doubled is the bookkeeping of who read what:</p>
+              <ul>
+                <li>Spell keeps its own list per value: the readers of each cell.</li>
+                <li>
+                  Solid keeps its own per computation. The bridge between them,
+                  <code title="src/util/reactive/bridges.ts">bridgeSolid()</code>, gives EVERY Solid computation on the
+                  page a cells reader, and Solid adds a signal of its own to each one.
+                </li>
+                <li>
+                  Spell UI's members are built the same way: a record holds the value, and a Solid signal with no value
+                  tells Solid it changed (<code title="src/element/Reactive.ts">Reactive</code>).
+                </li>
+              </ul>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>What a cell does today</th>
+                      <th>How</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Keeps the value</td>
+                      <td>
+                        It doesn't: the record does (<code title="src/util/reactive/extend.ts">getProp()</code>,
+                        <code title="src/util/reactive/extend.ts">setProp()</code>), written before anyone is told
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Knows who read it</td>
+                      <td>A cell per property, made the first time something tracked reads it</td>
+                    </tr>
+                    <tr>
+                      <td>Tells Solid</td>
+                      <td>Through the bridge: one cells reader per Solid computation, on the whole page</td>
+                    </tr>
+                    <tr>
+                      <td>Never wakes a reader for its own write</td>
+                      <td>A drawing that writes what it read runs once, not forever (a test pins it)</td>
+                    </tr>
+                    <tr>
+                      <td>Memoizes derived values</td>
+                      <td>
+                        <code title="src/util/reactive/Derived.ts">Derived</code>: recomputed only when what it read
+                        changed, and its readers told only when its value really moved
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Keeps keys in the order first set, and the types</td>
+                      <td>
+                        A cell for the key set;
+                        <code title="src/util/reactive/Schema.ts">Schema</code>: declared types win, others widen
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Answers "worked out from"</td>
+                      <td>
+                        <code title="src/util/reactive/cells.ts">sourcesReadBy()</code>, for the Data side bar's
+                        <code title="src/places/Places.ts">originOf()</code>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Follows state in plain code</td>
+                      <td><code title="src/util/reactive/bridges.ts">observe()</code>, e.g. the code editor's files</td>
+                    </tr>
+                    <tr>
+                      <td>Undo, cancel, saving to a place, <code>when it changes</code></td>
+                      <td>
+                        Not cells: the core hears every write first, with the value it was (<code
+                          title="parser/src/core/core.ts"
+                          >noteSetting()</code
+                        >)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Async values</td>
+                      <td>Not cells: a waited value is Solid's <code>createDeferred()</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>Where a second copy really is kept, on purpose:</p>
+              <ul>
+                <li>
+                  The editor's <code title="app/src/app/solid/tracked.ts">tracked()</code> (71 uses): a Solid memo of a
+                  read, so it's one step behind until the flush.
+                </li>
+                <li>A waited value, which lags by design; and every derived value's cache.</li>
+              </ul>
+              <epic-text-box for="cells-copy"></epic-text-box>
+            </ui-section>
+
+            <ui-section
+              id="cells-solid"
+              label="9.2 What Solid 2 does right after a write"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>
+                Each row is an experiment, run on rc.21 and 2.0.3, in both the development and production builds. All
+                four printed the same.
+              </p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Where the read happens</th>
+                      <th>A signal</th>
+                      <th>A store</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Right after the write, in plain code or a click handler</td>
+                      <td><ui-label size="mini">old</ui-label></td>
+                      <td><ui-label size="mini">old</ui-label></td>
+                    </tr>
+                    <tr>
+                      <td><code>latest()</code>, <code>untrack()</code></td>
+                      <td><ui-label size="mini">old</ui-label></td>
+                      <td><ui-label size="mini">old</ui-label></td>
+                    </tr>
+                    <tr>
+                      <td><code>snapshot(store)</code></td>
+                      <td>--</td>
+                      <td><ui-label size="mini">new</ui-label> the only public read that sees it</td>
+                    </tr>
+                    <tr>
+                      <td>After <code>flush()</code></td>
+                      <td><ui-label size="mini">new</ui-label></td>
+                      <td><ui-label size="mini">new</ui-label></td>
+                    </tr>
+                    <tr>
+                      <td>Inside an effect</td>
+                      <td><ui-label size="mini">old</ui-label> and <code>flush()</code> there does nothing</td>
+                      <td><ui-label size="mini">old</ui-label></td>
+                    </tr>
+                    <tr>
+                      <td>Inside a memo (where Spell's drawings run)</td>
+                      <td><ui-label size="mini">new</ui-label> if the signal allows writes there</td>
+                      <td>The write throws in development: stores never allow it</td>
+                    </tr>
+                    <tr>
+                      <td>Inside a Solid action, after it waits once</td>
+                      <td><ui-label size="mini">old</ui-label></td>
+                      <td><ui-label size="mini">old</ui-label> even through <code>snapshot()</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>flush()</code> inside an action</td>
+                      <td>Throws</td>
+                      <td>Throws</td>
+                    </tr>
+                    <tr>
+                      <td>Beside a write that starts loading something, after <code>flush()</code></td>
+                      <td>--</td>
+                      <td>
+                        <ui-label size="mini">old</ui-label> even through <code>snapshot()</code>, until the load lands
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>What else the stores showed:</p>
+              <ul>
+                <li>
+                  A store never writes to the object you gave it: its first write copies that object, and everything
+                  above it.
+                </li>
+                <li>
+                  So a Spell thing put in a store isn't itself any more: its copy changes, and
+                  <code>===</code> fails. 2.0.3's <code>markRaw(Card)</code> keeps a class out of stores, and then it
+                  isn't reactive either.
+                </li>
+                <li>200 nested writes in 101 draft setters re-ran a drawing ONCE.</li>
+                <li>
+                  Snapshots share nothing between versions: each one copies every record that was ever written, even
+                  with nothing changed between two of them.
+                </li>
+              </ul>
+              <ui-message state="info" heading="Why the record stays the truth">
+                <ul>
+                  <li>
+                    Spell is imperative: <code>set the score to 5</code> then <code>print the score</code> must print 5,
+                    in a click handler, in a drawing, and halfway through an action that waits.
+                  </li>
+                  <li>No Solid read gets that everywhere; <code>snapshot()</code> comes closest, and fails twice.</li>
+                  <li>
+                    <code>flush()</code> after each statement can't stand in: actions refuse it, effects ignore it, and
+                    loading work holds it back.
+                  </li>
+                  <li>The same was found on rc.11 and rc.13; nothing since has changed it.</li>
+                </ul>
+              </ui-message>
+              <epic-text-box for="cells-solid"></epic-text-box>
+            </ui-section>
+
+            <ui-section
+              id="cells-options"
+              label="9.3 The ways to one copy, measured"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <p>
+                Each was tried on 20,000 things of 3 fields: a program writing and reading back 200,000 times, then the
+                same with every field drawn. Times are ratios to today's cells; the machine was very busy, so read them
+                as rough.
+              </p>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Way</th>
+                      <th>What it is</th>
+                      <th>Reads its own writes?</th>
+                      <th>Cost, measured</th>
+                      <th>What breaks</th>
+                      <th>Verdict</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>A</b> The store is the model</td>
+                      <td>Writes through drafts; Spell reads with <code>snapshot()</code></td>
+                      <td>Not inside an action after it waits, nor beside loading work</td>
+                      <td>17-24x for a program's own work</td>
+                      <td>
+                        <code>===</code> for things; drawings can't write; keys, types and "worked out from" to rebuild
+                      </td>
+                      <td><ui-label size="mini">no</ui-label></td>
+                    </tr>
+                    <tr>
+                      <td><b>B</b> A store, flushed after each statement</td>
+                      <td><code>flush()</code> after every write, or at every wait</td>
+                      <td>Per statement yes; per wait, 99% stale</td>
+                      <td>17-19x, and every drawing re-runs per statement</td>
+                      <td>Actions refuse <code>flush()</code>; effects ignore it; loading work holds it back</td>
+                      <td><ui-label size="mini">no</ui-label></td>
+                    </tr>
+                    <tr>
+                      <td><b>C</b> Plain objects, Solid following</td>
+                      <td>A projection over plain data</td>
+                      <td>Yes</td>
+                      <td>--</td>
+                      <td>A plain object can't say it changed: something must, which is D1</td>
+                      <td><ui-label size="mini">no</ui-label> becomes D1</td>
+                    </tr>
+                    <tr>
+                      <td><b>D1</b> Cells, no bridge</td>
+                      <td>Each cell holds a Solid signal with no value, as Spell UI's members do</td>
+                      <td>Yes</td>
+                      <td>
+                        2-4x quicker to set up drawings, 1.5-2x with all drawn, the same for a program's own work, 866 bytes a reader against 2,041
+                      </td>
+                      <td>On 2.0.3, a drawing that writes a value it just read runs forever (it ran once on rc.21)</td>
+                      <td><ui-label size="mini">check</ui-label> with one engine</td>
+                    </tr>
+                    <tr>
+                      <td><b>D2</b> Cells, a reader made only where one is read, no bridge</td>
+                      <td>Today's cells reader, made on a computation's first read of a cell</td>
+                      <td>Yes</td>
+                      <td>--</td>
+                      <td>
+                        Can't work: Solid cleans up a computation's last run AFTER its next one, so the reader can't
+                        tell runs apart
+                      </td>
+                      <td><ui-label size="mini">no</ui-label></td>
+                    </tr>
+                    <tr>
+                      <td><b>D3</b> Cells, a cheaper bridge</td>
+                      <td>Today's bridge, its cells reader made only once a cell is read</td>
+                      <td>Yes</td>
+                      <td>Saves about 0.55 KB a computation, and about half the extra time to make one</td>
+                      <td>Nothing a program sees (not built yet)</td>
+                      <td><ui-label size="mini">adopt</ui-label></td>
+                    </tr>
+                    <tr>
+                      <td><b>E</b> Spell UI's members on stores</td>
+                      <td><code>@E.state</code> backed by a store</td>
+                      <td>No</td>
+                      <td>--</td>
+                      <td><code>this.isOpen = true</code> must read back at once; stores copy class instances</td>
+                      <td><ui-label size="mini">no</ui-label> merge the other way</td>
+                    </tr>
+                    <tr>
+                      <td>Nested JSON a program holds</td>
+                      <td>Reactive through cells (a proxy), or a Solid store</td>
+                      <td>Through cells yes; a store, not inside actions</td>
+                      <td>A proxy costs about 2.5x a plain read (measured for things, inferred here)</td>
+                      <td>A store: as A</td>
+                      <td><ui-label size="mini">adopt</ui-label> through cells</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ui-message state="warning" heading="The bridge costs every Solid computation on a Spell page">
+                <ul>
+                  <li>
+                    Even one that reads no cell, as Spell UI's and the editor's own do: about 1.3 KB more memory, 5
+                    times the time to make it, 2 times the time to update it.
+                  </li>
+                  <li>
+                    Of that, about 0.8 KB is Solid's own wiring for any outside source, and stays; about 0.55 KB is
+                    Spell's reader, which D3 makes only where a cell is read.
+                  </li>
+                </ul>
+              </ui-message>
+              <ui-accordion class="spell-code" appearance="styled"
+                ><ui-title>A, the store as the model: what a compiled thing would become · 12 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">class Card extends Thing {
+  [STORE] = createStore({ rank: "ace", suit: "spades" })
+  get rank() {
+    const [store] = this[STORE]
+    return getObserver() ? store.rank : snapshot(store).rank // stale inside an action after it waits
+  }
+  set rank(value) {
+    this[STORE][1]((draft) =&gt; {
+      draft.rank = value // throws inside a drawing
+    })
+  }
+}</code></pre>
+                </ui-content></ui-accordion
+              >
+              <ui-accordion class="spell-code" appearance="styled"
+                ><ui-title>D1, cells with no bridge: each cell's own signal · 13 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">class Cell {
+  version = 0
+  signal?: Signal&lt;undefined&gt;
+  read() {
+    linkPlainReader(this) // observe(), sourcesReadBy() and derived values, as today
+    if (solid.getObserver()) (this.signal ??= solid.createSignal(undefined, { equals: false, ownedWrite: true }))[0]()
+  }
+  changed() {
+    this.version++
+    this.signal?.[1]() // on 2.0.3 this wakes a drawing that wrote what it read:  forever
+    wakePlainReaders(this)
+  }
+}</code></pre>
+                </ui-content></ui-accordion
+              >
+              <ui-accordion class="spell-code" appearance="styled"
+                ><ui-title>D3, a cheaper bridge: the cells reader made on the first cell read · 14 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">solid.enableExternalSource({
+  factory(compute, trigger) {
+    let reaction: Reaction | undefined
+    return {
+      track: (previous) =&gt; {
+        if (reaction) return reaction.run(() =&gt; compute(previous))
+        // a stand-in collector:  becomes a Reaction on the first cell this run reads
+        return collectLazily(() =&gt; compute(previous), () =&gt; (reaction = new Reaction(trigger)))
+      },
+      dispose: () =&gt; reaction?.dispose()
+    }
+  },
+  untrack: untrackCells
+})</code></pre>
+                </ui-content></ui-accordion
+              >
+              <epic-text-box for="cells-options"></epic-text-box>
+            </ui-section>
+
+            <ui-section
+              id="cells-drafts"
+              label="9.4 Leaning into drafts and actions"
+              sticky
+              collapsible
+              dividing
+              open="false"
+            >
+              <ui-message state="positive" heading="Solid's actions hold the screen, with cells as they are">
+                <p>
+                  A Spell action run inside Solid's <code>action()</code> showed nothing until it ended, and the program
+                  still read its own writes at once.
+                </p>
+              </ui-message>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Dealing three cards, waiting between each</th>
+                      <th>The program read back</th>
+                      <th>The screen showed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>As today's async action</td>
+                      <td>1, 1, 1</td>
+                      <td><code>000</code>, <code>100</code>, <code>110</code>, <code>111</code>: every step</td>
+                    </tr>
+                    <tr>
+                      <td>As a Solid action, each wait a <code>yield</code></td>
+                      <td>1, 1, 1</td>
+                      <td><code>000</code>, then <code>111</code>: nothing half-dealt</td>
+                    </tr>
+                    <tr>
+                      <td>The same, while something else (the theme) changes midway</td>
+                      <td>1, 1, 1</td>
+                      <td><code>dark 110</code>, then <code>dark 111</code>: half-dealt for a moment</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  It works because the bridge's signal is a Solid write, which Solid holds with the action, while the
+                  value itself is in the record.
+                </li>
+                <li>
+                  So compiling actions to generators (section 6.5) gets Solid's held screen with no store. The last row
+                  needs a guard of its own: cells holding an action's writes back from drawings until it ends (inferred,
+                  not tried).
+                </li>
+              </ul>
+              <h4>Where drafts don't help</h4>
+              <ul>
+                <li>
+                  <b>Undo:</b> Solid's drafts keep no record of what changed, and snapshots share nothing. Undo already
+                  keeps each property's value before and after: the smallest change there is.
+                </li>
+                <li>
+                  <b>Places' pending changes:</b> Spell's outlive the tab, resend, and merge with other people's;
+                  Solid's optimistic stores are one tab, in memory. Spell even has its own drafts: an Edit screen's copy
+                  that sends nothing until Save, kept on this device.
+                </li>
+                <li>
+                  <b>The Inspector:</b> it already sees every write, with the value it was. A store's snapshot would
+                  give a whole copy per moment, not a change.
+                </li>
+              </ul>
+              <h4>Where stores DO fit: state nothing reads back at once</h4>
+              <ul>
+                <li>
+                  The editor's own UI state: 189 signals and 110 memos in plain Solid components. A panel's signals as
+                  one store means one setter and one draft per change (inferred).
+                </li>
+                <li>
+                  The epic pages' <code title="epic/src/review/PageStore.ts">PageStore</code>: a version and a
+                  subscribe, which is a store made by hand.
+                </li>
+                <li>"Is this row selected" in a long list: a projection re-ran only the two rows that changed.</li>
+                <li>
+                  A place's read for a drawing, as a Solid async value (section 5.2's <code>createPlace()</code>).
+                </li>
+              </ul>
+              <epic-text-box for="cells-drafts"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="cells-plan" label="9.5 What we'd do, in order" sticky collapsible dividing open="false">
+              <ol>
+                <li>
+                  <b>Keep the record as the one copy: it already is.</b> Say so in the Solid 2 rules, so "a separate
+                  copy for Solid" stops being how we think of it.
+                </li>
+                <li>
+                  <b>A cheaper bridge (D3).</b> Small; this epic re-checks the bridge on 2.0 anyway, so a phase of its
+                  own here. Its tests pin what programs see.
+                </li>
+                <li>
+                  <b>Spell actions inside Solid's actions.</b> No half-dealt board, and fresh reads. Needs actions
+                  compiled to generators, and a guard for the midway case: large, its own epic.
+                </li>
+                <li>
+                  <b>Stores where nothing reads back at once:</b> the epic pages' stores, selection in long lists, the
+                  editor's panels. Small each; only where a phase is in that code anyway.
+                </li>
+                <li><b>Nested JSON reactive through cells</b>, not a store. Medium; its own todo.</li>
+                <li>
+                  <b>One engine for Spell UI and Spell's own state.</b> Onto cells with D3, or onto Spell UI's signals
+                  (D1) with a guard against the forever-loop. Medium to large; its own epic.
+                </li>
+              </ol>
+              <p>Not recommended: A, B, C, D2, E.</p>
+              <ui-message state="warning" heading="Risks">
+                <ul>
+                  <li>
+                    The bridge stays the one place Spell rests on Solid's internals: re-run the scripts and the bridge's
+                    tests on every Solid update.
+                  </li>
+                  <li>
+                    2.0.3 changed one thing these experiments touch: a computation writing a signal it just read now
+                    runs again. Today's cells don't rely on it; D1 would.
+                  </li>
+                </ul>
+              </ui-message>
+              <epic-text-box for="cells-plan"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="sources" label="10. Sources" sticky collapsible dividing open="false">
             <ui-icon slot="icon" name="book"></ui-icon>
             <h4>The research notes behind this page</h4>
             <ui-items class="spell-sources" divided>
@@ -12429,6 +12952,16 @@ async def list_rows(name: str):
                   ><ui-description
                     >Loading and saving data: a Python program on Quart, streaming, generators, ranked
                     ideas.</ui-description
+                  ></ui-content
+                ></ui-item
+              >
+              <ui-item
+                ><ui-content
+                  ><ui-header><a href="../research/cells-and-stores.md">cells-and-stores.md</a></ui-header
+                  ><ui-description
+                    >Section 9: what a cell does, Solid 2's reads right after a write (rc.21 and 2.0.3), the ways to one
+                    copy with their costs, held actions; the scripts in cells-scripts/, and what they
+                    printed.</ui-description
                   ></ui-content
                 ></ui-item
               >
@@ -12629,6 +13162,97 @@ async def list_rows(name: str):
                 </epic-option>
                 <epic-option letter="C" title="Leave it as it is">
                   <p>Keep the fold-in as decided; file only the shadow-root bug if 2.0.3 still has it.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q4" label="Q4 · Keep cells as Spell's one copy?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Cells keep no second copy: the record is the only one (section 9.1). Solid 2.0.3 still can't read a
+                  write back at once where Spell code runs (9.2). What should this epic do with cells?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Keep cells, make the bridge cheaper" recommended>
+                  <p>
+                    A small phase here: the cells reader made only where a cell is read, the bridge re-checked on 2.0.3.
+                    Programs see no change.
+                  </p>
+                  <epic-aside title="Details"
+                    ><ul>
+                      <li>Saves about 0.55 KB on every Solid computation that reads no cell.</li>
+                      <li>The rest of 9.5 waits for its own epics.</li>
+                    </ul></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="One engine now, on Spell UI's signals">
+                  <p>
+                    Drop the bridge: each cell holds a Solid signal, as Spell UI's members do. The fastest measured, but
+                    a drawing that writes what it read loops on 2.0.3, so it needs a guard first.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="Leave cells exactly as they are">
+                  <p>Move to 2.0.3 and re-run the bridge's tests; nothing else.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q5" label="Q5 · Run Spell actions inside Solid's actions?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  A Spell action run inside Solid's <code>action()</code> held the screen until it ended, with no store
+                  and fresh reads (9.4). It needs actions compiled to generators (6.5). When?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="With the generators, as their own epic" recommended>
+                  <p>
+                    One piece of work: generators give exact cancel and stepping too, and the held screen comes with
+                    them.
+                  </p>
+                  <epic-aside title="Details"
+                    ><ul>
+                      <li>Plus a guard for the midway case: something else changing while the action runs.</li>
+                    </ul></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="In this epic">
+                  <p>Bigger than moving to 2.0: the compiler, the action queue and the debugger all change.</p>
+                </epic-option>
+                <epic-option letter="C" title="Not at all">
+                  <p>Drawings keep showing each step of an action as it happens.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q6" label="Q6 · Nested JSON a program holds: reactive how?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Today a list or object a program changes in place tells nobody. A Solid store would make it reactive
+                  for free, but reads it back stale inside actions (9.3). Which way?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Through cells, a proxy" recommended>
+                  <p>
+                    Reads its own writes everywhere, keeps key order and "worked out from". About 2.5x a plain read.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="A Solid store">
+                  <p>No engine work of ours, but stale reads inside actions and beside loading work.</p>
+                </epic-option>
+                <epic-option letter="C" title="Leave it">
+                  <p>Programs keep setting a new list or object to change one.</p>
                 </epic-option>
               </epic-choices>
             </epic-ask>
