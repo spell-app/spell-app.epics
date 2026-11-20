@@ -6,7 +6,7 @@
     <title>CodeMirror in Spell's Editor</title>
     <meta
       name="description"
-      content="Every place Spell's editor app shows code runs on CodeMirror 6 since 2026-11-16:  what it does, how it's built, what Monaco did that it doesn't yet."
+      content="Every place Spell's editor app shows code runs on CodeMirror 6 since 2026-11-16:  what it does, how it's built, what it doesn't do yet."
     />
     <meta name="spell-saga" content="app" />
     <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
@@ -33,7 +33,9 @@
             >The record:
             <a href="/epics/codemirror/codemirror.plan.html" target="codemirror">epic codemirror's page</a></ui-item
           >
-          <ui-item icon="code branch">Branch: <code>codemirror</code>, merged 2026-11-16</ui-item>
+          <ui-item icon="code branch"
+            >Branch: <code>codemirror</code>, merged 2026-11-16, its fixes through 2026-11-19</ui-item
+          >
         </ui-list>
 
         <ui-section id="1-summary" label="1. What changed" sticky collapsible dividing open="false">
@@ -65,8 +67,11 @@
               editor shows can be Spanish; Monaco's stayed English.
             </li>
             <li>
-              <b>Not yet:</b> Monaco's peek view, and <code>&lt;spell-editor&gt;</code>'s right-click menu (see
-              <a href="#6-limits">Limits</a>).
+              <b>Since the swap:</b> a peek view, a compact find bar, every line one height, and the bubbly marks made
+              only for the lines on screen: a keystroke in a 2,668-line file 68 ms, was 157.
+            </li>
+            <li>
+              <b>Not yet:</b> <code>&lt;spell-editor&gt;</code>'s right-click menu (see <a href="#6-limits">Limits</a>).
             </li>
           </ul>
         </ui-section>
@@ -83,10 +88,17 @@
                 moving the lines under, the caret snapping into a blank line's body, closing quotes and tags.
               </li>
               <li>
-                <code>{</code> and <code>"</code> switch a value between code and text: typing <code>{</code> in
+                A curly brace or a quote switches a value between code and text. Typing <code>{</code> in
                 <code>color="blue"</code> makes it <code>color={blue}</code>.
               </li>
               <li>Each help is one undo step, and only the editor you type in helps.</li>
+              <li><code>|&gt;</code> typed in a tag writes <code>/&gt;</code>.</li>
+              <li>A comment's double dash, drawn as one dash, is one step for the caret, and Backspace takes both.</li>
+              <li>
+                The popups that show by themselves (suggestions, signature help, hovers) wait for typing to pause, as
+                long as Settings… › Popup delay says: Short 0.4 s, Standard 0.8 s, Long 1.5 s. Ctrl+Space shows them at
+                once.
+              </li>
               <li>Accent fixes as you type (<code>numero</code> becomes <code>número</code>).</li>
             </ul>
           </ui-section>
@@ -98,6 +110,11 @@
                 Go to Definition (F12), Find All References (⇧F12), Rename Symbol (F2), type definition, signature help.
               </li>
               <li>Go to Definition on a Spell UI tag shows the tag's help.</li>
+              <li>
+                Peek Definition (⌥F12) and Peek References (⇧⌥F12): a box under the caret's line shows the other place,
+                read only and drawn bubbly, the uses listed beside it; Enter goes there, Esc closes it.
+              </li>
+              <li>Every Go to … jump scrolls the whole block it lands in into view, its head a row below the top.</li>
               <li>Format Document, expand and shrink selection, Go to Symbol (⇧⌘O).</li>
               <li>
                 The value picker and value choices under an attribute (colours, icons), link icons with ⌘-click, comment
@@ -121,6 +138,15 @@
                 while the mouse is there, and a folded block's arrow always shows.
               </li>
               <li>The compiled pane marks the line you're on with a 3px bar in the gutter.</li>
+              <li>
+                ⌘F opens a find bar like VS Code's over the code's top right: Aa / ab / .* in the field, a match count,
+                the Replace row showing until you fold it (it stays folded).
+              </li>
+              <li>
+                A press inside a selection starts a new one, as in VS Code with drag-and-drop off; four clicks select
+                the block the line is in, each click after the block around it.
+              </li>
+              <li>CSS files and property editors files (<code>Card.editor.spell</code>) are coloured too.</li>
             </ul>
           </ui-section>
 
@@ -134,9 +160,13 @@
           <ui-section id="demo" label="The demo page" sticky collapsible dividing open="false">
             <p>
               <code>/demo/codemirror.html</code>, on the editor's dev server, shows every look on one page: a Spell
-              file, an HTML property editor page, the look off, a slice, both sides of a diff, the compiled code. It
-              takes <code>?lang=es</code>, <code>?project=</code> and <code>?highlights=on</code>.
+              file, an HTML property editor page, the look off, a slice, both sides of a diff, the compiled code.
             </p>
+            <ul>
+              <li><code>?lang=es</code>: in Spanish</li>
+              <li><code>?project=</code>: another project's files</li>
+              <li><code>?highlights=on</code>: the highlights, off in the app</li>
+            </ul>
           </ui-section>
         </ui-section>
 
@@ -146,6 +176,53 @@
             Monaco drew Spell's bubbly look as a layer behind the text, kept lined up with it. In CodeMirror the look is
             marks in the lines themselves, so there's nothing to keep in step.
           </p>
+
+          <ui-section id="one-height" label="Every line one height" sticky collapsible dividing open="false">
+            <figure>
+              <img
+                src="/epics/codemirror/tests/feet/p7-after-blank-light.png"
+                alt="Solitaire's actions drawn bubbly, each block's feet in the blank line under it"
+                width="640"
+              />
+              <figcaption><em>Each block's feet sit in the blank line under it, taking no room.</em></figcaption>
+            </figure>
+            <ul>
+              <li>
+                Drawn bubbly, every line is 25px: a block's feet are drawn over the blank line under it, else along the
+                bottom of its last line, and a row of HTML end tags is one line tall.
+              </li>
+              <li>
+                So CodeMirror's guess at the height of lines it hasn't drawn is always right: scrolling Solitaire and
+                Table's examples never changes the file's height (it changed 8 and 88 times before).
+              </li>
+              <li>A description too wide for its band is cut short with …, its whole text in a tooltip.</li>
+            </ul>
+          </ui-section>
+
+          <ui-section id="on-screen" label="Marks for the lines on screen" sticky collapsible dividing open="false">
+            <ul>
+              <li>
+                The layout is worked out for the whole file, but the bubbly marks are made only for the lines CodeMirror
+                draws, again as you scroll (<a
+                  href="/app/src/app/ui/codemirror/CodeMirrorRelayout.ts"
+                  target="src-app-src-app-ui-codemirror-codemirrorrelayout-ts"
+                  ><code title="app/src/app/ui/codemirror/CodeMirrorRelayout.ts">CodeMirrorRelayout</code></a
+                >).
+              </li>
+              <li>
+                A keystroke in Table's examples (2,668 lines) takes 68 ms, was 157: the marks 25 ms for the file plus 4
+                ms on screen, were 115. Solitaire's screenshots are pixel-identical.
+              </li>
+              <li>
+                Still whole-file: each line's rails and heads, the hidden line breaks and the feet, since typing on a
+                blank line moves them far from where they're read.
+              </li>
+              <li>
+                A file is drawn from its text alone until its project's parse is in, with the same blocks and bands: a
+                line naming another file's type is read again with a stand-in for it.
+              </li>
+            </ul>
+          </ui-section>
 
           <ui-section id="one-view" label="One view, a state per file" sticky collapsible dividing open="false">
             <ul>
@@ -201,9 +278,9 @@
               </li>
             </ul>
             <p>
-              The CodeMirror side is a thin wiring over them, a file per feature (<code>CodeMirrorTyping</code>,
-              <code>CodeMirrorHovers</code>, <code>CodeMirrorRename</code> ...), and one converter from the language
-              service, <code>LspToCodeMirror</code>.
+              The CodeMirror side is a thin wiring over them, a file per feature, such as
+              <code>CodeMirrorTyping</code> or <code>CodeMirrorHovers</code>. One converter turns the language service's
+              answers into CodeMirror's: <code>LspToCodeMirror</code>.
             </p>
           </ui-section>
 
@@ -280,10 +357,38 @@
             </p>
           </ui-section>
 
-          <ui-section id="references" label="References in the menu popup" sticky collapsible dividing open="false">
+          <ui-section
+            id="references"
+            label="References in the menu popup, and a peek box"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
             <p>
-              Find All References lists the uses in the right-click popup, a row each that goes there, instead of
-              rebuilding Monaco's peek view.
+              Find All References lists the uses in the right-click popup, a row each that goes there. The peek box came
+              later, as its own plain-DOM widget under the line, so <code>&lt;spell-editor&gt;</code> has it too, where
+              the app's menu can't load.
+            </p>
+          </ui-section>
+
+          <ui-section
+            id="feet"
+            label="Feet in the blank line, not a row of their own"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <p>
+              A block's feet used to take a row of their own, so lines were of many heights and the scroll bar jumped as
+              CodeMirror measured them. Now they're drawn over the blank line under the block, and where there's none,
+              along the bottom of the block's last line.
+            </p>
+            <p>
+              That beat two other ways to give them room: a row exactly one line tall where no blank line follows, which
+              loosened nested code; and Format Document adding a blank line after every block, which asks for blank
+              lines Spell's words don't need.
             </p>
           </ui-section>
         </ui-section>
@@ -296,19 +401,17 @@
               <b><code>&lt;spell-editor&gt;</code> has no right-click menu and no Find All References.</b> The app's
               menu can't load on a page holding only that element; Go to Definition, Rename, Find and Undo work there.
             </li>
-            <li><b>No peek view:</b> nothing shows another file's lines inline under the code.</li>
             <li>
-              <b>The integration page tests aren't settled:</b> 48 of 186 failed on the swapped app, many from the
-              suite's own drift (code it searches for that moved, a class the Inspector dropped).
+              <b>The integration page tests aren't all settled:</b> 13 of 189 still failed after the swap's fixes (was
+              48 of 186), among them Solitaire's foundations the side bar can't change any more.
             </li>
-            <li>Rows are 26px, Monaco's were 24.75: every line of Spell sits 1.25px lower than it did.</li>
             <li>In a diff, a gap for inserted lines cuts the rails on the other side.</li>
             <li>
               A band with a description reaches the right edge by CSS, with a fixed 8px gutter: with line numbers on, or
               scrolled sideways, it's off by their width.
             </li>
-            <li>⌥ with the mouse resting shows the hover after 0.8 s, not at once.</li>
-            <li>The rename field is 13px, not the code's own size.</li>
+            <li>⌥ with the mouse resting shows the hover after the popup delay, not at once.</li>
+            <li>A drag that ends in a head's comment row, under its band, ends in the head's words.</li>
             <li>A pinned line not drawn yet is pinned as plain text, not bubbly; at most 5 are pinned.</li>
             <li>Go to Symbol lists what the file declares by each line's text, not as a nested outline.</li>
             <li>
@@ -370,7 +473,7 @@
         <ui-section id="8-history" label="7. History" sticky collapsible dividing open="false">
           <ui-icon slot="icon" name="clock rotate left"></ui-icon>
           <ui-accordion class="spell-aside" appearance="styled">
-            <ui-title>How it was built, 2026-11-15 to 2026-11-16</ui-title>
+            <ui-title>How it was built, 2026-11-15 to 2026-11-19</ui-title>
             <ui-content>
               <p>
                 Epic <a href="/epics/codemirror/codemirror.plan.html" target="codemirror">codemirror</a>, building on
@@ -385,7 +488,12 @@
                 <li>P4 Typing Helps: the nine helps, and code or text.</li>
                 <li>P5 Language Features: everything else of Monaco's.</li>
                 <li>P6 The Swap: every place moved, Monaco removed.</li>
-                <li>P7 Doc Review: this guide, and the READMEs.</li>
+                <li>
+                  After the swap, I5-I28 and T11-T20: the peek view, the find bar, Popup delay, files drawn from their
+                  text alone, typing 6 times faster in Solitaire, CSS colours, and the page tests caught up.
+                </li>
+                <li>P7 Visible-Only Bubbly Marks: every line 25px, marks for the lines on screen.</li>
+                <li>P8 Doc Review: this guide, and the READMEs.</li>
               </ul>
             </ui-content>
           </ui-accordion>
@@ -393,7 +501,7 @@
 
         <footer class="spell-doc-footer">
           <ui-divider></ui-divider>
-          <p class="meta">Last checked 2026-11-16 against branch <code>main</code> (epic codemirror merged).</p>
+          <p class="meta">Last checked 2026-11-19 against branch <code>main</code> (epic codemirror merged).</p>
         </footer>
       </main>
     </div>
