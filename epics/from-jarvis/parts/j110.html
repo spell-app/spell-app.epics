@@ -5,3 +5,31 @@
   <em>This program calls code from clipboard.ts, which this runner can't load yet.</em> instead of failing on the
   import. Each needs only a <code>loadNative</code> handed to it, later.
 </p>
+<epic-field label="Proposed fix">
+  <p>
+    Both runners hand the runner the same hook the editor's has (<code>loadNative</code>), so a program with a
+    <code>call native</code> line runs there too. One way to get the javascript: esbuild on Spell's side
+    (<code>codeFileAsJavascript()</code>), never in the page.
+  </p>
+  <ul>
+    <li>
+      <b>&lt;spell-viewer&gt;</b>: it fetches each code file from the page server,
+      <code>/spaces/.../clipboard.ts?as=javascript</code>, the route the editor uses. One function now builds that
+      address for both, <code>SpellUrls.codeFileUrl()</code>.
+      <ul>
+        <li>
+          A <code>src="..."</code> viewer, which has no Spell server behind it, still says it can't load the code file.
+        </li>
+      </ul>
+    </li>
+    <li>
+      <b>VS Code's runner</b>: it asks the extension for each code file (a <code>loadNative</code> message, as it asks
+      for an imported project). The extension asks the language server (<code>spell/codeFile</code>), which reads the
+      file (the open editor's text if it's open) and takes its types out with the same
+      <code>codeFileAsJavascript()</code>.
+      <ul>
+        <li>So the extension needs no page server and no esbuild of its own.</li>
+      </ul>
+    </li>
+  </ul>
+</epic-field>
