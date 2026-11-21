@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><ui-chart>: analysis</title>
+    <meta name="description" content="Details:  <ui-chart>: analysis" />
+    <link rel="stylesheet" href="/_epic/assets/spell-doc.css" />
+  </head>
+  <body class="spell-doc-page spell-details-page">
+    <ui-root>
+      <ui-components source="/_epic/pack/epics.pack.js"></ui-components>
+      <spell-site-header></spell-site-header>
+      <div class="spell-doc">
+        <main class="spell-doc-main">
+          <ui-breadcrumbs class="spell-crumbs" size="small" aria-label="Breadcrumb">
+            <ui-breadcrumb link="/pages/index.html" target="src-packages-docs-index-html">Spell Epic</ui-breadcrumb>
+            <ui-breadcrumb selected>&lt;ui-chart&gt;: analysis</ui-breadcrumb>
+          </ui-breadcrumbs>
+          <ui-sticky class="spell-h1"
+            ><header class="spell-page-head">
+              <h1>&lt;ui-chart&gt;: analysis</h1>
+              <epic-send></epic-send></header
+          ></ui-sticky>
+          <p class="lede">
+            What <code>&lt;ui-chart&gt;</code> should be: one element that draws a chart from data, with Plotly and d3
+            both working, and the choices that need you before it is planned.
+          </p>
+          <div class="spell-details-meta">
+            <epic-field label="Asked by" data-details-by
+              >session <code>solid-2-final-chart-move</code>, moving the chart work out of epic
+              <code>solid-2-final</code></epic-field
+            >
+            <epic-field label="Asked" data-details-asked>2026-11-20</epic-field>
+          </div>
+
+          <ui-message class="spell-where" state="info" heading="Where we are">
+            <epic-field label="Epic"
+              ><code>ui-chart</code> -- a future epic: a chart element that works with Plotly and d3.</epic-field
+            >
+            <epic-field label="Just now"
+              >The chart analysis moved here from the Solid 2 epic's Web performance page, on 2026-11-20. It is
+              rewritten to assume the shared server drawing (Mermaid, coloured code) is already built.</epic-field
+            >
+            <epic-field label="This decides"
+              >What the chart element depends on and how much it grows. Answering shapes the plan, later.</epic-field
+            >
+          </ui-message>
+
+          <ui-message state="success" heading="Already decided">
+            <p>
+              <b>The default engine is Observable Plot.</b> You picked it on the Web performance page, 2026-11-20
+              (recorded as decision D1 here). It is not asked again.
+            </p>
+          </ui-message>
+
+          <ui-section id="context" label="1. Context" sticky collapsible dividing>
+            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+            <p>
+              You want a <code>&lt;ui-chart&gt;</code> soon, working with Plotly and d3, each possibly drawn on the
+              server. The full write-up, with every measurement, is
+              <a href="/epics/ui-chart/research/ui-chart.md" target="src-epics-ui-chart-research-ui-chart-md"
+                >the research note</a
+              >.
+            </p>
+            <p>
+              <b>What it uses, and does not build:</b> a shared way of drawing on the server already exists (assumed
+              done). Mermaid and coloured code use it. It turns text into a drawing, keeps the drawing by a hash of what
+              made it, and puts it in the page inside the element's Declarative Shadow DOM, which is kept when the
+              element starts. The chart adds three drawers to it and nothing more.
+            </p>
+            <ul>
+              <li>
+                <b>One element that takes a chart as data:</b> a spec and rows, in one of a few chart languages
+                (<code>engine</code>): Observable Plot by default (decided), Plotly for Plotly's figures (the same JSON
+                Python writes), and a d3 module of your own that gets the rows and size and returns a drawing.
+              </li>
+              <li>
+                <b>Plotly can't draw in node:</b> it failed at load without a real browser, so on the server it uses the
+                shared mechanism's headless browser. d3, Plot, ECharts and Vega all drew in node with no browser.
+              </li>
+              <li>
+                <b>Hover needs no library:</b> the server's drawing carries each mark's row, and a small Spell UI layer
+                (3-5 KB, estimated) shows tooltips, moves by keyboard and fires events. Only zoom, pan and redrawing
+                load the library.
+              </li>
+              <li>
+                <b>Accessible:</b> a required label, a description, the data as a table under a "Show the data" fold,
+                and arrow keys from mark to mark, each announced.
+              </li>
+              <li>
+                <b>Light and dark:</b> drawn with fixed placeholder colours, then each rewritten to a Spell UI token, so
+                a drawing follows the page with no redraw (to check in a browser per engine).
+              </li>
+            </ul>
+
+            <ui-section id="chart-modes" label="1.1 The three ways it draws" sticky collapsible dividing open="false">
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Way</th>
+                      <th>Where</th>
+                      <th>One Plotly chart downloads</th>
+                      <th>One Plot chart</th>
+                      <th>One d3 chart</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>(a) server drawing only</td>
+                      <td>docs, epic pages, READMEs, static exports, shared links</td>
+                      <td>the drawing, ~3-15 KB brotli (estimated)</td>
+                      <td>~1-5 KB (estimated)</td>
+                      <td>the drawing</td>
+                    </tr>
+                    <tr>
+                      <td>(b) server drawing, live on first touch (the default)</td>
+                      <td>every page with charts</td>
+                      <td>+ the hover layer; on zoom 325 (basic) to 1,092 KB (full)</td>
+                      <td>+ the layer; on redraw 80 KB</td>
+                      <td>+ the layer; on redraw 21-30 KB and your module</td>
+                    </tr>
+                    <tr>
+                      <td>(c) drawn in the page</td>
+                      <td>the editor, live data, charts that change as you type</td>
+                      <td>325-1,092 KB</td>
+                      <td>80 KB</td>
+                      <td>21-30 KB and your module</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>Measured drawings: d3's line chart 3.0 KB, Plot's 2.2 KB, ECharts' 4.2 KB, before compression.</li>
+                <li>
+                  d3 and Plot draw in the server's own process in milliseconds (estimated); Plotly in the shared
+                  headless Chromium, ~50-300 ms each when warm (estimated), then cached.
+                </li>
+                <li>
+                  Cached by the engine and its version, the spec, a hash of the rows, the size and the language: not the
+                  theme, since the drawing uses tokens.
+                </li>
+                <li>
+                  A Python (Quart) app: Plotly through Kaleido (which needs Chrome installed), or the page draws it, or
+                  a page server beside it does. Vega-Lite would draw in Python with no browser at all: a reason to add
+                  it later.
+                </li>
+              </ul>
+              <epic-text-box for="chart-modes"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="chart-engines" label="1.2 The libraries" sticky collapsible dividing open="false">
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Library</th>
+                      <th>Brotli</th>
+                      <th>Draws on the server</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Plotly.js 4.3, full / cartesian / basic</td>
+                      <td>1,092 / 405 / 325 KB</td>
+                      <td>only in a browser</td>
+                      <td>hover, zoom, pan built in; weak accessibility (inferred)</td>
+                    </tr>
+                    <tr>
+                      <td>d3 7.9, whole / a line or bar chart's parts / plus zoom</td>
+                      <td>76 / 21 / 30 KB</td>
+                      <td>yes</td>
+                      <td>already in the install, under Mermaid</td>
+                    </tr>
+                    <tr>
+                      <td>Observable Plot 0.6 (with its d3)</td>
+                      <td>80 KB</td>
+                      <td>yes</td>
+                      <td>made for static drawings; labels and descriptions per chart and mark; tooltips, no zoom</td>
+                    </tr>
+                    <tr>
+                      <td>Vega + Vega-Lite</td>
+                      <td>237 KB</td>
+                      <td>yes, even from Python or Rust with no browser</td>
+                      <td>the strongest Python story; a later engine</td>
+                    </tr>
+                    <tr>
+                      <td>ECharts 6.1, full / a subset / its 1 KB server client</td>
+                      <td>292 / 156 / 1 KB</td>
+                      <td>yes, with no page at all</td>
+                      <td>named, not built in</td>
+                    </tr>
+                    <tr>
+                      <td>uPlot / Chart.js</td>
+                      <td>19 / 60 KB</td>
+                      <td>no: canvas only</td>
+                      <td>uPlot for 100,000-point live series, maybe later; Chart.js no</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <p>
+                For scale: Mermaid's lazy piece is 1,186 KB brotli, Solid itself 35 KB. On a phone, the full Plotly
+                bundle costs more to parse than to fetch (inferred).
+              </p>
+              <epic-text-box for="chart-engines"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="chart-deps" label="1.3 Risks, effort" sticky collapsible dividing open="false">
+              <p><b>Risks:</b></p>
+              <ol>
+                <li>
+                  The headless browser (shared with Mermaid): ~100-200 MB and a second or two to start (estimated).
+                </li>
+                <li>Labels drawn on the server may sit a little differently from the page's font (inferred).</li>
+                <li>A server drawing scales as a whole, so a narrow phone shrinks its labels.</li>
+                <li>
+                  Any page that goes fully live with Plotly pays 325-1,092 KB brotli; the hover layer exists so most
+                  never do.
+                </li>
+                <li>
+                  The colour pass needs every engine to pass placeholder colours through untouched: check per engine.
+                </li>
+              </ol>
+              <p>
+                <b>Effort</b> (estimated): the three drawers on the shared mechanism, S-M; the element with Plot, its
+                English and Spanish vocabulary (Spanish <code>&lt;es-grafico&gt;</code>, which takes "gráfico" from the
+                Mermaid element's other names), tokens, table and docs page, M; the hover layer, S-M; the Plotly engine,
+                S-M; the d3 engine, S.
+              </p>
+              <p>
+                <b>A Spell phrase for charts</b> (<code>show sales as a bar chart of total by month</code>) is a
+                proposal only, with four ambiguities written up in the research note ("by", "of", "total", "over"):
+                nothing is built without your OK on each.
+              </p>
+              <epic-text-box for="chart-deps"></epic-text-box>
+            </ui-section>
+            <epic-text-box for="context"></epic-text-box>
+          </ui-section>
+
+          <ui-section id="q1" label="Q1 · Which dependencies to add?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask multiple>
+              <epic-question>
+                <p>
+                  The chart needs libraries the kit doesn't depend on directly today. Which are you happy to add? Tick
+                  every one you OK; none is added without it. (Spell asks before adding any dependency.)
+                </p>
+              </epic-question>
+              <epic-choices>
+                <epic-option letter="A" title="Observable Plot" recommended>
+                  <p>
+                    ISC licence. The default engine you picked: a lazy piece in the page, and the server's in-process
+                    drawer.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="d3 and its modules" recommended>
+                  <p>
+                    ISC licence. Direct dependencies: in the install today only under Mermaid, so they could change
+                    under us.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="Plotly.js" recommended>
+                  <p>MIT licence. A partial bundle (325-405 KB) or the full one (1,092 KB), always loaded lazily.</p>
+                </epic-option>
+                <epic-option letter="D" title="Playwright at run time">
+                  <p>
+                    For the headless drawer Plotly needs. Probably already there for Mermaid, as an optional extra so
+                    the published <code>spell</code> package stays lean.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q2" label="Q2 · Plotly on the server?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question>
+                <p>Plotly can't draw without a real browser. How should a Plotly chart get its server drawing?</p>
+              </epic-question>
+              <epic-choices>
+                <epic-option letter="A" title="The shared headless browser" recommended>
+                  <p>
+                    The one headless Chromium the page server already keeps for Mermaid draws it, cached by hash. Costs
+                    a second or two on the first drawing.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Never on the server">
+                  <p>
+                    Plotly charts always draw in the page, lazily. No headless browser, but the page pays 325-1,092 KB
+                    and shows nothing until it loads.
+                  </p>
+                </epic-option>
+                <epic-option letter="C" title="Kaleido, for the Python app only">
+                  <p>
+                    Python's Plotly export, which needs Chrome installed, for the Quart app. The page server still uses
+                    A.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q3" label="Q3 · Hover on a server-drawn chart?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question>
+                <p>A chart drawn on the server is a picture until a library takes over. What should hovering it do?</p>
+              </epic-question>
+              <epic-choices>
+                <epic-option letter="A" title="Spell UI's own layer" recommended>
+                  <p>
+                    Tooltips, keyboard and events with no library (3-5 KB, estimated). The library loads only for zoom,
+                    pan or redraw.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="Load the library on first hover">
+                  <p>Simplest to build. The first hover waits for the library: up to 1,092 KB for Plotly.</p>
+                </epic-option>
+                <epic-option letter="C" title="No hover until live">
+                  <p>Charts are pictures until something makes them live. Smallest, least useful.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q4" label="Q4 · A second chart language later?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question>
+                <p>Beyond Plot, Plotly and d3, which other engine should the plan make room for?</p>
+              </epic-question>
+              <epic-choices>
+                <epic-option letter="A" title="Vega-Lite, later" recommended>
+                  <p>
+                    The strongest Python story (Altair writes it, it draws with no browser). 237 KB in the page. Only
+                    room for it now.
+                  </p>
+                </epic-option>
+                <epic-option letter="B" title="None">
+                  <p>Plot, Plotly and d3 only.</p>
+                </epic-option>
+                <epic-option letter="C" title="ECharts, later">
+                  <p>
+                    The best "server drawing plus tiny client" story, but 156-292 KB to go fully live and a third spec
+                    language.
+                  </p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <epic-text-box type="notes"></epic-text-box>
+          <!-- no footer:  the notes are the page's bottom;  the date is up top ("Asked") -->
+        </main>
+      </div>
+    </ui-root>
+    <script src="/_epic/assets/highlight.min.js"></script>
+    <script src="/_epic/assets/spell-ui.js"></script>
+  </body>
+</html>
