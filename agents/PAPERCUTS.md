@@ -1045,6 +1045,10 @@ One section per package, oldest first.  Entries before 2026-09-30 are from when 
 
 ## app
 
+- 2026-11-20 · `yarn build:element` fails on branch `from-console` (5 behind main, same file on main):  "spell/ui/components/ui-theme-editor/ThemeTokens
+  can't come from spell-solid.js / ... see sharedSolid()" -- `SiteThemes.ts`'s dynamic import of `ThemeTokens`
+  (commit d7a51fd2b).  So no fresh `dist-element/` to check `<spell-viewer>` on a real page. · not fixed:  checked
+  `<spell-viewer>` in the app:browser tests instead (epic `from-jarvis` J110). · app
 - 2026-11-19 · A worktree's editor started on port 3000 (`--strictPort`) and wrote `localhost:3000` into its
   `.spell-server.editor.json`, while main's vite held 127.0.0.1:3000:  the worktree's bound `*:3000`, so both bound,
   and `localhost` reached MAIN's editor.  Probes and the integration tests ran against main's code (new Design UI
