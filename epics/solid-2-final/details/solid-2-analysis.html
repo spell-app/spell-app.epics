@@ -10460,7 +10460,441 @@ function mayWrite(tracker: Tracker, name: string): boolean {
             </ui-section>
           </ui-section>
 
-          <ui-section id="sources" label="10. Sources" sticky collapsible dividing open="false">
+          <ui-section
+            id="reactivescript"
+            label="10. ReactiveScript: what to take"
+            sticky
+            collapsible
+            dividing
+            open="false"
+          >
+            <ui-icon slot="icon" name="lightbulb"></ui-icon>
+            <p>
+              Your question: "Check this out -- anything we can steal?" about
+              <a href="https://reactivescript.dev/">reactivescript.dev</a>. Read: its site, its whole repo (guide, spec,
+              compiler, its AI tests and open issues), and Solid's Vite plugin docs. The notes:
+              <a href="../research/reactivescript.md">reactivescript.md</a>.
+            </p>
+            <ui-message state="positive" heading="The short answer">
+              <ul>
+                <li>
+                  <b>What it is:</b> a small language by Solid's own author, Ryan Carniato, that compiles to plain Solid
+                  2. Its point is a checker that refuses Solid's common mistakes before the code runs.
+                </li>
+                <li>
+                  <b>The best thing to take:</b> the door it uses. Solid's build tool takes a compiler per file ending;
+                  a <code>.spell</code> one would put Spell's views into any Solid app.
+                </li>
+                <li>
+                  <b>The best lesson:</b> holding every change in an action until it ends broke "clear the box now" for
+                  their testers. We're about to run Spell's actions inside Solid's actions (Q5), so we should decide
+                  this first (Q9).
+                </li>
+                <li>
+                  <b>Not to take:</b> its rule that a value reads OLD right after you change it. Spell promises the
+                  opposite.
+                </li>
+              </ul>
+            </ui-message>
+
+            <ui-section id="rx-what" label="10.1 What it is" sticky collapsible dividing open="false">
+              <ul>
+                <li>
+                  <b>A language for Solid programmers:</b> TypeScript's expressions and JSX, plus a few words for what
+                  changes. Files end in <code>.rx</code>.
+                </li>
+                <li>
+                  <b>Who and how far along:</b> Ryan Carniato, in Solid's own GitHub group, free to use (MIT). Started
+                  21 October; version 0.3.1 on npm. Claude wrote most of it (293 commits to Ryan's 108). Called
+                  "experimental".
+                </li>
+                <li>
+                  <b>Its tools:</b> a VS Code extension, a language server, a TypeScript check for builds, a tree-sitter
+                  grammar, and built-in support in Solid's Vite plugin. No online playground.
+                </li>
+              </ul>
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>It writes</th>
+                      <th>What it means</th>
+                      <th>The Solid it becomes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>source count := 0</code></td>
+                      <td>a value that changes; only this kind can be changed</td>
+                      <td>a signal, or a store</td>
+                    </tr>
+                    <tr>
+                      <td><code>double = count * 2</code></td>
+                      <td>always true; changing it is an error</td>
+                      <td>a memo</td>
+                    </tr>
+                    <tr>
+                      <td><code>user = await fetchUser(id)</code></td>
+                      <td>asked again when <code>id</code> changes; an old answer is thrown away</td>
+                      <td>an async memo</td>
+                    </tr>
+                    <tr>
+                      <td><code>action save() { ... }</code></td>
+                      <td>all its changes land together, when it ends</td>
+                      <td>Solid's <code>action()</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>guess likes := likes + 1</code></td>
+                      <td>shown now, taken back if the save fails</td>
+                      <td>an optimistic signal</td>
+                    </tr>
+                    <tr>
+                      <td><code>pending? x</code>, <code>latest x</code></td>
+                      <td>is a new answer on its way; what it's moving to</td>
+                      <td><code>isPending</code>, <code>latest</code></td>
+                    </tr>
+                    <tr>
+                      <td><code>{loading fallback {...} {...}}</code></td>
+                      <td>what to show while waiting, and when it fails</td>
+                      <td><code>&lt;Loading&gt;</code>, <code>&lt;Errored&gt;</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  <b>Changes land at the end of a click.</b> After <code>count := 1</code>, reading
+                  <code>count</code> in the same click still gives the old value. This is Solid 2's own behaviour, made
+                  a rule.
+                </li>
+                <li>
+                  <b>The screen waits for loading work.</b> A click that changes the page number holds every change of
+                  that click until the new page has loaded.
+                </li>
+                <li>
+                  <b>The checker refuses mistakes:</b> changing a worked-out value, or showing something that can fail
+                  with nothing saying what to show when it does. Each error names its rule and a page with the fix.
+                </li>
+                <li>
+                  <b>It compiles a whole program at once</b>, from its first file, through Solid's own compiler, onto a
+                  small layer over Solid that adds nothing at run time.
+                </li>
+                <li>
+                  <b>Does it work for AIs?</b> Their own tests are mixed. On the task its guide was written around it
+                  had the fewest bugs of six ways to build an app; on a task held back for testing, among the most.
+                  Agents also used 2.4 times React's tokens to learn it.
+                </li>
+              </ul>
+              <epic-text-box for="rx-what"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="rx-side" label="10.2 Side by side with Spell" sticky collapsible dividing open="false">
+              <p>The same counter. The Spell was compiled for real; note what each prints right after the change.</p>
+              <ui-accordion class="spell-code" appearance="styled"
+                ><ui-title>ReactiveScript · prints the OLD count</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">export default component Counter() {
+  source count := 0
+  double = count * 2
+  &lt;button onClick={() =&gt; { count := count + 1; log(count) }}&gt;{count} × 2 = {double}&lt;/button&gt;
+}</code></pre>
+                </ui-content></ui-accordion
+              >
+              <ui-accordion class="spell-code" appearance="styled"
+                ><ui-title>Spell · prints the NEW count</ui-title
+                ><ui-content>
+                  <pre><code class="language-text">a "counter" is a view
+	its "count" is a number
+	its "doubled" is its count * 2
+	to increment it
+		set its count to its count + 1
+		print its count
+	to "draw it"
+		&lt;button onClick={increment it}&gt;{its count} x 2 = {its doubled}&lt;/button&gt;</code></pre>
+                </ui-content></ui-accordion
+              >
+              <ui-accordion class="spell-code" appearance="styled"
+                ><ui-title>What Spell compiles it to (trimmed) · a class and a custom element</ui-title
+                ><ui-content>
+                  <pre><code class="language-js">export class Counter extends View {
+  static elementTag = core.defineElement(this, "tally")
+  get count() { return this.getProp("count") }
+  set count(value) { this.setProp("count", value) }
+  get doubled() { return this.count * 2 }
+  increment() {
+    this.count = this.count + 1
+    core.console.log(this.count)
+  }
+  draw() {
+    return h("ui-button", { onClick: core.pressed(this, () =&gt; this.increment()) },
+      () =&gt; this.count, " x 2 = ", () =&gt; this.doubled)
+  }
+}</code></pre>
+                </ui-content></ui-accordion
+              >
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Feature</th>
+                      <th>ReactiveScript</th>
+                      <th>Spell today</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Values that change</td>
+                      <td>only a <code>source</code>, only in clicks, actions and effects</td>
+                      <td>any property, <code>set ... to</code>, anywhere</td>
+                    </tr>
+                    <tr>
+                      <td>Reading right after a change</td>
+                      <td>the old value</td>
+                      <td>the new value</td>
+                    </tr>
+                    <tr>
+                      <td>Worked-out values</td>
+                      <td>equations</td>
+                      <td>worked-out properties</td>
+                    </tr>
+                    <tr>
+                      <td>Reacting to a change</td>
+                      <td><code>effect (a, b) { ... }</code></td>
+                      <td><code>when its score changes</code>, <code>when someone else changes it</code></td>
+                    </tr>
+                    <tr>
+                      <td>Waiting and failing</td>
+                      <td>boundaries, required by the checker</td>
+                      <td>
+                        no word needed; <code>while waiting</code>, <code>if that fails</code>,
+                        <code>if there are none</code>, or a <code>&lt;for&gt;</code> tag that draws all three
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>"Is it updating?"</td>
+                      <td><code>pending?</code>, <code>latest</code></td>
+                      <td>no word yet</td>
+                    </tr>
+                    <tr>
+                      <td>Lists</td>
+                      <td><code>{for x in xs {...}}</code>, keyed by a field</td>
+                      <td><code>for recipe in the matches</code>; things are their own keys</td>
+                    </tr>
+                    <tr>
+                      <td>Components</td>
+                      <td>functions with JSX</td>
+                      <td>views; each is its own custom element</td>
+                    </tr>
+                    <tr>
+                      <td>Events</td>
+                      <td>JSX handlers</td>
+                      <td><code>&lt;on click&gt;</code>, <code>send</code> up a chain, <code>trigger</code></td>
+                    </tr>
+                    <tr>
+                      <td>Actions</td>
+                      <td>one change across its waits; <code>guess</code>, <code>refresh</code></td>
+                      <td>
+                        waits found by the compiler, no word; <code>at the same time</code>, <code>meanwhile</code>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Showing a save before it's done</td>
+                      <td><code>guess</code>, written per action</td>
+                      <td>places do it by themselves, and keep it on the device until the server agrees</td>
+                    </tr>
+                    <tr>
+                      <td>Server and rendering</td>
+                      <td>server functions, streamed rendering</td>
+                      <td>places, a Python target, a static render for search engines</td>
+                    </tr>
+                    <tr>
+                      <td>Types</td>
+                      <td>TypeScript's</td>
+                      <td>Spell's own words, plus a TypeScript target</td>
+                    </tr>
+                    <tr>
+                      <td>Errors</td>
+                      <td>a code, a rule and a fix page each</td>
+                      <td>file, line and column; no codes</td>
+                    </tr>
+                    <tr>
+                      <td>Tools</td>
+                      <td>VS Code, language server, Vite built in</td>
+                      <td>VS Code, language server, the editor app, Spanish</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <epic-text-box for="rx-side"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="rx-steal" label="10.3 What to take, ranked" sticky collapsible dividing open="false">
+              <ui-table celled padding="compact" appearance="striped" unstackable>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Take</th>
+                      <th>What it gives Spell's people</th>
+                      <th>Where it would go</th>
+                      <th>Effort</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>1</td>
+                      <td>A <code>.spell</code> compiler for Solid's Vite plugin</td>
+                      <td>Spell views inside any Solid app, reloading as you edit (10.4)</td>
+                      <td>
+                        grown from the editor's own
+                        <code title="app/app/vite.shared.ts">compiledSpell()</code>
+                      </td>
+                      <td>M</td>
+                    </tr>
+                    <tr>
+                      <td>2</td>
+                      <td>A code on every error, and a page with the fix</td>
+                      <td>someone stuck on an error is told why, and what to write instead</td>
+                      <td>
+                        <code title="parser/src/spell/SpellWarnings.ts">SpellWarnings</code>, the language server's
+                        hover, <code>spell lint</code>; English and Spanish
+                      </td>
+                      <td>S to M</td>
+                    </tr>
+                    <tr>
+                      <td>3</td>
+                      <td>Decide which changes in a waiting action show at once</td>
+                      <td>"clear the box, close the menu" keeps working once actions hold the screen</td>
+                      <td>Q5's build, this epic (Q9)</td>
+                      <td>S to decide</td>
+                    </tr>
+                    <tr>
+                      <td>4</td>
+                      <td>A warning for a drawing that shows something that can fail, with nothing for when it does</td>
+                      <td>no blank where a server's answer failed</td>
+                      <td>the compiler, which already knows which reads reach a place</td>
+                      <td>M</td>
+                    </tr>
+                    <tr>
+                      <td>5</td>
+                      <td>Timing tests: clicks and answers in a set order, the screen after each</td>
+                      <td>proof that Option B and held actions show the right thing, whatever arrives first</td>
+                      <td>core's tests; Spell's own English tests as the program</td>
+                      <td>M</td>
+                    </tr>
+                    <tr>
+                      <td>6</td>
+                      <td>A test of how well AIs write Spell, against React</td>
+                      <td>a number for "AIs write Spell well"</td>
+                      <td>its own epic</td>
+                      <td>M to L</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </ui-table>
+              <ul>
+                <li>
+                  <b>None of these clashes with what's decided:</b> trackers on Solid signals with the guard (Q7),
+                  actions inside Solid's <code>action()</code> (Q5), nested JSON through trackers (Q6).
+                </li>
+                <li>
+                  <b>Item 3 sharpens Q5.</b> Their testers' first finding: when every change waits for the action's end,
+                  "clear the old error at once" stops working, and 3 of 9 fell back to counting requests by hand.
+                </li>
+                <li>
+                  <b>Item 4 needs no new words:</b> <code>if that fails</code> exists. It warns; it never refuses.
+                </li>
+              </ul>
+              <ui-message state="warning" heading="Smaller, and one would need a new phrase">
+                <ul>
+                  <li>
+                    <b>A word for "updating":</b> show that a new answer is coming without hiding the old one. A NEW
+                    Spell phrase, a PROPOSAL only, e.g. <code>if the matches are updating</code>. It could be misread:
+                    "updating" against a first load, and against a property someone named <code>updating</code>.
+                  </li>
+                  <li>Declaring a Solid library once, so programs can use Solid Primitives (M).</li>
+                  <li>A tree-sitter grammar, so GitHub and Zed colour <code>.spell</code> (S to M).</li>
+                </ul>
+              </ui-message>
+              <epic-text-box for="rx-steal"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="rx-vite" label="10.4 Spell in Solid's Vite plugin" sticky collapsible dividing open="false">
+              <p>
+                Solid's Vite plugin takes a compiler per file ending. <code>.rx</code> is built in; anyone else's goes
+                in with one line, and Solid then runs its own build passes on the result.
+              </p>
+              <ui-accordion class="spell-code" appearance="styled"
+                ><ui-title>A Solid app's vite.config, with Spell plugged in · 3 lines</ui-title
+                ><ui-content>
+                  <pre><code class="language-ts">import spell from "spell/vite"   // inferred name
+
+export default { plugins: [solid({ frontends: { ".spell": spell() } })] }</code></pre>
+                </ui-content></ui-accordion
+              >
+              <p>What it would take, in the order a <code>.spell</code> file travels:</p>
+              <ol>
+                <li>
+                  <b>Find its project and compile it whole.</b> A Spell type takes members from every file, so one file
+                  can't compile alone. ReactiveScript does the same: about 120 lines.
+                </li>
+                <li>
+                  <b>Hand back a module, not text.</b> The editor's <code>compiledSpell()</code> already compiles
+                  <code>.spell</code> inside Vite, but returns the code as text for its own runner.
+                </li>
+                <li><b>Run on the app's Solid.</b> Spell's runtime must use the host app's one copy of Solid.</li>
+                <li><b>Errors and source maps</b> pointing at <code>.spell</code> lines; none today (inferred).</li>
+                <li>
+                  <b>Reloading:</b> a full reload of the project first. Solid's finer reload is for components; Spell's
+                  views are classes. ReactiveScript's own is "untested".
+                </li>
+              </ol>
+              <ul>
+                <li>
+                  <b>What it gives:</b> <code>import { Counter } from "./Counter.spell"</code> in a Solid app, and
+                  <code>&lt;tally-counter&gt;</code> in its pages; Vite's reload; Solid's build passes.
+                </li>
+                <li>
+                  <b>For the listing:</b> a plugin Solid's people can try in a minute, through the same door Solid's
+                  author opened for his own language. It belongs after Spell UI installs in a Solid 2 app (Q2), so not
+                  before 1 December.
+                </li>
+              </ul>
+              <epic-text-box for="rx-vite"></epic-text-box>
+            </ui-section>
+
+            <ui-section id="rx-avoid" label="10.5 What to avoid" sticky collapsible dividing open="false">
+              <ul>
+                <li>
+                  <b>Reading old values right after a change.</b> Spell's <code>set x to 1</code>, then
+                  <code>print x</code>, prints 1. Keep it.
+                </li>
+                <li>
+                  <b>Holding the whole screen for any loading work.</b> Their open issues show changes waiting on
+                  unrelated actions, and the task they held back for testing went worst for them.
+                </li>
+                <li>
+                  <b>Refusing to compile where a default would do.</b> Spell's <code>&lt;for&gt;</code> already draws a
+                  loader, Try again and an empty message. Warn; don't refuse.
+                </li>
+                <li>
+                  <b>Making authors keep lists of unsaved changes.</b> Their guide spends pages warning against it.
+                  Spell's places already do it underneath.
+                </li>
+                <li>
+                  <b>A long spec as the way in.</b> 35,000 words of numbered rules; their agents needed 2.4 times
+                  React's tokens.
+                </li>
+                <li>
+                  <b>Trusting Solid's newest optimistic and keyed-list code untested.</b> Their tests found five Solid
+                  bugs there this month.
+                </li>
+              </ul>
+              <epic-text-box for="rx-avoid"></epic-text-box>
+            </ui-section>
+          </ui-section>
+
+          <ui-section id="sources" label="11. Sources" sticky collapsible dividing open="false">
             <ui-icon slot="icon" name="book"></ui-icon>
             <h4>The research notes behind this page</h4>
             <ui-items class="spell-sources" divided>
@@ -10519,9 +10953,24 @@ function mayWrite(tracker: Tracker, name: string): boolean {
                   ></ui-content
                 ></ui-item
               >
+              <ui-item
+                ><ui-content
+                  ><ui-header><a href="../research/reactivescript.md">reactivescript.md</a></ui-header
+                  ><ui-description
+                    >Section 10: ReactiveScript's words, how it compiles, its checker, its AI tests, its open issues;
+                    side by side with Spell; what to take; Spell in Solid's Vite plugin.</ui-description
+                  ></ui-content
+                ></ui-item
+              >
             </ui-items>
             <h4>Outside</h4>
             <ul>
+              <li>
+                ReactiveScript: <a href="https://reactivescript.dev/">reactivescript.dev</a>, its repo
+                <a href="https://github.com/solidjs/reactivescript">solidjs/reactivescript</a>, and Solid's
+                <a href="https://docs.solidjs.com/reference/vite-plugin-solid/options">Vite plugin options</a>
+                (<code>frontends</code>)
+              </li>
               <li>
                 Solid's docs, as its own agent corpus: <a href="https://docs.solidjs.com/llms.txt">llms.txt</a>,
                 <a href="https://docs.solidjs.com/llms-small.txt">llms-small.txt</a>,
@@ -10839,6 +11288,71 @@ function mayWrite(tracker: Tracker, name: string): boolean {
                 </epic-option>
                 <epic-option letter="C" title="A only">
                   <p>Keep the bridge; leave B for good.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q8" label="Q8 · A .spell compiler for Solid's Vite plugin?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  Solid's Vite plugin takes a compiler per file ending, as ReactiveScript's <code>.rx</code> does. A
+                  <code>.spell</code> one would let any Solid app import Spell views (10.4). When should we build it?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="After Spell UI installs in a Solid 2 app" recommended>
+                  <p>
+                    One listing then shows both: Spell UI, and Spell itself as a plugin. About a medium-sized job, after
+                    the listing work Q2 picked.
+                  </p>
+                  <epic-aside title="Details"
+                    ><ul>
+                      <li>Grown from the editor's own Vite plugin, which already compiles <code>.spell</code>.</li>
+                      <li>A full reload on edit at first; finer reloading later.</li>
+                    </ul></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="In this epic">
+                  <p>Before the listing; adds a medium-sized job to the move to Solid 2.</p>
+                </epic-option>
+                <epic-option letter="C" title="Not for now">
+                  <p>Spell runs only in its own editor and built sites, as today.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q9" label="Q9 · Inside a waiting action, what shows at once?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  On Q5 you picked running Spell's actions inside Solid's actions in this epic, so the screen holds
+                  until an action ends. ReactiveScript holds every change, and its testers then couldn't "clear the box
+                  now" (10.3). Which changes should show at once?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="Changes before the action's first wait show at once" recommended>
+                  <p>
+                    Clearing a box or closing a menu happens first in most actions, so it shows now; what follows the
+                    wait lands together at the end. No new words.
+                  </p>
+                  <epic-aside title="Details"
+                    ><ul>
+                      <li>The compiler already knows where an action first waits.</li>
+                      <li>The program still reads its own changes at once, either way.</li>
+                    </ul></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title='Everything at the end, plus a phrase for "show now"'>
+                  <p>As ReactiveScript does. Needs a NEW Spell phrase, to be proposed and okayed first.</p>
+                </epic-option>
+                <epic-option letter="C" title="Everything at the end, no exceptions">
+                  <p>Simplest; the box clears only when the save is done.</p>
                 </epic-option>
               </epic-choices>
             </epic-ask>
