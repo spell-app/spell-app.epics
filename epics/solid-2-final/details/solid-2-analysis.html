@@ -10123,6 +10123,341 @@ async def list_rows(name: str):
               </ui-message>
               <epic-text-box for="cells-plan"></epic-text-box>
             </ui-section>
+
+            <ui-section id="cells-engine-b" label="9.6 Option B, looked into" sticky collapsible dividing open="false">
+              <p>
+                Q4's option B: drop the bridge, and give each tracker (today's cell) a Solid signal of its own, as Spell
+                UI's members have. Owen asked whether the guard it needs is a burden. It isn't, and B is worth doing.
+              </p>
+              <ui-message state="positive" heading="The short answer">
+                <ul>
+                  <li>
+                    <b>The loop:</b> since Solid 2.0.0-rc.23 (16 November), a drawing that changes something it just
+                    read is run again. If it changes it to a new value every time, it runs forever.
+                  </li>
+                  <li>
+                    <b>rc.21 only looked safe:</b> it let off the last thing a drawing read, and nothing else. A drawing
+                    that reads <code>a</code>, then <code>b</code>, then changes <code>a</code> loops there too.
+                  </li>
+                  <li>
+                    <b>Spell hardly ever does it:</b> none of the 301 drawings in Spell's 598 programs changes a
+                    property, and none of parser's 6,461 tests set it off.
+                  </li>
+                  <li>
+                    <b>The guard:</b> about 60 lines, nothing measurable per change, and a drawing behaves exactly as it
+                    does today.
+                  </li>
+                  <li>
+                    <b>B with the guard:</b> 1.5 to 2.2 times quicker to draw, at about half the memory per drawn value,
+                    and programs see no difference.
+                  </li>
+                </ul>
+              </ui-message>
+
+              <ui-section id="cells-engine-b-why" label="Why it loops" collapsible dividing open="false">
+                <ul>
+                  <li>
+                    When a signal changes, Solid wakes everything that read it. Since rc.23 that includes the
+                    computation that is changing it, if it read it earlier in the same run.
+                  </li>
+                  <li>
+                    Solid's own comment says equal values stop it: a drawing that sets the same value runs twice, then
+                    rests. One that adds 1, or makes a new list, never rests.
+                  </li>
+                  <li>
+                    Today's trackers never loop: the bridge's reader ignores changes made while it runs. B drops that
+                    reader, so B needs its own guard.
+                  </li>
+                </ul>
+                <ui-accordion class="spell-code" appearance="styled"
+                  ><ui-title>The one line Solid changed, in its signal code · 6 lines</ui-title
+                  ><ui-content>
+                    <pre><code class="language-js">// rc.21:  the last thing read is let off
+if (sub._flags &amp; REACTIVE_RECOMPUTING_DEPS &amp;&amp; s._gen === sub._depGen &amp;&amp; s !== sub._depsTail)
+  sub._flags |= REACTIVE_MISSED_WAKE
+// rc.23 to 2.0.3:  ... but not when it's a plain signal (F-10)
+if (sub._flags &amp; REACTIVE_RECOMPUTING_DEPS &amp;&amp; s._gen === sub._depGen &amp;&amp; (s !== sub._depsTail || !node._fn))
+  sub._flags |= REACTIVE_MISSED_WAKE</code></pre>
+                  </ui-content></ui-accordion
+                >
+              </ui-section>
+
+              <ui-section id="cells-engine-b-guards" label="The guards, tried" collapsible dividing open="false">
+                <p>
+                  Each was run on ten small drawings against Solid 2.0.3, each in a fresh process. "Runs" counts how
+                  often the drawing's own code ran.
+                </p>
+                <ui-table celled padding="compact" appearance="striped" unstackable>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Guard</th>
+                        <th>What it does</th>
+                        <th>A drawing that adds 1</th>
+                        <th>Two drawings feeding each other</th>
+                        <th>Verdict</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>None</td>
+                        <td>B as first prototyped</td>
+                        <td>loops</td>
+                        <td>loops</td>
+                        <td><ui-label size="mini">no</ui-label></td>
+                      </tr>
+                      <tr>
+                        <td>Tell Solid later</td>
+                        <td>A change made while drawing is passed on a moment later, as Spell UI does</td>
+                        <td>runs again every moment, forever</td>
+                        <td>--</td>
+                        <td><ui-label size="mini">no</ui-label></td>
+                      </tr>
+                      <tr>
+                        <td>Solid's own options</td>
+                        <td><code>equals</code>, <code>untrack</code>, <code>ownedWrite</code></td>
+                        <td>loops: none of them can tell who made the change</td>
+                        <td>loops</td>
+                        <td><ui-label size="mini">no</ui-label></td>
+                      </tr>
+                      <tr>
+                        <td>Refuse a second change</td>
+                        <td>
+                          A computation's second change to the same tracker, before things settle, is skipped, with a
+                          warning while developing
+                        </td>
+                        <td>2 runs; its code runs twice</td>
+                        <td>stops after 4 runs, with a warning</td>
+                        <td><ui-label size="mini">backstop</ui-label></td>
+                      </tr>
+                      <tr>
+                        <td><b>Skip its own changes</b></td>
+                        <td>
+                          A drawing woken only by its own changes hands back what it drew last time, without running
+                          again: today's rule
+                        </td>
+                        <td><b>1 run, as today</b></td>
+                        <td>loops, as today</td>
+                        <td><ui-label size="mini">yes</ui-label> for drawings</td>
+                      </tr>
+                      <tr>
+                        <td>A compile error</td>
+                        <td>The compiler refuses a change written inside a drawing</td>
+                        <td>caught only when it's written right in the drawing</td>
+                        <td>--</td>
+                        <td><ui-label size="mini">extra</ui-label> a warning</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ui-table>
+                <ul>
+                  <li>
+                    <b>The pick: skip its own changes, with "refuse" as the backstop.</b> Every drawing check matched
+                    today's trackers, and two drawings feeding each other now stop: today they loop forever.
+                  </li>
+                  <li>
+                    The skip goes where Spell draws: core's <code>h()</code> and <code>drawThing()</code>. The backstop
+                    covers everything else: the editor's code, Spell UI's, the TypeScript target's JSX.
+                  </li>
+                  <li>
+                    The backstop must check before undo and places hear of a change, so they never hear of a skipped
+                    one.
+                  </li>
+                </ul>
+                <ui-accordion class="spell-code" appearance="styled"
+                  ><ui-title>Skip its own changes: the wrapper around a drawing · 26 lines</ui-title
+                  ><ui-content>
+                    <pre><code class="language-ts">/** Wrap a drawing:  woken only by its own changes, it keeps its last result, as today's trackers do. */
+export function drawn&lt;T&gt;(draw: (previous?: T) =&gt; T) {
+  let kept: (Tracker | number)[] | null = null // [tracker, version ...], only after a run that changed something
+  let last: T
+  return (previous?: T) =&gt; {
+    if (kept &amp;&amp; keptUnchanged(kept)) {
+      for (let i = 0; i &lt; kept.length; i += 2) (kept[i] as Tracker).track() // Solid keeps what it read
+      return last
+    }
+    const outer = drawing
+    const me = (drawing = { start: readList.length, wrote: false })
+    try {
+      last = draw(previous)
+    } finally {
+      drawing = outer
+    }
+    kept = null
+    if (me.wrote) {
+      // what it read, as it stands AFTER its own changes:  only someone else's change runs it again
+      kept = []
+      for (let i = me.start; i &lt; readList.length; i++) kept.push(readList[i], readList[i].refresh().version)
+    }
+    readList.length = me.start
+    return last
+  }
+}
+// tracker.track() adds to readList while a drawing runs;  tracker.changed() sets drawing.wrote</code></pre>
+                  </ui-content></ui-accordion
+                >
+                <ui-accordion class="spell-code" appearance="styled"
+                  ><ui-title>The backstop: refuse a second change · 20 lines</ui-title
+                  ><ui-content>
+                    <pre><code class="language-ts">/** Which trackers each Solid computation changed since things last settled. */
+let written: Map&lt;object, Set&lt;Tracker&gt;&gt; | null = null
+
+function mayWrite(tracker: Tracker, name: string): boolean {
+  const observer = getObserver()
+  if (!observer) return true // event handlers, actions, places:  as today
+  if (!written) {
+    written = new Map()
+    queueMicrotask(() =&gt; (written = null))
+  }
+  let mine = written.get(observer)
+  if (!mine) written.set(observer, (mine = new Set()))
+  if (!mine.has(tracker)) {
+    mine.add(tracker)
+    return true
+  }
+  if (DEV) console.warn(`${spellLine(observer)}:  this drawing changes its "${name}" every time it draws`)
+  return false
+}</code></pre>
+                  </ui-content></ui-accordion
+                >
+              </ui-section>
+
+              <ui-section
+                id="cells-engine-b-cost"
+                label="What it costs, and what else changes"
+                collapsible
+                dividing
+                open="false"
+              >
+                <p>
+                  Solid 2.0.3, production build, 20,000 things of 3 fields, the middle of 5 rounds; the machine was
+                  quiet.
+                </p>
+                <ui-table celled padding="compact" appearance="striped" unstackable>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Set up drawings</th>
+                        <th>All drawn, 200,000 changes</th>
+                        <th>Screen catching up</th>
+                        <th>A program's own work</th>
+                        <th>Bytes per drawn value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Today's trackers, bridged</td>
+                        <td>42.6 ms</td>
+                        <td>83.3 ms</td>
+                        <td>20.3 ms</td>
+                        <td>5.6 ms</td>
+                        <td>2,041</td>
+                      </tr>
+                      <tr>
+                        <td>B, no guard</td>
+                        <td>21.6</td>
+                        <td>42.9</td>
+                        <td>8.3</td>
+                        <td>4.9</td>
+                        <td>994</td>
+                      </tr>
+                      <tr>
+                        <td><b>B, with the guard</b></td>
+                        <td><b>19.8</b></td>
+                        <td><b>53.5</b></td>
+                        <td><b>13.3</b></td>
+                        <td><b>4.0</b></td>
+                        <td><b>1,106</b></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ui-table>
+                <ul>
+                  <li>
+                    A Solid computation that reads no tracker pays nothing under B: today it pays 1,339 bytes, about 786
+                    after A.
+                  </li>
+                  <li>
+                    <b>Programs:</b> still read their own changes at once, in a drawing, in an effect, inside a Solid
+                    action before and after it waits. All 13 earlier checks pass.
+                  </li>
+                  <li>
+                    <b>The Inspector, undo, places:</b> unchanged. "Worked out from" uses the trackers' own list, and
+                    undo still hears each change before it's made.
+                  </li>
+                  <li>
+                    <b>Nested data through a proxy (Q6):</b> each nested object gets trackers like any other, with the
+                    same guard.
+                  </li>
+                  <li>
+                    <b>Spell actions inside Solid's actions (Q5):</b> the same as today, measured: the program read 1,
+                    1, 1 and the screen went from <code>000</code> straight to <code>111</code>.
+                  </li>
+                  <li>
+                    <b>Less reliance on Solid's insides:</b> B drops the bridge's hook into them and uses only signals.
+                    The guard works whether Solid wakes a drawing for its own change or not: it passed on rc.21 and
+                    2.0.3.
+                  </li>
+                </ul>
+              </ui-section>
+
+              <ui-section id="cells-engine-b-verdict" label="A or B" collapsible dividing open="false">
+                <ui-table celled padding="compact" appearance="striped" unstackable>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>A: keep the bridge, make it cheaper</th>
+                        <th>B: one engine, with the guard</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Drawing speed</td>
+                        <td>today's</td>
+                        <td>1.5 to 2.2 times quicker</td>
+                      </tr>
+                      <tr>
+                        <td>Memory per drawn value</td>
+                        <td>2,041 bytes</td>
+                        <td>1,106 bytes</td>
+                      </tr>
+                      <tr>
+                        <td>What programs see</td>
+                        <td>no change</td>
+                        <td>no change</td>
+                      </tr>
+                      <tr>
+                        <td>Risk</td>
+                        <td>low; keeps Spell hooked into Solid's insides</td>
+                        <td>medium: a guard of our own; unhooks Spell from Solid's insides</td>
+                      </tr>
+                      <tr>
+                        <td>Effort</td>
+                        <td>small</td>
+                        <td>medium; medium to large with Spell UI's engine merged in</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </ui-table>
+                <ul>
+                  <li><b>The guard is not a burden.</b> B is worth doing.</li>
+                  <li>B makes A unneeded: A makes cheaper the bridge B removes.</li>
+                  <li>
+                    What could still loop: an effect that changes what it watches (as in plain Solid today), and two
+                    computations feeding each other through worked-out values, a moment apart (not tested).
+                  </li>
+                </ul>
+              </ui-section>
+              <ui-message state="info" heading="More">
+                <p>
+                  Every script, its output and the numbers:
+                  <a href="../research/engine-b.md">engine-b.md</a>, beside the cells research.
+                </p>
+              </ui-message>
+              <epic-text-box for="cells-engine-b"></epic-text-box>
+            </ui-section>
           </ui-section>
 
           <ui-section id="sources" label="10. Sources" sticky collapsible dividing open="false">
@@ -10472,6 +10807,38 @@ async def list_rows(name: str):
                 </epic-option>
                 <epic-option letter="C" title="Leave it">
                   <p>Programs keep setting a new list or object to change one.</p>
+                </epic-option>
+              </epic-choices>
+            </epic-ask>
+          </ui-section>
+
+          <ui-section id="q7" label="Q7 · Option B: build it in this epic?" sticky collapsible dividing>
+            <ui-icon slot="icon" name="circle question"></ui-icon>
+            <epic-ask>
+              <epic-question
+                ><p>
+                  On Q4 you picked both A and B. Option B's guard turned out small, and B makes A unneeded (9.6). Which
+                  should this epic build?
+                </p></epic-question
+              >
+              <epic-choices>
+                <epic-option letter="A" title="B in this epic, in place of A" recommended>
+                  <p>
+                    Trackers on Solid signals, with the guard; the bridge goes. Drawing 1.5 to 2.2 times quicker, about
+                    half the memory.
+                  </p>
+                  <epic-aside title="Details"
+                    ><ul>
+                      <li>Spell UI's engine merged in as a later phase, or its own epic.</li>
+                      <li>Plus a compiler warning for a change written inside a drawing.</li>
+                    </ul></epic-aside
+                  >
+                </epic-option>
+                <epic-option letter="B" title="A now, B as its own epic">
+                  <p>The small, safe phase first; the work on A is thrown away when B lands.</p>
+                </epic-option>
+                <epic-option letter="C" title="A only">
+                  <p>Keep the bridge; leave B for good.</p>
                 </epic-option>
               </epic-choices>
             </epic-ask>
