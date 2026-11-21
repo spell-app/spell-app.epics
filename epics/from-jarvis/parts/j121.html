@@ -1,18 +1,23 @@
 <!-- plan-doc part:  #j121's details in from-jarvis.plan.html, loaded when it opens (templates/epics/plan-doc.md, "Parts") -->
 <p>
-  I36: <code>SiteThemes</code> now takes <code>ThemeTokens</code> and <code>ThemeFile</code> from <code>spell/ui</code>,
-  the shared Spell UI a page's viewer uses.
+  I36: the viewer's site themes bundle the theme tree (<code>ThemeTokens</code>, <code>ThemeFile</code>,
+  <code>styles.en</code>), as <code>drawnWindow</code> is bundled. They take Spell UI's runtime from
+  <code>spell/ui/core</code>, not <code>spell/ui</code>.
 </p>
 <ul>
   <li>
-    <code>ThemeFile</code> is re-exported by the theme editor's barrel, beside <code>ThemeTokens</code>, which reads it.
-    The styles barrel stays pure data.
+    Taking them from the shared <code>spell-ui.js</code> was tried first. It builds, but the viewer must never load
+    <code>spell-ui.js</code>, even later (element.build's "is a root" test). <code>SiteThemes</code> already broke that
+    rule with its <code>import("spell/ui")</code>, from old-console-redo's P1.
   </li>
   <li>
-    Bundling them as leaves, like <code>drawnWindow</code>, would also work, since they hold no state. But it would copy
-    every theme and palette file, and the theme tree, into the element and runner builds, beside the shared copy.
+    Cost: <code>ThemeFile</code> and the theme tree land in <code>spell-shared.js</code>, the chunk the viewer and the
+    editor share, which is loaded up front (~50 KB of source). <code>ThemeTokens</code> and every theme and palette file
+    stay lazy.
   </li>
-  <li><code>spell/ui</code> is already loaded at that step, so it costs nothing.</li>
+  <li>
+    The test's list of Spell UI files allowed outside the shared copy names the three, beside <code>DroppedFiles</code>.
+  </li>
 </ul>
 <epic-original
   ><epic-version
@@ -24,6 +29,23 @@
       <li>
         Bundling them as leaves would also work (no state), but would copy every theme and palette file and the theme
         tree into the element and runner builds, beside the shared copy.
+      </li>
+      <li><code>spell/ui</code> is already loaded at that step, so it costs nothing.</li>
+    </ul></epic-version
+  ><epic-version as-of="2026-11-20 22:54"
+    ><p>
+      I36: <code>SiteThemes</code> now takes <code>ThemeTokens</code> and <code>ThemeFile</code> from
+      <code>spell/ui</code>, the shared Spell UI a page's viewer uses.
+    </p>
+    <ul>
+      <li>
+        <code>ThemeFile</code> is re-exported by the theme editor's barrel, beside <code>ThemeTokens</code>, which reads
+        it. The styles barrel stays pure data.
+      </li>
+      <li>
+        Bundling them as leaves, like <code>drawnWindow</code>, would also work, since they hold no state. But it would
+        copy every theme and palette file, and the theme tree, into the element and runner builds, beside the shared
+        copy.
       </li>
       <li><code>spell/ui</code> is already loaded at that step, so it costs nothing.</li>
     </ul></epic-version
