@@ -8,3 +8,36 @@
   last.natives) when the Spell program itself didn't change; or the extension or the language server keeps the file's
   javascript.
 </p>
+<epic-field label="Proposed fix">
+  <p>
+    The code file IS read afresh on every Restart: the runner asks for it again, and the program runs the new code. The
+    bug is in what VS Code's runner SHOWS.
+  </p>
+  <ul>
+    <li>
+      Cause: the runner's two copies of the runtime (one for the program, one for its tests) share ONE
+      <code>core</code>. The core's main module sits in a shared chunk, not in <code>spell-runtime.js</code>, because a
+      sample-rows file the core loads lazily (<a
+        href="/parser/src/core/placeSamples.ts"
+        target="src-parser-src-core-placesamples-ts"
+        ><code title="parser/src/core/placeSamples.ts">placeSamples</code></a
+      >) imports one helper from the checker, which drags the core in with it.
+    </li>
+    <li>
+      So when the tests' copy loads, it puts its own console on that shared core. The Output pane still shows the
+      program copy's old console: it never changes after the first run. HI! was printed, onto a console nobody shows.
+    </li>
+    <li>
+      It isn't about code files: any program's Output in VS Code's runner stops after its first run (built runners since
+      about 2026-11-01 show it; the Oct 31 build doesn't).
+    </li>
+    <li>
+      Fix: move the checker's <code>kindOf()</code> into a small file of its own that needs no core, so the lazy chunk
+      shares nothing of the core, and <code>core</code> is back in each runtime copy alone. Pin it in
+      <a href="/app/tests/app/runner/element.build.test.ts" target="src-app-tests-app-runner-element-build-test-ts"
+        ><code title="app/tests/app/runner/element.build.test.ts">element.build.test.ts</code></a
+      >: the core's own module only in <code>spell-runtime.js</code>, not just <code>resetRuntime</code>.
+    </li>
+    <li>Saving a code file: it re-runs nothing today (only a .spell save does); noted, not changed here.</li>
+  </ul>
+</epic-field>
