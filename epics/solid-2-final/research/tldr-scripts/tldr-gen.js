@@ -4,11 +4,13 @@
 // - tldr-overlay.js:  each item's key, proposed priority and dependencies;  the decided items, placed inline;
 //   the folded "Decided elsewhere" list
 // - tldr-titles.js:  each item's short title (at most 5 words)
+// - tldr-devchanges.js:  each item's "Changes to Spell development" bullets, after its description
 // It replaces the page between its lede and its notes box, and its <style id="tldr-layout"> in the head.
 const fs = require("fs")
 const groups = require("./merge.js")
 const { byIndex, decided, folded } = require("./tldr-overlay.js")
 const shortTitles = require("./tldr-titles.js")
+const devChanges = require("./tldr-devchanges.js")
 const PAGE = "/Users/owen/www/spell/spell.epics/epics/solid-2-final/details/solid-tldr.html"
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
@@ -41,6 +43,8 @@ for (const g of out)
     it.short = shortTitles[it.key]
     if (!it.short) throw new Error(`no short title for ${it.key}`)
     if (words(it.short) > 5) throw new Error(`short title over 5 words:  ${it.key}`)
+    it.dev = devChanges[it.key]
+    if (!it.dev || it.dev.length < 2 || it.dev.length > 5) throw new Error(`2-5 development changes needed for ${it.key}`)
   }
 for (const g of out)
   for (const it of g.items) for (const [k] of it.deps) if (!byKey[k]) throw new Error(`unknown dep ${k} in ${it.key}`)
@@ -53,6 +57,11 @@ out.sort((a, b) => Math.min(...a.items.map((i) => i.rank)) - Math.min(...b.items
 
 const sign = (n) => (n > 0 ? `+${n}` : `${n}`)
 const why = (w) => (w ? ` <span class="tldr-why">${esc(w)}</span>` : "")
+/** Escaped, with `backticks` as code and a leading "Removes a limit:" / "Adds a limit:" in bold. */
+const devHtml = (s) =>
+  esc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/^(Removes a limit|Adds a limit):/, "<b>$1:</b>")
 const sentence = (s) => (/[.!?]$/.test(s) ? s : `${s}.`)
 
 /** Its "how" words in order, each with the items they name:  `after #1 #3 · unblocks #7`. */
@@ -89,6 +98,10 @@ function rowHtml(it) {
     <p class="tldr-title"><b>${it.rank} · ${esc(it.short)}</b></p>
     ${decidedLine}
     <p>${longTitle}${esc(it.text)}</p>
+    <p class="tldr-dev-head"><b>Changes to Spell development</b></p>
+    <ul class="tldr-dev">
+      ${it.dev.map((d) => `<li>${devHtml(d)}</li>`).join("\n      ")}
+    </ul>
   </td>
   <td>
     <ui-section id="${id}" class="tldr-holder" label="${it.rank} · ${esc(it.short)}">
@@ -189,6 +202,17 @@ const STYLE = `<style id="tldr-layout">
       }
       .tldr-table td > p:last-child {
         margin-bottom: 0;
+      }
+      .tldr-table td > p.tldr-dev-head {
+        margin: 8px 0 2px;
+      }
+      .tldr-table ul.tldr-dev {
+        margin: 0;
+        padding-inline-start: 20px;
+      }
+      .tldr-table ul.tldr-dev > li {
+        margin: 0 0 2px;
+        max-width: none;
       }
       .tldr-table .tldr-why {
         color: var(--spell-muted, var(--ui-text-muted, #767676));
