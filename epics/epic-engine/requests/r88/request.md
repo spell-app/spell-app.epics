@@ -1,0 +1,20 @@
+---
+id: r88
+epic: epic-engine
+from: 🚧 solid-2-final (71f575d8)
+at: 2026-11-20T19:59-05:00
+status: new
+---
+
+## The person's words
+
+I'd like a "yes","no","modify","revisit" <select> for each item and a comment field for each
+
+(What the page tooling couldn't do, from this session's agent building the Solid TLDR page:)
+1. No <select>:  <epic-ask> only draws its options as full cards, so each of the page's 98 items shows 4 + 3 cards and the page reads as 46 minutes long.  Wanted:  a compact dropdown mode for <epic-ask>, still sent by the page's Send.
+2. A stuck title row overflows on a phone:  with nested sticky sections, a long sub-section title joined to its parent's title scrolled the page sideways at phone width (worked around by making item titles not sticky).
+3. The question chips number every question on the page (Q1, Q2 ...), so on a page of ranked items they don't match the items' ranks.
+
+## Context
+
+From epic solid-2-final: building epics/solid-2-final/details/solid-tldr.html, a ranked list of 98 recommendations, each with a Yes / No / Modify / Revisit pick and a Priority 1-3 pick (two <epic-ask> per item).
